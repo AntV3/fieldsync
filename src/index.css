@@ -1283,3 +1283,191 @@ input::placeholder {
     font-size: 1.3rem;
   }
 }
+
+/* ============================================
+   PDF Import Styles
+   ============================================ */
+
+.areas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.import-btn-container {
+  flex-shrink: 0;
+}
+
+.import-summary {
+  background: var(--bg-elevated);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.import-group {
+  margin-bottom: 1rem;
+}
+
+.import-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.import-group-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.import-group-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.import-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.import-task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.import-task-item:hover {
+  background: var(--border-color);
+}
+
+.import-task-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.import-task-name {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.import-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.import-actions .btn {
+  flex: 1;
+}
+
+/* Area Groups in Setup */
+.area-group {
+  margin-bottom: 1.5rem;
+}
+
+.area-group-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+/* ============================================
+   Foreman Grouped View
+   ============================================ */
+
+.foreman-group {
+  margin-bottom: 1rem;
+}
+
+.foreman-group-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+.foreman-group-header:hover {
+  border-color: var(--accent-blue);
+}
+
+.foreman-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.foreman-group-arrow {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.foreman-group-progress {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+.foreman-group-tasks {
+  margin-top: 0.5rem;
+  margin-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.foreman-group-tasks .foreman-area-card {
+  border-radius: 10px;
+}
+
+/* Mobile adjustments for grouped view */
+@media (max-width: 640px) {
+  .foreman-group-tasks {
+    margin-left: 0.5rem;
+  }
+  
+  .foreman-group-title {
+    font-size: 1rem;
+  }
+  
+  .areas-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .import-btn-container {
+    width: 100%;
+  }
+  
+  .import-btn-container .btn {
+    width: 100%;
+  }
+}

@@ -1,23 +1,30 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
+import * as pdfjsLib from 'pdfjs-dist'
+
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 
 export default function Setup({ onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
   const [contractValue, setContractValue] = useState('')
   const [pin, setPin] = useState('')
   const [areas, setAreas] = useState([
-    { name: '', weight: '' },
-    { name: '', weight: '' },
-    { name: '', weight: '' }
+    { name: '', weight: '', group: '' },
+    { name: '', weight: '', group: '' },
+    { name: '', weight: '', group: '' }
   ])
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [showImportReview, setShowImportReview] = useState(false)
+  const [importedTasks, setImportedTasks] = useState([])
+  const fileInputRef = useRef(null)
 
   const totalWeight = areas.reduce((sum, area) => {
     return sum + (parseFloat(area.weight) || 0)
   }, 0)
 
   const handlePinChange = (value) => {
-    // Only allow digits, max 4
     const cleaned = value.replace(/\D/g, '').slice(0, 4)
     setPin(cleaned)
   }
@@ -34,7 +41,7 @@ export default function Setup({ onProjectCreated, onShowToast }) {
   }
 
   const addArea = () => {
-    setAreas(prev => [...prev, { name: '', weight: '' }])
+    setAreas(prev => [...prev, { name: '', weight: '', group: '' }])
   }
 
   const removeArea = (index) => {
@@ -48,14 +55,163 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     setContractValue('')
     setPin('')
     setAreas([
-      { name: '', weight: '' },
-      { name: '', weight: '' },
-      { name: '', weight: '' }
+      { name: '', weight: '', group: '' },
+      { name: '', weight: '', group: '' },
+      { name: '', weight: '', group: '' }
     ])
+    setShowImportReview(false)
+    setImportedTasks([])
+  }
+
+  // PDF Import Functions
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const extractTextFromPDF = async (file) => {
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    let fullText = ''
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const textContent = await page.getTextContent()
+      const pageText = textContent.items.map(item => item.str).join(' ')
+      fullText += pageText + '\n'
+    }
+    
+    return fullText
+  }
+
+  const parseScope = (text) => {
+    const tasks = []
+    let currentGroup = 'General'
+    
+    // Common level/floor patterns
+    const levelPatterns = [
+      /^(Plaza Level|Street Level|Level \d+|Floor \d+|\d+(?:st|nd|rd|th) Floor|Basement|Roof|Exterior|Miscellaneous)/i,
+      /^(ABATEMENT|DEMOLITION)/i
+    ]
+    
+    // Task patterns - looking for description + quantity + unit
+    const taskPattern = /^(.+?)\s+(\d{1,3}(?:,\d{3})*|\d+)\s*(SF|LF|EA|LS|Days?|Units?)\s*$/i
+    
+    const lines = text.split(/\n|(?<=\d)\s{2,}(?=[A-Z])/)
+    
+    for (let line of lines) {
+      line = line.trim()
+      if (!line || line.length < 5) continue
+      
+      // Check for level/section headers
+      for (const pattern of levelPatterns) {
+        const match = line.match(pattern)
+        if (match) {
+          // Extract just the level name, handle "(XX,XXX SF)" suffix
+          let groupName = line.replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/, '').trim()
+          if (groupName.length > 3 && groupName.length < 50) {
+            currentGroup = groupName
+          }
+          break
+        }
+      }
+      
+      // Check for task line
+      const taskMatch = line.match(taskPattern)
+      if (taskMatch) {
+        const description = taskMatch[1].trim()
+        // Filter out header rows and non-task items
+        if (description.length > 10 && 
+            !description.match(/^(Plan|Description|Quantity|Unit|Page|Miller|www\.|Phone|Fax)/i) &&
+            !description.match(/^\d+\.\s/) // Exclude numbered conditions/exclusions
+        ) {
+          tasks.push({
+            name: description,
+            group: currentGroup,
+            selected: true
+          })
+        }
+      }
+    }
+    
+    // Deduplicate tasks (same name within same group)
+    const seen = new Set()
+    const uniqueTasks = tasks.filter(task => {
+      const key = `${task.group}:${task.name}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    
+    return uniqueTasks
+  }
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    if (file.type !== 'application/pdf') {
+      onShowToast('Please upload a PDF file', 'error')
+      return
+    }
+    
+    setImporting(true)
+    
+    try {
+      const text = await extractTextFromPDF(file)
+      const tasks = parseScope(text)
+      
+      if (tasks.length === 0) {
+        onShowToast('Could not find tasks in PDF. Try manual entry.', 'error')
+        setImporting(false)
+        return
+      }
+      
+      setImportedTasks(tasks)
+      setShowImportReview(true)
+      onShowToast(`Found ${tasks.length} tasks`, 'success')
+    } catch (error) {
+      console.error('PDF import error:', error)
+      onShowToast('Error reading PDF', 'error')
+    } finally {
+      setImporting(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const toggleTaskSelection = (index) => {
+    setImportedTasks(prev => prev.map((task, i) => 
+      i === index ? { ...task, selected: !task.selected } : task
+    ))
+  }
+
+  const handleUseImportedTasks = () => {
+    const selectedTasks = importedTasks.filter(t => t.selected)
+    if (selectedTasks.length === 0) {
+      onShowToast('Please select at least one task', 'error')
+      return
+    }
+    
+    // Calculate even weight
+    const weight = Math.round((100 / selectedTasks.length) * 100) / 100
+    
+    // Adjust last item to make total exactly 100
+    const newAreas = selectedTasks.map((task, index) => ({
+      name: task.name,
+      weight: index === selectedTasks.length - 1 
+        ? (100 - (weight * (selectedTasks.length - 1))).toFixed(2)
+        : weight.toFixed(2),
+      group: task.group
+    }))
+    
+    setAreas(newAreas)
+    setShowImportReview(false)
+    onShowToast('Tasks imported!', 'success')
   }
 
   const handleSubmit = async () => {
-    // Validation
     if (!projectName.trim()) {
       onShowToast('Please enter a project name', 'error')
       return
@@ -72,7 +228,6 @@ export default function Setup({ onProjectCreated, onShowToast }) {
       return
     }
 
-    // Check if PIN is available
     const pinAvailable = await db.isPinAvailable(pin)
     if (!pinAvailable) {
       onShowToast('This PIN is already in use. Try another.', 'error')
@@ -85,7 +240,7 @@ export default function Setup({ onProjectCreated, onShowToast }) {
       return
     }
 
-    if (totalWeight !== 100) {
+    if (Math.abs(totalWeight - 100) > 0.1) {
       onShowToast('Area weights must total 100%', 'error')
       return
     }
@@ -93,19 +248,18 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     setCreating(true)
 
     try {
-      // Create project with PIN
       const project = await db.createProject({
         name: projectName.trim(),
         contract_value: contractVal,
         pin: pin
       })
 
-      // Create areas
       for (let i = 0; i < validAreas.length; i++) {
         await db.createArea({
           project_id: project.id,
           name: validAreas[i].name.trim(),
           weight: parseFloat(validAreas[i].weight),
+          group_name: validAreas[i].group || null,
           status: 'not_started',
           sort_order: i
         })
@@ -121,6 +275,78 @@ export default function Setup({ onProjectCreated, onShowToast }) {
       setCreating(false)
     }
   }
+
+  // Import Review Screen
+  if (showImportReview) {
+    const groups = [...new Set(importedTasks.map(t => t.group))]
+    const selectedCount = importedTasks.filter(t => t.selected).length
+    
+    return (
+      <div>
+        <h1>Review Imported Tasks</h1>
+        <p className="subtitle">Select the tasks to include in your project</p>
+        
+        <div className="import-summary">
+          <span>{selectedCount} of {importedTasks.length} tasks selected</span>
+        </div>
+        
+        {groups.map(group => {
+          const groupTasks = importedTasks.filter(t => t.group === group)
+          const groupSelectedCount = groupTasks.filter(t => t.selected).length
+          
+          return (
+            <div key={group} className="card import-group">
+              <div className="import-group-header">
+                <h3>{group}</h3>
+                <span className="import-group-count">{groupSelectedCount}/{groupTasks.length}</span>
+              </div>
+              <div className="import-task-list">
+                {groupTasks.map(task => {
+                  const taskIndex = importedTasks.indexOf(task)
+                  return (
+                    <label key={taskIndex} className="import-task-item">
+                      <input
+                        type="checkbox"
+                        checked={task.selected}
+                        onChange={() => toggleTaskSelection(taskIndex)}
+                      />
+                      <span className="import-task-name">{task.name}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+        
+        <div className="import-actions">
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setShowImportReview(false)}
+          >
+            Cancel
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={handleUseImportedTasks}
+          >
+            Use Selected Tasks ({selectedCount})
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Group areas by group_name for display
+  const groupedAreas = areas.reduce((acc, area, index) => {
+    const group = area.group || 'General'
+    if (!acc[group]) acc[group] = []
+    acc[group].push({ ...area, originalIndex: index })
+    return acc
+  }, {})
+
+  const hasGroups = Object.keys(groupedAreas).length > 1 || 
+    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General'])
 
   return (
     <div>
@@ -174,37 +400,88 @@ export default function Setup({ onProjectCreated, onShowToast }) {
       </div>
 
       <div className="card">
-        <h3>Areas</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-          Define the areas for this project and assign a weight (%) to each. Weights must total 100%.
-        </p>
-
-        {areas.map((area, index) => (
-          <div key={index} className="area-row">
+        <div className="areas-header">
+          <div>
+            <h3>Areas / Tasks</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+              Define the areas for this project. Weights must total 100%.
+            </p>
+          </div>
+          <div className="import-btn-container">
             <input
-              type="text"
-              placeholder="Area name (e.g., Level 1)"
-              value={area.name}
-              onChange={(e) => handleAreaChange(index, 'name', e.target.value)}
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
             />
-            <input
-              type="number"
-              placeholder="%"
-              min="0"
-              max="100"
-              value={area.weight}
-              onChange={(e) => handleAreaChange(index, 'weight', e.target.value)}
-            />
-            <button className="remove-btn" onClick={() => removeArea(index)}>
-              ×
+            <button 
+              className="btn btn-secondary btn-small"
+              onClick={handleImportClick}
+              disabled={importing}
+            >
+              {importing ? 'Reading...' : '📄 Import PDF'}
             </button>
           </div>
-        ))}
+        </div>
+
+        {hasGroups ? (
+          // Grouped display
+          Object.entries(groupedAreas).map(([group, groupAreas]) => (
+            <div key={group} className="area-group">
+              <div className="area-group-header">{group}</div>
+              {groupAreas.map(area => (
+                <div key={area.originalIndex} className="area-row">
+                  <input
+                    type="text"
+                    placeholder="Task name"
+                    value={area.name}
+                    onChange={(e) => handleAreaChange(area.originalIndex, 'name', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    placeholder="%"
+                    min="0"
+                    max="100"
+                    value={area.weight}
+                    onChange={(e) => handleAreaChange(area.originalIndex, 'weight', e.target.value)}
+                  />
+                  <button className="remove-btn" onClick={() => removeArea(area.originalIndex)}>
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))
+        ) : (
+          // Flat display
+          areas.map((area, index) => (
+            <div key={index} className="area-row">
+              <input
+                type="text"
+                placeholder="Area name (e.g., Level 1)"
+                value={area.name}
+                onChange={(e) => handleAreaChange(index, 'name', e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="%"
+                min="0"
+                max="100"
+                value={area.weight}
+                onChange={(e) => handleAreaChange(index, 'weight', e.target.value)}
+              />
+              <button className="remove-btn" onClick={() => removeArea(index)}>
+                ×
+              </button>
+            </div>
+          ))
+        )}
 
         <div className="weight-total">
           <span className="weight-total-label">Total Weight:</span>
-          <span className={`weight-total-value ${totalWeight === 100 ? 'valid' : 'invalid'}`}>
-            {totalWeight}%
+          <span className={`weight-total-value ${Math.abs(totalWeight - 100) < 0.1 ? 'valid' : 'invalid'}`}>
+            {totalWeight.toFixed(1)}%
           </span>
         </div>
 

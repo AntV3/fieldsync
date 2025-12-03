@@ -6,6 +6,7 @@ export default function ForemanView({ project, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
+  const [expandedGroups, setExpandedGroups] = useState({})
 
   useEffect(() => {
     loadAreas()
@@ -15,6 +16,12 @@ export default function ForemanView({ project, onShowToast, onExit }) {
     try {
       const data = await db.getAreas(project.id)
       setAreas(data)
+      
+      // Auto-expand all groups initially
+      const groups = [...new Set(data.map(a => a.group_name || 'General'))]
+      const expanded = {}
+      groups.forEach(g => expanded[g] = true)
+      setExpandedGroups(expanded)
     } catch (error) {
       console.error('Error loading areas:', error)
       onShowToast('Error loading areas', 'error')
@@ -47,6 +54,13 @@ export default function ForemanView({ project, onShowToast, onExit }) {
     }
   }
 
+  const toggleGroup = (group) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [group]: !prev[group]
+    }))
+  }
+
   if (loading) {
     return (
       <div className="foreman-container">
@@ -59,6 +73,23 @@ export default function ForemanView({ project, onShowToast, onExit }) {
   }
 
   const progress = calculateProgress(areas)
+  
+  // Group areas by group_name
+  const groupedAreas = areas.reduce((acc, area) => {
+    const group = area.group_name || 'General'
+    if (!acc[group]) acc[group] = []
+    acc[group].push(area)
+    return acc
+  }, {})
+
+  const hasGroups = Object.keys(groupedAreas).length > 1 || 
+    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General'])
+
+  // Calculate group progress
+  const getGroupProgress = (groupAreas) => {
+    const done = groupAreas.filter(a => a.status === 'done').length
+    return `${done}/${groupAreas.length}`
+  }
 
   return (
     <div className="foreman-container">
@@ -73,27 +104,76 @@ export default function ForemanView({ project, onShowToast, onExit }) {
       </div>
 
       <div className="foreman-areas">
-        {areas.map(area => (
-          <div key={area.id} className="foreman-area-card">
-            <div className="foreman-area-name">{area.name}</div>
-            <div className="foreman-area-buttons">
-              <button
-                className={`foreman-btn working ${area.status === 'working' ? 'active' : ''}`}
-                onClick={() => handleStatusUpdate(area.id, 'working')}
-                disabled={updating === area.id}
+        {hasGroups ? (
+          // Grouped display with expand/collapse
+          Object.entries(groupedAreas).map(([group, groupAreas]) => (
+            <div key={group} className="foreman-group">
+              <button 
+                className="foreman-group-header"
+                onClick={() => toggleGroup(group)}
               >
-                {updating === area.id ? '...' : 'Working'}
+                <div className="foreman-group-title">
+                  <span className="foreman-group-arrow">
+                    {expandedGroups[group] ? '▼' : '▶'}
+                  </span>
+                  <span>{group}</span>
+                </div>
+                <span className="foreman-group-progress">
+                  {getGroupProgress(groupAreas)}
+                </span>
               </button>
-              <button
-                className={`foreman-btn done ${area.status === 'done' ? 'active' : ''}`}
-                onClick={() => handleStatusUpdate(area.id, 'done')}
-                disabled={updating === area.id}
-              >
-                {updating === area.id ? '...' : 'Done'}
-              </button>
+              
+              {expandedGroups[group] && (
+                <div className="foreman-group-tasks">
+                  {groupAreas.map(area => (
+                    <div key={area.id} className="foreman-area-card">
+                      <div className="foreman-area-name">{area.name}</div>
+                      <div className="foreman-area-buttons">
+                        <button
+                          className={`foreman-btn working ${area.status === 'working' ? 'active' : ''}`}
+                          onClick={() => handleStatusUpdate(area.id, 'working')}
+                          disabled={updating === area.id}
+                        >
+                          {updating === area.id ? '...' : 'Working'}
+                        </button>
+                        <button
+                          className={`foreman-btn done ${area.status === 'done' ? 'active' : ''}`}
+                          onClick={() => handleStatusUpdate(area.id, 'done')}
+                          disabled={updating === area.id}
+                        >
+                          {updating === area.id ? '...' : 'Done'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          // Flat display (no groups)
+          areas.map(area => (
+            <div key={area.id} className="foreman-area-card">
+              <div className="foreman-area-name">{area.name}</div>
+              <div className="foreman-area-buttons">
+                <button
+                  className={`foreman-btn working ${area.status === 'working' ? 'active' : ''}`}
+                  onClick={() => handleStatusUpdate(area.id, 'working')}
+                  disabled={updating === area.id}
+                >
+                  {updating === area.id ? '...' : 'Working'}
+                </button>
+                <button
+                  className={`foreman-btn done ${area.status === 'done' ? 'active' : ''}`}
+                  onClick={() => handleStatusUpdate(area.id, 'done')}
+                  disabled={updating === area.id}
+                >
+                  {updating === area.id ? '...' : 'Done'}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {areas.length === 0 && (
