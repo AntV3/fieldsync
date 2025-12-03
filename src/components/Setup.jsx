@@ -2,8 +2,8 @@ import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
 import * as pdfjsLib from 'pdfjs-dist'
 
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+// Disable worker to avoid loading issues
+pdfjsLib.GlobalWorkerOptions.workerSrc = ''
 
 export default function Setup({ onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
@@ -87,48 +87,102 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     const tasks = []
     let currentGroup = 'General'
     
+    // Debug: log extracted text
+    console.log('Extracted PDF text:', text.substring(0, 2000))
+    
     // Common level/floor patterns
     const levelPatterns = [
-      /^(Plaza Level|Street Level|Level \d+|Floor \d+|\d+(?:st|nd|rd|th) Floor|Basement|Roof|Exterior|Miscellaneous)/i,
-      /^(ABATEMENT|DEMOLITION)/i
+      /Plaza Level/i,
+      /Street Level/i,
+      /Level\s*\d+/i,
+      /\d+(?:st|nd|rd|th)\s*Floor/i,
+      /Floor\s*\d+/i,
+      /Basement/i,
+      /Roof/i,
+      /Exterior/i,
+      /Miscellaneous/i,
+      /^ABATEMENT$/i,
+      /^DEMOLITION$/i
     ]
     
-    // Task patterns - looking for description + quantity + unit
-    const taskPattern = /^(.+?)\s+(\d{1,3}(?:,\d{3})*|\d+)\s*(SF|LF|EA|LS|Days?|Units?)\s*$/i
+    // Task patterns - more flexible matching
+    const taskPatterns = [
+      // Standard: description + number + unit
+      /^(.+?)\s+(\d{1,3}(?:,\d{3})*|\d+)\s*(SF|LF|EA|LS|Days?|Units?)\s*$/i,
+      // With hyphen or dash before description
+      /^[-–—]\s*(.+?)\s+(\d{1,3}(?:,\d{3})*|\d+)\s*(SF|LF|EA|LS|Days?|Units?)\s*$/i,
+      // Number at start (like "1 LS" at end)
+      /^(.+?)\s+(\d+)\s*(LS|EA)\s*$/i
+    ]
     
-    const lines = text.split(/\n|(?<=\d)\s{2,}(?=[A-Z])/)
+    // Split text into lines - handle various line break patterns
+    const lines = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0)
+    
+    console.log('Parsed lines count:', lines.length)
     
     for (let line of lines) {
-      line = line.trim()
-      if (!line || line.length < 5) continue
+      if (line.length < 5) continue
       
       // Check for level/section headers
+      let isHeader = false
       for (const pattern of levelPatterns) {
-        const match = line.match(pattern)
-        if (match) {
-          // Extract just the level name, handle "(XX,XXX SF)" suffix
-          let groupName = line.replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/, '').trim()
-          if (groupName.length > 3 && groupName.length < 50) {
+        if (pattern.test(line)) {
+          // Extract group name - clean up common suffixes
+          let groupName = line
+            .replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/i, '')
+            .replace(/\s*\d{1,3}(?:,\d{3})*\s*SF\s*$/i, '')
+            .trim()
+          
+          if (groupName.length >= 3 && groupName.length < 60) {
             currentGroup = groupName
+            console.log('Found group:', currentGroup)
+            isHeader = true
           }
           break
         }
       }
       
+      if (isHeader) continue
+      
       // Check for task line
-      const taskMatch = line.match(taskPattern)
-      if (taskMatch) {
-        const description = taskMatch[1].trim()
-        // Filter out header rows and non-task items
-        if (description.length > 10 && 
-            !description.match(/^(Plan|Description|Quantity|Unit|Page|Miller|www\.|Phone|Fax)/i) &&
-            !description.match(/^\d+\.\s/) // Exclude numbered conditions/exclusions
-        ) {
-          tasks.push({
-            name: description,
-            group: currentGroup,
-            selected: true
-          })
+      for (const pattern of taskPatterns) {
+        const taskMatch = line.match(pattern)
+        if (taskMatch) {
+          const description = taskMatch[1].trim()
+          
+          // Filter out header rows, conditions, exclusions, and non-task items
+          const skipPatterns = [
+            /^Plan\s/i,
+            /^Description/i,
+            /^Quantity/i,
+            /^Unit$/i,
+            /^Page\s/i,
+            /Miller/i,
+            /www\./i,
+            /Phone/i,
+            /Fax/i,
+            /^\d+\.\s/,  // Numbered conditions like "1. Utility..."
+            /^[\$\d,\.]+$/, // Pure numbers/prices
+            /Chrysotile/i, // Hazmat material descriptions
+            /Anthophyllite/i
+          ]
+          
+          const shouldSkip = skipPatterns.some(p => p.test(description))
+          
+          if (description.length > 8 && !shouldSkip) {
+            tasks.push({
+              name: description,
+              group: currentGroup,
+              selected: true
+            })
+            console.log('Found task:', description, 'in', currentGroup)
+          }
+          break
         }
       }
     }
