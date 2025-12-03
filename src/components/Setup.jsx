@@ -4,6 +4,7 @@ import { db } from '../lib/supabase'
 export default function Setup({ onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
   const [contractValue, setContractValue] = useState('')
+  const [pin, setPin] = useState('')
   const [areas, setAreas] = useState([
     { name: '', weight: '' },
     { name: '', weight: '' },
@@ -14,6 +15,17 @@ export default function Setup({ onProjectCreated, onShowToast }) {
   const totalWeight = areas.reduce((sum, area) => {
     return sum + (parseFloat(area.weight) || 0)
   }, 0)
+
+  const handlePinChange = (value) => {
+    // Only allow digits, max 4
+    const cleaned = value.replace(/\D/g, '').slice(0, 4)
+    setPin(cleaned)
+  }
+
+  const generateRandomPin = () => {
+    const randomPin = Math.floor(1000 + Math.random() * 9000).toString()
+    setPin(randomPin)
+  }
 
   const handleAreaChange = (index, field, value) => {
     setAreas(prev => prev.map((area, i) => 
@@ -34,6 +46,7 @@ export default function Setup({ onProjectCreated, onShowToast }) {
   const resetForm = () => {
     setProjectName('')
     setContractValue('')
+    setPin('')
     setAreas([
       { name: '', weight: '' },
       { name: '', weight: '' },
@@ -54,6 +67,18 @@ export default function Setup({ onProjectCreated, onShowToast }) {
       return
     }
 
+    if (pin.length !== 4) {
+      onShowToast('Please enter a 4-digit PIN', 'error')
+      return
+    }
+
+    // Check if PIN is available
+    const pinAvailable = await db.isPinAvailable(pin)
+    if (!pinAvailable) {
+      onShowToast('This PIN is already in use. Try another.', 'error')
+      return
+    }
+
     const validAreas = areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
     if (validAreas.length === 0) {
       onShowToast('Please add at least one area', 'error')
@@ -68,10 +93,11 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     setCreating(true)
 
     try {
-      // Create project
+      // Create project with PIN
       const project = await db.createProject({
         name: projectName.trim(),
-        contract_value: contractVal
+        contract_value: contractVal,
+        pin: pin
       })
 
       // Create areas
@@ -120,6 +146,30 @@ export default function Setup({ onProjectCreated, onShowToast }) {
             value={contractValue}
             onChange={(e) => setContractValue(e.target.value)}
           />
+        </div>
+
+        <div className="form-group">
+          <label>Foreman PIN (4 digits)</label>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+            Foremen will enter this PIN to access this project
+          </p>
+          <div className="pin-input-row">
+            <input
+              type="text"
+              placeholder="e.g., 2847"
+              value={pin}
+              onChange={(e) => handlePinChange(e.target.value)}
+              maxLength={4}
+              className="pin-input"
+            />
+            <button 
+              type="button" 
+              className="btn btn-secondary"
+              onClick={generateRandomPin}
+            >
+              Generate
+            </button>
+          </div>
         </div>
       </div>
 
