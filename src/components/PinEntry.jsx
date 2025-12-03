@@ -11,8 +11,8 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
     setPin(cleaned)
   }
 
-  const handleSubmit = async () => {
-    if (pin.length !== 4) {
+  const submitPin = async (pinToSubmit) => {
+    if (pinToSubmit.length !== 4) {
       onShowToast('Enter 4-digit PIN', 'error')
       return
     }
@@ -20,7 +20,7 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
     setLoading(true)
 
     try {
-      const project = await db.getProjectByPin(pin)
+      const project = await db.getProjectByPin(pinToSubmit)
       
       if (project) {
         onProjectAccess(project)
@@ -36,12 +36,6 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
     }
   }
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && pin.length === 4) {
-      handleSubmit()
-    }
-  }
-
   const handleNumberPad = (num) => {
     if (pin.length < 4) {
       const newPin = pin + num
@@ -50,7 +44,7 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
       // Auto-submit when 4 digits entered
       if (newPin.length === 4) {
         setTimeout(() => {
-          handleSubmit()
+          submitPin(newPin)
         }, 200)
       }
     }
