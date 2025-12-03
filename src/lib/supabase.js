@@ -291,6 +291,28 @@ export const db = {
     }
   },
 
+  // Update project
+  async updateProject(id, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('projects')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    } else {
+      const localData = getLocalData()
+      const project = localData.projects.find(p => p.id === id)
+      if (project) {
+        Object.assign(project, updates)
+        setLocalData(localData)
+      }
+      return project
+    }
+  },
+
   async deleteProject(id) {
     if (isSupabaseConfigured) {
       const { error } = await supabase
@@ -362,6 +384,44 @@ export const db = {
       }
       setLocalData(localData)
       return area
+    }
+  },
+
+  // Update area (name, weight, sort_order)
+  async updateArea(id, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('areas')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    } else {
+      const localData = getLocalData()
+      const area = localData.areas.find(a => a.id === id)
+      if (area) {
+        Object.assign(area, updates)
+        area.updated_at = new Date().toISOString()
+      }
+      setLocalData(localData)
+      return area
+    }
+  },
+
+  // Delete area
+  async deleteArea(id) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('areas')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    } else {
+      const localData = getLocalData()
+      localData.areas = localData.areas.filter(a => a.id !== id)
+      setLocalData(localData)
     }
   },
 
