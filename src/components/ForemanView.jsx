@@ -17,10 +17,10 @@ export default function ForemanView({ project, onShowToast, onExit }) {
       const data = await db.getAreas(project.id)
       setAreas(data)
       
-      // Auto-expand all groups initially
+      // Start all groups collapsed initially
       const groups = [...new Set(data.map(a => a.group_name || 'General'))]
       const expanded = {}
-      groups.forEach(g => expanded[g] = true)
+      groups.forEach(g => expanded[g] = false)
       setExpandedGroups(expanded)
     } catch (error) {
       console.error('Error loading areas:', error)
