@@ -105,10 +105,10 @@ export default function ForemanView({ project, onShowToast, onExit }) {
 
       <div className="foreman-areas">
         {hasGroups ? (
-          // Grouped display with expand/collapse
+          // Grouped display with clear sections
           Object.entries(groupedAreas).map(([group, groupAreas]) => (
             <div key={group} className="foreman-group">
-              <button 
+              <div 
                 className="foreman-group-header"
                 onClick={() => toggleGroup(group)}
               >
@@ -116,17 +116,17 @@ export default function ForemanView({ project, onShowToast, onExit }) {
                   <span className="foreman-group-arrow">
                     {expandedGroups[group] ? '▼' : '▶'}
                   </span>
-                  <span>{group}</span>
+                  <span className="foreman-group-name">{group}</span>
                 </div>
                 <span className="foreman-group-progress">
                   {getGroupProgress(groupAreas)}
                 </span>
-              </button>
+              </div>
               
               {expandedGroups[group] && (
                 <div className="foreman-group-tasks">
                   {groupAreas.map(area => (
-                    <div key={area.id} className="foreman-area-card">
+                    <div key={area.id} className={`foreman-area-card ${area.status}`}>
                       <div className="foreman-area-name">{area.name}</div>
                       <div className="foreman-area-buttons">
                         <button
@@ -153,7 +153,7 @@ export default function ForemanView({ project, onShowToast, onExit }) {
         ) : (
           // Flat display (no groups)
           areas.map(area => (
-            <div key={area.id} className="foreman-area-card">
+            <div key={area.id} className={`foreman-area-card ${area.status}`}>
               <div className="foreman-area-name">{area.name}</div>
               <div className="foreman-area-buttons">
                 <button

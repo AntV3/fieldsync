@@ -1393,7 +1393,11 @@ input::placeholder {
    ============================================ */
 
 .foreman-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
 }
 
 .foreman-group-header {
@@ -1401,61 +1405,81 @@ input::placeholder {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, var(--accent-blue) 0%, #4f8ef7 100%);
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
-  color: var(--text-primary);
+  color: white;
+  border: none;
 }
 
 .foreman-group-header:hover {
-  border-color: var(--accent-blue);
+  background: linear-gradient(135deg, #4f8ef7 0%, var(--accent-blue) 100%);
 }
 
 .foreman-group-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.1rem;
+}
+
+.foreman-group-name {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .foreman-group-arrow {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  opacity: 0.9;
 }
 
 .foreman-group-progress {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  background: var(--bg-primary);
-  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 0.85rem;
   border-radius: 20px;
 }
 
 .foreman-group-tasks {
-  margin-top: 0.5rem;
-  margin-left: 1rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  background: var(--bg-elevated);
 }
 
 .foreman-group-tasks .foreman-area-card {
   border-radius: 10px;
+  margin: 0;
+}
+
+/* Task status colors */
+.foreman-area-card.done {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.foreman-area-card.working {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
 /* Mobile adjustments for grouped view */
 @media (max-width: 640px) {
   .foreman-group-tasks {
-    margin-left: 0.5rem;
+    padding: 0.5rem;
   }
   
   .foreman-group-title {
     font-size: 1rem;
+  }
+  
+  .foreman-group-header {
+    padding: 0.875rem 1rem;
   }
   
   .areas-header {
