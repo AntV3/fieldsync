@@ -1,9 +1,6 @@
 import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
-import * as pdfjsLib from 'pdfjs-dist'
-
-// Disable worker to avoid loading issues
-pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+import * as XLSX from 'xlsx'
 
 export default function Setup({ onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
@@ -63,159 +60,161 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     setImportedTasks([])
   }
 
-  // PDF Import Functions
+  // Excel Import Functions
   const handleImportClick = () => {
     fileInputRef.current?.click()
   }
 
-  const extractTextFromPDF = async (file) => {
-    const arrayBuffer = await file.arrayBuffer()
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-    let fullText = ''
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i)
-      const textContent = await page.getTextContent()
-      const pageText = textContent.items.map(item => item.str).join(' ')
-      fullText += pageText + '\n'
-    }
-    
-    return fullText
-  }
-
-  const parseScope = (text) => {
-    const tasks = []
-    let currentGroup = 'General'
-    
-    // Debug: log extracted text
-    console.log('Extracted PDF text:', text.substring(0, 2000))
-    
-    // Common level/floor patterns
-    const levelPatterns = [
-      /Plaza Level/i,
-      /Street Level/i,
-      /Level\s*\d+/i,
-      /\d+(?:st|nd|rd|th)\s*Floor/i,
-      /Floor\s*\d+/i,
-      /Basement/i,
-      /Roof/i,
-      /Exterior/i,
-      /Miscellaneous/i,
-      /^ABATEMENT$/i,
-      /^DEMOLITION$/i
-    ]
-    
-    // Task patterns - more flexible matching
-    const taskPatterns = [
-      // Standard: description + number + unit
-      /^(.+?)\s+(\d{1,3}(?:,\d{3})*|\d+)\s*(SF|LF|EA|LS|Days?|Units?)\s*$/i,
-      // With hyphen or dash before description
-      /^[-–—]\s*(.+?)\s+(\d{1,3}(?:,\d{3})*|\d+)\s*(SF|LF|EA|LS|Days?|Units?)\s*$/i,
-      // Number at start (like "1 LS" at end)
-      /^(.+?)\s+(\d+)\s*(LS|EA)\s*$/i
-    ]
-    
-    // Split text into lines - handle various line break patterns
-    const lines = text
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 0)
-    
-    console.log('Parsed lines count:', lines.length)
-    
-    for (let line of lines) {
-      if (line.length < 5) continue
+  const parseExcel = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
       
-      // Check for level/section headers
-      let isHeader = false
-      for (const pattern of levelPatterns) {
-        if (pattern.test(line)) {
-          // Extract group name - clean up common suffixes
-          let groupName = line
-            .replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/i, '')
-            .replace(/\s*\d{1,3}(?:,\d{3})*\s*SF\s*$/i, '')
-            .trim()
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result)
+          const workbook = XLSX.read(data, { type: 'array' })
           
-          if (groupName.length >= 3 && groupName.length < 60) {
-            currentGroup = groupName
-            console.log('Found group:', currentGroup)
-            isHeader = true
+          // Get first sheet
+          const sheetName = workbook.SheetNames[0]
+          const sheet = workbook.Sheets[sheetName]
+          
+          // Convert to array of arrays
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+          
+          console.log('Excel rows:', rows)
+          
+          const tasks = []
+          let currentGroup = 'General'
+          
+          for (const row of rows) {
+            if (!row || row.length === 0) continue
+            
+            // Flatten row: remove nulls and join non-empty cells
+            const cells = row
+              .map(cell => cell === null || cell === undefined ? '' : String(cell).trim())
+              .filter(cell => cell.length > 0)
+            
+            if (cells.length === 0) continue
+            
+            const rowText = cells.join(' ')
+            console.log('Row cells:', cells, '| Combined:', rowText)
+            
+            // Skip header rows
+            if (/^Description\b/i.test(cells[0]) || /^Quantity\b/i.test(cells[0])) {
+              continue
+            }
+            
+            // Check if this is a group header (single text cell, no numbers, matches pattern)
+            const isGroupHeader = 
+              cells.length <= 2 &&
+              !/^\d+$/.test(cells[0]) &&
+              !cells.some(c => /^\d{2,}$/.test(c)) && // No large numbers
+              /^(L\d|Level|Floor|\d+(?:st|nd|rd|th)|Plaza|Street|Basement|Roof|Penthouse|Site|Exterior|Misc|MEP|ABATEMENT|DEMOLITION|UNIVERSAL|SOFT|TRASH|DEMO)/i.test(cells[0])
+            
+            if (isGroupHeader) {
+              currentGroup = rowText
+                .replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/i, '')
+                .trim()
+              console.log('Found group:', currentGroup)
+              continue
+            }
+            
+            // Try to extract task from row
+            // Look for: description text + number + unit (SF/LF/EA/LS/etc)
+            let description = ''
+            let hasQuantity = false
+            
+            // Find cells that look like quantities and units
+            const unitPattern = /^(SF|LF|EA|LS|Days?|MD|Load)$/i
+            const quantityPattern = /^\d{1,3}(,\d{3})*$|^\d+$/
+            
+            const descParts = []
+            
+            for (let i = 0; i < cells.length; i++) {
+              const cell = cells[i]
+              
+              // Skip ID codes at start (like "ID-111", "ID-001 KN 2")
+              if (i === 0 && /^ID-\d+$/i.test(cell)) continue
+              if (/^KN\s*\d+$/i.test(cell)) continue
+              
+              // Skip quantities and units
+              if (quantityPattern.test(cell.replace(/,/g, ''))) {
+                hasQuantity = true
+                continue
+              }
+              if (unitPattern.test(cell)) continue
+              
+              // This is description text
+              if (cell.length > 1) {
+                descParts.push(cell)
+              }
+            }
+            
+            description = descParts.join(' ').trim()
+            
+            // Clean up description
+            description = description
+              .replace(/\s+/g, ' ')
+              .trim()
+            
+            // Skip if no valid description or too short
+            if (description.length < 3) continue
+            if (/^(Plan|Page|\$|Total|Base Bid|Payment|Condition|Exclusion)/i.test(description)) continue
+            
+            // Only add if we found a quantity (indicates it's a real task row)
+            if (hasQuantity && description.length >= 3) {
+              tasks.push({
+                name: description,
+                group: currentGroup,
+                selected: true
+              })
+              console.log('Found task:', description, 'in', currentGroup)
+            }
           }
-          break
+          
+          // Deduplicate
+          const seen = new Set()
+          const uniqueTasks = tasks.filter(task => {
+            const key = `${task.group}:${task.name}`
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+          })
+          
+          resolve(uniqueTasks)
+        } catch (error) {
+          reject(error)
         }
       }
       
-      if (isHeader) continue
-      
-      // Check for task line
-      for (const pattern of taskPatterns) {
-        const taskMatch = line.match(pattern)
-        if (taskMatch) {
-          const description = taskMatch[1].trim()
-          
-          // Filter out header rows, conditions, exclusions, and non-task items
-          const skipPatterns = [
-            /^Plan\s/i,
-            /^Description/i,
-            /^Quantity/i,
-            /^Unit$/i,
-            /^Page\s/i,
-            /Miller/i,
-            /www\./i,
-            /Phone/i,
-            /Fax/i,
-            /^\d+\.\s/,  // Numbered conditions like "1. Utility..."
-            /^[\$\d,\.]+$/, // Pure numbers/prices
-            /Chrysotile/i, // Hazmat material descriptions
-            /Anthophyllite/i
-          ]
-          
-          const shouldSkip = skipPatterns.some(p => p.test(description))
-          
-          if (description.length > 8 && !shouldSkip) {
-            tasks.push({
-              name: description,
-              group: currentGroup,
-              selected: true
-            })
-            console.log('Found task:', description, 'in', currentGroup)
-          }
-          break
-        }
-      }
-    }
-    
-    // Deduplicate tasks (same name within same group)
-    const seen = new Set()
-    const uniqueTasks = tasks.filter(task => {
-      const key = `${task.group}:${task.name}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsArrayBuffer(file)
     })
-    
-    return uniqueTasks
   }
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     
-    if (file.type !== 'application/pdf') {
-      onShowToast('Please upload a PDF file', 'error')
+    const validTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'text/csv'
+    ]
+    
+    const ext = file.name.split('.').pop().toLowerCase()
+    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+      onShowToast('Please upload an Excel file (.xlsx, .xls, or .csv)', 'error')
       return
     }
     
     setImporting(true)
     
     try {
-      const text = await extractTextFromPDF(file)
-      const tasks = parseScope(text)
+      const tasks = await parseExcel(file)
       
       if (tasks.length === 0) {
-        onShowToast('Could not find tasks in PDF. Try manual entry.', 'error')
+        onShowToast('No tasks found. Check Excel format.', 'error')
         setImporting(false)
         return
       }
@@ -224,11 +223,10 @@ export default function Setup({ onProjectCreated, onShowToast }) {
       setShowImportReview(true)
       onShowToast(`Found ${tasks.length} tasks`, 'success')
     } catch (error) {
-      console.error('PDF import error:', error)
-      onShowToast('Error reading PDF', 'error')
+      console.error('Excel import error:', error)
+      onShowToast('Error reading Excel file', 'error')
     } finally {
       setImporting(false)
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -465,7 +463,7 @@ export default function Setup({ onProjectCreated, onShowToast }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf"
+              accept=".xlsx,.xls,.csv"
               onChange={handleFileSelect}
               style={{ display: 'none' }}
             />
@@ -474,7 +472,7 @@ export default function Setup({ onProjectCreated, onShowToast }) {
               onClick={handleImportClick}
               disabled={importing}
             >
-              {importing ? 'Reading...' : '📄 Import PDF'}
+              {importing ? 'Reading...' : '📊 Import Excel'}
             </button>
           </div>
         </div>
