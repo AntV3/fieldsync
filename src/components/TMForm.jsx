@@ -380,42 +380,6 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
             />
           </div>
 
-          <div className="tm-field">
-            <label>Description of Work</label>
-            <textarea
-              placeholder="What work was performed today?"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="tm-description"
-            />
-          </div>
-
-          {/* Photos Section - Moved Up */}
-          <div className="tm-field">
-            <label>📷 Photos</label>
-            {photos.length > 0 && (
-              <div className="tm-photo-grid">
-                {photos.map(photo => (
-                  <div key={photo.id} className="tm-photo-item">
-                    <img src={photo.dataUrl} alt={photo.name} />
-                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <label className="tm-photo-btn">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoAdd}
-                style={{ display: 'none' }}
-              />
-              📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
-            </label>
-          </div>
-
           {/* Supervision Section */}
           <div className="tm-field">
             <label>Supervision</label>
@@ -485,6 +449,43 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
             <button className="tm-add-btn" onClick={addLaborer}>
               + Add Laborer
             </button>
+          </div>
+
+          {/* Description of Work */}
+          <div className="tm-field">
+            <label>Description of Work</label>
+            <textarea
+              placeholder="What work was performed today?"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="tm-description"
+            />
+          </div>
+
+          {/* Photos Section */}
+          <div className="tm-field">
+            <label>📷 Photos</label>
+            {photos.length > 0 && (
+              <div className="tm-photo-grid">
+                {photos.map(photo => (
+                  <div key={photo.id} className="tm-photo-item">
+                    <img src={photo.dataUrl} alt={photo.name} />
+                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="tm-photo-btn">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoAdd}
+                style={{ display: 'none' }}
+              />
+              📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
+            </label>
           </div>
         </div>
       )}
@@ -652,3 +653,4 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
     </div>
   )
 }
+
