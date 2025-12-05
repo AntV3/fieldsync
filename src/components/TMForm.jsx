@@ -9,6 +9,7 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
   const [workers, setWorkers] = useState([{ name: '', hours: '' }])
   const [items, setItems] = useState([])
   const [notes, setNotes] = useState('')
+  const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
   
   // Item picker state
@@ -113,6 +114,36 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
     setItems(items.filter((_, i) => i !== index))
   }
 
+  // Photo functions
+  const handlePhotoAdd = (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) {
+        onShowToast('Please select an image file', 'error')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setPhotos(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          dataUrl: event.target.result,
+          name: file.name
+        }])
+      }
+      reader.readAsDataURL(file)
+    })
+    
+    // Reset input
+    e.target.value = ''
+  }
+
+  const removePhoto = (photoId) => {
+    setPhotos(photos.filter(p => p.id !== photoId))
+  }
+
   // Navigation
   const canGoNext = () => {
     if (step === 1) {
@@ -149,11 +180,14 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
 
     setSubmitting(true)
     try {
+      // Prepare photos array (just the dataUrls)
+      const photoData = photos.map(p => p.dataUrl)
+
       const ticket = await db.createTMTicket({
         project_id: project.id,
         work_date: workDate,
         notes: notes.trim() || null,
-        photo_url: null
+        photos: photoData
       })
 
       await db.addTMWorkers(ticket.id, validWorkers.map(w => ({
@@ -308,6 +342,17 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
           </div>
 
           <div className="tm-field">
+            <label>Description of Work</label>
+            <textarea
+              placeholder="What work was performed today?"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="tm-description"
+            />
+          </div>
+
+          <div className="tm-field">
             <label>Who worked today?</label>
             <div className="tm-workers-list">
               {workers.map((worker, index) => (
@@ -398,6 +443,15 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
             </div>
           </div>
 
+          {notes && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span>📝 Description</span>
+              </div>
+              <div className="tm-review-notes">{notes}</div>
+            </div>
+          )}
+
           <div className="tm-review-section">
             <div className="tm-review-header">
               <span>👷 Workers</span>
@@ -430,14 +484,29 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
             </div>
           )}
 
+          {/* Photos Section */}
           <div className="tm-field">
-            <label>Notes (optional)</label>
-            <textarea
-              placeholder="Any notes for the office..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-            />
+            <label>📷 Photos</label>
+            {photos.length > 0 && (
+              <div className="tm-photo-grid">
+                {photos.map(photo => (
+                  <div key={photo.id} className="tm-photo-item">
+                    <img src={photo.dataUrl} alt={photo.name} />
+                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="tm-photo-btn">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoAdd}
+                style={{ display: 'none' }}
+              />
+              📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
+            </label>
           </div>
         </div>
       )}

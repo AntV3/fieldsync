@@ -287,8 +287,21 @@ export default function TMList({ project, onShowToast }) {
 
                   {ticket.notes && (
                     <div className="tm-detail-section">
-                      <h4>📝 Notes</h4>
+                      <h4>📝 Description</h4>
                       <p className="tm-notes-text">{ticket.notes}</p>
+                    </div>
+                  )}
+
+                  {ticket.photos && ticket.photos.length > 0 && (
+                    <div className="tm-detail-section">
+                      <h4>📷 Photos ({ticket.photos.length})</h4>
+                      <div className="tm-photos-grid">
+                        {ticket.photos.map((photo, idx) => (
+                          <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">
+                            <img src={photo} alt={`Photo ${idx + 1}`} />
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   )}
 

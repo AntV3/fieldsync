@@ -734,7 +734,7 @@ export const db = {
           project_id: ticket.project_id,
           work_date: ticket.work_date,
           notes: ticket.notes,
-          photo_url: ticket.photo_url,
+          photos: ticket.photos || [],
           status: 'pending'
         })
         .select()
@@ -830,3 +830,4 @@ export const db = {
     return null
   }
 }
+
