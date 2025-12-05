@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
+import TMList from './TMList'
 
 export default function Dashboard({ onShowToast }) {
   const [projects, setProjects] = useState([])
@@ -390,6 +391,9 @@ export default function Dashboard({ onShowToast }) {
             ))}
           </div>
         </div>
+
+        {/* T&M Tickets Section */}
+        <TMList project={selectedProject} onShowToast={onShowToast} />
       </div>
     )
   }
@@ -455,3 +459,4 @@ function ProjectCard({ project, onClick }) {
     </div>
   )
 }
+

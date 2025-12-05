@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import * as XLSX from 'xlsx'
 
 export default function TMList({ project, onShowToast }) {
   const [tickets, setTickets] = useState([])
@@ -73,9 +74,102 @@ export default function TMList({ project, onShowToast }) {
     })
   }
 
+  // Export to Excel
+  const exportToExcel = () => {
+    const exportTickets = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+    
+    if (exportTickets.length === 0) {
+      onShowToast('No tickets to export', 'error')
+      return
+    }
+
+    // Create workers sheet
+    const workersData = []
+    // Create items sheet
+    const itemsData = []
+    // Create summary sheet
+    const summaryData = []
+
+    exportTickets.forEach(ticket => {
+      const ticketDate = formatDate(ticket.work_date)
+      const ticketStatus = ticket.status
+      
+      // Workers
+      if (ticket.t_and_m_workers) {
+        ticket.t_and_m_workers.forEach(worker => {
+          workersData.push({
+            'Date': ticketDate,
+            'Status': ticketStatus,
+            'Worker Name': worker.name,
+            'Hours': worker.hours
+          })
+        })
+      }
+      
+      // Items
+      if (ticket.t_and_m_items) {
+        ticket.t_and_m_items.forEach(item => {
+          const itemName = item.custom_name || item.materials_equipment?.name || 'Unknown'
+          const category = item.custom_category || item.materials_equipment?.category || 'Unknown'
+          const unit = item.materials_equipment?.unit || 'each'
+          const costPer = item.materials_equipment?.cost_per_unit || 0
+          const total = item.quantity * costPer
+          
+          itemsData.push({
+            'Date': ticketDate,
+            'Status': ticketStatus,
+            'Category': category,
+            'Item': itemName,
+            'Quantity': item.quantity,
+            'Unit': unit,
+            'Cost/Unit': costPer,
+            'Total': total
+          })
+        })
+      }
+      
+      // Summary
+      summaryData.push({
+        'Date': ticketDate,
+        'Status': ticketStatus,
+        'Workers': ticket.t_and_m_workers?.length || 0,
+        'Total Hours': calculateTotalHours(ticket),
+        'Items': ticket.t_and_m_items?.length || 0,
+        'Materials Cost': calculateTicketTotal(ticket),
+        'Notes': ticket.notes || ''
+      })
+    })
+
+    // Create workbook
+    const wb = XLSX.utils.book_new()
+    
+    // Add sheets
+    const summarySheet = XLSX.utils.json_to_sheet(summaryData)
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
+    
+    if (workersData.length > 0) {
+      const workersSheet = XLSX.utils.json_to_sheet(workersData)
+      XLSX.utils.book_append_sheet(wb, workersSheet, 'Workers')
+    }
+    
+    if (itemsData.length > 0) {
+      const itemsSheet = XLSX.utils.json_to_sheet(itemsData)
+      XLSX.utils.book_append_sheet(wb, itemsSheet, 'Materials & Equipment')
+    }
+    
+    // Download
+    const fileName = `${project.name}_TM_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(wb, fileName)
+    onShowToast('Export downloaded!', 'success')
+  }
+
   const filteredTickets = filter === 'all' 
     ? tickets 
     : tickets.filter(t => t.status === filter)
+
+  // Calculate totals for summary
+  const totalHours = filteredTickets.reduce((sum, t) => sum + calculateTotalHours(t), 0)
+  const totalCost = filteredTickets.reduce((sum, t) => sum + calculateTicketTotal(t), 0)
 
   if (loading) {
     return <div className="loading">Loading T&M tickets...</div>
@@ -84,34 +178,46 @@ export default function TMList({ project, onShowToast }) {
   return (
     <div className="tm-list">
       <div className="tm-list-header">
-        <h3>T&M Tickets</h3>
-        <div className="tm-filter-tabs">
-          <button 
-            className={`tm-filter-tab ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All ({tickets.length})
-          </button>
-          <button 
-            className={`tm-filter-tab ${filter === 'pending' ? 'active' : ''}`}
-            onClick={() => setFilter('pending')}
-          >
-            Pending ({tickets.filter(t => t.status === 'pending').length})
-          </button>
-          <button 
-            className={`tm-filter-tab ${filter === 'approved' ? 'active' : ''}`}
-            onClick={() => setFilter('approved')}
-          >
-            Approved ({tickets.filter(t => t.status === 'approved').length})
-          </button>
-          <button 
-            className={`tm-filter-tab ${filter === 'billed' ? 'active' : ''}`}
-            onClick={() => setFilter('billed')}
-          >
-            Billed ({tickets.filter(t => t.status === 'billed').length})
+        <div className="tm-list-title">
+          <h3>T&M Tickets</h3>
+          <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
+            📥 Export Excel
           </button>
         </div>
+        
+        <div className="tm-filter-tabs">
+          {['all', 'pending', 'approved', 'billed', 'rejected'].map(status => (
+            <button
+              key={status}
+              className={`tm-filter-tab ${filter === status ? 'active' : ''}`}
+              onClick={() => setFilter(status)}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+              <span className="tm-filter-count">
+                {status === 'all' ? tickets.length : tickets.filter(t => t.status === status).length}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Summary Bar */}
+      {filteredTickets.length > 0 && (
+        <div className="tm-summary-bar">
+          <div className="tm-summary-stat">
+            <span className="tm-summary-label">Tickets</span>
+            <span className="tm-summary-value">{filteredTickets.length}</span>
+          </div>
+          <div className="tm-summary-stat">
+            <span className="tm-summary-label">Total Hours</span>
+            <span className="tm-summary-value">{totalHours.toFixed(1)}</span>
+          </div>
+          <div className="tm-summary-stat">
+            <span className="tm-summary-label">Materials Cost</span>
+            <span className="tm-summary-value">${totalCost.toFixed(2)}</span>
+          </div>
+        </div>
+      )}
 
       {filteredTickets.length === 0 ? (
         <div className="tm-empty-state">
@@ -130,7 +236,7 @@ export default function TMList({ project, onShowToast }) {
                   <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
                 </div>
                 <div className="tm-ticket-summary">
-                  <span>{calculateTotalHours(ticket)} hrs</span>
+                  <span className="tm-ticket-hours">{calculateTotalHours(ticket)} hrs</span>
                   <span className="tm-ticket-total">${calculateTicketTotal(ticket).toFixed(2)}</span>
                   <span className="tm-expand-arrow">{expandedTicket === ticket.id ? '▼' : '▶'}</span>
                 </div>
@@ -140,7 +246,7 @@ export default function TMList({ project, onShowToast }) {
                 <div className="tm-ticket-details">
                   {ticket.t_and_m_workers?.length > 0 && (
                     <div className="tm-detail-section">
-                      <h4>Workers</h4>
+                      <h4>👷 Workers</h4>
                       <div className="tm-detail-list">
                         {ticket.t_and_m_workers.map(worker => (
                           <div key={worker.id} className="tm-detail-row">
@@ -154,7 +260,7 @@ export default function TMList({ project, onShowToast }) {
 
                   {ticket.t_and_m_items?.length > 0 && (
                     <div className="tm-detail-section">
-                      <h4>Materials & Equipment</h4>
+                      <h4>🔧 Materials & Equipment</h4>
                       <div className="tm-detail-list">
                         {ticket.t_and_m_items.map(item => (
                           <div key={item.id} className="tm-detail-row">
@@ -165,9 +271,9 @@ export default function TMList({ project, onShowToast }) {
                                 item.materials_equipment?.name
                               )}
                             </span>
-                            <span>
+                            <span className="tm-detail-qty">
                               {item.quantity} {item.materials_equipment?.unit || 'each'}
-                              {item.materials_equipment?.cost_per_unit && (
+                              {item.materials_equipment?.cost_per_unit > 0 && (
                                 <span className="tm-item-cost">
                                   ${(item.quantity * item.materials_equipment.cost_per_unit).toFixed(2)}
                                 </span>
@@ -181,7 +287,7 @@ export default function TMList({ project, onShowToast }) {
 
                   {ticket.notes && (
                     <div className="tm-detail-section">
-                      <h4>Notes</h4>
+                      <h4>📝 Notes</h4>
                       <p className="tm-notes-text">{ticket.notes}</p>
                     </div>
                   )}
@@ -191,39 +297,39 @@ export default function TMList({ project, onShowToast }) {
                       <>
                         <button 
                           className="btn btn-success btn-small"
-                          onClick={() => updateStatus(ticket.id, 'approved')}
+                          onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'approved'); }}
                         >
-                          Approve
+                          ✓ Approve
                         </button>
                         <button 
-                          className="btn btn-danger btn-small"
-                          onClick={() => updateStatus(ticket.id, 'rejected')}
+                          className="btn btn-warning btn-small"
+                          onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'rejected'); }}
                         >
-                          Reject
+                          ✗ Reject
                         </button>
                       </>
                     )}
                     {ticket.status === 'approved' && (
                       <button 
                         className="btn btn-primary btn-small"
-                        onClick={() => updateStatus(ticket.id, 'billed')}
+                        onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'billed'); }}
                       >
-                        Mark Billed
+                        💰 Mark Billed
                       </button>
                     )}
                     {ticket.status === 'rejected' && (
                       <button 
                         className="btn btn-secondary btn-small"
-                        onClick={() => updateStatus(ticket.id, 'pending')}
+                        onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'pending'); }}
                       >
-                        Restore
+                        ↩ Restore
                       </button>
                     )}
                     <button 
                       className="btn btn-danger btn-small"
-                      onClick={() => deleteTicket(ticket.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }}
                     >
-                      Delete
+                      🗑 Delete
                     </button>
                   </div>
                 </div>
@@ -235,3 +341,4 @@ export default function TMList({ project, onShowToast }) {
     </div>
   )
 }
+
