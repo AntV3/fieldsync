@@ -2100,6 +2100,47 @@ input::placeholder {
   transform: scale(1.05);
 }
 
+/* Role styles */
+.tm-role-select {
+  flex-shrink: 0;
+}
+
+.tm-role-select select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.tm-role-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  background: var(--accent-blue);
+  color: white;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tm-review-photos {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+.tm-review-photos img {
+  height: 60px;
+  width: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
 /* =============================================
    T&M LIST STYLES (Office View)
 ============================================= */
@@ -2427,4 +2468,5 @@ input::placeholder {
     text-align: left;
   }
 }
+
 

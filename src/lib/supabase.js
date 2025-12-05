@@ -750,7 +750,8 @@ export const db = {
       const workersData = workers.map(w => ({
         ticket_id: ticketId,
         name: w.name,
-        hours: w.hours
+        hours: w.hours,
+        role: w.role || 'Laborer'
       }))
       const { error } = await supabase
         .from('t_and_m_workers')

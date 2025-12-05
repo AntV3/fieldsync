@@ -6,7 +6,8 @@ const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 export default function TMForm({ project, companyId, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
-  const [workers, setWorkers] = useState([{ name: '', hours: '' }])
+  const [supervision, setSupervision] = useState([{ name: '', hours: '', role: 'Foreman' }])
+  const [laborers, setLaborers] = useState([{ name: '', hours: '' }])
   const [items, setItems] = useState([])
   const [notes, setNotes] = useState('')
   const [photos, setPhotos] = useState([])
@@ -39,20 +40,41 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
     }
   }
 
-  // Worker functions
-  const addWorker = () => {
-    setWorkers([...workers, { name: '', hours: '' }])
+  // Supervision functions
+  const addSupervision = () => {
+    setSupervision([...supervision, { name: '', hours: '', role: 'Foreman' }])
   }
 
-  const updateWorker = (index, field, value) => {
-    setWorkers(workers.map((w, i) => 
-      i === index ? { ...w, [field]: value } : w
+  const updateSupervision = (index, field, value) => {
+    setSupervision(supervision.map((s, i) => 
+      i === index ? { ...s, [field]: value } : s
     ))
   }
 
-  const removeWorker = (index) => {
-    if (workers.length > 1) {
-      setWorkers(workers.filter((_, i) => i !== index))
+  const removeSupervision = (index) => {
+    if (supervision.length > 1) {
+      setSupervision(supervision.filter((_, i) => i !== index))
+    } else {
+      setSupervision([{ name: '', hours: '', role: 'Foreman' }])
+    }
+  }
+
+  // Laborer functions
+  const addLaborer = () => {
+    setLaborers([...laborers, { name: '', hours: '' }])
+  }
+
+  const updateLaborer = (index, field, value) => {
+    setLaborers(laborers.map((l, i) => 
+      i === index ? { ...l, [field]: value } : l
+    ))
+  }
+
+  const removeLaborer = (index) => {
+    if (laborers.length > 1) {
+      setLaborers(laborers.filter((_, i) => i !== index))
+    } else {
+      setLaborers([{ name: '', hours: '' }])
     }
   }
 
@@ -147,7 +169,10 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
   // Navigation
   const canGoNext = () => {
     if (step === 1) {
-      return workers.some(w => w.name.trim() && parseFloat(w.hours) > 0)
+      // At least one supervision or laborer with name and hours
+      const hasSupervision = supervision.some(s => s.name.trim() && parseFloat(s.hours) > 0)
+      const hasLaborers = laborers.some(l => l.name.trim() && parseFloat(l.hours) > 0)
+      return hasSupervision || hasLaborers
     }
     return true
   }
@@ -171,9 +196,10 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
 
   // Submit
   const handleSubmit = async () => {
-    const validWorkers = workers.filter(w => w.name.trim() && parseFloat(w.hours) > 0)
+    const validSupervision = supervision.filter(s => s.name.trim() && parseFloat(s.hours) > 0)
+    const validLaborers = laborers.filter(l => l.name.trim() && parseFloat(l.hours) > 0)
     
-    if (validWorkers.length === 0) {
+    if (validSupervision.length === 0 && validLaborers.length === 0) {
       onShowToast('Add at least one worker', 'error')
       return
     }
@@ -190,10 +216,21 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
         photos: photoData
       })
 
-      await db.addTMWorkers(ticket.id, validWorkers.map(w => ({
-        name: w.name.trim(),
-        hours: parseFloat(w.hours)
-      })))
+      // Combine supervision and laborers for workers table
+      const allWorkers = [
+        ...validSupervision.map(s => ({
+          name: s.name.trim(),
+          hours: parseFloat(s.hours),
+          role: s.role
+        })),
+        ...validLaborers.map(l => ({
+          name: l.name.trim(),
+          hours: parseFloat(l.hours),
+          role: 'Laborer'
+        }))
+      ]
+
+      await db.addTMWorkers(ticket.id, allWorkers)
 
       if (items.length > 0) {
         await db.addTMItems(ticket.id, items.map(item => ({
@@ -215,8 +252,10 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
   }
 
   // Get total workers and hours for summary
-  const validWorkers = workers.filter(w => w.name.trim() && parseFloat(w.hours) > 0)
-  const totalHours = validWorkers.reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
+  const validSupervision = supervision.filter(s => s.name.trim() && parseFloat(s.hours) > 0)
+  const validLaborers = laborers.filter(l => l.name.trim() && parseFloat(l.hours) > 0)
+  const totalWorkers = validSupervision.length + validLaborers.length
+  const totalHours = [...validSupervision, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
 
   // STEP 2: Item Selection View
@@ -352,35 +391,99 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
             />
           </div>
 
+          {/* Photos Section - Moved Up */}
           <div className="tm-field">
-            <label>Who worked today?</label>
+            <label>📷 Photos</label>
+            {photos.length > 0 && (
+              <div className="tm-photo-grid">
+                {photos.map(photo => (
+                  <div key={photo.id} className="tm-photo-item">
+                    <img src={photo.dataUrl} alt={photo.name} />
+                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="tm-photo-btn">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoAdd}
+                style={{ display: 'none' }}
+              />
+              📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
+            </label>
+          </div>
+
+          {/* Supervision Section */}
+          <div className="tm-field">
+            <label>Supervision</label>
             <div className="tm-workers-list">
-              {workers.map((worker, index) => (
+              {supervision.map((sup, index) => (
                 <div key={index} className="tm-worker-card">
+                  <div className="tm-role-select">
+                    <select
+                      value={sup.role}
+                      onChange={(e) => updateSupervision(index, 'role', e.target.value)}
+                    >
+                      <option value="Foreman">Foreman</option>
+                      <option value="Superintendent">Superintendent</option>
+                    </select>
+                  </div>
                   <input
                     type="text"
-                    placeholder="Name"
-                    value={worker.name}
-                    onChange={(e) => updateWorker(index, 'name', e.target.value)}
+                    placeholder="First & Last Name"
+                    value={sup.name}
+                    onChange={(e) => updateSupervision(index, 'name', e.target.value)}
                     className="tm-worker-input"
                   />
                   <div className="tm-hours-input">
                     <input
                       type="number"
                       placeholder="0"
-                      value={worker.hours}
-                      onChange={(e) => updateWorker(index, 'hours', e.target.value)}
+                      value={sup.hours}
+                      onChange={(e) => updateSupervision(index, 'hours', e.target.value)}
                     />
                     <span>hrs</span>
                   </div>
-                  {workers.length > 1 && (
-                    <button className="tm-remove" onClick={() => removeWorker(index)}>×</button>
-                  )}
+                  <button className="tm-remove" onClick={() => removeSupervision(index)}>×</button>
                 </div>
               ))}
             </div>
-            <button className="tm-add-btn" onClick={addWorker}>
-              + Add Worker
+            <button className="tm-add-btn" onClick={addSupervision}>
+              + Add Supervision
+            </button>
+          </div>
+
+          {/* Laborers Section */}
+          <div className="tm-field">
+            <label>Laborers</label>
+            <div className="tm-workers-list">
+              {laborers.map((laborer, index) => (
+                <div key={index} className="tm-worker-card">
+                  <input
+                    type="text"
+                    placeholder="First & Last Name"
+                    value={laborer.name}
+                    onChange={(e) => updateLaborer(index, 'name', e.target.value)}
+                    className="tm-worker-input"
+                  />
+                  <div className="tm-hours-input">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={laborer.hours}
+                      onChange={(e) => updateLaborer(index, 'hours', e.target.value)}
+                    />
+                    <span>hrs</span>
+                  </div>
+                  <button className="tm-remove" onClick={() => removeLaborer(index)}>×</button>
+                </div>
+              ))}
+            </div>
+            <button className="tm-add-btn" onClick={addLaborer}>
+              + Add Laborer
             </button>
           </div>
         </div>
@@ -452,20 +555,53 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
             </div>
           )}
 
-          <div className="tm-review-section">
-            <div className="tm-review-header">
-              <span>👷 Workers</span>
-              <span>{validWorkers.length} workers • {totalHours} hrs</span>
+          {photos.length > 0 && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span>📷 Photos</span>
+                <span>{photos.length}</span>
+              </div>
+              <div className="tm-review-photos">
+                {photos.map(photo => (
+                  <img key={photo.id} src={photo.dataUrl} alt={photo.name} />
+                ))}
+              </div>
             </div>
-            <div className="tm-review-list">
-              {validWorkers.map((w, i) => (
-                <div key={i} className="tm-review-row">
-                  <span>{w.name}</span>
-                  <span>{w.hours} hrs</span>
-                </div>
-              ))}
+          )}
+
+          {validSupervision.length > 0 && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span>👔 Supervision</span>
+                <span>{validSupervision.length} • {validSupervision.reduce((sum, s) => sum + parseFloat(s.hours), 0)} hrs</span>
+              </div>
+              <div className="tm-review-list">
+                {validSupervision.map((s, i) => (
+                  <div key={i} className="tm-review-row">
+                    <span><span className="tm-role-badge">{s.role}</span> {s.name}</span>
+                    <span>{s.hours} hrs</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {validLaborers.length > 0 && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span>👷 Laborers</span>
+                <span>{validLaborers.length} • {validLaborers.reduce((sum, l) => sum + parseFloat(l.hours), 0)} hrs</span>
+              </div>
+              <div className="tm-review-list">
+                {validLaborers.map((l, i) => (
+                  <div key={i} className="tm-review-row">
+                    <span>{l.name}</span>
+                    <span>{l.hours} hrs</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {items.length > 0 && (
             <div className="tm-review-section">
@@ -483,31 +619,6 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
               </div>
             </div>
           )}
-
-          {/* Photos Section */}
-          <div className="tm-field">
-            <label>📷 Photos</label>
-            {photos.length > 0 && (
-              <div className="tm-photo-grid">
-                {photos.map(photo => (
-                  <div key={photo.id} className="tm-photo-item">
-                    <img src={photo.dataUrl} alt={photo.name} />
-                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <label className="tm-photo-btn">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoAdd}
-                style={{ display: 'none' }}
-              />
-              📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
-            </label>
-          </div>
         </div>
       )}
 
@@ -519,7 +630,7 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
             onClick={goNext}
             disabled={step === 1 && !canGoNext()}
           >
-            {step === 1 ? `Next: Materials (${validWorkers.length} workers, ${totalHours} hrs)` : 
+            {step === 1 ? `Next: Materials (${totalWorkers} workers, ${totalHours} hrs)` : 
              step === 2 ? `Review (${items.length} items)` : 'Next'}
           </button>
         ) : (
@@ -541,4 +652,3 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
     </div>
   )
 }
-

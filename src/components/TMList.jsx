@@ -250,7 +250,12 @@ export default function TMList({ project, onShowToast }) {
                       <div className="tm-detail-list">
                         {ticket.t_and_m_workers.map(worker => (
                           <div key={worker.id} className="tm-detail-row">
-                            <span>{worker.name}</span>
+                            <span>
+                              {worker.role && worker.role !== 'Laborer' && (
+                                <span className="tm-role-badge">{worker.role}</span>
+                              )}
+                              {worker.name}
+                            </span>
                             <span>{worker.hours} hrs</span>
                           </div>
                         ))}
