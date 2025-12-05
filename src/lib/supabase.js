@@ -593,5 +593,240 @@ export const db = {
       return data
     }
     return []
+  },
+
+  // ============================================
+  // Materials & Equipment (Master List)
+  // ============================================
+
+  async getMaterialsEquipment(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('materials_equipment')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('active', true)
+        .order('category')
+        .order('name')
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async getMaterialsEquipmentByCategory(companyId, category) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('materials_equipment')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('category', category)
+        .eq('active', true)
+        .order('name')
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async getAllMaterialsEquipment(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('materials_equipment')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('category')
+        .order('name')
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async createMaterialEquipment(item) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('materials_equipment')
+        .insert(item)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async updateMaterialEquipment(id, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('materials_equipment')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async deleteMaterialEquipment(id) {
+    if (isSupabaseConfigured) {
+      // Soft delete - just deactivate
+      const { error } = await supabase
+        .from('materials_equipment')
+        .update({ active: false })
+        .eq('id', id)
+      if (error) throw error
+    }
+  },
+
+  // ============================================
+  // T&M Tickets
+  // ============================================
+
+  async getTMTickets(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          t_and_m_workers (*),
+          t_and_m_items (
+            *,
+            materials_equipment (name, unit, cost_per_unit, category)
+          )
+        `)
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async getTMTicketsByStatus(projectId, status) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          t_and_m_workers (*),
+          t_and_m_items (
+            *,
+            materials_equipment (name, unit, cost_per_unit, category)
+          )
+        `)
+        .eq('project_id', projectId)
+        .eq('status', status)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async createTMTicket(ticket) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .insert({
+          project_id: ticket.project_id,
+          work_date: ticket.work_date,
+          notes: ticket.notes,
+          photo_url: ticket.photo_url,
+          status: 'pending'
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async addTMWorkers(ticketId, workers) {
+    if (isSupabaseConfigured) {
+      const workersData = workers.map(w => ({
+        ticket_id: ticketId,
+        name: w.name,
+        hours: w.hours
+      }))
+      const { error } = await supabase
+        .from('t_and_m_workers')
+        .insert(workersData)
+      if (error) throw error
+    }
+  },
+
+  async addTMItems(ticketId, items) {
+    if (isSupabaseConfigured) {
+      const itemsData = items.map(item => ({
+        ticket_id: ticketId,
+        material_equipment_id: item.material_equipment_id || null,
+        custom_name: item.custom_name || null,
+        custom_category: item.custom_category || null,
+        quantity: item.quantity
+      }))
+      const { error } = await supabase
+        .from('t_and_m_items')
+        .insert(itemsData)
+      if (error) throw error
+    }
+  },
+
+  async updateTMTicketStatus(ticketId, status) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .update({ status })
+        .eq('id', ticketId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async deleteTMTicket(ticketId) {
+    if (isSupabaseConfigured) {
+      // Workers and items cascade delete automatically
+      const { error } = await supabase
+        .from('t_and_m_tickets')
+        .delete()
+        .eq('id', ticketId)
+      if (error) throw error
+    }
+  },
+
+  // ============================================
+  // Companies
+  // ============================================
+
+  async getCompanyByCode(code) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('code', code)
+        .single()
+      if (error) return null
+      return data
+    }
+    return null
+  },
+
+  async getCompany(id) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', id)
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
   }
 }

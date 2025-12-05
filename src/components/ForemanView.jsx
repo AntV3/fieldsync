@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
+import TMForm from './TMForm'
 
-export default function ForemanView({ project, onShowToast, onExit }) {
+export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
+  const [showTMForm, setShowTMForm] = useState(false)
 
   useEffect(() => {
     loadAreas()
@@ -72,6 +74,21 @@ export default function ForemanView({ project, onShowToast, onExit }) {
     )
   }
 
+  // Show T&M form
+  if (showTMForm) {
+    return (
+      <div className="foreman-container">
+        <TMForm
+          project={project}
+          companyId={companyId}
+          onSubmit={() => setShowTMForm(false)}
+          onCancel={() => setShowTMForm(false)}
+          onShowToast={onShowToast}
+        />
+      </div>
+    )
+  }
+
   const progress = calculateProgress(areas)
   
   // Group areas by group_name
@@ -102,6 +119,14 @@ export default function ForemanView({ project, onShowToast, onExit }) {
           <div className="foreman-progress">{progress}% Complete</div>
         </div>
       </div>
+
+      {/* T&M Button */}
+      <button 
+        className="btn btn-primary foreman-tm-btn"
+        onClick={() => setShowTMForm(true)}
+      >
+        + New T&M Ticket
+      </button>
 
       <div className="foreman-areas">
         {hasGroups ? (
@@ -186,3 +211,6 @@ export default function ForemanView({ project, onShowToast, onExit }) {
     </div>
   )
 }
+
+
+

@@ -133,6 +133,7 @@ export default function App() {
       <>
         <ForemanView
           project={foremanProject}
+          companyId={foremanProject.company_id}
           onShowToast={showToast}
           onExit={handleExitForeman}
         />
