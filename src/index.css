@@ -3129,3 +3129,78 @@ input::placeholder {
   }
 }
 
+/* =============================================
+   COMPANY CODE INPUT STYLES
+   ============================================= */
+
+.company-code-input {
+  margin: 1.5rem 0;
+}
+
+.company-code-input input {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.5rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+.company-code-input input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.company-code-input input::placeholder {
+  font-size: 1rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+.company-submit-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.125rem;
+  margin-top: 0.5rem;
+}
+
+.pin-back-btn {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.2s;
+}
+
+.pin-back-btn:hover {
+  color: var(--text-primary);
+}
+
+.pin-company-badge {
+  background: var(--accent-blue);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.pin-header {
+  position: relative;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+

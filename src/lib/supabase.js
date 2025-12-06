@@ -345,6 +345,28 @@ export const db = {
     }
   },
 
+  // Get project by PIN within a specific company (secure foreman access)
+  async getProjectByPinAndCompany(pin, companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('pin', pin)
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .single()
+      if (error) return null
+      return data
+    } else {
+      const localData = getLocalData()
+      return localData.projects.find(p => 
+        p.pin === pin && 
+        p.company_id === companyId && 
+        p.status === 'active'
+      ) || null
+    }
+  },
+
   // Check if PIN is already in use
   async isPinAvailable(pin, excludeProjectId = null) {
     if (isSupabaseConfigured) {
@@ -1030,4 +1052,3 @@ export const db = {
     if (error) throw error
   }
 }
-
