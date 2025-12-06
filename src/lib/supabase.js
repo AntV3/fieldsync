@@ -733,6 +733,7 @@ export const db = {
         .insert({
           project_id: ticket.project_id,
           work_date: ticket.work_date,
+          ce_pco_number: ticket.ce_pco_number || null,
           notes: ticket.notes,
           photos: ticket.photos || [],
           status: 'pending'
@@ -751,6 +752,9 @@ export const db = {
         ticket_id: ticketId,
         name: w.name,
         hours: w.hours,
+        overtime_hours: w.overtime_hours || 0,
+        time_started: w.time_started || null,
+        time_ended: w.time_ended || null,
         role: w.role || 'Laborer'
       }))
       const { error } = await supabase
@@ -781,6 +785,20 @@ export const db = {
       const { data, error } = await supabase
         .from('t_and_m_tickets')
         .update({ status })
+        .eq('id', ticketId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async updateTMTicketPhotos(ticketId, photos) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .update({ photos })
         .eq('id', ticketId)
         .select()
         .single()
@@ -829,6 +847,91 @@ export const db = {
       return data
     }
     return null
+  },
+
+  // ============================================
+  // Photo Storage
+  // ============================================
+
+  async uploadPhoto(companyId, projectId, ticketId, file) {
+    if (!isSupabaseConfigured) return null
+
+    // Create unique filename
+    const timestamp = Date.now()
+    const randomId = Math.random().toString(36).substring(7)
+    const extension = file.name?.split('.').pop() || 'jpg'
+    const fileName = `${timestamp}-${randomId}.${extension}`
+    
+    // Path: company/project/ticket/filename
+    const filePath = `${companyId}/${projectId}/${ticketId}/${fileName}`
+
+    const { data, error } = await supabase.storage
+      .from('tm-photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) throw error
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('tm-photos')
+      .getPublicUrl(filePath)
+
+    return urlData.publicUrl
+  },
+
+  async uploadPhotoBase64(companyId, projectId, ticketId, base64Data, fileName = 'photo.jpg') {
+    if (!isSupabaseConfigured) return null
+
+    // Convert base64 to blob
+    const base64Response = await fetch(base64Data)
+    const blob = await base64Response.blob()
+
+    // Create unique filename
+    const timestamp = Date.now()
+    const randomId = Math.random().toString(36).substring(7)
+    const extension = fileName.split('.').pop() || 'jpg'
+    const newFileName = `${timestamp}-${randomId}.${extension}`
+    
+    // Path: company/project/ticket/filename
+    const filePath = `${companyId}/${projectId}/${ticketId}/${newFileName}`
+
+    const { data, error } = await supabase.storage
+      .from('tm-photos')
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: blob.type
+      })
+
+    if (error) throw error
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('tm-photos')
+      .getPublicUrl(filePath)
+
+    return urlData.publicUrl
+  },
+
+  async deletePhoto(photoUrl) {
+    if (!isSupabaseConfigured) return
+
+    // Extract path from URL
+    const url = new URL(photoUrl)
+    const pathMatch = url.pathname.match(/\/tm-photos\/(.+)$/)
+    if (!pathMatch) return
+
+    const filePath = pathMatch[1]
+
+    const { error } = await supabase.storage
+      .from('tm-photos')
+      .remove([filePath])
+
+    if (error) throw error
   }
 }
+
 

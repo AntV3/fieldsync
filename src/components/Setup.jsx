@@ -4,6 +4,9 @@ import * as XLSX from 'xlsx'
 
 export default function Setup({ onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
+  const [jobNumber, setJobNumber] = useState('')
+  const [address, setAddress] = useState('')
+  const [generalContractor, setGeneralContractor] = useState('')
   const [contractValue, setContractValue] = useState('')
   const [pin, setPin] = useState('')
   const [areas, setAreas] = useState([
@@ -49,6 +52,9 @@ export default function Setup({ onProjectCreated, onShowToast }) {
 
   const resetForm = () => {
     setProjectName('')
+    setJobNumber('')
+    setAddress('')
+    setGeneralContractor('')
     setContractValue('')
     setPin('')
     setAreas([
@@ -302,6 +308,9 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     try {
       const project = await db.createProject({
         name: projectName.trim(),
+        job_number: jobNumber.trim() || null,
+        address: address.trim() || null,
+        general_contractor: generalContractor.trim() || null,
         contract_value: contractVal,
         pin: pin
       })
@@ -416,13 +425,45 @@ export default function Setup({ onProjectCreated, onShowToast }) {
           />
         </div>
 
+        <div className="form-row-2">
+          <div className="form-group">
+            <label>Job Number</label>
+            <input
+              type="text"
+              placeholder="e.g., 4032"
+              value={jobNumber}
+              onChange={(e) => setJobNumber(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Contract Value ($)</label>
+            <input
+              type="number"
+              placeholder="e.g., 365000"
+              value={contractValue}
+              onChange={(e) => setContractValue(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="form-group">
-          <label>Contract Value ($)</label>
+          <label>Project Address</label>
           <input
-            type="number"
-            placeholder="e.g., 365000"
-            value={contractValue}
-            onChange={(e) => setContractValue(e.target.value)}
+            type="text"
+            placeholder="e.g., 123 Main St, Los Angeles, CA 90001"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>General Contractor</label>
+          <input
+            type="text"
+            placeholder="e.g., ABC Construction Inc."
+            value={generalContractor}
+            onChange={(e) => setGeneralContractor(e.target.value)}
           />
         </div>
 
@@ -552,3 +593,4 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     </div>
   )
 }
+
