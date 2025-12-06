@@ -410,3 +410,4 @@ export default function Onboarding({ onComplete, onShowToast }) {
     </div>
   )
 }
+

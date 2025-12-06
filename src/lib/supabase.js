@@ -183,16 +183,108 @@ export const auth = {
 // Database operations with localStorage fallback
 export const db = {
   // Projects
-  async getProjects() {
+  async getProjects(companyId = null, includeArchived = false) {
+    if (isSupabaseConfigured) {
+      let query = supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (companyId) {
+        query = query.eq('company_id', companyId)
+      }
+      
+      if (!includeArchived) {
+        query = query.eq('status', 'active')
+      }
+      
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    } else {
+      const projects = getLocalData().projects
+      if (includeArchived) return projects
+      return projects.filter(p => p.status !== 'archived')
+    }
+  },
+
+  async getArchivedProjects(companyId) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .order('created_at', { ascending: false })
+        .eq('company_id', companyId)
+        .eq('status', 'archived')
+        .order('archived_at', { ascending: false })
       if (error) throw error
       return data
     } else {
-      return getLocalData().projects
+      return getLocalData().projects.filter(p => p.status === 'archived')
+    }
+  },
+
+  async getProjectCount(companyId) {
+    if (isSupabaseConfigured) {
+      const { count, error } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .in('status', ['active', 'archived'])
+      if (error) throw error
+      return count || 0
+    } else {
+      const projects = getLocalData().projects
+      return projects.filter(p => p.company_id === companyId && p.status !== 'deleted').length
+    }
+  },
+
+  async archiveProject(id) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ 
+          status: 'archived',
+          archived_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    } else {
+      const localData = getLocalData()
+      const project = localData.projects.find(p => p.id === id)
+      if (project) {
+        project.status = 'archived'
+        project.archived_at = new Date().toISOString()
+        setLocalData(localData)
+      }
+      return project
+    }
+  },
+
+  async restoreProject(id) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ 
+          status: 'active',
+          archived_at: null
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    } else {
+      const localData = getLocalData()
+      const project = localData.projects.find(p => p.id === id)
+      if (project) {
+        project.status = 'active'
+        project.archived_at = null
+        setLocalData(localData)
+      }
+      return project
     }
   },
 
@@ -214,7 +306,10 @@ export const db = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('projects')
-        .insert(project)
+        .insert({
+          ...project,
+          status: 'active'
+        })
         .select()
         .single()
       if (error) throw error
@@ -224,6 +319,7 @@ export const db = {
       const newProject = { 
         ...project, 
         id: crypto.randomUUID(),
+        status: 'active',
         created_at: new Date().toISOString()
       }
       localData.projects.push(newProject)
@@ -232,19 +328,20 @@ export const db = {
     }
   },
 
-  // Get project by PIN (for foreman access)
+  // Get project by PIN (for foreman access) - only active projects
   async getProjectByPin(pin) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
         .eq('pin', pin)
+        .eq('status', 'active')
         .single()
       if (error) return null
       return data
     } else {
       const localData = getLocalData()
-      return localData.projects.find(p => p.pin === pin) || null
+      return localData.projects.find(p => p.pin === pin && p.status === 'active') || null
     }
   },
 
