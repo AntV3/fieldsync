@@ -359,4 +359,3 @@ export default function TMList({ project, onShowToast }) {
     </div>
   )
 }
-
