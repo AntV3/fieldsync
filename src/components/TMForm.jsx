@@ -3,7 +3,7 @@ import { db } from '../lib/supabase'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
-export default function TMForm({ project, companyId, onSubmit, onCancel, onShowToast }) {
+export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
   const [cePcoNumber, setCePcoNumber] = useState('')
@@ -143,7 +143,21 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
     const files = Array.from(e.target.files)
     if (files.length === 0) return
 
-    files.forEach(file => {
+    // Check photo limit (-1 means unlimited)
+    const remainingSlots = maxPhotos === -1 ? Infinity : maxPhotos - photos.length
+    if (remainingSlots <= 0) {
+      onShowToast(`Photo limit reached (${maxPhotos} max)`, 'error')
+      e.target.value = ''
+      return
+    }
+
+    // Only add up to remaining slots
+    const filesToAdd = files.slice(0, remainingSlots)
+    if (filesToAdd.length < files.length) {
+      onShowToast(`Only ${filesToAdd.length} photo(s) added (${maxPhotos} max)`, 'error')
+    }
+
+    filesToAdd.forEach(file => {
       if (!file.type.startsWith('image/')) {
         onShowToast('Please select an image file', 'error')
         return
@@ -606,7 +620,12 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
 
           {/* Photos Section */}
           <div className="tm-field">
-            <label>📷 Photos</label>
+            <label>
+              📷 Photos 
+              {maxPhotos !== -1 && (
+                <span className="tm-photo-count">({photos.length}/{maxPhotos})</span>
+              )}
+            </label>
             {photos.length > 0 && (
               <div className="tm-photo-grid">
                 {photos.map(photo => (
@@ -617,16 +636,23 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
                 ))}
               </div>
             )}
-            <label className="tm-photo-btn">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoAdd}
-                style={{ display: 'none' }}
-              />
-              📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
-            </label>
+            {(maxPhotos === -1 || photos.length < maxPhotos) && (
+              <label className="tm-photo-btn">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoAdd}
+                  style={{ display: 'none' }}
+                />
+                📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
+              </label>
+            )}
+            {maxPhotos !== -1 && photos.length >= maxPhotos && (
+              <div className="tm-photo-limit-reached">
+                Photo limit reached ({maxPhotos} max)
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -823,4 +849,5 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
     </div>
   )
 }
+
 

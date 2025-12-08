@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { db } from '../lib/supabase'
+import { db, supabase } from '../lib/supabase'
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
-  const [mode, setMode] = useState(null) // null, 'foreman', 'office'
+  const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join'
   
   // Foreman state
   const [companyCode, setCompanyCode] = useState('')
@@ -13,6 +13,13 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   // Office state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // Join state
+  const [joinStep, setJoinStep] = useState(1) // 1: company code, 2: create account
+  const [joinCompany, setJoinCompany] = useState(null)
+  const [joinName, setJoinName] = useState('')
+  const [joinEmail, setJoinEmail] = useState('')
+  const [joinPassword, setJoinPassword] = useState('')
 
   // Handle company code
   const handleCompanyCodeChange = (value) => {
@@ -91,6 +98,98 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       return
     }
     onOfficeLogin(email, password)
+  }
+
+  // Verify company code for joining
+  const verifyJoinCode = async () => {
+    if (companyCode.length < 2) {
+      onShowToast('Enter company code', 'error')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const foundCompany = await db.getCompanyByCode(companyCode)
+      if (foundCompany) {
+        setJoinCompany(foundCompany)
+        setJoinStep(2)
+      } else {
+        onShowToast('Invalid company code', 'error')
+        setCompanyCode('')
+      }
+    } catch (err) {
+      onShowToast('Error checking code', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle join submit
+  const handleJoinSubmit = async () => {
+    if (!joinName.trim()) {
+      onShowToast('Enter your name', 'error')
+      return
+    }
+    if (!joinEmail.trim() || !joinEmail.includes('@')) {
+      onShowToast('Enter valid email', 'error')
+      return
+    }
+    if (joinPassword.length < 6) {
+      onShowToast('Password must be 6+ characters', 'error')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // 1. Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: joinEmail,
+        password: joinPassword,
+        options: {
+          data: {
+            full_name: joinName
+          }
+        }
+      })
+      
+      if (authError) throw authError
+
+      const userId = authData.user?.id
+      if (!userId) throw new Error('Failed to create user')
+
+      // 2. Create user record (as member by default)
+      const { error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: joinEmail,
+          password_hash: 'managed_by_supabase_auth',
+          name: joinName.trim(),
+          company_id: joinCompany.id,
+          role: 'member',
+          is_active: true
+        })
+
+      if (userError) throw userError
+
+      onShowToast('Account created! You can now sign in.', 'success')
+      
+      // Reset and go to login
+      setJoinStep(1)
+      setJoinCompany(null)
+      setJoinName('')
+      setJoinEmail('')
+      setJoinPassword('')
+      setCompanyCode('')
+      setEmail(joinEmail) // Pre-fill email for convenience
+      setMode('office')
+
+    } catch (err) {
+      console.error('Join error:', err)
+      onShowToast(err.message || 'Error creating account', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Initial selection screen
@@ -264,13 +363,106 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           </div>
 
           <div className="entry-signup-hint">
-            <p>Don't have an account?</p>
-            <a href="https://fieldsync.com" target="_blank" rel="noopener noreferrer">
-              Sign up at fieldsync.com
-            </a>
+            <p>New employee?</p>
+            <button className="entry-join-link" onClick={() => setMode('join')}>
+              Join your company
+            </button>
           </div>
         </div>
       </div>
     )
   }
+
+  // Join Company flow
+  if (mode === 'join') {
+    // Step 1: Enter company code
+    if (joinStep === 1) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card">
+            <button className="entry-back" onClick={() => setMode('office')}>
+              ←
+            </button>
+            
+            <div className="entry-logo">Field<span>Sync</span></div>
+            <p className="entry-subtitle">Enter your company code</p>
+            <p className="entry-hint">Ask your manager or admin for the code</p>
+
+            <div className="entry-input-group">
+              <input
+                type="text"
+                value={companyCode}
+                onChange={(e) => handleCompanyCodeChange(e.target.value)}
+                placeholder="Company Code"
+                disabled={loading}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') verifyJoinCode()
+                }}
+              />
+              <button
+                className="entry-submit-btn"
+                onClick={verifyJoinCode}
+                disabled={loading || companyCode.length < 2}
+              >
+                {loading ? '...' : '→'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Step 2: Create account
+    return (
+      <div className="entry-container">
+        <div className="entry-card">
+          <button className="entry-back" onClick={() => { setJoinStep(1); setJoinCompany(null); }}>
+            ←
+          </button>
+          
+          <div className="entry-logo">Field<span>Sync</span></div>
+          <div className="entry-company-badge">{joinCompany?.name}</div>
+          <p className="entry-subtitle">Create your account</p>
+
+          <div className="entry-form">
+            <input
+              type="text"
+              value={joinName}
+              onChange={(e) => setJoinName(e.target.value)}
+              placeholder="Your Name"
+              autoFocus
+            />
+            <input
+              type="email"
+              value={joinEmail}
+              onChange={(e) => setJoinEmail(e.target.value)}
+              placeholder="Email"
+            />
+            <input
+              type="password"
+              value={joinPassword}
+              onChange={(e) => setJoinPassword(e.target.value)}
+              placeholder="Password (6+ characters)"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleJoinSubmit()
+              }}
+            />
+            <button
+              className="entry-login-btn"
+              onClick={handleJoinSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Creating...' : 'Join Company'}
+            </button>
+          </div>
+
+          <p className="entry-join-note">
+            You'll join as a team member. Your admin can update your role.
+          </p>
+        </div>
+      </div>
+    )
+  }
 }
+

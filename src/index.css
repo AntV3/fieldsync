@@ -4097,7 +4097,57 @@ input::placeholder {
   text-decoration: underline;
 }
 
+.entry-signup-contact {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .entry-loading {
   margin-top: 1rem;
 }
 
+/* Photo limit styles */
+.tm-photo-count {
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+.tm-photo-limit-reached {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  border: 1px dashed var(--border-color);
+}
+
+/* Join company styles */
+.entry-join-link {
+  background: none;
+  border: none;
+  color: var(--accent-blue);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0;
+}
+
+.entry-join-link:hover {
+  text-decoration: underline;
+}
+
+.entry-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.entry-join-note {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+  margin-top: 1rem;
+}
