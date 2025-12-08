@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { isSupabaseConfigured, auth } from './lib/supabase'
-import PinEntry from './components/PinEntry'
-import Login from './components/Login'
+import { isSupabaseConfigured, auth, supabase } from './lib/supabase'
+import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
 import Field from './components/Field'
@@ -9,8 +8,9 @@ import Setup from './components/Setup'
 import Toast from './components/Toast'
 
 export default function App() {
-  const [view, setView] = useState('pin') // 'pin', 'login', 'foreman', 'office'
+  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office'
   const [user, setUser] = useState(null)
+  const [company, setCompany] = useState(null)
   const [foremanProject, setForemanProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -23,8 +23,15 @@ export default function App() {
   const checkAuth = async () => {
     try {
       const profile = await auth.getProfile()
-      if (profile) {
+      if (profile && profile.company_id) {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', profile.company_id)
+          .single()
+        
         setUser(profile)
+        setCompany(companyData)
         setView('office')
       }
     } catch (error) {
@@ -34,25 +41,50 @@ export default function App() {
     }
   }
 
-  const handleProjectAccess = (project) => {
+  // Foreman accessed project via PIN
+  const handleForemanAccess = (project) => {
     setForemanProject(project)
     setView('foreman')
   }
 
-  const handleOfficeLogin = () => {
-    setView('login')
-  }
+  // Office login
+  const handleOfficeLogin = async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      
+      if (error) {
+        showToast(error.message || 'Invalid credentials', 'error')
+        return
+      }
 
-  const handleLogin = (profile) => {
-    setUser(profile)
-    setView('office')
+      // Get user profile
+      const { data: userData } = await supabase
+        .from('users')
+        .select('*, companies(*)')
+        .eq('id', data.user.id)
+        .single()
+
+      if (userData) {
+        setUser(userData)
+        setCompany(userData.companies)
+        setView('office')
+      } else {
+        showToast('Account not found', 'error')
+      }
+    } catch (err) {
+      showToast('Login failed', 'error')
+    }
   }
 
   const handleLogout = async () => {
     try {
       await auth.signOut()
       setUser(null)
-      setView('pin')
+      setCompany(null)
+      setView('entry')
       setActiveTab('dashboard')
     } catch (error) {
       console.error('Logout error:', error)
@@ -62,11 +94,7 @@ export default function App() {
 
   const handleExitForeman = () => {
     setForemanProject(null)
-    setView('pin')
-  }
-
-  const handleBackFromLogin = () => {
-    setView('pin')
+    setView('entry')
   }
 
   const showToast = (message, type = '') => {
@@ -87,12 +115,12 @@ export default function App() {
     )
   }
 
-  // PIN Entry (default screen)
-  if (view === 'pin') {
+  // Entry screen (Foreman / Office selection)
+  if (view === 'entry') {
     return (
       <>
-        <PinEntry
-          onProjectAccess={handleProjectAccess}
+        <AppEntry
+          onForemanAccess={handleForemanAccess}
           onOfficeLogin={handleOfficeLogin}
           onShowToast={showToast}
         />
@@ -107,27 +135,7 @@ export default function App() {
     )
   }
 
-  // Office Login
-  if (view === 'login') {
-    return (
-      <>
-        <Login
-          onLogin={handleLogin}
-          onShowToast={showToast}
-          onBack={handleBackFromLogin}
-        />
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-      </>
-    )
-  }
-
-  // Foreman View (PIN access)
+  // Foreman View
   if (view === 'foreman' && foremanProject) {
     return (
       <>
