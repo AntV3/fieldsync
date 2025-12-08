@@ -7,6 +7,7 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
   const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
   const [cePcoNumber, setCePcoNumber] = useState('')
+  const [submittedByName, setSubmittedByName] = useState('') // Foreman's name for certification
   const [supervision, setSupervision] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '', role: 'Foreman' }])
   const [laborers, setLaborers] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
   const [items, setItems] = useState([])
@@ -200,6 +201,12 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
 
   // Submit
   const handleSubmit = async () => {
+    // Require submitter name for certification
+    if (!submittedByName.trim()) {
+      onShowToast('Enter your name to submit', 'error')
+      return
+    }
+
     const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
     const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
     
@@ -216,7 +223,8 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
         work_date: workDate,
         ce_pco_number: cePcoNumber.trim() || null,
         notes: notes.trim() || null,
-        photos: [] // Will update after uploading
+        photos: [], // Will update after uploading
+        created_by_name: submittedByName.trim()
       })
 
       // Upload photos to storage
@@ -765,6 +773,23 @@ export default function TMForm({ project, companyId, onSubmit, onCancel, onShowT
               </div>
             </div>
           )}
+
+          {/* Submitted By - Certification */}
+          <div className="tm-review-section tm-certification">
+            <div className="tm-review-header">
+              <span>✍️ Submitted By</span>
+            </div>
+            <input
+              type="text"
+              className="tm-certification-input"
+              placeholder="Enter your name"
+              value={submittedByName}
+              onChange={(e) => setSubmittedByName(e.target.value)}
+            />
+            <p className="tm-certification-note">
+              By submitting, you certify this T&M is accurate.
+            </p>
+          </div>
         </div>
       )}
 

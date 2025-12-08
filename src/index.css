@@ -3204,3 +3204,75 @@ input::placeholder {
   margin-bottom: 1.5rem;
 }
 
+/* =============================================
+   T&M CERTIFICATION STYLES
+   ============================================= */
+
+.tm-certification {
+  background: var(--bg-elevated);
+  border: 2px solid var(--accent-blue);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.tm-certification-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-size: 1.125rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  margin-top: 0.5rem;
+}
+
+.tm-certification-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.tm-certification-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* Certification stamp on ticket display */
+.tm-ticket-certification {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent-blue);
+}
+
+.tm-cert-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.tm-cert-label {
+  color: var(--text-muted);
+}
+
+.tm-cert-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tm-cert-approved {
+  color: var(--accent-green);
+}
+
+.tm-cert-pending {
+  color: var(--accent-yellow);
+}
+
+.tm-cert-rejected {
+  color: var(--accent-red);
+}
+

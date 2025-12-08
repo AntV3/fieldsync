@@ -117,7 +117,7 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
               type="text"
               value={companyCode}
               onChange={(e) => handleCompanyCodeChange(e.target.value)}
-              placeholder="e.g. GGG or ACME123"
+              placeholder="Company Code"
               disabled={loading}
               autoFocus
               onKeyDown={(e) => {
@@ -218,3 +218,4 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
     </div>
   )
 }
+

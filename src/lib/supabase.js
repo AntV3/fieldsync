@@ -855,7 +855,8 @@ export const db = {
           ce_pco_number: ticket.ce_pco_number || null,
           notes: ticket.notes,
           photos: ticket.photos || [],
-          status: 'pending'
+          status: 'pending',
+          created_by_name: ticket.created_by_name || 'Field User'
         })
         .select()
         .single()
@@ -911,6 +912,62 @@ export const db = {
       return data
     }
     return null
+  },
+
+  // Approve T&M ticket (with certification)
+  async approveTMTicket(ticketId, userId, userName) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .update({ 
+          status: 'approved',
+          approved_by_user_id: userId,
+          approved_by_name: userName,
+          approved_at: new Date().toISOString(),
+          // Clear any previous rejection
+          rejected_by_user_id: null,
+          rejected_by_name: null,
+          rejected_at: null,
+          rejection_reason: null
+        })
+        .eq('id', ticketId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Reject T&M ticket (with reason)
+  async rejectTMTicket(ticketId, userId, userName, reason = '') {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .update({ 
+          status: 'rejected',
+          rejected_by_user_id: userId,
+          rejected_by_name: userName,
+          rejected_at: new Date().toISOString(),
+          rejection_reason: reason,
+          // Clear any previous approval
+          approved_by_user_id: null,
+          approved_by_name: null,
+          approved_at: null
+        })
+        .eq('id', ticketId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Check if user role can approve T&M tickets
+  canApproveTickets(role) {
+    const approverRoles = ['owner', 'admin', 'manager']
+    return approverRoles.includes(role)
   },
 
   async updateTMTicketPhotos(ticketId, photos) {
