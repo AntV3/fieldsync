@@ -22,16 +22,23 @@ export default function App() {
 
   const checkAuth = async () => {
     try {
-      const profile = await auth.getProfile()
-      if (profile && profile.company_id) {
-        const { data: companyData } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', profile.company_id)
-          .single()
-        
-        setUser(profile)
-        setCompany(companyData)
+      // Check if user is logged in
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      // Get user record with company
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*, companies(*)')
+        .eq('id', user.id)
+        .single()
+
+      if (userData && userData.companies) {
+        setUser(userData)
+        setCompany(userData.companies)
         setView('office')
       }
     } catch (error) {
