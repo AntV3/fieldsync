@@ -71,20 +71,16 @@ export default function App() {
 
       console.log('User query result:', userData, 'Error:', userError)
 
-      if (userData) {
+      if (userData && userData.companies) {
         setUser(userData)
         setCompany(userData.companies)
         setView('office')
       } else {
-        // User exists in auth but not in users table
-        // This can happen if signup failed halfway
-        console.log('User not in users table, checking auth metadata...')
-        
-        // Try to get company from user metadata or prompt to rejoin
-        showToast('Account setup incomplete. Please join your company again.', 'error')
-        
-        // Sign out and redirect to join
+        // User exists in auth but not in users table - this shouldn't happen
+        // Sign out and show error
+        console.log('User record missing or incomplete')
         await supabase.auth.signOut()
+        showToast('Account setup incomplete. Please contact admin.', 'error')
       }
     } catch (err) {
       console.error('Login error:', err)
@@ -239,5 +235,6 @@ export default function App() {
     </div>
   )
 }
+
 
 

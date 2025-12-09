@@ -144,77 +144,90 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       console.log('Starting signup for:', joinEmail)
       console.log('Company:', joinCompany)
 
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: joinEmail,
-        password: joinPassword,
-        options: {
-          data: {
-            full_name: joinName
-          }
-        }
-      })
-      
-      if (authError) {
-        console.error('Auth signup error:', authError)
-        throw authError
-      }
-
-      const userId = authData.user?.id
-      console.log('Auth user created with ID:', userId)
-      
-      if (!userId) throw new Error('Failed to create user')
-
-      // 2. Create user record (as member by default)
-      console.log('Inserting into users table...')
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          email: joinEmail,
-          password_hash: 'managed_by_supabase_auth',
-          name: joinName.trim(),
-          company_id: joinCompany.id,
-          role: 'member',
-          is_active: true
-        })
-        .select()
-        .single()
-
-      console.log('Insert result:', userData, 'Error:', userError)
-
-      if (userError) {
-        console.error('User insert error:', userError)
-        // Don't throw - still try to login, maybe user already exists
-        onShowToast('Warning: ' + userError.message, 'error')
-      }
-
-      // 3. Try to sign in immediately
-      console.log('Attempting auto sign-in...')
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // 1. Try to sign in first (in case user already exists)
+      const { data: existingUser, error: signInError } = await supabase.auth.signInWithPassword({
         email: joinEmail,
         password: joinPassword
       })
 
-      console.log('Sign in result:', signInData, 'Error:', signInError)
+      let userId
 
-      if (signInError) {
-        console.error('Auto sign-in failed:', signInError)
-        onShowToast('Account created! Please sign in manually.', 'success')
-        setJoinStep(1)
-        setJoinCompany(null)
-        setJoinName('')
-        setJoinEmail('')
-        setJoinPassword('')
-        setCompanyCode('')
-        setEmail(joinEmail)
-        setMode('office')
-        return
+      if (existingUser?.user) {
+        // User already exists in auth
+        console.log('User already exists in auth:', existingUser.user.id)
+        userId = existingUser.user.id
+      } else {
+        // Create new auth user
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: joinEmail,
+          password: joinPassword,
+          options: {
+            data: {
+              full_name: joinName
+            }
+          }
+        })
+        
+        if (authError) {
+          console.error('Auth signup error:', authError)
+          throw authError
+        }
+
+        userId = authData.user?.id
+        console.log('Auth user created with ID:', userId)
+      }
+      
+      if (!userId) throw new Error('Failed to get user ID')
+
+      // 2. Check if user record exists
+      const { data: existingRecord } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single()
+
+      if (!existingRecord) {
+        // Create user record
+        console.log('Creating user record...')
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: joinEmail,
+            password_hash: 'managed_by_supabase_auth',
+            name: joinName.trim(),
+            company_id: joinCompany.id,
+            role: 'member',
+            is_active: true
+          })
+
+        if (userError) {
+          console.error('User insert error:', userError)
+          throw userError
+        }
+        console.log('User record created')
+      } else {
+        console.log('User record already exists')
       }
 
-      // 4. Success - call login handler with credentials
-      onShowToast('Account created!', 'success')
-      onOfficeLogin(joinEmail, joinPassword)
+      // 3. Get full user data with company
+      const { data: userData, error: fetchError } = await supabase
+        .from('users')
+        .select('*, companies(*)')
+        .eq('id', userId)
+        .single()
+
+      if (fetchError || !userData) {
+        console.error('Failed to fetch user:', fetchError)
+        throw new Error('Failed to load user data')
+      }
+
+      // 4. Success!
+      onShowToast('Welcome!', 'success')
+      
+      // Call the parent login handler directly with the user data
+      // We need to pass this up differently
+      window.location.reload() // Simple reload to trigger auth check
 
     } catch (err) {
       console.error('Join error:', err)
