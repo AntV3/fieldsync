@@ -158,7 +158,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (!userId) throw new Error('Failed to create user')
 
       // 2. Create user record (as member by default)
-      const { error: userError } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
           id: userId,
@@ -169,20 +169,37 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           role: 'member',
           is_active: true
         })
+        .select()
+        .single()
 
-      if (userError) throw userError
+      if (userError) {
+        console.error('User insert error:', userError)
+        throw userError
+      }
 
-      onShowToast('Account created! You can now sign in.', 'success')
-      
-      // Reset and go to login
-      setJoinStep(1)
-      setJoinCompany(null)
-      setJoinName('')
-      setJoinEmail('')
-      setJoinPassword('')
-      setCompanyCode('')
-      setEmail(joinEmail) // Pre-fill email for convenience
-      setMode('office')
+      // 3. Try to sign in immediately (works if email confirmation is disabled)
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: joinEmail,
+        password: joinPassword
+      })
+
+      if (signInError) {
+        // Email confirmation might be required
+        onShowToast('Account created! Check email to confirm, then sign in.', 'success')
+        setJoinStep(1)
+        setJoinCompany(null)
+        setJoinName('')
+        setJoinEmail('')
+        setJoinPassword('')
+        setCompanyCode('')
+        setEmail(joinEmail)
+        setMode('office')
+        return
+      }
+
+      // 4. Success - call login handler with credentials
+      onShowToast('Account created!', 'success')
+      onOfficeLogin(joinEmail, joinPassword)
 
     } catch (err) {
       console.error('Join error:', err)
@@ -465,4 +482,3 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     )
   }
 }
-
