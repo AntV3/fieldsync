@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { db, supabase } from '../lib/supabase'
+import { isSupabaseConfigured, auth, supabase } from './lib/supabase'
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join'
