@@ -60,8 +60,6 @@ export default function App() {
         return
       }
 
-      console.log('Auth successful, user id:', data.user.id)
-
       // Get user profile
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -69,18 +67,18 @@ export default function App() {
         .eq('id', data.user.id)
         .single()
 
-      console.log('User query result:', userData, 'Error:', userError)
+      if (userError) {
+        console.error('User fetch error:', userError)
+        showToast('Error loading profile', 'error')
+        return
+      }
 
-      if (userData && userData.companies) {
+      if (userData) {
         setUser(userData)
         setCompany(userData.companies)
         setView('office')
       } else {
-        // User exists in auth but not in users table - this shouldn't happen
-        // Sign out and show error
-        console.log('User record missing or incomplete')
-        await supabase.auth.signOut()
-        showToast('Account setup incomplete. Please contact admin.', 'error')
+        showToast('Profile not found. Please contact admin.', 'error')
       }
     } catch (err) {
       console.error('Login error:', err)
@@ -235,6 +233,5 @@ export default function App() {
     </div>
   )
 }
-
 
 
