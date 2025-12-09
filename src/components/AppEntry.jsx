@@ -141,6 +141,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
     setLoading(true)
     try {
+      console.log('Starting signup for:', joinEmail)
+      console.log('Company:', joinCompany)
+
       // 1. Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: joinEmail,
@@ -152,12 +155,18 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         }
       })
       
-      if (authError) throw authError
+      if (authError) {
+        console.error('Auth signup error:', authError)
+        throw authError
+      }
 
       const userId = authData.user?.id
+      console.log('Auth user created with ID:', userId)
+      
       if (!userId) throw new Error('Failed to create user')
 
       // 2. Create user record (as member by default)
+      console.log('Inserting into users table...')
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
@@ -172,20 +181,26 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         .select()
         .single()
 
+      console.log('Insert result:', userData, 'Error:', userError)
+
       if (userError) {
         console.error('User insert error:', userError)
-        throw userError
+        // Don't throw - still try to login, maybe user already exists
+        onShowToast('Warning: ' + userError.message, 'error')
       }
 
-      // 3. Try to sign in immediately (works if email confirmation is disabled)
+      // 3. Try to sign in immediately
+      console.log('Attempting auto sign-in...')
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: joinEmail,
         password: joinPassword
       })
 
+      console.log('Sign in result:', signInData, 'Error:', signInError)
+
       if (signInError) {
-        // Email confirmation might be required
-        onShowToast('Account created! Check email to confirm, then sign in.', 'success')
+        console.error('Auto sign-in failed:', signInError)
+        onShowToast('Account created! Please sign in manually.', 'success')
         setJoinStep(1)
         setJoinCompany(null)
         setJoinName('')
@@ -482,3 +497,4 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     )
   }
 }
+
