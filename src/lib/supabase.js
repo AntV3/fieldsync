@@ -52,7 +52,7 @@ export const auth = {
         password,
         options: {
           data: {
-            full_name: fullName,
+            name: fullName,
             role: role
           }
         }
@@ -65,7 +65,7 @@ export const auth = {
       const user = {
         id: crypto.randomUUID(),
         email,
-        full_name: fullName,
+        name: fullName,
         role,
         created_at: new Date().toISOString()
       }
@@ -122,7 +122,7 @@ export const auth = {
       if (!user) return null
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', user.id)
         .single()
@@ -132,7 +132,7 @@ export const auth = {
         return {
           id: user.id,
           email: user.email,
-          full_name: user.user_metadata?.full_name || '',
+          name: user.user_metadata?.name || '',
           role: user.user_metadata?.role || 'foreman'
         }
       }
@@ -146,7 +146,7 @@ export const auth = {
   async updateRole(userId, newRole) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .update({ role: newRole })
         .eq('id', userId)
         .select()
@@ -634,11 +634,11 @@ export const db = {
         .from('project_assignments')
         .select(`
           user_id,
-          profiles (id, email, full_name, role)
+          users (id, email, name, role)
         `)
         .eq('project_id', projectId)
       if (error) throw error
-      return data.map(a => a.profiles)
+      return data.map(a => a.users)
     } else {
       const localData = getLocalData()
       const assignments = localData.assignments?.filter(a => a.project_id === projectId) || []
@@ -650,9 +650,9 @@ export const db = {
   async getAllUsers() {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
-        .order('full_name')
+        .order('name')
       if (error) throw error
       return data
     } else {
@@ -664,10 +664,10 @@ export const db = {
   async getForemen() {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('role', 'foreman')
-        .order('full_name')
+        .order('name')
       if (error) throw error
       return data
     } else {
@@ -702,7 +702,7 @@ export const db = {
         .from('activity_log')
         .select(`
           *,
-          profiles (full_name, email),
+          users (name, email),
           areas (name)
         `)
         .eq('project_id', projectId)
