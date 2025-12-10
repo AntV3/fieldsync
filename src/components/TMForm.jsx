@@ -15,12 +15,32 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
   
+  // Crew check-in state
+  const [todaysCrew, setTodaysCrew] = useState([])
+  const [showCrewPicker, setShowCrewPicker] = useState(false)
+  
   // Item picker state
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categoryItems, setCategoryItems] = useState([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customItem, setCustomItem] = useState({ name: '', category: '', quantity: '' })
+
+  // Load today's crew on mount
+  useEffect(() => {
+    loadTodaysCrew()
+  }, [project.id])
+
+  const loadTodaysCrew = async () => {
+    try {
+      const checkin = await db.getCrewCheckin(project.id)
+      if (checkin?.workers) {
+        setTodaysCrew(checkin.workers)
+      }
+    } catch (err) {
+      console.error('Error loading crew:', err)
+    }
+  }
 
   // Load items when category selected
   useEffect(() => {
@@ -476,6 +496,77 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
               />
             </div>
           </div>
+
+          {/* Select from Today's Crew */}
+          {todaysCrew.length > 0 && (
+            <div className="tm-crew-picker">
+              <button 
+                className="tm-crew-picker-btn"
+                onClick={() => setShowCrewPicker(!showCrewPicker)}
+              >
+                👷 {showCrewPicker ? 'Hide' : 'Select from'} Today's Crew ({todaysCrew.length})
+              </button>
+              
+              {showCrewPicker && (
+                <div className="tm-crew-list">
+                  {todaysCrew.map((worker, index) => {
+                    const isAdded = 
+                      supervision.some(s => s.name.toLowerCase() === worker.name.toLowerCase()) ||
+                      laborers.some(l => l.name.toLowerCase() === worker.name.toLowerCase())
+                    
+                    return (
+                      <button
+                        key={index}
+                        className={`tm-crew-item ${isAdded ? 'added' : ''}`}
+                        onClick={() => {
+                          if (isAdded) return
+                          
+                          if (worker.role === 'Foreman' || worker.role === 'Supervisor') {
+                            // Add to supervision
+                            const emptySupIndex = supervision.findIndex(s => !s.name.trim())
+                            if (emptySupIndex >= 0) {
+                              updateSupervision(emptySupIndex, 'name', worker.name)
+                            } else {
+                              setSupervision([...supervision, { 
+                                name: worker.name, 
+                                hours: '', 
+                                overtimeHours: '', 
+                                timeStarted: '', 
+                                timeEnded: '', 
+                                role: worker.role === 'Supervisor' ? 'Superintendent' : 'Foreman' 
+                              }])
+                            }
+                          } else {
+                            // Add to laborers
+                            const emptyLabIndex = laborers.findIndex(l => !l.name.trim())
+                            if (emptyLabIndex >= 0) {
+                              updateLaborer(emptyLabIndex, 'name', worker.name)
+                            } else {
+                              setLaborers([...laborers, { 
+                                name: worker.name, 
+                                hours: '', 
+                                overtimeHours: '', 
+                                timeStarted: '', 
+                                timeEnded: '' 
+                              }])
+                            }
+                          }
+                          onShowToast(`Added ${worker.name}`, 'success')
+                        }}
+                        disabled={isAdded}
+                      >
+                        <span className="tm-crew-item-name">{worker.name}</span>
+                        <span className={`tm-crew-item-role ${worker.role.toLowerCase()}`}>
+                          {worker.role}
+                        </span>
+                        {isAdded && <span className="tm-crew-item-check">✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Supervision Section */}
           <div className="tm-field">

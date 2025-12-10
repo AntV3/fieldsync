@@ -1107,5 +1107,102 @@ export const db = {
       .remove([filePath])
 
     if (error) throw error
+  },
+
+  // ============================================
+  // Crew Check-In Functions
+  // ============================================
+
+  // Get today's crew check-in for a project
+  async getCrewCheckin(projectId, date = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const checkDate = date || new Date().toISOString().split('T')[0]
+    
+    const { data, error } = await supabase
+      .from('crew_checkins')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('check_in_date', checkDate)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+      console.error('Error fetching crew checkin:', error)
+    }
+    return data
+  },
+
+  // Create or update crew check-in
+  async saveCrewCheckin(projectId, workers, createdBy = null, date = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const checkDate = date || new Date().toISOString().split('T')[0]
+    
+    const { data, error } = await supabase
+      .from('crew_checkins')
+      .upsert({
+        project_id: projectId,
+        check_in_date: checkDate,
+        workers: workers,
+        created_by: createdBy,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'project_id,check_in_date'
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error saving crew checkin:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Add a worker to today's check-in
+  async addCrewMember(projectId, worker, createdBy = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const existing = await this.getCrewCheckin(projectId)
+    const workers = existing?.workers || []
+    
+    // Check if already exists
+    if (!workers.find(w => w.name.toLowerCase() === worker.name.toLowerCase())) {
+      workers.push(worker)
+      return await this.saveCrewCheckin(projectId, workers, createdBy)
+    }
+    return existing
+  },
+
+  // Remove a worker from today's check-in
+  async removeCrewMember(projectId, workerName) {
+    if (!isSupabaseConfigured) return null
+    
+    const existing = await this.getCrewCheckin(projectId)
+    if (!existing) return null
+    
+    const workers = existing.workers.filter(
+      w => w.name.toLowerCase() !== workerName.toLowerCase()
+    )
+    return await this.saveCrewCheckin(projectId, workers, existing.created_by)
+  },
+
+  // Get crew check-ins for a project (for office view)
+  async getCrewCheckinHistory(projectId, limit = 30) {
+    if (!isSupabaseConfigured) return []
+    
+    const { data, error } = await supabase
+      .from('crew_checkins')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('check_in_date', { ascending: false })
+      .limit(limit)
+    
+    if (error) {
+      console.error('Error fetching crew history:', error)
+      return []
+    }
+    return data || []
   }
 }
+

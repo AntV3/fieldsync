@@ -4151,3 +4151,250 @@ input::placeholder {
   text-align: center;
   margin-top: 1rem;
 }
+
+/* ============================================
+   Crew Check-In Styles
+   ============================================ */
+
+.crew-checkin {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.crew-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.crew-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.crew-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.crew-loading,
+.crew-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-muted);
+}
+
+.crew-empty-hint {
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.crew-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.crew-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-primary);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.crew-member-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.crew-member-name {
+  font-weight: 500;
+}
+
+.crew-member-role {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.crew-member-role.foreman {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.crew-member-role.supervisor {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a78bfa;
+}
+
+.crew-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  line-height: 1;
+}
+
+.crew-remove-btn:hover {
+  color: #ef4444;
+}
+
+.crew-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.crew-add-form input,
+.crew-add-form select {
+  padding: 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.crew-add-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.crew-add-confirm {
+  flex: 1;
+  padding: 0.6rem;
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.crew-add-cancel {
+  padding: 0.6rem 1rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.crew-add-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.crew-add-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.crew-count {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* T&M Crew Picker */
+.tm-crew-picker {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.tm-crew-picker-btn {
+  width: 100%;
+  padding: 0.6rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.tm-crew-picker-btn:hover {
+  border-color: var(--accent-blue);
+}
+
+.tm-crew-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.tm-crew-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.tm-crew-item:hover:not(:disabled) {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.tm-crew-item.added {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+  cursor: default;
+}
+
+.tm-crew-item-name {
+  font-weight: 500;
+}
+
+.tm-crew-item-role {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.tm-crew-item-role.foreman,
+.tm-crew-item-role.supervisor {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.tm-crew-item-check {
+  color: #22c55e;
+  font-weight: bold;
+}
+

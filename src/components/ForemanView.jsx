@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import TMForm from './TMForm'
+import CrewCheckin from './CrewCheckin'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -9,6 +10,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
   const [showTMForm, setShowTMForm] = useState(false)
+  const [showCrewCheckin, setShowCrewCheckin] = useState(true)
 
   useEffect(() => {
     loadAreas()
@@ -128,6 +130,12 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         + New T&M Ticket
       </button>
 
+      {/* Crew Check-In */}
+      <CrewCheckin 
+        project={project}
+        onShowToast={onShowToast}
+      />
+
       <div className="foreman-areas">
         {hasGroups ? (
           // Grouped display with clear sections
@@ -211,6 +219,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     </div>
   )
 }
+
 
 
 
