@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
+import { exportTMTicketPDF } from '../lib/tmPdfExport'
 
 export default function TMList({ project, onShowToast }) {
   const [tickets, setTickets] = useState([])
@@ -46,6 +47,26 @@ export default function TMList({ project, onShowToast }) {
     } catch (error) {
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
+    }
+  }
+
+  const handleExportPDF = async (ticket) => {
+    try {
+      // Get company info (you may need to pass this from parent or fetch it)
+      const company = { name: 'Your Company' } // TODO: Get actual company
+
+      const fileName = await exportTMTicketPDF(
+        ticket,
+        project,
+        company,
+        ticket.t_and_m_workers || [],
+        ticket.t_and_m_items || []
+      )
+
+      onShowToast(`PDF exported: ${fileName}`, 'success')
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+      onShowToast('Error exporting PDF', 'error')
     }
   }
 
@@ -227,11 +248,14 @@ export default function TMList({ project, onShowToast }) {
         <div className="tm-tickets">
           {filteredTickets.map(ticket => (
             <div key={ticket.id} className={`tm-ticket-card ${ticket.status}`}>
-              <div 
+              <div
                 className="tm-ticket-header"
                 onClick={() => setExpandedTicket(expandedTicket === ticket.id ? null : ticket.id)}
               >
                 <div className="tm-ticket-info">
+                  {ticket.ticket_number && (
+                    <span className="tm-ticket-number">#{ticket.ticket_number}</span>
+                  )}
                   <span className="tm-ticket-date">{formatDate(ticket.work_date)}</span>
                   <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
                 </div>
@@ -311,15 +335,21 @@ export default function TMList({ project, onShowToast }) {
                   )}
 
                   <div className="tm-ticket-actions">
+                    <button
+                      className="btn btn-primary btn-small"
+                      onClick={(e) => { e.stopPropagation(); handleExportPDF(ticket); }}
+                    >
+                      📄 Export PDF
+                    </button>
                     {ticket.status === 'pending' && (
                       <>
-                        <button 
+                        <button
                           className="btn btn-success btn-small"
                           onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'approved'); }}
                         >
                           ✓ Approve
                         </button>
-                        <button 
+                        <button
                           className="btn btn-warning btn-small"
                           onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'rejected'); }}
                         >
@@ -328,7 +358,7 @@ export default function TMList({ project, onShowToast }) {
                       </>
                     )}
                     {ticket.status === 'approved' && (
-                      <button 
+                      <button
                         className="btn btn-primary btn-small"
                         onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'billed'); }}
                       >
@@ -336,14 +366,14 @@ export default function TMList({ project, onShowToast }) {
                       </button>
                     )}
                     {ticket.status === 'rejected' && (
-                      <button 
+                      <button
                         className="btn btn-secondary btn-small"
                         onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'pending'); }}
                       >
                         ↩ Restore
                       </button>
                     )}
-                    <button 
+                    <button
                       className="btn btn-danger btn-small"
                       onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }}
                     >

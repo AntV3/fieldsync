@@ -2449,6 +2449,16 @@ input::placeholder {
   gap: 0.75rem;
 }
 
+.tm-ticket-number {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--accent-blue);
+  background: rgba(66, 153, 225, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
 .tm-ticket-date {
   font-weight: 600;
 }
