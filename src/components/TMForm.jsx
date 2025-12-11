@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import offlineDb from '../lib/offlineDb'
+import { compressPhoto, isValidImage, formatFileSize } from '../lib/photoCompression'
+import { useNetworkStatus } from '../lib/networkStatus'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
@@ -14,7 +17,9 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
   const [notes, setNotes] = useState('')
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
-  
+  const [compressingPhotos, setCompressingPhotos] = useState(false)
+  const isOnline = useNetworkStatus()
+
   // Crew check-in state
   const [todaysCrew, setTodaysCrew] = useState([])
   const [showCrewPicker, setShowCrewPicker] = useState(false)
@@ -33,7 +38,7 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
 
   const loadTodaysCrew = async () => {
     try {
-      const checkin = await db.getCrewCheckin(project.id)
+      const checkin = await offlineDb.getCrewCheckin(project.id)
       if (checkin?.workers) {
         setTodaysCrew(checkin.workers)
       }
@@ -52,7 +57,7 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
   const loadCategoryItems = async (category) => {
     setLoadingItems(true)
     try {
-      const data = await db.getMaterialsEquipmentByCategory(companyId, category)
+      const data = await offlineDb.getMaterialsEquipmentByCategory(companyId, category)
       setCategoryItems(data)
     } catch (error) {
       console.error('Error loading items:', error)
@@ -158,8 +163,8 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
     setItems(items.filter((_, i) => i !== index))
   }
 
-  // Photo functions - store files temporarily, upload on submit
-  const handlePhotoAdd = (e) => {
+  // Photo functions - compress and store
+  const handlePhotoAdd = async (e) => {
     const files = Array.from(e.target.files)
     if (files.length === 0) return
 
@@ -177,22 +182,41 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
       onShowToast(`Only ${filesToAdd.length} photo(s) added (${maxPhotos} max)`, 'error')
     }
 
-    filesToAdd.forEach(file => {
-      if (!file.type.startsWith('image/')) {
-        onShowToast('Please select an image file', 'error')
-        return
+    setCompressingPhotos(true)
+
+    for (const file of filesToAdd) {
+      if (!isValidImage(file)) {
+        onShowToast('Please select valid image files only', 'error')
+        continue
       }
 
-      // Create preview URL and store file for upload
-      const previewUrl = URL.createObjectURL(file)
-      setPhotos(prev => [...prev, {
-        id: Date.now() + Math.random(),
-        file: file,
-        previewUrl: previewUrl,
-        name: file.name
-      }])
-    })
-    
+      try {
+        // Compress photo
+        const { base64, compressed, originalSize, compressedSize, compressionRatio } = await compressPhoto(file)
+
+        // Create preview URL from compressed blob
+        const previewUrl = URL.createObjectURL(compressed)
+
+        setPhotos(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          file: compressed,
+          base64: base64,
+          previewUrl: previewUrl,
+          name: file.name,
+          originalSize,
+          compressedSize,
+          compressionRatio
+        }])
+
+        onShowToast(`Photo compressed ${compressionRatio} (${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)})`, 'success')
+      } catch (error) {
+        console.error('Error compressing photo:', error)
+        onShowToast(`Failed to compress ${file.name}`, 'error')
+      }
+    }
+
+    setCompressingPhotos(false)
+
     // Reset input
     e.target.value = ''
   }
@@ -251,8 +275,8 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
 
     setSubmitting(true)
     try {
-      // Create ticket first (to get ticket ID for photo paths)
-      const ticket = await db.createTMTicket({
+      // Create ticket using offline-enabled db (works online and offline)
+      const ticket = await offlineDb.createTMTicket({
         project_id: project.id,
         work_date: workDate,
         ce_pco_number: cePcoNumber.trim() || null,
@@ -261,25 +285,33 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
         created_by_name: submittedByName.trim()
       })
 
-      // Upload photos to storage
+      // Handle photos (offline-first approach)
       const photoUrls = []
       for (const photo of photos) {
         try {
-          const url = await db.uploadPhoto(
-            companyId,
-            project.id,
-            ticket.id,
-            photo.file
-          )
-          if (url) photoUrls.push(url)
+          if (isOnline) {
+            // If online, upload immediately to Supabase Storage
+            const url = await db.uploadPhoto(
+              companyId,
+              project.id,
+              ticket.id,
+              photo.file
+            )
+            if (url) photoUrls.push(url)
+          } else {
+            // If offline, save compressed photo for later upload
+            await offlineDb.saveOfflinePhoto(ticket.id, photo.base64, photo.name)
+            // Use placeholder URL for offline photos
+            photoUrls.push(`offline:${ticket.id}/${photo.name}`)
+          }
         } catch (err) {
-          console.error('Error uploading photo:', err)
+          console.error('Error handling photo:', err)
           // Continue with other photos
         }
       }
 
-      // Update ticket with photo URLs if any were uploaded
-      if (photoUrls.length > 0) {
+      // Update ticket with photo URLs or placeholders
+      if (photoUrls.length > 0 && isOnline) {
         await db.updateTMTicketPhotos(ticket.id, photoUrls)
       }
 
@@ -303,10 +335,10 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
         }))
       ]
 
-      await db.addTMWorkers(ticket.id, allWorkers)
+      await offlineDb.addTMWorkers(ticket.id, allWorkers)
 
       if (items.length > 0) {
-        await db.addTMItems(ticket.id, items.map(item => ({
+        await offlineDb.addTMItems(ticket.id, items.map(item => ({
           material_equipment_id: item.material_equipment_id,
           custom_name: item.custom_name || null,
           custom_category: item.custom_category || null,
@@ -319,11 +351,16 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
         if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
       })
 
-      onShowToast('T&M submitted!', 'success')
+      if (isOnline) {
+        onShowToast('T&M submitted!', 'success')
+      } else {
+        onShowToast('T&M saved offline - will sync when online', 'success')
+      }
+
       onSubmit()
     } catch (error) {
       console.error('Error submitting T&M:', error)
-      onShowToast('Error submitting T&M', 'error')
+      onShowToast(`Error submitting T&M: ${error.message}`, 'error')
     } finally {
       setSubmitting(false)
     }

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import offlineDb from '../lib/offlineDb'
+import { useNetworkStatus } from '../lib/networkStatus'
+import { getUserContext } from '../lib/offlineStorage'
 
 export default function CrewCheckin({ project, onShowToast }) {
   const [workers, setWorkers] = useState([])
@@ -7,6 +10,7 @@ export default function CrewCheckin({ project, onShowToast }) {
   const [saving, setSaving] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newWorker, setNewWorker] = useState({ name: '', role: 'Laborer' })
+  const isOnline = useNetworkStatus()
 
   useEffect(() => {
     loadTodaysCrew()
@@ -14,7 +18,7 @@ export default function CrewCheckin({ project, onShowToast }) {
 
   const loadTodaysCrew = async () => {
     try {
-      const checkin = await db.getCrewCheckin(project.id)
+      const checkin = await offlineDb.getCrewCheckin(project.id)
       if (checkin?.workers) {
         setWorkers(checkin.workers)
       }
@@ -39,16 +43,25 @@ export default function CrewCheckin({ project, onShowToast }) {
 
     setSaving(true)
     try {
-      const updatedWorkers = [...workers, { 
-        name: newWorker.name.trim(), 
-        role: newWorker.role 
+      const updatedWorkers = [...workers, {
+        name: newWorker.name.trim(),
+        role: newWorker.role
       }]
-      
-      await db.saveCrewCheckin(project.id, updatedWorkers)
+
+      // Get user context for audit trail
+      const userContext = await getUserContext()
+      const createdBy = userContext?.userName || 'Unknown'
+
+      await offlineDb.saveCrewCheckin(project.id, updatedWorkers, createdBy)
       setWorkers(updatedWorkers)
       setNewWorker({ name: '', role: 'Laborer' })
       setShowAddForm(false)
-      onShowToast('Crew member added', 'success')
+
+      if (isOnline) {
+        onShowToast('Crew member added', 'success')
+      } else {
+        onShowToast('Crew member added (offline - will sync)', 'success')
+      }
     } catch (err) {
       console.error('Error adding worker:', err)
       onShowToast('Error adding crew member', 'error')
@@ -63,9 +76,19 @@ export default function CrewCheckin({ project, onShowToast }) {
       const updatedWorkers = workers.filter(
         w => w.name.toLowerCase() !== workerName.toLowerCase()
       )
-      await db.saveCrewCheckin(project.id, updatedWorkers)
+
+      // Get user context for audit trail
+      const userContext = await getUserContext()
+      const createdBy = userContext?.userName || 'Unknown'
+
+      await offlineDb.saveCrewCheckin(project.id, updatedWorkers, createdBy)
       setWorkers(updatedWorkers)
-      onShowToast('Crew member removed', 'success')
+
+      if (isOnline) {
+        onShowToast('Crew member removed', 'success')
+      } else {
+        onShowToast('Crew member removed (offline - will sync)', 'success')
+      }
     } catch (err) {
       console.error('Error removing worker:', err)
       onShowToast('Error removing crew member', 'error')

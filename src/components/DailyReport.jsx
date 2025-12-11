@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import offlineDb from '../lib/offlineDb'
+import { useNetworkStatus } from '../lib/networkStatus'
+import { getUserContext } from '../lib/offlineStorage'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -7,6 +10,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const [report, setReport] = useState(null)
   const [fieldNotes, setFieldNotes] = useState('')
   const [issues, setIssues] = useState('')
+  const isOnline = useNetworkStatus()
 
   useEffect(() => {
     loadReport()
@@ -14,16 +18,16 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
   const loadReport = async () => {
     try {
-      // Check for existing report
-      const existing = await db.getDailyReport(project.id)
-      
+      // Check for existing report (works offline)
+      const existing = await offlineDb.getDailyReport(project.id)
+
       if (existing) {
         setReport(existing)
         setFieldNotes(existing.field_notes || '')
         setIssues(existing.issues || '')
       } else {
-        // Compile fresh data
-        const compiled = await db.compileDailyReport(project.id)
+        // Compile fresh data from offline cache
+        const compiled = await offlineDb.compileDailyReport(project.id)
         setReport({
           ...compiled,
           status: 'draft'
@@ -40,16 +44,25 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const handleSubmit = async () => {
     setSubmitting(true)
     try {
-      // Save notes first
-      await db.saveDailyReport(project.id, {
+      // Get user context for audit trail
+      const userContext = await getUserContext()
+      const submittedBy = userContext?.userName || 'Field'
+
+      // Save notes first (works offline)
+      await offlineDb.saveDailyReport(project.id, {
         field_notes: fieldNotes,
         issues: issues
       })
-      
-      // Then submit
-      await db.submitDailyReport(project.id, 'Field')
-      
-      onShowToast('Daily report submitted!', 'success')
+
+      // Then submit (queued if offline)
+      await offlineDb.submitDailyReport(project.id, submittedBy)
+
+      if (isOnline) {
+        onShowToast('Daily report submitted!', 'success')
+      } else {
+        onShowToast('Daily report saved offline - will sync when online', 'success')
+      }
+
       onClose()
     } catch (err) {
       console.error('Error submitting report:', err)
