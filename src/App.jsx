@@ -7,6 +7,7 @@ import Field from './components/Field'
 import Setup from './components/Setup'
 import Toast from './components/Toast'
 import OfflineIndicator from './components/OfflineIndicator'
+import ThemeToggle from './components/ThemeToggle'
 import { initNetworkMonitoring } from './lib/networkStatus'
 import { initializeUserContext, clearCurrentUserContext } from './lib/userContextManager'
 
@@ -247,6 +248,7 @@ export default function App() {
             </button>
           </div>
           <div className="nav-user">
+            <ThemeToggle />
             <span className="nav-user-name">{user?.full_name || user?.email}</span>
             <button className="nav-logout" onClick={handleLogout}>
               Sign Out

@@ -100,26 +100,23 @@ export default function OfflineIndicator() {
 
   return (
     <div
+      className="offline-indicator-enhanced"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: isOnline ? '#f0f9ff' : '#fef2f2',
-        borderTop: `2px solid ${isOnline ? '#3b82f6' : '#ef4444'}`,
         padding: '8px 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         fontSize: '14px',
-        zIndex: 1000,
-        boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {/* Network Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span
+            className={isOnline ? '' : 'offline-pulse'}
             style={{
               width: '8px',
               height: '8px',
@@ -127,8 +124,9 @@ export default function OfflineIndicator() {
               background: isOnline ? '#22c55e' : '#ef4444',
               display: 'inline-block',
             }}
+            aria-hidden="true"
           />
-          <span style={{ fontWeight: '600', color: '#1f2937' }}>
+          <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
             {isOnline ? 'Online' : 'Offline Mode'}
           </span>
         </div>
@@ -136,7 +134,7 @@ export default function OfflineIndicator() {
         {/* Pending Count */}
         {pendingCount > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#6b7280' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
               {pendingCount} {pendingCount === 1 ? 'item' : 'items'} pending sync
             </span>
           </div>
@@ -144,31 +142,27 @@ export default function OfflineIndicator() {
 
         {/* Syncing Status */}
         {isSyncing && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div
-              style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid #3b82f6',
-                borderTopColor: 'transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-              }}
-            />
-            <span style={{ color: '#3b82f6', fontWeight: '500' }}>Syncing...</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} aria-busy="true">
+            <div className="syncing-spinner" aria-hidden="true" />
+            <span style={{ color: 'var(--accent-blue)', fontWeight: '500' }}>
+              Syncing...
+            </span>
           </div>
         )}
 
         {/* Last Sync Time */}
         {lastSyncTime && !isSyncing && (
-          <span style={{ color: '#6b7280', fontSize: '12px' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
             Last synced {formatLastSyncTime()}
           </span>
         )}
 
         {/* Sync Error */}
         {syncError && (
-          <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: '500' }}>
+          <span
+            role="alert"
+            style={{ color: 'var(--accent-red)', fontSize: '12px', fontWeight: '500' }}
+          >
             {syncError}
           </span>
         )}
@@ -178,31 +172,12 @@ export default function OfflineIndicator() {
       {isOnline && pendingCount > 0 && !isSyncing && (
         <button
           onClick={handleSync}
-          style={{
-            padding: '6px 16px',
-            background: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'background 0.2s',
-          }}
-          onMouseOver={(e) => (e.target.style.background = '#2563eb')}
-          onMouseOut={(e) => (e.target.style.background = '#3b82f6')}
+          className="btn btn-primary btn-small"
+          aria-label={`Sync ${pendingCount} pending ${pendingCount === 1 ? 'item' : 'items'}`}
         >
           Sync Now
         </button>
       )}
-
-      {/* Inline Styles for Animation */}
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }
