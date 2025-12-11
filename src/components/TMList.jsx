@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 
@@ -12,9 +12,9 @@ export default function TMList({ project, onShowToast }) {
     loadTickets()
   }, [project.id])
 
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async () => {
     try {
-      const data = await db.getTMTickets(project.id)
+      const data = await db.getTMTicketsWithDetails(project.id)
       setTickets(data)
     } catch (error) {
       console.error('Error loading tickets:', error)
@@ -22,12 +22,12 @@ export default function TMList({ project, onShowToast }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [project.id, onShowToast])
 
-  const updateStatus = async (ticketId, newStatus) => {
+  const updateStatus = useCallback(async (ticketId, newStatus) => {
     try {
       await db.updateTMTicketStatus(ticketId, newStatus)
-      setTickets(tickets.map(t => 
+      setTickets(tickets.map(t =>
         t.id === ticketId ? { ...t, status: newStatus } : t
       ))
       onShowToast(`Ticket ${newStatus}`, 'success')
@@ -35,9 +35,9 @@ export default function TMList({ project, onShowToast }) {
       console.error('Error updating status:', error)
       onShowToast('Error updating status', 'error')
     }
-  }
+  }, [tickets, onShowToast])
 
-  const deleteTicket = async (ticketId) => {
+  const deleteTicket = useCallback(async (ticketId) => {
     if (!confirm('Delete this T&M ticket?')) return
     try {
       await db.deleteTMTicket(ticketId)
@@ -47,7 +47,7 @@ export default function TMList({ project, onShowToast }) {
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
     }
-  }
+  }, [tickets, onShowToast])
 
   const calculateTicketTotal = (ticket) => {
     let total = 0
@@ -163,13 +163,33 @@ export default function TMList({ project, onShowToast }) {
     onShowToast('Export downloaded!', 'success')
   }
 
-  const filteredTickets = filter === 'all' 
-    ? tickets 
-    : tickets.filter(t => t.status === filter)
+  // Memoize filtered tickets to avoid recalculating on every render
+  const filteredTickets = useMemo(() =>
+    filter === 'all'
+      ? tickets
+      : tickets.filter(t => t.status === filter),
+    [tickets, filter]
+  )
 
-  // Calculate totals for summary
-  const totalHours = filteredTickets.reduce((sum, t) => sum + calculateTotalHours(t), 0)
-  const totalCost = filteredTickets.reduce((sum, t) => sum + calculateTicketTotal(t), 0)
+  // Memoize status counts to avoid filtering tickets multiple times
+  const statusCounts = useMemo(() => ({
+    all: tickets.length,
+    pending: tickets.filter(t => t.status === 'pending').length,
+    approved: tickets.filter(t => t.status === 'approved').length,
+    billed: tickets.filter(t => t.status === 'billed').length,
+    rejected: tickets.filter(t => t.status === 'rejected').length
+  }), [tickets])
+
+  // Memoize totals for summary (expensive calculations)
+  const totalHours = useMemo(() =>
+    filteredTickets.reduce((sum, t) => sum + calculateTotalHours(t), 0),
+    [filteredTickets]
+  )
+
+  const totalCost = useMemo(() =>
+    filteredTickets.reduce((sum, t) => sum + calculateTicketTotal(t), 0),
+    [filteredTickets]
+  )
 
   if (loading) {
     return <div className="loading">Loading T&M tickets...</div>
@@ -194,7 +214,7 @@ export default function TMList({ project, onShowToast }) {
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
               <span className="tm-filter-count">
-                {status === 'all' ? tickets.length : tickets.filter(t => t.status === status).length}
+                {statusCounts[status]}
               </span>
             </button>
           ))}

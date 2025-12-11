@@ -1,11 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { isSupabaseConfigured, auth, supabase } from './lib/supabase'
-import AppEntry from './components/AppEntry'
-import ForemanView from './components/ForemanView'
-import Dashboard from './components/Dashboard'
-import Field from './components/Field'
-import Setup from './components/Setup'
 import Toast from './components/Toast'
+
+// Code splitting: Lazy load heavy components
+const AppEntry = lazy(() => import('./components/AppEntry'))
+const ForemanView = lazy(() => import('./components/ForemanView'))
+const Dashboard = lazy(() => import('./components/Dashboard'))
+const Field = lazy(() => import('./components/Field'))
+const Setup = lazy(() => import('./components/Setup'))
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="loading-screen">
+      <div className="loading-logo">Field<span>Sync</span></div>
+      <div className="spinner"></div>
+    </div>
+  )
+}
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office'
@@ -133,11 +145,13 @@ export default function App() {
   if (view === 'entry') {
     return (
       <>
-        <AppEntry
-          onForemanAccess={handleForemanAccess}
-          onOfficeLogin={handleOfficeLogin}
-          onShowToast={showToast}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <AppEntry
+            onForemanAccess={handleForemanAccess}
+            onOfficeLogin={handleOfficeLogin}
+            onShowToast={showToast}
+          />
+        </Suspense>
         {toast && (
           <Toast
             message={toast.message}
@@ -153,12 +167,14 @@ export default function App() {
   if (view === 'foreman' && foremanProject) {
     return (
       <>
-        <ForemanView
-          project={foremanProject}
-          companyId={foremanProject.company_id}
-          onShowToast={showToast}
-          onExit={handleExitForeman}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <ForemanView
+            project={foremanProject}
+            companyId={foremanProject.company_id}
+            onShowToast={showToast}
+            onExit={handleExitForeman}
+          />
+        </Suspense>
         {toast && (
           <Toast
             message={toast.message}
@@ -215,18 +231,20 @@ export default function App() {
 
       {/* Main Content */}
       <div className="container">
-        {activeTab === 'dashboard' && (
-          <Dashboard onShowToast={showToast} />
-        )}
-        {activeTab === 'field' && (
-          <Field onShowToast={showToast} />
-        )}
-        {activeTab === 'setup' && (
-          <Setup
-            onProjectCreated={handleProjectCreated}
-            onShowToast={showToast}
-          />
-        )}
+        <Suspense fallback={<LoadingFallback />}>
+          {activeTab === 'dashboard' && (
+            <Dashboard onShowToast={showToast} />
+          )}
+          {activeTab === 'field' && (
+            <Field onShowToast={showToast} />
+          )}
+          {activeTab === 'setup' && (
+            <Setup
+              onProjectCreated={handleProjectCreated}
+              onShowToast={showToast}
+            />
+          )}
+        </Suspense>
       </div>
 
       {/* Toast Notifications */}
