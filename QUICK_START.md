@@ -1,11 +1,11 @@
-# FieldSync Quick Start - Fixing Foreman Access
+# FieldSync Quick Start - GGG & Miller Setup
 
 ## 🚨 Problem
 Foreman can't access projects using company code + PIN
 
 ## ✅ Solution Summary
 
-I've fixed the foreman access issue and aligned the code with your Supabase database. Here's what was done:
+I've fixed the foreman access issue and set up your two companies: **GGG** and **Miller**. Here's what was done:
 
 ### 1. **Created `.env` file**
    - Added your Supabase credentials from `.env.example`
@@ -29,41 +29,51 @@ I've fixed the foreman access issue and aligned the code with your Supabase data
 
 ---
 
-## 🎯 Quick Setup (3 Steps)
+## 🎯 Quick Setup (2 Steps)
 
-### Step 1: Run Database Setup
+### Step 1: Run Database Setup (One-Time)
 ```bash
 # Go to Supabase SQL Editor
 # Copy/paste: database/complete_setup.sql
 # Click "Run"
 ```
 
-### Step 2: Create Users in Supabase Auth
-1. Go to Authentication > Users
-2. Add user: `miller@example.com` (office role)
-3. Add user: `ggg@example.com` (foreman role)
-4. Copy their UUIDs
-
-### Step 3: Add Sample Data
+### Step 2: Create Your Companies
 ```bash
-# Edit database/create_sample_data.sql
-# Replace placeholder UUIDs with actual user IDs
-# Run in Supabase SQL Editor
+# Go to Supabase SQL Editor
+# Copy/paste: database/setup_ggg_miller_companies.sql
+# Click "Run"
 ```
+
+✅ **Done!** Both companies are ready to use.
 
 ---
 
 ## 🧪 Test Foreman Access
 
-**Company Code:** `DEMO`
+### GGG Company
+**Company Code:** `GGG`
 **Project PINs:**
-- `1234` - Downtown Office Building
-- `5678` - Residential Complex Phase 1
+- `1111` - GGG - Downtown Office Complex
+- `2222` - GGG - Residential Development
 
 **Flow:**
 1. Open FieldSync app
-2. Enter company code: `DEMO`
-3. Enter PIN: `1234`
+2. Enter company code: `GGG`
+3. Enter PIN: `1111` or `2222`
+4. ✅ You should see the project with areas
+5. ✅ Try updating an area status
+
+### Miller Company
+**Company Code:** `MILLER`
+**Project PINs:**
+- `3333` - Miller - Commercial Warehouse
+- `4444` - Miller - Medical Center Addition
+
+**Flow:**
+1. Open FieldSync app
+2. Enter company code: `MILLER`
+3. Enter PIN: `3333` or `4444`
 4. ✅ You should see the project with areas
 5. ✅ Try updating an area status
 
@@ -180,13 +190,15 @@ The database had two conflicting schema files:
 
 ## 📞 Next Steps
 
-1. ✅ Run `complete_setup.sql` in Supabase
-2. ✅ Create Miller and GGG in Authentication
-3. ✅ Run `create_sample_data.sql` with actual UUIDs
-4. ✅ Test foreman access with company code "DEMO" and PIN "1234"
-5. ✅ Test office access by signing in as Miller
-6. 🎉 You're all set!
+1. ✅ Run `complete_setup.sql` in Supabase (creates all tables)
+2. ✅ Run `setup_ggg_miller_companies.sql` in Supabase (creates GGG and Miller)
+3. ✅ Test GGG company: code `GGG`, PIN `1111` or `2222`
+4. ✅ Test Miller company: code `MILLER`, PIN `3333` or `4444`
+5. 🎉 You're all set!
 
 ---
 
-For detailed information, see **DATABASE_SETUP.md**
+For detailed information, see:
+- **GGG_MILLER_SETUP.md** - Your company setup guide
+- **DATABASE_SETUP.md** - Complete database documentation
+- **TROUBLESHOOTING.md** - Solutions for common issues
