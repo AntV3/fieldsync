@@ -5,6 +5,7 @@ import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
+import Contracts from './components/Contracts'
 import Toast from './components/Toast'
 import OfflineIndicator from './components/OfflineIndicator'
 import ThemeToggle from './components/ThemeToggle'
@@ -241,6 +242,12 @@ export default function App() {
               Field
             </button>
             <button
+              className={`nav-tab ${activeTab === 'contracts' ? 'active' : ''}`}
+              onClick={() => setActiveTab('contracts')}
+            >
+              Contracts
+            </button>
+            <button
               className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
               onClick={() => setActiveTab('setup')}
             >
@@ -264,6 +271,9 @@ export default function App() {
         )}
         {activeTab === 'field' && (
           <Field onShowToast={showToast} />
+        )}
+        {activeTab === 'contracts' && (
+          <Contracts onShowToast={showToast} />
         )}
         {activeTab === 'setup' && (
           <Setup
