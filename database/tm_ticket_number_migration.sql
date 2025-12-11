@@ -13,8 +13,11 @@ ADD COLUMN IF NOT EXISTS ticket_number TEXT UNIQUE;
 -- Create sequence for ticket numbers (starts at 1, increments by 1)
 CREATE SEQUENCE IF NOT EXISTS tm_ticket_number_seq START 1;
 
+-- Drop trigger first (before dropping functions)
+DROP TRIGGER IF EXISTS trigger_set_ticket_number ON t_and_m_tickets;
+
 -- Function to generate 6-digit ticket number
-DROP FUNCTION IF EXISTS generate_ticket_number();
+DROP FUNCTION IF EXISTS generate_ticket_number() CASCADE;
 CREATE FUNCTION generate_ticket_number()
 RETURNS TEXT AS $$
 DECLARE
@@ -32,7 +35,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to set ticket number on insert (if not provided)
-DROP FUNCTION IF EXISTS set_ticket_number();
+DROP FUNCTION IF EXISTS set_ticket_number() CASCADE;
 CREATE FUNCTION set_ticket_number()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -46,7 +49,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger to auto-generate ticket numbers
-DROP TRIGGER IF EXISTS trigger_set_ticket_number ON t_and_m_tickets;
 CREATE TRIGGER trigger_set_ticket_number
   BEFORE INSERT ON t_and_m_tickets
   FOR EACH ROW
