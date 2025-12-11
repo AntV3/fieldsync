@@ -19,34 +19,32 @@ DROP TRIGGER IF EXISTS trigger_set_ticket_number ON t_and_m_tickets;
 -- Function to generate 6-digit ticket number
 DROP FUNCTION IF EXISTS generate_ticket_number() CASCADE;
 CREATE FUNCTION generate_ticket_number()
-RETURNS TEXT AS $$
+RETURNS TEXT
+LANGUAGE plpgsql
+AS $BODY$
 DECLARE
   next_num INTEGER;
   ticket_num TEXT;
 BEGIN
-  -- Get next number from sequence
   next_num := nextval('tm_ticket_number_seq');
-
-  -- Format as 6-digit number with leading zeros
   ticket_num := LPAD(next_num::TEXT, 6, '0');
-
   RETURN ticket_num;
 END;
-$$ LANGUAGE plpgsql;
+$BODY$;
 
 -- Function to set ticket number on insert (if not provided)
 DROP FUNCTION IF EXISTS set_ticket_number() CASCADE;
 CREATE FUNCTION set_ticket_number()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $BODY$
 BEGIN
-  -- Only generate if ticket_number is null
   IF NEW.ticket_number IS NULL THEN
     NEW.ticket_number := generate_ticket_number();
   END IF;
-
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$BODY$;
 
 -- Create trigger to auto-generate ticket numbers
 CREATE TRIGGER trigger_set_ticket_number
@@ -59,7 +57,7 @@ CREATE TRIGGER trigger_set_ticket_number
 -- ================================================
 
 -- Update existing tickets without ticket numbers
-DO $$
+DO $BODY$
 DECLARE
   ticket_record RECORD;
 BEGIN
@@ -70,7 +68,7 @@ BEGIN
     SET ticket_number = generate_ticket_number()
     WHERE id = ticket_record.id;
   END LOOP;
-END $$;
+END $BODY$;
 
 -- ================================================
 -- CREATE INDEX
