@@ -6,6 +6,9 @@ import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import Toast from './components/Toast'
+import OfflineIndicator from './components/OfflineIndicator'
+import { initNetworkMonitoring } from './lib/networkStatus'
+import { initializeUserContext, clearCurrentUserContext } from './lib/userContextManager'
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office'
@@ -17,7 +20,12 @@ export default function App() {
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
+    // Initialize network monitoring for offline mode
+    const cleanup = initNetworkMonitoring()
+
     checkAuth()
+
+    return cleanup
   }, [])
 
   const checkAuth = async () => {
@@ -40,6 +48,14 @@ export default function App() {
         setUser(userData)
         setCompany(userData.companies)
         setView('office')
+
+        // Initialize user context for audit trails
+        await initializeUserContext({
+          id: userData.id,
+          name: userData.full_name,
+          email: userData.email,
+          role: userData.role || 'office'
+        })
       }
     } catch (error) {
       console.error('Auth check error:', error)
@@ -49,9 +65,17 @@ export default function App() {
   }
 
   // Foreman accessed project via PIN
-  const handleForemanAccess = (project) => {
+  const handleForemanAccess = async (project, foremanName) => {
     setForemanProject(project)
     setView('foreman')
+
+    // Initialize user context for foreman (for audit trails)
+    await initializeUserContext({
+      id: 'foreman-' + project.id,
+      name: foremanName || 'Foreman',
+      email: '',
+      role: 'foreman'
+    })
   }
 
   // Office login
@@ -84,6 +108,14 @@ export default function App() {
         setUser(userData)
         setCompany(userData.companies)
         setView('office')
+
+        // Initialize user context for audit trails
+        await initializeUserContext({
+          id: userData.id,
+          name: userData.full_name,
+          email: userData.email,
+          role: userData.role || 'office'
+        })
       } else {
         showToast('Profile not found. Please contact admin.', 'error')
       }
@@ -96,6 +128,10 @@ export default function App() {
   const handleLogout = async () => {
     try {
       await auth.signOut()
+
+      // Clear user context
+      await clearCurrentUserContext()
+
       setUser(null)
       setCompany(null)
       setView('entry')
@@ -106,9 +142,12 @@ export default function App() {
     }
   }
 
-  const handleExitForeman = () => {
+  const handleExitForeman = async () => {
     setForemanProject(null)
     setView('entry')
+
+    // Clear user context
+    await clearCurrentUserContext()
   }
 
   const showToast = (message, type = '') => {
@@ -166,6 +205,9 @@ export default function App() {
             onClose={() => setToast(null)}
           />
         )}
+
+        {/* Offline Indicator for Field Workers */}
+        <OfflineIndicator />
       </>
     )
   }
@@ -237,6 +279,9 @@ export default function App() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Offline Indicator for Office (optional - shows sync status) */}
+      <OfflineIndicator />
     </div>
   )
 }
