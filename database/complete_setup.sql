@@ -519,11 +519,47 @@ CREATE TRIGGER update_areas_updated_at
 -- ========================================
 
 -- Enable realtime for relevant tables
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS areas;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS activity_log;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS crew_checkins;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS daily_reports;
+-- Use DO blocks to handle cases where tables are already in publication
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE areas;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL; -- Table already in publication, ignore
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE activity_log;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE crew_checkins;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE daily_reports;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END $$;
 
 -- ========================================
 -- 17. SAMPLE DATA
