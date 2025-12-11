@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import TMForm from './TMForm'
@@ -143,24 +143,29 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
-  const progress = calculateProgress(areas)
-  
-  // Group areas by group_name
-  const groupedAreas = areas.reduce((acc, area) => {
-    const group = area.group_name || 'General'
-    if (!acc[group]) acc[group] = []
-    acc[group].push(area)
-    return acc
-  }, {})
+  const progress = useMemo(() => calculateProgress(areas), [areas])
 
-  const hasGroups = Object.keys(groupedAreas).length > 1 || 
-    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General'])
+  // Memoize grouped areas to avoid recalculating on every render
+  const groupedAreas = useMemo(() => {
+    return areas.reduce((acc, area) => {
+      const group = area.group_name || 'General'
+      if (!acc[group]) acc[group] = []
+      acc[group].push(area)
+      return acc
+    }, {})
+  }, [areas])
 
-  // Calculate group progress
-  const getGroupProgress = (groupAreas) => {
+  const hasGroups = useMemo(() =>
+    Object.keys(groupedAreas).length > 1 ||
+    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General']),
+    [groupedAreas]
+  )
+
+  // Calculate group progress (memoized with useCallback)
+  const getGroupProgress = useCallback((groupAreas) => {
     const done = groupAreas.filter(a => a.status === 'done').length
     return `${done}/${groupAreas.length}`
-  }
+  }, [])
 
   return (
     <div className="foreman-container">

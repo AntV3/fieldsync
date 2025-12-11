@@ -804,27 +804,23 @@ export const db = {
   // T&M Tickets
   // ============================================
 
-  async getTMTickets(projectId) {
+  // Get T&M tickets with pagination (summary only for performance)
+  async getTMTickets(projectId, limit = 50, offset = 0) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('t_and_m_tickets')
-        .select(`
-          *,
-          t_and_m_workers (*),
-          t_and_m_items (
-            *,
-            materials_equipment (name, unit, cost_per_unit, category)
-          )
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
       if (error) throw error
       return data
     }
     return []
   },
 
-  async getTMTicketsByStatus(projectId, status) {
+  // Get T&M tickets with full details (use sparingly)
+  async getTMTicketsWithDetails(projectId, limit = 50, offset = 0) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('t_and_m_tickets')
@@ -837,8 +833,44 @@ export const db = {
           )
         `)
         .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  // Get single ticket with details (for lazy loading)
+  async getTMTicketDetails(ticketId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          t_and_m_workers (*),
+          t_and_m_items (
+            *,
+            materials_equipment (name, unit, cost_per_unit, category)
+          )
+        `)
+        .eq('id', ticketId)
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async getTMTicketsByStatus(projectId, status, limit = 50, offset = 0) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select('*')
+        .eq('project_id', projectId)
         .eq('status', status)
         .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
       if (error) throw error
       return data
     }
@@ -1228,43 +1260,44 @@ export const db = {
     return data
   },
 
-  // Compile daily report data from other tables
+  // Compile daily report data from other tables (parallelized for performance)
   async compileDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const reportDate = date || new Date().toISOString().split('T')[0]
-    
-    // Get crew check-in
-    const crew = await this.getCrewCheckin(projectId, reportDate)
-    
-    // Get completed tasks for today
-    const { data: areas } = await supabase
-      .from('areas')
-      .select('*')
-      .eq('project_id', projectId)
-    
-    const completedToday = areas?.filter(a => 
-      a.status === 'done' && 
+
+    // Parallelize all queries for better performance
+    const [crew, areasResult, ticketsResult] = await Promise.all([
+      this.getCrewCheckin(projectId, reportDate),
+      supabase
+        .from('areas')
+        .select('*')
+        .eq('project_id', projectId),
+      supabase
+        .from('t_and_m_tickets')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('work_date', reportDate)
+    ])
+
+    const areas = areasResult.data || []
+    const tickets = ticketsResult.data || []
+
+    const completedToday = areas.filter(a =>
+      a.status === 'done' &&
       a.completed_at?.startsWith(reportDate)
-    ) || []
-    
-    // Get T&M tickets for today
-    const { data: tickets } = await supabase
-      .from('t_and_m_tickets')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('work_date', reportDate)
-    
+    )
+
     // Count photos from tickets
-    const photosCount = tickets?.reduce((sum, t) => sum + (t.photos?.length || 0), 0) || 0
-    
+    const photosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+
     return {
       crew_count: crew?.workers?.length || 0,
       crew_list: crew?.workers || [],
       tasks_completed: completedToday.length,
-      tasks_total: areas?.length || 0,
+      tasks_total: areas.length,
       completed_tasks: completedToday.map(a => ({ name: a.name, group: a.group_name })),
-      tm_tickets_count: tickets?.length || 0,
+      tm_tickets_count: tickets.length,
       photos_count: photosCount
     }
   },

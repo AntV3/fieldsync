@@ -19,10 +19,18 @@ export default function Dashboard({ onShowToast }) {
   useEffect(() => {
     if (selectedProject) {
       loadAreas(selectedProject.id)
-      
-      // Subscribe to real-time updates
+
+      // Subscribe to real-time updates (optimized to update state directly)
       const subscription = db.subscribeToAreas(selectedProject.id, (payload) => {
-        loadAreas(selectedProject.id)
+        if (payload.eventType === 'UPDATE') {
+          setAreas(prev => prev.map(a =>
+            a.id === payload.new.id ? payload.new : a
+          ))
+        } else if (payload.eventType === 'INSERT') {
+          setAreas(prev => [...prev, payload.new])
+        } else if (payload.eventType === 'DELETE') {
+          setAreas(prev => prev.filter(a => a.id !== payload.old.id))
+        }
       })
 
       return () => db.unsubscribe(subscription)
