@@ -1203,6 +1203,332 @@ export const db = {
       return []
     }
     return data || []
+  },
+
+  // ============================================
+  // Daily Field Reports
+  // ============================================
+
+  // Get or create today's report for a project
+  async getDailyReport(projectId, date = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const reportDate = date || new Date().toISOString().split('T')[0]
+    
+    const { data, error } = await supabase
+      .from('daily_reports')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('report_date', reportDate)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching daily report:', error)
+    }
+    return data
+  },
+
+  // Compile daily report data from other tables
+  async compileDailyReport(projectId, date = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const reportDate = date || new Date().toISOString().split('T')[0]
+    
+    // Get crew check-in
+    const crew = await this.getCrewCheckin(projectId, reportDate)
+    
+    // Get completed tasks for today
+    const { data: areas } = await supabase
+      .from('areas')
+      .select('*')
+      .eq('project_id', projectId)
+    
+    const completedToday = areas?.filter(a => 
+      a.status === 'done' && 
+      a.completed_at?.startsWith(reportDate)
+    ) || []
+    
+    // Get T&M tickets for today
+    const { data: tickets } = await supabase
+      .from('t_and_m_tickets')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('work_date', reportDate)
+    
+    // Count photos from tickets
+    const photosCount = tickets?.reduce((sum, t) => sum + (t.photos?.length || 0), 0) || 0
+    
+    return {
+      crew_count: crew?.workers?.length || 0,
+      crew_list: crew?.workers || [],
+      tasks_completed: completedToday.length,
+      tasks_total: areas?.length || 0,
+      completed_tasks: completedToday.map(a => ({ name: a.name, group: a.group_name })),
+      tm_tickets_count: tickets?.length || 0,
+      photos_count: photosCount
+    }
+  },
+
+  // Save/update daily report
+  async saveDailyReport(projectId, reportData, date = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const reportDate = date || new Date().toISOString().split('T')[0]
+    
+    const { data, error } = await supabase
+      .from('daily_reports')
+      .upsert({
+        project_id: projectId,
+        report_date: reportDate,
+        ...reportData,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'project_id,report_date'
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error saving daily report:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Submit daily report
+  async submitDailyReport(projectId, submittedBy, date = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const reportDate = date || new Date().toISOString().split('T')[0]
+    
+    // First compile latest data
+    const compiled = await this.compileDailyReport(projectId, reportDate)
+    
+    const { data, error } = await supabase
+      .from('daily_reports')
+      .upsert({
+        project_id: projectId,
+        report_date: reportDate,
+        ...compiled,
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+        submitted_by: submittedBy,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'project_id,report_date'
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error submitting daily report:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get daily reports for office view
+  async getDailyReports(projectId, limit = 30) {
+    if (!isSupabaseConfigured) return []
+    
+    const { data, error } = await supabase
+      .from('daily_reports')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('report_date', { ascending: false })
+      .limit(limit)
+    
+    if (error) {
+      console.error('Error fetching daily reports:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // ============================================
+  // Messages (Two-way communication)
+  // ============================================
+
+  // Send a message
+  async sendMessage(projectId, message, senderType, senderName, senderUserId = null, photoUrl = null, messageType = 'general', parentId = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({
+        project_id: projectId,
+        sender_type: senderType,
+        sender_name: senderName,
+        sender_user_id: senderUserId,
+        message: message,
+        photo_url: photoUrl,
+        message_type: messageType,
+        parent_message_id: parentId
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error sending message:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get messages for a project
+  async getMessages(projectId, limit = 50) {
+    if (!isSupabaseConfigured) return []
+    
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (error) {
+      console.error('Error fetching messages:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get unread message count
+  async getUnreadCount(projectId, viewerType) {
+    if (!isSupabaseConfigured) return 0
+    
+    // Field sees office messages, office sees field messages
+    const senderType = viewerType === 'field' ? 'office' : 'field'
+    
+    const { count, error } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('project_id', projectId)
+      .eq('sender_type', senderType)
+      .eq('is_read', false)
+    
+    if (error) {
+      console.error('Error getting unread count:', error)
+      return 0
+    }
+    return count || 0
+  },
+
+  // Mark messages as read
+  async markMessagesRead(projectId, viewerType) {
+    if (!isSupabaseConfigured) return
+    
+    const senderType = viewerType === 'field' ? 'office' : 'field'
+    
+    const { error } = await supabase
+      .from('messages')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('project_id', projectId)
+      .eq('sender_type', senderType)
+      .eq('is_read', false)
+    
+    if (error) {
+      console.error('Error marking messages read:', error)
+    }
+  },
+
+  // ============================================
+  // Material Requests
+  // ============================================
+
+  // Create material request
+  async createMaterialRequest(projectId, items, requestedBy, neededBy = null, priority = 'normal', notes = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const { data, error } = await supabase
+      .from('material_requests')
+      .insert({
+        project_id: projectId,
+        items: items,
+        requested_by: requestedBy,
+        needed_by: neededBy,
+        priority: priority,
+        notes: notes
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error creating material request:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get material requests for a project
+  async getMaterialRequests(projectId, status = null) {
+    if (!isSupabaseConfigured) return []
+    
+    let query = supabase
+      .from('material_requests')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+    
+    if (status) {
+      query = query.eq('status', status)
+    }
+    
+    const { data, error } = await query
+    
+    if (error) {
+      console.error('Error fetching material requests:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get pending requests count (for badge)
+  async getPendingRequestsCount(projectId) {
+    if (!isSupabaseConfigured) return 0
+    
+    const { count, error } = await supabase
+      .from('material_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('project_id', projectId)
+      .eq('status', 'pending')
+    
+    if (error) return 0
+    return count || 0
+  },
+
+  // Update material request status (office action)
+  async updateMaterialRequest(requestId, status, respondedBy, responseNotes = null, expectedDelivery = null) {
+    if (!isSupabaseConfigured) return null
+    
+    const updateData = {
+      status: status,
+      responded_by: respondedBy,
+      responded_at: new Date().toISOString(),
+      response_notes: responseNotes,
+      updated_at: new Date().toISOString()
+    }
+    
+    if (expectedDelivery) {
+      updateData.expected_delivery = expectedDelivery
+    }
+    
+    if (status === 'delivered') {
+      updateData.delivered_at = new Date().toISOString()
+    }
+    
+    const { data, error } = await supabase
+      .from('material_requests')
+      .update(updateData)
+      .eq('id', requestId)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error updating material request:', error)
+      throw error
+    }
+    return data
   }
 }
 

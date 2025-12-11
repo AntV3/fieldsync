@@ -3,6 +3,9 @@ import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
+import DailyReport from './DailyReport'
+import Messages from './Messages'
+import MaterialRequest from './MaterialRequest'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -11,9 +14,14 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [expandedGroups, setExpandedGroups] = useState({})
   const [showTMForm, setShowTMForm] = useState(false)
   const [showCrewCheckin, setShowCrewCheckin] = useState(true)
+  const [showDailyReport, setShowDailyReport] = useState(false)
+  const [showMessages, setShowMessages] = useState(false)
+  const [showMaterialRequest, setShowMaterialRequest] = useState(false)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
     loadAreas()
+    loadUnreadCount()
   }, [project.id])
 
   const loadAreas = async () => {
@@ -32,6 +40,11 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadUnreadCount = async () => {
+    const count = await db.getUnreadCount(project.id, 'field')
+    setUnreadMessages(count)
   }
 
   const handleStatusUpdate = async (areaId, newStatus) => {
@@ -91,6 +104,45 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
+  // Show Daily Report
+  if (showDailyReport) {
+    return (
+      <DailyReport
+        project={project}
+        onShowToast={onShowToast}
+        onClose={() => setShowDailyReport(false)}
+      />
+    )
+  }
+
+  // Show Messages
+  if (showMessages) {
+    return (
+      <Messages
+        project={project}
+        viewerType="field"
+        viewerName="Field"
+        onShowToast={onShowToast}
+        onClose={() => {
+          setShowMessages(false)
+          loadUnreadCount()
+        }}
+      />
+    )
+  }
+
+  // Show Material Request
+  if (showMaterialRequest) {
+    return (
+      <MaterialRequest
+        project={project}
+        requestedBy="Field"
+        onShowToast={onShowToast}
+        onClose={() => setShowMaterialRequest(false)}
+      />
+    )
+  }
+
   const progress = calculateProgress(areas)
   
   // Group areas by group_name
@@ -122,13 +174,38 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </div>
       </div>
 
-      {/* T&M Button */}
-      <button 
-        className="btn btn-primary foreman-tm-btn"
-        onClick={() => setShowTMForm(true)}
-      >
-        + New T&M Ticket
-      </button>
+      {/* Action Buttons */}
+      <div className="field-actions">
+        <button 
+          className="field-action-btn"
+          onClick={() => setShowTMForm(true)}
+        >
+          <span className="icon">📝</span>
+          T&M Ticket
+        </button>
+        <button 
+          className="field-action-btn"
+          onClick={() => setShowMessages(true)}
+        >
+          <span className="icon">💬</span>
+          Messages
+          {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
+        </button>
+        <button 
+          className="field-action-btn"
+          onClick={() => setShowMaterialRequest(true)}
+        >
+          <span className="icon">📦</span>
+          Need Materials
+        </button>
+        <button 
+          className="field-action-btn"
+          onClick={() => setShowDailyReport(true)}
+        >
+          <span className="icon">📋</span>
+          Daily Report
+        </button>
+      </div>
 
       {/* Crew Check-In */}
       <CrewCheckin 
@@ -219,6 +296,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     </div>
   )
 }
+
 
 
 
