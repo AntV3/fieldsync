@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import Contracts from './components/Contracts'
+import Settings from './components/Settings'
 import Toast from './components/Toast'
 import OfflineIndicator from './components/OfflineIndicator'
 import ThemeToggle from './components/ThemeToggle'
@@ -248,6 +249,12 @@ export default function App() {
               Contracts
             </button>
             <button
+              className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Settings
+            </button>
+            <button
               className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
               onClick={() => setActiveTab('setup')}
             >
@@ -274,6 +281,14 @@ export default function App() {
         )}
         {activeTab === 'contracts' && (
           <Contracts onShowToast={showToast} />
+        )}
+        {activeTab === 'settings' && (
+          <Settings
+            company={company}
+            currentUser={user}
+            onShowToast={showToast}
+            onCompanyUpdated={checkAuth}
+          />
         )}
         {activeTab === 'setup' && (
           <Setup
