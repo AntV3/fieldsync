@@ -155,6 +155,52 @@ export async function exportTMTicketPDF(ticket, project, company, workers, items
     doc.text(`(Regular: ${totalRegHours.toFixed(2)}, Overtime: ${totalOTHours.toFixed(2)})`,
       pageWidth - margin, yPos + 5, { align: 'right' })
     yPos += 12
+
+    // Labor costs (if project has rates)
+    if (project && (project.laborer_rate || project.operator_rate || project.foreman_rate)) {
+      const rates = {
+        laborer: parseFloat(project.laborer_rate) || 0,
+        operator: parseFloat(project.operator_rate) || 0,
+        foreman: parseFloat(project.foreman_rate) || 0
+      }
+
+      const costBreakdown = {
+        laborer: { hours: 0, cost: 0 },
+        operator: { hours: 0, cost: 0 },
+        foreman: { hours: 0, cost: 0 }
+      }
+
+      workers.forEach(worker => {
+        const hours = parseFloat(worker.total_hours) || parseFloat(worker.hours) || 0
+        const role = worker.role
+        if (costBreakdown[role]) {
+          costBreakdown[role].hours += hours
+          costBreakdown[role].cost += hours * rates[role]
+        }
+      })
+
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Labor Costs:', margin, yPos)
+      yPos += 6
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      let totalLaborCost = 0
+
+      Object.entries(costBreakdown).forEach(([role, data]) => {
+        if (data.hours > 0) {
+          const costText = `${role.charAt(0).toUpperCase() + role.slice(1)}: ${data.hours.toFixed(2)} hrs × $${rates[role].toFixed(2)}/hr = $${data.cost.toFixed(2)}`
+          doc.text(costText, margin + 5, yPos)
+          yPos += 5
+          totalLaborCost += data.cost
+        }
+      })
+
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Total Labor Cost: $${totalLaborCost.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' })
+      yPos += 10
+    }
   }
 
   // ================================================
@@ -265,8 +311,31 @@ export async function exportTMTicketPDF(ticket, project, company, workers, items
   doc.text('APPROVAL', margin, yPos)
   yPos += 8
 
-  // Approval info if approved
-  if (ticket.status === 'approved' && ticket.approved_by_name) {
+  // Client signature if present
+  if (ticket.client_signature_data) {
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Signed By: ${ticket.client_signer_name}`, margin, yPos)
+    yPos += 5
+    doc.text(`Signed On: ${formatDateTime(ticket.client_signature_date)}`, margin, yPos)
+    yPos += 8
+
+    // Add signature image
+    try {
+      // Check if we have enough space for the signature
+      if (yPos > pageHeight - 50) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      doc.addImage(ticket.client_signature_data, 'PNG', margin, yPos, 80, 30)
+      yPos += 35
+    } catch (error) {
+      console.error('Error adding signature to PDF:', error)
+      doc.text('(Signature image not available)', margin, yPos)
+      yPos += 10
+    }
+  } else if (ticket.status === 'approved' && ticket.approved_by_name) {
+    // Fallback to old approval system
     doc.setFont('helvetica', 'normal')
     doc.text(`Approved By: ${ticket.approved_by_name}`, margin, yPos)
     yPos += 5
@@ -276,6 +345,8 @@ export async function exportTMTicketPDF(ticket, project, company, workers, items
     // Signature line if not approved
     doc.setFont('helvetica', 'normal')
     doc.text('Signature: ____________________________________', margin, yPos)
+    yPos += 8
+    doc.text('Name: __________________', margin, yPos)
     yPos += 8
     doc.text('Date: __________________', margin, yPos)
     yPos += 10
