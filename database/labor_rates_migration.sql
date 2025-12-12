@@ -95,15 +95,15 @@ SELECT
   p.operator_rate,
   p.foreman_rate,
   -- Calculate total hours by role from workers
-  COALESCE(SUM(CASE WHEN w.role = 'laborer' THEN w.total_hours ELSE 0 END), 0) as laborer_hours,
-  COALESCE(SUM(CASE WHEN w.role = 'operator' THEN w.total_hours ELSE 0 END), 0) as operator_hours,
-  COALESCE(SUM(CASE WHEN w.role = 'foreman' THEN w.total_hours ELSE 0 END), 0) as foreman_hours,
+  COALESCE(SUM(CASE WHEN w.role = 'laborer' THEN (COALESCE(w.hours, 0) + COALESCE(w.overtime_hours, 0)) ELSE 0 END), 0) as laborer_hours,
+  COALESCE(SUM(CASE WHEN w.role = 'operator' THEN (COALESCE(w.hours, 0) + COALESCE(w.overtime_hours, 0)) ELSE 0 END), 0) as operator_hours,
+  COALESCE(SUM(CASE WHEN w.role = 'foreman' THEN (COALESCE(w.hours, 0) + COALESCE(w.overtime_hours, 0)) ELSE 0 END), 0) as foreman_hours,
   -- Calculate costs
-  COALESCE(SUM(CASE WHEN w.role = 'laborer' THEN w.total_hours * p.laborer_rate ELSE 0 END), 0) as laborer_cost,
-  COALESCE(SUM(CASE WHEN w.role = 'operator' THEN w.total_hours * p.operator_rate ELSE 0 END), 0) as operator_cost,
-  COALESCE(SUM(CASE WHEN w.role = 'foreman' THEN w.total_hours * p.foreman_rate ELSE 0 END), 0) as foreman_cost,
+  COALESCE(SUM(CASE WHEN w.role = 'laborer' THEN (COALESCE(w.hours, 0) + COALESCE(w.overtime_hours, 0)) * p.laborer_rate ELSE 0 END), 0) as laborer_cost,
+  COALESCE(SUM(CASE WHEN w.role = 'operator' THEN (COALESCE(w.hours, 0) + COALESCE(w.overtime_hours, 0)) * p.operator_rate ELSE 0 END), 0) as operator_cost,
+  COALESCE(SUM(CASE WHEN w.role = 'foreman' THEN (COALESCE(w.hours, 0) + COALESCE(w.overtime_hours, 0)) * p.foreman_rate ELSE 0 END), 0) as foreman_cost,
   -- Total labor cost
-  COALESCE(SUM(w.total_hours *
+  COALESCE(SUM((COALESCE(w.hours, 0) + COALESCE(w.overtime_hours, 0)) *
     CASE
       WHEN w.role = 'laborer' THEN p.laborer_rate
       WHEN w.role = 'operator' THEN p.operator_rate
