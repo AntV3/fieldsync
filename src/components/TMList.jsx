@@ -84,7 +84,50 @@ export default function TMList({ project, onShowToast }) {
 
   const calculateTotalHours = (ticket) => {
     if (!ticket.t_and_m_workers) return 0
-    return ticket.t_and_m_workers.reduce((sum, w) => sum + parseFloat(w.hours), 0)
+    return ticket.t_and_m_workers.reduce((sum, w) => sum + (parseFloat(w.total_hours) || 0), 0)
+  }
+
+  const calculateLaborCost = (ticket) => {
+    if (!ticket.t_and_m_workers || !project) return 0
+
+    const rates = {
+      laborer: parseFloat(project.laborer_rate) || 0,
+      operator: parseFloat(project.operator_rate) || 0,
+      foreman: parseFloat(project.foreman_rate) || 0
+    }
+
+    return ticket.t_and_m_workers.reduce((total, worker) => {
+      const hours = parseFloat(worker.total_hours) || 0
+      const rate = rates[worker.role] || 0
+      return total + (hours * rate)
+    }, 0)
+  }
+
+  const getLaborCostBreakdown = (ticket) => {
+    if (!ticket.t_and_m_workers || !project) return {}
+
+    const rates = {
+      laborer: parseFloat(project.laborer_rate) || 0,
+      operator: parseFloat(project.operator_rate) || 0,
+      foreman: parseFloat(project.foreman_rate) || 0
+    }
+
+    const breakdown = {
+      laborer: { hours: 0, cost: 0, rate: rates.laborer },
+      operator: { hours: 0, cost: 0, rate: rates.operator },
+      foreman: { hours: 0, cost: 0, rate: rates.foreman }
+    }
+
+    ticket.t_and_m_workers.forEach(worker => {
+      const hours = parseFloat(worker.total_hours) || 0
+      const role = worker.role
+      if (breakdown[role]) {
+        breakdown[role].hours += hours
+        breakdown[role].cost += hours * rates[role]
+      }
+    })
+
+    return breakdown
   }
 
   const formatDate = (dateStr) => {
@@ -280,9 +323,36 @@ export default function TMList({ project, onShowToast }) {
                               )}
                               {worker.name}
                             </span>
-                            <span>{worker.hours} hrs</span>
+                            <span>{worker.total_hours || worker.hours} hrs</span>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {ticket.t_and_m_workers?.length > 0 && (project.laborer_rate || project.operator_rate || project.foreman_rate) && (
+                    <div className="tm-detail-section">
+                      <h4>💵 Labor Costs</h4>
+                      <div className="tm-detail-list">
+                        {(() => {
+                          const breakdown = getLaborCostBreakdown(ticket)
+                          return Object.entries(breakdown).map(([role, data]) => {
+                            if (data.hours === 0) return null
+                            return (
+                              <div key={role} className="tm-detail-row">
+                                <span>
+                                  <span className="tm-role-badge" style={{ textTransform: 'capitalize' }}>{role}</span>
+                                  {data.hours} hrs × ${data.rate.toFixed(2)}/hr
+                                </span>
+                                <span className="tm-cost-value">${data.cost.toFixed(2)}</span>
+                              </div>
+                            )
+                          })
+                        })()}
+                        <div className="tm-detail-row tm-total-row" style={{ borderTop: '2px solid var(--border)', marginTop: '0.5rem', paddingTop: '0.5rem', fontWeight: 'bold' }}>
+                          <span>Total Labor Cost</span>
+                          <span className="tm-cost-value">${calculateLaborCost(ticket).toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
                   )}

@@ -9,6 +9,9 @@ export default function Setup({ onProjectCreated, onShowToast }) {
   const [generalContractor, setGeneralContractor] = useState('')
   const [contractValue, setContractValue] = useState('')
   const [pin, setPin] = useState('')
+  const [laborerRate, setLaborerRate] = useState('')
+  const [operatorRate, setOperatorRate] = useState('')
+  const [foremanRate, setForemanRate] = useState('')
   const [areas, setAreas] = useState([
     { name: '', weight: '', group: '' },
     { name: '', weight: '', group: '' },
@@ -57,6 +60,9 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     setGeneralContractor('')
     setContractValue('')
     setPin('')
+    setLaborerRate('')
+    setOperatorRate('')
+    setForemanRate('')
     setAreas([
       { name: '', weight: '', group: '' },
       { name: '', weight: '', group: '' },
@@ -312,7 +318,10 @@ export default function Setup({ onProjectCreated, onShowToast }) {
         address: address.trim() || null,
         general_contractor: generalContractor.trim() || null,
         contract_value: contractVal,
-        pin: pin
+        pin: pin,
+        laborer_rate: parseFloat(laborerRate) || 0,
+        operator_rate: parseFloat(operatorRate) || 0,
+        foreman_rate: parseFloat(foremanRate) || 0
       })
 
       for (let i = 0; i < validAreas.length; i++) {
@@ -488,6 +497,45 @@ export default function Setup({ onProjectCreated, onShowToast }) {
             >
               Generate
             </button>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Labor Rates ($/hour)</label>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+            Set hourly rates for cost calculation on T&M tickets
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Laborer</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="25.00"
+                value={laborerRate}
+                onChange={(e) => setLaborerRate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Operator</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="35.00"
+                value={operatorRate}
+                onChange={(e) => setOperatorRate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Foreman</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="45.00"
+                value={foremanRate}
+                onChange={(e) => setForemanRate(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>

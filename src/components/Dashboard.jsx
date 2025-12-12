@@ -67,6 +67,9 @@ export default function Dashboard({ onShowToast }) {
       name: selectedProject.name,
       contract_value: selectedProject.contract_value,
       pin: selectedProject.pin || '',
+      laborer_rate: selectedProject.laborer_rate || '',
+      operator_rate: selectedProject.operator_rate || '',
+      foreman_rate: selectedProject.foreman_rate || '',
       areas: areas.map(a => ({
         id: a.id,
         name: a.name,
@@ -157,7 +160,10 @@ export default function Dashboard({ onShowToast }) {
       await db.updateProject(selectedProject.id, {
         name: editData.name.trim(),
         contract_value: contractVal,
-        pin: editData.pin || null
+        pin: editData.pin || null,
+        laborer_rate: parseFloat(editData.laborer_rate) || 0,
+        operator_rate: parseFloat(editData.operator_rate) || 0,
+        foreman_rate: parseFloat(editData.foreman_rate) || 0
       })
 
       // Handle areas
@@ -279,6 +285,45 @@ export default function Dashboard({ onShowToast }) {
                 placeholder="e.g., 2847"
                 maxLength={4}
               />
+            </div>
+
+            <div className="form-group">
+              <label>Labor Rates ($/hour)</label>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                Set hourly rates for cost calculation on T&M tickets
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Laborer</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="25.00"
+                    value={editData.laborer_rate}
+                    onChange={(e) => handleEditChange('laborer_rate', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Operator</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="35.00"
+                    value={editData.operator_rate}
+                    onChange={(e) => handleEditChange('operator_rate', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Foreman</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="45.00"
+                    value={editData.foreman_rate}
+                    onChange={(e) => handleEditChange('foreman_rate', e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
