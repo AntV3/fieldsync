@@ -22,11 +22,56 @@ COMMENT ON COLUMN projects.foreman_rate IS 'Hourly rate for foreman (for cost ca
 -- ================================================
 
 -- Add client signature fields
-ALTER TABLE t_and_m_tickets
-ADD COLUMN IF NOT EXISTS client_signature_data TEXT,
-ADD COLUMN IF NOT EXISTS client_signer_name TEXT,
-ADD COLUMN IF NOT EXISTS client_signature_date TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected'));
+DO $BODY$
+BEGIN
+  -- Add client_signature_data if not exists
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 't_and_m_tickets' AND column_name = 'client_signature_data'
+  ) THEN
+    ALTER TABLE t_and_m_tickets ADD COLUMN client_signature_data TEXT;
+  END IF;
+
+  -- Add client_signer_name if not exists
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 't_and_m_tickets' AND column_name = 'client_signer_name'
+  ) THEN
+    ALTER TABLE t_and_m_tickets ADD COLUMN client_signer_name TEXT;
+  END IF;
+
+  -- Add client_signature_date if not exists
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 't_and_m_tickets' AND column_name = 'client_signature_date'
+  ) THEN
+    ALTER TABLE t_and_m_tickets ADD COLUMN client_signature_date TIMESTAMP WITH TIME ZONE;
+  END IF;
+
+  -- Add approval_status if not exists
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 't_and_m_tickets' AND column_name = 'approval_status'
+  ) THEN
+    ALTER TABLE t_and_m_tickets ADD COLUMN approval_status TEXT DEFAULT 'pending';
+  END IF;
+END $BODY$;
+
+-- Add CHECK constraint to approval_status (drop first if exists)
+DO $BODY$
+BEGIN
+  -- Drop constraint if it exists
+  IF EXISTS (
+    SELECT 1 FROM information_schema.constraint_column_usage
+    WHERE table_name = 't_and_m_tickets' AND constraint_name = 't_and_m_tickets_approval_status_check'
+  ) THEN
+    ALTER TABLE t_and_m_tickets DROP CONSTRAINT t_and_m_tickets_approval_status_check;
+  END IF;
+
+  -- Add constraint
+  ALTER TABLE t_and_m_tickets ADD CONSTRAINT t_and_m_tickets_approval_status_check
+    CHECK (approval_status IN ('pending', 'approved', 'rejected'));
+END $BODY$;
 
 -- Add comments for documentation
 COMMENT ON COLUMN t_and_m_tickets.client_signature_data IS 'Base64 encoded signature image data';
