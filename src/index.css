@@ -5262,3 +5262,347 @@ input::placeholder {
   }
 }
 
+/* ============================================
+   Settings Sub-Tabs
+   ============================================ */
+
+.settings-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color);
+  padding: 0 0 0 0;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.settings-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.settings-tab.active {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
+  font-weight: 600;
+}
+
+/* ============================================
+   Materials & Equipment Settings
+   ============================================ */
+
+.materials-settings {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.materials-settings-header {
+  margin-bottom: 2rem;
+}
+
+.materials-settings-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.materials-settings-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* Stats Cards */
+.materials-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.materials-stat-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.materials-stat-value {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin-bottom: 0.5rem;
+}
+
+.materials-stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Actions */
+.materials-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.materials-actions .btn,
+.materials-actions .btn-secondary {
+  padding: 0.75rem 1.5rem;
+}
+
+/* Add/Edit Form Modal */
+.materials-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.materials-form-modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.materials-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.materials-form-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.materials-form-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.materials-form-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.materials-form-body {
+  padding: 1.5rem;
+}
+
+.materials-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Materials List */
+.materials-list {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.materials-empty {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.materials-empty p:first-child {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+/* Category Groups */
+.materials-category-group {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.materials-category-group:last-child {
+  border-bottom: none;
+}
+
+.materials-category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.materials-category-header:hover {
+  background: var(--bg-primary);
+}
+
+.materials-category-icon {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  width: 16px;
+  text-align: center;
+}
+
+.materials-category-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.materials-category-count {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.materials-category-items {
+  background: var(--bg-primary);
+}
+
+/* Materials Table */
+.materials-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.materials-table thead {
+  background: var(--bg-secondary);
+}
+
+.materials-table th {
+  text-align: left;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.materials-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s;
+}
+
+.materials-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+.materials-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.materials-table td {
+  padding: 0.75rem 1.5rem;
+  color: var(--text-primary);
+}
+
+.materials-table td:nth-child(1) {
+  font-weight: 500;
+}
+
+.materials-table td:nth-child(2),
+.materials-table td:nth-child(3) {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.materials-table .btn-icon {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.materials-table .btn-icon:hover {
+  background: var(--bg-primary);
+}
+
+.materials-settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .materials-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .materials-actions {
+    flex-direction: column;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .materials-table {
+    font-size: 0.9rem;
+  }
+
+  .materials-table th,
+  .materials-table td {
+    padding: 0.5rem 1rem;
+  }
+
+  .materials-form-modal {
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+

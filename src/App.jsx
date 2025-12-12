@@ -9,6 +9,7 @@ import Toast from './components/Toast'
 import NotificationBell from './components/NotificationBell'
 import NotificationDropdown from './components/NotificationDropdown'
 import NotificationSettings from './components/NotificationSettings'
+import MaterialsSettings from './components/MaterialsSettings'
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office'
@@ -17,6 +18,7 @@ export default function App() {
   const [foremanProject, setForemanProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [settingsTab, setSettingsTab] = useState('notifications') // 'notifications', 'materials'
   const [toast, setToast] = useState(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [companyUsers, setCompanyUsers] = useState([])
@@ -286,12 +288,39 @@ export default function App() {
           />
         )}
         {activeTab === 'notifications' && (
-          <NotificationSettings
-            companyId={company?.id}
-            companyUsers={companyUsers}
-            onClose={() => setActiveTab('dashboard')}
-            onShowToast={showToast}
-          />
+          <div>
+            <div className="settings-tabs">
+              <button
+                className={`settings-tab ${settingsTab === 'notifications' ? 'active' : ''}`}
+                onClick={() => setSettingsTab('notifications')}
+              >
+                🔔 Notifications
+              </button>
+              <button
+                className={`settings-tab ${settingsTab === 'materials' ? 'active' : ''}`}
+                onClick={() => setSettingsTab('materials')}
+              >
+                📦 Materials & Equipment
+              </button>
+            </div>
+
+            {settingsTab === 'notifications' && (
+              <NotificationSettings
+                companyId={company?.id}
+                companyUsers={companyUsers}
+                onClose={() => setActiveTab('dashboard')}
+                onShowToast={showToast}
+              />
+            )}
+
+            {settingsTab === 'materials' && (
+              <MaterialsSettings
+                companyId={company?.id}
+                onShowToast={showToast}
+                onClose={() => setActiveTab('dashboard')}
+              />
+            )}
+          </div>
         )}
       </div>
 
