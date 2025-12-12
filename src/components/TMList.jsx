@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 import { exportTMTicketPDF } from '../lib/tmPdfExport'
+import SignaturePad from './SignaturePad'
 
 export default function TMList({ project, onShowToast }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [expandedTicket, setExpandedTicket] = useState(null)
+  const [showSignature, setShowSignature] = useState(null)
 
   useEffect(() => {
     loadTickets()
@@ -48,6 +50,43 @@ export default function TMList({ project, onShowToast }) {
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
     }
+  }
+
+  const handleSignatureOpen = (ticket) => {
+    setShowSignature(ticket.id)
+  }
+
+  const handleSignatureSave = async (signatureData) => {
+    try {
+      const ticketId = showSignature
+      await db.updateTMTicket(ticketId, {
+        client_signature_data: signatureData.signatureData,
+        client_signer_name: signatureData.signerName,
+        client_signature_date: signatureData.signatureDate,
+        approval_status: 'approved'
+      })
+
+      // Update local state
+      setTickets(tickets.map(t =>
+        t.id === ticketId ? {
+          ...t,
+          client_signature_data: signatureData.signatureData,
+          client_signer_name: signatureData.signerName,
+          client_signature_date: signatureData.signatureDate,
+          approval_status: 'approved'
+        } : t
+      ))
+
+      setShowSignature(null)
+      onShowToast('Signature saved and ticket approved!', 'success')
+    } catch (error) {
+      console.error('Error saving signature:', error)
+      onShowToast('Error saving signature', 'error')
+    }
+  }
+
+  const handleSignatureCancel = () => {
+    setShowSignature(null)
   }
 
   const handleExportPDF = async (ticket) => {
@@ -404,6 +443,21 @@ export default function TMList({ project, onShowToast }) {
                     </div>
                   )}
 
+                  {ticket.client_signature_data && (
+                    <div className="tm-detail-section">
+                      <h4>✍️ Client Signature</h4>
+                      <div className="signature-display">
+                        <img src={ticket.client_signature_data} alt="Client Signature" className="signature-image" />
+                        <div className="signature-info">
+                          <p><strong>{ticket.client_signer_name}</strong></p>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                            Signed: {new Date(ticket.client_signature_date).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="tm-ticket-actions">
                     <button
                       className="btn btn-primary btn-small"
@@ -411,6 +465,14 @@ export default function TMList({ project, onShowToast }) {
                     >
                       📄 Export PDF
                     </button>
+                    {ticket.status === 'pending' && !ticket.client_signature_data && (
+                      <button
+                        className="btn btn-success btn-small"
+                        onClick={(e) => { e.stopPropagation(); handleSignatureOpen(ticket); }}
+                      >
+                        ✍️ Sign & Approve
+                      </button>
+                    )}
                     {ticket.status === 'pending' && (
                       <>
                         <button
@@ -455,6 +517,13 @@ export default function TMList({ project, onShowToast }) {
             </div>
           ))}
         </div>
+      )}
+
+      {showSignature && (
+        <SignaturePad
+          onSave={handleSignatureSave}
+          onCancel={handleSignatureCancel}
+        />
       )}
     </div>
   )

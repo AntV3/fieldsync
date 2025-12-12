@@ -6743,3 +6743,184 @@ input.invalid, select.invalid, textarea.invalid {
 .settings-content {
   background: var(--bg-primary);
 }
+
+/* ============================================
+   SIGNATURE PAD STYLES
+   ============================================ */
+
+.signature-pad-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signature-pad-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.signature-pad-container {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.signature-pad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.signature-pad-header h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.signature-pad-header .close-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.signature-pad-header .close-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.signature-pad-body {
+  padding: 1.5rem;
+}
+
+.signature-canvas-wrapper {
+  margin-top: 1.5rem;
+}
+
+.signature-canvas-wrapper label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.signature-canvas-container {
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: white;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.signature-canvas {
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-pad-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Signature Display */
+.signature-display {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.signature-image {
+  max-width: 300px;
+  height: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: white;
+  padding: 0.5rem;
+}
+
+.signature-info p {
+  margin: 0.25rem 0;
+  color: var(--text-primary);
+}
+
+.tm-cost-value {
+  font-weight: 600;
+  color: var(--accent-green);
+}
+
+/* Responsive signature pad */
+@media (max-width: 768px) {
+  .signature-pad-container {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .signature-canvas-container {
+    width: 100%;
+  }
+
+  .signature-canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .signature-pad-actions {
+    flex-direction: column;
+  }
+
+  .signature-pad-actions > div {
+    width: 100%;
+  }
+
+  .signature-pad-actions .btn {
+    width: 100%;
+  }
+}

@@ -902,9 +902,23 @@ export const db = {
 
   async updateTMTicketStatus(ticketId, status) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const { data, error} = await supabase
         .from('t_and_m_tickets')
         .update({ status })
+        .eq('id', ticketId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async updateTMTicket(ticketId, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .update(updates)
         .eq('id', ticketId)
         .select()
         .single()
