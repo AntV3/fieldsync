@@ -72,7 +72,9 @@ export default function NotificationSettings({ companyId, companyUsers, onClose,
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    loadSettings()
+    if (companyId) {
+      loadSettings()
+    }
   }, [companyId])
 
   const loadSettings = async () => {

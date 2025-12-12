@@ -48,10 +48,11 @@ export default function NotificationBell({ userId, onOpenNotifications }) {
 
   // Expose refresh method to parent
   useEffect(() => {
-    if (window.notificationBell) {
-      window.notificationBell.refreshCount = refreshCount
+    if (!window.notificationBell) {
+      window.notificationBell = {}
     }
-  }, [])
+    window.notificationBell.refreshCount = refreshCount
+  }, [refreshCount])
 
   return (
     <button

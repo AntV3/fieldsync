@@ -50,7 +50,7 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onNaviga
         prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
       )
       // Refresh bell count
-      if (window.notificationBell) {
+      if (window.notificationBell?.refreshCount) {
         window.notificationBell.refreshCount()
       }
     }
@@ -71,7 +71,7 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onNaviga
         prev.map(n => ({ ...n, is_read: true }))
       )
       // Refresh bell count
-      if (window.notificationBell) {
+      if (window.notificationBell?.refreshCount) {
         window.notificationBell.refreshCount()
       }
     } catch (error) {
