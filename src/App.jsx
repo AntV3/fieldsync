@@ -6,6 +6,9 @@ import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import Toast from './components/Toast'
+import NotificationBell from './components/NotificationBell'
+import NotificationDropdown from './components/NotificationDropdown'
+import NotificationSettings from './components/NotificationSettings'
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office'
@@ -15,6 +18,8 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [companyUsers, setCompanyUsers] = useState([])
 
   useEffect(() => {
     checkAuth()
@@ -111,6 +116,27 @@ export default function App() {
     setView('entry')
   }
 
+  const loadCompanyUsers = async () => {
+    if (!company?.id) return
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name, email')
+        .eq('company_id', company.id)
+
+      if (!error && data) {
+        setCompanyUsers(data.map(u => ({
+          id: u.id,
+          name: u.full_name,
+          email: u.email
+        })))
+      }
+    } catch (error) {
+      console.error('Error loading company users:', error)
+    }
+  }
+
   const showToast = (message, type = '') => {
     setToast({ message, type })
   }
@@ -118,6 +144,20 @@ export default function App() {
   const handleProjectCreated = () => {
     setActiveTab('dashboard')
   }
+
+  const handleNotificationNavigate = (link) => {
+    // Navigate to the linked page
+    // For now, just close the dropdown
+    // TODO: implement routing based on link_to
+    setNotificationsOpen(false)
+  }
+
+  // Load company users when company is set
+  useEffect(() => {
+    if (company?.id) {
+      loadCompanyUsers()
+    }
+  }, [company])
 
   // Loading screen
   if (loading) {
@@ -203,8 +243,26 @@ export default function App() {
             >
               + New Project
             </button>
+            <button
+              className={`nav-tab ${activeTab === 'notifications' ? 'active' : ''}`}
+              onClick={() => setActiveTab('notifications')}
+            >
+              Settings
+            </button>
           </div>
           <div className="nav-user">
+            <div style={{ position: 'relative' }}>
+              <NotificationBell
+                userId={user?.id}
+                onOpenNotifications={() => setNotificationsOpen(!notificationsOpen)}
+              />
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={notificationsOpen}
+                onClose={() => setNotificationsOpen(false)}
+                onNavigate={handleNotificationNavigate}
+              />
+            </div>
             <span className="nav-user-name">{user?.full_name || user?.email}</span>
             <button className="nav-logout" onClick={handleLogout}>
               Sign Out
@@ -224,6 +282,14 @@ export default function App() {
         {activeTab === 'setup' && (
           <Setup
             onProjectCreated={handleProjectCreated}
+            onShowToast={showToast}
+          />
+        )}
+        {activeTab === 'notifications' && (
+          <NotificationSettings
+            companyId={company?.id}
+            companyUsers={companyUsers}
+            onClose={() => setActiveTab('dashboard')}
             onShowToast={showToast}
           />
         )}

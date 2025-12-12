@@ -34,7 +34,7 @@ export default function MaterialRequest({ project, requestedBy, onShowToast, onC
 
     setSubmitting(true)
     try {
-      await db.createMaterialRequest(
+      const request = await db.createMaterialRequest(
         project.id,
         validItems,
         requestedBy,
@@ -42,7 +42,27 @@ export default function MaterialRequest({ project, requestedBy, onShowToast, onC
         priority,
         notes || null
       )
-      
+
+      // Create notifications for material request
+      if (request && project.company_id) {
+        const itemsList = validItems.map(i => `${i.quantity} ${i.unit} ${i.name}`).join(', ')
+        const priorityEmoji = priority === 'urgent' ? '🚨 ' : priority === 'normal' ? '⚠️ ' : ''
+
+        await db.createNotificationsForEvent(
+          project.company_id,
+          project.id,
+          'material_request',
+          `${priorityEmoji}New Material Request`,
+          `${requestedBy} requested: ${itemsList}`,
+          `/project/${project.id}/materials`,
+          {
+            request_id: request.id,
+            priority: priority,
+            items_count: validItems.length
+          }
+        )
+      }
+
       onShowToast('Request submitted!', 'success')
       onClose()
     } catch (err) {

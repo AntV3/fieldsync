@@ -4900,3 +4900,365 @@ input::placeholder {
   margin-left: 0.25rem;
 }
 
+/* ============================================
+   Notification System
+   ============================================ */
+
+/* Notification Bell Button */
+.notification-bell {
+  position: relative;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.notification-bell:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-blue);
+}
+
+.notification-bell svg {
+  display: block;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.35rem;
+  border-radius: 10px;
+  line-height: 1;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Notification Dropdown */
+.notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  width: 420px;
+  max-width: 90vw;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+}
+
+.notification-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.notification-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-text-small {
+  background: none;
+  border: none;
+  color: var(--accent-blue);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-text-small:hover {
+  background: var(--bg-primary);
+  text-decoration: underline;
+}
+
+/* Notification List */
+.notification-list {
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+}
+
+.notification-loading,
+.notification-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.notification-empty p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Notification Item */
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s;
+  position: relative;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item.clickable {
+  cursor: pointer;
+}
+
+.notification-item.clickable:hover {
+  background: var(--bg-secondary);
+}
+
+.notification-item.unread {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.notification-item.unread:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.notification-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+}
+
+.notification-message {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.notification-unread-dot {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--accent-blue);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Notification Settings Page */
+.notification-settings {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.notification-settings-header {
+  margin-bottom: 2rem;
+}
+
+.notification-settings-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.notification-settings-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.notification-setting-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.notification-setting-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.notification-setting-info {
+  flex: 1;
+}
+
+.notification-setting-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-setting-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.notification-setting-toggle {
+  flex-shrink: 0;
+}
+
+.notification-setting-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.notification-recipients {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-recipients-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.notification-roles,
+.notification-users {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.role-checkbox,
+.user-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.role-checkbox:hover,
+.user-checkbox:hover {
+  border-color: var(--accent-blue);
+  background: var(--bg-primary);
+}
+
+.role-checkbox input[type="checkbox"],
+.user-checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.role-checkbox label,
+.user-checkbox label {
+  margin: 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.notification-channels {
+  display: flex;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.channel-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.channel-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.channel-checkbox label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.notification-settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .notification-dropdown {
+    width: 100vw;
+    max-width: 100vw;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .notification-list {
+    max-height: calc(100vh - 60px);
+  }
+}
+

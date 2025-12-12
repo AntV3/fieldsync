@@ -1529,6 +1529,277 @@ export const db = {
       throw error
     }
     return data
+  },
+
+  // ============================================
+  // Notifications System
+  // ============================================
+
+  // Get notification settings for a company
+  async getNotificationSettings(companyId) {
+    if (!isSupabaseConfigured) return []
+
+    const { data, error } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('event_type')
+
+    if (error) {
+      console.error('Error fetching notification settings:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get notification setting for a specific event type
+  async getNotificationSetting(companyId, eventType) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('notification_settings')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('event_type', eventType)
+      .single()
+
+    if (error && error.code !== 'PGRST116') { // Not found is ok
+      console.error('Error fetching notification setting:', error)
+    }
+    return data
+  },
+
+  // Create or update notification setting
+  async upsertNotificationSetting(companyId, eventType, settings) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('notification_settings')
+      .upsert({
+        company_id: companyId,
+        event_type: eventType,
+        notify_user_ids: settings.notify_user_ids || [],
+        notify_roles: settings.notify_roles || [],
+        email_enabled: settings.email_enabled || false,
+        push_enabled: settings.push_enabled || false,
+        in_app_enabled: settings.in_app_enabled !== undefined ? settings.in_app_enabled : true
+      }, {
+        onConflict: 'company_id,event_type'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error upserting notification setting:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Delete notification setting
+  async deleteNotificationSetting(companyId, eventType) {
+    if (!isSupabaseConfigured) return
+
+    const { error } = await supabase
+      .from('notification_settings')
+      .delete()
+      .eq('company_id', companyId)
+      .eq('event_type', eventType)
+
+    if (error) {
+      console.error('Error deleting notification setting:', error)
+      throw error
+    }
+  },
+
+  // Initialize default notification settings for a company
+  async initializeDefaultNotificationSettings(companyId) {
+    if (!isSupabaseConfigured) return
+
+    const { error } = await supabase.rpc('create_default_notification_settings', {
+      p_company_id: companyId
+    })
+
+    if (error) {
+      console.error('Error initializing notification settings:', error)
+    }
+  },
+
+  // Create a notification (called by trigger functions or manually)
+  async createNotification(userId, companyId, projectId, eventType, title, message, linkTo = null, metadata = {}) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        company_id: companyId,
+        project_id: projectId,
+        event_type: eventType,
+        title: title,
+        message: message,
+        link_to: linkTo,
+        metadata: metadata
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating notification:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Create notifications for an event (uses company settings)
+  async createNotificationsForEvent(companyId, projectId, eventType, title, message, linkTo = null, metadata = {}) {
+    if (!isSupabaseConfigured) return 0
+
+    const { data, error } = await supabase.rpc('create_notifications_for_event', {
+      p_company_id: companyId,
+      p_project_id: projectId,
+      p_event_type: eventType,
+      p_title: title,
+      p_message: message,
+      p_link_to: linkTo,
+      p_metadata: metadata
+    })
+
+    if (error) {
+      console.error('Error creating notifications for event:', error)
+      return 0
+    }
+    return data || 0
+  },
+
+  // Get notifications for a user
+  async getNotifications(userId, limit = 50, offset = 0, unreadOnly = false) {
+    if (!isSupabaseConfigured) return []
+
+    let query = supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (unreadOnly) {
+      query = query.eq('is_read', false)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching notifications:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get unread notification count for a user
+  async getUnreadNotificationCount(userId) {
+    if (!isSupabaseConfigured) return 0
+
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false)
+
+    if (error) {
+      console.error('Error getting unread notification count:', error)
+      return 0
+    }
+    return count || 0
+  },
+
+  // Mark notification as read
+  async markNotificationRead(notificationId) {
+    if (!isSupabaseConfigured) return
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
+      })
+      .eq('id', notificationId)
+
+    if (error) {
+      console.error('Error marking notification as read:', error)
+    }
+  },
+
+  // Mark all notifications as read for a user
+  async markAllNotificationsRead(userId) {
+    if (!isSupabaseConfigured) return
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+      .eq('is_read', false)
+
+    if (error) {
+      console.error('Error marking all notifications as read:', error)
+    }
+  },
+
+  // Delete notification
+  async deleteNotification(notificationId) {
+    if (!isSupabaseConfigured) return
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId)
+
+    if (error) {
+      console.error('Error deleting notification:', error)
+      throw error
+    }
+  },
+
+  // Delete all read notifications for a user
+  async deleteReadNotifications(userId) {
+    if (!isSupabaseConfigured) return
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId)
+      .eq('is_read', true)
+
+    if (error) {
+      console.error('Error deleting read notifications:', error)
+      throw error
+    }
+  },
+
+  // Subscribe to new notifications (real-time)
+  subscribeToNotifications(userId, callback) {
+    if (!isSupabaseConfigured) return null
+
+    const subscription = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          callback(payload.new)
+        }
+      )
+      .subscribe()
+
+    return subscription
   }
 }
 

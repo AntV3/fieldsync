@@ -319,6 +319,27 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
         if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
       })
 
+      // Create notifications for T&M ticket submission
+      if (ticket && companyId) {
+        const workerCount = allWorkers.length
+        const itemCount = items.length
+
+        await db.createNotificationsForEvent(
+          companyId,
+          project.id,
+          'tm_submitted',
+          'New T&M Ticket Submitted',
+          `${ticket.created_by_name} submitted a T&M ticket with ${workerCount} worker(s) and ${itemCount} item(s)`,
+          `/project/${project.id}/tm`,
+          {
+            ticket_id: ticket.id,
+            work_date: ticket.work_date,
+            worker_count: workerCount,
+            item_count: itemCount
+          }
+        )
+      }
+
       onShowToast('T&M submitted!', 'success')
       onSubmit()
     } catch (error) {

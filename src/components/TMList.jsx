@@ -27,9 +27,43 @@ export default function TMList({ project, onShowToast }) {
   const updateStatus = async (ticketId, newStatus) => {
     try {
       await db.updateTMTicketStatus(ticketId, newStatus)
-      setTickets(tickets.map(t => 
+
+      const updatedTicket = tickets.find(t => t.id === ticketId)
+      setTickets(tickets.map(t =>
         t.id === ticketId ? { ...t, status: newStatus } : t
       ))
+
+      // Create notifications for T&M ticket status changes
+      if (updatedTicket && project?.company_id) {
+        if (newStatus === 'approved') {
+          await db.createNotificationsForEvent(
+            project.company_id,
+            project.id,
+            'tm_approved',
+            '✅ T&M Ticket Approved',
+            `Your T&M ticket from ${updatedTicket.work_date} has been approved`,
+            `/project/${project.id}/tm`,
+            {
+              ticket_id: ticketId,
+              work_date: updatedTicket.work_date
+            }
+          )
+        } else if (newStatus === 'rejected') {
+          await db.createNotificationsForEvent(
+            project.company_id,
+            project.id,
+            'tm_rejected',
+            '❌ T&M Ticket Rejected',
+            `Your T&M ticket from ${updatedTicket.work_date} has been rejected`,
+            `/project/${project.id}/tm`,
+            {
+              ticket_id: ticketId,
+              work_date: updatedTicket.work_date
+            }
+          )
+        }
+      }
+
       onShowToast(`Ticket ${newStatus}`, 'success')
     } catch (error) {
       console.error('Error updating status:', error)
