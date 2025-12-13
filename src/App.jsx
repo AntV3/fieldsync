@@ -3,6 +3,7 @@ import { isSupabaseConfigured, auth, supabase } from './lib/supabase'
 import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
+import ExecutiveDashboard from './components/ExecutiveDashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import Toast from './components/Toast'
@@ -14,6 +15,7 @@ export default function App() {
   const [foremanProject, setForemanProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [selectedProject, setSelectedProject] = useState(null)
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
@@ -119,6 +121,14 @@ export default function App() {
     setActiveTab('dashboard')
   }
 
+  const handleNavigateToProject = (project) => {
+    setSelectedProject(project)
+  }
+
+  const handleBackToDashboard = () => {
+    setSelectedProject(null)
+  }
+
   // Loading screen
   if (loading) {
     return (
@@ -215,8 +225,18 @@ export default function App() {
 
       {/* Main Content */}
       <div className="container">
-        {activeTab === 'dashboard' && (
-          <Dashboard onShowToast={showToast} />
+        {activeTab === 'dashboard' && !selectedProject && (
+          <ExecutiveDashboard
+            onShowToast={showToast}
+            onNavigateToProject={handleNavigateToProject}
+          />
+        )}
+        {activeTab === 'dashboard' && selectedProject && (
+          <Dashboard
+            onShowToast={showToast}
+            initialProject={selectedProject}
+            onBack={handleBackToDashboard}
+          />
         )}
         {activeTab === 'field' && (
           <Field onShowToast={showToast} />

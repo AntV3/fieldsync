@@ -3,9 +3,9 @@ import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import TMList from './TMList'
 
-export default function Dashboard({ onShowToast }) {
+export default function Dashboard({ onShowToast, initialProject = null, onBack = null }) {
   const [projects, setProjects] = useState([])
-  const [selectedProject, setSelectedProject] = useState(null)
+  const [selectedProject, setSelectedProject] = useState(initialProject)
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
@@ -13,7 +13,20 @@ export default function Dashboard({ onShowToast }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    loadProjects()
+    if (initialProject) {
+      // If we have an initialProject, load its areas directly
+      setSelectedProject(initialProject)
+      loadAreas(initialProject.id)
+      setLoading(false)
+    } else {
+      loadProjects()
+    }
+  }, [initialProject])
+
+  useEffect(() => {
+    if (!initialProject) {
+      loadProjects()
+    }
   }, [])
 
   useEffect(() => {
@@ -55,11 +68,17 @@ export default function Dashboard({ onShowToast }) {
   }
 
   const handleBack = () => {
-    setSelectedProject(null)
-    setAreas([])
-    setEditMode(false)
-    setEditData(null)
-    loadProjects()
+    if (onBack) {
+      // If we have an onBack handler (from executive dashboard), use it
+      onBack()
+    } else {
+      // Otherwise, use the normal back behavior
+      setSelectedProject(null)
+      setAreas([])
+      setEditMode(false)
+      setEditData(null)
+      loadProjects()
+    }
   }
 
   const handleEditClick = () => {
