@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import TMList from './TMList'
+import BudgetDashboard from './BudgetDashboard'
 
 export default function Dashboard({ onShowToast }) {
   const [projects, setProjects] = useState([])
@@ -391,6 +392,9 @@ export default function Dashboard({ onShowToast }) {
             ))}
           </div>
         </div>
+
+        {/* Budget Tracking Section */}
+        <BudgetDashboard projectId={selectedProject.id} onShowToast={onShowToast} />
 
         {/* T&M Tickets Section */}
         <TMList project={selectedProject} onShowToast={onShowToast} />

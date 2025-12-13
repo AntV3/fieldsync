@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
+import BudgetInput from './BudgetInput'
 
 export default function Setup({ onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
@@ -9,6 +10,14 @@ export default function Setup({ onProjectCreated, onShowToast }) {
   const [generalContractor, setGeneralContractor] = useState('')
   const [contractValue, setContractValue] = useState('')
   const [pin, setPin] = useState('')
+  const [budget, setBudget] = useState({
+    labor_budget: 0,
+    materials_budget: 0,
+    equipment_budget: 0,
+    other_budget: 0,
+    total_budget: 0,
+    company_labor_rate: 0
+  })
   const [areas, setAreas] = useState([
     { name: '', weight: '', group: '' },
     { name: '', weight: '', group: '' },
@@ -57,6 +66,14 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     setGeneralContractor('')
     setContractValue('')
     setPin('')
+    setBudget({
+      labor_budget: 0,
+      materials_budget: 0,
+      equipment_budget: 0,
+      other_budget: 0,
+      total_budget: 0,
+      company_labor_rate: 0
+    })
     setAreas([
       { name: '', weight: '', group: '' },
       { name: '', weight: '', group: '' },
@@ -312,7 +329,13 @@ export default function Setup({ onProjectCreated, onShowToast }) {
         address: address.trim() || null,
         general_contractor: generalContractor.trim() || null,
         contract_value: contractVal,
-        pin: pin
+        pin: pin,
+        labor_budget: budget.labor_budget,
+        materials_budget: budget.materials_budget,
+        equipment_budget: budget.equipment_budget,
+        other_budget: budget.other_budget,
+        total_budget: budget.total_budget,
+        company_labor_rate: budget.company_labor_rate
       })
 
       for (let i = 0; i < validAreas.length; i++) {
@@ -583,8 +606,10 @@ export default function Setup({ onProjectCreated, onShowToast }) {
         </button>
       </div>
 
-      <button 
-        className="btn btn-primary btn-full" 
+      <BudgetInput budget={budget} onBudgetChange={setBudget} />
+
+      <button
+        className="btn btn-primary btn-full"
         onClick={handleSubmit}
         disabled={creating}
       >

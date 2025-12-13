@@ -996,6 +996,143 @@ export const db = {
   },
 
   // ============================================
+  // Budget Tracking
+  // ============================================
+
+  // Calculate actual costs from approved T&M tickets
+  async getProjectBudgetActuals(projectId) {
+    if (!isSupabaseConfigured) {
+      return {
+        labor_actual: 0,
+        materials_actual: 0,
+        equipment_actual: 0,
+        other_actual: 0,
+        total_actual: 0
+      }
+    }
+
+    // Get project to retrieve labor rate
+    const project = await this.getProject(projectId)
+    const laborRate = project?.company_labor_rate || 0
+
+    // Get all approved T&M tickets with workers and items
+    const { data: tickets, error } = await supabase
+      .from('t_and_m_tickets')
+      .select(`
+        *,
+        t_and_m_workers (*),
+        t_and_m_items (
+          *,
+          materials_equipment (name, unit, cost_per_unit, category)
+        )
+      `)
+      .eq('project_id', projectId)
+      .eq('status', 'approved')
+
+    if (error) throw error
+
+    let laborActual = 0
+    let materialsActual = 0
+    let equipmentActual = 0
+    let otherActual = 0
+
+    // Calculate labor costs
+    tickets?.forEach(ticket => {
+      ticket.t_and_m_workers?.forEach(worker => {
+        const regularHours = parseFloat(worker.hours || 0)
+        const overtimeHours = parseFloat(worker.overtime_hours || 0)
+        // Overtime typically 1.5x rate
+        laborActual += (regularHours * laborRate) + (overtimeHours * laborRate * 1.5)
+      })
+
+      // Calculate materials and equipment costs
+      ticket.t_and_m_items?.forEach(item => {
+        const quantity = parseFloat(item.quantity || 0)
+        const costPerUnit = parseFloat(item.materials_equipment?.cost_per_unit || 0)
+        const itemCost = quantity * costPerUnit
+        const category = item.materials_equipment?.category || item.custom_category || 'Other'
+
+        if (category === 'Equipment') {
+          equipmentActual += itemCost
+        } else if (['Containment', 'PPE', 'Disposal'].includes(category)) {
+          materialsActual += itemCost
+        } else {
+          otherActual += itemCost
+        }
+      })
+    })
+
+    const totalActual = laborActual + materialsActual + equipmentActual + otherActual
+
+    return {
+      labor_actual: Math.round(laborActual * 100) / 100,
+      materials_actual: Math.round(materialsActual * 100) / 100,
+      equipment_actual: Math.round(equipmentActual * 100) / 100,
+      other_actual: Math.round(otherActual * 100) / 100,
+      total_actual: Math.round(totalActual * 100) / 100
+    }
+  },
+
+  // Get budget summary with budget vs actual comparison
+  async getProjectBudgetSummary(projectId) {
+    const project = await this.getProject(projectId)
+    const actuals = await this.getProjectBudgetActuals(projectId)
+
+    if (!project) return null
+
+    const calculatePercentage = (actual, budget) => {
+      if (!budget || budget === 0) return 0
+      return Math.round((actual / budget) * 100)
+    }
+
+    const calculateVariance = (actual, budget) => {
+      return Math.round((actual - budget) * 100) / 100
+    }
+
+    return {
+      project_id: projectId,
+      project_name: project.name,
+
+      // Labor
+      labor_budget: parseFloat(project.labor_budget || 0),
+      labor_actual: actuals.labor_actual,
+      labor_percentage: calculatePercentage(actuals.labor_actual, project.labor_budget),
+      labor_variance: calculateVariance(actuals.labor_actual, project.labor_budget),
+
+      // Materials
+      materials_budget: parseFloat(project.materials_budget || 0),
+      materials_actual: actuals.materials_actual,
+      materials_percentage: calculatePercentage(actuals.materials_actual, project.materials_budget),
+      materials_variance: calculateVariance(actuals.materials_actual, project.materials_budget),
+
+      // Equipment
+      equipment_budget: parseFloat(project.equipment_budget || 0),
+      equipment_actual: actuals.equipment_actual,
+      equipment_percentage: calculatePercentage(actuals.equipment_actual, project.equipment_budget),
+      equipment_variance: calculateVariance(actuals.equipment_actual, project.equipment_budget),
+
+      // Other
+      other_budget: parseFloat(project.other_budget || 0),
+      other_actual: actuals.other_actual,
+      other_percentage: calculatePercentage(actuals.other_actual, project.other_budget),
+      other_variance: calculateVariance(actuals.other_actual, project.other_budget),
+
+      // Total
+      total_budget: parseFloat(project.total_budget || 0),
+      total_actual: actuals.total_actual,
+      total_percentage: calculatePercentage(actuals.total_actual, project.total_budget),
+      total_variance: calculateVariance(actuals.total_actual, project.total_budget)
+    }
+  },
+
+  // Get budget status (for alerts)
+  getBudgetStatus(percentage) {
+    if (percentage >= 100) return 'over'
+    if (percentage >= 90) return 'warning'
+    return 'good'
+  },
+
+  // ============================================
   // Companies
   // ============================================
 
