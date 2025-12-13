@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.53.3",
     "@supabase/supabase-js": "^2.86.0",
     "@vitejs/plugin-react": "^5.1.1",
     "react": "^19.2.0",
