@@ -1529,6 +1529,587 @@ export const db = {
       throw error
     }
     return data
+  },
+
+  // ============================================
+  // Project Shares (Read-only Portal)
+  // ============================================
+
+  // Generate a unique share token
+  generateShareToken() {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let token = ''
+    for (let i = 0; i < 12; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return token
+  },
+
+  // Create a new project share
+  async createProjectShare(projectId, createdBy, permissions, expiresAt = null) {
+    if (!isSupabaseConfigured) {
+      // Demo mode - store in localStorage
+      const localData = getLocalData()
+      if (!localData.projectShares) localData.projectShares = []
+
+      const share = {
+        id: crypto.randomUUID(),
+        project_id: projectId,
+        share_token: this.generateShareToken(),
+        created_by: createdBy,
+        expires_at: expiresAt,
+        is_active: true,
+        permissions: permissions,
+        view_count: 0,
+        last_viewed_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      localData.projectShares.push(share)
+      setLocalData(localData)
+      return share
+    }
+
+    // Use database function to generate unique token
+    const { data: tokenData, error: tokenError } = await supabase.rpc('generate_share_token')
+    if (tokenError) {
+      console.error('Error generating share token:', tokenError)
+      throw tokenError
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .insert({
+        project_id: projectId,
+        share_token: tokenData,
+        created_by: createdBy,
+        expires_at: expiresAt,
+        permissions: permissions
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating project share:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get share by token (public access)
+  async getShareByToken(token) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return null
+
+      const share = localData.projectShares.find(s =>
+        s.share_token === token &&
+        s.is_active &&
+        (!s.expires_at || new Date(s.expires_at) > new Date())
+      )
+
+      if (share) {
+        // Increment view count
+        share.view_count++
+        share.last_viewed_at = new Date().toISOString()
+        setLocalData(localData)
+      }
+
+      return share
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .select('*, projects(*)')
+      .eq('share_token', token)
+      .eq('is_active', true)
+      .single()
+
+    if (error) {
+      console.error('Error fetching share by token:', error)
+      return null
+    }
+
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      return null
+    }
+
+    // Increment view count
+    await supabase.rpc('increment_share_view_count', { token })
+
+    return data
+  },
+
+  // Get all shares for a project
+  async getProjectShares(projectId) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return []
+
+      return localData.projectShares.filter(s => s.project_id === projectId)
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .select('*, users(name, email)')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching project shares:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Update share (e.g., change permissions or expiration)
+  async updateProjectShare(shareId, updates) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return null
+
+      const shareIndex = localData.projectShares.findIndex(s => s.id === shareId)
+      if (shareIndex === -1) return null
+
+      localData.projectShares[shareIndex] = {
+        ...localData.projectShares[shareIndex],
+        ...updates,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.projectShares[shareIndex]
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .update(updates)
+      .eq('id', shareId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating project share:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Revoke a share (deactivate)
+  async revokeProjectShare(shareId) {
+    return this.updateProjectShare(shareId, { is_active: false })
+  },
+
+  // Delete a share permanently
+  async deleteProjectShare(shareId) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return
+
+      localData.projectShares = localData.projectShares.filter(s => s.id !== shareId)
+      setLocalData(localData)
+      return
+    }
+
+    const { error } = await supabase
+      .from('project_shares')
+      .delete()
+      .eq('id', shareId)
+
+    if (error) {
+      console.error('Error deleting project share:', error)
+      throw error
+    }
+  },
+
+  // Get public project data (filtered by permissions)
+  async getPublicProjectData(shareToken) {
+    const share = await this.getShareByToken(shareToken)
+    if (!share) return null
+
+    const projectId = share.project_id || share.projects?.id
+
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      const project = localData.projects.find(p => p.id === projectId)
+      if (!project) return null
+
+      const areas = localData.areas.filter(a => a.project_id === projectId)
+
+      // Calculate progress
+      const totalWeight = areas.reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      const completedWeight = areas
+        .filter(a => a.status === 'done')
+        .reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0
+
+      return {
+        share,
+        project,
+        progress,
+        areas: share.permissions.progress ? areas : [],
+        photos: [],
+        dailyReports: [],
+        tmTickets: []
+      }
+    }
+
+    // Get project details
+    const project = share.projects || await this.getProject(projectId)
+    if (!project) return null
+
+    // Build response based on permissions
+    const result = {
+      share,
+      project,
+      areas: [],
+      photos: [],
+      dailyReports: [],
+      tmTickets: []
+    }
+
+    // Get areas for progress calculation
+    if (share.permissions.progress) {
+      result.areas = await this.getAreas(projectId)
+
+      // Calculate progress
+      const totalWeight = result.areas.reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      const completedWeight = result.areas
+        .filter(a => a.status === 'done')
+        .reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      result.progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0
+    }
+
+    // Get photos if permitted
+    if (share.permissions.photos) {
+      const { data: tickets } = await supabase
+        .from('t_and_m_tickets')
+        .select('photos, work_date')
+        .eq('project_id', projectId)
+        .not('photos', 'is', null)
+        .order('work_date', { ascending: false })
+        .limit(20)
+
+      result.photos = tickets?.flatMap(t =>
+        (t.photos || []).map(photo => ({
+          url: photo,
+          date: t.work_date
+        }))
+      ) || []
+    }
+
+    // Get daily reports if permitted
+    if (share.permissions.daily_reports) {
+      const { data: reports } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('report_date', { ascending: false })
+        .limit(10)
+
+      result.dailyReports = reports || []
+    }
+
+    // Get T&M tickets if permitted
+    if (share.permissions.tm_tickets) {
+      result.tmTickets = await this.getTMTickets(projectId)
+    }
+
+    return result
+  },
+
+  // ============================================
+  // Injury Reports
+  // ============================================
+
+  // Create an injury report
+  async createInjuryReport(reportData) {
+    if (!isSupabaseConfigured) {
+      // Demo mode - store in localStorage
+      const localData = getLocalData()
+      if (!localData.injuryReports) localData.injuryReports = []
+
+      const report = {
+        id: crypto.randomUUID(),
+        ...reportData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      localData.injuryReports.push(report)
+      setLocalData(localData)
+      return report
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .insert(reportData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating injury report:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get all injury reports for a project
+  async getInjuryReports(projectId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return []
+      return localData.injuryReports
+        .filter(r => r.project_id === projectId)
+        .sort((a, b) => new Date(b.incident_date) - new Date(a.incident_date))
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('incident_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching injury reports:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get all injury reports for a company
+  async getCompanyInjuryReports(companyId, status = null) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return []
+      let reports = localData.injuryReports.filter(r => r.company_id === companyId)
+      if (status) {
+        reports = reports.filter(r => r.status === status)
+      }
+      return reports.sort((a, b) => new Date(b.incident_date) - new Date(a.incident_date))
+    }
+
+    let query = supabase
+      .from('injury_reports')
+      .select('*, projects(name)')
+      .eq('company_id', companyId)
+      .order('incident_date', { ascending: false })
+
+    if (status) {
+      query = query.eq('status', status)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching company injury reports:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get a single injury report
+  async getInjuryReport(reportId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+      return localData.injuryReports.find(r => r.id === reportId)
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .select('*, projects(name, pin), users(name, email)')
+      .eq('id', reportId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching injury report:', error)
+      return null
+    }
+    return data
+  },
+
+  // Update an injury report
+  async updateInjuryReport(reportId, updates) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+
+      const reportIndex = localData.injuryReports.findIndex(r => r.id === reportId)
+      if (reportIndex === -1) return null
+
+      localData.injuryReports[reportIndex] = {
+        ...localData.injuryReports[reportIndex],
+        ...updates,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.injuryReports[reportIndex]
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .update(updates)
+      .eq('id', reportId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating injury report:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Close an injury report
+  async closeInjuryReport(reportId, userId) {
+    return this.updateInjuryReport(reportId, {
+      status: 'closed',
+      closed_at: new Date().toISOString(),
+      closed_by: userId
+    })
+  },
+
+  // Delete an injury report
+  async deleteInjuryReport(reportId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return
+
+      localData.injuryReports = localData.injuryReports.filter(r => r.id !== reportId)
+      setLocalData(localData)
+      return
+    }
+
+    const { error } = await supabase
+      .from('injury_reports')
+      .delete()
+      .eq('id', reportId)
+
+    if (error) {
+      console.error('Error deleting injury report:', error)
+      throw error
+    }
+  },
+
+  // Get injury statistics for a company
+  async getInjuryStatistics(companyId, startDate = null, endDate = null) {
+    if (!isSupabaseConfigured) {
+      // Demo mode - calculate locally
+      const localData = getLocalData()
+      if (!localData.injuryReports) {
+        return {
+          total_incidents: 0,
+          minor_injuries: 0,
+          serious_injuries: 0,
+          critical_injuries: 0,
+          near_misses: 0,
+          osha_recordable: 0,
+          total_days_away: 0,
+          total_restricted_days: 0
+        }
+      }
+
+      let reports = localData.injuryReports.filter(r => r.company_id === companyId)
+
+      if (startDate) {
+        reports = reports.filter(r => new Date(r.incident_date) >= new Date(startDate))
+      }
+      if (endDate) {
+        reports = reports.filter(r => new Date(r.incident_date) <= new Date(endDate))
+      }
+
+      return {
+        total_incidents: reports.length,
+        minor_injuries: reports.filter(r => r.injury_type === 'minor').length,
+        serious_injuries: reports.filter(r => r.injury_type === 'serious').length,
+        critical_injuries: reports.filter(r => r.injury_type === 'critical').length,
+        near_misses: reports.filter(r => r.injury_type === 'near_miss').length,
+        osha_recordable: reports.filter(r => r.osha_recordable).length,
+        total_days_away: reports.reduce((sum, r) => sum + (r.days_away_from_work || 0), 0),
+        total_restricted_days: reports.reduce((sum, r) => sum + (r.restricted_work_days || 0), 0)
+      }
+    }
+
+    const { data, error } = await supabase.rpc('get_injury_statistics', {
+      comp_id: companyId,
+      start_date: startDate,
+      end_date: endDate
+    })
+
+    if (error) {
+      console.error('Error fetching injury statistics:', error)
+      return null
+    }
+    return data[0] || null
+  },
+
+  // Add a witness to an injury report
+  async addWitness(reportId, witness) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+
+      const reportIndex = localData.injuryReports.findIndex(r => r.id === reportId)
+      if (reportIndex === -1) return null
+
+      const report = localData.injuryReports[reportIndex]
+      const witnesses = report.witnesses || []
+      witnesses.push(witness)
+
+      localData.injuryReports[reportIndex] = {
+        ...report,
+        witnesses,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.injuryReports[reportIndex]
+    }
+
+    const report = await this.getInjuryReport(reportId)
+    if (!report) return null
+
+    const witnesses = report.witnesses || []
+    witnesses.push(witness)
+
+    return this.updateInjuryReport(reportId, { witnesses })
+  },
+
+  // Remove a witness from an injury report
+  async removeWitness(reportId, witnessIndex) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+
+      const reportIndex = localData.injuryReports.findIndex(r => r.id === reportId)
+      if (reportIndex === -1) return null
+
+      const report = localData.injuryReports[reportIndex]
+      const witnesses = report.witnesses || []
+      witnesses.splice(witnessIndex, 1)
+
+      localData.injuryReports[reportIndex] = {
+        ...report,
+        witnesses,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.injuryReports[reportIndex]
+    }
+
+    const report = await this.getInjuryReport(reportId)
+    if (!report) return null
+
+    const witnesses = report.witnesses || []
+    witnesses.splice(witnessIndex, 1)
+
+    return this.updateInjuryReport(reportId, { witnesses })
   }
 }
 
