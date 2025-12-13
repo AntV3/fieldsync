@@ -1529,6 +1529,299 @@ export const db = {
       throw error
     }
     return data
+  },
+
+  // ============================================
+  // Project Shares (Read-only Portal)
+  // ============================================
+
+  // Generate a unique share token
+  generateShareToken() {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let token = ''
+    for (let i = 0; i < 12; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return token
+  },
+
+  // Create a new project share
+  async createProjectShare(projectId, createdBy, permissions, expiresAt = null) {
+    if (!isSupabaseConfigured) {
+      // Demo mode - store in localStorage
+      const localData = getLocalData()
+      if (!localData.projectShares) localData.projectShares = []
+
+      const share = {
+        id: crypto.randomUUID(),
+        project_id: projectId,
+        share_token: this.generateShareToken(),
+        created_by: createdBy,
+        expires_at: expiresAt,
+        is_active: true,
+        permissions: permissions,
+        view_count: 0,
+        last_viewed_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      localData.projectShares.push(share)
+      setLocalData(localData)
+      return share
+    }
+
+    // Use database function to generate unique token
+    const { data: tokenData, error: tokenError } = await supabase.rpc('generate_share_token')
+    if (tokenError) {
+      console.error('Error generating share token:', tokenError)
+      throw tokenError
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .insert({
+        project_id: projectId,
+        share_token: tokenData,
+        created_by: createdBy,
+        expires_at: expiresAt,
+        permissions: permissions
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating project share:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get share by token (public access)
+  async getShareByToken(token) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return null
+
+      const share = localData.projectShares.find(s =>
+        s.share_token === token &&
+        s.is_active &&
+        (!s.expires_at || new Date(s.expires_at) > new Date())
+      )
+
+      if (share) {
+        // Increment view count
+        share.view_count++
+        share.last_viewed_at = new Date().toISOString()
+        setLocalData(localData)
+      }
+
+      return share
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .select('*, projects(*)')
+      .eq('share_token', token)
+      .eq('is_active', true)
+      .single()
+
+    if (error) {
+      console.error('Error fetching share by token:', error)
+      return null
+    }
+
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      return null
+    }
+
+    // Increment view count
+    await supabase.rpc('increment_share_view_count', { token })
+
+    return data
+  },
+
+  // Get all shares for a project
+  async getProjectShares(projectId) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return []
+
+      return localData.projectShares.filter(s => s.project_id === projectId)
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .select('*, users(name, email)')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching project shares:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Update share (e.g., change permissions or expiration)
+  async updateProjectShare(shareId, updates) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return null
+
+      const shareIndex = localData.projectShares.findIndex(s => s.id === shareId)
+      if (shareIndex === -1) return null
+
+      localData.projectShares[shareIndex] = {
+        ...localData.projectShares[shareIndex],
+        ...updates,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.projectShares[shareIndex]
+    }
+
+    const { data, error } = await supabase
+      .from('project_shares')
+      .update(updates)
+      .eq('id', shareId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating project share:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Revoke a share (deactivate)
+  async revokeProjectShare(shareId) {
+    return this.updateProjectShare(shareId, { is_active: false })
+  },
+
+  // Delete a share permanently
+  async deleteProjectShare(shareId) {
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      if (!localData.projectShares) return
+
+      localData.projectShares = localData.projectShares.filter(s => s.id !== shareId)
+      setLocalData(localData)
+      return
+    }
+
+    const { error } = await supabase
+      .from('project_shares')
+      .delete()
+      .eq('id', shareId)
+
+    if (error) {
+      console.error('Error deleting project share:', error)
+      throw error
+    }
+  },
+
+  // Get public project data (filtered by permissions)
+  async getPublicProjectData(shareToken) {
+    const share = await this.getShareByToken(shareToken)
+    if (!share) return null
+
+    const projectId = share.project_id || share.projects?.id
+
+    if (!isSupabaseConfigured) {
+      // Demo mode
+      const localData = getLocalData()
+      const project = localData.projects.find(p => p.id === projectId)
+      if (!project) return null
+
+      const areas = localData.areas.filter(a => a.project_id === projectId)
+
+      // Calculate progress
+      const totalWeight = areas.reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      const completedWeight = areas
+        .filter(a => a.status === 'done')
+        .reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0
+
+      return {
+        share,
+        project,
+        progress,
+        areas: share.permissions.progress ? areas : [],
+        photos: [],
+        dailyReports: [],
+        tmTickets: []
+      }
+    }
+
+    // Get project details
+    const project = share.projects || await this.getProject(projectId)
+    if (!project) return null
+
+    // Build response based on permissions
+    const result = {
+      share,
+      project,
+      areas: [],
+      photos: [],
+      dailyReports: [],
+      tmTickets: []
+    }
+
+    // Get areas for progress calculation
+    if (share.permissions.progress) {
+      result.areas = await this.getAreas(projectId)
+
+      // Calculate progress
+      const totalWeight = result.areas.reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      const completedWeight = result.areas
+        .filter(a => a.status === 'done')
+        .reduce((sum, area) => sum + parseFloat(area.weight || 0), 0)
+      result.progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0
+    }
+
+    // Get photos if permitted
+    if (share.permissions.photos) {
+      const { data: tickets } = await supabase
+        .from('t_and_m_tickets')
+        .select('photos, work_date')
+        .eq('project_id', projectId)
+        .not('photos', 'is', null)
+        .order('work_date', { ascending: false })
+        .limit(20)
+
+      result.photos = tickets?.flatMap(t =>
+        (t.photos || []).map(photo => ({
+          url: photo,
+          date: t.work_date
+        }))
+      ) || []
+    }
+
+    // Get daily reports if permitted
+    if (share.permissions.daily_reports) {
+      const { data: reports } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('report_date', { ascending: false })
+        .limit(10)
+
+      result.dailyReports = reports || []
+    }
+
+    // Get T&M tickets if permitted
+    if (share.permissions.tm_tickets) {
+      result.tmTickets = await this.getTMTickets(projectId)
+    }
+
+    return result
   }
 }
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import TMList from './TMList'
+import ShareModal from './ShareModal'
 
 export default function Dashboard({ onShowToast }) {
   const [projects, setProjects] = useState([])
@@ -11,6 +12,7 @@ export default function Dashboard({ onShowToast }) {
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   useEffect(() => {
     loadProjects()
@@ -348,9 +350,14 @@ export default function Dashboard({ onShowToast }) {
           <button className="btn btn-secondary btn-small" onClick={handleBack}>
             ← Back to Projects
           </button>
-          <button className="btn btn-secondary btn-small" onClick={handleEditClick}>
-            Edit
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
+              Share with Client
+            </button>
+            <button className="btn btn-secondary btn-small" onClick={handleEditClick}>
+              Edit
+            </button>
+          </div>
         </div>
 
         <h1>{selectedProject.name}</h1>
@@ -394,6 +401,17 @@ export default function Dashboard({ onShowToast }) {
 
         {/* T&M Tickets Section */}
         <TMList project={selectedProject} onShowToast={onShowToast} />
+
+        {/* Share Modal */}
+        {showShareModal && (
+          <ShareModal
+            project={selectedProject}
+            onClose={() => setShowShareModal(false)}
+            onShareCreated={(share) => {
+              onShowToast('Share link created successfully!', 'success')
+            }}
+          />
+        )}
       </div>
     )
   }

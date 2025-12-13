@@ -7,20 +7,32 @@ import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
+import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
 
 export default function App() {
-  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office'
+  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
   const [foremanProject, setForemanProject] = useState(null)
+  const [shareToken, setShareToken] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
-    checkAuth()
+    // Check if this is a public share link
+    const path = window.location.pathname
+    const shareMatch = path.match(/^\/view\/([a-zA-Z0-9]+)$/)
+
+    if (shareMatch) {
+      setShareToken(shareMatch[1])
+      setView('public')
+      setLoading(false)
+    } else {
+      checkAuth()
+    }
   }, [])
 
   const checkAuth = async () => {
@@ -143,6 +155,22 @@ export default function App() {
           onOfficeLogin={handleOfficeLogin}
           onShowToast={showToast}
         />
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </BrandingProvider>
+    )
+  }
+
+  // Public View (Share Link - No Authentication Required)
+  if (view === 'public' && shareToken) {
+    return (
+      <BrandingProvider>
+        <PublicView shareToken={shareToken} />
         {toast && (
           <Toast
             message={toast.message}
