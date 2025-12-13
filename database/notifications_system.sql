@@ -189,7 +189,7 @@ BEGIN
   IF array_length(v_setting.notify_roles, 1) > 0 THEN
     FOR v_profile IN
       SELECT DISTINCT id
-      FROM profiles
+      FROM users
       WHERE company_id = p_company_id
         AND role = ANY(v_setting.notify_roles)
         AND id != ALL(COALESCE(v_setting.notify_user_ids, '{}'))  -- Avoid duplicates
@@ -222,14 +222,14 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY notification_settings_select_policy ON notification_settings
   FOR SELECT USING (
     company_id IN (
-      SELECT company_id FROM profiles WHERE id = auth.uid()
+      SELECT company_id FROM users WHERE id = auth.uid()
     )
   );
 
 CREATE POLICY notification_settings_insert_policy ON notification_settings
   FOR INSERT WITH CHECK (
     company_id IN (
-      SELECT company_id FROM profiles
+      SELECT company_id FROM users
       WHERE id = auth.uid()
         AND role IN ('owner', 'admin')
     )
@@ -238,7 +238,7 @@ CREATE POLICY notification_settings_insert_policy ON notification_settings
 CREATE POLICY notification_settings_update_policy ON notification_settings
   FOR UPDATE USING (
     company_id IN (
-      SELECT company_id FROM profiles
+      SELECT company_id FROM users
       WHERE id = auth.uid()
         AND role IN ('owner', 'admin')
     )
@@ -247,7 +247,7 @@ CREATE POLICY notification_settings_update_policy ON notification_settings
 CREATE POLICY notification_settings_delete_policy ON notification_settings
   FOR DELETE USING (
     company_id IN (
-      SELECT company_id FROM profiles
+      SELECT company_id FROM users
       WHERE id = auth.uid()
         AND role IN ('owner', 'admin')
     )
