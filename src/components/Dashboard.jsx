@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import { useAuth } from '../lib/AuthContext'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
+import InjuryReportsList from './InjuryReportsList'
 
 export default function Dashboard({ onShowToast }) {
+  const { company } = useAuth()
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
@@ -401,6 +404,13 @@ export default function Dashboard({ onShowToast }) {
 
         {/* T&M Tickets Section */}
         <TMList project={selectedProject} onShowToast={onShowToast} />
+
+        {/* Injury Reports Section */}
+        <InjuryReportsList
+          project={selectedProject}
+          companyId={company?.id || selectedProject?.company_id}
+          onShowToast={onShowToast}
+        />
 
         {/* Share Modal */}
         {showShareModal && (

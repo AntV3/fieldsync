@@ -1822,6 +1822,294 @@ export const db = {
     }
 
     return result
+  },
+
+  // ============================================
+  // Injury Reports
+  // ============================================
+
+  // Create an injury report
+  async createInjuryReport(reportData) {
+    if (!isSupabaseConfigured) {
+      // Demo mode - store in localStorage
+      const localData = getLocalData()
+      if (!localData.injuryReports) localData.injuryReports = []
+
+      const report = {
+        id: crypto.randomUUID(),
+        ...reportData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      localData.injuryReports.push(report)
+      setLocalData(localData)
+      return report
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .insert(reportData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating injury report:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Get all injury reports for a project
+  async getInjuryReports(projectId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return []
+      return localData.injuryReports
+        .filter(r => r.project_id === projectId)
+        .sort((a, b) => new Date(b.incident_date) - new Date(a.incident_date))
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('incident_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching injury reports:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get all injury reports for a company
+  async getCompanyInjuryReports(companyId, status = null) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return []
+      let reports = localData.injuryReports.filter(r => r.company_id === companyId)
+      if (status) {
+        reports = reports.filter(r => r.status === status)
+      }
+      return reports.sort((a, b) => new Date(b.incident_date) - new Date(a.incident_date))
+    }
+
+    let query = supabase
+      .from('injury_reports')
+      .select('*, projects(name)')
+      .eq('company_id', companyId)
+      .order('incident_date', { ascending: false })
+
+    if (status) {
+      query = query.eq('status', status)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching company injury reports:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get a single injury report
+  async getInjuryReport(reportId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+      return localData.injuryReports.find(r => r.id === reportId)
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .select('*, projects(name, pin), users(name, email)')
+      .eq('id', reportId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching injury report:', error)
+      return null
+    }
+    return data
+  },
+
+  // Update an injury report
+  async updateInjuryReport(reportId, updates) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+
+      const reportIndex = localData.injuryReports.findIndex(r => r.id === reportId)
+      if (reportIndex === -1) return null
+
+      localData.injuryReports[reportIndex] = {
+        ...localData.injuryReports[reportIndex],
+        ...updates,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.injuryReports[reportIndex]
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .update(updates)
+      .eq('id', reportId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating injury report:', error)
+      throw error
+    }
+    return data
+  },
+
+  // Close an injury report
+  async closeInjuryReport(reportId, userId) {
+    return this.updateInjuryReport(reportId, {
+      status: 'closed',
+      closed_at: new Date().toISOString(),
+      closed_by: userId
+    })
+  },
+
+  // Delete an injury report
+  async deleteInjuryReport(reportId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return
+
+      localData.injuryReports = localData.injuryReports.filter(r => r.id !== reportId)
+      setLocalData(localData)
+      return
+    }
+
+    const { error } = await supabase
+      .from('injury_reports')
+      .delete()
+      .eq('id', reportId)
+
+    if (error) {
+      console.error('Error deleting injury report:', error)
+      throw error
+    }
+  },
+
+  // Get injury statistics for a company
+  async getInjuryStatistics(companyId, startDate = null, endDate = null) {
+    if (!isSupabaseConfigured) {
+      // Demo mode - calculate locally
+      const localData = getLocalData()
+      if (!localData.injuryReports) {
+        return {
+          total_incidents: 0,
+          minor_injuries: 0,
+          serious_injuries: 0,
+          critical_injuries: 0,
+          near_misses: 0,
+          osha_recordable: 0,
+          total_days_away: 0,
+          total_restricted_days: 0
+        }
+      }
+
+      let reports = localData.injuryReports.filter(r => r.company_id === companyId)
+
+      if (startDate) {
+        reports = reports.filter(r => new Date(r.incident_date) >= new Date(startDate))
+      }
+      if (endDate) {
+        reports = reports.filter(r => new Date(r.incident_date) <= new Date(endDate))
+      }
+
+      return {
+        total_incidents: reports.length,
+        minor_injuries: reports.filter(r => r.injury_type === 'minor').length,
+        serious_injuries: reports.filter(r => r.injury_type === 'serious').length,
+        critical_injuries: reports.filter(r => r.injury_type === 'critical').length,
+        near_misses: reports.filter(r => r.injury_type === 'near_miss').length,
+        osha_recordable: reports.filter(r => r.osha_recordable).length,
+        total_days_away: reports.reduce((sum, r) => sum + (r.days_away_from_work || 0), 0),
+        total_restricted_days: reports.reduce((sum, r) => sum + (r.restricted_work_days || 0), 0)
+      }
+    }
+
+    const { data, error } = await supabase.rpc('get_injury_statistics', {
+      comp_id: companyId,
+      start_date: startDate,
+      end_date: endDate
+    })
+
+    if (error) {
+      console.error('Error fetching injury statistics:', error)
+      return null
+    }
+    return data[0] || null
+  },
+
+  // Add a witness to an injury report
+  async addWitness(reportId, witness) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+
+      const reportIndex = localData.injuryReports.findIndex(r => r.id === reportId)
+      if (reportIndex === -1) return null
+
+      const report = localData.injuryReports[reportIndex]
+      const witnesses = report.witnesses || []
+      witnesses.push(witness)
+
+      localData.injuryReports[reportIndex] = {
+        ...report,
+        witnesses,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.injuryReports[reportIndex]
+    }
+
+    const report = await this.getInjuryReport(reportId)
+    if (!report) return null
+
+    const witnesses = report.witnesses || []
+    witnesses.push(witness)
+
+    return this.updateInjuryReport(reportId, { witnesses })
+  },
+
+  // Remove a witness from an injury report
+  async removeWitness(reportId, witnessIndex) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.injuryReports) return null
+
+      const reportIndex = localData.injuryReports.findIndex(r => r.id === reportId)
+      if (reportIndex === -1) return null
+
+      const report = localData.injuryReports[reportIndex]
+      const witnesses = report.witnesses || []
+      witnesses.splice(witnessIndex, 1)
+
+      localData.injuryReports[reportIndex] = {
+        ...report,
+        witnesses,
+        updated_at: new Date().toISOString()
+      }
+      setLocalData(localData)
+      return localData.injuryReports[reportIndex]
+    }
+
+    const report = await this.getInjuryReport(reportId)
+    if (!report) return null
+
+    const witnesses = report.witnesses || []
+    witnesses.splice(witnessIndex, 1)
+
+    return this.updateInjuryReport(reportId, { witnesses })
   }
 }
 
