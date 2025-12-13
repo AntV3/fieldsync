@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
-import * as XLSX from 'xlsx'
+import MaterialsUpload from './MaterialsUpload'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment', 'Materials', 'Other']
 
@@ -324,6 +324,19 @@ export default function MaterialsSettings({ companyId, onShowToast, onClose }) {
             Close
           </button>
         </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUpload && (
+        <MaterialsUpload
+          companyId={companyId}
+          onClose={() => setShowUpload(false)}
+          onComplete={() => {
+            setShowUpload(false)
+            loadMaterials()
+          }}
+          onShowToast={onShowToast}
+        />
       )}
     </div>
   )
