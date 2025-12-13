@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { isSupabaseConfigured, auth, supabase } from './lib/supabase'
+import { BrandingProvider } from './lib/BrandingContext'
 import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
+import BrandingSettings from './components/BrandingSettings'
 import Toast from './components/Toast'
+import Logo from './components/Logo'
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office'
@@ -122,17 +125,19 @@ export default function App() {
   // Loading screen
   if (loading) {
     return (
-      <div className="loading-screen">
-        <div className="loading-logo">Field<span>Sync</span></div>
-        <div className="spinner"></div>
-      </div>
+      <BrandingProvider companyId={company?.id}>
+        <div className="loading-screen">
+          <Logo className="loading-logo" />
+          <div className="spinner"></div>
+        </div>
+      </BrandingProvider>
     )
   }
 
   // Entry screen (Foreman / Office selection)
   if (view === 'entry') {
     return (
-      <>
+      <BrandingProvider>
         <AppEntry
           onForemanAccess={handleForemanAccess}
           onOfficeLogin={handleOfficeLogin}
@@ -145,14 +150,14 @@ export default function App() {
             onClose={() => setToast(null)}
           />
         )}
-      </>
+      </BrandingProvider>
     )
   }
 
   // Foreman View
   if (view === 'foreman' && foremanProject) {
     return (
-      <>
+      <BrandingProvider companyId={foremanProject.company_id}>
         <ForemanView
           project={foremanProject}
           companyId={foremanProject.company_id}
@@ -166,78 +171,92 @@ export default function App() {
             onClose={() => setToast(null)}
           />
         )}
-      </>
+      </BrandingProvider>
     )
   }
 
   // Office View (full dashboard)
   return (
-    <div>
-      {/* Demo Banner */}
-      {!isSupabaseConfigured && (
-        <div className="demo-banner">
-          Demo Mode - Data saved locally in your browser
-        </div>
-      )}
-
-      {/* Navigation */}
-      <nav className="nav">
-        <div className="nav-content">
-          <div className="logo">Field<span>Sync</span></div>
-          <div className="nav-tabs">
-            <button
-              className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
-            >
-              Dashboard
-            </button>
-            <button
-              className={`nav-tab ${activeTab === 'field' ? 'active' : ''}`}
-              onClick={() => setActiveTab('field')}
-            >
-              Field
-            </button>
-            <button
-              className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
-              onClick={() => setActiveTab('setup')}
-            >
-              + New Project
-            </button>
+    <BrandingProvider companyId={company?.id}>
+      <div>
+        {/* Demo Banner */}
+        {!isSupabaseConfigured && (
+          <div className="demo-banner">
+            Demo Mode - Data saved locally in your browser
           </div>
-          <div className="nav-user">
-            <span className="nav-user-name">{user?.full_name || user?.email}</span>
-            <button className="nav-logout" onClick={handleLogout}>
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </nav>
+        )}
 
-      {/* Main Content */}
-      <div className="container">
-        {activeTab === 'dashboard' && (
-          <Dashboard onShowToast={showToast} />
-        )}
-        {activeTab === 'field' && (
-          <Field onShowToast={showToast} />
-        )}
-        {activeTab === 'setup' && (
-          <Setup
-            onProjectCreated={handleProjectCreated}
-            onShowToast={showToast}
+        {/* Navigation */}
+        <nav className="nav">
+          <div className="nav-content">
+            <Logo />
+            <div className="nav-tabs">
+              <button
+                className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+              >
+                Dashboard
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'field' ? 'active' : ''}`}
+                onClick={() => setActiveTab('field')}
+              >
+                Field
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
+                onClick={() => setActiveTab('setup')}
+              >
+                + New Project
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
+                onClick={() => setActiveTab('branding')}
+              >
+                Branding
+              </button>
+            </div>
+            <div className="nav-user">
+              <span className="nav-user-name">{user?.full_name || user?.email}</span>
+              <button className="nav-logout" onClick={handleLogout}>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Content */}
+        <div className="container">
+          {activeTab === 'dashboard' && (
+            <Dashboard onShowToast={showToast} />
+          )}
+          {activeTab === 'field' && (
+            <Field onShowToast={showToast} />
+          )}
+          {activeTab === 'setup' && (
+            <Setup
+              onProjectCreated={handleProjectCreated}
+              onShowToast={showToast}
+            />
+          )}
+          {activeTab === 'branding' && (
+            <BrandingSettings
+              company={company}
+              onShowToast={showToast}
+            />
+          )}
+        </div>
+
+        {/* Toast Notifications */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
           />
         )}
       </div>
-
-      {/* Toast Notifications */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-    </div>
+    </BrandingProvider>
   )
 }
 

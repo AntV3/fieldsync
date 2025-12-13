@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { db, supabase } from '../lib/supabase'
+import Logo from './Logo'
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join'
@@ -188,8 +189,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     return (
       <div className="entry-container">
         <div className="entry-card">
-          <div className="entry-logo">Field<span>Sync</span></div>
-          
+          <Logo className="entry-logo" showPoweredBy={false} />
+
           <div className="entry-buttons">
             <button 
               className="entry-mode-btn foreman"
@@ -224,8 +225,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
             <button className="entry-back" onClick={() => setMode(null)}>
               ←
             </button>
-            
-            <div className="entry-logo">Field<span>Sync</span></div>
+
+            <Logo className="entry-logo" showPoweredBy={false} />
             <p className="entry-subtitle">Enter company code</p>
 
             <div className="entry-input-group">
@@ -260,8 +261,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           <button className="entry-back" onClick={handleBackToCompany}>
             ←
           </button>
-          
-          <div className="entry-logo">Field<span>Sync</span></div>
+
+          <Logo className="entry-logo" showPoweredBy={false} />
           <div className="entry-company-badge">{company.name}</div>
           <p className="entry-subtitle">Enter project PIN</p>
 
@@ -321,8 +322,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           <button className="entry-back" onClick={() => setMode(null)}>
             ←
           </button>
-          
-          <div className="entry-logo">Field<span>Sync</span></div>
+
+          <Logo className="entry-logo" showPoweredBy={false} />
           <p className="entry-subtitle">Sign in to your account</p>
 
           <div className="entry-form">
@@ -374,8 +375,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
             <button className="entry-back" onClick={() => setMode('office')}>
               ←
             </button>
-            
-            <div className="entry-logo">Field<span>Sync</span></div>
+
+            <Logo className="entry-logo" showPoweredBy={false} />
             <p className="entry-subtitle">Enter your company code</p>
             <p className="entry-hint">Ask your manager or admin for the code</p>
 
@@ -411,8 +412,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           <button className="entry-back" onClick={() => { setJoinStep(1); setJoinCompany(null); }}>
             ←
           </button>
-          
-          <div className="entry-logo">Field<span>Sync</span></div>
+
+          <Logo className="entry-logo" showPoweredBy={false} />
           <div className="entry-company-badge">{joinCompany?.name}</div>
           <p className="entry-subtitle">Create your account</p>
 
