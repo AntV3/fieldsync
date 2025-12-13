@@ -83,6 +83,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS notification_settings_updated_at ON notification_settings;
 CREATE TRIGGER notification_settings_updated_at
   BEFORE UPDATE ON notification_settings
   FOR EACH ROW
@@ -219,6 +220,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Notification Settings Policies
 -- Only company owners/admins can manage settings
+DROP POLICY IF EXISTS notification_settings_select_policy ON notification_settings;
 CREATE POLICY notification_settings_select_policy ON notification_settings
   FOR SELECT USING (
     company_id IN (
@@ -226,6 +228,7 @@ CREATE POLICY notification_settings_select_policy ON notification_settings
     )
   );
 
+DROP POLICY IF EXISTS notification_settings_insert_policy ON notification_settings;
 CREATE POLICY notification_settings_insert_policy ON notification_settings
   FOR INSERT WITH CHECK (
     company_id IN (
@@ -235,6 +238,7 @@ CREATE POLICY notification_settings_insert_policy ON notification_settings
     )
   );
 
+DROP POLICY IF EXISTS notification_settings_update_policy ON notification_settings;
 CREATE POLICY notification_settings_update_policy ON notification_settings
   FOR UPDATE USING (
     company_id IN (
@@ -244,6 +248,7 @@ CREATE POLICY notification_settings_update_policy ON notification_settings
     )
   );
 
+DROP POLICY IF EXISTS notification_settings_delete_policy ON notification_settings;
 CREATE POLICY notification_settings_delete_policy ON notification_settings
   FOR DELETE USING (
     company_id IN (
@@ -255,18 +260,22 @@ CREATE POLICY notification_settings_delete_policy ON notification_settings
 
 -- Notifications Policies
 -- Users can only see their own notifications
+DROP POLICY IF EXISTS notifications_select_policy ON notifications;
 CREATE POLICY notifications_select_policy ON notifications
   FOR SELECT USING (user_id = auth.uid());
 
 -- System can create notifications (handled by functions)
+DROP POLICY IF EXISTS notifications_insert_policy ON notifications;
 CREATE POLICY notifications_insert_policy ON notifications
   FOR INSERT WITH CHECK (TRUE);
 
 -- Users can update their own notifications (mark as read)
+DROP POLICY IF EXISTS notifications_update_policy ON notifications;
 CREATE POLICY notifications_update_policy ON notifications
   FOR UPDATE USING (user_id = auth.uid());
 
 -- Users can delete their own notifications
+DROP POLICY IF EXISTS notifications_delete_policy ON notifications;
 CREATE POLICY notifications_delete_policy ON notifications
   FOR DELETE USING (user_id = auth.uid());
 
