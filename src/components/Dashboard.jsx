@@ -5,6 +5,7 @@ import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLa
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
+import ProjectDetail from './ProjectDetail'
 
 export default function Dashboard({ onShowToast }) {
   const { company } = useAuth()
@@ -346,83 +347,14 @@ export default function Dashboard({ onShowToast }) {
       )
     }
 
-    // View Mode
+    // View Mode - Use new ProjectDetail component
     return (
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <button className="btn btn-secondary btn-small" onClick={handleBack}>
-            ← Back to Projects
-          </button>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
-              Share with Client
-            </button>
-            <button className="btn btn-secondary btn-small" onClick={handleEditClick}>
-              Edit
-            </button>
-          </div>
-        </div>
-
-        <h1>{selectedProject.name}</h1>
-        <p className="subtitle">
-          Contract: {formatCurrency(selectedProject.contract_value)}
-          {selectedProject.pin && <span style={{ marginLeft: '1rem', color: 'var(--text-muted)' }}>PIN: {selectedProject.pin}</span>}
-        </p>
-
-        <div className="card billing-card">
-          <h3>Billable to Date</h3>
-          <div className="billing-amount">{formatCurrency(billable)}</div>
-          <div className="billing-total">of {formatCurrency(selectedProject.contract_value)} contract value</div>
-
-          <div className="progress-container">
-            <div className="progress-header">
-              <span className="progress-label">Overall Progress</span>
-              <span className="progress-value">{progress}%</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <h3>Areas</h3>
-          <div className="area-status-list">
-            {areas.map(area => (
-              <div key={area.id} className="area-status-item">
-                <div>
-                  <div className="area-name">{area.name}</div>
-                  <div className="area-weight">{area.weight}% of contract</div>
-                </div>
-                <span className={`status-badge ${area.status}`}>
-                  {formatStatus(area.status)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* T&M Tickets Section */}
-        <TMList project={selectedProject} onShowToast={onShowToast} />
-
-        {/* Injury Reports Section */}
-        <InjuryReportsList
-          project={selectedProject}
-          companyId={company?.id || selectedProject?.company_id}
-          onShowToast={onShowToast}
-        />
-
-        {/* Share Modal */}
-        {showShareModal && (
-          <ShareModal
-            project={selectedProject}
-            onClose={() => setShowShareModal(false)}
-            onShareCreated={(share) => {
-              onShowToast('Share link created successfully!', 'success')
-            }}
-          />
-        )}
-      </div>
+      <ProjectDetail
+        project={selectedProject}
+        onBack={handleBack}
+        onUpdate={loadProjects}
+        currentUser={{ id: company?.id, name: company?.name, email: company?.email }}
+      />
     )
   }
 
