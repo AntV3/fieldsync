@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import * as XLSX from 'xlsx'
 import InjuryReportForm from './InjuryReportForm'
 import Toast from './Toast'
 
-export default function InjuryReportsList({ project, companyId, onShowToast }) {
+export default function InjuryReportsList({ project, companyId, user, onShowToast }) {
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -91,6 +92,55 @@ export default function InjuryReportsList({ project, companyId, onShowToast }) {
     return colors[type] || '#9ca3af'
   }
 
+  const exportToExcel = () => {
+    if (reports.length === 0) {
+      setToast({ type: 'error', message: 'No injury reports to export' })
+      return
+    }
+
+    const exportData = reports.map(report => ({
+      'Report ID': report.id.slice(0, 8),
+      'Date': formatDate(report.incident_date),
+      'Time': formatTime(report.incident_time),
+      'Location': report.incident_location,
+      'Injury Type': getInjuryTypeLabel(report.injury_type),
+      'Body Part': report.body_part_affected || 'N/A',
+      'Employee Name': report.employee_name,
+      'Employee Phone': report.employee_phone || 'N/A',
+      'Job Title': report.employee_job_title || 'N/A',
+      'Supervisor': report.supervisor_name || 'N/A',
+      'Description': report.injury_description || 'N/A',
+      'Treatment': report.treatment_given || 'N/A',
+      'Medical Facility': report.medical_facility || 'N/A',
+      'OSHA Recordable': report.is_osha_recordable ? 'Yes' : 'No',
+      'Workers Comp': report.workers_comp_claim ? 'Yes' : 'No',
+      'Days Away': report.days_away_from_work || 0,
+      'Restricted Days': report.days_restricted_work || 0,
+      'Status': report.status,
+      'Created': formatDate(report.created_at)
+    }))
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(exportData)
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 15 },
+      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
+      { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 12 },
+      { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 12 }
+    ]
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Injury Reports')
+
+    const fileName = project
+      ? `${project.name}_Injury_Reports_${new Date().toISOString().split('T')[0]}.xlsx`
+      : `Company_Injury_Reports_${new Date().toISOString().split('T')[0]}.xlsx`
+
+    XLSX.writeFile(wb, fileName)
+    setToast({ type: 'success', message: 'Report exported successfully!' })
+  }
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -105,9 +155,16 @@ export default function InjuryReportsList({ project, companyId, onShowToast }) {
       <div className="injury-reports-section">
         <div className="section-header">
           <h3>Injury & Incident Reports</h3>
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + File Injury Report
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {reports.length > 0 && (
+              <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
+                📥 Export Excel
+              </button>
+            )}
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              + File Injury Report
+            </button>
+          </div>
         </div>
 
         {reports.length === 0 ? (
@@ -398,6 +455,7 @@ export default function InjuryReportsList({ project, companyId, onShowToast }) {
           <InjuryReportForm
             project={project}
             companyId={companyId}
+            user={user}
             onClose={() => setShowForm(false)}
             onReportCreated={handleReportCreated}
           />

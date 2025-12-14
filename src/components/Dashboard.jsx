@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
+import * as XLSX from 'xlsx'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
 
-export default function Dashboard({ onShowToast }) {
-  const { company } = useAuth()
+export default function Dashboard({ user, onShowToast }) {
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
@@ -229,6 +228,68 @@ export default function Dashboard({ onShowToast }) {
     }
   }
 
+  const exportProjectsToExcel = () => {
+    if (projects.length === 0) {
+      onShowToast('No projects to export', 'error')
+      return
+    }
+
+    const exportData = projects.map(project => {
+      const projectAreas = areas.filter(a => a.project_id === project.id)
+      const progress = calculateProgress(projectAreas)
+      const billable = (progress / 100) * (project.contract_value || 0)
+
+      return {
+        'Project Name': project.name,
+        'Contract Value': project.contract_value || 0,
+        'Progress %': `${progress.toFixed(1)}%`,
+        'Billable Amount': billable,
+        'Status': project.status || 'active',
+        'PIN': project.pin || 'N/A',
+        'Areas Count': projectAreas.length,
+        'Created': new Date(project.created_at).toLocaleDateString()
+      }
+    })
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(exportData)
+    ws['!cols'] = [
+      { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 15 },
+      { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, 'Projects')
+
+    const fileName = `All_Projects_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(wb, fileName)
+    onShowToast('Projects exported successfully!', 'success')
+  }
+
+  const exportAreasToExcel = () => {
+    if (areas.length === 0) {
+      onShowToast('No areas to export', 'error')
+      return
+    }
+
+    const exportData = areas.map(area => ({
+      'Area Name': area.name,
+      'Weight %': area.weight,
+      'Status': formatStatus(area.status),
+      'Group': area.group_name || 'N/A',
+      'Completed': area.completed_at ? new Date(area.completed_at).toLocaleDateString() : 'Not completed'
+    }))
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(exportData)
+    ws['!cols'] = [
+      { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 15 }
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, 'Areas')
+
+    const fileName = `${selectedProject.name}_Areas_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(wb, fileName)
+    onShowToast('Areas exported successfully!', 'success')
+  }
+
   if (loading) {
     return (
       <div className="loading">
@@ -386,7 +447,14 @@ export default function Dashboard({ onShowToast }) {
         </div>
 
         <div className="card">
-          <h3>Areas</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>Areas</h3>
+            {areas.length > 0 && (
+              <button className="btn btn-secondary btn-small" onClick={exportAreasToExcel}>
+                📥 Export Areas
+              </button>
+            )}
+          </div>
           <div className="area-status-list">
             {areas.map(area => (
               <div key={area.id} className="area-status-item">
@@ -408,7 +476,8 @@ export default function Dashboard({ onShowToast }) {
         {/* Injury Reports Section */}
         <InjuryReportsList
           project={selectedProject}
-          companyId={company?.id || selectedProject?.company_id}
+          companyId={selectedProject?.company_id}
+          user={user}
           onShowToast={onShowToast}
         />
 
@@ -416,6 +485,7 @@ export default function Dashboard({ onShowToast }) {
         {showShareModal && (
           <ShareModal
             project={selectedProject}
+            user={user}
             onClose={() => setShowShareModal(false)}
             onShareCreated={(share) => {
               onShowToast('Share link created successfully!', 'success')
@@ -439,8 +509,17 @@ export default function Dashboard({ onShowToast }) {
 
   return (
     <div>
-      <h1>Projects</h1>
-      <p className="subtitle">Select a project to view details</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>Projects</h1>
+          <p className="subtitle" style={{ margin: '0.5rem 0 0 0' }}>Select a project to view details</p>
+        </div>
+        {projects.length > 0 && (
+          <button className="btn btn-secondary btn-small" onClick={exportProjectsToExcel}>
+            📥 Export All Projects
+          </button>
+        )}
+      </div>
 
       <div className="project-list">
         {projects.map(project => (
