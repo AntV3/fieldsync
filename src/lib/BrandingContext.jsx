@@ -90,13 +90,22 @@ export function BrandingProvider({ children, companyId }) {
         return
       }
 
+      // Query company_branding table directly instead of using RPC
+      // This avoids 404 errors if the RPC function doesn't exist
       const { data, error } = await supabase
-        .rpc('get_branding_by_domain', { domain_name: currentDomain })
+        .from('company_branding')
+        .select('*')
+        .eq('custom_domain', currentDomain)
+        .eq('domain_verified', true)
+        .maybeSingle()
 
-      if (error || !data || data.length === 0) {
+      if (error) {
+        console.error('Error loading branding by domain:', error)
         setBranding(DEFAULT_BRANDING)
+      } else if (data) {
+        setBranding({ ...DEFAULT_BRANDING, ...data })
       } else {
-        setBranding({ ...DEFAULT_BRANDING, ...data[0] })
+        setBranding(DEFAULT_BRANDING)
       }
     } catch (error) {
       console.error('Error loading branding by domain:', error)

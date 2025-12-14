@@ -11,6 +11,7 @@ export default function Dashboard({ onShowToast }) {
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
+  const [allProjectAreas, setAllProjectAreas] = useState({}) // Store areas for all projects
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState(null)
@@ -38,6 +39,23 @@ export default function Dashboard({ onShowToast }) {
     try {
       const data = await db.getProjects()
       setProjects(data)
+
+      // Load areas for all projects at once to avoid N+1 queries
+      if (data.length > 0) {
+        const areasMap = {}
+        await Promise.all(
+          data.map(async (project) => {
+            try {
+              const projectAreas = await db.getAreas(project.id)
+              areasMap[project.id] = projectAreas
+            } catch (error) {
+              console.error(`Error loading areas for project ${project.id}:`, error)
+              areasMap[project.id] = []
+            }
+          })
+        )
+        setAllProjectAreas(areasMap)
+      }
     } catch (error) {
       console.error('Error loading projects:', error)
       onShowToast('Error loading projects', 'error')
@@ -444,10 +462,11 @@ export default function Dashboard({ onShowToast }) {
 
       <div className="project-list">
         {projects.map(project => (
-          <ProjectCard 
-            key={project.id} 
-            project={project} 
-            onClick={() => handleSelectProject(project)} 
+          <ProjectCard
+            key={project.id}
+            project={project}
+            areas={allProjectAreas[project.id] || []}
+            onClick={() => handleSelectProject(project)}
           />
         ))}
       </div>
@@ -455,13 +474,7 @@ export default function Dashboard({ onShowToast }) {
   )
 }
 
-function ProjectCard({ project, onClick }) {
-  const [areas, setAreas] = useState([])
-
-  useEffect(() => {
-    db.getAreas(project.id).then(setAreas)
-  }, [project.id])
-
+function ProjectCard({ project, areas, onClick }) {
   const progress = calculateProgress(areas)
   const status = getOverallStatus(areas)
   const statusLabel = getOverallStatusLabel(areas)
