@@ -8,7 +8,7 @@ import InjuryReportsList from './InjuryReportsList'
 
 export default function Dashboard({ onShowToast }) {
   const { company } = useAuth()
-  const [projects, setProjects] = useState([])
+  const [view, setView] = useState('overview') // 'overview' or 'project'
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,14 +17,21 @@ export default function Dashboard({ onShowToast }) {
   const [saving, setSaving] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
 
+  // Executive Dashboard Data
+  const [metrics, setMetrics] = useState(null)
+  const [projectSummaries, setProjectSummaries] = useState([])
+  const [needsAttention, setNeedsAttention] = useState(null)
+  const [recentActivity, setRecentActivity] = useState([])
+  const [refreshing, setRefreshing] = useState(false)
+
   useEffect(() => {
-    loadProjects()
-  }, [])
+    loadDashboardData()
+  }, [company])
 
   useEffect(() => {
     if (selectedProject) {
       loadAreas(selectedProject.id)
-      
+
       // Subscribe to real-time updates
       const subscription = db.subscribeToAreas(selectedProject.id, (payload) => {
         loadAreas(selectedProject.id)
@@ -34,16 +41,40 @@ export default function Dashboard({ onShowToast }) {
     }
   }, [selectedProject])
 
-  const loadProjects = async () => {
+  const loadDashboardData = async () => {
+    if (!company?.id) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const data = await db.getProjects()
-      setProjects(data)
+      setLoading(true)
+
+      // Load all dashboard data in parallel
+      const [metricsData, summariesData, attentionData, activityData] = await Promise.all([
+        db.getDashboardMetrics(company.id),
+        db.getProjectSummaries(company.id),
+        db.getNeedsAttention(company.id),
+        db.getRecentActivity(company.id, 15)
+      ])
+
+      setMetrics(metricsData)
+      setProjectSummaries(summariesData)
+      setNeedsAttention(attentionData)
+      setRecentActivity(activityData)
     } catch (error) {
-      console.error('Error loading projects:', error)
-      onShowToast('Error loading projects', 'error')
+      console.error('Error loading dashboard:', error)
+      onShowToast('Error loading dashboard data', 'error')
     } finally {
       setLoading(false)
     }
+  }
+
+  const refreshDashboard = async () => {
+    setRefreshing(true)
+    await loadDashboardData()
+    setRefreshing(false)
+    onShowToast('Dashboard refreshed', 'success')
   }
 
   const loadAreas = async (projectId) => {
@@ -57,6 +88,7 @@ export default function Dashboard({ onShowToast }) {
 
   const handleSelectProject = (project) => {
     setSelectedProject(project)
+    setView('project')
   }
 
   const handleBack = () => {
@@ -64,7 +96,8 @@ export default function Dashboard({ onShowToast }) {
     setAreas([])
     setEditMode(false)
     setEditData(null)
-    loadProjects()
+    setView('overview')
+    loadDashboardData() // Refresh dashboard data
   }
 
   const handleEditClick = () => {
@@ -94,7 +127,7 @@ export default function Dashboard({ onShowToast }) {
   const handleAreaEditChange = (index, field, value) => {
     setEditData(prev => ({
       ...prev,
-      areas: prev.areas.map((area, i) => 
+      areas: prev.areas.map((area, i) =>
         i === index ? { ...area, [field]: value } : area
       )
     }))
@@ -202,7 +235,7 @@ export default function Dashboard({ onShowToast }) {
       const updatedProject = await db.getProject(selectedProject.id)
       setSelectedProject(updatedProject)
       await loadAreas(selectedProject.id)
-      
+
       setEditMode(false)
       setEditData(null)
       onShowToast('Project updated!', 'success')
@@ -229,17 +262,32 @@ export default function Dashboard({ onShowToast }) {
     }
   }
 
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = now - date
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return 'Just now'
+    if (minutes < 60) return `${minutes}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    return date.toLocaleDateString()
+  }
+
   if (loading) {
     return (
       <div className="loading">
         <div className="spinner"></div>
-        Loading projects...
+        Loading dashboard...
       </div>
     )
   }
 
   // Project Detail View
-  if (selectedProject) {
+  if (view === 'project' && selectedProject) {
     const progress = calculateProgress(areas)
     const billable = (progress / 100) * selectedProject.contract_value
 
@@ -326,8 +374,8 @@ export default function Dashboard({ onShowToast }) {
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleSaveEdit}
               disabled={saving}
               style={{ flex: 1 }}
@@ -336,8 +384,8 @@ export default function Dashboard({ onShowToast }) {
             </button>
           </div>
 
-          <button 
-            className="btn btn-danger btn-full" 
+          <button
+            className="btn btn-danger btn-full"
             onClick={handleDeleteProject}
           >
             Delete Project
@@ -351,7 +399,7 @@ export default function Dashboard({ onShowToast }) {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <button className="btn btn-secondary btn-small" onClick={handleBack}>
-            ← Back to Projects
+            ← Back to Dashboard
           </button>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
@@ -402,17 +450,14 @@ export default function Dashboard({ onShowToast }) {
           </div>
         </div>
 
-        {/* T&M Tickets Section */}
         <TMList project={selectedProject} onShowToast={onShowToast} />
 
-        {/* Injury Reports Section */}
         <InjuryReportsList
           project={selectedProject}
           companyId={company?.id || selectedProject?.company_id}
           onShowToast={onShowToast}
         />
 
-        {/* Share Modal */}
         {showShareModal && (
           <ShareModal
             project={selectedProject}
@@ -426,66 +471,209 @@ export default function Dashboard({ onShowToast }) {
     )
   }
 
-  // Project List View
-  if (projects.length === 0) {
+  // Executive Dashboard Overview
+  if (!metrics) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">📋</div>
-        <h3>No Projects Yet</h3>
-        <p>Create your first project to get started</p>
+        <div className="empty-state-icon">📊</div>
+        <h3>Loading Dashboard</h3>
+        <p>Fetching your data...</p>
       </div>
     )
   }
 
   return (
-    <div>
-      <h1>Projects</h1>
-      <p className="subtitle">Select a project to view details</p>
-
-      <div className="project-list">
-        {projects.map(project => (
-          <ProjectCard 
-            key={project.id} 
-            project={project} 
-            onClick={() => handleSelectProject(project)} 
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function ProjectCard({ project, onClick }) {
-  const [areas, setAreas] = useState([])
-
-  useEffect(() => {
-    db.getAreas(project.id).then(setAreas)
-  }, [project.id])
-
-  const progress = calculateProgress(areas)
-  const status = getOverallStatus(areas)
-  const statusLabel = getOverallStatusLabel(areas)
-
-  return (
-    <div className="project-card" onClick={onClick}>
-      <div className="project-card-header">
+    <div className="executive-dashboard">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <div className="project-card-name">{project.name}</div>
-          <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
+          <h1>Dashboard</h1>
+          <p className="subtitle">Overview of all projects and activity</p>
         </div>
-        <span className={`status-badge ${status}`}>{statusLabel}</span>
+        <button
+          className="btn btn-secondary btn-small"
+          onClick={refreshDashboard}
+          disabled={refreshing}
+        >
+          {refreshing ? 'Refreshing...' : '↻ Refresh'}
+        </button>
       </div>
-      <div className="project-card-progress">
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>Progress</span>
-          <span style={{ fontWeight: 600 }}>{progress}%</span>
+
+      {/* Top Metrics Row */}
+      <div className="metrics-grid">
+        <div className="metric-card">
+          <div className="metric-value">{metrics.activeProjects}</div>
+          <div className="metric-label">Active Projects</div>
         </div>
-        <div className="mini-progress-bar">
-          <div className="mini-progress-fill" style={{ width: `${progress}%` }}></div>
+        <div className="metric-card">
+          <div className="metric-value">{metrics.crewToday}</div>
+          <div className="metric-label">Crew Today</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-value">{metrics.pendingTMCount}</div>
+          <div className="metric-label">Pending T&M Tickets</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-value">{formatCurrency(metrics.pendingTMValue)}</div>
+          <div className="metric-label">Pending T&M Value</div>
+        </div>
+        <div className="metric-card metric-urgent">
+          <div className="metric-value">{metrics.urgentRequests}</div>
+          <div className="metric-label">Urgent Requests</div>
+        </div>
+      </div>
+
+      {/* Projects List */}
+      <div className="card" style={{ marginTop: '2rem' }}>
+        <h2 style={{ marginBottom: '1rem' }}>Active Projects</h2>
+        {projectSummaries.length === 0 ? (
+          <div className="empty-state-small">
+            <p>No active projects</p>
+          </div>
+        ) : (
+          <div className="dashboard-projects-list">
+            {projectSummaries.map(project => (
+              <div
+                key={project.id}
+                className={`dashboard-project-card status-${project.statusColor}`}
+                onClick={() => handleSelectProject(project)}
+              >
+                <div className="project-header">
+                  <div>
+                    <div className="project-name">{project.name}</div>
+                    <div className="project-value">{formatCurrency(project.contract_value)}</div>
+                  </div>
+                  <div className={`status-indicator status-${project.statusColor}`}></div>
+                </div>
+                <div className="project-stats">
+                  <div className="project-stat">
+                    <span className="stat-label">Progress</span>
+                    <span className="stat-value">{project.progress}%</span>
+                  </div>
+                  <div className="project-stat">
+                    <span className="stat-label">Crew Today</span>
+                    <span className="stat-value">{project.crewToday}</span>
+                  </div>
+                  <div className="project-stat">
+                    <span className="stat-label">Pending Items</span>
+                    <span className="stat-value">{project.pendingItems}</span>
+                  </div>
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${project.progress}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2rem' }}>
+        {/* Needs Attention Section */}
+        <div className="card">
+          <h2 style={{ marginBottom: '1rem' }}>Needs Attention</h2>
+          {needsAttention && (
+            <div className="attention-list">
+              {needsAttention.pendingTM.length > 0 && (
+                <div className="attention-section">
+                  <h3 className="attention-heading">Pending T&M Approvals ({needsAttention.pendingTM.length})</h3>
+                  {needsAttention.pendingTM.slice(0, 3).map(ticket => (
+                    <div key={ticket.id} className="attention-item">
+                      <div>
+                        <div className="attention-item-title">{ticket.projects?.name}</div>
+                        <div className="attention-item-subtitle">
+                          {new Date(ticket.work_date).toLocaleDateString()} • {formatCurrency(ticket.estimatedValue)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {needsAttention.pendingMaterials.length > 0 && (
+                <div className="attention-section">
+                  <h3 className="attention-heading">Material Requests ({needsAttention.pendingMaterials.length})</h3>
+                  {needsAttention.pendingMaterials.slice(0, 3).map(req => (
+                    <div key={req.id} className="attention-item">
+                      <div>
+                        <div className="attention-item-title">
+                          {req.projects?.name}
+                          {req.priority === 'urgent' && <span className="urgent-badge">URGENT</span>}
+                        </div>
+                        <div className="attention-item-subtitle">{req.items?.length || 0} items</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {needsAttention.missingReports.length > 0 && (
+                <div className="attention-section">
+                  <h3 className="attention-heading">Missing Daily Reports ({needsAttention.missingReports.length})</h3>
+                  {needsAttention.missingReports.slice(0, 3).map(project => (
+                    <div key={project.id} className="attention-item">
+                      <div className="attention-item-title">{project.name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {needsAttention.unreadMessages.length > 0 && (
+                <div className="attention-section">
+                  <h3 className="attention-heading">Unread Messages ({needsAttention.unreadMessages.length})</h3>
+                  {needsAttention.unreadMessages.slice(0, 3).map(msg => (
+                    <div key={msg.id} className="attention-item">
+                      <div>
+                        <div className="attention-item-title">{msg.projects?.name}</div>
+                        <div className="attention-item-subtitle">{msg.message?.substring(0, 50)}...</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {needsAttention.pendingTM.length === 0 &&
+               needsAttention.pendingMaterials.length === 0 &&
+               needsAttention.missingReports.length === 0 &&
+               needsAttention.unreadMessages.length === 0 && (
+                <div className="empty-state-small">
+                  <p>All caught up! No items need attention.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Activity Feed */}
+        <div className="card">
+          <h2 style={{ marginBottom: '1rem' }}>Recent Activity</h2>
+          {recentActivity.length === 0 ? (
+            <div className="empty-state-small">
+              <p>No recent activity</p>
+            </div>
+          ) : (
+            <div className="activity-feed">
+              {recentActivity.map((activity, index) => (
+                <div key={index} className="activity-item">
+                  <div className={`activity-icon activity-${activity.type}`}>
+                    {activity.type === 'tm_submitted' && '📋'}
+                    {activity.type === 'report_submitted' && '📄'}
+                    {activity.type === 'material_request' && '📦'}
+                    {activity.type === 'task_completed' && '✓'}
+                  </div>
+                  <div className="activity-content">
+                    <div className="activity-message">{activity.message}</div>
+                    <div className="activity-meta">
+                      <span className="activity-project">{activity.project}</span>
+                      {activity.by && <span className="activity-by"> • {activity.by}</span>}
+                      <span className="activity-time"> • {formatTimestamp(activity.timestamp)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
-
-

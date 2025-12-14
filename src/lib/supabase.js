@@ -2110,6 +2110,397 @@ export const db = {
     witnesses.splice(witnessIndex, 1)
 
     return this.updateInjuryReport(reportId, { witnesses })
+  },
+
+  // ============================================
+  // Dashboard Metrics & Analytics
+  // ============================================
+
+  // Get comprehensive dashboard metrics for office view
+  async getDashboardMetrics(companyId) {
+    if (!isSupabaseConfigured) {
+      // Demo mode - return empty/zero data
+      return {
+        activeProjects: 0,
+        crewToday: 0,
+        pendingTMCount: 0,
+        pendingTMValue: 0,
+        urgentRequests: 0,
+        unreadMessages: 0
+      }
+    }
+
+    try {
+      // Get active projects count
+      const { count: activeProjectsCount } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+
+      // Get today's total crew across all projects
+      const today = new Date().toISOString().split('T')[0]
+      const { data: crewData } = await supabase
+        .from('crew_checkins')
+        .select('workers, projects!inner(company_id)')
+        .eq('check_in_date', today)
+        .eq('projects.company_id', companyId)
+
+      const crewToday = crewData?.reduce((sum, checkin) =>
+        sum + (checkin.workers?.length || 0), 0) || 0
+
+      // Get pending T&M tickets count and value
+      const { data: pendingTM } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          projects!inner(company_id),
+          t_and_m_workers(hours, overtime_hours),
+          t_and_m_items(quantity, materials_equipment(cost_per_unit))
+        `)
+        .eq('status', 'pending')
+        .eq('projects.company_id', companyId)
+
+      const pendingTMCount = pendingTM?.length || 0
+      let pendingTMValue = 0
+
+      if (pendingTM) {
+        pendingTM.forEach(ticket => {
+          // Calculate labor cost (assuming $50/hr regular, $75/hr overtime)
+          const laborCost = (ticket.t_and_m_workers || []).reduce((sum, w) => {
+            return sum + (w.hours * 50) + (w.overtime_hours * 75)
+          }, 0)
+
+          // Calculate materials cost
+          const materialsCost = (ticket.t_and_m_items || []).reduce((sum, item) => {
+            return sum + (item.quantity * (item.materials_equipment?.cost_per_unit || 0))
+          }, 0)
+
+          pendingTMValue += laborCost + materialsCost
+        })
+      }
+
+      // Get urgent material requests
+      const { count: urgentRequestsCount } = await supabase
+        .from('material_requests')
+        .select('*, projects!inner(company_id)', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .eq('priority', 'urgent')
+        .eq('projects.company_id', companyId)
+
+      // Get unread messages from field
+      const { count: unreadCount } = await supabase
+        .from('messages')
+        .select('*, projects!inner(company_id)', { count: 'exact', head: true })
+        .eq('sender_type', 'field')
+        .eq('is_read', false)
+        .eq('projects.company_id', companyId)
+
+      return {
+        activeProjects: activeProjectsCount || 0,
+        crewToday,
+        pendingTMCount,
+        pendingTMValue,
+        urgentRequests: urgentRequestsCount || 0,
+        unreadMessages: unreadCount || 0
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error)
+      return {
+        activeProjects: 0,
+        crewToday: 0,
+        pendingTMCount: 0,
+        pendingTMValue: 0,
+        urgentRequests: 0,
+        unreadMessages: 0
+      }
+    }
+  },
+
+  // Get project summaries with crew and pending items
+  async getProjectSummaries(companyId) {
+    if (!isSupabaseConfigured) {
+      return []
+    }
+
+    try {
+      const { data: projects, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      if (!projects) return []
+
+      const today = new Date().toISOString().split('T')[0]
+
+      // Fetch additional data for each project
+      const summaries = await Promise.all(projects.map(async (project) => {
+        // Get areas for progress calculation
+        const { data: areas } = await supabase
+          .from('areas')
+          .select('*')
+          .eq('project_id', project.id)
+
+        // Calculate progress
+        const totalWeight = areas?.reduce((sum, a) => sum + parseFloat(a.weight || 0), 0) || 0
+        const completedWeight = areas?.filter(a => a.status === 'done')
+          .reduce((sum, a) => sum + parseFloat(a.weight || 0), 0) || 0
+        const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0
+
+        // Get today's crew
+        const { data: crewData } = await supabase
+          .from('crew_checkins')
+          .select('workers')
+          .eq('project_id', project.id)
+          .eq('check_in_date', today)
+          .single()
+
+        const crewCount = crewData?.workers?.length || 0
+
+        // Get pending T&M count
+        const { count: pendingTM } = await supabase
+          .from('t_and_m_tickets')
+          .select('*', { count: 'exact', head: true })
+          .eq('project_id', project.id)
+          .eq('status', 'pending')
+
+        // Get pending material requests
+        const { count: pendingMaterials } = await supabase
+          .from('material_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('project_id', project.id)
+          .eq('status', 'pending')
+
+        // Determine status color
+        let statusColor = 'green' // on track
+        if (progress < 50 && areas?.some(a => a.status === 'working')) {
+          statusColor = 'yellow' // needs attention
+        }
+        if (pendingTM > 5 || pendingMaterials > 3) {
+          statusColor = 'yellow'
+        }
+
+        return {
+          ...project,
+          progress,
+          crewToday: crewCount,
+          pendingItems: (pendingTM || 0) + (pendingMaterials || 0),
+          statusColor
+        }
+      }))
+
+      return summaries
+    } catch (error) {
+      console.error('Error fetching project summaries:', error)
+      return []
+    }
+  },
+
+  // Get items needing attention
+  async getNeedsAttention(companyId) {
+    if (!isSupabaseConfigured) {
+      return {
+        pendingTM: [],
+        pendingMaterials: [],
+        missingReports: [],
+        overBudget: [],
+        unreadMessages: []
+      }
+    }
+
+    try {
+      const today = new Date().toISOString().split('T')[0]
+
+      // Pending T&M tickets
+      const { data: pendingTM } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          projects!inner(name, company_id),
+          t_and_m_workers(hours, overtime_hours),
+          t_and_m_items(quantity, materials_equipment(cost_per_unit))
+        `)
+        .eq('status', 'pending')
+        .eq('projects.company_id', companyId)
+        .order('created_at', { ascending: true })
+        .limit(10)
+
+      // Calculate value for each ticket
+      const pendingTMWithValue = (pendingTM || []).map(ticket => {
+        const laborCost = (ticket.t_and_m_workers || []).reduce((sum, w) => {
+          return sum + (w.hours * 50) + (w.overtime_hours * 75)
+        }, 0)
+        const materialsCost = (ticket.t_and_m_items || []).reduce((sum, item) => {
+          return sum + (item.quantity * (item.materials_equipment?.cost_per_unit || 0))
+        }, 0)
+        return { ...ticket, estimatedValue: laborCost + materialsCost }
+      })
+
+      // Pending material requests (urgent first)
+      const { data: pendingMaterials } = await supabase
+        .from('material_requests')
+        .select('*, projects!inner(name, company_id)')
+        .eq('status', 'pending')
+        .eq('projects.company_id', companyId)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: true })
+        .limit(10)
+
+      // Projects missing today's daily report
+      const { data: allProjects } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+
+      const missingReports = []
+      if (allProjects) {
+        for (const project of allProjects) {
+          const { data: report } = await supabase
+            .from('daily_reports')
+            .select('id')
+            .eq('project_id', project.id)
+            .eq('report_date', today)
+            .single()
+
+          if (!report) {
+            missingReports.push(project)
+          }
+        }
+      }
+
+      // Unread messages from field
+      const { data: unreadMessages } = await supabase
+        .from('messages')
+        .select('*, projects!inner(name, company_id)')
+        .eq('sender_type', 'field')
+        .eq('is_read', false)
+        .eq('projects.company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      return {
+        pendingTM: pendingTMWithValue,
+        pendingMaterials: pendingMaterials || [],
+        missingReports: missingReports.slice(0, 10),
+        overBudget: [], // TODO: Calculate based on billable vs contract value
+        unreadMessages: unreadMessages || []
+      }
+    } catch (error) {
+      console.error('Error fetching needs attention:', error)
+      return {
+        pendingTM: [],
+        pendingMaterials: [],
+        missingReports: [],
+        overBudget: [],
+        unreadMessages: []
+      }
+    }
+  },
+
+  // Get recent activity across all projects
+  async getRecentActivity(companyId, limit = 20) {
+    if (!isSupabaseConfigured) {
+      return []
+    }
+
+    try {
+      const activities = []
+
+      // Get recent T&M submissions
+      const { data: recentTM } = await supabase
+        .from('t_and_m_tickets')
+        .select('id, created_at, work_date, projects!inner(name, company_id), created_by_name')
+        .eq('projects.company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (recentTM) {
+        recentTM.forEach(tm => {
+          activities.push({
+            type: 'tm_submitted',
+            message: `T&M ticket submitted`,
+            project: tm.projects?.name,
+            projectId: tm.projects?.id,
+            timestamp: tm.created_at,
+            by: tm.created_by_name || 'Field User'
+          })
+        })
+      }
+
+      // Get recent daily reports
+      const { data: recentReports } = await supabase
+        .from('daily_reports')
+        .select('id, submitted_at, report_date, projects!inner(name, company_id), submitted_by')
+        .eq('status', 'submitted')
+        .eq('projects.company_id', companyId)
+        .order('submitted_at', { ascending: false })
+        .limit(10)
+
+      if (recentReports) {
+        recentReports.forEach(report => {
+          activities.push({
+            type: 'report_submitted',
+            message: `Daily report submitted`,
+            project: report.projects?.name,
+            timestamp: report.submitted_at,
+            by: report.submitted_by || 'Foreman'
+          })
+        })
+      }
+
+      // Get recent material requests
+      const { data: recentRequests } = await supabase
+        .from('material_requests')
+        .select('id, created_at, priority, projects!inner(name, company_id), requested_by')
+        .eq('projects.company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (recentRequests) {
+        recentRequests.forEach(req => {
+          activities.push({
+            type: 'material_request',
+            message: `Material request created ${req.priority === 'urgent' ? '(URGENT)' : ''}`,
+            project: req.projects?.name,
+            timestamp: req.created_at,
+            by: req.requested_by || 'Field User'
+          })
+        })
+      }
+
+      // Get recent area completions
+      const { data: recentCompletions } = await supabase
+        .from('areas')
+        .select('id, name, updated_at, projects!inner(name, company_id)')
+        .eq('status', 'done')
+        .eq('projects.company_id', companyId)
+        .order('updated_at', { ascending: false })
+        .limit(10)
+
+      if (recentCompletions) {
+        recentCompletions.forEach(area => {
+          activities.push({
+            type: 'task_completed',
+            message: `Task completed: ${area.name}`,
+            project: area.projects?.name,
+            timestamp: area.updated_at
+          })
+        })
+      }
+
+      // Sort all activities by timestamp and limit
+      return activities
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, limit)
+
+    } catch (error) {
+      console.error('Error fetching recent activity:', error)
+      return []
+    }
   }
 }
 
