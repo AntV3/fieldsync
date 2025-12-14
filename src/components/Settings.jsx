@@ -20,10 +20,17 @@ export default function Settings({ onShowToast }) {
   ]
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (company?.id) {
+      loadData()
+    }
+  }, [company?.id])
 
   const loadData = async () => {
+    if (!company?.id) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       const usersData = await db.getCompanyUsers(company.id)

@@ -24,10 +24,17 @@ export default function Analytics({ onShowToast }) {
   })
 
   useEffect(() => {
-    loadAllData()
-  }, [])
+    if (company?.id) {
+      loadAllData()
+    }
+  }, [company?.id])
 
   const loadAllData = async () => {
+    if (!company?.id) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       const projectsData = await db.getProjects()
