@@ -2110,6 +2110,133 @@ export const db = {
     witnesses.splice(witnessIndex, 1)
 
     return this.updateInjuryReport(reportId, { witnesses })
+  },
+
+  // ============================================
+  // NOTIFICATION ASSIGNMENTS
+  // ============================================
+
+  // Get company users
+  async getCompanyUsers(companyId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      return (localData.users || []).filter(u => u.company_id === companyId)
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('full_name')
+
+    if (error) {
+      console.error('Error fetching company users:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  // Get notification assignments for a company
+  async getNotificationAssignments(companyId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      return (localData.notificationAssignments || []).filter(a => a.company_id === companyId)
+    }
+
+    const { data, error } = await supabase
+      .from('notification_assignments')
+      .select('*')
+      .eq('company_id', companyId)
+
+    if (error) {
+      console.error('Error fetching notification assignments:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  // Create notification assignment
+  async createNotificationAssignment(assignmentData) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.notificationAssignments) localData.notificationAssignments = []
+
+      const newAssignment = {
+        id: generateLocalId(),
+        ...assignmentData,
+        created_at: new Date().toISOString()
+      }
+
+      localData.notificationAssignments.push(newAssignment)
+      setLocalData(localData)
+      return newAssignment
+    }
+
+    const { data, error } = await supabase
+      .from('notification_assignments')
+      .insert(assignmentData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating notification assignment:', error)
+      throw error
+    }
+
+    return data
+  },
+
+  // Remove notification assignment
+  async removeNotificationAssignment(companyId, notificationType, userId) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      if (!localData.notificationAssignments) return
+
+      localData.notificationAssignments = localData.notificationAssignments.filter(
+        a => !(a.company_id === companyId && a.notification_type === notificationType && a.assigned_user_id === userId)
+      )
+      setLocalData(localData)
+      return
+    }
+
+    const { error } = await supabase
+      .from('notification_assignments')
+      .delete()
+      .eq('company_id', companyId)
+      .eq('notification_type', notificationType)
+      .eq('assigned_user_id', userId)
+
+    if (error) {
+      console.error('Error removing notification assignment:', error)
+      throw error
+    }
+  },
+
+  // Get assigned users for a notification type
+  async getAssignedUsersForNotification(companyId, notificationType) {
+    if (!isSupabaseConfigured) {
+      const localData = getLocalData()
+      const assignments = (localData.notificationAssignments || []).filter(
+        a => a.company_id === companyId && a.notification_type === notificationType
+      )
+      const userIds = assignments.map(a => a.assigned_user_id)
+      return (localData.users || []).filter(u => userIds.includes(u.id))
+    }
+
+    const { data, error } = await supabase
+      .from('notification_assignments')
+      .select('assigned_user_id, users(*)')
+      .eq('company_id', companyId)
+      .eq('notification_type', notificationType)
+
+    if (error) {
+      console.error('Error fetching assigned users:', error)
+      return []
+    }
+
+    return data?.map(d => d.users) || []
   }
 }
 

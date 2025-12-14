@@ -7,6 +7,9 @@ import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
+import Analytics from './components/Analytics'
+import Settings from './components/Settings'
+import MaterialRequestsManager from './components/MaterialRequestsManager'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -18,7 +21,7 @@ export default function App() {
   const [foremanProject, setForemanProject] = useState(null)
   const [shareToken, setShareToken] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('analytics')
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export default function App() {
       setUser(null)
       setCompany(null)
       setView('entry')
-      setActiveTab('dashboard')
+      setActiveTab('analytics')
     } catch (error) {
       console.error('Logout error:', error)
       showToast('Error signing out', 'error')
@@ -131,7 +134,7 @@ export default function App() {
   }
 
   const handleProjectCreated = () => {
-    setActiveTab('dashboard')
+    setActiveTab('analytics')
   }
 
   // Loading screen
@@ -220,10 +223,22 @@ export default function App() {
             <Logo />
             <div className="nav-tabs">
               <button
+                className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+                onClick={() => setActiveTab('analytics')}
+              >
+                Overview
+              </button>
+              <button
                 className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
               >
-                Dashboard
+                Projects
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'materials' ? 'active' : ''}`}
+                onClick={() => setActiveTab('materials')}
+              >
+                Materials
               </button>
               <button
                 className={`nav-tab ${activeTab === 'field' ? 'active' : ''}`}
@@ -236,6 +251,12 @@ export default function App() {
                 onClick={() => setActiveTab('setup')}
               >
                 + New Project
+              </button>
+              <button
+                className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
+                onClick={() => setActiveTab('settings')}
+              >
+                Settings
               </button>
               <button
                 className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
@@ -255,8 +276,14 @@ export default function App() {
 
         {/* Main Content */}
         <div className="container">
+          {activeTab === 'analytics' && (
+            <Analytics onShowToast={showToast} />
+          )}
           {activeTab === 'dashboard' && (
             <Dashboard onShowToast={showToast} />
+          )}
+          {activeTab === 'materials' && (
+            <MaterialRequestsManager onShowToast={showToast} />
           )}
           {activeTab === 'field' && (
             <Field onShowToast={showToast} />
@@ -266,6 +293,9 @@ export default function App() {
               onProjectCreated={handleProjectCreated}
               onShowToast={showToast}
             />
+          )}
+          {activeTab === 'settings' && (
+            <Settings onShowToast={showToast} />
           )}
           {activeTab === 'branding' && (
             <BrandingSettings

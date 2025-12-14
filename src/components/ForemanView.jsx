@@ -6,6 +6,7 @@ import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import Messages from './Messages'
 import MaterialRequest from './MaterialRequest'
+import InjuryReportForm from './InjuryReportForm'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -17,6 +18,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [showDailyReport, setShowDailyReport] = useState(false)
   const [showMessages, setShowMessages] = useState(false)
   const [showMaterialRequest, setShowMaterialRequest] = useState(false)
+  const [showInjuryReport, setShowInjuryReport] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
@@ -143,6 +145,33 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
+  // Show Injury Report Form
+  if (showInjuryReport) {
+    return (
+      <>
+        <div className="foreman-container">
+          <div className="foreman-header">
+            <button className="back-btn-simple" onClick={() => setShowInjuryReport(false)}>
+              ←
+            </button>
+            <div className="foreman-header-info">
+              <div className="foreman-project-name">Report Injury/Incident</div>
+            </div>
+          </div>
+        </div>
+        <InjuryReportForm
+          project={project}
+          companyId={companyId}
+          onClose={() => setShowInjuryReport(false)}
+          onReportCreated={() => {
+            onShowToast('Injury report submitted successfully', 'success')
+            setShowInjuryReport(false)
+          }}
+        />
+      </>
+    )
+  }
+
   const progress = calculateProgress(areas)
   
   // Group areas by group_name
@@ -176,14 +205,14 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
 
       {/* Action Buttons */}
       <div className="field-actions">
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowTMForm(true)}
         >
           <span className="icon">📝</span>
           T&M Ticket
         </button>
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowMessages(true)}
         >
@@ -191,14 +220,21 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           Messages
           {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
         </button>
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowMaterialRequest(true)}
         >
           <span className="icon">📦</span>
           Need Materials
         </button>
-        <button 
+        <button
+          className="field-action-btn injury-report-btn"
+          onClick={() => setShowInjuryReport(true)}
+        >
+          <span className="icon">🚨</span>
+          Report Injury
+        </button>
+        <button
           className="field-action-btn"
           onClick={() => setShowDailyReport(true)}
         >
