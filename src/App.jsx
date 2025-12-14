@@ -226,12 +226,6 @@ export default function App() {
                 Dashboard
               </button>
               <button
-                className={`nav-tab ${activeTab === 'field' ? 'active' : ''}`}
-                onClick={() => setActiveTab('field')}
-              >
-                Field
-              </button>
-              <button
                 className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
                 onClick={() => setActiveTab('setup')}
               >
