@@ -37,25 +37,33 @@ export default function Analytics({ onShowToast }) {
 
     setLoading(true)
     try {
+      // Load projects first
       const projectsData = await db.getProjects()
       setProjects(projectsData)
 
-      const areasPromises = projectsData.map(p => db.getAreas(p.id))
-      const areasArrays = await Promise.all(areasPromises)
+      // If no projects, skip loading other data
+      if (projectsData.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      // Load ALL data in parallel for maximum performance
+      const [areasArrays, tmArrays, injuryData, materialArrays] = await Promise.all([
+        Promise.all(projectsData.map(p => db.getAreas(p.id))),
+        Promise.all(projectsData.map(p => db.getTMTickets(p.id))),
+        db.getCompanyInjuryReports(company.id),
+        Promise.all(projectsData.map(p => db.getMaterialRequests(p.id)))
+      ])
+
+      // Flatten arrays
       const allAreasFlat = areasArrays.flat()
-      setAllAreas(allAreasFlat)
-
-      const tmPromises = projectsData.map(p => db.getTMTickets(p.id))
-      const tmArrays = await Promise.all(tmPromises)
       const allTM = tmArrays.flat()
-      setTmTickets(allTM)
-
-      const injuryData = await db.getCompanyInjuryReports(company.id)
-      setInjuryReports(injuryData)
-
-      const materialPromises = projectsData.map(p => db.getMaterialRequests(p.id))
-      const materialArrays = await Promise.all(materialPromises)
       const allMaterials = materialArrays.flat()
+
+      // Update state
+      setAllAreas(allAreasFlat)
+      setTmTickets(allTM)
+      setInjuryReports(injuryData)
       setMaterialRequests(allMaterials)
 
       calculateStats(projectsData, allAreasFlat, allTM, injuryData, allMaterials)

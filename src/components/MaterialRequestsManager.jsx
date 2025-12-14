@@ -22,9 +22,17 @@ export default function MaterialRequestsManager({ onShowToast }) {
       const projectsData = await db.getProjects()
       setProjects(projectsData)
 
-      // Load all material requests
-      const requestsPromises = projectsData.map(p => db.getMaterialRequests(p.id))
-      const requestsArrays = await Promise.all(requestsPromises)
+      // Skip if no projects
+      if (projectsData.length === 0) {
+        setRequests([])
+        setLoading(false)
+        return
+      }
+
+      // Load all material requests in parallel
+      const requestsArrays = await Promise.all(
+        projectsData.map(p => db.getMaterialRequests(p.id))
+      )
       const allRequests = requestsArrays.flat()
 
       // Sort by priority and date
