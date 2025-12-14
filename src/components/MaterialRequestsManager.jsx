@@ -123,8 +123,8 @@ export default function MaterialRequestsManager({ onShowToast }) {
 
   return (
     <div>
-      <h1>Material & Equipment Requests</h1>
-      <p className="subtitle">Manage incoming requests from field teams</p>
+      <h1>Material Requests</h1>
+      <p className="subtitle">Manage incoming material and equipment requests from field teams</p>
 
       {/* Pending Requests */}
       {pendingRequests.length > 0 && (
@@ -150,8 +150,7 @@ export default function MaterialRequestsManager({ onShowToast }) {
                   </div>
                   <div className="material-request-badges">
                     <span
-                      className="priority-badge"
-                      style={{ backgroundColor: getPriorityColor(request.priority), color: 'white' }}
+                      className={`priority-badge priority-${request.priority}`}
                     >
                       {request.priority}
                     </span>
@@ -203,8 +202,7 @@ export default function MaterialRequestsManager({ onShowToast }) {
 
       {pendingRequests.length === 0 && (
         <div className="card">
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+          <div className="empty-state-compact">
             <h3>No Pending Requests</h3>
             <p>All material requests have been handled</p>
           </div>
@@ -229,8 +227,7 @@ export default function MaterialRequestsManager({ onShowToast }) {
                     </div>
                   </div>
                   <span
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(request.status), color: 'white' }}
+                    className={`status-badge status-${request.status}`}
                   >
                     {request.status}
                   </span>
@@ -314,6 +311,17 @@ export default function MaterialRequestsManager({ onShowToast }) {
       )}
 
       <style>{`
+        .empty-state-compact {
+          text-align: center;
+          padding: 3rem 2rem;
+          color: #9ca3af;
+        }
+
+        .empty-state-compact h3 {
+          color: #6b7280;
+          margin-bottom: 0.5rem;
+        }
+
         .material-requests-list {
           display: flex;
           flex-direction: column;
@@ -329,7 +337,8 @@ export default function MaterialRequestsManager({ onShowToast }) {
         }
 
         .material-request-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          border-color: #d1d5db;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .material-request-card.completed {
@@ -371,11 +380,44 @@ export default function MaterialRequestsManager({ onShowToast }) {
         .priority-badge,
         .status-badge {
           padding: 0.375rem 0.75rem;
-          border-radius: 12px;
+          border-radius: 4px;
           font-size: 0.75rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.05em;
+        }
+
+        .priority-badge.priority-urgent {
+          background: #fef2f2;
+          color: #991b1b;
+          border: 1px solid #fecaca;
+        }
+
+        .priority-badge.priority-normal {
+          background: #fffbeb;
+          color: #92400e;
+          border: 1px solid #fde68a;
+        }
+
+        .priority-badge.priority-low {
+          background: #f0fdf4;
+          color: #166534;
+          border: 1px solid #bbf7d0;
+        }
+
+        .status-badge.status-pending {
+          background: #fffbeb;
+          color: #92400e;
+        }
+
+        .status-badge.status-fulfilled {
+          background: #f0fdf4;
+          color: #166534;
+        }
+
+        .status-badge.status-cancelled {
+          background: #f9fafb;
+          color: #6b7280;
         }
 
         .needed-by-badge {

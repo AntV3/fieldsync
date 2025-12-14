@@ -209,14 +209,12 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           className="field-action-btn"
           onClick={() => setShowTMForm(true)}
         >
-          <span className="icon">📝</span>
           T&M Ticket
         </button>
         <button
           className="field-action-btn"
           onClick={() => setShowMessages(true)}
         >
-          <span className="icon">💬</span>
           Messages
           {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
         </button>
@@ -224,21 +222,18 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           className="field-action-btn"
           onClick={() => setShowMaterialRequest(true)}
         >
-          <span className="icon">📦</span>
-          Need Materials
+          Request Materials
         </button>
         <button
-          className="field-action-btn injury-report-btn"
+          className="field-action-btn injury-btn"
           onClick={() => setShowInjuryReport(true)}
         >
-          <span className="icon">🚨</span>
           Report Injury
         </button>
         <button
           className="field-action-btn"
           onClick={() => setShowDailyReport(true)}
         >
-          <span className="icon">📋</span>
           Daily Report
         </button>
       </div>
@@ -324,9 +319,8 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
 
       {areas.length === 0 && (
         <div className="foreman-empty">
-          <div className="foreman-empty-icon">📋</div>
-          <div className="foreman-empty-text">No areas yet</div>
-          <div className="foreman-empty-subtext">Office needs to add areas to this project</div>
+          <div className="foreman-empty-text">No Areas Assigned</div>
+          <div className="foreman-empty-subtext">Please contact the office to add project areas</div>
         </div>
       )}
     </div>

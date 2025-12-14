@@ -11,12 +11,12 @@ export default function Settings({ onShowToast }) {
   const [saving, setSaving] = useState(false)
 
   const notificationTypes = [
-    { id: 'material_requests', label: 'Material Requests', icon: '📦', description: 'Who gets notified when field requests materials' },
-    { id: 'equipment_requests', label: 'Equipment Requests', icon: '🔧', description: 'Who gets notified when field requests equipment' },
-    { id: 'injury_reports', label: 'Injury Reports', icon: '🚨', description: 'Who gets notified of workplace injuries/incidents' },
-    { id: 'tm_tickets', label: 'T&M Tickets', icon: '📝', description: 'Who approves time and materials tickets' },
-    { id: 'daily_reports', label: 'Daily Reports', icon: '📋', description: 'Who receives end-of-day field reports' },
-    { id: 'messages', label: 'Field Messages', icon: '💬', description: 'Who receives messages from the field' }
+    { id: 'material_requests', label: 'Material Requests', description: 'Assign users to handle material requests from the field' },
+    { id: 'equipment_requests', label: 'Equipment Requests', description: 'Assign users to handle equipment requests' },
+    { id: 'injury_reports', label: 'Injury & Incident Reports', description: 'Assign users to receive workplace injury notifications' },
+    { id: 'tm_tickets', label: 'T&M Ticket Approvals', description: 'Assign users who can approve time and materials tickets' },
+    { id: 'daily_reports', label: 'Daily Reports', description: 'Assign users to receive end-of-day field reports' },
+    { id: 'messages', label: 'Field Messages', description: 'Assign users to receive direct messages from field teams' }
   ]
 
   useEffect(() => {
@@ -26,11 +26,9 @@ export default function Settings({ onShowToast }) {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Load company users
       const usersData = await db.getCompanyUsers(company.id)
       setUsers(usersData)
 
-      // Load notification assignments
       const assignmentsData = await db.getNotificationAssignments(company.id)
       setNotificationAssignments(assignmentsData)
     } catch (error) {
@@ -53,14 +51,12 @@ export default function Settings({ onShowToast }) {
     setSaving(true)
     try {
       if (isAssigned) {
-        // Remove assignment
         await db.removeNotificationAssignment(company.id, notificationType, userId)
         setNotificationAssignments(prev =>
           prev.filter(a => !(a.notification_type === notificationType && a.assigned_user_id === userId))
         )
         onShowToast('Assignment removed', 'success')
       } else {
-        // Add assignment
         const newAssignment = await db.createNotificationAssignment({
           company_id: company.id,
           notification_type: notificationType,
@@ -99,72 +95,68 @@ export default function Settings({ onShowToast }) {
   return (
     <div>
       <h1>Settings</h1>
-      <p className="subtitle">Manage company settings and user permissions</p>
+      <p className="subtitle">Manage notifications, users, and company settings</p>
 
       {/* Settings Navigation */}
-      <div className="settings-nav">
+      <div className="settings-tabs">
         <button
-          className={`settings-nav-btn ${activeSection === 'notifications' ? 'active' : ''}`}
+          className={`settings-tab ${activeSection === 'notifications' ? 'active' : ''}`}
           onClick={() => setActiveSection('notifications')}
         >
-          🔔 Notification Assignments
+          Notifications
         </button>
         <button
-          className={`settings-nav-btn ${activeSection === 'users' ? 'active' : ''}`}
+          className={`settings-tab ${activeSection === 'users' ? 'active' : ''}`}
           onClick={() => setActiveSection('users')}
         >
-          👥 User Management
+          Users
         </button>
         <button
-          className={`settings-nav-btn ${activeSection === 'company' ? 'active' : ''}`}
+          className={`settings-tab ${activeSection === 'company' ? 'active' : ''}`}
           onClick={() => setActiveSection('company')}
         >
-          🏢 Company Settings
+          Company
         </button>
       </div>
 
       {/* Notification Assignments Section */}
       {activeSection === 'notifications' && (
         <div className="card">
-          <h3>Notification Assignments</h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            Assign specific team members to receive notifications for different types of events.
-            Multiple users can be assigned to each notification type.
+          <h3>Notification Routing</h3>
+          <p className="section-description">
+            Route notifications to specific team members. Multiple users can be assigned to each notification type.
           </p>
 
-          <div className="notification-types-list">
+          <div className="notification-list">
             {notificationTypes.map(type => {
               const assignedUsers = getAssignedUsers(type.id)
 
               return (
-                <div key={type.id} className="notification-type-card">
-                  <div className="notification-type-header">
-                    <div className="notification-type-info">
-                      <div className="notification-type-title">
-                        <span className="notification-type-icon">{type.icon}</span>
-                        <span className="notification-type-label">{type.label}</span>
-                      </div>
-                      <div className="notification-type-description">{type.description}</div>
+                <div key={type.id} className="notification-section">
+                  <div className="notification-header">
+                    <div>
+                      <div className="notification-title">{type.label}</div>
+                      <div className="notification-description">{type.description}</div>
                       {assignedUsers.length > 0 && (
-                        <div className="notification-assigned-users">
-                          Assigned to: {assignedUsers.join(', ')}
+                        <div className="assigned-users-list">
+                          Currently assigned: {assignedUsers.join(', ')}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="notification-user-assignments">
+                  <div className="user-checkboxes">
                     {users.map(user => (
-                      <label key={user.id} className="assignment-checkbox">
+                      <label key={user.id} className="user-checkbox">
                         <input
                           type="checkbox"
                           checked={isUserAssigned(type.id, user.id)}
                           onChange={() => handleToggleAssignment(type.id, user.id)}
                           disabled={saving}
                         />
-                        <span className="assignment-user-info">
-                          <span className="assignment-user-name">{user.full_name || user.email}</span>
-                          <span className="assignment-user-role">{user.role}</span>
+                        <span className="user-checkbox-label">
+                          <span className="user-checkbox-name">{user.full_name || user.email}</span>
+                          <span className="user-checkbox-role">{user.role}</span>
                         </span>
                       </label>
                     ))}
@@ -179,27 +171,27 @@ export default function Settings({ onShowToast }) {
       {/* User Management Section */}
       {activeSection === 'users' && (
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h3>User Management</h3>
-            <button className="btn btn-primary btn-small">
-              + Invite User
+          <div className="card-header-with-action">
+            <h3>Team Members</h3>
+            <button className="btn-primary btn-sm">
+              Invite User
             </button>
           </div>
 
-          <div className="users-list">
+          <div className="user-list">
             {users.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                No users found
+              <div className="empty-state-compact">
+                <p>No users found</p>
               </div>
             ) : (
               users.map(user => (
-                <div key={user.id} className="user-item">
+                <div key={user.id} className="user-card">
                   <div className="user-info">
-                    <div className="user-name">{user.full_name || 'Unnamed User'}</div>
-                    <div className="user-email">{user.email}</div>
+                    <div className="user-name-display">{user.full_name || 'Unnamed User'}</div>
+                    <div className="user-email-display">{user.email}</div>
                   </div>
-                  <div className="user-meta">
-                    <span className={`user-role-badge ${user.role}`}>
+                  <div className="user-badge-container">
+                    <span className={`role-badge role-${user.role}`}>
                       {user.role}
                     </span>
                   </div>
@@ -215,241 +207,280 @@ export default function Settings({ onShowToast }) {
         <div className="card">
           <h3>Company Information</h3>
 
-          <div className="form-group">
-            <label>Company Name</label>
+          <div className="form-section">
+            <label className="form-label">Company Name</label>
             <input
               type="text"
+              className="form-input"
               value={company?.name || ''}
               disabled
-              style={{ background: '#f9fafb' }}
             />
-            <small style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', display: 'block' }}>
-              Contact support to change company name
-            </small>
+            <p className="form-help">Contact support to change your company name</p>
           </div>
 
-          <div className="form-group">
-            <label>Company Code</label>
+          <div className="form-section">
+            <label className="form-label">Company Code</label>
             <input
               type="text"
+              className="form-input"
               value={company?.company_code || ''}
               disabled
-              style={{ background: '#f9fafb' }}
             />
-            <small style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', display: 'block' }}>
-              Share this code with team members to join your company
-            </small>
+            <p className="form-help">Share this code with team members to join your company</p>
           </div>
         </div>
       )}
 
       <style>{`
-        .settings-nav {
+        .settings-tabs {
           display: flex;
-          gap: 1rem;
+          gap: 0;
           margin-bottom: 2rem;
-          border-bottom: 2px solid #e5e7eb;
-          overflow-x: auto;
+          border-bottom: 1px solid #e5e7eb;
         }
 
-        .settings-nav-btn {
+        .settings-tab {
           padding: 1rem 1.5rem;
           background: none;
           border: none;
-          border-bottom: 3px solid transparent;
+          border-bottom: 2px solid transparent;
           color: #6b7280;
           font-weight: 500;
           cursor: pointer;
-          white-space: nowrap;
           transition: all 0.2s;
         }
 
-        .settings-nav-btn:hover {
+        .settings-tab:hover {
           color: #111827;
           background: #f9fafb;
         }
 
-        .settings-nav-btn.active {
-          color: var(--primary-color, #3b82f6);
-          border-bottom-color: var(--primary-color, #3b82f6);
+        .settings-tab.active {
+          color: #2563eb;
+          border-bottom-color: #2563eb;
         }
 
-        .notification-types-list {
+        .section-description {
+          color: #6b7280;
+          margin-bottom: 2rem;
+          font-size: 0.9375rem;
+        }
+
+        .notification-list {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 2rem;
         }
 
-        .notification-type-card {
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 1.5rem;
-          background: #ffffff;
+        .notification-section {
+          padding-bottom: 2rem;
+          border-bottom: 1px solid #e5e7eb;
         }
 
-        .notification-type-header {
+        .notification-section:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+
+        .notification-header {
           margin-bottom: 1rem;
         }
 
-        .notification-type-info {
-          flex: 1;
-        }
-
-        .notification-type-title {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .notification-type-icon {
-          font-size: 1.5rem;
-        }
-
-        .notification-type-label {
-          font-size: 1.125rem;
+        .notification-title {
+          font-size: 1rem;
           font-weight: 600;
           color: #111827;
+          margin-bottom: 0.375rem;
         }
 
-        .notification-type-description {
+        .notification-description {
           font-size: 0.875rem;
           color: #6b7280;
           margin-bottom: 0.5rem;
         }
 
-        .notification-assigned-users {
+        .assigned-users-list {
           font-size: 0.875rem;
-          color: #10b981;
+          color: #059669;
           font-weight: 500;
+          margin-top: 0.5rem;
         }
 
-        .notification-user-assignments {
+        .user-checkboxes {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
           gap: 0.75rem;
-          padding: 1rem;
-          background: #f9fafb;
-          border-radius: 6px;
         }
 
-        .assignment-checkbox {
+        .user-checkbox {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 0.75rem;
-          background: white;
+          padding: 0.875rem;
+          background: #f9fafb;
           border: 1px solid #e5e7eb;
           border-radius: 6px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.15s;
         }
 
-        .assignment-checkbox:hover {
-          border-color: var(--primary-color, #3b82f6);
-          background: #f0f9ff;
+        .user-checkbox:hover {
+          border-color: #2563eb;
+          background: #eff6ff;
         }
 
-        .assignment-checkbox input[type="checkbox"] {
-          width: 1.25rem;
-          height: 1.25rem;
+        .user-checkbox input[type="checkbox"] {
+          width: 1.125rem;
+          height: 1.125rem;
           cursor: pointer;
+          flex-shrink: 0;
         }
 
-        .assignment-user-info {
+        .user-checkbox-label {
           flex: 1;
           display: flex;
           flex-direction: column;
           gap: 0.25rem;
+          min-width: 0;
         }
 
-        .assignment-user-name {
+        .user-checkbox-name {
           font-weight: 500;
           color: #111827;
+          font-size: 0.9375rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .assignment-user-role {
+        .user-checkbox-role {
           font-size: 0.75rem;
           color: #6b7280;
           text-transform: capitalize;
         }
 
-        .users-list {
+        .card-header-with-action {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .btn-sm {
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
+        }
+
+        .user-list {
           display: flex;
           flex-direction: column;
           gap: 0.75rem;
         }
 
-        .user-item {
+        .user-card {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 1rem;
           border: 1px solid #e5e7eb;
           border-radius: 6px;
-          background: #ffffff;
+          background: white;
         }
 
         .user-info {
           flex: 1;
+          min-width: 0;
         }
 
-        .user-name {
+        .user-name-display {
           font-weight: 600;
           color: #111827;
           margin-bottom: 0.25rem;
         }
 
-        .user-email {
+        .user-email-display {
           font-size: 0.875rem;
           color: #6b7280;
         }
 
-        .user-meta {
+        .user-badge-container {
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          flex-shrink: 0;
         }
 
-        .user-role-badge {
+        .role-badge {
           padding: 0.375rem 0.75rem;
-          border-radius: 12px;
+          border-radius: 4px;
           font-size: 0.75rem;
           font-weight: 500;
           text-transform: capitalize;
         }
 
-        .user-role-badge.owner {
+        .role-badge.role-owner {
           background: #dbeafe;
           color: #1e40af;
         }
 
-        .user-role-badge.admin {
+        .role-badge.role-admin {
           background: #e0e7ff;
           color: #4338ca;
         }
 
-        .user-role-badge.manager {
+        .role-badge.role-manager {
           background: #fef3c7;
           color: #92400e;
         }
 
-        .user-role-badge.member {
+        .role-badge.role-member {
           background: #f3f4f6;
           color: #374151;
         }
 
-        .user-role-badge.foreman {
-          background: #ecfdf5;
+        .role-badge.role-foreman {
+          background: #d1fae5;
           color: #065f46;
         }
 
+        .form-section {
+          margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+          display: block;
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 0.5rem;
+          font-size: 0.9375rem;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 0.625rem 0.875rem;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 0.9375rem;
+          background: white;
+        }
+
+        .form-input:disabled {
+          background: #f9fafb;
+          color: #9ca3af;
+        }
+
+        .form-help {
+          font-size: 0.8125rem;
+          color: #6b7280;
+          margin-top: 0.5rem;
+        }
+
         @media (max-width: 768px) {
-          .notification-user-assignments {
+          .user-checkboxes {
             grid-template-columns: 1fr;
           }
 
-          .user-item {
+          .user-card {
             flex-direction: column;
             align-items: flex-start;
             gap: 0.75rem;

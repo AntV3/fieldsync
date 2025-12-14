@@ -30,33 +30,27 @@ export default function Analytics({ onShowToast }) {
   const loadAllData = async () => {
     setLoading(true)
     try {
-      // Load all projects
       const projectsData = await db.getProjects()
       setProjects(projectsData)
 
-      // Load all areas for all projects
       const areasPromises = projectsData.map(p => db.getAreas(p.id))
       const areasArrays = await Promise.all(areasPromises)
       const allAreasFlat = areasArrays.flat()
       setAllAreas(allAreasFlat)
 
-      // Load T&M tickets
       const tmPromises = projectsData.map(p => db.getTMTickets(p.id))
       const tmArrays = await Promise.all(tmPromises)
       const allTM = tmArrays.flat()
       setTmTickets(allTM)
 
-      // Load injury reports
       const injuryData = await db.getCompanyInjuryReports(company.id)
       setInjuryReports(injuryData)
 
-      // Load material requests
       const materialPromises = projectsData.map(p => db.getMaterialRequests(p.id))
       const materialArrays = await Promise.all(materialPromises)
       const allMaterials = materialArrays.flat()
       setMaterialRequests(allMaterials)
 
-      // Calculate statistics
       calculateStats(projectsData, allAreasFlat, allTM, injuryData, allMaterials)
     } catch (error) {
       console.error('Error loading analytics:', error)
@@ -69,7 +63,6 @@ export default function Analytics({ onShowToast }) {
   const calculateStats = (projects, areas, tmTickets, injuries, materials) => {
     const totalContractValue = projects.reduce((sum, p) => sum + parseFloat(p.contract_value || 0), 0)
 
-    // Calculate billable per project
     let totalBillable = 0
     projects.forEach(project => {
       const projectAreas = areas.filter(a => a.project_id === project.id)
@@ -78,12 +71,10 @@ export default function Analytics({ onShowToast }) {
       totalBillable += billable
     })
 
-    // Calculate overall progress
     const totalWeight = areas.length
     const doneWeight = areas.filter(a => a.status === 'done').length
     const overallProgress = totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0
 
-    // Count active vs completed projects
     const projectStatuses = projects.map(project => {
       const projectAreas = areas.filter(a => a.project_id === project.id)
       const progress = calculateProgress(projectAreas)
@@ -109,100 +100,85 @@ export default function Analytics({ onShowToast }) {
     return (
       <div className="loading">
         <div className="spinner"></div>
-        Loading analytics...
+        Loading overview...
       </div>
     )
   }
 
   return (
     <div>
-      <h1>Executive Dashboard</h1>
-      <p className="subtitle">Comprehensive overview of all projects and activities</p>
+      <h1>Company Overview</h1>
+      <p className="subtitle">Comprehensive analytics and project metrics</p>
 
       {/* KPI Cards */}
       <div className="analytics-grid">
-        <div className="analytics-card primary">
-          <div className="analytics-card-icon">💰</div>
-          <div className="analytics-card-content">
-            <div className="analytics-card-label">Total Contract Value</div>
-            <div className="analytics-card-value">{formatCurrency(stats.totalContractValue)}</div>
+        <div className="stat-card">
+          <div className="stat-label">Total Contract Value</div>
+          <div className="stat-value">{formatCurrency(stats.totalContractValue)}</div>
+        </div>
+
+        <div className="stat-card highlight">
+          <div className="stat-label">Billable to Date</div>
+          <div className="stat-value">{formatCurrency(stats.totalBillable)}</div>
+          <div className="stat-sublabel">
+            {stats.totalContractValue > 0
+              ? `${((stats.totalBillable / stats.totalContractValue) * 100).toFixed(1)}% of total`
+              : '0% of total'}
           </div>
         </div>
 
-        <div className="analytics-card success">
-          <div className="analytics-card-icon">📊</div>
-          <div className="analytics-card-content">
-            <div className="analytics-card-label">Billable to Date</div>
-            <div className="analytics-card-value">{formatCurrency(stats.totalBillable)}</div>
-            <div className="analytics-card-sublabel">
-              {((stats.totalBillable / stats.totalContractValue) * 100).toFixed(1)}% of total
-            </div>
-          </div>
+        <div className="stat-card">
+          <div className="stat-label">Active Projects</div>
+          <div className="stat-value">{stats.activeProjects}</div>
+          <div className="stat-sublabel">{stats.completedProjects} completed</div>
         </div>
 
-        <div className="analytics-card info">
-          <div className="analytics-card-icon">🏗️</div>
-          <div className="analytics-card-content">
-            <div className="analytics-card-label">Active Projects</div>
-            <div className="analytics-card-value">{stats.activeProjects}</div>
-            <div className="analytics-card-sublabel">
-              {stats.completedProjects} completed
-            </div>
-          </div>
-        </div>
-
-        <div className="analytics-card warning">
-          <div className="analytics-card-icon">📈</div>
-          <div className="analytics-card-content">
-            <div className="analytics-card-label">Overall Progress</div>
-            <div className="analytics-card-value">{stats.overallProgress}%</div>
-            <div className="analytics-card-sublabel">
-              Across all projects
-            </div>
+        <div className="stat-card">
+          <div className="stat-label">Overall Progress</div>
+          <div className="stat-value">{stats.overallProgress}%</div>
+          <div className="stat-progress-bar">
+            <div className="stat-progress-fill" style={{ width: `${stats.overallProgress}%` }}></div>
           </div>
         </div>
       </div>
 
       {/* Action Items */}
-      <div className="card">
-        <h3>Pending Action Items</h3>
-        <div className="action-items-grid">
-          <div className="action-item">
-            <div className="action-item-icon pending">📝</div>
-            <div className="action-item-content">
-              <div className="action-item-count">{stats.pendingTMTickets}</div>
-              <div className="action-item-label">T&M Tickets Pending Approval</div>
-            </div>
-          </div>
-
-          <div className="action-item">
-            <div className="action-item-icon danger">🚨</div>
-            <div className="action-item-content">
-              <div className="action-item-count">{stats.openInjuryReports}</div>
-              <div className="action-item-label">Open Injury Reports</div>
-            </div>
-          </div>
-
-          <div className="action-item">
-            <div className="action-item-icon warning">📦</div>
-            <div className="action-item-content">
-              <div className="action-item-count">{stats.pendingMaterialRequests}</div>
-              <div className="action-item-label">Pending Material Requests</div>
-            </div>
+      {(stats.pendingTMTickets > 0 || stats.openInjuryReports > 0 || stats.pendingMaterialRequests > 0) && (
+        <div className="card">
+          <h3>Action Required</h3>
+          <div className="action-grid">
+            {stats.pendingTMTickets > 0 && (
+              <div className="action-card">
+                <div className="action-count">{stats.pendingTMTickets}</div>
+                <div className="action-label">T&M Tickets Pending</div>
+              </div>
+            )}
+            {stats.openInjuryReports > 0 && (
+              <div className="action-card urgent">
+                <div className="action-count">{stats.openInjuryReports}</div>
+                <div className="action-label">Open Injury Reports</div>
+              </div>
+            )}
+            {stats.pendingMaterialRequests > 0 && (
+              <div className="action-card">
+                <div className="action-count">{stats.pendingMaterialRequests}</div>
+                <div className="action-label">Material Requests</div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Project Health Overview */}
+      {/* Project List */}
       <div className="card">
-        <h3>Project Health Overview</h3>
-        <div className="project-health-list">
-          {projects.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-              No projects yet
-            </div>
-          ) : (
-            projects.map(project => {
+        <h3>Projects</h3>
+        {projects.length === 0 ? (
+          <div className="empty-state-compact">
+            <p>No projects yet</p>
+          </div>
+        ) : (
+          <div className="project-grid">
+            {projects.map(project => {
               const projectAreas = allAreas.filter(a => a.project_id === project.id)
               const progress = calculateProgress(projectAreas)
               const billable = (progress / 100) * project.contract_value
@@ -211,245 +187,231 @@ export default function Analytics({ onShowToast }) {
               const projectMaterials = materialRequests.filter(m => m.project_id === project.id && m.status === 'pending').length
 
               return (
-                <div key={project.id} className="project-health-item">
-                  <div className="project-health-header">
-                    <div>
-                      <div className="project-health-name">{project.name}</div>
-                      <div className="project-health-value">{formatCurrency(project.contract_value)}</div>
+                <div key={project.id} className="project-card-compact">
+                  <div className="project-header-compact">
+                    <div className="project-name-compact">{project.name}</div>
+                    <div className="project-value-compact">{formatCurrency(project.contract_value)}</div>
+                  </div>
+
+                  <div className="project-metrics">
+                    <div className="metric">
+                      <span className="metric-label">Progress</span>
+                      <span className="metric-value">{progress}%</span>
                     </div>
-                    <div className="project-health-stats">
-                      {pendingTM > 0 && (
-                        <span className="project-health-badge pending">{pendingTM} T&M pending</span>
-                      )}
-                      {projectMaterials > 0 && (
-                        <span className="project-health-badge warning">{projectMaterials} materials needed</span>
-                      )}
+                    <div className="metric">
+                      <span className="metric-label">Billable</span>
+                      <span className="metric-value">{formatCurrency(billable)}</span>
                     </div>
                   </div>
-                  <div className="project-health-progress">
-                    <div className="progress-info">
-                      <span className="progress-label">Progress: {progress}%</span>
-                      <span className="progress-billable">{formatCurrency(billable)} billable</span>
-                    </div>
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-                    </div>
+
+                  <div className="progress-bar-thin">
+                    <div className="progress-fill-thin" style={{ width: `${progress}%` }}></div>
                   </div>
+
+                  {(pendingTM > 0 || projectMaterials > 0) && (
+                    <div className="project-alerts">
+                      {pendingTM > 0 && <span className="alert-badge">{pendingTM} pending T&M</span>}
+                      {projectMaterials > 0 && <span className="alert-badge">{projectMaterials} materials</span>}
+                    </div>
+                  )}
                 </div>
               )
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       <style>{`
         .analytics-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 1.5rem;
           margin-bottom: 2rem;
         }
 
-        .analytics-card {
+        .stat-card {
           background: white;
-          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
           padding: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          border-left: 4px solid var(--card-border-color);
+          transition: all 0.2s;
         }
 
-        .analytics-card.primary {
-          --card-border-color: #3b82f6;
-          background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+        .stat-card:hover {
+          border-color: #d1d5db;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        .analytics-card.success {
-          --card-border-color: #10b981;
-          background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+        .stat-card.highlight {
+          border-color: #2563eb;
+          background: linear-gradient(to bottom, #ffffff, #f8fafc);
         }
 
-        .analytics-card.info {
-          --card-border-color: #8b5cf6;
-          background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+        .stat-label {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #6b7280;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
-        .analytics-card.warning {
-          --card-border-color: #f59e0b;
-          background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
-        }
-
-        .analytics-card-icon {
-          font-size: 2.5rem;
+        .stat-value {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #111827;
           line-height: 1;
         }
 
-        .analytics-card-content {
-          flex: 1;
+        .stat-sublabel {
+          font-size: 0.875rem;
+          color: #9ca3af;
+          margin-top: 0.5rem;
         }
 
-        .analytics-card-label {
-          font-size: 0.875rem;
-          color: #6b7280;
+        .stat-progress-bar {
+          height: 4px;
+          background: #e5e7eb;
+          border-radius: 2px;
+          overflow: hidden;
+          margin-top: 0.75rem;
+        }
+
+        .stat-progress-fill {
+          height: 100%;
+          background: #2563eb;
+          border-radius: 2px;
+          transition: width 0.3s ease;
+        }
+
+        .action-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 1rem;
+        }
+
+        .action-card {
+          padding: 1.25rem;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-left: 3px solid #2563eb;
+          border-radius: 6px;
+          text-align: center;
+        }
+
+        .action-card.urgent {
+          border-left-color: #dc2626;
+          background: #fef2f2;
+        }
+
+        .action-count {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #111827;
           margin-bottom: 0.25rem;
         }
 
-        .analytics-card-value {
-          font-size: 1.875rem;
-          font-weight: 700;
-          color: #111827;
-          line-height: 1;
-        }
-
-        .analytics-card-sublabel {
-          font-size: 0.75rem;
-          color: #9ca3af;
-          margin-top: 0.25rem;
-        }
-
-        .action-items-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .action-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem;
-          background: #f9fafb;
-          border-radius: 8px;
-        }
-
-        .action-item-icon {
-          font-size: 2rem;
-          width: 3rem;
-          height: 3rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-        }
-
-        .action-item-icon.pending {
-          background: #fef3c7;
-        }
-
-        .action-item-icon.danger {
-          background: #fee2e2;
-        }
-
-        .action-item-icon.warning {
-          background: #ffedd5;
-        }
-
-        .action-item-content {
-          flex: 1;
-        }
-
-        .action-item-count {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #111827;
-        }
-
-        .action-item-label {
+        .action-label {
           font-size: 0.875rem;
           color: #6b7280;
+          font-weight: 500;
         }
 
-        .project-health-list {
-          display: flex;
-          flex-direction: column;
+        .project-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 1rem;
         }
 
-        .project-health-item {
-          padding: 1.25rem;
+        .project-card-compact {
           border: 1px solid #e5e7eb;
           border-radius: 8px;
-          background: #ffffff;
+          padding: 1.25rem;
+          background: white;
+          transition: all 0.2s;
         }
 
-        .project-health-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
+        .project-card-compact:hover {
+          border-color: #d1d5db;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .project-header-compact {
           margin-bottom: 1rem;
         }
 
-        .project-health-name {
-          font-size: 1.125rem;
+        .project-name-compact {
+          font-size: 1rem;
           font-weight: 600;
           color: #111827;
           margin-bottom: 0.25rem;
         }
 
-        .project-health-value {
+        .project-value-compact {
           font-size: 0.875rem;
           color: #6b7280;
         }
 
-        .project-health-stats {
+        .project-metrics {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .metric {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .metric-label {
+          font-size: 0.75rem;
+          color: #9ca3af;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .progress-bar-thin {
+          height: 6px;
+          background: #e5e7eb;
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 0.75rem;
+        }
+
+        .progress-fill-thin {
+          height: 100%;
+          background: #2563eb;
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+
+        .project-alerts {
           display: flex;
           flex-wrap: wrap;
           gap: 0.5rem;
         }
 
-        .project-health-badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 12px;
-          font-size: 0.75rem;
-          font-weight: 500;
-          white-space: nowrap;
-        }
-
-        .project-health-badge.pending {
+        .alert-badge {
+          padding: 0.25rem 0.625rem;
           background: #fef3c7;
           color: #92400e;
-        }
-
-        .project-health-badge.warning {
-          background: #ffedd5;
-          color: #9a3412;
-        }
-
-        .project-health-progress {
-          margin-top: 0.75rem;
-        }
-
-        .progress-info {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-          font-size: 0.875rem;
-        }
-
-        .progress-label {
-          color: #374151;
+          border-radius: 4px;
+          font-size: 0.75rem;
           font-weight: 500;
         }
 
-        .progress-billable {
-          color: #10b981;
-          font-weight: 600;
-        }
-
-        .progress-bar {
-          height: 8px;
-          background: #e5e7eb;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
-          border-radius: 4px;
-          transition: width 0.3s ease;
+        .empty-state-compact {
+          text-align: center;
+          padding: 2rem;
+          color: #9ca3af;
         }
 
         @media (max-width: 768px) {
@@ -457,13 +419,12 @@ export default function Analytics({ onShowToast }) {
             grid-template-columns: 1fr;
           }
 
-          .action-items-grid {
+          .project-grid {
             grid-template-columns: 1fr;
           }
 
-          .project-health-header {
-            flex-direction: column;
-            gap: 0.75rem;
+          .action-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
