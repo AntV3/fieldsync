@@ -223,25 +223,25 @@ export default function App() {
                 className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
               >
-                Dashboard
+                Overview
               </button>
               <button
                 className={`nav-tab ${activeTab === 'field' ? 'active' : ''}`}
                 onClick={() => setActiveTab('field')}
               >
-                Field
+                Reports
               </button>
               <button
                 className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
                 onClick={() => setActiveTab('setup')}
               >
-                + New Project
+                New Project
               </button>
               <button
                 className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
                 onClick={() => setActiveTab('branding')}
               >
-                Branding
+                Settings
               </button>
             </div>
             <div className="nav-user">

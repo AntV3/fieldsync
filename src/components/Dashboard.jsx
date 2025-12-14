@@ -11,7 +11,7 @@ export default function Dashboard({ onShowToast }) {
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
-  const [allProjectAreas, setAllProjectAreas] = useState({}) // Store areas for all projects
+  const [allProjectAreas, setAllProjectAreas] = useState({})
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState(null)
@@ -25,7 +25,7 @@ export default function Dashboard({ onShowToast }) {
   useEffect(() => {
     if (selectedProject) {
       loadAreas(selectedProject.id)
-      
+
       // Subscribe to real-time updates
       const subscription = db.subscribeToAreas(selectedProject.id, (payload) => {
         loadAreas(selectedProject.id)
@@ -112,7 +112,7 @@ export default function Dashboard({ onShowToast }) {
   const handleAreaEditChange = (index, field, value) => {
     setEditData(prev => ({
       ...prev,
-      areas: prev.areas.map((area, i) => 
+      areas: prev.areas.map((area, i) =>
         i === index ? { ...area, [field]: value } : area
       )
     }))
@@ -220,7 +220,7 @@ export default function Dashboard({ onShowToast }) {
       const updatedProject = await db.getProject(selectedProject.id)
       setSelectedProject(updatedProject)
       await loadAreas(selectedProject.id)
-      
+
       setEditMode(false)
       setEditData(null)
       onShowToast('Project updated!', 'success')
@@ -247,11 +247,59 @@ export default function Dashboard({ onShowToast }) {
     }
   }
 
+  // Calculate executive metrics
+  const calculateMetrics = () => {
+    const totalContractValue = projects.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+    let totalBillable = 0
+    let totalProgress = 0
+    let activeProjects = 0
+    let projectsAtRisk = []
+
+    projects.forEach(project => {
+      const projectAreas = allProjectAreas[project.id] || []
+      const progress = calculateProgress(projectAreas)
+      const billable = (progress / 100) * (project.contract_value || 0)
+
+      totalBillable += billable
+      totalProgress += progress
+
+      if (progress > 0 && progress < 100) {
+        activeProjects++
+      }
+
+      // Projects are at risk if they're in progress but have areas with issues
+      const status = getOverallStatus(projectAreas)
+      if (progress > 0 && progress < 100 && (status === 'issues' || status === 'delayed')) {
+        projectsAtRisk.push({
+          ...project,
+          areas: projectAreas,
+          progress,
+          status
+        })
+      }
+    })
+
+    const avgProgress = projects.length > 0 ? totalProgress / projects.length : 0
+
+    return {
+      totalContractValue,
+      totalBillable,
+      avgProgress,
+      activeProjects,
+      totalProjects: projects.length,
+      completedProjects: projects.filter(p => {
+        const progress = calculateProgress(allProjectAreas[p.id] || [])
+        return progress === 100
+      }).length,
+      projectsAtRisk
+    }
+  }
+
   if (loading) {
     return (
       <div className="loading">
         <div className="spinner"></div>
-        Loading projects...
+        Loading dashboard...
       </div>
     )
   }
@@ -344,8 +392,8 @@ export default function Dashboard({ onShowToast }) {
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleSaveEdit}
               disabled={saving}
               style={{ flex: 1 }}
@@ -354,8 +402,8 @@ export default function Dashboard({ onShowToast }) {
             </button>
           </div>
 
-          <button 
-            className="btn btn-danger btn-full" 
+          <button
+            className="btn btn-danger btn-full"
             onClick={handleDeleteProject}
           >
             Delete Project
@@ -364,12 +412,12 @@ export default function Dashboard({ onShowToast }) {
       )
     }
 
-    // View Mode
+    // Project Detail View Mode
     return (
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <button className="btn btn-secondary btn-small" onClick={handleBack}>
-            ← Back to Projects
+            ← Back to Dashboard
           </button>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
@@ -444,61 +492,146 @@ export default function Dashboard({ onShowToast }) {
     )
   }
 
-  // Project List View
+  // Empty state
   if (projects.length === 0) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">📋</div>
+        <div className="empty-state-icon">📊</div>
         <h3>No Projects Yet</h3>
-        <p>Create your first project to get started</p>
+        <p>Create your first project to get started with the dashboard</p>
       </div>
     )
   }
 
+  // Executive Overview
+  const metrics = calculateMetrics()
+
   return (
     <div>
-      <h1>Projects</h1>
-      <p className="subtitle">Select a project to view details</p>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1>Executive Overview</h1>
+        <p className="subtitle">Portfolio performance and key metrics</p>
+      </div>
 
-      <div className="project-list">
-        {projects.map(project => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            areas={allProjectAreas[project.id] || []}
-            onClick={() => handleSelectProject(project)}
-          />
-        ))}
+      {/* KPI Cards */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-label">Total Contract Value</div>
+          <div className="kpi-value">{formatCurrency(metrics.totalContractValue)}</div>
+          <div className="kpi-meta">{metrics.totalProjects} projects</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Billable to Date</div>
+          <div className="kpi-value kpi-success">{formatCurrency(metrics.totalBillable)}</div>
+          <div className="kpi-meta">
+            {metrics.totalContractValue > 0
+              ? `${((metrics.totalBillable / metrics.totalContractValue) * 100).toFixed(1)}% of total`
+              : '0%'}
+          </div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Active Projects</div>
+          <div className="kpi-value kpi-info">{metrics.activeProjects}</div>
+          <div className="kpi-meta">{metrics.completedProjects} completed</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Average Progress</div>
+          <div className="kpi-value">{metrics.avgProgress.toFixed(1)}%</div>
+          <div className="kpi-meta">
+            {metrics.projectsAtRisk.length > 0 && (
+              <span style={{ color: 'var(--accent-amber)' }}>
+                {metrics.projectsAtRisk.length} need attention
+              </span>
+            )}
+            {metrics.projectsAtRisk.length === 0 && 'All on track'}
+          </div>
+        </div>
+      </div>
+
+      {/* Projects At Risk Alert */}
+      {metrics.projectsAtRisk.length > 0 && (
+        <div className="card alert-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+            <h3 style={{ margin: 0 }}>Projects Requiring Attention</h3>
+          </div>
+          <div className="projects-at-risk-list">
+            {metrics.projectsAtRisk.map(project => (
+              <div key={project.id} className="risk-item" onClick={() => handleSelectProject(project)}>
+                <div>
+                  <div className="risk-project-name">{project.name}</div>
+                  <div className="risk-project-status">
+                    {project.progress.toFixed(0)}% complete • {getOverallStatusLabel(project.areas)}
+                  </div>
+                </div>
+                <button className="btn btn-secondary btn-small">
+                  View Details →
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Projects Table */}
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ margin: 0 }}>All Projects</h3>
+          <span className="text-muted">{projects.length} total</span>
+        </div>
+
+        <div className="projects-table">
+          <div className="projects-table-header">
+            <div>Project Name</div>
+            <div className="text-right">Contract Value</div>
+            <div className="text-right">Billable</div>
+            <div className="text-center">Progress</div>
+            <div className="text-center">Status</div>
+            <div></div>
+          </div>
+
+          {projects.map(project => {
+            const projectAreas = allProjectAreas[project.id] || []
+            const progress = calculateProgress(projectAreas)
+            const billable = (progress / 100) * (project.contract_value || 0)
+            const status = getOverallStatus(projectAreas)
+            const statusLabel = getOverallStatusLabel(projectAreas)
+
+            return (
+              <div key={project.id} className="projects-table-row" onClick={() => handleSelectProject(project)}>
+                <div className="project-name-cell">
+                  <div className="project-table-name">{project.name}</div>
+                  {project.pin && <div className="project-table-pin">PIN: {project.pin}</div>}
+                </div>
+                <div className="text-right project-value">{formatCurrency(project.contract_value)}</div>
+                <div className="text-right project-billable">{formatCurrency(billable)}</div>
+                <div className="text-center">
+                  <div className="table-progress-container">
+                    <span className="table-progress-value">{progress}%</span>
+                    <div className="table-progress-bar">
+                      <div className="table-progress-fill" style={{ width: `${progress}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <span className={`status-badge ${status}`}>{statusLabel}</span>
+                </div>
+                <div className="text-right">
+                  <button className="btn-icon" onClick={(e) => {
+                    e.stopPropagation()
+                    handleSelectProject(project)
+                  }}>
+                    →
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
 }
-
-function ProjectCard({ project, areas, onClick }) {
-  const progress = calculateProgress(areas)
-  const status = getOverallStatus(areas)
-  const statusLabel = getOverallStatusLabel(areas)
-
-  return (
-    <div className="project-card" onClick={onClick}>
-      <div className="project-card-header">
-        <div>
-          <div className="project-card-name">{project.name}</div>
-          <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
-        </div>
-        <span className={`status-badge ${status}`}>{statusLabel}</span>
-      </div>
-      <div className="project-card-progress">
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>Progress</span>
-          <span style={{ fontWeight: 600 }}>{progress}%</span>
-        </div>
-        <div className="mini-progress-bar">
-          <div className="mini-progress-fill" style={{ width: `${progress}%` }}></div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-
