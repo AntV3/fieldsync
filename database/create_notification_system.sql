@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS notification_roles (
   UNIQUE(company_id, role_key)
 );
 
-CREATE INDEX idx_notification_roles_company ON notification_roles(company_id);
+CREATE INDEX IF NOT EXISTS idx_notification_roles_company ON notification_roles(company_id);
 
 -- Disable RLS for development
 ALTER TABLE notification_roles DISABLE ROW LEVEL SECURITY;
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS user_notification_roles (
   UNIQUE(user_id, role_id)
 );
 
-CREATE INDEX idx_user_notification_roles_user ON user_notification_roles(user_id);
-CREATE INDEX idx_user_notification_roles_role ON user_notification_roles(role_id);
+CREATE INDEX IF NOT EXISTS idx_user_notification_roles_user ON user_notification_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_notification_roles_role ON user_notification_roles(role_id);
 
 -- Disable RLS for development
 ALTER TABLE user_notification_roles DISABLE ROW LEVEL SECURITY;
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS notification_types (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_notification_types_category ON notification_types(category);
+CREATE INDEX IF NOT EXISTS idx_notification_types_category ON notification_types(category);
 
 -- Disable RLS for development
 ALTER TABLE notification_types DISABLE ROW LEVEL SECURITY;
@@ -69,8 +69,8 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   UNIQUE(user_id, company_id, notification_type_id)
 );
 
-CREATE INDEX idx_notification_prefs_user ON notification_preferences(user_id);
-CREATE INDEX idx_notification_prefs_company ON notification_preferences(company_id);
+CREATE INDEX IF NOT EXISTS idx_notification_prefs_user ON notification_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_prefs_company ON notification_preferences(company_id);
 
 -- Disable RLS for development
 ALTER TABLE notification_preferences DISABLE ROW LEVEL SECURITY;
@@ -98,10 +98,10 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_notifications_company ON notifications(company_id);
-CREATE INDEX idx_notifications_created ON notifications(created_at DESC);
-CREATE INDEX idx_notifications_unread ON notifications(user_id, in_app_read) WHERE in_app_read = false;
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_company ON notifications(company_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, in_app_read) WHERE in_app_read = false;
 
 -- Disable RLS for development
 ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
