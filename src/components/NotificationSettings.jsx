@@ -28,6 +28,7 @@ export default function NotificationSettings({ company, user, onShowToast }) {
   // Notification Types
   const [notificationTypes, setNotificationTypes] = useState([])
   const [userPreferences, setUserPreferences] = useState([])
+  const [myRoles, setMyRoles] = useState([])
 
   useEffect(() => {
     loadNotificationSettings()
@@ -59,10 +60,15 @@ export default function NotificationSettings({ company, user, onShowToast }) {
       const types = await db.getNotificationTypes()
       setNotificationTypes(types)
 
-      // Load user's preferences
+      // Load user's preferences and roles
       if (user?.id) {
         const prefs = await db.getNotificationPreferences(user.id, company.id)
         setUserPreferences(prefs)
+
+        // Load user's assigned notification roles
+        const userRoles = await db.getUserNotificationRoles(user.id)
+        const companyRoles = userRoles.filter(ur => ur.notification_roles?.company_id === company.id)
+        setMyRoles(companyRoles.map(ur => ur.notification_roles))
       }
     } catch (error) {
       console.error('Error loading notification settings:', error)
@@ -427,6 +433,44 @@ export default function NotificationSettings({ company, user, onShowToast }) {
               <p>Choose how you want to receive notifications</p>
             </div>
           </div>
+
+          {/* My Assigned Roles */}
+          {myRoles.length > 0 && (
+            <div className="my-roles-section" style={{
+              background: 'var(--bg-card)',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              marginBottom: '2rem',
+              border: '2px solid var(--accent-blue)'
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--accent-blue)' }}>
+                My Notification Roles
+              </h3>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                You are assigned to receive notifications for the following roles. Contact your admin to change role assignments.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                {myRoles.map(role => (
+                  <div key={role.id} style={{
+                    background: 'var(--accent-blue-light)',
+                    border: '1px solid var(--accent-blue)',
+                    borderRadius: '8px',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem'
+                  }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {role.role_name}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {role.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="notification-types-grid">
             {Object.entries(
