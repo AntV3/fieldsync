@@ -1063,6 +1063,31 @@ export const db = {
     }
   },
 
+  // Get all users for a company
+  async getUsersForCompany(companyId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('user_companies')
+        .select(`
+          user_id,
+          users (id, email, name, role)
+        `)
+        .eq('company_id', companyId)
+
+      if (error) {
+        console.error('Error fetching users for company:', error)
+        return []
+      }
+
+      return data?.map(uc => uc.users).filter(Boolean) || []
+    } catch (error) {
+      console.error('Error fetching users for company:', error)
+      return []
+    }
+  },
+
   // ============================================
   // Photo Storage
   // ============================================

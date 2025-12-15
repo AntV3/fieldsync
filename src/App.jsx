@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
+import NotificationSettings from './components/NotificationSettings'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -277,6 +278,12 @@ export default function App() {
               >
                 Branding
               </button>
+              <button
+                className={`nav-tab ${activeTab === 'notifications' ? 'active' : ''}`}
+                onClick={() => setActiveTab('notifications')}
+              >
+                Notifications
+              </button>
             </div>
             <div className="nav-user">
               <span className="nav-user-name">{user?.full_name || user?.email}</span>
@@ -304,6 +311,13 @@ export default function App() {
           {activeTab === 'branding' && (
             <BrandingSettings
               company={company}
+              onShowToast={showToast}
+            />
+          )}
+          {activeTab === 'notifications' && (
+            <NotificationSettings
+              company={company}
+              user={user}
               onShowToast={showToast}
             />
           )}
