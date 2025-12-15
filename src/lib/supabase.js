@@ -1004,9 +1004,18 @@ export const db = {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
-        .eq('code', code)
+        .eq('code', code.toUpperCase().trim())
         .single()
-      if (error) return null
+
+      if (error) {
+        console.error('Error fetching company by code:', {
+          code,
+          error: error.message,
+          hint: error.hint,
+          details: error.details
+        })
+        return null
+      }
       return data
     }
     return null
