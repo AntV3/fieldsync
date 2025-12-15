@@ -3,7 +3,12 @@ import { db } from '../lib/supabase'
 
 export default function NotificationSettings({ company, user, onShowToast }) {
   const [loading, setLoading] = useState(true)
-  const [activeSection, setActiveSection] = useState('roles') // 'roles' or 'preferences'
+
+  // Check if user can manage roles (admin or office role)
+  const canManageRoles = user?.role === 'admin' || user?.role === 'office'
+
+  // Default to 'roles' for admins/office, 'preferences' for regular users
+  const [activeSection, setActiveSection] = useState(canManageRoles ? 'roles' : 'preferences')
 
   // Roles & Assignments
   const [notificationRoles, setNotificationRoles] = useState([])
@@ -279,12 +284,14 @@ export default function NotificationSettings({ company, user, onShowToast }) {
     <div className="notification-settings">
       {/* Section Tabs */}
       <div className="settings-tabs">
-        <button
-          className={`settings-tab ${activeSection === 'roles' ? 'active' : ''}`}
-          onClick={() => setActiveSection('roles')}
-        >
-          Notification Roles
-        </button>
+        {canManageRoles && (
+          <button
+            className={`settings-tab ${activeSection === 'roles' ? 'active' : ''}`}
+            onClick={() => setActiveSection('roles')}
+          >
+            Manage Roles
+          </button>
+        )}
         <button
           className={`settings-tab ${activeSection === 'preferences' ? 'active' : ''}`}
           onClick={() => setActiveSection('preferences')}
@@ -293,13 +300,13 @@ export default function NotificationSettings({ company, user, onShowToast }) {
         </button>
       </div>
 
-      {/* ROLES SECTION */}
-      {activeSection === 'roles' && (
+      {/* ROLES SECTION - Admin/Office Only */}
+      {activeSection === 'roles' && canManageRoles && (
         <div className="roles-section">
           <div className="section-header">
             <div>
-              <h2>Notification Roles</h2>
-              <p>Assign users to roles that receive specific notifications</p>
+              <h2>Manage Notification Roles</h2>
+              <p>Assign users and external emails to roles that receive specific notifications</p>
             </div>
             <button
               className="btn-primary"
@@ -447,7 +454,7 @@ export default function NotificationSettings({ company, user, onShowToast }) {
                 My Notification Roles
               </h3>
               <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                You are assigned to receive notifications for the following roles. Contact your admin to change role assignments.
+                You are assigned to receive notifications for the following roles. {canManageRoles ? 'Switch to "Manage Roles" to change assignments.' : 'Contact your office admin to change role assignments.'}
               </p>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 {myRoles.map(role => (
