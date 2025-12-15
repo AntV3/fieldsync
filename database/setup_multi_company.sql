@@ -34,7 +34,6 @@ SELECT
   '=== YOUR USER INFO ===' as info,
   u.id as user_id,
   u.email,
-  u.full_name,
   u.company_id as current_company_id
 FROM users u
 ORDER BY u.email;
