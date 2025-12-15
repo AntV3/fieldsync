@@ -48,6 +48,37 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1.5rem;
+}
+
+/* Company Switcher */
+.company-switcher {
+  flex-shrink: 0;
+}
+
+.company-select {
+  padding: 0.5rem 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 200px;
+}
+
+.company-select:hover {
+  border-color: var(--accent-blue);
+  background: var(--bg-card);
+}
+
+.company-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .logo {

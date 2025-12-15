@@ -1034,6 +1034,35 @@ export const db = {
     return null
   },
 
+  // Get all companies a user has access to
+  async getUserCompanies(userId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('user_companies')
+        .select(`
+          *,
+          companies (*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching user companies:', error)
+        return []
+      }
+
+      return data?.map(uc => ({
+        ...uc.companies,
+        userRole: uc.role
+      })) || []
+    } catch (error) {
+      console.error('Error fetching user companies:', error)
+      return []
+    }
+  },
+
   // ============================================
   // Photo Storage
   // ============================================

@@ -15,6 +15,7 @@ export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
+  const [companies, setCompanies] = useState([]) // All companies user has access to
   const [foremanProject, setForemanProject] = useState(null)
   const [shareToken, setShareToken] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -76,7 +77,7 @@ export default function App() {
         email,
         password
       })
-      
+
       if (error) {
         showToast(error.message || 'Invalid credentials', 'error')
         return
@@ -85,7 +86,7 @@ export default function App() {
       // Get user profile
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*, companies(*)')
+        .select('*')
         .eq('id', data.user.id)
         .single()
 
@@ -97,8 +98,18 @@ export default function App() {
 
       if (userData) {
         setUser(userData)
-        setCompany(userData.companies)
-        setView('office')
+
+        // Load all companies user has access to
+        const userCompanies = await db.getUserCompanies(userData.id)
+        setCompanies(userCompanies)
+
+        // Set first company as active (or show company selector if multiple)
+        if (userCompanies.length > 0) {
+          setCompany(userCompanies[0])
+          setView('office')
+        } else {
+          showToast('No companies found. Please contact admin.', 'error')
+        }
       } else {
         showToast('Profile not found. Please contact admin.', 'error')
       }
@@ -218,6 +229,29 @@ export default function App() {
         <nav className="nav">
           <div className="nav-content">
             <Logo />
+
+            {/* Company Switcher */}
+            {companies.length > 1 && (
+              <div className="company-switcher">
+                <select
+                  value={company?.id || ''}
+                  onChange={(e) => {
+                    const selectedCompany = companies.find(c => c.id === e.target.value)
+                    setCompany(selectedCompany)
+                    setActiveTab('dashboard')
+                    showToast(`Switched to ${selectedCompany.name}`, 'success')
+                  }}
+                  className="company-select"
+                >
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="nav-tabs">
               <button
                 className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
