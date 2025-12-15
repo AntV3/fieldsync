@@ -142,18 +142,56 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
     setLoading(true)
     try {
-      // 1. Create auth user
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', joinEmail)
+        .single()
+
+      if (existingUser) {
+        // User exists - check if they're already in this company
+        const { data: existingMapping } = await supabase
+          .from('user_companies')
+          .select('*')
+          .eq('user_id', existingUser.id)
+          .eq('company_id', joinCompany.id)
+          .single()
+
+        if (existingMapping) {
+          onShowToast('You already belong to this company! Just sign in.', 'error')
+          setMode('office')
+          return
+        }
+
+        // Add existing user to new company
+        const { error: mappingError } = await supabase
+          .from('user_companies')
+          .insert({
+            user_id: existingUser.id,
+            company_id: joinCompany.id,
+            role: 'member'
+          })
+
+        if (mappingError) throw mappingError
+
+        onShowToast(`Added to ${joinCompany.name}! Sign in to continue.`, 'success')
+        setMode('office')
+        return
+      }
+
+      // New user - create account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: joinEmail,
         password: joinPassword
       })
-      
+
       if (authError) throw authError
 
       const userId = authData.user?.id
       if (!userId) throw new Error('Failed to create user')
 
-      // 2. Create user record
+      // Create user record
       const { error: userError } = await supabase
         .from('users')
         .insert({
@@ -168,9 +206,20 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
       if (userError) throw userError
 
-      // 3. Show success and reload
+      // Add to user_companies table
+      const { error: mappingError } = await supabase
+        .from('user_companies')
+        .insert({
+          user_id: userId,
+          company_id: joinCompany.id,
+          role: 'member'
+        })
+
+      if (mappingError) throw mappingError
+
+      // Show success and reload
       onShowToast('Account created! Logging you in...', 'success')
-      
+
       // Small delay then reload to trigger auth
       setTimeout(() => {
         window.location.reload()
