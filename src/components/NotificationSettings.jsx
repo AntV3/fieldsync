@@ -88,6 +88,13 @@ export default function NotificationSettings({ company, user, onShowToast }) {
   const handleAssignUser = async (userId) => {
     if (!selectedRole) return
 
+    // Check if user is already assigned
+    const alreadyAssigned = roleUsers.some(ru => ru.users.id === userId)
+    if (alreadyAssigned) {
+      onShowToast?.('This user is already assigned to this role', 'error')
+      return
+    }
+
     try {
       const result = await db.assignNotificationRole(userId, selectedRole.id, user.id)
       if (result.success) {
@@ -95,11 +102,20 @@ export default function NotificationSettings({ company, user, onShowToast }) {
         loadRoleUsers(selectedRole.id)
         setShowAddUserModal(false)
       } else {
-        onShowToast?.(result.error || 'Failed to assign user', 'error')
+        // Handle duplicate key error specifically
+        if (result.error?.includes('duplicate key') || result.error?.includes('already exists')) {
+          onShowToast?.('This user is already assigned to this role', 'error')
+        } else {
+          onShowToast?.(result.error || 'Failed to assign user', 'error')
+        }
       }
     } catch (error) {
       console.error('Error assigning user:', error)
-      onShowToast?.('Failed to assign user', 'error')
+      if (error.message?.includes('duplicate key') || error.code === '23505') {
+        onShowToast?.('This user is already assigned to this role', 'error')
+      } else {
+        onShowToast?.('Failed to assign user', 'error')
+      }
     }
   }
 
