@@ -256,7 +256,7 @@ export default function App() {
         {/* Main Content */}
         <div className="container">
           {activeTab === 'dashboard' && (
-            <Dashboard onShowToast={showToast} />
+            <Dashboard company={company} onShowToast={showToast} />
           )}
           {activeTab === 'field' && (
             <Field onShowToast={showToast} />

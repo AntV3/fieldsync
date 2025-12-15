@@ -13,8 +13,13 @@ export default function Logo({ className = '', showPoweredBy = false }) {
         />
       ) : (
         <div className="logo">
-          {branding.custom_app_name || 'Field'}
-          <span>Sync</span>
+          {branding.custom_app_name ? (
+            branding.custom_app_name
+          ) : (
+            <>
+              Field<span>Sync</span>
+            </>
+          )}
         </div>
       )}
 
