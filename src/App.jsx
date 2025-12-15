@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { isSupabaseConfigured, auth, supabase } from './lib/supabase'
+import { isSupabaseConfigured, auth, supabase, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
