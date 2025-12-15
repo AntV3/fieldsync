@@ -2262,6 +2262,349 @@ export const db = {
   async getRecentActivity(companyId, limit = 20) {
     // Return empty for now - will enable when tables exist
     return []
+  },
+
+  // ============================================
+  // NOTIFICATION SYSTEM
+  // ============================================
+
+  // Get all notification roles for a company
+  async getNotificationRoles(companyId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('notification_roles')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('role_name')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching notification roles:', error)
+      return []
+    }
+  },
+
+  // Get users assigned to a specific notification role
+  async getUsersByNotificationRole(roleId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('user_notification_roles')
+        .select(`
+          *,
+          users (id, email, name)
+        `)
+        .eq('role_id', roleId)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching users by role:', error)
+      return []
+    }
+  },
+
+  // Get all notification roles assigned to a user
+  async getUserNotificationRoles(userId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('user_notification_roles')
+        .select(`
+          *,
+          notification_roles (*)
+        `)
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching user roles:', error)
+      return []
+    }
+  },
+
+  // Assign a user to a notification role
+  async assignNotificationRole(userId, roleId, assignedBy) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('user_notification_roles')
+        .insert({
+          user_id: userId,
+          role_id: roleId,
+          assigned_by: assignedBy
+        })
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error assigning notification role:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Remove a user from a notification role
+  async removeNotificationRole(userId, roleId) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('user_notification_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role_id', roleId)
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error removing notification role:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Create a new notification role
+  async createNotificationRole(companyId, roleName, roleKey, description) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { data, error } = await supabase
+        .from('notification_roles')
+        .insert({
+          company_id: companyId,
+          role_name: roleName,
+          role_key: roleKey,
+          description: description
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error creating notification role:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Get all notification types
+  async getNotificationTypes() {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('notification_types')
+        .select('*')
+        .order('category', { ascending: true })
+        .order('type_name', { ascending: true })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching notification types:', error)
+      return []
+    }
+  },
+
+  // Get notification preferences for a user
+  async getNotificationPreferences(userId, companyId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select(`
+          *,
+          notification_types (*)
+        `)
+        .eq('user_id', userId)
+        .eq('company_id', companyId)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching notification preferences:', error)
+      return []
+    }
+  },
+
+  // Update notification preference
+  async updateNotificationPreference(userId, companyId, notificationTypeId, preferences) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: userId,
+          company_id: companyId,
+          notification_type_id: notificationTypeId,
+          email_enabled: preferences.email_enabled,
+          in_app_enabled: preferences.in_app_enabled,
+          sms_enabled: preferences.sms_enabled || false,
+          updated_at: new Date().toISOString()
+        })
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error updating notification preference:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Create a notification (this will be called by material requests, injury reports, etc.)
+  async createNotification(companyId, notificationTypeKey, userId, title, message, linkUrl, metadata) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      // Get the notification type ID
+      const { data: notificationType } = await supabase
+        .from('notification_types')
+        .select('id')
+        .eq('type_key', notificationTypeKey)
+        .single()
+
+      if (!notificationType) {
+        throw new Error(`Notification type ${notificationTypeKey} not found`)
+      }
+
+      // Create the notification
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          company_id: companyId,
+          notification_type_id: notificationType.id,
+          user_id: userId,
+          title,
+          message,
+          link_url: linkUrl,
+          metadata: metadata || {}
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // TODO: Trigger email sending here (Phase 4)
+      // await this.sendNotificationEmail(data.id)
+
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error creating notification:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Get unread notifications for a user
+  async getUnreadNotifications(userId, limit = 50) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+          *,
+          notification_types (type_name, category)
+        `)
+        .eq('user_id', userId)
+        .eq('in_app_read', false)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching unread notifications:', error)
+      return []
+    }
+  },
+
+  // Mark notification as read
+  async markNotificationRead(notificationId) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({
+          in_app_read: true,
+          in_app_read_at: new Date().toISOString()
+        })
+        .eq('id', notificationId)
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Get users who should receive a notification for a specific type
+  async getUsersForNotification(companyId, notificationTypeKey, roleKey) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      // Get the role for this company
+      const { data: role } = await supabase
+        .from('notification_roles')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('role_key', roleKey)
+        .single()
+
+      if (!role) return []
+
+      // Get users assigned to this role
+      const { data: userRoles } = await supabase
+        .from('user_notification_roles')
+        .select(`
+          user_id,
+          users (id, email, name)
+        `)
+        .eq('role_id', role.id)
+
+      if (!userRoles) return []
+
+      // Get notification type
+      const { data: notificationType } = await supabase
+        .from('notification_types')
+        .select('id')
+        .eq('type_key', notificationTypeKey)
+        .single()
+
+      if (!notificationType) return userRoles.map(ur => ur.users)
+
+      // Filter by notification preferences
+      const usersWithPreferences = await Promise.all(
+        userRoles.map(async (ur) => {
+          const { data: prefs } = await supabase
+            .from('notification_preferences')
+            .select('email_enabled, in_app_enabled')
+            .eq('user_id', ur.user_id)
+            .eq('company_id', companyId)
+            .eq('notification_type_id', notificationType.id)
+            .single()
+
+          // If no preference exists, assume enabled (default behavior)
+          const shouldNotify = !prefs || prefs.email_enabled || prefs.in_app_enabled
+
+          return shouldNotify ? ur.users : null
+        })
+      )
+
+      return usersWithPreferences.filter(u => u !== null)
+    } catch (error) {
+      console.error('Error getting users for notification:', error)
+      return []
+    }
   }
 }
 
