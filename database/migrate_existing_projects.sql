@@ -7,9 +7,28 @@
 -- It only adds data, doesn't remove or change existing data
 
 -- ============================================
--- 1. ADD PROJECT OWNERS TO EXISTING PROJECTS
--- If project has created_by, make them owner
--- Otherwise, make the company admin the owner
+-- 1. ENSURE created_by COLUMN EXISTS
+-- Add it if missing (for older schemas)
+-- ============================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'projects' AND column_name = 'created_by'
+  ) THEN
+    ALTER TABLE projects ADD COLUMN created_by UUID REFERENCES users(id);
+    RAISE NOTICE '✅ Added created_by column to projects table';
+  ELSE
+    RAISE NOTICE '✅ created_by column already exists';
+  END IF;
+END $$;
+
+-- ============================================
+-- 2. ADD PROJECT OWNERS TO EXISTING PROJECTS
+-- Strategy:
+-- 1. If project has created_by, make them owner
+-- 2. Otherwise, make the first admin/office user the owner
 -- ============================================
 
 DO $$
@@ -17,10 +36,15 @@ DECLARE
   v_project RECORD;
   v_owner_id UUID;
   v_projects_migrated INT := 0;
+  v_projects_assigned_admin INT := 0;
 BEGIN
   RAISE NOTICE 'Starting migration of existing projects...';
 
-  FOR v_project IN SELECT id, created_by, company_id FROM projects WHERE created_by IS NOT NULL
+  -- First pass: Assign owners to projects with created_by
+  FOR v_project IN
+    SELECT id, created_by, company_id
+    FROM projects
+    WHERE created_by IS NOT NULL
   LOOP
     -- Add project creator as owner (if not already added by trigger)
     INSERT INTO project_users (project_id, user_id, project_role, invited_by)
@@ -30,9 +54,9 @@ BEGIN
     v_projects_migrated := v_projects_migrated + 1;
   END LOOP;
 
-  RAISE NOTICE '✅ Migrated % projects - assigned owners', v_projects_migrated;
+  RAISE NOTICE '✅ Assigned owners to % projects (from created_by)', v_projects_migrated;
 
-  -- Handle projects without created_by (shouldn't happen, but just in case)
+  -- Second pass: Handle projects without created_by or without any owner
   FOR v_project IN
     SELECT p.id, p.company_id
     FROM projects p
@@ -50,13 +74,33 @@ BEGIN
     IF v_owner_id IS NOT NULL THEN
       INSERT INTO project_users (project_id, user_id, project_role)
       VALUES (v_project.id, v_owner_id, 'owner')
-      ON CONFLICT DO NOTHING;
+      ON CONFLICT (project_id, user_id) DO NOTHING;
 
-      RAISE NOTICE '⚠️  Project % had no creator - assigned company admin as owner', v_project.id;
+      v_projects_assigned_admin := v_projects_assigned_admin + 1;
     ELSE
-      RAISE WARNING '❌ Project % has no owner and no admin found for company', v_project.id;
+      -- Last resort: find ANY user in the company
+      SELECT u.id INTO v_owner_id
+      FROM users u
+      WHERE u.company_id = v_project.company_id
+      ORDER BY u.created_at
+      LIMIT 1;
+
+      IF v_owner_id IS NOT NULL THEN
+        INSERT INTO project_users (project_id, user_id, project_role)
+        VALUES (v_project.id, v_owner_id, 'owner')
+        ON CONFLICT (project_id, user_id) DO NOTHING;
+
+        RAISE NOTICE '⚠️  Project % - assigned first company user as owner', v_project.id;
+        v_projects_assigned_admin := v_projects_assigned_admin + 1;
+      ELSE
+        RAISE WARNING '❌ Project % has no users in company - cannot assign owner!', v_project.id;
+      END IF;
     END IF;
   END LOOP;
+
+  IF v_projects_assigned_admin > 0 THEN
+    RAISE NOTICE '⚠️  Assigned owners to % projects without created_by (used company admin)', v_projects_assigned_admin;
+  END IF;
 END $$;
 
 
