@@ -30,12 +30,12 @@ export default function Dashboard({ company, onShowToast }) {
     if (selectedProject) {
       loadAreas(selectedProject.id)
 
-      // Subscribe to real-time updates
-      const subscription = db.subscribeToAreas(selectedProject.id, (payload) => {
-        loadAreas(selectedProject.id)
-      })
-
-      return () => db.unsubscribe(subscription)
+      // NOTE: Realtime subscriptions disabled to prevent WebSocket errors
+      // Re-enable when realtime is needed:
+      // const subscription = db.subscribeToAreas(selectedProject.id, (payload) => {
+      //   loadAreas(selectedProject.id)
+      // })
+      // return () => db.unsubscribe(subscription)
     }
   }, [selectedProject])
 
