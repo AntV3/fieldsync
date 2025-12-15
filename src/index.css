@@ -6118,4 +6118,274 @@ input::placeholder {
   .type-toggles {
     margin-left: 0;
   }
+
+  .team-member-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .member-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* ============================================
+   PROJECT TEAM STYLES
+   ============================================ */
+
+.project-team {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.team-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.team-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.team-member-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.team-member-card:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.member-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.member-role-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.member-email {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.member-meta {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+
+.member-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.member-badge {
+  padding: 0.5rem 1rem;
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ============================================
+   PERMISSION EDITOR STYLES
+   ============================================ */
+
+.permission-editor-modal {
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.permission-editor-modal .modal-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.template-selector {
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.template-selector label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.template-selector select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.template-selector small {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.permissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.permission-category {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.category-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.btn-text-small {
+  background: none;
+  border: none;
+  color: var(--accent-blue);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-text-small:hover {
+  background: var(--accent-blue-light);
+}
+
+.permission-checkboxes {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.permission-checkbox-label {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.permission-checkbox-label:hover {
+  background: var(--bg-secondary);
+}
+
+.permission-checkbox-label input[type="checkbox"] {
+  margin-top: 0.25rem;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.permission-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.permission-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.permission-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.permission-summary {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.permission-summary strong {
+  color: var(--accent-blue);
+  font-size: 1.2rem;
 }

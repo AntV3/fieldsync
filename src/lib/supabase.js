@@ -2732,6 +2732,386 @@ export const db = {
       console.error('Error getting all recipients:', error)
       return { users: [], externalEmails: [] }
     }
+  },
+
+  // ============================================
+  // PROJECT-LEVEL PERMISSIONS
+  // ============================================
+
+  // Get project team members
+  async getProjectTeam(projectId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('project_users')
+        .select(`
+          id,
+          project_id,
+          user_id,
+          project_role,
+          joined_at,
+          invited_by,
+          users:user_id (
+            id,
+            name,
+            email,
+            role
+          )
+        `)
+        .eq('project_id', projectId)
+        .order('joined_at')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching project team:', error)
+      return []
+    }
+  },
+
+  // Get user's project role
+  async getUserProjectRole(userId, projectId) {
+    if (!isSupabaseConfigured) return null
+
+    try {
+      const { data, error } = await supabase
+        .from('project_users')
+        .select('project_role')
+        .eq('user_id', userId)
+        .eq('project_id', projectId)
+        .single()
+
+      if (error) throw error
+      return data?.project_role || null
+    } catch (error) {
+      console.error('Error fetching user project role:', error)
+      return null
+    }
+  },
+
+  // Get user's projects
+  async getUserProjects(userId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('project_users')
+        .select(`
+          id,
+          project_role,
+          joined_at,
+          projects:project_id (
+            id,
+            name,
+            location,
+            status,
+            created_at,
+            companies:company_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .order('joined_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching user projects:', error)
+      return []
+    }
+  },
+
+  // Invite user to project
+  async inviteUserToProject(projectId, userId, projectRole, invitedBy) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { data, error } = await supabase
+        .from('project_users')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          project_role: projectRole,
+          invited_by: invitedBy
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error inviting user to project:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Remove user from project
+  async removeUserFromProject(projectUserId) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('project_users')
+        .delete()
+        .eq('id', projectUserId)
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error removing user from project:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Update user's project role
+  async updateUserProjectRole(projectUserId, newRole) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { data, error } = await supabase
+        .from('project_users')
+        .update({ project_role: newRole })
+        .eq('id', projectUserId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error updating user project role:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Get user's permissions for a project
+  async getUserProjectPermissions(userId, projectId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('project_users')
+        .select(`
+          id,
+          project_role,
+          project_user_permissions (
+            permission_key
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('project_id', projectId)
+        .single()
+
+      if (error) throw error
+
+      // Owners and managers have all permissions
+      if (data?.project_role === 'owner' || data?.project_role === 'manager') {
+        return ['*'] // Special marker for all permissions
+      }
+
+      // Return array of permission keys
+      return data?.project_user_permissions?.map(p => p.permission_key) || []
+    } catch (error) {
+      console.error('Error fetching user project permissions:', error)
+      return []
+    }
+  },
+
+  // Check if user has specific permission
+  async userHasProjectPermission(userId, projectId, permissionKey) {
+    if (!isSupabaseConfigured) return false
+
+    try {
+      const permissions = await this.getUserProjectPermissions(userId, projectId)
+
+      // Check for all permissions marker
+      if (permissions.includes('*')) return true
+
+      // Check for specific permission
+      return permissions.includes(permissionKey)
+    } catch (error) {
+      console.error('Error checking permission:', error)
+      return false
+    }
+  },
+
+  // Grant permissions to user
+  async grantProjectPermissions(projectUserId, permissionKeys, grantedBy) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      // Build array of permission objects
+      const permissions = permissionKeys.map(key => ({
+        project_user_id: projectUserId,
+        permission_key: key,
+        granted_by: grantedBy
+      }))
+
+      const { data, error } = await supabase
+        .from('project_user_permissions')
+        .insert(permissions)
+        .select()
+
+      if (error) throw error
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error granting permissions:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Revoke permissions from user
+  async revokeProjectPermissions(projectUserId, permissionKeys) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('project_user_permissions')
+        .delete()
+        .eq('project_user_id', projectUserId)
+        .in('permission_key', permissionKeys)
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error revoking permissions:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Set user permissions (replace all)
+  async setProjectPermissions(projectUserId, permissionKeys, grantedBy) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      // First, remove all existing permissions
+      await supabase
+        .from('project_user_permissions')
+        .delete()
+        .eq('project_user_id', projectUserId)
+
+      // Then add new permissions
+      if (permissionKeys.length > 0) {
+        const permissions = permissionKeys.map(key => ({
+          project_user_id: projectUserId,
+          permission_key: key,
+          granted_by: grantedBy
+        }))
+
+        const { data, error } = await supabase
+          .from('project_user_permissions')
+          .insert(permissions)
+          .select()
+
+        if (error) throw error
+        return { success: true, data }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error setting permissions:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Get all available permissions
+  async getAllPermissions() {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('project_permissions')
+        .select('*')
+        .order('category, permission_name')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching permissions:', error)
+      return []
+    }
+  },
+
+  // Get role templates
+  async getRoleTemplates() {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('role_templates')
+        .select('*')
+        .order('role_name')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching role templates:', error)
+      return []
+    }
+  },
+
+  // Get role template by key
+  async getRoleTemplate(roleKey) {
+    if (!isSupabaseConfigured) return null
+
+    try {
+      const { data, error } = await supabase
+        .from('role_templates')
+        .select('*')
+        .eq('role_key', roleKey)
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error fetching role template:', error)
+      return null
+    }
+  },
+
+  // Get project-specific notification roles
+  async getProjectNotificationRoles(projectId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('notification_roles')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('role_name')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching project notification roles:', error)
+      return []
+    }
+  },
+
+  // Create project-specific notification role
+  async createProjectNotificationRole(projectId, roleName, roleKey, description) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { data, error } = await supabase
+        .from('notification_roles')
+        .insert({
+          project_id: projectId,
+          role_name: roleName,
+          role_key: roleKey,
+          description: description
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error creating project notification role:', error)
+      return { success: false, error: error.message }
+    }
   }
 }
 
