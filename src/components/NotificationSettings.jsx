@@ -9,14 +9,21 @@ export default function NotificationSettings({ company, user, onShowToast }) {
   const [notificationRoles, setNotificationRoles] = useState([])
   const [selectedRole, setSelectedRole] = useState(null)
   const [roleUsers, setRoleUsers] = useState([])
+  const [externalRecipients, setExternalRecipients] = useState([])
   const [allCompanyUsers, setAllCompanyUsers] = useState([])
   const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [showAddEmailModal, setShowAddEmailModal] = useState(false)
   const [showCreateRoleModal, setShowCreateRoleModal] = useState(false)
 
   // Create Role Form
   const [newRoleName, setNewRoleName] = useState('')
   const [newRoleKey, setNewRoleKey] = useState('')
   const [newRoleDescription, setNewRoleDescription] = useState('')
+
+  // Add Email Form
+  const [newEmail, setNewEmail] = useState('')
+  const [newEmailName, setNewEmailName] = useState('')
+  const [newEmailNotes, setNewEmailNotes] = useState('')
 
   // Notification Types
   const [notificationTypes, setNotificationTypes] = useState([])
@@ -69,6 +76,10 @@ export default function NotificationSettings({ company, user, onShowToast }) {
     try {
       const users = await db.getUsersByNotificationRole(roleId)
       setRoleUsers(users)
+
+      // Also load external recipients
+      const external = await db.getExternalRecipientsByRole(roleId)
+      setExternalRecipients(external)
     } catch (error) {
       console.error('Error loading role users:', error)
     }
@@ -139,6 +150,58 @@ export default function NotificationSettings({ company, user, onShowToast }) {
     } catch (error) {
       console.error('Error creating role:', error)
       onShowToast?.('Failed to create role', 'error')
+    }
+  }
+
+  const handleAddExternalEmail = async (e) => {
+    e.preventDefault()
+    if (!selectedRole) return
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newEmail)) {
+      onShowToast?.('Please enter a valid email address', 'error')
+      return
+    }
+
+    try {
+      const result = await db.addExternalRecipient(
+        selectedRole.id,
+        newEmail,
+        newEmailName,
+        newEmailNotes,
+        user.id
+      )
+
+      if (result.success) {
+        onShowToast?.(`External email added to ${selectedRole.role_name}`, 'success')
+        setNewEmail('')
+        setNewEmailName('')
+        setNewEmailNotes('')
+        setShowAddEmailModal(false)
+        loadRoleUsers(selectedRole.id)
+      } else {
+        onShowToast?.(result.error || 'Failed to add external email', 'error')
+      }
+    } catch (error) {
+      console.error('Error adding external email:', error)
+      onShowToast?.('Failed to add external email', 'error')
+    }
+  }
+
+  const handleRemoveExternalEmail = async (recipientId) => {
+    if (!confirm('Remove this external email from notifications?')) return
+
+    try {
+      const result = await db.removeExternalRecipient(recipientId)
+      if (result.success) {
+        onShowToast?.('External email removed', 'success')
+        loadRoleUsers(selectedRole.id)
+      } else {
+        onShowToast?.(result.error || 'Failed to remove external email', 'error')
+      }
+    } catch (error) {
+      console.error('Error removing external email:', error)
+      onShowToast?.('Failed to remove external email', 'error')
     }
   }
 
@@ -256,41 +319,81 @@ export default function NotificationSettings({ company, user, onShowToast }) {
                     <h3>{selectedRole.role_name}</h3>
                     <p>{selectedRole.description}</p>
                   </div>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setShowAddUserModal(true)}
-                    disabled={availableUsers.length === 0}
-                  >
-                    + Assign User
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowAddUserModal(true)}
+                      disabled={availableUsers.length === 0}
+                    >
+                      + Assign User
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowAddEmailModal(true)}
+                    >
+                      + Add Email
+                    </button>
+                  </div>
                 </div>
 
                 <div className="assigned-users">
-                  {roleUsers.length === 0 ? (
+                  {roleUsers.length === 0 && externalRecipients.length === 0 ? (
                     <div className="empty-state">
-                      <p>No users assigned to this role yet</p>
+                      <p>No recipients assigned to this role yet</p>
                       <button onClick={() => setShowAddUserModal(true)}>
                         Assign first user
                       </button>
+                      <button onClick={() => setShowAddEmailModal(true)} style={{ marginTop: '0.5rem' }}>
+                        Add external email
+                      </button>
                     </div>
                   ) : (
-                    roleUsers.map(ru => (
-                      <div key={ru.id} className="assigned-user-card">
-                        <div className="user-info">
-                          <div className="user-name">{ru.users.name || ru.users.email}</div>
-                          <div className="user-email">{ru.users.email}</div>
-                          <div className="user-meta">
-                            Assigned {new Date(ru.assigned_at).toLocaleDateString()}
+                    <>
+                      {roleUsers.length > 0 && <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>App Users ({roleUsers.length})</h4>}
+                      {roleUsers.map(ru => (
+                        <div key={ru.id} className="assigned-user-card">
+                          <div className="user-info">
+                            <div className="user-name">{ru.users.name || ru.users.email}</div>
+                            <div className="user-email">{ru.users.email}</div>
+                            <div className="user-meta">
+                              Assigned {new Date(ru.assigned_at).toLocaleDateString()}
+                            </div>
                           </div>
+                          <button
+                            className="btn-danger-small"
+                            onClick={() => handleRemoveUser(ru.users.id)}
+                          >
+                            Remove
+                          </button>
                         </div>
-                        <button
-                          className="btn-danger-small"
-                          onClick={() => handleRemoveUser(ru.users.id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))
+                      ))}
+
+                      {externalRecipients.length > 0 && (
+                        <>
+                          <h4 style={{ margin: '1.5rem 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>External Emails ({externalRecipients.length})</h4>
+                          {externalRecipients.map(recipient => (
+                            <div key={recipient.id} className="assigned-user-card" style={{ borderLeft: '3px solid var(--accent-blue)' }}>
+                              <div className="user-info">
+                                <div className="user-name">{recipient.name || recipient.email}</div>
+                                <div className="user-email">{recipient.email}</div>
+                                {recipient.notes && (
+                                  <div className="user-meta">{recipient.notes}</div>
+                                )}
+                                <div className="user-meta">
+                                  Added {new Date(recipient.created_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <button
+                                className="btn-danger-small"
+                                onClick={() => handleRemoveExternalEmail(recipient.id)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -436,6 +539,64 @@ export default function NotificationSettings({ company, user, onShowToast }) {
                 </button>
                 <button type="submit" className="btn-primary">
                   Create Role
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Email Modal */}
+      {showAddEmailModal && (
+        <div className="modal-overlay" onClick={() => setShowAddEmailModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add External Email to {selectedRole?.role_name}</h3>
+              <button className="modal-close" onClick={() => setShowAddEmailModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleAddExternalEmail}>
+              <div className="modal-body">
+                <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  Add an email address for someone who doesn't have an app account. They'll receive email notifications only.
+                </p>
+                <div className="form-group">
+                  <label>Email Address *</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="vendor@example.com"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Name (Optional)</label>
+                  <input
+                    type="text"
+                    value={newEmailName}
+                    onChange={(e) => setNewEmailName(e.target.value)}
+                    placeholder="John Doe"
+                  />
+                  <small>Helps identify this recipient</small>
+                </div>
+                <div className="form-group">
+                  <label>Notes (Optional)</label>
+                  <input
+                    type="text"
+                    value={newEmailNotes}
+                    onChange={(e) => setNewEmailNotes(e.target.value)}
+                    placeholder="e.g., External vendor contact"
+                  />
+                  <small>Internal notes about this recipient</small>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setShowAddEmailModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Add Email
                 </button>
               </div>
             </form>

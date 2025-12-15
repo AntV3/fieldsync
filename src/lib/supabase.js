@@ -2630,6 +2630,108 @@ export const db = {
       console.error('Error getting users for notification:', error)
       return []
     }
+  },
+
+  // ============================================
+  // EXTERNAL NOTIFICATION RECIPIENTS
+  // ============================================
+
+  // Get external recipients for a notification role
+  async getExternalRecipientsByRole(roleId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('external_notification_recipients')
+        .select('*')
+        .eq('role_id', roleId)
+        .order('email')
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching external recipients:', error)
+      return []
+    }
+  },
+
+  // Add external email to notification role
+  async addExternalRecipient(roleId, email, name, notes, createdBy) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { data, error } = await supabase
+        .from('external_notification_recipients')
+        .insert({
+          role_id: roleId,
+          email: email.toLowerCase().trim(),
+          name: name?.trim() || null,
+          notes: notes?.trim() || null,
+          created_by: createdBy
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error adding external recipient:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Remove external recipient
+  async removeExternalRecipient(recipientId) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('external_notification_recipients')
+        .delete()
+        .eq('id', recipientId)
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error removing external recipient:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Get all recipients (users + external) for a notification
+  async getAllRecipientsForNotification(companyId, notificationTypeKey, roleKey) {
+    if (!isSupabaseConfigured) return { users: [], externalEmails: [] }
+
+    try {
+      // Get the role
+      const { data: role } = await supabase
+        .from('notification_roles')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('role_key', roleKey)
+        .single()
+
+      if (!role) return { users: [], externalEmails: [] }
+
+      // Get internal users
+      const users = await this.getUsersForNotification(companyId, notificationTypeKey, roleKey)
+
+      // Get external recipients
+      const { data: externalRecipients } = await supabase
+        .from('external_notification_recipients')
+        .select('email, name')
+        .eq('role_id', role.id)
+
+      const externalEmails = externalRecipients?.map(r => ({
+        email: r.email,
+        name: r.name || r.email
+      })) || []
+
+      return { users, externalEmails }
+    } catch (error) {
+      console.error('Error getting all recipients:', error)
+      return { users: [], externalEmails: [] }
+    }
   }
 }
 
