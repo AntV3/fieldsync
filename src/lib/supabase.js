@@ -3387,7 +3387,7 @@ export const db = {
       console.error('Error creating company with admin:', error)
       return { success: false, error: error.message }
     }
-  }
+  },
 
   // ============================================
   // Multi-Company Functions
