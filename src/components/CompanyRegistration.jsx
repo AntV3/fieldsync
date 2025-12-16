@@ -16,10 +16,11 @@ export default function CompanyRegistration({ onComplete, onShowToast }) {
 
   // Auto-generate field code from company name
   const generateFieldCode = () => {
+    // Simple code generation - just use company name uppercase, no suffix
     const code = companyName
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '')
-      .substring(0, 6) + '2024'
+      .substring(0, 10) // Allow up to 10 characters
     setFieldCode(code)
   }
 

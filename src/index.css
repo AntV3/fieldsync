@@ -6744,3 +6744,121 @@ input::placeholder {
 .settings-info li strong {
   color: var(--text);
 }
+
+/* Company Switcher Styles */
+.company-switcher {
+  position: relative;
+  margin-right: 2rem;
+}
+
+.company-switcher-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.company-switcher-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-blue);
+}
+
+.company-switcher-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.company-switcher-icon {
+  font-size: 1.1rem;
+}
+
+.company-switcher-name {
+  font-weight: 500;
+}
+
+.company-switcher-arrow {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.company-switcher-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 250px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  overflow: hidden;
+}
+
+.company-switcher-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.company-switcher-item:last-child {
+  border-bottom: none;
+}
+
+.company-switcher-item:hover {
+  background: var(--bg-secondary);
+}
+
+.company-switcher-item.active {
+  background: var(--bg-tertiary);
+}
+
+.company-switcher-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.company-switcher-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.company-switcher-item-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.company-switcher-item-code {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+}
+
+.company-switcher-checkmark {
+  color: var(--accent-blue);
+  font-size: 1.2rem;
+}
+
+.company-switcher-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}

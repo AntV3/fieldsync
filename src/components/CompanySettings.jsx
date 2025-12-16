@@ -107,10 +107,11 @@ export default function CompanySettings({ company, onShowToast }) {
   }
 
   const generateFieldCode = () => {
+    // Simple code generation - just use company name uppercase, no suffix
     const code = company.name
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '')
-      .substring(0, 6) + '2024'
+      .substring(0, 10) // Allow up to 10 characters
     setNewFieldCode(code)
   }
 

@@ -3390,3 +3390,66 @@ export const db = {
   }
 }
 
+
+  // ============================================
+  // Multi-Company Functions
+  // ============================================
+
+  async getUserCompanies(userId) {
+    const { data, error } = await supabase
+      .rpc('get_user_companies', { p_user_id: userId })
+
+    if (error) {
+      console.error('Error getting user companies:', error)
+      return []
+    }
+
+    return data
+  }
+
+  async switchActiveCompany(userId, companyId) {
+    const { data, error } = await supabase
+      .rpc('switch_active_company', {
+        p_user_id: userId,
+        p_company_id: companyId
+      })
+
+    if (error) {
+      console.error('Error switching company:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  async addUserToCompany(userId, companyId, role = 'member') {
+    const { data, error } = await supabase
+      .rpc('add_user_to_company', {
+        p_user_id: userId,
+        p_company_id: companyId,
+        p_role: role
+      })
+
+    if (error) {
+      console.error('Error adding user to company:', error)
+      throw error
+    }
+
+    return data
+  }
+
+  async getActiveCompany(userId) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('active_company_id, companies(*)')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      console.error('Error getting active company:', error)
+      return null
+    }
+
+    return data?.companies
+  }
+}

@@ -9,6 +9,7 @@ import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import NotificationSettings from './components/NotificationSettings'
 import CompanySettings from './components/CompanySettings'
+import CompanySwitcher from './components/CompanySwitcher'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -233,26 +234,15 @@ export default function App() {
             <Logo />
 
             {/* Company Switcher */}
-            {companies.length > 1 && (
-              <div className="company-switcher">
-                <select
-                  value={company?.id || ''}
-                  onChange={(e) => {
-                    const selectedCompany = companies.find(c => c.id === e.target.value)
-                    setCompany(selectedCompany)
-                    setActiveTab('dashboard')
-                    showToast(`Switched to ${selectedCompany.name}`, 'success')
-                  }}
-                  className="company-select"
-                >
-                  {companies.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <CompanySwitcher
+              user={user}
+              currentCompany={company}
+              onCompanySwitch={(newCompany) => {
+                setCompany(newCompany)
+                setActiveTab('dashboard')
+              }}
+              onShowToast={showToast}
+            />
 
             <div className="nav-tabs">
               <button
