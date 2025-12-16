@@ -532,6 +532,46 @@ export default function Dashboard({ company, onShowToast }) {
           onShowToast={onShowToast}
         />
 
+        {/* Project Management Actions */}
+        <div className="card" style={{ marginTop: '2rem' }}>
+          <h3>Project Management</h3>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+            {selectedProject.status === 'paused' ? (
+              <button
+                className="btn btn-success btn-small"
+                onClick={handleResumeProject}
+                style={{ flex: 1 }}
+              >
+                ▶ Resume Project
+              </button>
+            ) : (
+              <button
+                className="btn btn-warning btn-small"
+                onClick={handlePauseProject}
+                style={{ flex: 1 }}
+              >
+                ⏸ Pause Project
+              </button>
+            )}
+            {selectedProject.status !== 'done' && (
+              <button
+                className="btn btn-success btn-small"
+                onClick={handleCompleteProject}
+                style={{ flex: 1 }}
+              >
+                ✓ Mark as Done
+              </button>
+            )}
+            <button
+              className="btn btn-danger btn-small"
+              onClick={handleDeleteProject}
+              style={{ flex: 1 }}
+            >
+              🗑️ Delete Project
+            </button>
+          </div>
+        </div>
+
         {showShareModal && (
           <ShareModal
             project={selectedProject}
