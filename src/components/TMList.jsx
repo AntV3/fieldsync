@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 
 export default function TMList({ project, onShowToast }) {
   const [tickets, setTickets] = useState([])
@@ -163,8 +165,225 @@ export default function TMList({ project, onShowToast }) {
     onShowToast('Export downloaded!', 'success')
   }
 
-  const filteredTickets = filter === 'all' 
-    ? tickets 
+  // Export to PDF
+  const exportToPDF = async () => {
+    const exportTickets = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+
+    if (exportTickets.length === 0) {
+      onShowToast('No tickets to export', 'error')
+      return
+    }
+
+    // Get company info
+    let companyName = 'Company Name'
+    try {
+      const companyData = await db.getCompany(project.company_id)
+      if (companyData) companyName = companyData.name
+    } catch (error) {
+      console.error('Error fetching company:', error)
+    }
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.width
+    let yPos = 20
+
+    // Header - Company Name
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(companyName, pageWidth / 2, yPos, { align: 'center' })
+    yPos += 10
+
+    // Project Title
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Time & Materials Report`, pageWidth / 2, yPos, { align: 'center' })
+    yPos += 8
+
+    doc.setFontSize(12)
+    doc.text(`Project: ${project.name}`, pageWidth / 2, yPos, { align: 'center' })
+    yPos += 6
+
+    if (project.job_number) {
+      doc.setFontSize(10)
+      doc.text(`Job #: ${project.job_number}`, pageWidth / 2, yPos, { align: 'center' })
+      yPos += 6
+    }
+
+    doc.setFontSize(9)
+    doc.setTextColor(100)
+    doc.text(`Generated: ${formatDate(new Date().toISOString())}`, pageWidth / 2, yPos, { align: 'center' })
+    yPos += 10
+    doc.setTextColor(0)
+
+    // Line separator
+    doc.setDrawColor(200)
+    doc.line(14, yPos, pageWidth - 14, yPos)
+    yPos += 8
+
+    // Summary totals
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Total Tickets: ${exportTickets.length}`, 14, yPos)
+    doc.text(`Total Hours: ${totalHours.toFixed(1)}`, pageWidth / 2, yPos, { align: 'center' })
+    doc.text(`Materials Cost: $${totalCost.toFixed(2)}`, pageWidth - 14, yPos, { align: 'right' })
+    yPos += 10
+
+    // Tickets
+    exportTickets.forEach((ticket, index) => {
+      if (yPos > 250) {
+        doc.addPage()
+        yPos = 20
+      }
+
+      // Ticket header
+      doc.setFillColor(240, 240, 245)
+      doc.rect(14, yPos - 4, pageWidth - 28, 8, 'F')
+
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`${formatDate(ticket.work_date)}`, 16, yPos)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      const statusText = ticket.status.toUpperCase()
+      const statusColor = ticket.status === 'approved' ? [34, 197, 94] :
+                          ticket.status === 'billed' ? [59, 130, 246] :
+                          ticket.status === 'rejected' ? [239, 68, 68] : [245, 158, 11]
+      doc.setTextColor(...statusColor)
+      doc.text(statusText, pageWidth - 16, yPos, { align: 'right' })
+      doc.setTextColor(0)
+      yPos += 10
+
+      // Workers table
+      if (ticket.t_and_m_workers && ticket.t_and_m_workers.length > 0) {
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Labor:', 16, yPos)
+        yPos += 2
+
+        const workerRows = ticket.t_and_m_workers.map(w => [
+          w.name,
+          w.role || 'Laborer',
+          `${w.hours} hrs`
+        ])
+
+        doc.autoTable({
+          startY: yPos,
+          head: [['Worker', 'Role', 'Hours']],
+          body: workerRows,
+          margin: { left: 18, right: 18 },
+          theme: 'plain',
+          styles: { fontSize: 9, cellPadding: 2 },
+          headStyles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold' },
+        })
+        yPos = doc.lastAutoTable.finalY + 6
+      }
+
+      // Materials/Equipment table
+      if (ticket.t_and_m_items && ticket.t_and_m_items.length > 0) {
+        if (yPos > 220) {
+          doc.addPage()
+          yPos = 20
+        }
+
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Materials & Equipment:', 16, yPos)
+        yPos += 2
+
+        const itemRows = ticket.t_and_m_items.map(item => {
+          const itemName = item.custom_name || item.materials_equipment?.name || 'Unknown'
+          const unit = item.materials_equipment?.unit || 'each'
+          const costPer = item.materials_equipment?.cost_per_unit || 0
+          const total = item.quantity * costPer
+
+          return [
+            itemName,
+            `${item.quantity} ${unit}`,
+            costPer > 0 ? `$${costPer.toFixed(2)}` : '-',
+            costPer > 0 ? `$${total.toFixed(2)}` : '-'
+          ]
+        })
+
+        doc.autoTable({
+          startY: yPos,
+          head: [['Item', 'Quantity', 'Unit Cost', 'Total']],
+          body: itemRows,
+          margin: { left: 18, right: 18 },
+          theme: 'plain',
+          styles: { fontSize: 9, cellPadding: 2 },
+          headStyles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold' },
+        })
+        yPos = doc.lastAutoTable.finalY + 6
+      }
+
+      // Notes
+      if (ticket.notes) {
+        if (yPos > 250) {
+          doc.addPage()
+          yPos = 20
+        }
+
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'italic')
+        doc.setTextColor(100)
+        doc.text(`Notes: ${ticket.notes}`, 18, yPos, { maxWidth: pageWidth - 36 })
+        doc.setTextColor(0)
+        yPos += 10
+      }
+
+      yPos += 4
+    })
+
+    // Add signature section on last page
+    if (yPos > 220) {
+      doc.addPage()
+      yPos = 20
+    }
+
+    yPos += 10
+    doc.setDrawColor(200)
+    doc.line(14, yPos, pageWidth - 14, yPos)
+    yPos += 10
+
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Authorized Signatures', 14, yPos)
+    yPos += 12
+
+    // Two signature boxes side by side
+    const boxWidth = (pageWidth - 40) / 2
+
+    // Client signature
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text('Client/General Contractor:', 14, yPos)
+    yPos += 2
+    doc.line(14, yPos + 8, 14 + boxWidth, yPos + 8)
+    doc.setFontSize(8)
+    doc.setTextColor(150)
+    doc.text('Signature', 14, yPos + 12)
+    doc.text('Date: ________________', 14 + boxWidth - 50, yPos + 12)
+    doc.setTextColor(0)
+
+    // Company signature
+    doc.setFontSize(10)
+    doc.text(`${companyName} Representative:`, pageWidth / 2 + 3, yPos)
+    doc.line(pageWidth / 2 + 3, yPos + 8, pageWidth - 14, yPos + 8)
+    doc.setFontSize(8)
+    doc.setTextColor(150)
+    doc.text('Signature', pageWidth / 2 + 3, yPos + 12)
+    doc.text('Date: ________________', pageWidth - 14 - 50, yPos + 12, { align: 'left' })
+    doc.setTextColor(0)
+
+    // Save PDF
+    const pdfFileName = `${project.name}_TM_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(pdfFileName)
+    onShowToast('PDF exported successfully!', 'success')
+  }
+
+  const filteredTickets = filter === 'all'
+    ? tickets
     : tickets.filter(t => t.status === filter)
 
   // Calculate totals for summary
@@ -180,9 +399,14 @@ export default function TMList({ project, onShowToast }) {
       <div className="tm-list-header">
         <div className="tm-list-title">
           <h3>T&M Tickets</h3>
-          <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
-            📥 Export Excel
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-secondary btn-small" onClick={exportToPDF}>
+              📄 Export PDF
+            </button>
+            <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
+              📥 Export Excel
+            </button>
+          </div>
         </div>
         
         <div className="tm-filter-tabs">
