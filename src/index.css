@@ -524,6 +524,31 @@ input::placeholder {
   transform: translateY(-2px);
 }
 
+.project-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.project-status-badge {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.project-status-badge.paused {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.project-status-badge.done {
+  background: #d4edda;
+  color: #155724;
+}
+
 .project-card-header {
   display: flex;
   justify-content: space-between;

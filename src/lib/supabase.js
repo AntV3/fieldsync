@@ -444,6 +444,11 @@ export const db = {
     }
   },
 
+  // Update project status
+  async updateProjectStatus(id, status) {
+    return this.updateProject(id, { status })
+  },
+
   async deleteProject(id) {
     if (isSupabaseConfigured) {
       const { error } = await supabase
