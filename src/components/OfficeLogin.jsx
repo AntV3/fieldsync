@@ -29,30 +29,43 @@ export default function OfficeLogin({ onLogin, onShowToast }) {
         return
       }
 
-      // Authenticate user
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: emailStr,
-        password: passwordStr
+      // WORKAROUND: Use direct fetch instead of SDK to avoid React 19 compatibility issue
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
+        },
+        body: JSON.stringify({
+          email: emailStr,
+          password: passwordStr
+        })
       })
 
-      if (error) {
-        console.error('Supabase auth error:', error)
-        onShowToast?.(error.message || 'Invalid email or password', 'error')
+      const authData = await response.json()
+
+      if (!response.ok || authData.error) {
+        console.error('Auth error:', authData)
+        onShowToast?.(authData.error_description || authData.message || 'Invalid email or password', 'error')
         setLoading(false)
         return
       }
+
+      console.log('Auth successful, fetching user profile...')
 
       // Get user profile - simple query to avoid RLS circular dependency
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id, email, name, role, company_id, created_at, updated_at')
-        .eq('id', data.user.id)
+        .eq('id', authData.user.id)
         .single()
 
       if (userError || !userData) {
         console.error('User fetch error:', userError)
         onShowToast?.('Error loading profile. Please contact support.', 'error')
-        await supabase.auth.signOut()
         setLoading(false)
         return
       }
