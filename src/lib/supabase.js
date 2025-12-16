@@ -3112,6 +3112,191 @@ export const db = {
       console.error('Error creating project notification role:', error)
       return { success: false, error: error.message }
     }
+  },
+
+  // ============================================
+  // LOGIN SEPARATION FUNCTIONS
+  // ============================================
+
+  // Verify company name + office PIN
+  async verifyCompanyOfficePin(companyName, officePin) {
+    if (!isSupabaseConfigured) return null
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, field_code')
+        .ilike('name', companyName)
+        .eq('office_pin', officePin)
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error verifying company office PIN:', error)
+      return null
+    }
+  },
+
+  // Verify field code + project PIN
+  async verifyFieldAccess(fieldCode, projectPin) {
+    if (!isSupabaseConfigured) return null
+
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          company_id,
+          companies (
+            id,
+            name
+          )
+        `)
+        .eq('companies.field_code', fieldCode)
+        .eq('pin', projectPin)
+        .single()
+
+      if (error) throw error
+
+      return {
+        project_id: data.id,
+        project_name: data.name,
+        company_id: data.companies.id,
+        company_name: data.companies.name
+      }
+    } catch (error) {
+      console.error('Error verifying field access:', error)
+      return null
+    }
+  },
+
+  // Create office user account
+  async createOfficeUser({ company_id, name, email, password, role }) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role
+          }
+        }
+      })
+
+      if (authError) throw authError
+
+      // Create user profile
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          company_id,
+          name,
+          email,
+          role
+        })
+        .select()
+        .single()
+
+      if (userError) throw userError
+
+      return { success: true, data: userData }
+    } catch (error) {
+      console.error('Error creating office user:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Log field access (audit trail)
+  async logFieldAccess({ company_id, project_id, foreman_name, company_code_used, project_pin_used }) {
+    if (!isSupabaseConfigured) return { success: false }
+
+    try {
+      const { error } = await supabase
+        .from('field_access_log')
+        .insert({
+          company_id,
+          project_id,
+          foreman_name,
+          company_code_used,
+          project_pin_used
+        })
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error logging field access:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Log field activity (audit trail)
+  async logFieldActivity({ project_id, foreman_name, activity_type, activity_id, description }) {
+    if (!isSupabaseConfigured) return { success: false }
+
+    try {
+      const { error } = await supabase
+        .from('field_activity_log')
+        .insert({
+          project_id,
+          foreman_name,
+          activity_type,
+          activity_id,
+          description
+        })
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error logging field activity:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
+  // Get field access history
+  async getFieldAccessHistory(projectId, limit = 50) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('field_access_log')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('accessed_at', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching field access history:', error)
+      return []
+    }
+  },
+
+  // Get field activity history
+  async getFieldActivityHistory(projectId, limit = 100) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('field_activity_log')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching field activity history:', error)
+      return []
+    }
   }
 }
 
