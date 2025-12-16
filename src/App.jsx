@@ -294,7 +294,7 @@ export default function App() {
               </button>
             </div>
             <div className="nav-user">
-              <span className="nav-user-name">{user?.full_name || user?.email}</span>
+              <span className="nav-user-name">{user?.name || user?.email}</span>
               <button className="nav-logout" onClick={handleLogout}>
                 Sign Out
               </button>
