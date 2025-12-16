@@ -3,20 +3,17 @@ import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
 import CompanyRegistration from './CompanyRegistration'
 import { RegistrationSuccess } from './CompanyRegistration'
+import OfficeLogin from './OfficeLogin'
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join', 'register', 'registration-success'
   const [registrationData, setRegistrationData] = useState(null)
-  
+
   // Foreman state
   const [companyCode, setCompanyCode] = useState('')
   const [company, setCompany] = useState(null)
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // Office state
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
 
   // Join state
   const [joinStep, setJoinStep] = useState(1) // 1: company code, 2: create account
@@ -93,15 +90,6 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const handleBackToCompany = () => {
     setCompany(null)
     setPin('')
-  }
-
-  // Handle office login
-  const handleOfficeSubmit = () => {
-    if (!email.trim() || !password.trim()) {
-      onShowToast('Enter email and password', 'error')
-      return
-    }
-    onOfficeLogin(email, password)
   }
 
   // Verify company code for joining
@@ -389,54 +377,30 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     )
   }
 
-  // Office flow
+  // Office flow - with Company Name + Office PIN gate
   if (mode === 'office') {
     return (
-      <div className="entry-container">
-        <div className="entry-card">
-          <button className="entry-back" onClick={() => setMode(null)}>
-            ←
-          </button>
-
-          <Logo className="entry-logo" showPoweredBy={false} />
-          <p className="entry-subtitle">Sign in to your account</p>
-
-          <div className="entry-form">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleOfficeSubmit()
-              }}
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleOfficeSubmit()
-              }}
-            />
-            <button
-              className="entry-login-btn"
-              onClick={handleOfficeSubmit}
-            >
-              Sign In
-            </button>
-          </div>
-
-          <div className="entry-signup-hint">
-            <p>New employee?</p>
-            <button className="entry-join-link" onClick={() => setMode('join')}>
-              Join your company
-            </button>
-          </div>
-        </div>
-      </div>
+      <>
+        <button
+          className="entry-back-fixed"
+          onClick={() => setMode(null)}
+          style={{
+            position: 'fixed',
+            top: '2rem',
+            left: '2rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            padding: '0.5rem 1rem',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            zIndex: 1000
+          }}
+        >
+          ← Back
+        </button>
+        <OfficeLogin onLogin={onOfficeLogin} onShowToast={onShowToast} />
+      </>
     )
   }
 

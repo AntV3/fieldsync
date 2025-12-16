@@ -8,6 +8,7 @@ import Field from './components/Field'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import NotificationSettings from './components/NotificationSettings'
+import CompanySettings from './components/CompanySettings'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -273,6 +274,12 @@ export default function App() {
                 + New Project
               </button>
               <button
+                className={`nav-tab ${activeTab === 'company' ? 'active' : ''}`}
+                onClick={() => setActiveTab('company')}
+              >
+                Company
+              </button>
+              <button
                 className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
                 onClick={() => setActiveTab('branding')}
               >
@@ -305,6 +312,12 @@ export default function App() {
           {activeTab === 'setup' && (
             <Setup
               onProjectCreated={handleProjectCreated}
+              onShowToast={showToast}
+            />
+          )}
+          {activeTab === 'company' && (
+            <CompanySettings
+              company={company}
               onShowToast={showToast}
             />
           )}
