@@ -491,84 +491,89 @@ export default function Dashboard({ company, onShowToast }) {
           {selectedProject.pin && <span style={{ marginLeft: '1rem', color: 'var(--text-muted)' }}>PIN: {selectedProject.pin}</span>}
         </p>
 
-        <div className="card billing-card">
-          <h3>Billable to Date</h3>
-          <div className="billing-amount">{formatCurrency(billable)}</div>
-          <div className="billing-total">of {formatCurrency(selectedProject.contract_value)} contract value</div>
+        {/* Two-column grid layout for desktop, stacks on mobile */}
+        <div className="dashboard-grid">
+          {/* Left Column - Main Content */}
+          <div className="dashboard-main">
+            <div className="card billing-card">
+              <h3>Billable to Date</h3>
+              <div className="billing-amount">{formatCurrency(billable)}</div>
+              <div className="billing-total">of {formatCurrency(selectedProject.contract_value)} contract value</div>
 
-          <div className="progress-container">
-            <div className="progress-header">
-              <span className="progress-label">Overall Progress</span>
-              <span className="progress-value">{progress}%</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <h3>Areas</h3>
-          <div className="area-status-list">
-            {areas.map(area => (
-              <div key={area.id} className="area-status-item">
-                <div>
-                  <div className="area-name">{area.name}</div>
-                  <div className="area-weight">{area.weight}% of contract</div>
+              <div className="progress-container">
+                <div className="progress-header">
+                  <span className="progress-label">Overall Progress</span>
+                  <span className="progress-value">{progress}%</span>
                 </div>
-                <span className={`status-badge ${area.status}`}>
-                  {formatStatus(area.status)}
-                </span>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                </div>
               </div>
-            ))}
+            </div>
+
+            <div className="card">
+              <h3>Areas</h3>
+              <div className="area-status-list">
+                {areas.map(area => (
+                  <div key={area.id} className="area-status-item">
+                    <div>
+                      <div className="area-name">{area.name}</div>
+                      <div className="area-weight">{area.weight}% of contract</div>
+                    </div>
+                    <span className={`status-badge ${area.status}`}>
+                      {formatStatus(area.status)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <TMList project={selectedProject} onShowToast={onShowToast} />
           </div>
-        </div>
 
-        <TMList project={selectedProject} onShowToast={onShowToast} />
+          {/* Right Column - Management & Reports */}
+          <div className="dashboard-sidebar">
+            {/* Project Management Actions */}
+            <div className="card">
+              <h3>Project Management</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                {selectedProject.status === 'paused' ? (
+                  <button
+                    className="btn btn-success btn-small"
+                    onClick={handleResumeProject}
+                  >
+                    ▶ Resume Project
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-warning btn-small"
+                    onClick={handlePauseProject}
+                  >
+                    ⏸ Pause Project
+                  </button>
+                )}
+                {selectedProject.status !== 'done' && (
+                  <button
+                    className="btn btn-success btn-small"
+                    onClick={handleCompleteProject}
+                  >
+                    ✓ Mark as Done
+                  </button>
+                )}
+                <button
+                  className="btn btn-danger btn-small"
+                  onClick={handleDeleteProject}
+                >
+                  🗑️ Delete Project
+                </button>
+              </div>
+            </div>
 
-        <InjuryReportsList
-          project={selectedProject}
-          companyId={company?.id || selectedProject?.company_id}
-          onShowToast={onShowToast}
-        />
-
-        {/* Project Management Actions */}
-        <div className="card" style={{ marginTop: '2rem' }}>
-          <h3>Project Management</h3>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-            {selectedProject.status === 'paused' ? (
-              <button
-                className="btn btn-success btn-small"
-                onClick={handleResumeProject}
-                style={{ flex: 1 }}
-              >
-                ▶ Resume Project
-              </button>
-            ) : (
-              <button
-                className="btn btn-warning btn-small"
-                onClick={handlePauseProject}
-                style={{ flex: 1 }}
-              >
-                ⏸ Pause Project
-              </button>
-            )}
-            {selectedProject.status !== 'done' && (
-              <button
-                className="btn btn-success btn-small"
-                onClick={handleCompleteProject}
-                style={{ flex: 1 }}
-              >
-                ✓ Mark as Done
-              </button>
-            )}
-            <button
-              className="btn btn-danger btn-small"
-              onClick={handleDeleteProject}
-              style={{ flex: 1 }}
-            >
-              🗑️ Delete Project
-            </button>
+            <InjuryReportsList
+              project={selectedProject}
+              companyId={company?.id || selectedProject?.company_id}
+              onShowToast={onShowToast}
+            />
           </div>
         </div>
 
