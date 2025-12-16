@@ -49,7 +49,7 @@ export default function App() {
       // Get user record - simple query to avoid RLS issues
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, email, full_name, role, company_id, created_at, updated_at')
+        .select('id, email, name, role, company_id, created_at, updated_at')
         .eq('id', user.id)
         .single()
 
@@ -100,7 +100,7 @@ export default function App() {
       // Get user profile - simple query without joins to avoid RLS circular dependency
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, email, full_name, role, company_id, created_at, updated_at')
+        .select('id, email, name, role, company_id, created_at, updated_at')
         .eq('id', data.user.id)
         .single()
 
