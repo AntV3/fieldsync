@@ -269,10 +269,11 @@ export default function App() {
             <Dashboard company={company} onShowToast={showToast} />
           )}
           {activeTab === 'field' && (
-            <Field onShowToast={showToast} />
+            <Field company={company} onShowToast={showToast} />
           )}
           {activeTab === 'setup' && (
             <Setup
+              company={company}
               onProjectCreated={handleProjectCreated}
               onShowToast={showToast}
             />

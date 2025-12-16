@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress } from '../lib/utils'
 
-export default function Field({ onShowToast }) {
+export default function Field({ company, onShowToast }) {
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
@@ -11,7 +11,7 @@ export default function Field({ onShowToast }) {
 
   useEffect(() => {
     loadProjects()
-  }, [])
+  }, [company])
 
   useEffect(() => {
     if (selectedProject) {
@@ -20,8 +20,13 @@ export default function Field({ onShowToast }) {
   }, [selectedProject])
 
   const loadProjects = async () => {
+    if (!company?.id) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const data = await db.getProjects()
+      const data = await db.getProjects(company.id)
       setProjects(data)
     } catch (error) {
       console.error('Error loading projects:', error)

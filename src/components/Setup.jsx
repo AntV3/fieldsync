@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 
-export default function Setup({ onProjectCreated, onShowToast }) {
+export default function Setup({ company, onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
   const [jobNumber, setJobNumber] = useState('')
   const [address, setAddress] = useState('')
@@ -307,6 +307,7 @@ export default function Setup({ onProjectCreated, onShowToast }) {
 
     try {
       const project = await db.createProject({
+        company_id: company.id,
         name: projectName.trim(),
         job_number: jobNumber.trim() || null,
         address: address.trim() || null,
