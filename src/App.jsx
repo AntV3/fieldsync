@@ -9,7 +9,6 @@ import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import NotificationSettings from './components/NotificationSettings'
 import CompanySettings from './components/CompanySettings'
-import CompanySwitcher from './components/CompanySwitcher'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -48,16 +47,29 @@ export default function App() {
         return
       }
 
-      // Get user record with company
-      const { data: userData, error } = await supabase
+      // Get user record - simple query to avoid RLS issues
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*, companies(*)')
+        .select('id, email, full_name, role, company_id, created_at, updated_at')
         .eq('id', user.id)
         .single()
 
-      if (userData && userData.companies) {
+      if (userError || !userData) {
+        console.error('Auth check error:', userError)
+        setLoading(false)
+        return
+      }
+
+      // Get company info separately
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', userData.company_id)
+        .single()
+
+      if (!companyError && companyData) {
         setUser(userData)
-        setCompany(userData.companies)
+        setCompany(companyData)
         setView('office')
       }
     } catch (error) {
@@ -86,74 +98,50 @@ export default function App() {
         return
       }
 
-      // Get user profile with company data
+      // Get user profile - simple query without joins to avoid RLS circular dependency
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*, companies(*)')
+        .select('id, email, full_name, role, company_id, created_at, updated_at')
         .eq('id', data.user.id)
         .single()
 
       if (userError) {
         console.error('User fetch error:', userError)
-        showToast('Error loading profile', 'error')
+        showToast('Error loading profile. Please contact support.', 'error')
+        await supabase.auth.signOut()
         return
       }
 
-      if (userData) {
-        setUser(userData)
-
-        // Try to load companies using multi-company function (if migration was run)
-        try {
-          const userCompanies = await db.getUserCompanies(userData.id)
-
-          if (userCompanies && userCompanies.length > 0) {
-            // Multi-company setup is active
-            setCompanies(userCompanies)
-
-            // Set active company or first company
-            const activeCompany = userCompanies.find(c => c.is_active) || userCompanies[0]
-            setCompany({
-              id: activeCompany.company_id,
-              name: activeCompany.company_name,
-              field_code: activeCompany.company_field_code
-            })
-            setView('office')
-          } else if (userData.companies) {
-            // Fallback to old single-company approach
-            setCompany(userData.companies)
-            setCompanies([{
-              company_id: userData.companies.id,
-              company_name: userData.companies.name,
-              company_field_code: userData.companies.field_code,
-              is_active: true
-            }])
-            setView('office')
-          } else {
-            showToast('No company found. Please contact admin.', 'error')
-          }
-        } catch (multiCompanyError) {
-          console.error('Multi-company error (falling back to single company):', multiCompanyError)
-
-          // Fallback to old single-company approach if multi-company function doesn't exist
-          if (userData.companies) {
-            setCompany(userData.companies)
-            setCompanies([{
-              company_id: userData.companies.id,
-              company_name: userData.companies.name,
-              company_field_code: userData.companies.field_code,
-              is_active: true
-            }])
-            setView('office')
-          } else {
-            showToast('No company found. Please contact admin.', 'error')
-          }
-        }
-      } else {
-        showToast('Profile not found. Please contact admin.', 'error')
+      if (!userData) {
+        showToast('Profile not found. Please contact support.', 'error')
+        await supabase.auth.signOut()
+        return
       }
+
+      // Get company info separately
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', userData.company_id)
+        .single()
+
+      if (companyError || !companyData) {
+        console.error('Company fetch error:', companyError)
+        showToast('Company not found. Please contact support.', 'error')
+        await supabase.auth.signOut()
+        return
+      }
+
+      // Set user and company
+      setUser(userData)
+      setCompany(companyData)
+      setView('office')
+      showToast('Logged in successfully', 'success')
+
     } catch (err) {
       console.error('Login error:', err)
-      showToast('Login failed', 'error')
+      showToast('Login failed. Please try again.', 'error')
+      await supabase.auth.signOut()
     }
   }
 
@@ -267,17 +255,6 @@ export default function App() {
         <nav className="nav">
           <div className="nav-content">
             <Logo />
-
-            {/* Company Switcher */}
-            <CompanySwitcher
-              user={user}
-              currentCompany={company}
-              onCompanySwitch={(newCompany) => {
-                setCompany(newCompany)
-                setActiveTab('dashboard')
-              }}
-              onShowToast={showToast}
-            />
 
             <div className="nav-tabs">
               <button
