@@ -3403,7 +3403,7 @@ export const db = {
     }
 
     return data
-  }
+  },
 
   async switchActiveCompany(userId, companyId) {
     const { data, error } = await supabase
@@ -3418,7 +3418,7 @@ export const db = {
     }
 
     return data
-  }
+  },
 
   async addUserToCompany(userId, companyId, role = 'member') {
     const { data, error } = await supabase
@@ -3434,7 +3434,7 @@ export const db = {
     }
 
     return data
-  }
+  },
 
   async getActiveCompany(userId) {
     const { data, error } = await supabase
