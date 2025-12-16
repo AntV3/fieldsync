@@ -9,6 +9,7 @@ import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import NotificationSettings from './components/NotificationSettings'
 import CompanySettings from './components/CompanySettings'
+import CompanySwitcher from './components/CompanySwitcher'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -90,6 +91,12 @@ export default function App() {
     setUser(userData)
     setCompany(companyData)
     setView('office')
+  }
+
+  const handleCompanyChange = async (newCompany) => {
+    setCompany(newCompany)
+    // Refresh the page content to load new company's data
+    setActiveTab('dashboard')
   }
 
   const handleLogout = async () => {
@@ -242,6 +249,12 @@ export default function App() {
               </button>
             </div>
             <div className="nav-user">
+              <CompanySwitcher
+                user={user}
+                currentCompany={company}
+                onCompanyChange={handleCompanyChange}
+                onShowToast={showToast}
+              />
               <span className="nav-user-name">{user?.name || user?.email}</span>
               <button className="nav-logout" onClick={handleLogout}>
                 Sign Out
