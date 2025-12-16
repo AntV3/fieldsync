@@ -1,8 +1,11 @@
 -- Fix RLS policy for company_branding to allow INSERT operations
 -- Run this in your Supabase SQL Editor
+-- Safe to run multiple times
 
--- Drop the old policy
+-- Drop all existing policies for company_branding (except SELECT policies)
 DROP POLICY IF EXISTS "Company admins can update branding" ON company_branding;
+DROP POLICY IF EXISTS "Company admins can insert branding" ON company_branding;
+DROP POLICY IF EXISTS "Company admins can delete branding" ON company_branding;
 
 -- Create new policies with proper INSERT support
 
