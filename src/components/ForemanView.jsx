@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import TMForm from './TMForm'
+import TMList from './TMList'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import Messages from './Messages'
@@ -13,6 +14,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
   const [showTMForm, setShowTMForm] = useState(false)
+  const [showTMList, setShowTMList] = useState(false)
   const [showCrewCheckin, setShowCrewCheckin] = useState(true)
   const [showDailyReport, setShowDailyReport] = useState(false)
   const [showMessages, setShowMessages] = useState(false)
@@ -143,6 +145,21 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
+  // Show T&M List
+  if (showTMList) {
+    return (
+      <div className="foreman-container">
+        <div className="foreman-header">
+          <button className="back-btn" onClick={() => setShowTMList(false)}>
+            ← Back
+          </button>
+          <h2>T&M Tickets</h2>
+        </div>
+        <TMList project={project} onShowToast={onShowToast} />
+      </div>
+    )
+  }
+
   const progress = calculateProgress(areas)
   
   // Group areas by group_name
@@ -176,14 +193,21 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
 
       {/* Action Buttons */}
       <div className="field-actions">
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowTMForm(true)}
         >
           <span className="icon">📝</span>
           T&M Ticket
         </button>
-        <button 
+        <button
+          className="field-action-btn"
+          onClick={() => setShowTMList(true)}
+        >
+          <span className="icon">📊</span>
+          View T&M
+        </button>
+        <button
           className="field-action-btn"
           onClick={() => setShowMessages(true)}
         >

@@ -4,6 +4,7 @@ import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLa
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
+import Messages from './Messages'
 
 export default function Dashboard({ company, onShowToast }) {
   const [view, setView] = useState('overview') // 'overview' or 'project'
@@ -14,6 +15,7 @@ export default function Dashboard({ company, onShowToast }) {
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showMessages, setShowMessages] = useState(false)
 
   // Executive Dashboard Data
   const [metrics, setMetrics] = useState(null)
@@ -476,6 +478,9 @@ export default function Dashboard({ company, onShowToast }) {
             ← Back to Dashboard
           </button>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-secondary btn-small" onClick={() => setShowMessages(true)}>
+              💬 Messages
+            </button>
             <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
               Share with Client
             </button>
@@ -584,6 +589,16 @@ export default function Dashboard({ company, onShowToast }) {
             onShareCreated={(share) => {
               onShowToast('Share link created successfully!', 'success')
             }}
+          />
+        )}
+
+        {showMessages && (
+          <Messages
+            project={selectedProject}
+            viewerType="office"
+            viewerName="Office"
+            onShowToast={onShowToast}
+            onClose={() => setShowMessages(false)}
           />
         )}
       </div>
