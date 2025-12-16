@@ -3388,8 +3388,6 @@ export const db = {
       return { success: false, error: error.message }
     }
   }
-}
-
 
   // ============================================
   // Multi-Company Functions
@@ -3453,3 +3451,4 @@ export const db = {
     return data?.companies
   }
 }
+
