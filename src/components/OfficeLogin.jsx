@@ -11,13 +11,32 @@ export default function OfficeLogin({ onLogin, onShowToast }) {
     setLoading(true)
 
     try {
+      // Ensure email and password are strings (defensive coding)
+      const emailStr = String(email || '').trim().toLowerCase()
+      const passwordStr = String(password || '')
+
+      // Debug log
+      console.log('Login attempt:', {
+        emailType: typeof emailStr,
+        emailValue: emailStr,
+        passwordType: typeof passwordStr
+      })
+
+      // Validate
+      if (!emailStr || !passwordStr) {
+        onShowToast?.('Please enter both email and password', 'error')
+        setLoading(false)
+        return
+      }
+
       // Authenticate user
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password: password
+        email: emailStr,
+        password: passwordStr
       })
 
       if (error) {
+        console.error('Supabase auth error:', error)
         onShowToast?.(error.message || 'Invalid email or password', 'error')
         setLoading(false)
         return
