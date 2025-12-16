@@ -4,12 +4,12 @@ import { BrandingProvider } from './lib/BrandingContext'
 import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
-import Field from './components/Field'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import NotificationSettings from './components/NotificationSettings'
 import CompanySettings from './components/CompanySettings'
 import CompanySwitcher from './components/CompanySwitcher'
+import NotificationBell from './components/NotificationBell'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -255,6 +255,10 @@ export default function App() {
                 onCompanyChange={handleCompanyChange}
                 onShowToast={showToast}
               />
+              <NotificationBell
+                user={user}
+                onShowToast={showToast}
+              />
               <span className="nav-user-name">{user?.name || user?.email}</span>
               <button className="nav-logout" onClick={handleLogout}>
                 Sign Out
@@ -268,11 +272,9 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <Dashboard company={company} onShowToast={showToast} />
           )}
-          {activeTab === 'field' && (
-            <Field onShowToast={showToast} />
-          )}
           {activeTab === 'setup' && (
             <Setup
+              company={company}
               onProjectCreated={handleProjectCreated}
               onShowToast={showToast}
             />

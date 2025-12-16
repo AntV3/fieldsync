@@ -2584,6 +2584,28 @@ export const db = {
     }
   },
 
+  // Mark all notifications as read for a user
+  async markAllNotificationsRead(userId) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({
+          in_app_read: true,
+          in_app_read_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('in_app_read', false)
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
   // Get users who should receive a notification for a specific type
   async getUsersForNotification(companyId, notificationTypeKey, roleKey) {
     if (!isSupabaseConfigured) return []
