@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
+import CompanyRegistration from './CompanyRegistration'
+import { RegistrationSuccess } from './CompanyRegistration'
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
-  const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join'
+  const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join', 'register', 'registration-success'
+  const [registrationData, setRegistrationData] = useState(null)
   
   // Foreman state
   const [companyCode, setCompanyCode] = useState('')
@@ -233,6 +236,19 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     }
   }
 
+  // Handle registration completion
+  const handleRegistrationComplete = (data) => {
+    setRegistrationData(data)
+    setMode('registration-success')
+  }
+
+  // Continue to dashboard after registration success
+  const handleContinueAfterRegistration = () => {
+    // User needs to sign in with their new account
+    setMode('office')
+    onShowToast('Please sign in with your new account', 'info')
+  }
+
   // Initial selection screen
   if (mode === null) {
     return (
@@ -241,7 +257,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           <Logo className="entry-logo" showPoweredBy={false} />
 
           <div className="entry-buttons">
-            <button 
+            <button
               className="entry-mode-btn foreman"
               onClick={() => setMode('foreman')}
             >
@@ -249,14 +265,24 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               <span className="entry-mode-title">Foreman</span>
               <span className="entry-mode-desc">Enter project PIN</span>
             </button>
-            
-            <button 
+
+            <button
               className="entry-mode-btn office"
               onClick={() => setMode('office')}
             >
               <span className="entry-mode-icon">💼</span>
               <span className="entry-mode-title">Office</span>
               <span className="entry-mode-desc">Sign in to dashboard</span>
+            </button>
+          </div>
+
+          <div className="entry-footer">
+            <p className="entry-footer-text">New company?</p>
+            <button
+              className="entry-register-link"
+              onClick={() => setMode('register')}
+            >
+              Register here
             </button>
           </div>
         </div>
@@ -411,6 +437,47 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           </div>
         </div>
       </div>
+    )
+  }
+
+  // Company Registration flow
+  if (mode === 'register') {
+    return (
+      <>
+        <button
+          className="entry-back-fixed"
+          onClick={() => setMode(null)}
+          style={{
+            position: 'fixed',
+            top: '2rem',
+            left: '2rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            padding: '0.5rem 1rem',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            zIndex: 1000
+          }}
+        >
+          ← Back
+        </button>
+        <CompanyRegistration
+          onComplete={handleRegistrationComplete}
+          onShowToast={onShowToast}
+        />
+      </>
+    )
+  }
+
+  // Registration Success Screen
+  if (mode === 'registration-success' && registrationData) {
+    return (
+      <RegistrationSuccess
+        company={registrationData.company}
+        codes={registrationData.codes}
+        onContinue={handleContinueAfterRegistration}
+      />
     )
   }
 

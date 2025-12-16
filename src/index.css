@@ -4138,6 +4138,35 @@ input::placeholder {
   font-weight: 500;
 }
 
+/* Entry Footer (for register link) */
+.entry-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.entry-footer-text {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.entry-register-link {
+  background: none;
+  border: none;
+  color: var(--accent-blue);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.entry-register-link:hover {
+  text-decoration: underline;
+}
+
 .entry-loading {
   margin-top: 1rem;
 }
