@@ -137,10 +137,13 @@ export function BrandingProvider({ children, companyId }) {
         return { success: false, error: 'No company ID' }
       }
 
+      // Use upsert to handle both insert and update cases
       const { data, error } = await supabase
         .from('company_branding')
-        .update(updates)
-        .eq('company_id', companyId)
+        .upsert(
+          { company_id: companyId, ...updates },
+          { onConflict: 'company_id' }
+        )
         .select()
         .single()
 
