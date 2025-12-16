@@ -54,51 +54,6 @@ export default function Field({ company, onShowToast }) {
     setAreas([])
   }
 
-  const handleDeleteProject = async (projectId, projectName) => {
-    if (!confirm(`Delete "${projectName}"? This will permanently delete the project and all its data. This cannot be undone.`)) {
-      return
-    }
-
-    try {
-      await db.deleteProject(projectId)
-      onShowToast('Project deleted', 'success')
-      loadProjects()
-    } catch (error) {
-      console.error('Error deleting project:', error)
-      onShowToast('Error deleting project', 'error')
-    }
-  }
-
-  const handlePauseProject = async (projectId, projectName) => {
-    if (!confirm(`Pause "${projectName}"? The project will be marked as paused.`)) {
-      return
-    }
-
-    try {
-      await db.updateProjectStatus(projectId, 'paused')
-      onShowToast('Project paused', 'success')
-      loadProjects()
-    } catch (error) {
-      console.error('Error pausing project:', error)
-      onShowToast('Error pausing project', 'error')
-    }
-  }
-
-  const handleCompleteProject = async (projectId, projectName) => {
-    if (!confirm(`Mark "${projectName}" as done? The project will be marked as completed.`)) {
-      return
-    }
-
-    try {
-      await db.updateProjectStatus(projectId, 'done')
-      onShowToast('Project marked as done', 'success')
-      loadProjects()
-    } catch (error) {
-      console.error('Error updating project:', error)
-      onShowToast('Error updating project', 'error')
-    }
-  }
-
   const handleStatusUpdate = async (areaId, newStatus) => {
     const area = areas.find(a => a.id === areaId)
     if (!area) return
@@ -197,45 +152,18 @@ export default function Field({ company, onShowToast }) {
 
       <div className="project-list">
         {projects.map(project => (
-          <div key={project.id} className="project-card-wrapper">
-            <div className="project-card" onClick={() => handleSelectProject(project)}>
-              <div className="project-card-name">
-                {project.name}
-                {project.status === 'paused' && <span className="project-status-badge paused">⏸ Paused</span>}
-                {project.status === 'done' && <span className="project-status-badge done">✓ Done</span>}
-              </div>
-              <div className="project-card-value" style={{ marginTop: '0.25rem' }}>
-                {formatCurrency(project.contract_value)}
-              </div>
+          <div
+            key={project.id}
+            className="project-card"
+            onClick={() => handleSelectProject(project)}
+          >
+            <div className="project-card-name">
+              {project.name}
+              {project.status === 'paused' && <span className="project-status-badge paused">⏸ Paused</span>}
+              {project.status === 'done' && <span className="project-status-badge done">✓ Done</span>}
             </div>
-            <div className="project-actions">
-              <button
-                className="btn btn-warning btn-small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handlePauseProject(project.id, project.name)
-                }}
-              >
-                ⏸ Pause
-              </button>
-              <button
-                className="btn btn-success btn-small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCompleteProject(project.id, project.name)
-                }}
-              >
-                ✓ Done
-              </button>
-              <button
-                className="btn btn-danger btn-small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeleteProject(project.id, project.name)
-                }}
-              >
-                🗑️ Delete
-              </button>
+            <div className="project-card-value" style={{ marginTop: '0.25rem' }}>
+              {formatCurrency(project.contract_value)}
             </div>
           </div>
         ))}

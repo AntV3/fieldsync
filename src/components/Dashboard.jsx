@@ -260,6 +260,53 @@ export default function Dashboard({ company, onShowToast }) {
     }
   }
 
+  const handlePauseProject = async () => {
+    if (!confirm(`Pause "${selectedProject.name}"? The project will be marked as paused.`)) {
+      return
+    }
+
+    try {
+      await db.updateProjectStatus(selectedProject.id, 'paused')
+      const updatedProject = await db.getProject(selectedProject.id)
+      setSelectedProject(updatedProject)
+      onShowToast('Project paused', 'success')
+      loadDashboardData()
+    } catch (error) {
+      console.error('Error pausing project:', error)
+      onShowToast('Error pausing project', 'error')
+    }
+  }
+
+  const handleResumeProject = async () => {
+    try {
+      await db.updateProjectStatus(selectedProject.id, 'active')
+      const updatedProject = await db.getProject(selectedProject.id)
+      setSelectedProject(updatedProject)
+      onShowToast('Project resumed', 'success')
+      loadDashboardData()
+    } catch (error) {
+      console.error('Error resuming project:', error)
+      onShowToast('Error resuming project', 'error')
+    }
+  }
+
+  const handleCompleteProject = async () => {
+    if (!confirm(`Mark "${selectedProject.name}" as done? The project will be marked as completed.`)) {
+      return
+    }
+
+    try {
+      await db.updateProjectStatus(selectedProject.id, 'done')
+      const updatedProject = await db.getProject(selectedProject.id)
+      setSelectedProject(updatedProject)
+      onShowToast('Project marked as done', 'success')
+      loadDashboardData()
+    } catch (error) {
+      console.error('Error updating project:', error)
+      onShowToast('Error updating project', 'error')
+    }
+  }
+
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -382,12 +429,41 @@ export default function Dashboard({ company, onShowToast }) {
             </button>
           </div>
 
-          <button
-            className="btn btn-danger btn-full"
-            onClick={handleDeleteProject}
-          >
-            Delete Project
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+            {selectedProject.status === 'paused' ? (
+              <button
+                className="btn btn-success btn-small"
+                onClick={handleResumeProject}
+                style={{ flex: 1 }}
+              >
+                ▶ Resume
+              </button>
+            ) : (
+              <button
+                className="btn btn-warning btn-small"
+                onClick={handlePauseProject}
+                style={{ flex: 1 }}
+              >
+                ⏸ Pause
+              </button>
+            )}
+            {selectedProject.status !== 'done' && (
+              <button
+                className="btn btn-success btn-small"
+                onClick={handleCompleteProject}
+                style={{ flex: 1 }}
+              >
+                ✓ Mark Done
+              </button>
+            )}
+            <button
+              className="btn btn-danger btn-small"
+              onClick={handleDeleteProject}
+              style={{ flex: 1 }}
+            >
+              🗑️ Delete
+            </button>
+          </div>
         </div>
       )
     }
