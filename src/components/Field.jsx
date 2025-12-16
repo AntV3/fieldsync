@@ -54,6 +54,22 @@ export default function Field({ company, onShowToast }) {
     setAreas([])
   }
 
+  const handleDeleteProject = async (projectId, projectName) => {
+    if (!confirm(`Delete "${projectName}"? This will permanently delete the project and all its data. This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      await db.deleteProject(projectId)
+      onShowToast('Project deleted', 'success')
+      // Reload projects list
+      loadProjects()
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      onShowToast('Error deleting project', 'error')
+    }
+  }
+
   const handleStatusUpdate = async (areaId, newStatus) => {
     const area = areas.find(a => a.id === areaId)
     if (!area) return
@@ -152,11 +168,23 @@ export default function Field({ company, onShowToast }) {
 
       <div className="project-list">
         {projects.map(project => (
-          <div key={project.id} className="project-card" onClick={() => handleSelectProject(project)}>
-            <div className="project-card-name">{project.name}</div>
-            <div className="project-card-value" style={{ marginTop: '0.25rem' }}>
-              {formatCurrency(project.contract_value)}
+          <div key={project.id} className="project-card-wrapper">
+            <div className="project-card" onClick={() => handleSelectProject(project)}>
+              <div className="project-card-name">{project.name}</div>
+              <div className="project-card-value" style={{ marginTop: '0.25rem' }}>
+                {formatCurrency(project.contract_value)}
+              </div>
             </div>
+            <button
+              className="btn btn-danger btn-small"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDeleteProject(project.id, project.name)
+              }}
+              style={{ marginTop: '0.5rem' }}
+            >
+              🗑️ Delete
+            </button>
           </div>
         ))}
       </div>

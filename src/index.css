@@ -505,6 +505,11 @@ input::placeholder {
   gap: 1rem;
 }
 
+.project-card-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 .project-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
