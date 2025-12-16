@@ -65,8 +65,7 @@ export default function CompanySwitcher({ user, currentCompany, onCompanyChange,
         <>
           <div className="company-switcher-overlay" onClick={() => setIsOpen(false)} />
           <div className="company-switcher-dropdown">
-            {companies.map(userCompany => {
-              const company = userCompany.companies
+            {companies.map(company => {
               const isActive = company.id === currentCompany?.id
 
               return (
