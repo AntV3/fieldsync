@@ -3,7 +3,7 @@ import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
 import CompanyRegistration from './CompanyRegistration'
 import { RegistrationSuccess } from './CompanyRegistration'
-import OfficeLogin from './OfficeLogin'
+import SimpleOfficeLogin from './SimpleOfficeLogin'
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join', 'register', 'registration-success'
@@ -399,7 +399,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         >
           ← Back
         </button>
-        <OfficeLogin onLogin={onOfficeLogin} onShowToast={onShowToast} />
+        <SimpleOfficeLogin onLogin={onOfficeLogin} onShowToast={onShowToast} />
       </>
     )
   }
