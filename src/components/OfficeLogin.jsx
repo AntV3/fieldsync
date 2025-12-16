@@ -162,6 +162,9 @@ export default function OfficeLogin({ onLogin, onShowToast }) {
     return (
       <div className="login-container">
         <div className="login-card">
+          <a href="/register" className="small-register-link">
+            New company? Register here
+          </a>
           <div className="login-header">
             <h1>FieldSync</h1>
             <h2>Office Dashboard</h2>

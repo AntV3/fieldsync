@@ -6389,3 +6389,181 @@ input::placeholder {
   color: var(--accent-blue);
   font-size: 1.2rem;
 }
+
+/* ============================================
+   COMPANY REGISTRATION STYLES
+   ============================================ */
+
+.registration-card {
+  max-width: 600px;
+  width: 100%;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 1.5rem;
+}
+
+.form-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.input-with-button button {
+  white-space: nowrap;
+  padding: 0.75rem 1rem;
+}
+
+.small-register-link {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.small-register-link:hover {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}
+
+/* Registration Success Screen */
+.success-card {
+  max-width: 500px;
+  text-align: center;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  background: var(--accent-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: white;
+  font-weight: bold;
+}
+
+.success-card h1 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.success-card h2 {
+  margin: 0 0 2rem 0;
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.codes-display {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.code-box {
+  flex: 1;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.code-box h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.code {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--accent-blue);
+  background: var(--bg-primary);
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 0.75rem 0;
+  letter-spacing: 2px;
+}
+
+.code-box small {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.success-actions {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.success-actions button {
+  flex: 1;
+}
+
+.success-message {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.success-message p {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.success-message ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.success-message li {
+  margin: 0.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .codes-display {
+    flex-direction: column;
+  }
+
+  .success-actions {
+    flex-direction: column;
+  }
+
+  .small-register-link {
+    position: static;
+    display: block;
+    margin-top: 1rem;
+    text-align: center;
+  }
+}

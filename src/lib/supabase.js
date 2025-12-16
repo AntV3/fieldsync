@@ -3297,6 +3297,96 @@ export const db = {
       console.error('Error fetching field activity history:', error)
       return []
     }
+  },
+
+  // ============================================
+  // COMPANY REGISTRATION
+  // ============================================
+
+  // Create company with admin account (self-service registration)
+  async createCompanyWithAdmin({ company_name, field_code, office_pin, admin_name, admin_email, admin_password }) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      // Check if field code already exists
+      const { data: existingFieldCode } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('field_code', field_code)
+        .single()
+
+      if (existingFieldCode) {
+        return { success: false, error: 'Field code already in use. Please choose another.' }
+      }
+
+      // Check if office PIN already exists
+      const { data: existingPin } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('office_pin', office_pin)
+        .single()
+
+      if (existingPin) {
+        return { success: false, error: 'Office PIN already in use. Please generate a new one.' }
+      }
+
+      // Create company
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: company_name,
+          field_code: field_code,
+          office_pin: office_pin
+        })
+        .select()
+        .single()
+
+      if (companyError) throw companyError
+
+      // Create admin auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: admin_email,
+        password: admin_password,
+        options: {
+          data: {
+            name: admin_name,
+            role: 'admin'
+          }
+        }
+      })
+
+      if (authError) {
+        // Rollback company creation
+        await supabase.from('companies').delete().eq('id', company.id)
+        throw authError
+      }
+
+      // Create admin user profile
+      const { error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          company_id: company.id,
+          name: admin_name,
+          email: admin_email,
+          role: 'admin'
+        })
+
+      if (userError) {
+        // Rollback company and auth
+        await supabase.from('companies').delete().eq('id', company.id)
+        throw userError
+      }
+
+      return {
+        success: true,
+        company: company,
+        admin: authData.user
+      }
+    } catch (error) {
+      console.error('Error creating company with admin:', error)
+      return { success: false, error: error.message }
+    }
   }
 }
 
