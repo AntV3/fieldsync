@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress } from '../lib/utils'
 
-export default function Field({ onShowToast }) {
+export default function Field({ company, onShowToast }) {
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
@@ -11,7 +11,7 @@ export default function Field({ onShowToast }) {
 
   useEffect(() => {
     loadProjects()
-  }, [])
+  }, [company])
 
   useEffect(() => {
     if (selectedProject) {
@@ -20,8 +20,13 @@ export default function Field({ onShowToast }) {
   }, [selectedProject])
 
   const loadProjects = async () => {
+    if (!company?.id) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const data = await db.getProjects()
+      const data = await db.getProjects(company.id)
       setProjects(data)
     } catch (error) {
       console.error('Error loading projects:', error)
@@ -147,8 +152,16 @@ export default function Field({ onShowToast }) {
 
       <div className="project-list">
         {projects.map(project => (
-          <div key={project.id} className="project-card" onClick={() => handleSelectProject(project)}>
-            <div className="project-card-name">{project.name}</div>
+          <div
+            key={project.id}
+            className="project-card"
+            onClick={() => handleSelectProject(project)}
+          >
+            <div className="project-card-name">
+              {project.name}
+              {project.status === 'paused' && <span className="project-status-badge paused">⏸ Paused</span>}
+              {project.status === 'done' && <span className="project-status-badge done">✓ Done</span>}
+            </div>
             <div className="project-card-value" style={{ marginTop: '0.25rem' }}>
               {formatCurrency(project.contract_value)}
             </div>

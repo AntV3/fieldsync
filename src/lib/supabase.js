@@ -444,6 +444,11 @@ export const db = {
     }
   },
 
+  // Update project status
+  async updateProjectStatus(id, status) {
+    return this.updateProject(id, { status })
+  },
+
   async deleteProject(id) {
     if (isSupabaseConfigured) {
       const { error } = await supabase
@@ -1514,7 +1519,7 @@ export const db = {
   // Create material request
   async createMaterialRequest(projectId, items, requestedBy, neededBy = null, priority = 'normal', notes = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const { data, error } = await supabase
       .from('material_requests')
       .insert({
@@ -1527,11 +1532,70 @@ export const db = {
       })
       .select()
       .single()
-    
+
     if (error) {
       console.error('Error creating material request:', error)
       throw error
     }
+
+    // Send notification to materials managers
+    if (data) {
+      try {
+        // Get project info for notification
+        const { data: project } = await supabase
+          .from('projects')
+          .select('name, company_id')
+          .eq('id', projectId)
+          .single()
+
+        if (project) {
+          // Determine notification type based on priority
+          const notificationTypeKey = priority === 'urgent'
+            ? 'material_request_urgent'
+            : 'material_request_submitted'
+
+          // Get all users with materials_manager role for this company
+          const { data: roleUsers } = await supabase
+            .from('user_notification_roles')
+            .select(`
+              user_id,
+              notification_roles!inner(company_id, role_key)
+            `)
+            .eq('notification_roles.company_id', project.company_id)
+            .eq('notification_roles.role_key', 'materials_manager')
+
+          // Create notification for each materials manager
+          if (roleUsers && roleUsers.length > 0) {
+            const itemsList = items.map(i => `${i.quantity} ${i.unit} ${i.name}`).join(', ')
+            const title = priority === 'urgent'
+              ? '🔴 Urgent Material Request'
+              : '📦 New Material Request'
+            const message = `${requestedBy} requested: ${itemsList} for ${project.name}`
+
+            for (const ru of roleUsers) {
+              await this.createNotification(
+                project.company_id,
+                notificationTypeKey,
+                ru.user_id,
+                title,
+                message,
+                `/projects/${projectId}`, // Link to project page
+                {
+                  request_id: data.id,
+                  project_id: projectId,
+                  priority,
+                  items_count: items.length
+                }
+              )
+            }
+          }
+        }
+      } catch (notifError) {
+        console.error('Error sending material request notification:', notifError)
+        // Don't throw - material request was created successfully
+      }
+    }
+
     return data
   },
 

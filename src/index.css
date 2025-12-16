@@ -505,6 +505,11 @@ input::placeholder {
   gap: 1rem;
 }
 
+.project-card-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 .project-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -517,6 +522,31 @@ input::placeholder {
 .project-card:hover {
   border-color: var(--accent-blue);
   transform: translateY(-2px);
+}
+
+.project-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.project-status-badge {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.project-status-badge.paused {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.project-status-badge.done {
+  background: #d4edda;
+  color: #155724;
 }
 
 .project-card-header {
@@ -5631,8 +5661,32 @@ input::placeholder {
   font-size: 0.9rem;
 }
 
+/* Dashboard Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 /* Responsive Dashboard */
 @media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
   .metrics-grid {
     grid-template-columns: repeat(3, 1fr);
   }
