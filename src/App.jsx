@@ -17,7 +17,6 @@ export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
-  const [companies, setCompanies] = useState([]) // All companies user has access to
   const [foremanProject, setForemanProject] = useState(null)
   const [shareToken, setShareToken] = useState(null)
   const [loading, setLoading] = useState(true)
