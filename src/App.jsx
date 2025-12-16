@@ -84,64 +84,12 @@ export default function App() {
     setView('foreman')
   }
 
-  // Office login
-  const handleOfficeLogin = async (email, password) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) {
-        showToast(error.message || 'Invalid credentials', 'error')
-        return
-      }
-
-      // Get user profile - simple query without joins to avoid RLS circular dependency
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email, name, role, company_id, created_at, updated_at')
-        .eq('id', data.user.id)
-        .single()
-
-      if (userError) {
-        console.error('User fetch error:', userError)
-        showToast('Error loading profile. Please contact support.', 'error')
-        await supabase.auth.signOut()
-        return
-      }
-
-      if (!userData) {
-        showToast('Profile not found. Please contact support.', 'error')
-        await supabase.auth.signOut()
-        return
-      }
-
-      // Get company info separately
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', userData.company_id)
-        .single()
-
-      if (companyError || !companyData) {
-        console.error('Company fetch error:', companyError)
-        showToast('Company not found. Please contact support.', 'error')
-        await supabase.auth.signOut()
-        return
-      }
-
-      // Set user and company
-      setUser(userData)
-      setCompany(companyData)
-      setView('office')
-      showToast('Logged in successfully', 'success')
-
-    } catch (err) {
-      console.error('Login error:', err)
-      showToast('Login failed. Please try again.', 'error')
-      await supabase.auth.signOut()
-    }
+  // Office login - receives user and company data from OfficeLogin component
+  const handleOfficeLogin = (userData, companyData) => {
+    console.log('handleOfficeLogin called with:', { userData, companyData })
+    setUser(userData)
+    setCompany(companyData)
+    setView('office')
   }
 
   const handleLogout = async () => {
