@@ -16,33 +16,27 @@ export default function CompanySwitcher({ user, currentCompany, onCompanyChange,
   const loadUserCompanies = async () => {
     try {
       const data = await db.getUserCompanies(user.id)
-      setCompanies(data)
+      console.log('Loaded companies:', data)
+      setCompanies(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error loading companies:', error)
       onShowToast?.('Error loading companies', 'error')
+      setCompanies([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSwitchCompany = async (company) => {
-    try {
-      // Update user's company_id
-      const { error } = await supabase
-        .from('users')
-        .update({ company_id: company.id })
-        .eq('id', user.id)
-
-      if (error) throw error
-
-      // Update local state
-      onCompanyChange(company)
+  const handleSwitchCompany = (company) => {
+    if (company.id === currentCompany?.id) {
       setIsOpen(false)
-      onShowToast?.(`Switched to ${company.name}`, 'success')
-    } catch (error) {
-      console.error('Error switching company:', error)
-      onShowToast?.('Error switching company', 'error')
+      return
     }
+
+    // Just update the local state - no database changes needed
+    onCompanyChange(company)
+    setIsOpen(false)
+    onShowToast?.(`Switched to ${company.name}`, 'success')
   }
 
   // Don't show if user only has one company
@@ -65,26 +59,35 @@ export default function CompanySwitcher({ user, currentCompany, onCompanyChange,
         <>
           <div className="company-switcher-overlay" onClick={() => setIsOpen(false)} />
           <div className="company-switcher-dropdown">
-            {companies.map(company => {
-              const isActive = company.id === currentCompany?.id
+            {companies.length === 0 ? (
+              <div className="company-switcher-empty">No companies found</div>
+            ) : (
+              companies.map(company => {
+                if (!company?.id) {
+                  console.warn('Invalid company object:', company)
+                  return null
+                }
 
-              return (
-                <button
-                  key={company.id}
-                  className={`company-switcher-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleSwitchCompany(company)}
-                  disabled={isActive}
-                >
-                  <div className="company-switcher-item-info">
-                    <span className="company-switcher-item-name">{company.name}</span>
-                    {company.field_code && (
-                      <span className="company-switcher-item-code">{company.field_code}</span>
-                    )}
-                  </div>
-                  {isActive && <span className="company-switcher-check">✓</span>}
-                </button>
-              )
-            })}
+                const isActive = company.id === currentCompany?.id
+
+                return (
+                  <button
+                    key={company.id}
+                    className={`company-switcher-item ${isActive ? 'active' : ''}`}
+                    onClick={() => handleSwitchCompany(company)}
+                    disabled={isActive}
+                  >
+                    <div className="company-switcher-item-info">
+                      <span className="company-switcher-item-name">{company.name || 'Unknown'}</span>
+                      {company.field_code && (
+                        <span className="company-switcher-item-code">{company.field_code}</span>
+                      )}
+                    </div>
+                    {isActive && <span className="company-switcher-check">✓</span>}
+                  </button>
+                )
+              })
+            )}
           </div>
         </>
       )}
