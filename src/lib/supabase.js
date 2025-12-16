@@ -5,11 +5,23 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
+// ============================================
+// Multi-Company Configuration
+// ============================================
+// Auto-add new users to these companies
+// To change which companies new users get added to, update these IDs:
+const AUTO_ADD_COMPANIES = [
+  { id: 'da92028d-3056-4b0c-a467-e3fbe4ce8466', name: 'GGG' },
+  { id: 'bf01ee1a-e29e-4ef8-8742-53cda36d9452', name: 'Miller' }
+]
+// To disable auto-add, set AUTO_ADD_COMPANIES = []
+// To add more companies, just add more objects to the array
+
 // Check if Supabase is configured
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
 // Create client only if configured
-export const supabase = isSupabaseConfigured 
+export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null
 
@@ -3206,22 +3218,22 @@ export const db = {
 
       if (userError) throw userError
 
-      // MULTI-COMPANY: Automatically add user to both GGG and Miller companies
-      const gggCompanyId = 'da92028d-3056-4b0c-a467-e3fbe4ce8466'
-      const millerCompanyId = 'bf01ee1a-e29e-4ef8-8742-53cda36d9452'
+      // MULTI-COMPANY: Automatically add user to configured companies
+      if (AUTO_ADD_COMPANIES.length > 0) {
+        const userCompaniesData = AUTO_ADD_COMPANIES.map(company => ({
+          user_id: authData.user.id,
+          company_id: company.id,
+          role: role || 'user'
+        }))
 
-      const userCompaniesData = [
-        { user_id: authData.user.id, company_id: gggCompanyId, role: role || 'user' },
-        { user_id: authData.user.id, company_id: millerCompanyId, role: role || 'user' }
-      ]
+        const { error: ucError } = await supabase
+          .from('user_companies')
+          .insert(userCompaniesData)
 
-      const { error: ucError } = await supabase
-        .from('user_companies')
-        .insert(userCompaniesData)
-
-      if (ucError) {
-        console.warn('Could not add user to user_companies:', ucError)
-        // Don't throw - user was created successfully, this is just a nice-to-have
+        if (ucError) {
+          console.warn('Could not add user to user_companies:', ucError)
+          // Don't throw - user was created successfully, this is just a nice-to-have
+        }
       }
 
       return { success: true, data: userData }
@@ -3396,22 +3408,22 @@ export const db = {
         throw userError
       }
 
-      // MULTI-COMPANY: Automatically add admin to both GGG and Miller companies
-      const gggCompanyId = 'da92028d-3056-4b0c-a467-e3fbe4ce8466'
-      const millerCompanyId = 'bf01ee1a-e29e-4ef8-8742-53cda36d9452'
+      // MULTI-COMPANY: Automatically add admin to configured companies
+      if (AUTO_ADD_COMPANIES.length > 0) {
+        const userCompaniesData = AUTO_ADD_COMPANIES.map(company => ({
+          user_id: authData.user.id,
+          company_id: company.id,
+          role: 'admin'
+        }))
 
-      const userCompaniesData = [
-        { user_id: authData.user.id, company_id: gggCompanyId, role: 'admin' },
-        { user_id: authData.user.id, company_id: millerCompanyId, role: 'admin' }
-      ]
+        const { error: ucError } = await supabase
+          .from('user_companies')
+          .insert(userCompaniesData)
 
-      const { error: ucError } = await supabase
-        .from('user_companies')
-        .insert(userCompaniesData)
-
-      if (ucError) {
-        console.warn('Could not add admin to user_companies:', ucError)
-        // Don't throw - admin was created successfully
+        if (ucError) {
+          console.warn('Could not add admin to user_companies:', ucError)
+          // Don't throw - admin was created successfully
+        }
       }
 
       return {
