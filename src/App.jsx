@@ -86,10 +86,10 @@ export default function App() {
         return
       }
 
-      // Get user profile
+      // Get user profile with company data
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*')
+        .select('*, companies(*)')
         .eq('id', data.user.id)
         .single()
 
@@ -102,16 +102,51 @@ export default function App() {
       if (userData) {
         setUser(userData)
 
-        // Load all companies user has access to
-        const userCompanies = await db.getUserCompanies(userData.id)
-        setCompanies(userCompanies)
+        // Try to load companies using multi-company function (if migration was run)
+        try {
+          const userCompanies = await db.getUserCompanies(userData.id)
 
-        // Set first company as active (or show company selector if multiple)
-        if (userCompanies.length > 0) {
-          setCompany(userCompanies[0])
-          setView('office')
-        } else {
-          showToast('No companies found. Please contact admin.', 'error')
+          if (userCompanies && userCompanies.length > 0) {
+            // Multi-company setup is active
+            setCompanies(userCompanies)
+
+            // Set active company or first company
+            const activeCompany = userCompanies.find(c => c.is_active) || userCompanies[0]
+            setCompany({
+              id: activeCompany.company_id,
+              name: activeCompany.company_name,
+              field_code: activeCompany.company_field_code
+            })
+            setView('office')
+          } else if (userData.companies) {
+            // Fallback to old single-company approach
+            setCompany(userData.companies)
+            setCompanies([{
+              company_id: userData.companies.id,
+              company_name: userData.companies.name,
+              company_field_code: userData.companies.field_code,
+              is_active: true
+            }])
+            setView('office')
+          } else {
+            showToast('No company found. Please contact admin.', 'error')
+          }
+        } catch (multiCompanyError) {
+          console.error('Multi-company error (falling back to single company):', multiCompanyError)
+
+          // Fallback to old single-company approach if multi-company function doesn't exist
+          if (userData.companies) {
+            setCompany(userData.companies)
+            setCompanies([{
+              company_id: userData.companies.id,
+              company_name: userData.companies.name,
+              company_field_code: userData.companies.field_code,
+              is_active: true
+            }])
+            setView('office')
+          } else {
+            showToast('No company found. Please contact admin.', 'error')
+          }
         }
       } else {
         showToast('Profile not found. Please contact admin.', 'error')

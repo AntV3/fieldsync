@@ -3394,15 +3394,22 @@ export const db = {
   // ============================================
 
   async getUserCompanies(userId) {
-    const { data, error } = await supabase
-      .rpc('get_user_companies', { p_user_id: userId })
+    if (!isSupabaseConfigured) return []
 
-    if (error) {
-      console.error('Error getting user companies:', error)
+    try {
+      const { data, error } = await supabase
+        .rpc('get_user_companies', { p_user_id: userId })
+
+      if (error) {
+        console.error('Error getting user companies:', error)
+        return []
+      }
+
+      return data || []
+    } catch (err) {
+      console.error('Exception in getUserCompanies:', err)
       return []
     }
-
-    return data
   },
 
   async switchActiveCompany(userId, companyId) {
