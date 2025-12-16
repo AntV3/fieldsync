@@ -1105,6 +1105,51 @@ export const db = {
     }
   },
 
+  // Get company users directly (for single-company users)
+  async getCompanyUsers(companyId) {
+    if (!isSupabaseConfigured) return []
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, name, role, created_at')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching company users:', error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error fetching company users:', error)
+      return []
+    }
+  },
+
+  // Update user role
+  async updateUserRole(userId, newRole) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase not configured' }
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ role: newRole })
+        .eq('id', userId)
+
+      if (error) {
+        console.error('Error updating user role:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error updating user role:', error)
+      return { success: false, error: error.message }
+    }
+  },
+
   // ============================================
   // Photo Storage
   // ============================================

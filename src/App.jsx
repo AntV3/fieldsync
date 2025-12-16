@@ -8,6 +8,7 @@ import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import NotificationSettings from './components/NotificationSettings'
 import CompanySettings from './components/CompanySettings'
+import UserManagement from './components/UserManagement'
 import CompanySwitcher from './components/CompanySwitcher'
 import NotificationBell from './components/NotificationBell'
 import PublicView from './components/PublicView'
@@ -223,18 +224,31 @@ export default function App() {
               >
                 + New Project
               </button>
-              <button
-                className={`nav-tab ${activeTab === 'company' ? 'active' : ''}`}
-                onClick={() => setActiveTab('company')}
-              >
-                Company
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
-                onClick={() => setActiveTab('branding')}
-              >
-                Branding
-              </button>
+
+              {/* Admin-only tabs */}
+              {user?.role === 'admin' && (
+                <>
+                  <button
+                    className={`nav-tab ${activeTab === 'company' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('company')}
+                  >
+                    Company
+                  </button>
+                  <button
+                    className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('branding')}
+                  >
+                    Branding
+                  </button>
+                  <button
+                    className={`nav-tab ${activeTab === 'users' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('users')}
+                  >
+                    Users
+                  </button>
+                </>
+              )}
+
               <button
                 className={`nav-tab ${activeTab === 'notifications' ? 'active' : ''}`}
                 onClick={() => setActiveTab('notifications')}
@@ -273,15 +287,22 @@ export default function App() {
               onShowToast={showToast}
             />
           )}
-          {activeTab === 'company' && (
+          {activeTab === 'company' && user?.role === 'admin' && (
             <CompanySettings
               company={company}
               onShowToast={showToast}
             />
           )}
-          {activeTab === 'branding' && (
+          {activeTab === 'branding' && user?.role === 'admin' && (
             <BrandingSettings
               company={company}
+              onShowToast={showToast}
+            />
+          )}
+          {activeTab === 'users' && user?.role === 'admin' && (
+            <UserManagement
+              company={company}
+              currentUser={user}
               onShowToast={showToast}
             />
           )}
