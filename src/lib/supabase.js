@@ -2341,6 +2341,233 @@ export const db = {
     }
   },
 
+  // Get comprehensive dashboard metrics with project-level breakdowns
+  async getDashboardMetricsWithBreakdown(companyId) {
+    if (!isSupabaseConfigured) {
+      return {
+        activeProjects: { count: 0, list: [] },
+        totalContractValue: { total: 0, breakdown: [] },
+        tmApproved: { total: 0, count: 0, breakdown: [] },
+        tmBilled: { total: 0, count: 0, breakdown: [] },
+        materialRequestsPending: { total: 0, breakdown: [] },
+        revenueAtRisk: { total: 0, breakdown: [] }
+      }
+    }
+
+    try {
+      // Get all active projects
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name, contract_value, status')
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+
+      if (projectsError) throw projectsError
+
+      const activeProjectsList = projects || []
+      const activeProjectsCount = activeProjectsList.length
+
+      // Calculate total contract value with breakdown
+      const totalContractValue = activeProjectsList.reduce((sum, p) => sum + (parseFloat(p.contract_value) || 0), 0)
+      const contractValueBreakdown = activeProjectsList
+        .filter(p => p.contract_value > 0)
+        .map(p => ({
+          projectId: p.id,
+          projectName: p.name,
+          value: parseFloat(p.contract_value) || 0
+        }))
+        .sort((a, b) => b.value - a.value)
+
+      // Get T&M tickets for all projects
+      const { data: allTickets, error: ticketsError } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          id,
+          project_id,
+          status,
+          t_and_m_workers (hours),
+          t_and_m_items (
+            quantity,
+            materials_equipment (cost_per_unit)
+          ),
+          projects (name)
+        `)
+        .in('project_id', activeProjectsList.map(p => p.id))
+
+      if (ticketsError) console.error('Error fetching tickets:', ticketsError)
+
+      const tickets = allTickets || []
+
+      // Helper function to calculate ticket value
+      const calculateTicketValue = (ticket) => {
+        const laborCost = (ticket.t_and_m_workers || [])
+          .reduce((sum, w) => sum + (parseFloat(w.hours) || 0) * 50, 0)
+
+        const materialsCost = (ticket.t_and_m_items || [])
+          .reduce((sum, item) => {
+            const qty = parseFloat(item.quantity) || 0
+            const cost = parseFloat(item.materials_equipment?.cost_per_unit) || 0
+            return sum + (qty * cost)
+          }, 0)
+
+        return laborCost + materialsCost
+      }
+
+      // Calculate T&M Approved metrics
+      const approvedTickets = tickets.filter(t => t.status === 'approved')
+      const approvedByProject = {}
+
+      approvedTickets.forEach(ticket => {
+        const projectName = ticket.projects?.name || 'Unknown Project'
+        if (!approvedByProject[ticket.project_id]) {
+          approvedByProject[ticket.project_id] = {
+            projectId: ticket.project_id,
+            projectName: projectName,
+            value: 0,
+            ticketCount: 0
+          }
+        }
+        approvedByProject[ticket.project_id].value += calculateTicketValue(ticket)
+        approvedByProject[ticket.project_id].ticketCount += 1
+      })
+
+      const tmApprovedBreakdown = Object.values(approvedByProject).sort((a, b) => b.value - a.value)
+      const tmApprovedTotal = tmApprovedBreakdown.reduce((sum, p) => sum + p.value, 0)
+      const tmApprovedCount = approvedTickets.length
+
+      // Calculate T&M Billed metrics
+      const billedTickets = tickets.filter(t => t.status === 'billed')
+      const billedByProject = {}
+
+      billedTickets.forEach(ticket => {
+        const projectName = ticket.projects?.name || 'Unknown Project'
+        if (!billedByProject[ticket.project_id]) {
+          billedByProject[ticket.project_id] = {
+            projectId: ticket.project_id,
+            projectName: projectName,
+            value: 0,
+            ticketCount: 0
+          }
+        }
+        billedByProject[ticket.project_id].value += calculateTicketValue(ticket)
+        billedByProject[ticket.project_id].ticketCount += 1
+      })
+
+      const tmBilledBreakdown = Object.values(billedByProject).sort((a, b) => b.value - a.value)
+      const tmBilledTotal = tmBilledBreakdown.reduce((sum, p) => sum + p.value, 0)
+      const tmBilledCount = billedTickets.length
+
+      // Calculate Revenue at Risk (projects with low progress)
+      const projectsWithProgress = await Promise.all(
+        activeProjectsList.map(async (project) => {
+          const { data: areas } = await supabase
+            .from('areas')
+            .select('weight, status')
+            .eq('project_id', project.id)
+
+          const totalWeight = (areas || []).reduce((sum, a) => sum + (parseFloat(a.weight) || 0), 0)
+          const completedWeight = (areas || [])
+            .filter(a => a.status === 'done')
+            .reduce((sum, a) => sum + (parseFloat(a.weight) || 0), 0)
+
+          const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0
+
+          return {
+            projectId: project.id,
+            projectName: project.name,
+            contractValue: parseFloat(project.contract_value) || 0,
+            progress
+          }
+        })
+      )
+
+      const revenueAtRiskBreakdown = projectsWithProgress
+        .filter(p => p.progress < 50 && p.contractValue > 0)
+        .map(p => ({
+          projectId: p.projectId,
+          projectName: p.projectName,
+          contractValue: p.contractValue,
+          progress: p.progress,
+          atRisk: Math.round(p.contractValue * (1 - (p.progress / 100))),
+          reason: `Low progress (${p.progress}%)`
+        }))
+        .sort((a, b) => b.atRisk - a.atRisk)
+
+      const revenueAtRiskTotal = revenueAtRiskBreakdown.reduce((sum, p) => sum + p.atRisk, 0)
+
+      // Material requests pending (if table exists)
+      let materialRequestsBreakdown = []
+      let materialRequestsTotal = 0
+
+      try {
+        const { data: requests, error: requestsError } = await supabase
+          .from('material_requests')
+          .select('project_id, projects (name)')
+          .in('project_id', activeProjectsList.map(p => p.id))
+          .eq('status', 'pending')
+
+        if (!requestsError && requests) {
+          const requestsByProject = {}
+          requests.forEach(req => {
+            if (!requestsByProject[req.project_id]) {
+              requestsByProject[req.project_id] = {
+                projectId: req.project_id,
+                projectName: req.projects?.name || 'Unknown Project',
+                count: 0
+              }
+            }
+            requestsByProject[req.project_id].count += 1
+          })
+
+          materialRequestsBreakdown = Object.values(requestsByProject).sort((a, b) => b.count - a.count)
+          materialRequestsTotal = requests.length
+        }
+      } catch (error) {
+        // Table doesn't exist yet, skip
+        console.log('Material requests table not available yet')
+      }
+
+      return {
+        activeProjects: {
+          count: activeProjectsCount,
+          list: activeProjectsList.map(p => ({ id: p.id, name: p.name, status: p.status }))
+        },
+        totalContractValue: {
+          total: totalContractValue,
+          breakdown: contractValueBreakdown
+        },
+        tmApproved: {
+          total: tmApprovedTotal,
+          count: tmApprovedCount,
+          breakdown: tmApprovedBreakdown
+        },
+        tmBilled: {
+          total: tmBilledTotal,
+          count: tmBilledCount,
+          breakdown: tmBilledBreakdown
+        },
+        materialRequestsPending: {
+          total: materialRequestsTotal,
+          breakdown: materialRequestsBreakdown
+        },
+        revenueAtRisk: {
+          total: revenueAtRiskTotal,
+          breakdown: revenueAtRiskBreakdown
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error)
+      return {
+        activeProjects: { count: 0, list: [] },
+        totalContractValue: { total: 0, breakdown: [] },
+        tmApproved: { total: 0, count: 0, breakdown: [] },
+        tmBilled: { total: 0, count: 0, breakdown: [] },
+        materialRequestsPending: { total: 0, breakdown: [] },
+        revenueAtRisk: { total: 0, breakdown: [] }
+      }
+    }
+  },
+
   // Get project summaries with crew and pending items
   async getProjectSummaries(companyId) {
     if (!isSupabaseConfigured) {
