@@ -5,6 +5,7 @@ import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
 import Messages from './Messages'
+import MetricCard from './MetricCard'
 
 export default function Dashboard({ company, onShowToast }) {
   const [view, setView] = useState('overview') // 'overview' or 'project'
@@ -634,43 +635,49 @@ export default function Dashboard({ company, onShowToast }) {
 
       {/* Top Metrics Row */}
       <div className="metrics-grid">
-        <div className="metric-card" title={metrics.activeProjects?.list?.map(p => p.name).join(', ') || ''}>
-          <div className="metric-value">{metrics.activeProjects?.count || 0}</div>
-          <div className="metric-label">Active Projects</div>
-        </div>
-        <div className="metric-card" title="Total value of all active project contracts">
-          <div className="metric-value">{formatCurrency(metrics.totalContractValue?.total || 0)}</div>
-          <div className="metric-label">Total Contract Value</div>
-          {metrics.totalContractValue?.breakdown?.length > 0 && (
-            <div className="metric-subtext">{metrics.totalContractValue.breakdown.length} projects</div>
-          )}
-        </div>
-        <div className="metric-card metric-success" title={`${metrics.tmApproved?.count || 0} tickets ready to bill`}>
-          <div className="metric-value">{formatCurrency(metrics.tmApproved?.total || 0)}</div>
-          <div className="metric-label">T&M Approved</div>
-          {metrics.tmApproved?.count > 0 && (
-            <div className="metric-subtext">{metrics.tmApproved.count} tickets</div>
-          )}
-        </div>
-        <div className="metric-card metric-info" title={`${metrics.tmBilled?.count || 0} tickets billed`}>
-          <div className="metric-value">{formatCurrency(metrics.tmBilled?.total || 0)}</div>
-          <div className="metric-label">T&M Billed</div>
-          {metrics.tmBilled?.count > 0 && (
-            <div className="metric-subtext">{metrics.tmBilled.count} tickets</div>
-          )}
-        </div>
-        <div className="metric-card metric-warning" title="Projects with low progress">
-          <div className="metric-value">{formatCurrency(metrics.revenueAtRisk?.total || 0)}</div>
-          <div className="metric-label">Revenue at Risk</div>
-          {metrics.revenueAtRisk?.breakdown?.length > 0 && (
-            <div className="metric-subtext">{metrics.revenueAtRisk.breakdown.length} projects</div>
-          )}
-        </div>
+        <MetricCard
+          value={metrics.activeProjects?.count || 0}
+          label="Active Projects"
+          breakdown={metrics.activeProjects?.list?.map(p => ({ projectName: p.name }))}
+        />
+        <MetricCard
+          value={metrics.totalContractValue?.total || 0}
+          label="Total Contract Value"
+          subtext={metrics.totalContractValue?.breakdown?.length > 0 ? `${metrics.totalContractValue.breakdown.length} projects` : null}
+          breakdown={metrics.totalContractValue?.breakdown}
+          formatValue={formatCurrency}
+        />
+        <MetricCard
+          value={metrics.tmApproved?.total || 0}
+          label="T&M Approved"
+          subtext={metrics.tmApproved?.count > 0 ? `${metrics.tmApproved.count} tickets` : null}
+          breakdown={metrics.tmApproved?.breakdown}
+          variant="success"
+          formatValue={formatCurrency}
+        />
+        <MetricCard
+          value={metrics.tmBilled?.total || 0}
+          label="T&M Billed"
+          subtext={metrics.tmBilled?.count > 0 ? `${metrics.tmBilled.count} tickets` : null}
+          breakdown={metrics.tmBilled?.breakdown}
+          variant="info"
+          formatValue={formatCurrency}
+        />
+        <MetricCard
+          value={metrics.revenueAtRisk?.total || 0}
+          label="Revenue at Risk"
+          subtext={metrics.revenueAtRisk?.breakdown?.length > 0 ? `${metrics.revenueAtRisk.breakdown.length} projects` : null}
+          breakdown={metrics.revenueAtRisk?.breakdown}
+          variant="warning"
+          formatValue={formatCurrency}
+        />
         {metrics.materialRequestsPending?.total > 0 && (
-          <div className="metric-card metric-urgent">
-            <div className="metric-value">{metrics.materialRequestsPending.total}</div>
-            <div className="metric-label">Pending Material Requests</div>
-          </div>
+          <MetricCard
+            value={metrics.materialRequestsPending.total}
+            label="Pending Material Requests"
+            breakdown={metrics.materialRequestsPending?.breakdown}
+            variant="urgent"
+          />
         )}
       </div>
 
