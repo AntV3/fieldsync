@@ -52,7 +52,7 @@ export default function Dashboard({ company, onShowToast }) {
 
       // Load all dashboard data in parallel
       const [metricsData, summariesData, attentionData, activityData] = await Promise.all([
-        db.getDashboardMetrics(company.id),
+        db.getDashboardMetricsWithBreakdown(company.id),
         db.getProjectSummaries(company.id),
         db.getNeedsAttention(company.id),
         db.getRecentActivity(company.id, 15)
@@ -634,26 +634,44 @@ export default function Dashboard({ company, onShowToast }) {
 
       {/* Top Metrics Row */}
       <div className="metrics-grid">
-        <div className="metric-card">
-          <div className="metric-value">{metrics.activeProjects}</div>
+        <div className="metric-card" title={metrics.activeProjects?.list?.map(p => p.name).join(', ') || ''}>
+          <div className="metric-value">{metrics.activeProjects?.count || 0}</div>
           <div className="metric-label">Active Projects</div>
         </div>
-        <div className="metric-card">
-          <div className="metric-value">{metrics.crewToday}</div>
-          <div className="metric-label">Crew Today</div>
+        <div className="metric-card" title="Total value of all active project contracts">
+          <div className="metric-value">{formatCurrency(metrics.totalContractValue?.total || 0)}</div>
+          <div className="metric-label">Total Contract Value</div>
+          {metrics.totalContractValue?.breakdown?.length > 0 && (
+            <div className="metric-subtext">{metrics.totalContractValue.breakdown.length} projects</div>
+          )}
         </div>
-        <div className="metric-card">
-          <div className="metric-value">{metrics.pendingTMCount}</div>
-          <div className="metric-label">Pending T&M Tickets</div>
+        <div className="metric-card metric-success" title={`${metrics.tmApproved?.count || 0} tickets ready to bill`}>
+          <div className="metric-value">{formatCurrency(metrics.tmApproved?.total || 0)}</div>
+          <div className="metric-label">T&M Approved</div>
+          {metrics.tmApproved?.count > 0 && (
+            <div className="metric-subtext">{metrics.tmApproved.count} tickets</div>
+          )}
         </div>
-        <div className="metric-card">
-          <div className="metric-value">{formatCurrency(metrics.pendingTMValue)}</div>
-          <div className="metric-label">Pending T&M Value</div>
+        <div className="metric-card metric-info" title={`${metrics.tmBilled?.count || 0} tickets billed`}>
+          <div className="metric-value">{formatCurrency(metrics.tmBilled?.total || 0)}</div>
+          <div className="metric-label">T&M Billed</div>
+          {metrics.tmBilled?.count > 0 && (
+            <div className="metric-subtext">{metrics.tmBilled.count} tickets</div>
+          )}
         </div>
-        <div className="metric-card metric-urgent">
-          <div className="metric-value">{metrics.urgentRequests}</div>
-          <div className="metric-label">Urgent Requests</div>
+        <div className="metric-card metric-warning" title="Projects with low progress">
+          <div className="metric-value">{formatCurrency(metrics.revenueAtRisk?.total || 0)}</div>
+          <div className="metric-label">Revenue at Risk</div>
+          {metrics.revenueAtRisk?.breakdown?.length > 0 && (
+            <div className="metric-subtext">{metrics.revenueAtRisk.breakdown.length} projects</div>
+          )}
         </div>
+        {metrics.materialRequestsPending?.total > 0 && (
+          <div className="metric-card metric-urgent">
+            <div className="metric-value">{metrics.materialRequestsPending.total}</div>
+            <div className="metric-label">Pending Material Requests</div>
+          </div>
+        )}
       </div>
 
       {/* Projects List */}

@@ -7241,3 +7241,45 @@ input::placeholder {
   color: var(--text-primary);
   font-weight: 600;
 }
+
+/* ============================================
+   Dashboard Metric Card Variants
+   ============================================ */
+
+.metric-card.metric-success {
+  border-left: 3px solid var(--accent-green);
+}
+
+.metric-card.metric-success .metric-value {
+  color: var(--accent-green);
+}
+
+.metric-card.metric-info {
+  border-left: 3px solid var(--accent-blue);
+}
+
+.metric-card.metric-info .metric-value {
+  color: var(--accent-blue);
+}
+
+.metric-card.metric-warning {
+  border-left: 3px solid var(--accent-amber);
+}
+
+.metric-card.metric-warning .metric-value {
+  color: var(--accent-amber);
+}
+
+.metric-subtext {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.metric-card[title]:hover {
+  cursor: help;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
