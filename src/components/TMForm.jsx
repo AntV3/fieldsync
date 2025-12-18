@@ -9,6 +9,7 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
   const [cePcoNumber, setCePcoNumber] = useState('')
   const [submittedByName, setSubmittedByName] = useState('') // Foreman's name for certification
   const [supervision, setSupervision] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '', role: 'Foreman' }])
+  const [operators, setOperators] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
   const [laborers, setLaborers] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
   const [items, setItems] = useState([])
   const [notes, setNotes] = useState('')
@@ -97,6 +98,25 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
       setLaborers(laborers.filter((_, i) => i !== index))
     } else {
       setLaborers([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
+    }
+  }
+
+  // Operator functions
+  const addOperator = () => {
+    setOperators([...operators, { name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
+  }
+
+  const updateOperator = (index, field, value) => {
+    setOperators(operators.map((o, i) =>
+      i === index ? { ...o, [field]: value } : o
+    ))
+  }
+
+  const removeOperator = (index) => {
+    if (operators.length > 1) {
+      setOperators(operators.filter((_, i) => i !== index))
+    } else {
+      setOperators([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
     }
   }
 
@@ -208,10 +228,11 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
   // Navigation
   const canGoNext = () => {
     if (step === 1) {
-      // At least one supervision or laborer with name and hours (regular or OT)
+      // At least one supervision, operator, or laborer with name and hours (regular or OT)
       const hasSupervision = supervision.some(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+      const hasOperators = operators.some(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
       const hasLaborers = laborers.some(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
-      return hasSupervision || hasLaborers
+      return hasSupervision || hasOperators || hasLaborers
     }
     return true
   }
@@ -242,9 +263,10 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
     }
 
     const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+    const validOperators = operators.filter(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
     const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
-    
-    if (validSupervision.length === 0 && validLaborers.length === 0) {
+
+    if (validSupervision.length === 0 && validOperators.length === 0 && validLaborers.length === 0) {
       onShowToast('Add at least one worker', 'error')
       return
     }
@@ -283,7 +305,7 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
         await db.updateTMTicketPhotos(ticket.id, photoUrls)
       }
 
-      // Combine supervision and laborers for workers table
+      // Combine supervision, operators, and laborers for workers table
       const allWorkers = [
         ...validSupervision.map(s => ({
           name: s.name.trim(),
@@ -292,6 +314,14 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
           time_started: s.timeStarted || null,
           time_ended: s.timeEnded || null,
           role: s.role
+        })),
+        ...validOperators.map(o => ({
+          name: o.name.trim(),
+          hours: parseFloat(o.hours) || 0,
+          overtime_hours: parseFloat(o.overtimeHours) || 0,
+          time_started: o.timeStarted || null,
+          time_ended: o.timeEnded || null,
+          role: 'Operator'
         })),
         ...validLaborers.map(l => ({
           name: l.name.trim(),
@@ -331,10 +361,11 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
 
   // Get total workers and hours for summary
   const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+  const validOperators = operators.filter(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
   const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
-  const totalWorkers = validSupervision.length + validLaborers.length
-  const totalRegHours = [...validSupervision, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
-  const totalOTHours = [...validSupervision, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.overtimeHours || 0), 0)
+  const totalWorkers = validSupervision.length + validOperators.length + validLaborers.length
+  const totalRegHours = [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
+  const totalOTHours = [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.overtimeHours || 0), 0)
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
 
   // STEP 2: Item Selection View
@@ -510,30 +541,45 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
               {showCrewPicker && (
                 <div className="tm-crew-list">
                   {todaysCrew.map((worker, index) => {
-                    const isAdded = 
+                    const isAdded =
                       supervision.some(s => s.name.toLowerCase() === worker.name.toLowerCase()) ||
+                      operators.some(o => o.name.toLowerCase() === worker.name.toLowerCase()) ||
                       laborers.some(l => l.name.toLowerCase() === worker.name.toLowerCase())
-                    
+
                     return (
                       <button
                         key={index}
                         className={`tm-crew-item ${isAdded ? 'added' : ''}`}
                         onClick={() => {
                           if (isAdded) return
-                          
+
                           if (worker.role === 'Foreman' || worker.role === 'Supervisor') {
                             // Add to supervision
                             const emptySupIndex = supervision.findIndex(s => !s.name.trim())
                             if (emptySupIndex >= 0) {
                               updateSupervision(emptySupIndex, 'name', worker.name)
                             } else {
-                              setSupervision([...supervision, { 
-                                name: worker.name, 
-                                hours: '', 
-                                overtimeHours: '', 
-                                timeStarted: '', 
-                                timeEnded: '', 
-                                role: worker.role === 'Supervisor' ? 'Superintendent' : 'Foreman' 
+                              setSupervision([...supervision, {
+                                name: worker.name,
+                                hours: '',
+                                overtimeHours: '',
+                                timeStarted: '',
+                                timeEnded: '',
+                                role: worker.role === 'Supervisor' ? 'Superintendent' : 'Foreman'
+                              }])
+                            }
+                          } else if (worker.role === 'Operator') {
+                            // Add to operators
+                            const emptyOpIndex = operators.findIndex(o => !o.name.trim())
+                            if (emptyOpIndex >= 0) {
+                              updateOperator(emptyOpIndex, 'name', worker.name)
+                            } else {
+                              setOperators([...operators, {
+                                name: worker.name,
+                                hours: '',
+                                overtimeHours: '',
+                                timeStarted: '',
+                                timeEnded: ''
                               }])
                             }
                           } else {
@@ -542,12 +588,12 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
                             if (emptyLabIndex >= 0) {
                               updateLaborer(emptyLabIndex, 'name', worker.name)
                             } else {
-                              setLaborers([...laborers, { 
-                                name: worker.name, 
-                                hours: '', 
-                                overtimeHours: '', 
-                                timeStarted: '', 
-                                timeEnded: '' 
+                              setLaborers([...laborers, {
+                                name: worker.name,
+                                hours: '',
+                                overtimeHours: '',
+                                timeStarted: '',
+                                timeEnded: ''
                               }])
                             }
                           }
@@ -634,6 +680,66 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
             </div>
             <button className="tm-add-btn" onClick={addSupervision}>
               + Add Supervision
+            </button>
+          </div>
+
+          {/* Operators Section */}
+          <div className="tm-field">
+            <label>Operators</label>
+            <div className="tm-workers-list">
+              {operators.map((operator, index) => (
+                <div key={index} className="tm-worker-card-expanded">
+                  <div className="tm-worker-row-top">
+                    <input
+                      type="text"
+                      placeholder="First & Last Name"
+                      value={operator.name}
+                      onChange={(e) => updateOperator(index, 'name', e.target.value)}
+                      className="tm-worker-input"
+                    />
+                    <button className="tm-remove" onClick={() => removeOperator(index)}>x</button>
+                  </div>
+                  <div className="tm-worker-row-bottom">
+                    <div className="tm-time-group">
+                      <label>Start</label>
+                      <input
+                        type="time"
+                        value={operator.timeStarted}
+                        onChange={(e) => updateOperator(index, 'timeStarted', e.target.value)}
+                      />
+                    </div>
+                    <div className="tm-time-group">
+                      <label>End</label>
+                      <input
+                        type="time"
+                        value={operator.timeEnded}
+                        onChange={(e) => updateOperator(index, 'timeEnded', e.target.value)}
+                      />
+                    </div>
+                    <div className="tm-time-group">
+                      <label>Reg Hrs</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={operator.hours}
+                        onChange={(e) => updateOperator(index, 'hours', e.target.value)}
+                      />
+                    </div>
+                    <div className="tm-time-group">
+                      <label>OT Hrs</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={operator.overtimeHours}
+                        onChange={(e) => updateOperator(index, 'overtimeHours', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="tm-add-btn" onClick={addOperator}>
+              + Add Operator
             </button>
           </div>
 
@@ -845,6 +951,28 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
                         <span className="tm-review-time">{s.timeStarted} - {s.timeEnded}</span>
                       )}
                       <span className="tm-review-hours">{s.hours || 0} reg{parseFloat(s.overtimeHours) > 0 ? ` + ${s.overtimeHours} OT` : ''}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {validOperators.length > 0 && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span>🚜 Operators</span>
+                <span>{validOperators.reduce((sum, o) => sum + parseFloat(o.hours || 0) + parseFloat(o.overtimeHours || 0), 0)} hrs</span>
+              </div>
+              <div className="tm-review-list">
+                {validOperators.map((o, i) => (
+                  <div key={i} className="tm-review-row-detailed">
+                    <div className="tm-review-worker-name">{o.name}</div>
+                    <div className="tm-review-worker-details">
+                      {o.timeStarted && o.timeEnded && (
+                        <span className="tm-review-time">{o.timeStarted} - {o.timeEnded}</span>
+                      )}
+                      <span className="tm-review-hours">{o.hours || 0} reg{parseFloat(o.overtimeHours) > 0 ? ` + ${o.overtimeHours} OT` : ''}</span>
                     </div>
                   </div>
                 ))}
