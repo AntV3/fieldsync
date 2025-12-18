@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 export default function TMList({ project, company, onShowToast }) {
   const [tickets, setTickets] = useState([])
