@@ -6,6 +6,7 @@ import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import Messages from './Messages'
 import MaterialRequest from './MaterialRequest'
+import InjuryReportForm from './InjuryReportForm'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -17,6 +18,8 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [showDailyReport, setShowDailyReport] = useState(false)
   const [showMessages, setShowMessages] = useState(false)
   const [showMaterialRequest, setShowMaterialRequest] = useState(false)
+  const [showInjuryReport, setShowInjuryReport] = useState(false)
+  const [showProjectInfo, setShowProjectInfo] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
@@ -143,6 +146,23 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
+  // Show Injury Report
+  if (showInjuryReport) {
+    return (
+      <div className="foreman-container">
+        <InjuryReportForm
+          project={project}
+          companyId={companyId}
+          onClose={() => setShowInjuryReport(false)}
+          onReportCreated={() => {
+            setShowInjuryReport(false)
+            onShowToast('Injury report submitted', 'success')
+          }}
+        />
+      </div>
+    )
+  }
+
   const progress = calculateProgress(areas)
   
   // Group areas by group_name
@@ -162,6 +182,11 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     return `${done}/${groupAreas.length}`
   }
 
+  // Calculate stats
+  const areasDone = areas.filter(a => a.status === 'done').length
+  const areasWorking = areas.filter(a => a.status === 'working').length
+  const areasRemaining = areas.length - areasDone
+
   return (
     <div className="foreman-container">
       <div className="foreman-header">
@@ -172,18 +197,78 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           <div className="foreman-project-name">{project.name}</div>
           <div className="foreman-progress">{progress}% Complete</div>
         </div>
+        <button
+          className="foreman-info-btn"
+          onClick={() => setShowProjectInfo(!showProjectInfo)}
+        >
+          ℹ️
+        </button>
+      </div>
+
+      {/* Project Info Panel */}
+      {showProjectInfo && (
+        <div className="foreman-project-info">
+          {project.job_number && (
+            <div className="foreman-info-row">
+              <span className="foreman-info-label">Job #</span>
+              <span className="foreman-info-value">{project.job_number}</span>
+            </div>
+          )}
+          {project.address && (
+            <div className="foreman-info-row">
+              <span className="foreman-info-label">Address</span>
+              <span className="foreman-info-value">{project.address}</span>
+            </div>
+          )}
+          {project.general_contractor && (
+            <div className="foreman-info-row">
+              <span className="foreman-info-label">GC / Client</span>
+              <span className="foreman-info-value">{project.general_contractor}</span>
+            </div>
+          )}
+          {project.client_contact && (
+            <div className="foreman-info-row">
+              <span className="foreman-info-label">Contact</span>
+              <span className="foreman-info-value">{project.client_contact}</span>
+            </div>
+          )}
+          {project.client_phone && (
+            <div className="foreman-info-row">
+              <span className="foreman-info-label">Phone</span>
+              <a href={`tel:${project.client_phone}`} className="foreman-info-value foreman-info-link">
+                {project.client_phone}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quick Stats */}
+      <div className="foreman-stats">
+        <div className="foreman-stat">
+          <div className="foreman-stat-value working">{areasWorking}</div>
+          <div className="foreman-stat-label">Working</div>
+        </div>
+        <div className="foreman-stat">
+          <div className="foreman-stat-value done">{areasDone}</div>
+          <div className="foreman-stat-label">Done</div>
+        </div>
+        <div className="foreman-stat">
+          <div className="foreman-stat-value remaining">{areasRemaining}</div>
+          <div className="foreman-stat-label">Remaining</div>
+        </div>
       </div>
 
       {/* Action Buttons */}
       <div className="field-actions">
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowTMForm(true)}
         >
           <span className="icon">📝</span>
           T&M Ticket
         </button>
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowMessages(true)}
         >
@@ -191,19 +276,26 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           Messages
           {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
         </button>
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowMaterialRequest(true)}
         >
           <span className="icon">📦</span>
-          Need Materials
+          Materials
         </button>
-        <button 
+        <button
           className="field-action-btn"
           onClick={() => setShowDailyReport(true)}
         >
           <span className="icon">📋</span>
           Daily Report
+        </button>
+        <button
+          className="field-action-btn danger"
+          onClick={() => setShowInjuryReport(true)}
+        >
+          <span className="icon">🚨</span>
+          Report Injury
         </button>
       </div>
 

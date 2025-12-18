@@ -1024,6 +1024,105 @@ input::placeholder {
   font-weight: 500;
 }
 
+.foreman-info-btn {
+  background: var(--bg-elevated);
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Foreman Project Info Panel */
+.foreman-project-info {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.foreman-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.foreman-info-row:last-child {
+  border-bottom: none;
+}
+
+.foreman-info-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.foreman-info-value {
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+}
+
+.foreman-info-link {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+/* Foreman Stats */
+.foreman-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.foreman-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.foreman-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.foreman-stat-value.working {
+  color: var(--accent-yellow);
+}
+
+.foreman-stat-value.done {
+  color: var(--accent-green);
+}
+
+.foreman-stat-value.remaining {
+  color: var(--text-secondary);
+}
+
+.foreman-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Danger action button */
+.field-action-btn.danger {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.field-action-btn.danger:active {
+  background: rgba(239, 68, 68, 0.2);
+}
+
 /* Foreman Areas */
 .foreman-areas {
   display: flex;
