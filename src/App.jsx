@@ -44,16 +44,23 @@ export default function App() {
         return
       }
 
-      // Get user record with company (specify foreign key to avoid ambiguity)
+      // Get user record
       const { data: userData, error } = await supabase
         .from('users')
-        .select('*, companies!company_id(*)')
+        .select('*')
         .eq('id', user.id)
         .single()
 
-      if (userData && userData.companies) {
+      if (userData && userData.company_id) {
+        // Fetch company separately to avoid relationship ambiguity
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', userData.company_id)
+          .single()
+
         setUser(userData)
-        setCompany(userData.companies)
+        setCompany(companyData)
         setView('office')
       }
     } catch (error) {
@@ -82,10 +89,10 @@ export default function App() {
         return
       }
 
-      // Get user profile (specify foreign key to avoid ambiguity)
+      // Get user profile
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*, companies!company_id(*)')
+        .select('*')
         .eq('id', data.user.id)
         .single()
 
@@ -95,9 +102,16 @@ export default function App() {
         return
       }
 
-      if (userData) {
+      if (userData && userData.company_id) {
+        // Fetch company separately to avoid relationship ambiguity
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', userData.company_id)
+          .single()
+
         setUser(userData)
-        setCompany(userData.companies)
+        setCompany(companyData)
         setView('office')
       } else {
         showToast('Profile not found. Please contact admin.', 'error')
