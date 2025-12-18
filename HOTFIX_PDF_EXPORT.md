@@ -1,30 +1,40 @@
 # PDF Export Hotfix
 
 ## Issue
-T&M PDF export was failing due to incorrect jsPDF import syntax.
+T&M PDF export was failing with error: `F.autoTable is not a function`
 
-## Root Cause
-jsPDF v3.x requires using named exports instead of default export:
-- ❌ `import jsPDF from 'jspdf'`
-- ✅ `import { jsPDF } from 'jspdf'`
+## Root Cause - UPDATED
+Two issues were found and fixed:
 
-Similarly, jspdf-autotable v5.x should be imported explicitly:
-- ❌ `import 'jspdf-autotable'` (side-effect only)
-- ✅ `import autoTable from 'jspdf-autotable'`
+### Issue 1: Incorrect jsPDF import
+jsPDF v3.x requires named exports:
+- ❌ `import jsPDF from 'jspdf'` (default export)
+- ✅ `import { jsPDF } from 'jspdf'` (named export)
+
+### Issue 2: Incorrect jspdf-autotable import
+jspdf-autotable v5.x extends the jsPDF prototype via side-effect import:
+- ❌ `import autoTable from 'jspdf-autotable'` (doesn't extend prototype)
+- ✅ `import 'jspdf-autotable'` (side-effect import that extends jsPDF)
 
 ## Fix Applied
-**File**: `src/components/TMList.jsx`
+**File**: `src/components/TMList.jsx:4-5`
 
-**Before**:
+**Initial (broken)**:
 ```javascript
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 ```
 
-**After**:
+**First attempt (still broken)**:
 ```javascript
 import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'  // ❌ This doesn't work!
+```
+
+**Final fix (working)**:
+```javascript
+import { jsPDF } from 'jspdf'
+import 'jspdf-autotable'  // ✅ Side-effect import extends jsPDF.prototype
 ```
 
 ## Verification
