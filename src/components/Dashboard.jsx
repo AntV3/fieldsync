@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
 
-export default function Dashboard({ onShowToast }) {
-  const { company } = useAuth()
+export default function Dashboard({ company, onShowToast }) {
   const [projects, setProjects] = useState([])
   const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
@@ -19,8 +17,10 @@ export default function Dashboard({ onShowToast }) {
   const [showShareModal, setShowShareModal] = useState(false)
 
   useEffect(() => {
-    loadProjects()
-  }, [])
+    if (company?.id) {
+      loadProjects()
+    }
+  }, [company?.id])
 
   useEffect(() => {
     if (selectedProject) {
@@ -37,7 +37,8 @@ export default function Dashboard({ onShowToast }) {
 
   const loadProjects = async () => {
     try {
-      const data = await db.getProjects()
+      // Filter projects by current company
+      const data = await db.getProjects(company?.id)
       setProjects(data)
 
       // Load enhanced data for executive summary

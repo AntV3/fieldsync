@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { isSupabaseConfigured, auth, supabase } from './lib/supabase'
+import { isSupabaseConfigured, auth, supabase, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
@@ -15,11 +15,13 @@ export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
+  const [userCompanies, setUserCompanies] = useState([]) // All companies user can access
   const [foremanProject, setForemanProject] = useState(null)
   const [shareToken, setShareToken] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
+  const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
 
   useEffect(() => {
     // Check if this is a public share link
@@ -51,17 +53,42 @@ export default function App() {
         .eq('id', user.id)
         .single()
 
-      if (userData && userData.company_id) {
-        // Fetch company separately to avoid relationship ambiguity
-        const { data: companyData } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', userData.company_id)
-          .single()
-
+      if (userData) {
         setUser(userData)
-        setCompany(companyData)
-        setView('office')
+
+        // Fetch all companies user has access to
+        const companies = await db.getUserCompanies(user.id)
+        setUserCompanies(companies)
+
+        // Use saved company or first available
+        const savedCompanyId = localStorage.getItem('selectedCompanyId')
+        let selectedCompany = null
+
+        if (savedCompanyId && companies.find(c => c.id === savedCompanyId)) {
+          selectedCompany = companies.find(c => c.id === savedCompanyId)
+        } else if (companies.length > 0) {
+          selectedCompany = companies[0]
+        } else if (userData.company_id) {
+          // Fallback to user's default company
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', userData.company_id)
+            .single()
+          selectedCompany = companyData
+        }
+
+        if (selectedCompany) {
+          // Fetch full company data
+          const { data: fullCompany } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', selectedCompany.id)
+            .single()
+
+          setCompany(fullCompany)
+          setView('office')
+        }
       }
     } catch (error) {
       console.error('Auth check error:', error)
@@ -83,7 +110,7 @@ export default function App() {
         email,
         password
       })
-      
+
       if (error) {
         showToast(error.message || 'Invalid credentials', 'error')
         return
@@ -102,17 +129,44 @@ export default function App() {
         return
       }
 
-      if (userData && userData.company_id) {
-        // Fetch company separately to avoid relationship ambiguity
-        const { data: companyData } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', userData.company_id)
-          .single()
-
+      if (userData) {
         setUser(userData)
-        setCompany(companyData)
-        setView('office')
+
+        // Fetch all companies user has access to
+        const companies = await db.getUserCompanies(data.user.id)
+        setUserCompanies(companies)
+
+        // Use saved company or first available
+        const savedCompanyId = localStorage.getItem('selectedCompanyId')
+        let selectedCompany = null
+
+        if (savedCompanyId && companies.find(c => c.id === savedCompanyId)) {
+          selectedCompany = companies.find(c => c.id === savedCompanyId)
+        } else if (companies.length > 0) {
+          selectedCompany = companies[0]
+        } else if (userData.company_id) {
+          // Fallback to user's default company
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', userData.company_id)
+            .single()
+          selectedCompany = companyData
+        }
+
+        if (selectedCompany) {
+          // Fetch full company data
+          const { data: fullCompany } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', selectedCompany.id)
+            .single()
+
+          setCompany(fullCompany)
+          setView('office')
+        } else {
+          showToast('No company access. Please contact admin.', 'error')
+        }
       } else {
         showToast('Profile not found. Please contact admin.', 'error')
       }
@@ -122,13 +176,37 @@ export default function App() {
     }
   }
 
+  // Switch company
+  const handleSwitchCompany = async (companyId) => {
+    try {
+      const { data: fullCompany } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', companyId)
+        .single()
+
+      if (fullCompany) {
+        setCompany(fullCompany)
+        localStorage.setItem('selectedCompanyId', companyId)
+        setShowCompanySwitcher(false)
+        setActiveTab('dashboard') // Reset to dashboard when switching
+        showToast(`Switched to ${fullCompany.name}`, 'success')
+      }
+    } catch (err) {
+      console.error('Switch company error:', err)
+      showToast('Error switching company', 'error')
+    }
+  }
+
   const handleLogout = async () => {
     try {
       await auth.signOut()
       setUser(null)
       setCompany(null)
+      setUserCompanies([])
       setView('entry')
       setActiveTab('dashboard')
+      localStorage.removeItem('selectedCompanyId')
     } catch (error) {
       console.error('Logout error:', error)
       showToast('Error signing out', 'error')
@@ -259,7 +337,36 @@ export default function App() {
               </button>
             </div>
             <div className="nav-user">
-              <span className="nav-user-name">{user?.full_name || user?.email}</span>
+              {/* Company Switcher */}
+              {userCompanies.length > 1 && (
+                <div className="company-switcher">
+                  <button
+                    className="company-switcher-btn"
+                    onClick={() => setShowCompanySwitcher(!showCompanySwitcher)}
+                  >
+                    {company?.name || 'Select Company'}
+                    <span className="switcher-arrow">▼</span>
+                  </button>
+                  {showCompanySwitcher && (
+                    <div className="company-dropdown">
+                      {userCompanies.map(c => (
+                        <button
+                          key={c.id}
+                          className={`company-option ${c.id === company?.id ? 'active' : ''}`}
+                          onClick={() => handleSwitchCompany(c.id)}
+                        >
+                          {c.name}
+                          {c.id === company?.id && <span className="check">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {userCompanies.length <= 1 && company && (
+                <span className="nav-company-name">{company.name}</span>
+              )}
+              <span className="nav-user-name">{user?.name || user?.email}</span>
               <button className="nav-logout" onClick={handleLogout}>
                 Sign Out
               </button>
@@ -268,9 +375,9 @@ export default function App() {
         </nav>
 
         {/* Main Content */}
-        <div className="container">
+        <div className="container" key={company?.id}>
           {activeTab === 'dashboard' && (
-            <Dashboard onShowToast={showToast} />
+            <Dashboard company={company} onShowToast={showToast} />
           )}
           {activeTab === 'field' && (
             <Field onShowToast={showToast} />
