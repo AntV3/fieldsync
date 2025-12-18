@@ -93,11 +93,46 @@ The built files will be in the `dist` folder.
 
 That's it. Under 15 seconds to update.
 
+## Testing
+
+The project includes a comprehensive test suite using Vitest and React Testing Library.
+
+### Running Tests
+
+```bash
+# Run tests in watch mode
+npm test
+
+# Run tests once (for CI)
+npm test -- --run
+
+# Run tests with UI
+npm run test:ui
+
+# Generate coverage report
+npm run test:coverage
+```
+
+### Test Coverage
+
+Tests cover critical flows including:
+- Utility functions (currency formatting, progress calculation)
+- PIN validation and company code entry
+- UI components (Toast notifications)
+- Supabase integration mocking
+
+### Writing Tests
+
+- Test files are located next to their source files with `.test.js` or `.test.jsx` extension
+- Use `src/test/setup.js` for global test configuration
+- Supabase client is automatically mocked in tests
+
 ## Tech Stack
 
 - **Frontend**: React + Vite
 - **Backend**: Supabase (PostgreSQL + Realtime)
 - **Styling**: Custom CSS (no frameworks)
+- **Testing**: Vitest + React Testing Library
 - **Hosting**: Vercel (recommended)
 
 ## Project Structure
