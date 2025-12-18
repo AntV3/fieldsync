@@ -2295,6 +2295,11 @@ input::placeholder {
   margin: 0;
 }
 
+.tm-export-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .tm-filter-tabs {
   display: flex;
   gap: 0.5rem;

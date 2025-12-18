@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 
-export default function TMList({ project, onShowToast }) {
+export default function TMList({ project, company, onShowToast }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -163,6 +165,275 @@ export default function TMList({ project, onShowToast }) {
     onShowToast('Export downloaded!', 'success')
   }
 
+  // Export to PDF - Professional format with company branding
+  const exportToPDF = () => {
+    const exportTickets = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+
+    if (exportTickets.length === 0) {
+      onShowToast('No tickets to export', 'error')
+      return
+    }
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 20
+    let yPos = margin
+
+    // Company Header
+    doc.setFillColor(30, 41, 59) // Dark slate
+    doc.rect(0, 0, pageWidth, 40, 'F')
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text(company?.name || 'Company Name', margin, 25)
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('TIME & MATERIALS REPORT', pageWidth - margin, 15, { align: 'right' })
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, pageWidth - margin, 25, { align: 'right' })
+
+    yPos = 55
+
+    // Project Info Box
+    doc.setFillColor(248, 250, 252) // Light gray
+    doc.rect(margin, yPos - 5, pageWidth - (margin * 2), 30, 'F')
+    doc.setDrawColor(226, 232, 240)
+    doc.rect(margin, yPos - 5, pageWidth - (margin * 2), 30, 'S')
+
+    doc.setTextColor(30, 41, 59)
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Project: ${project.name}`, margin + 5, yPos + 7)
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+
+    // Date range
+    const dates = exportTickets.map(t => new Date(t.work_date)).sort((a, b) => a - b)
+    const startDate = dates[0]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const endDate = dates[dates.length - 1]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    doc.text(`Date Range: ${startDate} - ${endDate}`, margin + 5, yPos + 17)
+    doc.text(`Total Tickets: ${exportTickets.length}`, pageWidth - margin - 5, yPos + 7, { align: 'right' })
+    doc.text(`Status Filter: ${filter.charAt(0).toUpperCase() + filter.slice(1)}`, pageWidth - margin - 5, yPos + 17, { align: 'right' })
+
+    yPos += 40
+
+    // Summary Section
+    const grandTotalHours = exportTickets.reduce((sum, t) => sum + calculateTotalHours(t), 0)
+    const grandTotalMaterials = exportTickets.reduce((sum, t) => sum + calculateTicketTotal(t), 0)
+    const totalWorkers = new Set(exportTickets.flatMap(t => t.t_and_m_workers?.map(w => w.name) || [])).size
+
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('SUMMARY', margin, yPos)
+    yPos += 8
+
+    // Summary boxes
+    const boxWidth = (pageWidth - margin * 2 - 20) / 3
+    const summaryData = [
+      { label: 'Total Labor Hours', value: grandTotalHours.toFixed(1) },
+      { label: 'Unique Workers', value: totalWorkers.toString() },
+      { label: 'Materials Cost', value: `$${grandTotalMaterials.toFixed(2)}` }
+    ]
+
+    summaryData.forEach((item, index) => {
+      const boxX = margin + (index * (boxWidth + 10))
+      doc.setFillColor(239, 246, 255) // Light blue
+      doc.rect(boxX, yPos, boxWidth, 25, 'F')
+      doc.setDrawColor(191, 219, 254)
+      doc.rect(boxX, yPos, boxWidth, 25, 'S')
+
+      doc.setTextColor(30, 64, 175)
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text(item.value, boxX + boxWidth / 2, yPos + 12, { align: 'center' })
+
+      doc.setTextColor(100, 116, 139)
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.text(item.label, boxX + boxWidth / 2, yPos + 20, { align: 'center' })
+    })
+
+    yPos += 35
+
+    // Workers Table
+    const workersData = []
+    exportTickets.forEach(ticket => {
+      if (ticket.t_and_m_workers) {
+        ticket.t_and_m_workers.forEach(worker => {
+          workersData.push([
+            formatDate(ticket.work_date),
+            worker.name,
+            worker.role || 'Laborer',
+            worker.hours.toString()
+          ])
+        })
+      }
+    })
+
+    if (workersData.length > 0) {
+      doc.setTextColor(30, 41, 59)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('LABOR', margin, yPos)
+      yPos += 5
+
+      doc.autoTable({
+        startY: yPos,
+        head: [['Date', 'Worker Name', 'Role', 'Hours']],
+        body: workersData,
+        margin: { left: margin, right: margin },
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9
+        },
+        bodyStyles: {
+          fontSize: 9,
+          textColor: [51, 65, 85]
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          0: { cellWidth: 35 },
+          3: { halign: 'center', cellWidth: 25 }
+        }
+      })
+
+      yPos = doc.lastAutoTable.finalY + 15
+    }
+
+    // Check if we need a new page
+    if (yPos > pageHeight - 100) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    // Materials Table
+    const itemsData = []
+    exportTickets.forEach(ticket => {
+      if (ticket.t_and_m_items) {
+        ticket.t_and_m_items.forEach(item => {
+          const itemName = item.custom_name || item.materials_equipment?.name || 'Unknown'
+          const unit = item.materials_equipment?.unit || 'each'
+          const costPer = item.materials_equipment?.cost_per_unit || 0
+          const total = item.quantity * costPer
+
+          itemsData.push([
+            formatDate(ticket.work_date),
+            itemName,
+            item.quantity.toString(),
+            unit,
+            `$${costPer.toFixed(2)}`,
+            `$${total.toFixed(2)}`
+          ])
+        })
+      }
+    })
+
+    if (itemsData.length > 0) {
+      doc.setTextColor(30, 41, 59)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('MATERIALS & EQUIPMENT', margin, yPos)
+      yPos += 5
+
+      doc.autoTable({
+        startY: yPos,
+        head: [['Date', 'Item', 'Qty', 'Unit', 'Rate', 'Total']],
+        body: itemsData,
+        margin: { left: margin, right: margin },
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9
+        },
+        bodyStyles: {
+          fontSize: 9,
+          textColor: [51, 65, 85]
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          2: { halign: 'center', cellWidth: 20 },
+          3: { halign: 'center', cellWidth: 25 },
+          4: { halign: 'right', cellWidth: 25 },
+          5: { halign: 'right', cellWidth: 30 }
+        },
+        foot: [[
+          '', '', '', '', 'TOTAL:', `$${grandTotalMaterials.toFixed(2)}`
+        ]],
+        footStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 10
+        }
+      })
+
+      yPos = doc.lastAutoTable.finalY + 15
+    }
+
+    // Check if we need a new page for signature section
+    if (yPos > pageHeight - 80) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    // Authorization Signature Section
+    yPos += 10
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.5)
+    doc.line(margin, yPos, pageWidth - margin, yPos)
+    yPos += 15
+
+    doc.setTextColor(30, 41, 59)
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('AUTHORIZATION', margin, yPos)
+    yPos += 10
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(71, 85, 105)
+    doc.text('I hereby authorize the above time and materials charges as accurate and approved for billing.', margin, yPos)
+    yPos += 20
+
+    // Signature lines
+    const sigLineWidth = (pageWidth - margin * 2 - 30) / 2
+
+    // Left signature block
+    doc.setDrawColor(30, 41, 59)
+    doc.line(margin, yPos + 20, margin + sigLineWidth, yPos + 20)
+    doc.setFontSize(9)
+    doc.setTextColor(100, 116, 139)
+    doc.text('Authorized Signature (GC / Client)', margin, yPos + 28)
+    doc.text('Date: ____________________', margin, yPos + 38)
+
+    // Right signature block
+    doc.line(margin + sigLineWidth + 30, yPos + 20, pageWidth - margin, yPos + 20)
+    doc.text('Print Name', margin + sigLineWidth + 30, yPos + 28)
+    doc.text('Title: ____________________', margin + sigLineWidth + 30, yPos + 38)
+
+    // Footer
+    const footerY = pageHeight - 15
+    doc.setFontSize(8)
+    doc.setTextColor(148, 163, 184)
+    doc.text(`${company?.name || 'Company'} - T&M Report - ${project.name}`, margin, footerY)
+    doc.text('Page 1', pageWidth - margin, footerY, { align: 'right' })
+
+    // Download
+    const fileName = `${project.name}_TM_Report_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(fileName)
+    onShowToast('PDF exported!', 'success')
+  }
+
   const filteredTickets = filter === 'all' 
     ? tickets 
     : tickets.filter(t => t.status === filter)
@@ -180,9 +451,14 @@ export default function TMList({ project, onShowToast }) {
       <div className="tm-list-header">
         <div className="tm-list-title">
           <h3>T&M Tickets</h3>
-          <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
-            📥 Export Excel
-          </button>
+          <div className="tm-export-buttons">
+            <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
+              Export Excel
+            </button>
+            <button className="btn btn-primary btn-small" onClick={exportToPDF}>
+              Export PDF
+            </button>
+          </div>
         </div>
         
         <div className="tm-filter-tabs">

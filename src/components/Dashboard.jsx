@@ -425,7 +425,7 @@ export default function Dashboard({ company, onShowToast }) {
         </div>
 
         {/* T&M Tickets Section */}
-        <TMList project={selectedProject} onShowToast={onShowToast} />
+        <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
 
         {/* Injury Reports Section */}
         <InjuryReportsList
