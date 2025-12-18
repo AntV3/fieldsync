@@ -44,10 +44,10 @@ export default function App() {
         return
       }
 
-      // Get user record with company
+      // Get user record with company (specify foreign key to avoid ambiguity)
       const { data: userData, error } = await supabase
         .from('users')
-        .select('*, companies(*)')
+        .select('*, companies!company_id(*)')
         .eq('id', user.id)
         .single()
 
@@ -82,10 +82,10 @@ export default function App() {
         return
       }
 
-      // Get user profile
+      // Get user profile (specify foreign key to avoid ambiguity)
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*, companies(*)')
+        .select('*, companies!company_id(*)')
         .eq('id', data.user.id)
         .single()
 
