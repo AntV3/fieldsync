@@ -127,6 +127,25 @@ Tests cover critical flows including:
 - Use `src/test/setup.js` for global test configuration
 - Supabase client is automatically mocked in tests
 
+### CI/CD
+
+The project uses GitHub Actions for continuous integration:
+- Tests run automatically on every push and pull request
+- Build verification ensures production bundle integrity
+- All 59 tests must pass before merge
+
+## Security
+
+### Dependency Audit
+
+- **Status**: 1 known vulnerability (high severity)
+- **Package**: xlsx (Excel export functionality)
+- **Issue**: Prototype Pollution & ReDoS - no fix currently available
+- **Mitigation**: Only used for T&M report exports; does not process untrusted data
+- All other vulnerabilities resolved (upgraded Vitest 2.1.8 → 4.0.16, happy-dom 15.11.7 → 20.0.11)
+
+Run `npm audit` for current status.
+
 ## Tech Stack
 
 - **Frontend**: React + Vite
