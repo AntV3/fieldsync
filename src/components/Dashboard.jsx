@@ -9,6 +9,7 @@ import InjuryReportsList from './InjuryReportsList'
 export default function Dashboard({ onShowToast }) {
   const { company } = useAuth()
   const [projects, setProjects] = useState([])
+  const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,6 +39,26 @@ export default function Dashboard({ onShowToast }) {
     try {
       const data = await db.getProjects()
       setProjects(data)
+
+      // Load enhanced data for executive summary
+      const enhanced = await Promise.all(data.map(async (project) => {
+        const projectAreas = await db.getAreas(project.id)
+        const tickets = await db.getTMTickets(project.id)
+        const progress = calculateProgress(projectAreas)
+        const billable = (progress / 100) * project.contract_value
+        const pendingTickets = tickets.filter(t => t.status === 'pending').length
+
+        return {
+          ...project,
+          areas: projectAreas,
+          progress,
+          billable,
+          totalTickets: tickets.length,
+          pendingTickets,
+          approvedTickets: tickets.filter(t => t.status === 'approved').length
+        }
+      }))
+      setProjectsData(enhanced)
     } catch (error) {
       console.error('Error loading projects:', error)
       onShowToast('Error loading projects', 'error')
@@ -437,17 +458,61 @@ export default function Dashboard({ onShowToast }) {
     )
   }
 
+  // Calculate executive summary stats
+  const totalContractValue = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+  const totalBillable = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
+  const totalPendingTickets = projectsData.reduce((sum, p) => sum + (p.pendingTickets || 0), 0)
+  const avgProgress = projectsData.length > 0
+    ? Math.round(projectsData.reduce((sum, p) => sum + (p.progress || 0), 0) / projectsData.length)
+    : 0
+  const projectsAtRisk = projectsData.filter(p => p.billable > p.contract_value * 0.9 && p.progress < 90).length
+
   return (
     <div>
-      <h1>Projects</h1>
-      <p className="subtitle">Select a project to view details</p>
+      {/* Executive Summary */}
+      <div className="executive-summary">
+        <div className="summary-grid">
+          <div className="summary-card">
+            <div className="summary-value">{projects.length}</div>
+            <div className="summary-label">Active Projects</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-value">{formatCurrency(totalContractValue)}</div>
+            <div className="summary-label">Total Contract Value</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-value">{formatCurrency(totalBillable)}</div>
+            <div className="summary-label">Total Billable</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-value">{avgProgress}%</div>
+            <div className="summary-label">Avg Progress</div>
+          </div>
+        </div>
+
+        {/* Alerts Row */}
+        <div className="summary-alerts">
+          {totalPendingTickets > 0 && (
+            <div className="alert-badge pending">
+              {totalPendingTickets} T&M Pending Approval
+            </div>
+          )}
+          {projectsAtRisk > 0 && (
+            <div className="alert-badge warning">
+              {projectsAtRisk} Project{projectsAtRisk > 1 ? 's' : ''} At Risk
+            </div>
+          )}
+        </div>
+      </div>
+
+      <h2 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Projects</h2>
 
       <div className="project-list">
-        {projects.map(project => (
-          <ProjectCard 
-            key={project.id} 
-            project={project} 
-            onClick={() => handleSelectProject(project)} 
+        {projectsData.map(project => (
+          <EnhancedProjectCard
+            key={project.id}
+            project={project}
+            onClick={() => handleSelectProject(project)}
           />
         ))}
       </div>
@@ -484,6 +549,61 @@ function ProjectCard({ project, onClick }) {
           <div className="mini-progress-fill" style={{ width: `${progress}%` }}></div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Enhanced Project Card with more details
+function EnhancedProjectCard({ project, onClick }) {
+  const status = getOverallStatus(project.areas || [])
+  const statusLabel = getOverallStatusLabel(project.areas || [])
+  const profit = project.contract_value - project.billable
+  const isAtRisk = project.billable > project.contract_value * 0.9 && project.progress < 90
+
+  return (
+    <div className={`project-card enhanced ${isAtRisk ? 'at-risk' : ''}`} onClick={onClick}>
+      <div className="project-card-header">
+        <div>
+          <div className="project-card-name">{project.name}</div>
+          <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
+        </div>
+        <span className={`status-badge ${status}`}>{statusLabel}</span>
+      </div>
+
+      {/* Stats Row */}
+      <div className="project-stats-row">
+        <div className="project-stat">
+          <span className="stat-value">{project.progress}%</span>
+          <span className="stat-label">Complete</span>
+        </div>
+        <div className="project-stat">
+          <span className="stat-value">{formatCurrency(project.billable)}</span>
+          <span className="stat-label">Billable</span>
+        </div>
+        <div className="project-stat">
+          <span className={`stat-value ${profit < 0 ? 'negative' : ''}`}>
+            {formatCurrency(Math.abs(profit))}
+          </span>
+          <span className="stat-label">{profit >= 0 ? 'Remaining' : 'Over Budget'}</span>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mini-progress-bar">
+        <div className="mini-progress-fill" style={{ width: `${project.progress}%` }}></div>
+      </div>
+
+      {/* Badges Row */}
+      {(project.pendingTickets > 0 || project.totalTickets > 0) && (
+        <div className="project-badges">
+          {project.pendingTickets > 0 && (
+            <span className="badge pending">{project.pendingTickets} Pending T&M</span>
+          )}
+          {project.approvedTickets > 0 && (
+            <span className="badge approved">{project.approvedTickets} Approved T&M</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
