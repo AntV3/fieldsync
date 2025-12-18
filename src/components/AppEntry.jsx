@@ -16,8 +16,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const [password, setPassword] = useState('')
 
   // Join state
-  const [joinStep, setJoinStep] = useState(1) // 1: company code, 2: create account
+  const [joinStep, setJoinStep] = useState(1) // 1: company code, 2: office code, 3: create account
   const [joinCompany, setJoinCompany] = useState(null)
+  const [officeCode, setOfficeCode] = useState('')
   const [joinName, setJoinName] = useState('')
   const [joinEmail, setJoinEmail] = useState('')
   const [joinPassword, setJoinPassword] = useState('')
@@ -113,13 +114,43 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       const foundCompany = await db.getCompanyByCode(companyCode)
       if (foundCompany) {
         setJoinCompany(foundCompany)
-        setJoinStep(2)
+        setJoinStep(2) // Go to office code step
       } else {
         onShowToast('Invalid company code', 'error')
         setCompanyCode('')
       }
     } catch (err) {
       onShowToast('Error checking code', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Verify office code (secure server-side check)
+  const verifyOfficeCode = async () => {
+    if (!officeCode.trim()) {
+      onShowToast('Enter office code', 'error')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // Use secure RPC function - office code never sent back to client
+      const { data, error } = await supabase.rpc('verify_office_code', {
+        company_id: joinCompany.id,
+        code: officeCode.trim()
+      })
+
+      if (error) throw error
+
+      if (data === true) {
+        setJoinStep(3) // Go to create account step
+      } else {
+        onShowToast('Invalid office code', 'error')
+        setOfficeCode('')
+      }
+    } catch (err) {
+      onShowToast('Error verifying code', 'error')
     } finally {
       setLoading(false)
     }
@@ -405,11 +436,50 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       )
     }
 
-    // Step 2: Create account
+    // Step 2: Enter office code
+    if (joinStep === 2) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card">
+            <button className="entry-back" onClick={() => { setJoinStep(1); setJoinCompany(null); setOfficeCode(''); }}>
+              ←
+            </button>
+
+            <Logo className="entry-logo" showPoweredBy={false} />
+            <div className="entry-company-badge">{joinCompany?.name}</div>
+            <p className="entry-subtitle">Enter office code</p>
+            <p className="entry-hint">This code is only for office staff</p>
+
+            <div className="entry-input-group">
+              <input
+                type="password"
+                value={officeCode}
+                onChange={(e) => setOfficeCode(e.target.value)}
+                placeholder="Office Code"
+                disabled={loading}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') verifyOfficeCode()
+                }}
+              />
+              <button
+                className="entry-submit-btn"
+                onClick={verifyOfficeCode}
+                disabled={loading || !officeCode.trim()}
+              >
+                {loading ? '...' : '→'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Step 3: Create account
     return (
       <div className="entry-container">
         <div className="entry-card">
-          <button className="entry-back" onClick={() => { setJoinStep(1); setJoinCompany(null); }}>
+          <button className="entry-back" onClick={() => { setJoinStep(2); setOfficeCode(''); }}>
             ←
           </button>
 
