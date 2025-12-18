@@ -199,7 +199,21 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
       if (userError) throw userError
 
-      // 3. Show success and reload
+      // 3. Add to user_companies junction table for multi-company support
+      const { error: ucError } = await supabase
+        .from('user_companies')
+        .insert({
+          user_id: userId,
+          company_id: joinCompany.id,
+          role: 'member'
+        })
+
+      if (ucError) {
+        console.error('Error adding to user_companies:', ucError)
+        // Don't throw - user was created, they can still login
+      }
+
+      // 4. Show success and reload
       onShowToast('Account created! Logging you in...', 'success')
       
       // Small delay then reload to trigger auth
