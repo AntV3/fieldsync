@@ -21,6 +21,7 @@ export default function TMList({ project, company, onShowToast }) {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [expandedTicket, setExpandedTicket] = useState(null)
+  const [selectedTickets, setSelectedTickets] = useState(new Set())
 
   useEffect(() => {
     loadTickets()
@@ -92,9 +93,46 @@ export default function TMList({ project, company, onShowToast }) {
     })
   }
 
+  // Selection helpers
+  const toggleTicketSelection = (ticketId, e) => {
+    e.stopPropagation()
+    setSelectedTickets(prev => {
+      const next = new Set(prev)
+      if (next.has(ticketId)) {
+        next.delete(ticketId)
+      } else {
+        next.add(ticketId)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    const currentFiltered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+    const allSelected = currentFiltered.every(t => selectedTickets.has(t.id))
+    if (allSelected) {
+      setSelectedTickets(new Set())
+    } else {
+      setSelectedTickets(new Set(currentFiltered.map(t => t.id)))
+    }
+  }
+
+  const clearSelection = () => {
+    setSelectedTickets(new Set())
+  }
+
+  // Get tickets to export (selected or all filtered)
+  const getExportTickets = () => {
+    const filtered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+    if (selectedTickets.size > 0) {
+      return filtered.filter(t => selectedTickets.has(t.id))
+    }
+    return filtered
+  }
+
   // Export to Excel
   const exportToExcel = () => {
-    const exportTickets = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+    const exportTickets = getExportTickets()
     
     if (exportTickets.length === 0) {
       onShowToast('No tickets to export', 'error')
@@ -188,7 +226,7 @@ export default function TMList({ project, company, onShowToast }) {
 
   // Export to PDF - Professional format with company branding
   const exportToPDF = () => {
-    const exportTickets = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+    const exportTickets = getExportTickets()
 
     if (exportTickets.length === 0) {
       onShowToast('No tickets to export', 'error')
@@ -313,40 +351,65 @@ export default function TMList({ project, company, onShowToast }) {
 
     yPos += 35
 
-    // Workers Table
-    const workersData = []
-    let totalRegHours = 0
-    let totalOTHours = 0
+    // Collect workers by type
+    const supervisionData = []
+    const operatorsData = []
+    const laborersData = []
+    let supervisionRegHours = 0, supervisionOTHours = 0
+    let operatorsRegHours = 0, operatorsOTHours = 0
+    let laborersRegHours = 0, laborersOTHours = 0
+
     exportTickets.forEach(ticket => {
       if (ticket.t_and_m_workers) {
         ticket.t_and_m_workers.forEach(worker => {
           const regHrs = parseFloat(worker.hours) || 0
           const otHrs = parseFloat(worker.overtime_hours) || 0
-          totalRegHours += regHrs
-          totalOTHours += otHrs
-          workersData.push([
+          const role = worker.role || 'Laborer'
+          const rowData = [
             formatDate(ticket.work_date),
             worker.name,
-            worker.role || 'Laborer',
             regHrs.toString(),
             otHrs > 0 ? otHrs.toString() : '-',
             (regHrs + otHrs).toString()
-          ])
+          ]
+
+          if (role === 'Foreman' || role === 'Superintendent') {
+            supervisionData.push(rowData)
+            supervisionRegHours += regHrs
+            supervisionOTHours += otHrs
+          } else if (role === 'Operator') {
+            operatorsData.push(rowData)
+            operatorsRegHours += regHrs
+            operatorsOTHours += otHrs
+          } else {
+            laborersData.push(rowData)
+            laborersRegHours += regHrs
+            laborersOTHours += otHrs
+          }
         })
       }
     })
 
-    if (workersData.length > 0) {
+    // Helper function to render a labor table
+    const renderLaborTable = (title, icon, data, regHours, otHours) => {
+      if (data.length === 0) return
+
+      // Check if we need a new page
+      if (yPos > pageHeight - 80) {
+        doc.addPage()
+        yPos = margin
+      }
+
       doc.setTextColor(...primaryColor)
-      doc.setFontSize(12)
+      doc.setFontSize(11)
       doc.setFont('helvetica', 'bold')
-      doc.text('LABOR', margin, yPos)
+      doc.text(`${icon} ${title}`, margin, yPos)
       yPos += 5
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Date', 'Worker Name', 'Role', 'Reg Hrs', 'OT Hrs', 'Total']],
-        body: workersData,
+        head: [['Date', 'Name', 'Reg Hrs', 'OT Hrs', 'Total']],
+        body: data,
         margin: { left: margin, right: margin },
         headStyles: {
           fillColor: primaryColor,
@@ -363,12 +426,12 @@ export default function TMList({ project, company, onShowToast }) {
         },
         columnStyles: {
           0: { cellWidth: 30 },
-          3: { halign: 'center', cellWidth: 20 },
-          4: { halign: 'center', cellWidth: 20 },
-          5: { halign: 'center', cellWidth: 20 }
+          2: { halign: 'center', cellWidth: 22 },
+          3: { halign: 'center', cellWidth: 22 },
+          4: { halign: 'center', cellWidth: 22 }
         },
         foot: [[
-          '', '', 'TOTALS:', totalRegHours.toString(), totalOTHours > 0 ? totalOTHours.toString() : '-', (totalRegHours + totalOTHours).toString()
+          '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '-', (regHours + otHours).toString()
         ]],
         footStyles: {
           fillColor: secondaryColor,
@@ -378,7 +441,34 @@ export default function TMList({ project, company, onShowToast }) {
         }
       })
 
-      yPos = doc.lastAutoTable.finalY + 15
+      yPos = doc.lastAutoTable.finalY + 10
+    }
+
+    // Render each labor category
+    if (supervisionData.length > 0 || operatorsData.length > 0 || laborersData.length > 0) {
+      doc.setTextColor(...primaryColor)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('LABOR', margin, yPos)
+      yPos += 8
+
+      renderLaborTable('SUPERVISION', '👔', supervisionData, supervisionRegHours, supervisionOTHours)
+      renderLaborTable('OPERATORS', '🚜', operatorsData, operatorsRegHours, operatorsOTHours)
+      renderLaborTable('LABORERS', '👷', laborersData, laborersRegHours, laborersOTHours)
+
+      // Grand total for all labor
+      const totalRegHours = supervisionRegHours + operatorsRegHours + laborersRegHours
+      const totalOTHours = supervisionOTHours + operatorsOTHours + laborersOTHours
+
+      doc.setFillColor(...primaryColor)
+      doc.rect(margin, yPos, pageWidth - margin * 2, 12, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text('LABOR TOTAL:', margin + 5, yPos + 8)
+      doc.text(`${totalRegHours} Reg + ${totalOTHours} OT = ${totalRegHours + totalOTHours} Hours`, pageWidth - margin - 5, yPos + 8, { align: 'right' })
+
+      yPos += 20
     }
 
     // Check if we need a new page
@@ -525,27 +615,36 @@ export default function TMList({ project, company, onShowToast }) {
     return <div className="loading">Loading T&M tickets...</div>
   }
 
+  // Check if all filtered tickets are selected
+  const allFilteredSelected = filteredTickets.length > 0 && filteredTickets.every(t => selectedTickets.has(t.id))
+  const someSelected = selectedTickets.size > 0
+
   return (
     <div className="tm-list">
       <div className="tm-list-header">
         <div className="tm-list-title">
           <h3>T&M Tickets</h3>
           <div className="tm-export-buttons">
+            {someSelected && (
+              <button className="btn btn-ghost btn-small" onClick={clearSelection}>
+                Clear ({selectedTickets.size})
+              </button>
+            )}
             <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
-              Export Excel
+              Excel {someSelected ? `(${selectedTickets.size})` : ''}
             </button>
             <button className="btn btn-primary btn-small" onClick={exportToPDF}>
-              Export PDF
+              PDF {someSelected ? `(${selectedTickets.size})` : ''}
             </button>
           </div>
         </div>
-        
+
         <div className="tm-filter-tabs">
           {['all', 'pending', 'approved', 'billed', 'rejected'].map(status => (
             <button
               key={status}
               className={`tm-filter-tab ${filter === status ? 'active' : ''}`}
-              onClick={() => setFilter(status)}
+              onClick={() => { setFilter(status); clearSelection(); }}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
               <span className="tm-filter-count">
@@ -580,12 +679,32 @@ export default function TMList({ project, company, onShowToast }) {
         </div>
       ) : (
         <div className="tm-tickets">
+          {/* Select All Row */}
+          <div className="tm-select-all-row">
+            <label className="tm-checkbox-label" onClick={toggleSelectAll}>
+              <input
+                type="checkbox"
+                checked={allFilteredSelected}
+                onChange={toggleSelectAll}
+                className="tm-checkbox"
+              />
+              <span>Select All ({filteredTickets.length})</span>
+            </label>
+          </div>
+
           {filteredTickets.map(ticket => (
-            <div key={ticket.id} className={`tm-ticket-card ${ticket.status}`}>
-              <div 
+            <div key={ticket.id} className={`tm-ticket-card ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''}`}>
+              <div
                 className="tm-ticket-header"
                 onClick={() => setExpandedTicket(expandedTicket === ticket.id ? null : ticket.id)}
               >
+                <input
+                  type="checkbox"
+                  checked={selectedTickets.has(ticket.id)}
+                  onChange={(e) => toggleTicketSelection(ticket.id, e)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="tm-checkbox"
+                />
                 <div className="tm-ticket-info">
                   <span className="tm-ticket-date">{formatDate(ticket.work_date)}</span>
                   <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
