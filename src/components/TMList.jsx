@@ -477,17 +477,26 @@ export default function TMList({ project, company, onShowToast }) {
       yPos = margin
     }
 
-    // Materials Table
-    const itemsData = []
+    // Collect materials by category
+    const categoryData = {}
+    const categoryTotals = {}
+    const categoryOrder = ['Containment', 'PPE', 'Disposal', 'Equipment', 'Other']
+
     exportTickets.forEach(ticket => {
       if (ticket.t_and_m_items) {
         ticket.t_and_m_items.forEach(item => {
           const itemName = item.custom_name || item.materials_equipment?.name || 'Unknown'
+          const category = item.custom_category || item.materials_equipment?.category || 'Other'
           const unit = item.materials_equipment?.unit || 'each'
           const costPer = item.materials_equipment?.cost_per_unit || 0
           const total = item.quantity * costPer
 
-          itemsData.push([
+          if (!categoryData[category]) {
+            categoryData[category] = []
+            categoryTotals[category] = 0
+          }
+
+          categoryData[category].push([
             formatDate(ticket.work_date),
             itemName,
             item.quantity.toString(),
@@ -495,21 +504,31 @@ export default function TMList({ project, company, onShowToast }) {
             `$${costPer.toFixed(2)}`,
             `$${total.toFixed(2)}`
           ])
+          categoryTotals[category] += total
         })
       }
     })
 
-    if (itemsData.length > 0) {
+    // Helper function to render a materials table for a category
+    const renderMaterialsTable = (category, icon, data, subtotal) => {
+      if (!data || data.length === 0) return
+
+      // Check if we need a new page
+      if (yPos > pageHeight - 80) {
+        doc.addPage()
+        yPos = margin
+      }
+
       doc.setTextColor(...primaryColor)
-      doc.setFontSize(12)
+      doc.setFontSize(11)
       doc.setFont('helvetica', 'bold')
-      doc.text('MATERIALS & EQUIPMENT', margin, yPos)
+      doc.text(`${icon} ${category.toUpperCase()}`, margin, yPos)
       yPos += 5
 
       autoTable(doc, {
         startY: yPos,
         head: [['Date', 'Item', 'Qty', 'Unit', 'Rate', 'Total']],
-        body: itemsData,
+        body: data,
         margin: { left: margin, right: margin },
         headStyles: {
           fillColor: primaryColor,
@@ -531,17 +550,62 @@ export default function TMList({ project, company, onShowToast }) {
           5: { halign: 'right', cellWidth: 30 }
         },
         foot: [[
-          '', '', '', '', 'TOTAL:', `$${grandTotalMaterials.toFixed(2)}`
+          '', '', '', '', 'Subtotal:', `$${subtotal.toFixed(2)}`
         ]],
         footStyles: {
           fillColor: secondaryColor,
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 10
+          fontSize: 9
         }
       })
 
-      yPos = doc.lastAutoTable.finalY + 15
+      yPos = doc.lastAutoTable.finalY + 10
+    }
+
+    // Category icons
+    const categoryIcons = {
+      'Containment': '🛡️',
+      'PPE': '🦺',
+      'Disposal': '🗑️',
+      'Equipment': '🔧',
+      'Other': '📦'
+    }
+
+    // Render each category
+    const hasItems = Object.keys(categoryData).length > 0
+
+    if (hasItems) {
+      doc.setTextColor(...primaryColor)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('MATERIALS & EQUIPMENT', margin, yPos)
+      yPos += 8
+
+      // Render in order
+      categoryOrder.forEach(cat => {
+        if (categoryData[cat]) {
+          renderMaterialsTable(cat, categoryIcons[cat] || '📦', categoryData[cat], categoryTotals[cat])
+        }
+      })
+
+      // Render any other categories not in order
+      Object.keys(categoryData).forEach(cat => {
+        if (!categoryOrder.includes(cat)) {
+          renderMaterialsTable(cat, '📦', categoryData[cat], categoryTotals[cat])
+        }
+      })
+
+      // Grand total for all materials
+      doc.setFillColor(...primaryColor)
+      doc.rect(margin, yPos, pageWidth - margin * 2, 12, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text('MATERIALS TOTAL:', margin + 5, yPos + 8)
+      doc.text(`$${grandTotalMaterials.toFixed(2)}`, pageWidth - margin - 5, yPos + 8, { align: 'right' })
+
+      yPos += 20
     }
 
     // Check if we need a new page for signature section

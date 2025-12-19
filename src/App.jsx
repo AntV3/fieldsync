@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard'
 import Field from './components/Field'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
+import MaterialsManager from './components/MaterialsManager'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -330,6 +331,12 @@ export default function App() {
                 + New Project
               </button>
               <button
+                className={`nav-tab ${activeTab === 'materials' ? 'active' : ''}`}
+                onClick={() => setActiveTab('materials')}
+              >
+                Materials
+              </button>
+              <button
                 className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
                 onClick={() => setActiveTab('branding')}
               >
@@ -385,6 +392,12 @@ export default function App() {
           {activeTab === 'setup' && (
             <Setup
               onProjectCreated={handleProjectCreated}
+              onShowToast={showToast}
+            />
+          )}
+          {activeTab === 'materials' && (
+            <MaterialsManager
+              company={company}
               onShowToast={showToast}
             />
           )}
