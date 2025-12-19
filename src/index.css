@@ -2224,6 +2224,12 @@ input::placeholder {
   background: var(--accent-blue);
   color: white;
   font-size: 0.7rem;
+}
+
+.tm-ot-badge {
+  color: var(--accent-yellow);
+  font-weight: 600;
+  font-size: 0.8rem;
   border-radius: 4px;
   margin-right: 0.5rem;
   font-weight: 600;

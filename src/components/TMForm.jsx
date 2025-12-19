@@ -602,8 +602,8 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
                         disabled={isAdded}
                       >
                         <span className="tm-crew-item-name">{worker.name}</span>
-                        <span className={`tm-crew-item-role ${worker.role.toLowerCase()}`}>
-                          {worker.role}
+                        <span className={`tm-crew-item-role ${(worker.role || 'laborer').toLowerCase()}`}>
+                          {worker.role || 'Laborer'}
                         </span>
                         {isAdded && <span className="tm-crew-item-check">✓</span>}
                       </button>
@@ -697,7 +697,7 @@ export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, on
                       onChange={(e) => updateOperator(index, 'name', e.target.value)}
                       className="tm-worker-input"
                     />
-                    <button className="tm-remove" onClick={() => removeOperator(index)}>x</button>
+                    <button className="tm-remove" onClick={() => removeOperator(index)}>×</button>
                   </div>
                   <div className="tm-worker-row-bottom">
                     <div className="tm-time-group">

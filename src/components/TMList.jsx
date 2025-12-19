@@ -65,7 +65,11 @@ export default function TMList({ project, company, onShowToast }) {
 
   const calculateTotalHours = (ticket) => {
     if (!ticket.t_and_m_workers) return 0
-    return ticket.t_and_m_workers.reduce((sum, w) => sum + parseFloat(w.hours), 0)
+    return ticket.t_and_m_workers.reduce((sum, w) => {
+      const regHours = parseFloat(w.hours) || 0
+      const otHours = parseFloat(w.overtime_hours) || 0
+      return sum + regHours + otHours
+    }, 0)
   }
 
   const formatDate = (dateStr) => {
@@ -99,11 +103,16 @@ export default function TMList({ project, company, onShowToast }) {
       // Workers
       if (ticket.t_and_m_workers) {
         ticket.t_and_m_workers.forEach(worker => {
+          const regHours = parseFloat(worker.hours) || 0
+          const otHours = parseFloat(worker.overtime_hours) || 0
           workersData.push({
             'Date': ticketDate,
             'Status': ticketStatus,
             'Worker Name': worker.name,
-            'Hours': worker.hours
+            'Role': worker.role || 'Laborer',
+            'Regular Hours': regHours,
+            'OT Hours': otHours,
+            'Total Hours': regHours + otHours
           })
         })
       }
@@ -260,14 +269,22 @@ export default function TMList({ project, company, onShowToast }) {
 
     // Workers Table
     const workersData = []
+    let totalRegHours = 0
+    let totalOTHours = 0
     exportTickets.forEach(ticket => {
       if (ticket.t_and_m_workers) {
         ticket.t_and_m_workers.forEach(worker => {
+          const regHrs = parseFloat(worker.hours) || 0
+          const otHrs = parseFloat(worker.overtime_hours) || 0
+          totalRegHours += regHrs
+          totalOTHours += otHrs
           workersData.push([
             formatDate(ticket.work_date),
             worker.name,
             worker.role || 'Laborer',
-            worker.hours.toString()
+            regHrs.toString(),
+            otHrs > 0 ? otHrs.toString() : '-',
+            (regHrs + otHrs).toString()
           ])
         })
       }
@@ -282,7 +299,7 @@ export default function TMList({ project, company, onShowToast }) {
 
       doc.autoTable({
         startY: yPos,
-        head: [['Date', 'Worker Name', 'Role', 'Hours']],
+        head: [['Date', 'Worker Name', 'Role', 'Reg Hrs', 'OT Hrs', 'Total']],
         body: workersData,
         margin: { left: margin, right: margin },
         headStyles: {
@@ -299,8 +316,19 @@ export default function TMList({ project, company, onShowToast }) {
           fillColor: [248, 250, 252]
         },
         columnStyles: {
-          0: { cellWidth: 35 },
-          3: { halign: 'center', cellWidth: 25 }
+          0: { cellWidth: 30 },
+          3: { halign: 'center', cellWidth: 20 },
+          4: { halign: 'center', cellWidth: 20 },
+          5: { halign: 'center', cellWidth: 20 }
+        },
+        foot: [[
+          '', '', 'TOTALS:', totalRegHours.toString(), totalOTHours > 0 ? totalOTHours.toString() : '-', (totalRegHours + totalOTHours).toString()
+        ]],
+        footStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9
         }
       })
 
@@ -421,12 +449,16 @@ export default function TMList({ project, company, onShowToast }) {
     doc.text('Print Name', margin + sigLineWidth + 30, yPos + 28)
     doc.text('Title: ____________________', margin + sigLineWidth + 30, yPos + 38)
 
-    // Footer
-    const footerY = pageHeight - 15
-    doc.setFontSize(8)
-    doc.setTextColor(148, 163, 184)
-    doc.text(`${company?.name || 'Company'} - T&M Report - ${project.name}`, margin, footerY)
-    doc.text('Page 1', pageWidth - margin, footerY, { align: 'right' })
+    // Add page numbers to all pages
+    const totalPages = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      const footerY = pageHeight - 15
+      doc.setFontSize(8)
+      doc.setTextColor(148, 163, 184)
+      doc.text(`${company?.name || 'Company'} - T&M Report - ${project.name}`, margin, footerY)
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+    }
 
     // Download
     const fileName = `${project.name}_TM_Report_${new Date().toISOString().split('T')[0]}.pdf`
@@ -532,7 +564,12 @@ export default function TMList({ project, company, onShowToast }) {
                               )}
                               {worker.name}
                             </span>
-                            <span>{worker.hours} hrs</span>
+                            <span>
+                              {worker.hours} hrs
+                              {parseFloat(worker.overtime_hours) > 0 && (
+                                <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
+                              )}
+                            </span>
                           </div>
                         ))}
                       </div>
