@@ -3,7 +3,7 @@ import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 // Helper to convert hex color to RGB array for jsPDF
 const hexToRgb = (hex) => {
@@ -343,7 +343,7 @@ export default function TMList({ project, company, onShowToast }) {
       doc.text('LABOR', margin, yPos)
       yPos += 5
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Date', 'Worker Name', 'Role', 'Reg Hrs', 'OT Hrs', 'Total']],
         body: workersData,
@@ -416,7 +416,7 @@ export default function TMList({ project, company, onShowToast }) {
       doc.text('MATERIALS & EQUIPMENT', margin, yPos)
       yPos += 5
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Date', 'Item', 'Qty', 'Unit', 'Rate', 'Total']],
         body: itemsData,
