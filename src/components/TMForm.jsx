@@ -3,7 +3,7 @@ import { db } from '../lib/supabase'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
-export default function TMForm({ project, companyId, maxPhotos = 3, onSubmit, onCancel, onShowToast }) {
+export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
   const [cePcoNumber, setCePcoNumber] = useState('')
