@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import { useBranding } from '../lib/BrandingContext'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 
+// Helper to convert hex color to RGB array for jsPDF
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? [
+    parseInt(result[1], 16),
+    parseInt(result[2], 16),
+    parseInt(result[3], 16)
+  ] : [30, 41, 59] // Default dark slate
+}
+
 export default function TMList({ project, company, onShowToast }) {
+  const { branding } = useBranding()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -189,35 +201,65 @@ export default function TMList({ project, company, onShowToast }) {
     const margin = 20
     let yPos = margin
 
-    // Company Header
-    doc.setFillColor(30, 41, 59) // Dark slate
-    doc.rect(0, 0, pageWidth, 40, 'F')
+    // Get company colors from branding
+    const primaryColor = hexToRgb(branding?.primary_color || '#3B82F6')
+    const secondaryColor = hexToRgb(branding?.secondary_color || '#1E40AF')
+
+    // Company Header with branded colors
+    doc.setFillColor(...primaryColor)
+    doc.rect(0, 0, pageWidth, 45, 'F')
+
+    // Add accent stripe
+    doc.setFillColor(...secondaryColor)
+    doc.rect(0, 42, pageWidth, 3, 'F')
+
+    // Add company logo if available
+    let logoOffset = margin
+    if (branding?.logo_url) {
+      try {
+        // Note: Logo will be added as image if URL is valid
+        // For now, we'll leave space for it
+        logoOffset = margin + 45
+      } catch (e) {
+        console.error('Error adding logo:', e)
+      }
+    }
 
     doc.setTextColor(255, 255, 255)
-    doc.setFontSize(24)
+    doc.setFontSize(22)
     doc.setFont('helvetica', 'bold')
-    doc.text(company?.name || 'Company Name', margin, 25)
+    doc.text(company?.name || 'Company Name', logoOffset, 20)
 
+    // Add company tagline/subtitle
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.text('TIME & MATERIALS REPORT', pageWidth - margin, 15, { align: 'right' })
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, pageWidth - margin, 25, { align: 'right' })
+    doc.text('TIME & MATERIALS REPORT', logoOffset, 30)
+
+    // Right side info
+    doc.setFontSize(9)
+    doc.text(`Report Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, pageWidth - margin, 18, { align: 'right' })
+    if (project.job_number) {
+      doc.text(`Job #: ${project.job_number}`, pageWidth - margin, 26, { align: 'right' })
+    }
+    doc.text(`Status: ${filter.charAt(0).toUpperCase() + filter.slice(1)}`, pageWidth - margin, 34, { align: 'right' })
 
     yPos = 55
 
     // Project Info Box
     doc.setFillColor(248, 250, 252) // Light gray
     doc.rect(margin, yPos - 5, pageWidth - (margin * 2), 30, 'F')
-    doc.setDrawColor(226, 232, 240)
+    doc.setDrawColor(...primaryColor)
+    doc.setLineWidth(0.5)
     doc.rect(margin, yPos - 5, pageWidth - (margin * 2), 30, 'S')
 
-    doc.setTextColor(30, 41, 59)
+    doc.setTextColor(...primaryColor)
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.text(`Project: ${project.name}`, margin + 5, yPos + 7)
 
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
+    doc.setTextColor(51, 65, 85)
 
     // Date range
     const dates = exportTickets.map(t => new Date(t.work_date)).sort((a, b) => a - b)
@@ -225,7 +267,6 @@ export default function TMList({ project, company, onShowToast }) {
     const endDate = dates[dates.length - 1]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     doc.text(`Date Range: ${startDate} - ${endDate}`, margin + 5, yPos + 17)
     doc.text(`Total Tickets: ${exportTickets.length}`, pageWidth - margin - 5, yPos + 7, { align: 'right' })
-    doc.text(`Status Filter: ${filter.charAt(0).toUpperCase() + filter.slice(1)}`, pageWidth - margin - 5, yPos + 17, { align: 'right' })
 
     yPos += 40
 
@@ -234,27 +275,32 @@ export default function TMList({ project, company, onShowToast }) {
     const grandTotalMaterials = exportTickets.reduce((sum, t) => sum + calculateTicketTotal(t), 0)
     const totalWorkers = new Set(exportTickets.flatMap(t => t.t_and_m_workers?.map(w => w.name) || [])).size
 
+    doc.setTextColor(...primaryColor)
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('SUMMARY', margin, yPos)
     yPos += 8
 
-    // Summary boxes
+    // Summary boxes with brand colors
     const boxWidth = (pageWidth - margin * 2 - 20) / 3
-    const summaryData = [
+    const summaryBoxData = [
       { label: 'Total Labor Hours', value: grandTotalHours.toFixed(1) },
       { label: 'Unique Workers', value: totalWorkers.toString() },
       { label: 'Materials Cost', value: `$${grandTotalMaterials.toFixed(2)}` }
     ]
 
-    summaryData.forEach((item, index) => {
+    // Create lighter version of primary color for box backgrounds
+    const lightPrimary = primaryColor.map(c => Math.min(255, c + 180))
+
+    summaryBoxData.forEach((item, index) => {
       const boxX = margin + (index * (boxWidth + 10))
-      doc.setFillColor(239, 246, 255) // Light blue
+      doc.setFillColor(...lightPrimary)
       doc.rect(boxX, yPos, boxWidth, 25, 'F')
-      doc.setDrawColor(191, 219, 254)
+      doc.setDrawColor(...primaryColor)
+      doc.setLineWidth(0.5)
       doc.rect(boxX, yPos, boxWidth, 25, 'S')
 
-      doc.setTextColor(30, 64, 175)
+      doc.setTextColor(...primaryColor)
       doc.setFontSize(16)
       doc.setFont('helvetica', 'bold')
       doc.text(item.value, boxX + boxWidth / 2, yPos + 12, { align: 'center' })
@@ -291,7 +337,7 @@ export default function TMList({ project, company, onShowToast }) {
     })
 
     if (workersData.length > 0) {
-      doc.setTextColor(30, 41, 59)
+      doc.setTextColor(...primaryColor)
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.text('LABOR', margin, yPos)
@@ -303,7 +349,7 @@ export default function TMList({ project, company, onShowToast }) {
         body: workersData,
         margin: { left: margin, right: margin },
         headStyles: {
-          fillColor: [30, 41, 59],
+          fillColor: primaryColor,
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 9
@@ -325,7 +371,7 @@ export default function TMList({ project, company, onShowToast }) {
           '', '', 'TOTALS:', totalRegHours.toString(), totalOTHours > 0 ? totalOTHours.toString() : '-', (totalRegHours + totalOTHours).toString()
         ]],
         footStyles: {
-          fillColor: [30, 41, 59],
+          fillColor: secondaryColor,
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 9
@@ -364,7 +410,7 @@ export default function TMList({ project, company, onShowToast }) {
     })
 
     if (itemsData.length > 0) {
-      doc.setTextColor(30, 41, 59)
+      doc.setTextColor(...primaryColor)
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.text('MATERIALS & EQUIPMENT', margin, yPos)
@@ -376,7 +422,7 @@ export default function TMList({ project, company, onShowToast }) {
         body: itemsData,
         margin: { left: margin, right: margin },
         headStyles: {
-          fillColor: [30, 41, 59],
+          fillColor: primaryColor,
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 9
@@ -398,7 +444,7 @@ export default function TMList({ project, company, onShowToast }) {
           '', '', '', '', 'TOTAL:', `$${grandTotalMaterials.toFixed(2)}`
         ]],
         footStyles: {
-          fillColor: [30, 41, 59],
+          fillColor: secondaryColor,
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 10
@@ -416,12 +462,12 @@ export default function TMList({ project, company, onShowToast }) {
 
     // Authorization Signature Section
     yPos += 10
-    doc.setDrawColor(226, 232, 240)
-    doc.setLineWidth(0.5)
+    doc.setDrawColor(...primaryColor)
+    doc.setLineWidth(1)
     doc.line(margin, yPos, pageWidth - margin, yPos)
     yPos += 15
 
-    doc.setTextColor(30, 41, 59)
+    doc.setTextColor(...primaryColor)
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('AUTHORIZATION', margin, yPos)
@@ -431,13 +477,14 @@ export default function TMList({ project, company, onShowToast }) {
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(71, 85, 105)
     doc.text('I hereby authorize the above time and materials charges as accurate and approved for billing.', margin, yPos)
-    yPos += 20
+    yPos += 25
 
     // Signature lines
     const sigLineWidth = (pageWidth - margin * 2 - 30) / 2
 
     // Left signature block
-    doc.setDrawColor(30, 41, 59)
+    doc.setDrawColor(...secondaryColor)
+    doc.setLineWidth(0.5)
     doc.line(margin, yPos + 20, margin + sigLineWidth, yPos + 20)
     doc.setFontSize(9)
     doc.setTextColor(100, 116, 139)
