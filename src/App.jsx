@@ -331,10 +331,10 @@ export default function App() {
                 + New Project
               </button>
               <button
-                className={`nav-tab ${activeTab === 'materials' ? 'active' : ''}`}
-                onClick={() => setActiveTab('materials')}
+                className={`nav-tab ${activeTab === 'pricing' ? 'active' : ''}`}
+                onClick={() => setActiveTab('pricing')}
               >
-                Materials
+                Pricing
               </button>
               <button
                 className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
@@ -395,7 +395,7 @@ export default function App() {
               onShowToast={showToast}
             />
           )}
-          {activeTab === 'materials' && (
+          {activeTab === 'pricing' && (
             <MaterialsManager
               company={company}
               onShowToast={showToast}

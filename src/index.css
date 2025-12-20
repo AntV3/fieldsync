@@ -5672,13 +5672,108 @@ input::placeholder {
 }
 
 /* ============================================
-   Materials Manager
+   Pricing / Materials Manager
    ============================================ */
 
 .materials-manager {
   max-width: 1000px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+.pricing-section {
+  margin-bottom: 1rem;
+}
+
+.pricing-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pricing-section-header h2 {
+  margin: 0;
+}
+
+.pricing-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 2rem 0;
+}
+
+.rate-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Labor Rates Grid */
+.labor-rates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.labor-rate-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rate-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rate-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.rate-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.rate-display {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.rate-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.rate-input-group input {
+  width: 80px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.rate-input-group input:focus {
+  outline: none;
+}
+
+.rate-prefix,
+.rate-suffix {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .materials-header {
