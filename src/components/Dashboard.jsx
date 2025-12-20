@@ -370,14 +370,16 @@ export default function Dashboard({ company, onShowToast }) {
 
     // View Mode
     return (
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="project-detail-view">
+        {/* Header Row */}
+        <div className="project-detail-header">
           <button className="btn btn-secondary btn-small" onClick={handleBack}>
-            ← Back to Projects
+            ← Back
           </button>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <h1 className="project-detail-title">{selectedProject.name}</h1>
+          <div className="project-detail-actions">
             <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
-              Share with Client
+              Share
             </button>
             <button className="btn btn-secondary btn-small" onClick={handleEditClick}>
               Edit
@@ -385,39 +387,58 @@ export default function Dashboard({ company, onShowToast }) {
           </div>
         </div>
 
-        <h1>{selectedProject.name}</h1>
-        <p className="subtitle">
-          Contract: {formatCurrency(selectedProject.contract_value)}
-          {selectedProject.pin && <span style={{ marginLeft: '1rem', color: 'var(--text-muted)' }}>PIN: {selectedProject.pin}</span>}
-        </p>
-
-        <div className="card billing-card">
-          <h3>Billable to Date</h3>
-          <div className="billing-amount">{formatCurrency(billable)}</div>
-          <div className="billing-total">of {formatCurrency(selectedProject.contract_value)} contract value</div>
-
-          <div className="progress-container">
-            <div className="progress-header">
-              <span className="progress-label">Overall Progress</span>
-              <span className="progress-value">{progress}%</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+        {/* Top Grid: Key Metrics */}
+        <div className="project-metrics-grid">
+          <div className="metric-card">
+            <div className="metric-label">Contract Value</div>
+            <div className="metric-value">{formatCurrency(selectedProject.contract_value)}</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-label">Billable to Date</div>
+            <div className="metric-value accent">{formatCurrency(billable)}</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-label">Remaining</div>
+            <div className="metric-value">{formatCurrency(selectedProject.contract_value - billable)}</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-label">Progress</div>
+            <div className="metric-value">{progress}%</div>
+            <div className="metric-progress-bar">
+              <div className="metric-progress-fill" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <h3>Areas</h3>
-          <div className="area-status-list">
+        {/* Project Info Row */}
+        <div className="project-info-row">
+          {selectedProject.job_number && (
+            <span className="info-tag">Job #{selectedProject.job_number}</span>
+          )}
+          {selectedProject.pin && (
+            <span className="info-tag">PIN: {selectedProject.pin}</span>
+          )}
+          {selectedProject.work_type && (
+            <span className="info-tag type">{selectedProject.work_type}</span>
+          )}
+          {selectedProject.job_type && (
+            <span className="info-tag type">{selectedProject.job_type === 'pla' ? 'PLA' : 'Standard'}</span>
+          )}
+        </div>
+
+        {/* Areas - Compact Grid */}
+        <div className="card areas-compact">
+          <div className="areas-compact-header">
+            <h3>Areas</h3>
+            <span className="areas-count">{areas.length} areas</span>
+          </div>
+          <div className="areas-compact-grid">
             {areas.map(area => (
-              <div key={area.id} className="area-status-item">
-                <div>
-                  <div className="area-name">{area.name}</div>
-                  <div className="area-weight">{area.weight}% of contract</div>
-                </div>
-                <span className={`status-badge ${area.status}`}>
-                  {formatStatus(area.status)}
+              <div key={area.id} className={`area-compact-item ${area.status}`}>
+                <span className="area-compact-name">{area.name}</span>
+                <span className="area-compact-weight">{area.weight}%</span>
+                <span className={`area-compact-status ${area.status}`}>
+                  {area.status === 'done' ? '✓' : area.status === 'working' ? '◐' : '○'}
                 </span>
               </div>
             ))}

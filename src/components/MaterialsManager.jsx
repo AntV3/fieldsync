@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react'
 import { db, supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
-const LABOR_ROLES = [
-  { key: 'foreman', label: 'Foreman', description: 'Supervision hourly rate' },
-  { key: 'operator', label: 'Operator', description: 'Equipment operator hourly rate' },
-  { key: 'laborer', label: 'Laborer', description: 'General laborer hourly rate' }
-]
+const LABOR_ROLES = ['foreman', 'operator', 'laborer']
+const WORK_TYPES = ['demolition', 'abatement']
+const JOB_TYPES = ['standard', 'pla']
 
 export default function MaterialsManager({ company, onShowToast }) {
   const [items, setItems] = useState([])
@@ -18,14 +16,11 @@ export default function MaterialsManager({ company, onShowToast }) {
   const [duplicates, setDuplicates] = useState([])
   const [showDuplicates, setShowDuplicates] = useState(false)
 
-  // Labor rates state
-  const [laborRates, setLaborRates] = useState({
-    foreman: '',
-    operator: '',
-    laborer: ''
-  })
+  // Labor rates state - organized by work_type -> job_type -> role
+  const [laborRates, setLaborRates] = useState({})
   const [editingRates, setEditingRates] = useState(false)
   const [savingRates, setSavingRates] = useState(false)
+  const [activeWorkType, setActiveWorkType] = useState('demolition')
 
   useEffect(() => {
     if (company?.id) {
@@ -33,6 +28,21 @@ export default function MaterialsManager({ company, onShowToast }) {
       loadLaborRates()
     }
   }, [company?.id])
+
+  // Initialize empty rates structure
+  const initializeRates = () => {
+    const rates = {}
+    WORK_TYPES.forEach(workType => {
+      rates[workType] = {}
+      JOB_TYPES.forEach(jobType => {
+        rates[workType][jobType] = {}
+        LABOR_ROLES.forEach(role => {
+          rates[workType][jobType][role] = { regular: '', overtime: '' }
+        })
+      })
+    })
+    return rates
+  }
 
   const loadItems = async () => {
     setLoading(true)
@@ -52,6 +62,9 @@ export default function MaterialsManager({ company, onShowToast }) {
   const loadLaborRates = async () => {
     if (!isSupabaseConfigured) return
 
+    // Initialize with empty structure
+    const rates = initializeRates()
+
     try {
       const { data, error } = await supabase
         .from('labor_rates')
@@ -59,20 +72,27 @@ export default function MaterialsManager({ company, onShowToast }) {
         .eq('company_id', company.id)
 
       if (error) {
-        // Table might not exist yet - that's ok
         console.log('Labor rates table may not exist:', error.message)
+        setLaborRates(rates)
         return
       }
 
       if (data && data.length > 0) {
-        const rates = {}
         data.forEach(rate => {
-          rates[rate.role] = rate.hourly_rate || ''
+          if (rates[rate.work_type] &&
+              rates[rate.work_type][rate.job_type] &&
+              rates[rate.work_type][rate.job_type][rate.role]) {
+            rates[rate.work_type][rate.job_type][rate.role] = {
+              regular: rate.regular_rate || '',
+              overtime: rate.overtime_rate || ''
+            }
+          }
         })
-        setLaborRates(prev => ({ ...prev, ...rates }))
       }
+      setLaborRates(rates)
     } catch (error) {
       console.error('Error loading labor rates:', error)
+      setLaborRates(rates)
     }
   }
 
@@ -85,38 +105,74 @@ export default function MaterialsManager({ company, onShowToast }) {
 
     setSavingRates(true)
     try {
-      for (const role of LABOR_ROLES) {
-        const rate = parseFloat(laborRates[role.key]) || 0
+      // Delete existing rates for this company first
+      await supabase
+        .from('labor_rates')
+        .delete()
+        .eq('company_id', company.id)
 
-        const { error } = await supabase
-          .from('labor_rates')
-          .upsert({
-            company_id: company.id,
-            role: role.key,
-            hourly_rate: rate
-          }, {
-            onConflict: 'company_id,role'
+      // Build array of all rates to insert
+      const ratesToSave = []
+
+      WORK_TYPES.forEach(workType => {
+        JOB_TYPES.forEach(jobType => {
+          LABOR_ROLES.forEach(role => {
+            const rateData = laborRates[workType]?.[jobType]?.[role] || { regular: 0, overtime: 0 }
+            ratesToSave.push({
+              company_id: company.id,
+              role: role,
+              work_type: workType,
+              job_type: jobType,
+              regular_rate: parseFloat(rateData.regular) || 0,
+              overtime_rate: parseFloat(rateData.overtime) || 0
+            })
           })
+        })
+      })
 
-        if (error) throw error
-      }
+      // Insert all rates
+      const { error } = await supabase
+        .from('labor_rates')
+        .insert(ratesToSave)
+
+      if (error) throw error
 
       onShowToast('Labor rates saved', 'success')
       setEditingRates(false)
     } catch (error) {
       console.error('Error saving labor rates:', error)
-      onShowToast('Error saving rates. Run the SQL setup first.', 'error')
+      onShowToast('Error saving rates: ' + (error.message || 'Unknown error'), 'error')
     } finally {
       setSavingRates(false)
     }
   }
 
-  // Find duplicate items by name (case-insensitive)
+  // Update a specific rate
+  const updateRate = (workType, jobType, role, rateType, value) => {
+    setLaborRates(prev => ({
+      ...prev,
+      [workType]: {
+        ...prev[workType],
+        [jobType]: {
+          ...prev[workType]?.[jobType],
+          [role]: {
+            ...prev[workType]?.[jobType]?.[role],
+            [rateType]: value
+          }
+        }
+      }
+    }))
+  }
+
+  // Find duplicate items by name (case-insensitive) - only check active items
   const findDuplicates = (itemList) => {
     const nameMap = {}
     const dupes = []
 
-    itemList.forEach(item => {
+    // Only consider active items for duplicate detection
+    const activeItems = itemList.filter(item => item.active !== false)
+
+    activeItems.forEach(item => {
       const normalizedName = item.name.toLowerCase().trim()
       if (!nameMap[normalizedName]) {
         nameMap[normalizedName] = []
@@ -133,15 +189,13 @@ export default function MaterialsManager({ company, onShowToast }) {
     setDuplicates(dupes)
   }
 
-  // Merge duplicates - keep the first one with cost, delete others
+  // Merge duplicates
   const mergeDuplicates = async (dupeGroup) => {
     try {
-      // Find the item to keep (prefer one with cost > 0)
       const itemsWithCost = dupeGroup.items.filter(i => i.cost_per_unit > 0)
       const keepItem = itemsWithCost.length > 0 ? itemsWithCost[0] : dupeGroup.items[0]
       const deleteItems = dupeGroup.items.filter(i => i.id !== keepItem.id)
 
-      // Delete the duplicates
       for (const item of deleteItems) {
         await db.deleteMaterialEquipment(item.id)
       }
@@ -154,7 +208,6 @@ export default function MaterialsManager({ company, onShowToast }) {
     }
   }
 
-  // Merge all duplicates at once
   const mergeAllDuplicates = async () => {
     if (!confirm(`Merge all ${duplicates.length} duplicate groups?`)) return
 
@@ -178,7 +231,6 @@ export default function MaterialsManager({ company, onShowToast }) {
     }
   }
 
-  // Add new item
   const handleAddItem = async () => {
     if (!newItem.name.trim()) {
       onShowToast('Enter item name', 'error')
@@ -205,7 +257,6 @@ export default function MaterialsManager({ company, onShowToast }) {
     }
   }
 
-  // Update item
   const handleUpdateItem = async (item) => {
     try {
       await db.updateMaterialEquipment(item.id, {
@@ -224,7 +275,6 @@ export default function MaterialsManager({ company, onShowToast }) {
     }
   }
 
-  // Delete item
   const handleDeleteItem = async (itemId) => {
     if (!confirm('Delete this item?')) return
 
@@ -238,12 +288,10 @@ export default function MaterialsManager({ company, onShowToast }) {
     }
   }
 
-  // Filtered items
   const filteredItems = filter === 'all'
     ? items.filter(i => i.active !== false)
     : items.filter(i => i.category === filter && i.active !== false)
 
-  // Group by category for display
   const groupedItems = filteredItems.reduce((acc, item) => {
     const cat = item.category || 'Other'
     if (!acc[cat]) acc[cat] = []
@@ -254,6 +302,11 @@ export default function MaterialsManager({ company, onShowToast }) {
   if (loading) {
     return <div className="loading">Loading pricing...</div>
   }
+
+  // Helper to format role name
+  const formatRole = (role) => role.charAt(0).toUpperCase() + role.slice(1)
+  const formatWorkType = (type) => type.charAt(0).toUpperCase() + type.slice(1)
+  const formatJobType = (type) => type === 'pla' ? 'PLA (Prevailing Wage)' : 'Standard (Private)'
 
   return (
     <div className="materials-manager">
@@ -267,7 +320,7 @@ export default function MaterialsManager({ company, onShowToast }) {
             </button>
           ) : (
             <div className="rate-actions">
-              <button className="btn btn-secondary btn-small" onClick={() => setEditingRates(false)}>
+              <button className="btn btn-secondary btn-small" onClick={() => { setEditingRates(false); loadLaborRates(); }}>
                 Cancel
               </button>
               <button
@@ -275,37 +328,82 @@ export default function MaterialsManager({ company, onShowToast }) {
                 onClick={saveLaborRates}
                 disabled={savingRates}
               >
-                {savingRates ? 'Saving...' : 'Save Rates'}
+                {savingRates ? 'Saving...' : 'Save All Rates'}
               </button>
             </div>
           )}
         </div>
 
-        <div className="labor-rates-grid">
-          {LABOR_ROLES.map(role => (
-            <div key={role.key} className="labor-rate-card">
-              <div className="rate-label">
-                <span className="rate-title">{role.label}</span>
-                <span className="rate-desc">{role.description}</span>
+        {/* Work Type Tabs */}
+        <div className="work-type-tabs">
+          {WORK_TYPES.map(workType => (
+            <button
+              key={workType}
+              className={`work-type-tab ${activeWorkType === workType ? 'active' : ''}`}
+              onClick={() => setActiveWorkType(workType)}
+            >
+              {formatWorkType(workType)}
+            </button>
+          ))}
+        </div>
+
+        {/* Job Type Sections */}
+        <div className="labor-rates-container">
+          {JOB_TYPES.map(jobType => (
+            <div key={jobType} className="job-type-section">
+              <h3 className="job-type-header">{formatJobType(jobType)}</h3>
+
+              <div className="rates-table">
+                <div className="rates-table-header">
+                  <div className="rate-cell role-cell">Role</div>
+                  <div className="rate-cell">Regular</div>
+                  <div className="rate-cell">Overtime</div>
+                </div>
+
+                {LABOR_ROLES.map(role => {
+                  const rateData = laborRates[activeWorkType]?.[jobType]?.[role] || { regular: '', overtime: '' }
+
+                  return (
+                    <div key={role} className="rates-table-row">
+                      <div className="rate-cell role-cell">{formatRole(role)}</div>
+                      <div className="rate-cell">
+                        {editingRates ? (
+                          <div className="rate-input-inline">
+                            <span>$</span>
+                            <input
+                              type="number"
+                              value={rateData.regular}
+                              onChange={(e) => updateRate(activeWorkType, jobType, role, 'regular', e.target.value)}
+                              placeholder="0.00"
+                              step="0.01"
+                            />
+                            <span>/hr</span>
+                          </div>
+                        ) : (
+                          <span className="rate-value">${(parseFloat(rateData.regular) || 0).toFixed(2)}/hr</span>
+                        )}
+                      </div>
+                      <div className="rate-cell">
+                        {editingRates ? (
+                          <div className="rate-input-inline">
+                            <span>$</span>
+                            <input
+                              type="number"
+                              value={rateData.overtime}
+                              onChange={(e) => updateRate(activeWorkType, jobType, role, 'overtime', e.target.value)}
+                              placeholder="0.00"
+                              step="0.01"
+                            />
+                            <span>/hr</span>
+                          </div>
+                        ) : (
+                          <span className="rate-value ot">${(parseFloat(rateData.overtime) || 0).toFixed(2)}/hr</span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-              {editingRates ? (
-                <div className="rate-input-group">
-                  <span className="rate-prefix">$</span>
-                  <input
-                    type="number"
-                    value={laborRates[role.key]}
-                    onChange={(e) => setLaborRates({ ...laborRates, [role.key]: e.target.value })}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                  />
-                  <span className="rate-suffix">/hr</span>
-                </div>
-              ) : (
-                <div className="rate-display">
-                  ${(parseFloat(laborRates[role.key]) || 0).toFixed(2)}/hr
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -440,7 +538,6 @@ export default function MaterialsManager({ company, onShowToast }) {
         {/* Items List */}
         <div className="materials-list">
           {filter === 'all' ? (
-            // Grouped view when showing all
             Object.entries(groupedItems).map(([category, catItems]) => (
               <div key={category} className="materials-category">
                 <h3 className="category-header">{category}</h3>
@@ -517,68 +614,78 @@ export default function MaterialsManager({ company, onShowToast }) {
               </div>
             ))
           ) : (
-            // Flat view for single category
-            <div className="category-items">
-              {filteredItems.map(item => (
-                <div key={item.id} className="material-item">
-                  {editingItem?.id === item.id ? (
-                    <div className="item-edit-form">
-                      <input
-                        type="text"
-                        value={editingItem.name}
-                        onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                      />
-                      <input
-                        type="text"
-                        value={editingItem.unit}
-                        onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value })}
-                        placeholder="Unit"
-                      />
-                      <input
-                        type="number"
-                        value={editingItem.cost_per_unit}
-                        onChange={(e) => setEditingItem({ ...editingItem, cost_per_unit: e.target.value })}
-                        placeholder="Cost"
-                        step="0.01"
-                      />
-                      <div className="edit-actions">
-                        <button className="btn btn-success btn-small" onClick={() => handleUpdateItem(editingItem)}>
-                          Save
-                        </button>
-                        <button className="btn btn-secondary btn-small" onClick={() => setEditingItem(null)}>
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="item-info">
-                        <span className="item-name">{item.name}</span>
-                        <span className="item-unit">{item.unit || 'each'}</span>
-                      </div>
-                      <div className="item-cost">
-                        ${(item.cost_per_unit || 0).toFixed(2)}
-                      </div>
-                      <div className="item-actions">
-                        <button
-                          className="btn-icon"
-                          onClick={() => setEditingItem({ ...item })}
-                          title="Edit"
+            <div className="materials-category">
+              <h3 className="category-header">{filter}</h3>
+              <div className="category-items">
+                {filteredItems.map(item => (
+                  <div key={item.id} className="material-item">
+                    {editingItem?.id === item.id ? (
+                      <div className="item-edit-form">
+                        <input
+                          type="text"
+                          value={editingItem.name}
+                          onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                        />
+                        <select
+                          value={editingItem.category}
+                          onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
                         >
-                          ✏️
-                        </button>
-                        <button
-                          className="btn-icon danger"
-                          onClick={() => handleDeleteItem(item.id)}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
+                          {CATEGORIES.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={editingItem.unit}
+                          onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value })}
+                          placeholder="Unit"
+                        />
+                        <input
+                          type="number"
+                          value={editingItem.cost_per_unit}
+                          onChange={(e) => setEditingItem({ ...editingItem, cost_per_unit: e.target.value })}
+                          placeholder="Cost"
+                          step="0.01"
+                        />
+                        <div className="edit-actions">
+                          <button className="btn btn-success btn-small" onClick={() => handleUpdateItem(editingItem)}>
+                            Save
+                          </button>
+                          <button className="btn btn-secondary btn-small" onClick={() => setEditingItem(null)}>
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </>
-                  )}
-                </div>
-              ))}
+                    ) : (
+                      <>
+                        <div className="item-info">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-unit">{item.unit || 'each'}</span>
+                        </div>
+                        <div className="item-cost">
+                          ${(item.cost_per_unit || 0).toFixed(2)}
+                        </div>
+                        <div className="item-actions">
+                          <button
+                            className="btn-icon"
+                            onClick={() => setEditingItem({ ...item })}
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="btn-icon danger"
+                            onClick={() => handleDeleteItem(item.id)}
+                            title="Delete"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

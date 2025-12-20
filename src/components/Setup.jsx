@@ -9,6 +9,8 @@ export default function Setup({ onProjectCreated, onShowToast }) {
   const [generalContractor, setGeneralContractor] = useState('')
   const [contractValue, setContractValue] = useState('')
   const [pin, setPin] = useState('')
+  const [workType, setWorkType] = useState('demolition')
+  const [jobType, setJobType] = useState('standard')
   const [areas, setAreas] = useState([
     { name: '', weight: '', group: '' },
     { name: '', weight: '', group: '' },
@@ -57,6 +59,8 @@ export default function Setup({ onProjectCreated, onShowToast }) {
     setGeneralContractor('')
     setContractValue('')
     setPin('')
+    setWorkType('demolition')
+    setJobType('standard')
     setAreas([
       { name: '', weight: '', group: '' },
       { name: '', weight: '', group: '' },
@@ -312,7 +316,9 @@ export default function Setup({ onProjectCreated, onShowToast }) {
         address: address.trim() || null,
         general_contractor: generalContractor.trim() || null,
         contract_value: contractVal,
-        pin: pin
+        pin: pin,
+        work_type: workType,
+        job_type: jobType
       })
 
       for (let i = 0; i < validAreas.length; i++) {
@@ -465,6 +471,48 @@ export default function Setup({ onProjectCreated, onShowToast }) {
             value={generalContractor}
             onChange={(e) => setGeneralContractor(e.target.value)}
           />
+        </div>
+
+        <div className="form-row-2">
+          <div className="form-group">
+            <label>Work Type</label>
+            <div className="project-type-toggle">
+              <button
+                type="button"
+                className={`toggle-btn ${workType === 'demolition' ? 'active' : ''}`}
+                onClick={() => setWorkType('demolition')}
+              >
+                Demolition
+              </button>
+              <button
+                type="button"
+                className={`toggle-btn ${workType === 'abatement' ? 'active' : ''}`}
+                onClick={() => setWorkType('abatement')}
+              >
+                Abatement
+              </button>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Job Type</label>
+            <div className="project-type-toggle">
+              <button
+                type="button"
+                className={`toggle-btn ${jobType === 'standard' ? 'active' : ''}`}
+                onClick={() => setJobType('standard')}
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                className={`toggle-btn ${jobType === 'pla' ? 'active' : ''}`}
+                onClick={() => setJobType('pla')}
+              >
+                PLA
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="form-group">

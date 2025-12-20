@@ -226,6 +226,49 @@ input::placeholder {
   width: 100%;
 }
 
+/* Project Type Toggle (Work Type / Job Type) */
+.project-type-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.toggle-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+.toggle-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Area Input Row */
 .area-row {
   display: grid;
@@ -338,6 +381,208 @@ input::placeholder {
 
 .billing-total {
   color: var(--text-secondary);
+}
+
+/* ============================================
+   Project Detail View - Compact Layout
+   ============================================ */
+
+.project-detail-view {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.project-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.project-detail-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.project-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Metrics Grid */
+.project-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metric-value.accent {
+  color: var(--accent-green);
+}
+
+.metric-progress-bar {
+  height: 6px;
+  background: var(--progress-bg);
+  border-radius: 3px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.metric-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Project Info Row */
+.project-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.info-tag {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.info-tag.type {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  text-transform: capitalize;
+}
+
+/* Areas Compact */
+.areas-compact {
+  padding: 1rem;
+}
+
+.areas-compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.areas-compact-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.areas-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.areas-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.area-compact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border-left: 3px solid var(--border-color);
+}
+
+.area-compact-item.done {
+  border-left-color: var(--accent-green);
+}
+
+.area-compact-item.working {
+  border-left-color: var(--accent-amber);
+}
+
+.area-compact-name {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.area-compact-weight {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.area-compact-status {
+  font-size: 0.9rem;
+}
+
+.area-compact-status.done {
+  color: var(--accent-green);
+}
+
+.area-compact-status.working {
+  color: var(--accent-amber);
+}
+
+.area-compact-status.not_started {
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .project-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .project-detail-header {
+    flex-wrap: wrap;
+  }
+
+  .project-detail-title {
+    order: 2;
+    width: 100%;
+    font-size: 1.25rem;
+  }
+
+  .project-detail-actions {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .areas-compact-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Status Badges */
@@ -5774,6 +6019,161 @@ input::placeholder {
 .rate-suffix {
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+/* Work Type Tabs (Demolition / Abatement) */
+.work-type-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.work-type-tab {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.work-type-tab:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+.work-type-tab.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+/* Labor Rates Container */
+.labor-rates-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Job Type Sections (Standard / PLA) */
+.job-type-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.job-type-header {
+  margin: 0;
+  padding: 0.875rem 1.25rem;
+  background: var(--bg-elevated);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Rates Table */
+.rates-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.rates-table-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.rates-table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+}
+
+.rates-table-row:last-child {
+  border-bottom: none;
+}
+
+.rate-cell {
+  display: flex;
+  align-items: center;
+}
+
+.rate-cell.role-cell {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Rate Input Inline */
+.rate-input-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.rate-input-inline input {
+  width: 70px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: right;
+  padding: 0;
+}
+
+.rate-input-inline input:focus {
+  outline: none;
+}
+
+.rate-input-inline span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Rate Value Display */
+.rate-value {
+  font-weight: 600;
+  color: var(--accent-green);
+  font-size: 1rem;
+}
+
+.rate-value.ot {
+  color: var(--accent-amber);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .work-type-tabs {
+    flex-direction: column;
+  }
+
+  .rates-table-header,
+  .rates-table-row {
+    grid-template-columns: 100px 1fr 1fr;
+  }
+
+  .rate-input-inline input {
+    width: 55px;
+  }
 }
 
 .materials-header {
