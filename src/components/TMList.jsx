@@ -391,7 +391,7 @@ export default function TMList({ project, company, onShowToast }) {
     })
 
     // Helper function to render a labor table
-    const renderLaborTable = (title, icon, data, regHours, otHours) => {
+    const renderLaborTable = (title, data, regHours, otHours) => {
       if (data.length === 0) return
 
       // Check if we need a new page
@@ -403,7 +403,7 @@ export default function TMList({ project, company, onShowToast }) {
       doc.setTextColor(...primaryColor)
       doc.setFontSize(11)
       doc.setFont('helvetica', 'bold')
-      doc.text(`${icon} ${title}`, margin, yPos)
+      doc.text(title, margin, yPos)
       yPos += 5
 
       autoTable(doc, {
@@ -452,9 +452,9 @@ export default function TMList({ project, company, onShowToast }) {
       doc.text('LABOR', margin, yPos)
       yPos += 8
 
-      renderLaborTable('SUPERVISION', '👔', supervisionData, supervisionRegHours, supervisionOTHours)
-      renderLaborTable('OPERATORS', '🚜', operatorsData, operatorsRegHours, operatorsOTHours)
-      renderLaborTable('LABORERS', '👷', laborersData, laborersRegHours, laborersOTHours)
+      renderLaborTable('SUPERVISION', supervisionData, supervisionRegHours, supervisionOTHours)
+      renderLaborTable('OPERATORS', operatorsData, operatorsRegHours, operatorsOTHours)
+      renderLaborTable('LABORERS', laborersData, laborersRegHours, laborersOTHours)
 
       // Grand total for all labor
       const totalRegHours = supervisionRegHours + operatorsRegHours + laborersRegHours
@@ -510,7 +510,7 @@ export default function TMList({ project, company, onShowToast }) {
     })
 
     // Helper function to render a materials table for a category
-    const renderMaterialsTable = (category, icon, data, subtotal) => {
+    const renderMaterialsTable = (category, data, subtotal) => {
       if (!data || data.length === 0) return
 
       // Check if we need a new page
@@ -522,7 +522,7 @@ export default function TMList({ project, company, onShowToast }) {
       doc.setTextColor(...primaryColor)
       doc.setFontSize(11)
       doc.setFont('helvetica', 'bold')
-      doc.text(`${icon} ${category.toUpperCase()}`, margin, yPos)
+      doc.text(category.toUpperCase(), margin, yPos)
       yPos += 5
 
       autoTable(doc, {
@@ -563,15 +563,6 @@ export default function TMList({ project, company, onShowToast }) {
       yPos = doc.lastAutoTable.finalY + 10
     }
 
-    // Category icons
-    const categoryIcons = {
-      'Containment': '🛡️',
-      'PPE': '🦺',
-      'Disposal': '🗑️',
-      'Equipment': '🔧',
-      'Other': '📦'
-    }
-
     // Render each category
     const hasItems = Object.keys(categoryData).length > 0
 
@@ -585,14 +576,14 @@ export default function TMList({ project, company, onShowToast }) {
       // Render in order
       categoryOrder.forEach(cat => {
         if (categoryData[cat]) {
-          renderMaterialsTable(cat, categoryIcons[cat] || '📦', categoryData[cat], categoryTotals[cat])
+          renderMaterialsTable(cat, categoryData[cat], categoryTotals[cat])
         }
       })
 
       // Render any other categories not in order
       Object.keys(categoryData).forEach(cat => {
         if (!categoryOrder.includes(cat)) {
-          renderMaterialsTable(cat, '📦', categoryData[cat], categoryTotals[cat])
+          renderMaterialsTable(cat, categoryData[cat], categoryTotals[cat])
         }
       })
 
