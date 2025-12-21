@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useBranding } from '../lib/BrandingContext'
+import { supabase } from '../lib/supabase'
 
 export default function BrandingSettings({ company, onShowToast }) {
   const { branding, updateBranding, uploadBrandingImage, loading } = useBranding()
@@ -7,9 +8,68 @@ export default function BrandingSettings({ company, onShowToast }) {
   const [previewMode, setPreviewMode] = useState(false)
   const [localBranding, setLocalBranding] = useState(branding)
 
+  // Office code state
+  const [officeCode, setOfficeCode] = useState('')
+  const [regeneratingCode, setRegeneratingCode] = useState(false)
+
   const logoInputRef = useRef(null)
   const faviconInputRef = useRef(null)
   const backgroundInputRef = useRef(null)
+
+  // Load office code on mount
+  useEffect(() => {
+    if (company?.id) {
+      loadOfficeCode()
+    }
+  }, [company?.id])
+
+  const loadOfficeCode = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('office_code')
+        .eq('id', company.id)
+        .single()
+
+      if (!error && data?.office_code) {
+        setOfficeCode(data.office_code)
+      }
+    } catch (err) {
+      console.error('Error loading office code:', err)
+    }
+  }
+
+  const regenerateOfficeCode = async () => {
+    if (!confirm('Regenerate office code? Current code will stop working immediately.')) {
+      return
+    }
+
+    setRegeneratingCode(true)
+    try {
+      // Generate new 6-character code
+      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+
+      const { error } = await supabase
+        .from('companies')
+        .update({ office_code: newCode })
+        .eq('id', company.id)
+
+      if (error) throw error
+
+      setOfficeCode(newCode)
+      onShowToast?.('Office code regenerated', 'success')
+    } catch (err) {
+      console.error('Error regenerating code:', err)
+      onShowToast?.('Error regenerating code', 'error')
+    } finally {
+      setRegeneratingCode(false)
+    }
+  }
+
+  const copyOfficeCode = () => {
+    navigator.clipboard.writeText(officeCode)
+    onShowToast?.('Office code copied to clipboard', 'success')
+  }
 
   // Tier restrictions
   const tier = company?.subscription_tier || 'free'
@@ -120,6 +180,58 @@ export default function BrandingSettings({ company, onShowToast }) {
         {tier === 'enterprise' && (
           <div className="tier-badge tier-enterprise">Enterprise Plan</div>
         )}
+      </div>
+
+      {/* Security Section - Office Code */}
+      <div className="settings-section security-section">
+        <h3>Security</h3>
+
+        <div className="setting-item">
+          <label>Office Code</label>
+          <p className="help-text" style={{ marginBottom: '0.75rem' }}>
+            Share this code with office staff only. Required to create new office accounts.
+          </p>
+          <div className="office-code-display">
+            <code className="office-code-value">{officeCode || '------'}</code>
+            <button
+              className="btn-secondary btn-small"
+              onClick={copyOfficeCode}
+              disabled={!officeCode}
+            >
+              Copy
+            </button>
+            <button
+              className="btn-secondary btn-small"
+              onClick={regenerateOfficeCode}
+              disabled={regeneratingCode}
+            >
+              {regeneratingCode ? '...' : 'Regenerate'}
+            </button>
+          </div>
+          <p className="help-text" style={{ marginTop: '0.5rem', color: 'var(--accent-amber)' }}>
+            Field workers should NOT have this code - they use project PINs only.
+          </p>
+        </div>
+
+        <div className="setting-item">
+          <label>Company Code</label>
+          <p className="help-text" style={{ marginBottom: '0.75rem' }}>
+            Public code for employees to find your company.
+          </p>
+          <div className="office-code-display">
+            <code className="office-code-value">{company?.code || '------'}</code>
+            <button
+              className="btn-secondary btn-small"
+              onClick={() => {
+                navigator.clipboard.writeText(company?.code || '')
+                onShowToast?.('Company code copied', 'success')
+              }}
+              disabled={!company?.code}
+            >
+              Copy
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="settings-section">

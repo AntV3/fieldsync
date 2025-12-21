@@ -5404,6 +5404,32 @@ input::placeholder {
   color: var(--text-primary);
 }
 
+/* Security Section */
+.security-section {
+  border: 1px solid var(--accent-amber);
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.office-code-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.office-code-value {
+  font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+
 .setting-item {
   margin-bottom: 1.5rem;
 }
