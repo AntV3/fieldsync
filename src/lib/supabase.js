@@ -2231,6 +2231,310 @@ export const db = {
     witnesses.splice(witnessIndex, 1)
 
     return this.updateInjuryReport(reportId, { witnesses })
+  },
+
+  // ============================================
+  // Notification Preferences
+  // ============================================
+
+  // Get all users in a company (for notification settings)
+  async getCompanyUsers(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('user_companies')
+        .select(`
+          user_id,
+          role,
+          users (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('company_id', companyId)
+
+      if (error) {
+        console.error('Error fetching company users:', error)
+        return []
+      }
+      return data?.map(uc => ({
+        id: uc.user_id,
+        name: uc.users?.name || uc.users?.email,
+        email: uc.users?.email,
+        role: uc.role
+      })) || []
+    }
+    return []
+  },
+
+  // Get notification preferences for a project
+  async getProjectNotificationPreferences(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select(`
+          *,
+          users (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('project_id', projectId)
+
+      if (error) {
+        console.error('Error fetching notification preferences:', error)
+        return []
+      }
+      return data || []
+    }
+    // Demo mode - use localStorage
+    const localData = getLocalData()
+    if (!localData.notificationPreferences) return []
+    return localData.notificationPreferences.filter(np => np.project_id === projectId)
+  },
+
+  // Get notification preferences for a user across all projects
+  async getUserNotificationPreferences(userId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select(`
+          *,
+          projects (
+            id,
+            name
+          )
+        `)
+        .eq('user_id', userId)
+
+      if (error) {
+        console.error('Error fetching user notification preferences:', error)
+        return []
+      }
+      return data || []
+    }
+    const localData = getLocalData()
+    if (!localData.notificationPreferences) return []
+    return localData.notificationPreferences.filter(np => np.user_id === userId)
+  },
+
+  // Set notification preferences for a user on a project
+  async setNotificationPreference(projectId, userId, notificationTypes) {
+    if (isSupabaseConfigured) {
+      // Upsert - update if exists, insert if not
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          project_id: projectId,
+          user_id: userId,
+          notification_types: notificationTypes,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'project_id,user_id'
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error setting notification preference:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.notificationPreferences) {
+      localData.notificationPreferences = []
+    }
+
+    const existingIndex = localData.notificationPreferences.findIndex(
+      np => np.project_id === projectId && np.user_id === userId
+    )
+
+    const pref = {
+      id: existingIndex >= 0 ? localData.notificationPreferences[existingIndex].id : crypto.randomUUID(),
+      project_id: projectId,
+      user_id: userId,
+      notification_types: notificationTypes,
+      created_at: existingIndex >= 0 ? localData.notificationPreferences[existingIndex].created_at : new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    if (existingIndex >= 0) {
+      localData.notificationPreferences[existingIndex] = pref
+    } else {
+      localData.notificationPreferences.push(pref)
+    }
+
+    setLocalData(localData)
+    return pref
+  },
+
+  // Remove notification preferences for a user on a project
+  async removeNotificationPreference(projectId, userId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('notification_preferences')
+        .delete()
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+
+      if (error) {
+        console.error('Error removing notification preference:', error)
+        throw error
+      }
+      return true
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.notificationPreferences) return true
+    localData.notificationPreferences = localData.notificationPreferences.filter(
+      np => !(np.project_id === projectId && np.user_id === userId)
+    )
+    setLocalData(localData)
+    return true
+  },
+
+  // Bulk set notification preferences for multiple users on a project
+  async setProjectNotificationPreferences(projectId, userPreferences) {
+    // userPreferences is an array of { userId, notificationTypes }
+    const results = []
+    for (const pref of userPreferences) {
+      if (pref.notificationTypes && pref.notificationTypes.length > 0) {
+        const result = await this.setNotificationPreference(projectId, pref.userId, pref.notificationTypes)
+        results.push(result)
+      } else {
+        await this.removeNotificationPreference(projectId, pref.userId)
+      }
+    }
+    return results
+  },
+
+  // ============================================
+  // Notification Presets (Company-wide roles)
+  // ============================================
+
+  // Get notification presets for a company
+  async getNotificationPresets(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('notification_presets')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('name')
+
+      if (error) {
+        console.error('Error fetching notification presets:', error)
+        return []
+      }
+      return data || []
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.notificationPresets) {
+      // Return default presets
+      return [
+        { id: 'preset-1', name: 'Project Manager', notification_types: ['message', 'material_request', 'injury_report', 'tm_ticket'], company_id: companyId },
+        { id: 'preset-2', name: 'Safety Officer', notification_types: ['injury_report'], company_id: companyId },
+        { id: 'preset-3', name: 'Purchasing', notification_types: ['material_request'], company_id: companyId },
+        { id: 'preset-4', name: 'Accounting', notification_types: ['tm_ticket'], company_id: companyId }
+      ]
+    }
+    return localData.notificationPresets.filter(np => np.company_id === companyId)
+  },
+
+  // Create a notification preset
+  async createNotificationPreset(companyId, name, notificationTypes) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('notification_presets')
+        .insert({
+          company_id: companyId,
+          name,
+          notification_types: notificationTypes
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating notification preset:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.notificationPresets) {
+      localData.notificationPresets = []
+    }
+    const preset = {
+      id: crypto.randomUUID(),
+      company_id: companyId,
+      name,
+      notification_types: notificationTypes,
+      created_at: new Date().toISOString()
+    }
+    localData.notificationPresets.push(preset)
+    setLocalData(localData)
+    return preset
+  },
+
+  // Update a notification preset
+  async updateNotificationPreset(presetId, name, notificationTypes) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('notification_presets')
+        .update({
+          name,
+          notification_types: notificationTypes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', presetId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating notification preset:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.notificationPresets) return null
+    const index = localData.notificationPresets.findIndex(p => p.id === presetId)
+    if (index === -1) return null
+    localData.notificationPresets[index] = {
+      ...localData.notificationPresets[index],
+      name,
+      notification_types: notificationTypes,
+      updated_at: new Date().toISOString()
+    }
+    setLocalData(localData)
+    return localData.notificationPresets[index]
+  },
+
+  // Delete a notification preset
+  async deleteNotificationPreset(presetId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('notification_presets')
+        .delete()
+        .eq('id', presetId)
+
+      if (error) {
+        console.error('Error deleting notification preset:', error)
+        throw error
+      }
+      return true
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.notificationPresets) return true
+    localData.notificationPresets = localData.notificationPresets.filter(p => p.id !== presetId)
+    setLocalData(localData)
+    return true
   }
 }
 

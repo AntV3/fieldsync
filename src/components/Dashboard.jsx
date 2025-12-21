@@ -4,8 +4,9 @@ import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLa
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
+import NotificationSettings from './NotificationSettings'
 
-export default function Dashboard({ company, onShowToast }) {
+export default function Dashboard({ company, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
   const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
@@ -15,12 +16,24 @@ export default function Dashboard({ company, onShowToast }) {
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false)
 
   useEffect(() => {
     if (company?.id) {
       loadProjects()
     }
   }, [company?.id])
+
+  // Handle navigation from notifications
+  useEffect(() => {
+    if (navigateToProjectId && projects.length > 0) {
+      const project = projects.find(p => p.id === navigateToProjectId)
+      if (project) {
+        setSelectedProject(project)
+        onProjectNavigated?.() // Clear the navigation request
+      }
+    }
+  }, [navigateToProjectId, projects])
 
   useEffect(() => {
     if (selectedProject) {
@@ -381,6 +394,9 @@ export default function Dashboard({ company, onShowToast }) {
             <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
               Share
             </button>
+            <button className="btn btn-secondary btn-small" onClick={() => setShowNotificationSettings(true)}>
+              Notifications
+            </button>
             <button className="btn btn-secondary btn-small" onClick={handleEditClick}>
               Edit
             </button>
@@ -464,6 +480,18 @@ export default function Dashboard({ company, onShowToast }) {
               onShowToast('Share link created successfully!', 'success')
             }}
           />
+        )}
+
+        {/* Notification Settings Modal */}
+        {showNotificationSettings && (
+          <div className="notification-settings-modal">
+            <NotificationSettings
+              project={selectedProject}
+              company={company}
+              onShowToast={onShowToast}
+              onClose={() => setShowNotificationSettings(false)}
+            />
+          </div>
         )}
       </div>
     )

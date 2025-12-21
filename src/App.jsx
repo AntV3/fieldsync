@@ -25,6 +25,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
+  const [navigateToProjectId, setNavigateToProjectId] = useState(null)
 
   useEffect(() => {
     // Check if this is a public share link
@@ -251,32 +252,24 @@ export default function App() {
     }
   }, [company?.id, view])
 
-  // Handle notification click - navigate to relevant item
+  // Handle notification click - navigate to relevant project
   const handleNotificationClick = (notification) => {
     if (notification.type === 'view_all') {
-      // Could navigate to an activity log page
       setActiveTab('dashboard')
+      setNavigateToProjectId(null)
       return
     }
 
-    // Navigate based on notification type
-    switch (notification.type) {
-      case 'message':
-      case 'material_request':
-        // Navigate to dashboard and could expand project
-        setActiveTab('dashboard')
-        break
-      case 'injury_report':
-        // Navigate to dashboard where injury reports are shown
-        setActiveTab('dashboard')
-        break
-      case 'tm_ticket':
-        // Navigate to dashboard
-        setActiveTab('dashboard')
-        break
-      default:
-        setActiveTab('dashboard')
+    // Navigate to dashboard and open the specific project
+    setActiveTab('dashboard')
+    if (notification.projectId) {
+      setNavigateToProjectId(notification.projectId)
     }
+  }
+
+  // Clear navigation after project is opened
+  const handleProjectNavigated = () => {
+    setNavigateToProjectId(null)
   }
 
   // Loading screen
@@ -400,6 +393,7 @@ export default function App() {
               <NotificationCenter
                 company={company}
                 projects={projects}
+                userId={user?.id}
                 onNotificationClick={handleNotificationClick}
                 onShowToast={showToast}
               />
@@ -444,7 +438,12 @@ export default function App() {
         {/* Main Content */}
         <div className="container" key={company?.id}>
           {activeTab === 'dashboard' && (
-            <Dashboard company={company} onShowToast={showToast} />
+            <Dashboard
+              company={company}
+              onShowToast={showToast}
+              navigateToProjectId={navigateToProjectId}
+              onProjectNavigated={handleProjectNavigated}
+            />
           )}
           {activeTab === 'field' && (
             <Field onShowToast={showToast} />

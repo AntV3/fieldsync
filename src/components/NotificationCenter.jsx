@@ -1,13 +1,43 @@
 import { useState, useEffect, useRef } from 'react'
 import { db } from '../lib/supabase'
 
-export default function NotificationCenter({ company, projects, onNotificationClick, onShowToast }) {
+export default function NotificationCenter({ company, projects, userId, onNotificationClick, onShowToast }) {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
+  const [userPreferences, setUserPreferences] = useState({}) // { projectId: ['message', 'material_request', ...] }
   const dropdownRef = useRef(null)
   const audioRef = useRef(null)
+
+  // Load user notification preferences
+  useEffect(() => {
+    if (!userId) return
+    loadUserPreferences()
+  }, [userId])
+
+  const loadUserPreferences = async () => {
+    try {
+      const prefs = await db.getUserNotificationPreferences(userId)
+      const prefsMap = {}
+      prefs.forEach(pref => {
+        prefsMap[pref.project_id] = pref.notification_types || []
+      })
+      setUserPreferences(prefsMap)
+    } catch (error) {
+      console.error('Error loading user preferences:', error)
+    }
+  }
+
+  // Check if user should receive a notification type for a project
+  const shouldReceiveNotification = (projectId, notificationType) => {
+    // If no preferences set for this project, show all notifications (default behavior)
+    if (!userPreferences[projectId]) return true
+    // If preferences are set but empty, don't show any
+    if (userPreferences[projectId].length === 0) return false
+    // Check if the notification type is in the user's preferences
+    return userPreferences[projectId].includes(notificationType)
+  }
 
   // Load initial notifications and set up realtime
   useEffect(() => {
@@ -21,7 +51,7 @@ export default function NotificationCenter({ company, projects, onNotificationCl
         db.unsubscribe(subscription)
       }
     }
-  }, [company?.id, projects])
+  }, [company?.id, projects, userPreferences])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -42,63 +72,70 @@ export default function NotificationCenter({ company, projects, onNotificationCl
     // Load recent messages, material requests, and injury reports
     for (const project of projects) {
       try {
-        // Get unread messages from field
-        const messages = await db.getMessages(project.id, 20)
-        const fieldMessages = messages.filter(m => m.sender_type === 'field' && !m.is_read)
-        fieldMessages.forEach(msg => {
-          allNotifications.push({
-            id: `msg-${msg.id}`,
-            type: 'message',
-            title: 'New Message',
-            message: msg.message?.slice(0, 50) + (msg.message?.length > 50 ? '...' : ''),
-            projectId: project.id,
-            projectName: project.name,
-            senderName: msg.sender_name,
-            createdAt: msg.created_at,
-            isRead: msg.is_read,
-            data: msg
+        // Get unread messages from field (if user has message notifications enabled)
+        if (shouldReceiveNotification(project.id, 'message')) {
+          const messages = await db.getMessages(project.id, 20)
+          const fieldMessages = messages.filter(m => m.sender_type === 'field' && !m.is_read)
+          fieldMessages.forEach(msg => {
+            allNotifications.push({
+              id: `msg-${msg.id}`,
+              type: 'message',
+              title: 'New Message',
+              message: msg.message?.slice(0, 50) + (msg.message?.length > 50 ? '...' : ''),
+              projectId: project.id,
+              projectName: project.name,
+              senderName: msg.sender_name,
+              createdAt: msg.created_at,
+              isRead: msg.is_read,
+              data: msg
+            })
           })
-        })
+        }
 
-        // Get pending material requests
-        const requests = await db.getMaterialRequests(project.id, 'pending')
-        requests.forEach(req => {
-          allNotifications.push({
-            id: `req-${req.id}`,
-            type: 'material_request',
-            title: 'Material Request',
-            message: `${req.items?.length || 0} items requested`,
-            projectId: project.id,
-            projectName: project.name,
-            senderName: req.requested_by,
-            priority: req.priority,
-            createdAt: req.created_at,
-            isRead: false,
-            data: req
+        // Get pending material requests (if user has material request notifications enabled)
+        if (shouldReceiveNotification(project.id, 'material_request')) {
+          const requests = await db.getMaterialRequests(project.id, 'pending')
+          requests.forEach(req => {
+            allNotifications.push({
+              id: `req-${req.id}`,
+              type: 'material_request',
+              title: 'Material Request',
+              message: `${req.items?.length || 0} items requested`,
+              projectId: project.id,
+              projectName: project.name,
+              senderName: req.requested_by,
+              priority: req.priority,
+              createdAt: req.created_at,
+              isRead: false,
+              data: req
+            })
           })
-        })
+        }
       } catch (error) {
         console.error('Error loading notifications for project:', project.id, error)
       }
     }
 
-    // Load company-wide injury reports
+    // Load company-wide injury reports (filter by user preferences)
     try {
       const reports = await db.getCompanyInjuryReports(company.id, 'open')
       reports.slice(0, 5).forEach(report => {
-        const project = projects.find(p => p.id === report.project_id)
-        allNotifications.push({
-          id: `injury-${report.id}`,
-          type: 'injury_report',
-          title: 'Safety Report',
-          message: `${report.injury_type} - ${report.injured_person_name}`,
-          projectId: report.project_id,
-          projectName: project?.name || 'Unknown Project',
-          senderName: report.reported_by_name,
-          createdAt: report.created_at,
-          isRead: report.status !== 'open',
-          data: report
-        })
+        // Only add if user has injury_report notifications enabled for this project
+        if (shouldReceiveNotification(report.project_id, 'injury_report')) {
+          const project = projects.find(p => p.id === report.project_id)
+          allNotifications.push({
+            id: `injury-${report.id}`,
+            type: 'injury_report',
+            title: 'Safety Report',
+            message: `${report.injury_type} - ${report.injured_person_name}`,
+            projectId: report.project_id,
+            projectName: project?.name || 'Unknown Project',
+            senderName: report.reported_by_name,
+            createdAt: report.created_at,
+            isRead: report.status !== 'open',
+            data: report
+          })
+        }
       })
     } catch (error) {
       console.error('Error loading injury reports:', error)
@@ -119,6 +156,9 @@ export default function NotificationCenter({ company, projects, onNotificationCl
     const subscription = db.subscribeToCompanyActivity(company.id, projectIds, {
       onMessage: (payload) => {
         if (payload.new?.sender_type === 'field') {
+          // Check if user should receive message notifications for this project
+          if (!shouldReceiveNotification(payload.new.project_id, 'message')) return
+
           handleNewNotification({
             id: `msg-${payload.new.id}`,
             type: 'message',
@@ -134,6 +174,9 @@ export default function NotificationCenter({ company, projects, onNotificationCl
         }
       },
       onMaterialRequest: (payload) => {
+        // Check if user should receive material request notifications for this project
+        if (!shouldReceiveNotification(payload.new.project_id, 'material_request')) return
+
         handleNewNotification({
           id: `req-${payload.new.id}`,
           type: 'material_request',
@@ -150,6 +193,9 @@ export default function NotificationCenter({ company, projects, onNotificationCl
       },
       onTMTicket: (payload) => {
         if (payload.eventType === 'INSERT') {
+          // Check if user should receive T&M ticket notifications for this project
+          if (!shouldReceiveNotification(payload.new.project_id, 'tm_ticket')) return
+
           handleNewNotification({
             id: `tm-${payload.new.id}`,
             type: 'tm_ticket',
@@ -165,6 +211,9 @@ export default function NotificationCenter({ company, projects, onNotificationCl
         }
       },
       onInjuryReport: (payload) => {
+        // Check if user should receive injury report notifications for this project
+        if (!shouldReceiveNotification(payload.new.project_id, 'injury_report')) return
+
         handleNewNotification({
           id: `injury-${payload.new.id}`,
           type: 'injury_report',
