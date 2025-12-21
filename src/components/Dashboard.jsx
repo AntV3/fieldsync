@@ -5,6 +5,9 @@ import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
 import NotificationSettings from './NotificationSettings'
+import MaterialRequestsList from './MaterialRequestsList'
+import DailyReportsList from './DailyReportsList'
+import ProjectMessages from './ProjectMessages'
 
 export default function Dashboard({ company, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -468,6 +471,28 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         <InjuryReportsList
           project={selectedProject}
           companyId={company?.id || selectedProject?.company_id}
+          onShowToast={onShowToast}
+        />
+
+        {/* Material Requests Section */}
+        <MaterialRequestsList
+          project={selectedProject}
+          company={company}
+          onShowToast={onShowToast}
+        />
+
+        {/* Daily Reports Section */}
+        <DailyReportsList
+          project={selectedProject}
+          company={company}
+          onShowToast={onShowToast}
+        />
+
+        {/* Messages Section */}
+        <ProjectMessages
+          project={selectedProject}
+          company={company}
+          userName={company?.name || 'Office'}
           onShowToast={onShowToast}
         />
 
