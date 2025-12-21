@@ -549,13 +549,100 @@ export const db = {
     if (isSupabaseConfigured) {
       return supabase
         .channel(`areas:${projectId}`)
-        .on('postgres_changes', 
+        .on('postgres_changes',
           { event: '*', schema: 'public', table: 'areas', filter: `project_id=eq.${projectId}` },
           callback
         )
         .subscribe()
     }
     return null
+  },
+
+  // Subscribe to messages for a project (for live chat)
+  subscribeToMessages(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`messages:${projectId}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to material requests for a project
+  subscribeToMaterialRequests(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`material_requests:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'material_requests', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to injury reports for a company (office-wide)
+  subscribeToInjuryReports(companyId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`injury_reports:${companyId}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to T&M tickets for a project
+  subscribeToTMTickets(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`tm_tickets:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 't_and_m_tickets', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to all company activity (for office notifications)
+  subscribeToCompanyActivity(companyId, projectIds, callbacks) {
+    if (!isSupabaseConfigured || !projectIds || projectIds.length === 0) return null
+
+    const channel = supabase.channel(`company_activity:${companyId}`)
+
+    // Subscribe to messages from any project
+    projectIds.forEach(projectId => {
+      channel.on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onMessage?.(payload)
+      )
+      channel.on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'material_requests', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onMaterialRequest?.(payload)
+      )
+      channel.on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 't_and_m_tickets', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onTMTicket?.(payload)
+      )
+    })
+
+    // Subscribe to injury reports company-wide
+    channel.on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },
+      (payload) => callbacks.onInjuryReport?.(payload)
+    )
+
+    return channel.subscribe()
   },
 
   unsubscribe(subscription) {

@@ -11,12 +11,14 @@ import MaterialsManager from './components/MaterialsManager'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
+import NotificationCenter from './components/NotificationCenter'
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
   const [userCompanies, setUserCompanies] = useState([]) // All companies user can access
+  const [projects, setProjects] = useState([]) // For notification subscriptions
   const [foremanProject, setForemanProject] = useState(null)
   const [shareToken, setShareToken] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -225,6 +227,56 @@ export default function App() {
 
   const handleProjectCreated = () => {
     setActiveTab('dashboard')
+    // Reload projects for notifications
+    if (company?.id) {
+      loadProjects()
+    }
+  }
+
+  // Load projects for notification subscriptions
+  const loadProjects = async () => {
+    if (!company?.id) return
+    try {
+      const projectList = await db.getProjects(company.id)
+      setProjects(projectList)
+    } catch (error) {
+      console.error('Error loading projects:', error)
+    }
+  }
+
+  // Load projects when company changes
+  useEffect(() => {
+    if (company?.id && view === 'office') {
+      loadProjects()
+    }
+  }, [company?.id, view])
+
+  // Handle notification click - navigate to relevant item
+  const handleNotificationClick = (notification) => {
+    if (notification.type === 'view_all') {
+      // Could navigate to an activity log page
+      setActiveTab('dashboard')
+      return
+    }
+
+    // Navigate based on notification type
+    switch (notification.type) {
+      case 'message':
+      case 'material_request':
+        // Navigate to dashboard and could expand project
+        setActiveTab('dashboard')
+        break
+      case 'injury_report':
+        // Navigate to dashboard where injury reports are shown
+        setActiveTab('dashboard')
+        break
+      case 'tm_ticket':
+        // Navigate to dashboard
+        setActiveTab('dashboard')
+        break
+      default:
+        setActiveTab('dashboard')
+    }
   }
 
   // Loading screen
@@ -344,6 +396,14 @@ export default function App() {
               </button>
             </div>
             <div className="nav-user">
+              {/* Notification Center */}
+              <NotificationCenter
+                company={company}
+                projects={projects}
+                onNotificationClick={handleNotificationClick}
+                onShowToast={showToast}
+              />
+
               {/* Company Switcher */}
               {userCompanies.length > 1 && (
                 <div className="company-switcher">

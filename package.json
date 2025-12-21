@@ -1,18 +1,25 @@
 {
   "name": "fieldsync",
   "version": "1.0.0",
-  "description": "",
+  "description": "Field Sync - Construction field-to-office sync application",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cli": "node src/cli/index.js",
+    "cli:plan": "node src/cli/index.js plan",
+    "cli:review": "node src/cli/index.js review",
+    "cli:test": "node src/cli/index.js test",
+    "cli:help": "node src/cli/index.js --help"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
+    "uuid": "^9.0.0",
     "@vitejs/plugin-react": "^5.1.1",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
