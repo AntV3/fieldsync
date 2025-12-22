@@ -4,7 +4,6 @@ import { BrandingProvider } from './lib/BrandingContext'
 import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
-import Field from './components/Field'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import MaterialsManager from './components/MaterialsManager'
@@ -364,12 +363,6 @@ export default function App() {
                 Dashboard
               </button>
               <button
-                className={`nav-tab ${activeTab === 'field' ? 'active' : ''}`}
-                onClick={() => setActiveTab('field')}
-              >
-                Field
-              </button>
-              <button
                 className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
                 onClick={() => setActiveTab('setup')}
               >
@@ -444,9 +437,6 @@ export default function App() {
               navigateToProjectId={navigateToProjectId}
               onProjectNavigated={handleProjectNavigated}
             />
-          )}
-          {activeTab === 'field' && (
-            <Field onShowToast={showToast} />
           )}
           {activeTab === 'setup' && (
             <Setup
