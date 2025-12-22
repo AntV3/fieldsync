@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { db } from '../lib/supabase'
+import { db, isSupabaseConfigured } from '../lib/supabase'
 
 export default function MaterialRequest({ project, requestedBy, onShowToast, onClose }) {
   const [items, setItems] = useState([{ name: '', quantity: '', unit: 'each' }])
@@ -26,15 +26,22 @@ export default function MaterialRequest({ project, requestedBy, onShowToast, onC
 
   const handleSubmit = async () => {
     // Validate
-    const validItems = items.filter(i => i.name.trim() && i.quantity)
+    const validItems = items.filter(i => i.name.trim() && parseFloat(i.quantity) > 0)
     if (validItems.length === 0) {
-      onShowToast('Add at least one item', 'error')
+      onShowToast('Add at least one item with quantity', 'error')
+      return
+    }
+
+    // Demo mode warning
+    if (!isSupabaseConfigured) {
+      onShowToast('Demo Mode: Request saved locally only - won\'t reach office', 'info')
+      onClose()
       return
     }
 
     setSubmitting(true)
     try {
-      await db.createMaterialRequest(
+      const result = await db.createMaterialRequest(
         project.id,
         validItems,
         requestedBy,
@@ -42,9 +49,13 @@ export default function MaterialRequest({ project, requestedBy, onShowToast, onC
         priority,
         notes || null
       )
-      
-      onShowToast('Request submitted!', 'success')
-      onClose()
+
+      if (result) {
+        onShowToast('Request submitted!', 'success')
+        onClose()
+      } else {
+        onShowToast('Request not sent - check connection', 'error')
+      }
     } catch (err) {
       console.error('Error submitting request:', err)
       onShowToast('Error submitting request', 'error')

@@ -137,9 +137,52 @@ export function BrandingProvider({ children, companyId }) {
         return { success: false, error: 'No company ID' }
       }
 
+      // Clean the updates object - remove id, company_id and any undefined values
+      const cleanedUpdates = {}
+      const allowedFields = [
+        'logo_url', 'favicon_url', 'login_background_url',
+        'primary_color', 'secondary_color', 'custom_app_name',
+        'hide_fieldsync_branding', 'email_from_name', 'email_from_address',
+        'custom_domain', 'domain_verified'
+      ]
+
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) {
+          cleanedUpdates[field] = updates[field]
+        }
+      }
+
+      // First check if branding record exists
+      const { data: existing, error: checkError } = await supabase
+        .from('company_branding')
+        .select('id')
+        .eq('company_id', companyId)
+        .single()
+
+      if (checkError && checkError.code === 'PGRST116') {
+        // No record exists, create one
+        const { data, error } = await supabase
+          .from('company_branding')
+          .insert({
+            company_id: companyId,
+            ...cleanedUpdates
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Error creating branding:', error)
+          return { success: false, error: error.message }
+        }
+
+        setBranding({ ...DEFAULT_BRANDING, ...data })
+        return { success: true, data }
+      }
+
+      // Record exists, update it
       const { data, error } = await supabase
         .from('company_branding')
-        .update(updates)
+        .update(cleanedUpdates)
         .eq('company_id', companyId)
         .select()
         .single()

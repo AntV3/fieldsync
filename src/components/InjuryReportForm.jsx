@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { db } from '../lib/supabase'
+import { db, isSupabaseConfigured } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import Toast from './Toast'
 
@@ -117,6 +117,15 @@ export default function InjuryReportForm({ project, companyId, onClose, onReport
 
   const handleSubmit = async () => {
     if (!validateStep(step)) return
+
+    // Demo mode warning
+    if (!isSupabaseConfigured) {
+      setToast({ type: 'info', message: 'Demo Mode: Report saved locally only - won\'t reach office' })
+      setTimeout(() => {
+        onClose()
+      }, 1500)
+      return
+    }
 
     setLoading(true)
     try {

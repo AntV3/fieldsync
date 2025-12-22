@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { db } from '../lib/supabase'
+import { db, isSupabaseConfigured } from '../lib/supabase'
 
 export default function Messages({ project, viewerType, viewerName, onShowToast, onClose }) {
   const [messages, setMessages] = useState([])
@@ -32,7 +32,24 @@ export default function Messages({ project, viewerType, viewerName, onShowToast,
 
   const handleSend = async () => {
     if (!newMessage.trim()) return
-    
+
+    // Demo mode warning
+    if (!isSupabaseConfigured) {
+      onShowToast('Demo Mode: Messages won\'t sync to other users', 'info')
+      // Still add locally for demo purposes
+      const demoMsg = {
+        id: Date.now(),
+        project_id: project.id,
+        message: newMessage.trim(),
+        sender_type: viewerType,
+        sender_name: viewerName,
+        created_at: new Date().toISOString()
+      }
+      setMessages([...messages, demoMsg])
+      setNewMessage('')
+      return
+    }
+
     setSending(true)
     try {
       const msg = await db.sendMessage(
@@ -41,9 +58,13 @@ export default function Messages({ project, viewerType, viewerName, onShowToast,
         viewerType,
         viewerName
       )
-      
-      setMessages([...messages, msg])
-      setNewMessage('')
+
+      if (msg) {
+        setMessages([...messages, msg])
+        setNewMessage('')
+      } else {
+        onShowToast('Message not sent - check connection', 'error')
+      }
     } catch (err) {
       console.error('Error sending message:', err)
       onShowToast('Error sending message', 'error')

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { db } from '../lib/supabase'
+import { db, isSupabaseConfigured } from '../lib/supabase'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -38,6 +38,13 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   }
 
   const handleSubmit = async () => {
+    // Demo mode warning
+    if (!isSupabaseConfigured) {
+      onShowToast('Demo Mode: Report saved locally only - won\'t reach office', 'info')
+      onClose()
+      return
+    }
+
     setSubmitting(true)
     try {
       // Save notes first
@@ -45,12 +52,16 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         field_notes: fieldNotes,
         issues: issues
       })
-      
+
       // Then submit
-      await db.submitDailyReport(project.id, 'Field')
-      
-      onShowToast('Daily report submitted!', 'success')
-      onClose()
+      const result = await db.submitDailyReport(project.id, 'Field')
+
+      if (result) {
+        onShowToast('Daily report submitted!', 'success')
+        onClose()
+      } else {
+        onShowToast('Report not sent - check connection', 'error')
+      }
     } catch (err) {
       console.error('Error submitting report:', err)
       onShowToast('Error submitting report', 'error')
