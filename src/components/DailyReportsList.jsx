@@ -8,6 +8,15 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
   useEffect(() => {
     loadReports()
+
+    // Subscribe to realtime updates
+    const subscription = db.subscribeToDailyReports?.(project.id, () => {
+      loadReports()
+    })
+
+    return () => {
+      if (subscription) db.unsubscribe?.(subscription)
+    }
   }, [project.id])
 
   const loadReports = async () => {

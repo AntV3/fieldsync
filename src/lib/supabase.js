@@ -586,6 +586,34 @@ export const db = {
     return null
   },
 
+  // Subscribe to daily reports for a project
+  subscribeToDailyReports(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`daily_reports:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'daily_reports', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to crew check-ins for a project
+  subscribeToCrewCheckins(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`crew_checkins:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'crew_checkins', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
   // Subscribe to injury reports for a company (office-wide)
   subscribeToInjuryReports(companyId, callback) {
     if (isSupabaseConfigured) {

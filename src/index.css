@@ -1493,6 +1493,21 @@ input::placeholder {
   font-size: 1.1rem;
 }
 
+.pin-subtitle.pin-locked {
+  color: var(--accent-red);
+  font-weight: 600;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.pin-display.locked {
+  opacity: 0.5;
+}
+
 .pin-display {
   display: flex;
   justify-content: center;
@@ -8048,4 +8063,67 @@ input::placeholder {
   .role-stats {
     gap: 1rem;
   }
+}
+
+/* ===================
+   Error Boundary
+=================== */
+
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 2rem;
+}
+
+.error-boundary-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-boundary .error-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.error-boundary h2 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.error-boundary p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.error-details {
+  margin-top: 2rem;
+  text-align: left;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.error-details summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-details pre {
+  font-size: 0.75rem;
+  color: var(--accent-red);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 0.5rem;
 }

@@ -9,6 +9,7 @@ export default function NotificationCenter({ company, projects, userId, onNotifi
   const [userPreferences, setUserPreferences] = useState({}) // { projectId: ['message', 'material_request', ...] }
   const dropdownRef = useRef(null)
   const audioRef = useRef(null)
+  const audioContextRef = useRef(null)
 
   // Load user notification preferences
   useEffect(() => {
@@ -52,6 +53,16 @@ export default function NotificationCenter({ company, projects, userId, onNotifi
       }
     }
   }, [company?.id, projects, userPreferences])
+
+  // Cleanup AudioContext on unmount
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {})
+        audioContextRef.current = null
+      }
+    }
+  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -251,8 +262,18 @@ export default function NotificationCenter({ company, projects, userId, onNotifi
 
   const playNotificationSound = () => {
     try {
-      // Create a simple beep using Web Audio API
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+      // Reuse or create AudioContext
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      }
+
+      const audioContext = audioContextRef.current
+
+      // Resume if suspended (browser autoplay policy)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume()
+      }
+
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
 
@@ -268,15 +289,16 @@ export default function NotificationCenter({ company, projects, userId, onNotifi
 
       // Second beep
       setTimeout(() => {
-        const osc2 = audioContext.createOscillator()
-        const gain2 = audioContext.createGain()
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') return
+        const osc2 = audioContextRef.current.createOscillator()
+        const gain2 = audioContextRef.current.createGain()
         osc2.connect(gain2)
-        gain2.connect(audioContext.destination)
+        gain2.connect(audioContextRef.current.destination)
         osc2.frequency.value = 1000
         osc2.type = 'sine'
         gain2.gain.value = 0.3
         osc2.start()
-        osc2.stop(audioContext.currentTime + 0.15)
+        osc2.stop(audioContextRef.current.currentTime + 0.15)
       }, 150)
     } catch (e) {
       // Audio not supported or blocked

@@ -9,6 +9,15 @@ export default function ManDayCosts({ project, company, onShowToast }) {
   useEffect(() => {
     if (project?.id && company?.id) {
       loadCostData()
+
+      // Subscribe to crew check-in updates for real-time cost updates
+      const subscription = db.subscribeToCrewCheckins?.(project.id, () => {
+        loadCostData()
+      })
+
+      return () => {
+        if (subscription) db.unsubscribe?.(subscription)
+      }
     }
   }, [project?.id, company?.id])
 

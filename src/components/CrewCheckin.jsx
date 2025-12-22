@@ -106,8 +106,8 @@ export default function CrewCheckin({ project, onShowToast }) {
         </div>
       ) : (
         <div className="crew-list">
-          {workers.map((worker, index) => (
-            <div key={index} className="crew-member">
+          {workers.map((worker) => (
+            <div key={worker.name} className="crew-member">
               <div className="crew-member-info">
                 <span className="crew-member-name">{worker.name}</span>
                 <span className={`crew-member-role ${worker.role.toLowerCase()}`}>

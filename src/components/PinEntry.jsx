@@ -1,5 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+
+// Rate limiting constants
+const MAX_ATTEMPTS = 5
+const LOCKOUT_DURATION = 30000 // 30 seconds base lockout
+const LOCKOUT_KEY = 'pin_lockout'
 
 export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }) {
   const [step, setStep] = useState('company') // 'company' or 'pin'
@@ -7,6 +12,49 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
   const [company, setCompany] = useState(null)
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState(null)
+  const [lockoutRemaining, setLockoutRemaining] = useState(0)
+
+  // Check for existing lockout on mount and restore failed attempts
+  useEffect(() => {
+    const stored = localStorage.getItem(LOCKOUT_KEY)
+    if (stored) {
+      const { until, attempts } = JSON.parse(stored)
+      if (until && Date.now() < until) {
+        setLockedUntil(until)
+        setFailedAttempts(attempts || 0)
+      } else {
+        // Lockout expired, clear it
+        localStorage.removeItem(LOCKOUT_KEY)
+      }
+    }
+  }, [])
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (!lockedUntil) {
+      setLockoutRemaining(0)
+      return
+    }
+
+    const updateRemaining = () => {
+      const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000))
+      setLockoutRemaining(remaining)
+
+      if (remaining <= 0) {
+        setLockedUntil(null)
+        localStorage.removeItem(LOCKOUT_KEY)
+      }
+    }
+
+    updateRemaining()
+    const interval = setInterval(updateRemaining, 1000)
+    return () => clearInterval(interval)
+  }, [lockedUntil])
+
+  // Check if currently locked out
+  const isLockedOut = lockedUntil && Date.now() < lockedUntil
 
   // Handle company code input
   const handleCompanyCodeChange = (value) => {
@@ -50,6 +98,13 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
 
   // Submit PIN (with company scope)
   const submitPin = async (pinToSubmit) => {
+    // Check if locked out
+    if (isLockedOut) {
+      onShowToast(`Too many attempts. Try again in ${lockoutRemaining}s`, 'error')
+      setPin('')
+      return
+    }
+
     if (pinToSubmit.length !== 4) {
       onShowToast('Enter 4-digit PIN', 'error')
       return
@@ -60,11 +115,30 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
     try {
       // Look up project by PIN within this company only
       const project = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
-      
+
       if (project) {
+        // Success - clear failed attempts
+        setFailedAttempts(0)
+        localStorage.removeItem(LOCKOUT_KEY)
         onProjectAccess(project)
       } else {
-        onShowToast('Invalid PIN', 'error')
+        // Failed attempt
+        const newAttempts = failedAttempts + 1
+        setFailedAttempts(newAttempts)
+
+        if (newAttempts >= MAX_ATTEMPTS) {
+          // Lock out with exponential backoff (30s, 60s, 120s, etc.)
+          const multiplier = Math.pow(2, Math.floor(newAttempts / MAX_ATTEMPTS) - 1)
+          const lockoutTime = Date.now() + (LOCKOUT_DURATION * multiplier)
+          setLockedUntil(lockoutTime)
+          localStorage.setItem(LOCKOUT_KEY, JSON.stringify({ until: lockoutTime, attempts: newAttempts }))
+          onShowToast(`Too many attempts. Locked for ${(LOCKOUT_DURATION * multiplier) / 1000}s`, 'error')
+        } else {
+          const remaining = MAX_ATTEMPTS - newAttempts
+          onShowToast(`Invalid PIN. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining`, 'error')
+          // Save attempts to localStorage
+          localStorage.setItem(LOCKOUT_KEY, JSON.stringify({ until: null, attempts: newAttempts }))
+        }
         setPin('')
       }
     } catch (error) {
@@ -77,10 +151,12 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
 
   // Number pad handler
   const handleNumberPad = (num) => {
+    if (isLockedOut) return
+
     if (pin.length < 4) {
       const newPin = pin + num
       setPin(newPin)
-      
+
       // Auto-submit when 4 digits entered
       if (newPin.length === 4) {
         setTimeout(() => {
@@ -162,11 +238,17 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
           <div className="pin-company-badge">
             {company?.name || companyCode}
           </div>
-          <p className="pin-subtitle">Enter project PIN</p>
+          {isLockedOut ? (
+            <p className="pin-subtitle pin-locked">
+              Locked - try again in {lockoutRemaining}s
+            </p>
+          ) : (
+            <p className="pin-subtitle">Enter project PIN</p>
+          )}
         </div>
 
         {/* PIN Display */}
-        <div className="pin-display">
+        <div className={`pin-display ${isLockedOut ? 'locked' : ''}`}>
           {[0, 1, 2, 3].map(i => (
             <div key={i} className={`pin-dot ${pin.length > i ? 'filled' : ''}`}>
               {pin.length > i ? '•' : ''}
@@ -181,7 +263,7 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
               key={num}
               className="num-btn"
               onClick={() => handleNumberPad(num.toString())}
-              disabled={loading}
+              disabled={loading || isLockedOut}
             >
               {num}
             </button>
@@ -190,7 +272,7 @@ export default function PinEntry({ onProjectAccess, onOfficeLogin, onShowToast }
           <button
             className="num-btn"
             onClick={() => handleNumberPad('0')}
-            disabled={loading}
+            disabled={loading || isLockedOut}
           >
             0
           </button>

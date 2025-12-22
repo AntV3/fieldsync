@@ -11,6 +11,7 @@ import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
 import NotificationCenter from './components/NotificationCenter'
+import ErrorBoundary from './components/ErrorBoundary'
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
@@ -287,11 +288,13 @@ export default function App() {
   if (view === 'entry') {
     return (
       <BrandingProvider>
-        <AppEntry
-          onForemanAccess={handleForemanAccess}
-          onOfficeLogin={handleOfficeLogin}
-          onShowToast={showToast}
-        />
+        <ErrorBoundary>
+          <AppEntry
+            onForemanAccess={handleForemanAccess}
+            onOfficeLogin={handleOfficeLogin}
+            onShowToast={showToast}
+          />
+        </ErrorBoundary>
         {toast && (
           <Toast
             message={toast.message}
@@ -307,7 +310,9 @@ export default function App() {
   if (view === 'public' && shareToken) {
     return (
       <BrandingProvider>
-        <PublicView shareToken={shareToken} />
+        <ErrorBoundary>
+          <PublicView shareToken={shareToken} />
+        </ErrorBoundary>
         {toast && (
           <Toast
             message={toast.message}
@@ -323,12 +328,14 @@ export default function App() {
   if (view === 'foreman' && foremanProject) {
     return (
       <BrandingProvider companyId={foremanProject.company_id}>
-        <ForemanView
-          project={foremanProject}
-          companyId={foremanProject.company_id}
-          onShowToast={showToast}
-          onExit={handleExitForeman}
-        />
+        <ErrorBoundary>
+          <ForemanView
+            project={foremanProject}
+            companyId={foremanProject.company_id}
+            onShowToast={showToast}
+            onExit={handleExitForeman}
+          />
+        </ErrorBoundary>
         {toast && (
           <Toast
             message={toast.message}
@@ -429,34 +436,36 @@ export default function App() {
         </nav>
 
         {/* Main Content */}
-        <div className="container" key={company?.id}>
-          {activeTab === 'dashboard' && (
-            <Dashboard
-              company={company}
-              onShowToast={showToast}
-              navigateToProjectId={navigateToProjectId}
-              onProjectNavigated={handleProjectNavigated}
-            />
-          )}
-          {activeTab === 'setup' && (
-            <Setup
-              onProjectCreated={handleProjectCreated}
-              onShowToast={showToast}
-            />
-          )}
-          {activeTab === 'pricing' && (
-            <MaterialsManager
-              company={company}
-              onShowToast={showToast}
-            />
-          )}
-          {activeTab === 'branding' && (
-            <BrandingSettings
-              company={company}
-              onShowToast={showToast}
-            />
-          )}
-        </div>
+        <ErrorBoundary>
+          <div className="container" key={company?.id}>
+            {activeTab === 'dashboard' && (
+              <Dashboard
+                company={company}
+                onShowToast={showToast}
+                navigateToProjectId={navigateToProjectId}
+                onProjectNavigated={handleProjectNavigated}
+              />
+            )}
+            {activeTab === 'setup' && (
+              <Setup
+                onProjectCreated={handleProjectCreated}
+                onShowToast={showToast}
+              />
+            )}
+            {activeTab === 'pricing' && (
+              <MaterialsManager
+                company={company}
+                onShowToast={showToast}
+              />
+            )}
+            {activeTab === 'branding' && (
+              <BrandingSettings
+                company={company}
+                onShowToast={showToast}
+              />
+            )}
+          </div>
+        </ErrorBoundary>
 
         {/* Toast Notifications */}
         {toast && (
