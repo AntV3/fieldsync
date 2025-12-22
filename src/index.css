@@ -7804,3 +7804,248 @@ input::placeholder {
     justify-content: space-between;
   }
 }
+
+/* ===================
+   Man Day Costs
+=================== */
+
+.man-day-costs {
+  margin-bottom: 1.5rem;
+}
+
+.man-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.man-day-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.man-day-title-row h3 {
+  margin-bottom: 0;
+}
+
+.man-day-total {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.man-day-toggle {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.man-day-toggle:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.man-day-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+}
+
+.man-day-stat {
+  text-align: center;
+}
+
+.man-day-stat .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.man-day-stat .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.man-day-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.man-day-empty .empty-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.man-day-empty p {
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.man-day-empty small {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.man-day-details {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.man-day-section {
+  margin-bottom: 1.5rem;
+}
+
+.man-day-section:last-child {
+  margin-bottom: 0;
+}
+
+.man-day-section h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.man-day-role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.man-day-role-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+}
+
+.role-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.role-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.role-rate {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.role-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.role-count {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.role-cost {
+  font-weight: 600;
+  color: var(--accent-green);
+  min-width: 80px;
+  text-align: right;
+}
+
+.man-day-date-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.man-day-date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+}
+
+.date-label {
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 60px;
+}
+
+.date-workers {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.date-cost {
+  font-weight: 600;
+  color: var(--accent-green);
+  min-width: 70px;
+  text-align: right;
+}
+
+.man-day-more {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* Responsive adjustments for man day costs */
+@media (max-width: 768px) {
+  .man-day-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .man-day-stat .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .man-day-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .man-day-toggle {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .role-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .role-stats {
+    gap: 1rem;
+  }
+}

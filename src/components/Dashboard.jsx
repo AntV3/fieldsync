@@ -8,6 +8,7 @@ import NotificationSettings from './NotificationSettings'
 import MaterialRequestsList from './MaterialRequestsList'
 import DailyReportsList from './DailyReportsList'
 import ProjectMessages from './ProjectMessages'
+import ManDayCosts from './ManDayCosts'
 
 export default function Dashboard({ company, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -444,6 +445,13 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             <span className="info-tag type">{selectedProject.job_type === 'pla' ? 'PLA' : 'Standard'}</span>
           )}
         </div>
+
+        {/* Man Day Costs Section */}
+        <ManDayCosts
+          project={selectedProject}
+          company={company}
+          onShowToast={onShowToast}
+        />
 
         {/* Areas - Compact Grid */}
         <div className="card areas-compact">

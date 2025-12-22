@@ -1326,6 +1326,93 @@ export const db = {
     return data || []
   },
 
+  // Get labor rates for a company (for man day calculations)
+  async getLaborRates(companyId, workType = null, jobType = null) {
+    if (!isSupabaseConfigured) return []
+
+    let query = supabase
+      .from('labor_rates')
+      .select('*')
+      .eq('company_id', companyId)
+
+    if (workType) query = query.eq('work_type', workType)
+    if (jobType) query = query.eq('job_type', jobType)
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching labor rates:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Calculate man day costs for a project
+  async calculateManDayCosts(projectId, companyId, workType, jobType) {
+    if (!isSupabaseConfigured) return { totalCost: 0, totalManDays: 0, breakdown: [] }
+
+    // Get crew check-in history
+    const crewHistory = await this.getCrewCheckinHistory(projectId, 365)
+
+    // Get labor rates for this work/job type
+    const laborRates = await this.getLaborRates(companyId, workType, jobType)
+
+    // Build rates lookup: { role: regularRate }
+    const ratesLookup = {}
+    laborRates.forEach(rate => {
+      ratesLookup[rate.role.toLowerCase()] = parseFloat(rate.regular_rate) || 0
+    })
+
+    // Calculate costs
+    let totalCost = 0
+    let totalManDays = 0
+    const byRole = {}
+    const byDate = []
+
+    crewHistory.forEach(checkin => {
+      const workers = checkin.workers || []
+      let dayCost = 0
+      const dayBreakdown = {}
+
+      workers.forEach(worker => {
+        const role = (worker.role || 'laborer').toLowerCase()
+        const rate = ratesLookup[role] || 0
+
+        if (!dayBreakdown[role]) {
+          dayBreakdown[role] = { count: 0, cost: 0 }
+        }
+        dayBreakdown[role].count++
+        dayBreakdown[role].cost += rate
+        dayCost += rate
+
+        // Track by role totals
+        if (!byRole[role]) {
+          byRole[role] = { count: 0, cost: 0, rate }
+        }
+        byRole[role].count++
+        byRole[role].cost += rate
+      })
+
+      totalCost += dayCost
+      totalManDays += workers.length
+
+      byDate.push({
+        date: checkin.check_in_date,
+        workers: workers.length,
+        cost: dayCost,
+        breakdown: dayBreakdown
+      })
+    })
+
+    return {
+      totalCost,
+      totalManDays,
+      byRole,
+      byDate,
+      daysWorked: crewHistory.length
+    }
+  },
+
   // ============================================
   // Daily Field Reports
   // ============================================
