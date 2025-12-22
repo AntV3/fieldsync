@@ -78,110 +78,143 @@ export default function Setup({ onProjectCreated, onShowToast }) {
   const parseExcel = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      
+
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target.result)
           const workbook = XLSX.read(data, { type: 'array' })
-          
+
           // Get first sheet
           const sheetName = workbook.SheetNames[0]
           const sheet = workbook.Sheets[sheetName]
-          
+
           // Convert to array of arrays
           const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })
-          
+
           console.log('Excel rows:', rows)
-          
+
           const tasks = []
           let currentGroup = 'General'
-          
+
+          // Patterns for SOV and bid sheet parsing
+          const dollarPattern = /^\$?\d{1,3}(,\d{3})*(\.\d{2})?$/
+          const itemNumberPattern = /^(\d+\.?\d*|[A-Z]\.?\d*)$/i
+          const unitPattern = /^(SF|LF|EA|LS|Days?|MD|Load|CY|SY|GAL|TON)$/i
+          const quantityPattern = /^\d{1,3}(,\d{3})*$|^\d+$/
+
+          // Header patterns to skip
+          const headerPattern = /^(Item|#|No\.?|Description|Scheduled|Value|Amount|Quantity|Unit|Total|Application|Balance|Completed|Stored|Retainage)/i
+
           for (const row of rows) {
             if (!row || row.length === 0) continue
-            
+
             // Flatten row: remove nulls and join non-empty cells
             const cells = row
               .map(cell => cell === null || cell === undefined ? '' : String(cell).trim())
               .filter(cell => cell.length > 0)
-            
+
             if (cells.length === 0) continue
-            
+
             const rowText = cells.join(' ')
             console.log('Row cells:', cells, '| Combined:', rowText)
-            
+
             // Skip header rows
-            if (/^Description\b/i.test(cells[0]) || /^Quantity\b/i.test(cells[0])) {
+            if (headerPattern.test(cells[0]) || (cells.length > 1 && headerPattern.test(cells[1]))) {
               continue
             }
-            
-            // Check if this is a group header (single text cell, no numbers, matches pattern)
-            const isGroupHeader = 
-              cells.length <= 2 &&
-              !/^\d+$/.test(cells[0]) &&
-              !cells.some(c => /^\d{2,}$/.test(c)) && // No large numbers
-              /^(L\d|Level|Floor|\d+(?:st|nd|rd|th)|Plaza|Street|Basement|Roof|Penthouse|Site|Exterior|Misc|MEP|ABATEMENT|DEMOLITION|UNIVERSAL|SOFT|TRASH|DEMO)/i.test(cells[0])
-            
-            if (isGroupHeader) {
-              currentGroup = rowText
+
+            // Skip total/subtotal rows
+            if (/^(Total|Subtotal|Grand Total|Base Bid|Contract Sum)/i.test(rowText)) {
+              continue
+            }
+
+            // Check if this is a group header
+            // Group headers: single text, no dollar amounts, matches area patterns
+            const hasDollarAmount = cells.some(c => dollarPattern.test(c.replace(/[$,]/g, '') + (c.includes('.') ? '' : '.00')))
+            const isGroupHeader =
+              !hasDollarAmount &&
+              cells.length <= 3 &&
+              /^(L\d|Level|Floor|\d+(?:st|nd|rd|th)|Plaza|Street|Basement|Roof|Penthouse|Site|Exterior|Interior|Misc|MEP|ABATEMENT|DEMOLITION|UNIVERSAL|SOFT|TRASH|DEMO|Phase|Division|Section|Area|Building|Wing)/i.test(cells[0]) ||
+              // Also check for SOV parent items (just number + description, no dollar on same line that looks like a header)
+              (cells.length === 2 && itemNumberPattern.test(cells[0]) && !hasDollarAmount && !/^\d+\.\d+$/.test(cells[0]))
+
+            if (isGroupHeader && !hasDollarAmount) {
+              // Extract group name, removing any item number prefix
+              let groupName = cells.find(c => !itemNumberPattern.test(c) && c.length > 1) || cells.join(' ')
+              currentGroup = groupName
                 .replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/i, '')
+                .replace(/\s*[-:]\s*$/, '')
                 .trim()
               console.log('Found group:', currentGroup)
               continue
             }
-            
+
             // Try to extract task from row
-            // Look for: description text + number + unit (SF/LF/EA/LS/etc)
             let description = ''
-            let hasQuantity = false
-            
-            // Find cells that look like quantities and units
-            const unitPattern = /^(SF|LF|EA|LS|Days?|MD|Load)$/i
-            const quantityPattern = /^\d{1,3}(,\d{3})*$|^\d+$/
-            
+            let hasValue = false
+            let itemNumber = ''
+
             const descParts = []
-            
+
             for (let i = 0; i < cells.length; i++) {
               const cell = cells[i]
-              
-              // Skip ID codes at start (like "ID-111", "ID-001 KN 2")
-              if (i === 0 && /^ID-\d+$/i.test(cell)) continue
+
+              // Check for item number in first cell
+              if (i === 0 && itemNumberPattern.test(cell)) {
+                itemNumber = cell
+                continue
+              }
+
+              // Skip ID codes (like "ID-111")
+              if (/^ID-\d+$/i.test(cell)) continue
               if (/^KN\s*\d+$/i.test(cell)) continue
-              
+
+              // Check for dollar amounts (SOV scheduled values)
+              if (dollarPattern.test(cell.replace(/[$,]/g, '') + (cell.includes('.') ? '' : '.00')) || /^\$/.test(cell)) {
+                hasValue = true
+                continue
+              }
+
               // Skip quantities and units
               if (quantityPattern.test(cell.replace(/,/g, ''))) {
-                hasQuantity = true
+                hasValue = true
                 continue
               }
               if (unitPattern.test(cell)) continue
-              
+
+              // Skip percentage values
+              if (/^\d+\.?\d*%$/.test(cell)) continue
+
               // This is description text
-              if (cell.length > 1) {
+              if (cell.length > 1 && !itemNumberPattern.test(cell)) {
                 descParts.push(cell)
               }
             }
-            
+
             description = descParts.join(' ').trim()
-            
+
             // Clean up description
             description = description
               .replace(/\s+/g, ' ')
+              .replace(/^[-•]\s*/, '') // Remove bullet points
               .trim()
-            
+
             // Skip if no valid description or too short
             if (description.length < 3) continue
-            if (/^(Plan|Page|\$|Total|Base Bid|Payment|Condition|Exclusion)/i.test(description)) continue
-            
-            // Only add if we found a quantity (indicates it's a real task row)
-            if (hasQuantity && description.length >= 3) {
+            if (/^(Plan|Page|Total|Base Bid|Payment|Condition|Exclusion|Subtotal)/i.test(description)) continue
+
+            // Add task if we found a value/quantity (indicates it's a real line item)
+            if (hasValue && description.length >= 3) {
               tasks.push({
                 name: description,
                 group: currentGroup,
+                itemNumber: itemNumber,
                 selected: true
               })
-              console.log('Found task:', description, 'in', currentGroup)
+              console.log('Found task:', description, 'in', currentGroup, 'item:', itemNumber)
             }
           }
-          
+
           // Deduplicate
           const seen = new Set()
           const uniqueTasks = tasks.filter(task => {
@@ -190,13 +223,13 @@ export default function Setup({ onProjectCreated, onShowToast }) {
             seen.add(key)
             return true
           })
-          
+
           resolve(uniqueTasks)
         } catch (error) {
           reject(error)
         }
       }
-      
+
       reader.onerror = () => reject(new Error('Failed to read file'))
       reader.readAsArrayBuffer(file)
     })
