@@ -6174,6 +6174,429 @@ input::placeholder {
   margin: 0 auto;
 }
 
+.project-view.tabbed {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+}
+
+/* ============================================
+   TABBED PROJECT VIEW - Sticky Header
+   ============================================ */
+
+.pv-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  padding: 1rem 0 0;
+  margin: -1rem -1rem 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pv-header-title {
+  margin-bottom: 0.75rem;
+}
+
+.pv-header-title h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.pv-header-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Key Metrics Bar */
+.pv-metrics-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.pv-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pv-metric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-metric-value.highlight {
+  color: var(--accent-green);
+}
+
+.pv-metric-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pv-metric-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+}
+
+/* Tab Navigation */
+.pv-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.pv-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pv-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.pv-tab:hover {
+  color: var(--text-primary);
+}
+
+.pv-tab.active {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
+}
+
+.pv-tab-icon {
+  font-size: 0.9rem;
+}
+
+.pv-tab-label {
+  font-size: 0.85rem;
+}
+
+/* Tab Content Area */
+.pv-tab-content {
+  flex: 1;
+  padding: 1.25rem 0;
+}
+
+.pv-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Content Cards */
+.pv-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.pv-card h3 {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pv-card-header h3 {
+  margin: 0;
+}
+
+/* Area Counts in Card Header */
+.pv-area-counts {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pv-count {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+}
+
+.pv-count.done {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.pv-count.working {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+
+.pv-count.pending {
+  background: rgba(156, 163, 175, 0.15);
+  color: var(--text-secondary);
+}
+
+/* Large Progress Display */
+.pv-progress-large {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.pv-progress-track {
+  flex: 1;
+  height: 12px;
+  background: var(--progress-bg);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pv-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.pv-progress-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.pv-progress-percent-lg {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  line-height: 1;
+}
+
+/* Quick Stats Grid */
+.pv-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.pv-quick-stat {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+}
+
+.pv-qs-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-qs-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.25rem;
+}
+
+/* Financial Card Styles */
+.pv-financial-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+}
+
+.pv-contract-breakdown {
+  margin-bottom: 1.25rem;
+}
+
+.pv-contract-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-contract-row:last-child {
+  border-bottom: none;
+}
+
+.pv-contract-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.pv-contract-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-contract-row.pv-co-added .pv-contract-value {
+  color: var(--accent-green);
+}
+
+.pv-contract-row.pv-contract-total {
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+  border-top: 2px solid var(--border-color);
+}
+
+.pv-contract-row.pv-contract-total .pv-contract-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-contract-row.pv-contract-total .pv-contract-value {
+  font-size: 1.25rem;
+}
+
+/* Billing Progress */
+.pv-billing-progress {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.pv-billing-track {
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.pv-billing-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 4px;
+}
+
+.pv-billing-stats {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pv-billing-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.pv-billing-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pv-billing-value.pv-remaining {
+  color: var(--accent-green);
+}
+
+.pv-billing-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Messages Full Width (for Activity Tab) */
+.pv-messages-full {
+  margin-bottom: 1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .pv-sticky-header {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .pv-metrics-bar {
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .pv-metric-value {
+    font-size: 0.95rem;
+  }
+
+  .pv-tab {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .pv-tab-icon {
+    display: none;
+  }
+
+  .pv-quick-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .pv-qs-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pv-metrics-bar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pv-metric-divider {
+    display: none;
+  }
+
+  .pv-metric {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+/* ============================================
+   LEGACY PROJECT VIEW STYLES (kept for compatibility)
+   ============================================ */
+
 /* Header */
 .pv-header {
   display: flex;

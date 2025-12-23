@@ -21,6 +21,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   const [saving, setSaving] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
+  const [activeProjectTab, setActiveProjectTab] = useState('overview')
 
   useEffect(() => {
     if (company?.id) {
@@ -111,6 +112,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     setAreas([])
     setEditMode(false)
     setEditData(null)
+    setActiveProjectTab('overview')
     loadProjects()
   }
 
@@ -401,155 +403,230 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     // View Mode - Calculate additional metrics for context
     const areasComplete = areas.filter(a => a.status === 'done').length
     const areasWorking = areas.filter(a => a.status === 'working').length
+    const areasNotStarted = areas.filter(a => a.status === 'not_started').length
     const percentBilled = revisedContractValue > 0
       ? Math.round((billable / revisedContractValue) * 100)
       : 0
     const hasChangeOrders = changeOrderValue > 0
 
+    // Tab definitions
+    const tabs = [
+      { id: 'overview', label: 'Overview', icon: '◉' },
+      { id: 'financials', label: 'Financials', icon: '$' },
+      { id: 'reports', label: 'Reports', icon: '📋' },
+      { id: 'activity', label: 'Activity', icon: '💬' }
+    ]
+
     return (
-      <div className="project-view">
-        {/* Header - Minimal */}
-        <div className="pv-header">
-          <button className="pv-back" onClick={handleBack}>
-            <span>←</span>
-            <span>Back</span>
-          </button>
-          <div className="pv-actions">
-            <button className="pv-action" onClick={() => setShowShareModal(true)}>Share</button>
-            <button className="pv-action" onClick={() => setShowNotificationSettings(true)}>Alerts</button>
-            <button className="pv-action" onClick={handleEditClick}>Edit</button>
-          </div>
-        </div>
-
-        {/* Project Title */}
-        <div className="pv-title-section">
-          <h1 className="pv-title">{selectedProject.name}</h1>
-          {(selectedProject.job_number || selectedProject.work_type) && (
-            <div className="pv-subtitle">
-              {selectedProject.job_number && <span>Job #{selectedProject.job_number}</span>}
-              {selectedProject.job_number && selectedProject.work_type && <span className="pv-dot">•</span>}
-              {selectedProject.work_type && <span>{selectedProject.work_type}</span>}
-            </div>
-          )}
-        </div>
-
-        {/* HERO: Financial Overview - Most Important */}
-        <div className="pv-hero-card">
-          <div className="pv-financial-bar">
-            <div className="pv-fin-track">
-              <div
-                className="pv-fin-fill"
-                style={{ width: `${Math.min(percentBilled, 100)}%` }}
-              ></div>
-              <div
-                className="pv-fin-marker"
-                style={{ left: `${progress}%` }}
-                title={`${progress}% complete`}
-              ></div>
-            </div>
-          </div>
-          <div className="pv-financial-numbers">
-            <div className="pv-fin-item">
-              <span className="pv-fin-value">{formatCurrency(billable)}</span>
-              <span className="pv-fin-label">Billed</span>
-            </div>
-            <div className="pv-fin-item pv-fin-of">
-              <span className="pv-fin-separator">of</span>
-            </div>
-            <div className="pv-fin-item">
-              <span className="pv-fin-value">{formatCurrency(revisedContractValue)}</span>
-              <span className="pv-fin-label">{hasChangeOrders ? 'Revised Total' : 'Contract'}</span>
-            </div>
-            <div className="pv-fin-item pv-fin-remaining">
-              <span className="pv-fin-value-sm">{formatCurrency(revisedContractValue - billable)}</span>
-              <span className="pv-fin-label">Remaining</span>
+      <div className="project-view tabbed">
+        {/* Sticky Header */}
+        <div className="pv-sticky-header">
+          {/* Top Row - Back + Actions */}
+          <div className="pv-header-row">
+            <button className="pv-back" onClick={handleBack}>
+              <span>←</span>
+              <span>Back</span>
+            </button>
+            <div className="pv-actions">
+              <button className="pv-action" onClick={() => setShowShareModal(true)}>Share</button>
+              <button className="pv-action" onClick={() => setShowNotificationSettings(true)}>Alerts</button>
+              <button className="pv-action" onClick={handleEditClick}>Edit</button>
             </div>
           </div>
 
-          {/* Change Order Breakdown - Only show if there are change orders */}
-          {hasChangeOrders && (
-            <div className="pv-change-orders">
-              <div className="pv-co-row">
-                <span className="pv-co-label">Original Contract</span>
-                <span className="pv-co-value">{formatCurrency(selectedProject.contract_value)}</span>
-              </div>
-              <div className="pv-co-row pv-co-added">
-                <span className="pv-co-label">+ Change Orders</span>
-                <span className="pv-co-value">+{formatCurrency(changeOrderValue)}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="pv-progress-context">
-            <span className="pv-progress-percent">{progress}%</span>
-            <span className="pv-progress-label">Project Complete</span>
+          {/* Project Title */}
+          <div className="pv-header-title">
+            <h1>{selectedProject.name}</h1>
+            {(selectedProject.job_number || selectedProject.work_type) && (
+              <span className="pv-header-meta">
+                {selectedProject.job_number && `Job #${selectedProject.job_number}`}
+                {selectedProject.job_number && selectedProject.work_type && ' • '}
+                {selectedProject.work_type}
+              </span>
+            )}
           </div>
-        </div>
 
-        {/* Areas Status - Visual Grid */}
-        <div className="pv-section">
-          <div className="pv-section-header">
-            <div className="pv-section-title">
-              <span className="pv-section-icon">◉</span>
-              <h2>Areas</h2>
+          {/* Key Metrics Bar */}
+          <div className="pv-metrics-bar">
+            <div className="pv-metric">
+              <span className="pv-metric-value">{progress}%</span>
+              <span className="pv-metric-label">Complete</span>
             </div>
-            <div className="pv-section-summary">
-              <span className="pv-summary-done">{areasComplete} done</span>
-              {areasWorking > 0 && <span className="pv-summary-working">{areasWorking} in progress</span>}
+            <div className="pv-metric-divider"></div>
+            <div className="pv-metric">
+              <span className="pv-metric-value">{formatCurrency(billable)}</span>
+              <span className="pv-metric-label">Billed</span>
+            </div>
+            <div className="pv-metric-divider"></div>
+            <div className="pv-metric">
+              <span className="pv-metric-value highlight">{formatCurrency(revisedContractValue - billable)}</span>
+              <span className="pv-metric-label">Remaining</span>
             </div>
           </div>
-          <div className="pv-areas-grid">
-            {areas.map(area => (
-              <div key={area.id} className={`pv-area-card ${area.status}`}>
-                <div className="pv-area-status">
-                  {area.status === 'done' && <span className="pv-check">✓</span>}
-                  {area.status === 'working' && <span className="pv-working">●</span>}
-                  {area.status === 'not_started' && <span className="pv-pending">○</span>}
-                </div>
-                <div className="pv-area-info">
-                  <span className="pv-area-name">{area.name}</span>
-                  <span className="pv-area-weight">{area.weight}% of project</span>
-                </div>
-              </div>
+
+          {/* Tab Navigation */}
+          <div className="pv-tabs">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                className={`pv-tab ${activeProjectTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveProjectTab(tab.id)}
+              >
+                <span className="pv-tab-icon">{tab.icon}</span>
+                <span className="pv-tab-label">{tab.label}</span>
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Quick Stats Row */}
-        <div className="pv-stats-row">
-          <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
-        </div>
+        {/* Tab Content */}
+        <div className="pv-tab-content">
+          {/* OVERVIEW TAB */}
+          {activeProjectTab === 'overview' && (
+            <div className="pv-tab-panel">
+              {/* Progress Card */}
+              <div className="pv-card">
+                <h3>Project Progress</h3>
+                <div className="pv-progress-large">
+                  <div className="pv-progress-track">
+                    <div className="pv-progress-fill" style={{ width: `${progress}%` }}></div>
+                  </div>
+                  <div className="pv-progress-stats">
+                    <span className="pv-progress-percent-lg">{progress}%</span>
+                    <span className="pv-progress-label">Complete</span>
+                  </div>
+                </div>
+              </div>
 
-        {/* Main Content Sections */}
-        <div className="pv-content-grid">
-          <div className="pv-content-main">
-            {/* T&M Tickets */}
-            <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
+              {/* Areas Grid */}
+              <div className="pv-card">
+                <div className="pv-card-header">
+                  <h3>Areas</h3>
+                  <div className="pv-area-counts">
+                    <span className="pv-count done">{areasComplete} done</span>
+                    {areasWorking > 0 && <span className="pv-count working">{areasWorking} active</span>}
+                    {areasNotStarted > 0 && <span className="pv-count pending">{areasNotStarted} pending</span>}
+                  </div>
+                </div>
+                <div className="pv-areas-grid">
+                  {areas.map(area => (
+                    <div key={area.id} className={`pv-area-card ${area.status}`}>
+                      <div className="pv-area-status">
+                        {area.status === 'done' && <span className="pv-check">✓</span>}
+                        {area.status === 'working' && <span className="pv-working">●</span>}
+                        {area.status === 'not_started' && <span className="pv-pending">○</span>}
+                      </div>
+                      <div className="pv-area-info">
+                        <span className="pv-area-name">{area.name}</span>
+                        <span className="pv-area-weight">{area.weight}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            {/* Daily Reports */}
-            <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
-          </div>
+              {/* Quick Stats */}
+              <div className="pv-card">
+                <h3>Quick Stats</h3>
+                <div className="pv-quick-stats">
+                  <div className="pv-quick-stat">
+                    <span className="pv-qs-value">{areas.length}</span>
+                    <span className="pv-qs-label">Total Areas</span>
+                  </div>
+                  <div className="pv-quick-stat">
+                    <span className="pv-qs-value">{projectData?.totalTickets || 0}</span>
+                    <span className="pv-qs-label">T&M Tickets</span>
+                  </div>
+                  <div className="pv-quick-stat">
+                    <span className="pv-qs-value">{projectData?.pendingTickets || 0}</span>
+                    <span className="pv-qs-label">Pending Review</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-          <div className="pv-content-side">
-            {/* Messages */}
-            <ProjectMessages
-              project={selectedProject}
-              company={company}
-              userName={company?.name || 'Office'}
-              onShowToast={onShowToast}
-            />
-          </div>
-        </div>
+          {/* FINANCIALS TAB */}
+          {activeProjectTab === 'financials' && (
+            <div className="pv-tab-panel">
+              {/* Contract Breakdown */}
+              <div className="pv-card pv-financial-card">
+                <h3>Contract Value</h3>
+                <div className="pv-contract-breakdown">
+                  <div className="pv-contract-row">
+                    <span className="pv-contract-label">Original Contract</span>
+                    <span className="pv-contract-value">{formatCurrency(selectedProject.contract_value)}</span>
+                  </div>
+                  {hasChangeOrders && (
+                    <div className="pv-contract-row pv-co-added">
+                      <span className="pv-contract-label">+ Change Orders</span>
+                      <span className="pv-contract-value">+{formatCurrency(changeOrderValue)}</span>
+                    </div>
+                  )}
+                  <div className="pv-contract-row pv-contract-total">
+                    <span className="pv-contract-label">{hasChangeOrders ? 'Revised Total' : 'Contract Total'}</span>
+                    <span className="pv-contract-value">{formatCurrency(revisedContractValue)}</span>
+                  </div>
+                </div>
 
-        {/* Secondary Sections */}
-        <div className="pv-secondary">
-          <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
-          <InjuryReportsList
-            project={selectedProject}
-            companyId={company?.id || selectedProject?.company_id}
-            company={company}
-            onShowToast={onShowToast}
-          />
+                <div className="pv-billing-progress">
+                  <div className="pv-billing-track">
+                    <div className="pv-billing-fill" style={{ width: `${percentBilled}%` }}></div>
+                  </div>
+                  <div className="pv-billing-stats">
+                    <div className="pv-billing-item">
+                      <span className="pv-billing-value">{formatCurrency(billable)}</span>
+                      <span className="pv-billing-label">Billed ({percentBilled}%)</span>
+                    </div>
+                    <div className="pv-billing-item">
+                      <span className="pv-billing-value pv-remaining">{formatCurrency(revisedContractValue - billable)}</span>
+                      <span className="pv-billing-label">Remaining</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* T&M Tickets */}
+              <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
+
+              {/* Man Day Costs */}
+              <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+            </div>
+          )}
+
+          {/* REPORTS TAB */}
+          {activeProjectTab === 'reports' && (
+            <div className="pv-tab-panel">
+              {/* Daily Reports */}
+              <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+
+              {/* Injury Reports */}
+              <InjuryReportsList
+                project={selectedProject}
+                companyId={company?.id || selectedProject?.company_id}
+                company={company}
+                onShowToast={onShowToast}
+              />
+            </div>
+          )}
+
+          {/* ACTIVITY TAB */}
+          {activeProjectTab === 'activity' && (
+            <div className="pv-tab-panel">
+              {/* Messages */}
+              <div className="pv-messages-full">
+                <ProjectMessages
+                  project={selectedProject}
+                  company={company}
+                  userName={company?.name || 'Office'}
+                  onShowToast={onShowToast}
+                />
+              </div>
+
+              {/* Material Requests */}
+              <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
+            </div>
+          )}
         </div>
 
         {/* Share Modal */}
