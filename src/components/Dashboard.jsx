@@ -549,48 +549,77 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           {/* FINANCIALS TAB */}
           {activeProjectTab === 'financials' && (
             <div className="pv-tab-panel">
-              {/* Contract Breakdown */}
-              <div className="pv-card pv-financial-card">
-                <h3>Contract Value</h3>
-                <div className="pv-contract-breakdown">
-                  <div className="pv-contract-row">
-                    <span className="pv-contract-label">Original Contract</span>
-                    <span className="pv-contract-value">{formatCurrency(selectedProject.contract_value)}</span>
+              {/* Executive Summary Card */}
+              <div className="pv-card pv-executive-card">
+                <div className="pv-exec-header">
+                  <h3>Project Value Summary</h3>
+                  <span className="pv-exec-badge">{hasChangeOrders ? 'Modified Contract' : 'Original Scope'}</span>
+                </div>
+
+                {/* The Story: Original → Changes → Current */}
+                <div className="pv-value-story">
+                  <div className="pv-story-item original">
+                    <div className="pv-story-label">Original Contract</div>
+                    <div className="pv-story-value">{formatCurrency(selectedProject.contract_value)}</div>
+                    <div className="pv-story-desc">Awarded contract value</div>
                   </div>
+
                   {hasChangeOrders && (
-                    <div className="pv-contract-row pv-co-added">
-                      <span className="pv-contract-label">+ Change Orders</span>
-                      <span className="pv-contract-value">+{formatCurrency(changeOrderValue)}</span>
+                    <div className="pv-story-item change-orders">
+                      <div className="pv-story-arrow">+</div>
+                      <div className="pv-story-label">Approved Change Orders</div>
+                      <div className="pv-story-value green">+{formatCurrency(changeOrderValue)}</div>
+                      <div className="pv-story-desc">Additional work from CE/PCO approvals</div>
                     </div>
                   )}
-                  <div className="pv-contract-row pv-contract-total">
-                    <span className="pv-contract-label">{hasChangeOrders ? 'Revised Total' : 'Contract Total'}</span>
-                    <span className="pv-contract-value">{formatCurrency(revisedContractValue)}</span>
+
+                  <div className="pv-story-item current-total">
+                    <div className="pv-story-equals">=</div>
+                    <div className="pv-story-label">Current Contract Value</div>
+                    <div className="pv-story-value large">{formatCurrency(revisedContractValue)}</div>
                   </div>
                 </div>
 
-                <div className="pv-billing-progress">
-                  <div className="pv-billing-track">
-                    <div className="pv-billing-fill" style={{ width: `${percentBilled}%` }}></div>
+                {/* Revenue Status */}
+                <div className="pv-revenue-status">
+                  <div className="pv-revenue-bar">
+                    <div className="pv-revenue-fill" style={{ width: `${percentBilled}%` }}></div>
+                    <div className="pv-revenue-marker" style={{ left: `${progress}%` }}></div>
                   </div>
-                  <div className="pv-billing-stats">
-                    <div className="pv-billing-item">
-                      <span className="pv-billing-value">{formatCurrency(billable)}</span>
-                      <span className="pv-billing-label">Billed ({percentBilled}%)</span>
+                  <div className="pv-revenue-row">
+                    <div className="pv-revenue-item">
+                      <span className="pv-revenue-label">Revenue Earned</span>
+                      <span className="pv-revenue-value">{formatCurrency(billable)}</span>
+                      <span className="pv-revenue-pct">{percentBilled}% of contract</span>
                     </div>
-                    <div className="pv-billing-item">
-                      <span className="pv-billing-value pv-remaining">{formatCurrency(revisedContractValue - billable)}</span>
-                      <span className="pv-billing-label">Remaining</span>
+                    <div className="pv-revenue-item right">
+                      <span className="pv-revenue-label">Revenue Remaining</span>
+                      <span className="pv-revenue-value green">{formatCurrency(revisedContractValue - billable)}</span>
+                      <span className="pv-revenue-pct">{100 - percentBilled}% to bill</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* T&M Tickets */}
-              <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
+              {/* T&M Work Summary */}
+              <div className="pv-card">
+                <div className="pv-card-header">
+                  <h3>T&M Work Orders</h3>
+                  <div className="pv-tm-summary-badge">
+                    {projectData?.totalTickets || 0} Total
+                    {projectData?.pendingTickets > 0 && (
+                      <span className="pending-count"> • {projectData.pendingTickets} Pending Review</span>
+                    )}
+                  </div>
+                </div>
+                <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
+              </div>
 
-              {/* Man Day Costs */}
-              <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+              {/* Labor Costs */}
+              <div className="pv-card">
+                <h3>Labor Cost Analysis</h3>
+                <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+              </div>
             </div>
           )}
 
@@ -613,6 +642,9 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           {/* ACTIVITY TAB */}
           {activeProjectTab === 'activity' && (
             <div className="pv-tab-panel">
+              {/* Material Requests - Priority */}
+              <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
+
               {/* Messages */}
               <div className="pv-messages-full">
                 <ProjectMessages
@@ -622,9 +654,6 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                   onShowToast={onShowToast}
                 />
               </div>
-
-              {/* Material Requests */}
-              <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
             </div>
           )}
         </div>

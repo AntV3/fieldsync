@@ -4,8 +4,8 @@
   --bg-card: #1a1a1f;
   --bg-elevated: #222228;
   --text-primary: #ffffff;
-  --text-secondary: #9394a1;
-  --text-muted: #5c5d6a;
+  --text-secondary: #a8a9b5;
+  --text-muted: #787986;
   --accent-blue: #3b82f6;
   --accent-green: #10b981;
   --accent-amber: #f59e0b;
@@ -2671,6 +2671,7 @@ input::placeholder {
 
 .tm-list-title h3 {
   margin: 0;
+  color: #ffffff;
 }
 
 .tm-export-buttons {
@@ -6331,9 +6332,10 @@ input::placeholder {
 
 .pv-card h3 {
   margin: 0 0 1rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #ffffff;
+  letter-spacing: 0.01em;
 }
 
 .pv-card-header {
@@ -6540,6 +6542,185 @@ input::placeholder {
 /* Messages Full Width (for Activity Tab) */
 .pv-messages-full {
   margin-bottom: 1rem;
+}
+
+/* ============================================
+   EXECUTIVE FINANCIAL CARD
+   ============================================ */
+
+.pv-executive-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--border-color);
+}
+
+.pv-exec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.pv-exec-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.pv-exec-badge {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
+/* Value Story - The narrative flow */
+.pv-value-story {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-story-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  position: relative;
+}
+
+.pv-story-item.change-orders {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.pv-story-item.current-total {
+  background: var(--bg-card);
+  border: 2px solid var(--accent-blue);
+}
+
+.pv-story-arrow,
+.pv-story-equals {
+  position: absolute;
+  left: -1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.pv-story-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 150px;
+}
+
+.pv-story-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pv-story-value.green {
+  color: var(--accent-green);
+}
+
+.pv-story-value.large {
+  font-size: 1.5rem;
+}
+
+.pv-story-desc {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Revenue Status */
+.pv-revenue-status {
+  padding-top: 0.5rem;
+}
+
+.pv-revenue-bar {
+  position: relative;
+  height: 10px;
+  background: var(--progress-bg);
+  border-radius: 5px;
+  overflow: visible;
+  margin-bottom: 1rem;
+}
+
+.pv-revenue-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.pv-revenue-marker {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 16px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.pv-revenue-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pv-revenue-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.pv-revenue-item.right {
+  text-align: right;
+}
+
+.pv-revenue-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.pv-revenue-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pv-revenue-value.green {
+  color: var(--accent-green);
+}
+
+.pv-revenue-pct {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+/* T&M Summary Badge */
+.pv-tm-summary-badge {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.pv-tm-summary-badge .pending-count {
+  color: var(--accent-amber);
+  font-weight: 500;
 }
 
 /* Mobile Responsive */
@@ -8221,6 +8402,7 @@ input::placeholder {
 
 .material-requests-title h3 {
   margin: 0;
+  color: #ffffff;
 }
 
 .pending-badge {
@@ -8516,6 +8698,21 @@ input::placeholder {
 
 .daily-reports-header h3 {
   margin: 0;
+  color: #ffffff;
+}
+
+/* Section headers - General styling for list components */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .reports-count {
