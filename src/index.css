@@ -5720,70 +5720,167 @@ input::placeholder {
    Executive Dashboard Styles
    ========================================== */
 
-/* Executive Summary - Compact Inline Layout */
-.executive-summary {
-  background: var(--bg-card);
+/* Business Overview - Portfolio Health Dashboard */
+.business-overview {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.summary-grid {
+.bo-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
-.summary-card {
+.bo-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.bo-project-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+}
+
+/* Financial Progress Section */
+.bo-financial {
+  margin-bottom: 1.25rem;
+}
+
+.bo-progress-bar {
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.bo-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue) 0%, var(--accent-green) 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.bo-financial-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  flex: 1;
-  padding: 0;
-  border: none;
-  background: none;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.summary-value {
-  font-size: 1.35rem;
+.bo-metric {
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.bo-metric.primary {
+  flex: 1;
+  min-width: 120px;
+}
+
+.bo-metric.highlight {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid var(--border-color);
+}
+
+.bo-metric-value {
+  display: block;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
-.summary-label {
+.bo-metric.highlight .bo-metric-value {
+  color: var(--accent-green);
+  font-size: 1.25rem;
+}
+
+.bo-metric-label {
+  display: block;
   font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-top: 0.15rem;
+  margin-top: 0.25rem;
 }
 
-.summary-alerts {
+.bo-metric-separator {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Project Health Section */
+.bo-health {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.bo-health-title {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.bo-health-pills {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-color);
   flex-wrap: wrap;
 }
 
-.alert-badge {
-  padding: 0.35rem 0.75rem;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  font-weight: 500;
+.bo-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
 }
 
-.alert-badge.pending {
+.bo-pill-count {
+  font-weight: 700;
+}
+
+.bo-pill-label {
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.bo-pill.complete {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.bo-pill.on-track {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.bo-pill.at-risk {
   background: rgba(245, 158, 11, 0.15);
   color: var(--accent-amber);
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
-.alert-badge.warning {
+.bo-pill.over-budget {
   background: rgba(239, 68, 68, 0.15);
   color: var(--accent-red);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -5875,16 +5972,28 @@ input::placeholder {
   color: var(--text-muted);
 }
 
-/* Executive Summary Mobile */
+/* Business Overview Mobile */
 @media (max-width: 768px) {
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+  .business-overview {
+    padding: 1.25rem;
+  }
+
+  .bo-financial-row {
+    flex-direction: column;
     gap: 1rem;
   }
 
-  .summary-value {
-    font-size: 1.2rem;
+  .bo-metric.primary {
+    min-width: auto;
+    flex: none;
+  }
+
+  .bo-metric-separator {
+    display: none;
+  }
+
+  .bo-metric-value {
+    font-size: 1.35rem;
   }
 
   .project-list {
@@ -5893,17 +6002,32 @@ input::placeholder {
 }
 
 @media (max-width: 480px) {
-  .executive-summary {
-    padding: 0.75rem 1rem;
+  .business-overview {
+    padding: 1rem;
+    border-radius: 12px;
   }
 
-  .summary-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+  .bo-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 
-  .summary-value {
+  .bo-metric-value {
+    font-size: 1.2rem;
+  }
+
+  .bo-metric.highlight .bo-metric-value {
     font-size: 1.1rem;
+  }
+
+  .bo-health-pills {
+    gap: 0.35rem;
+  }
+
+  .bo-pill {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
   }
 
   .project-stats-row {

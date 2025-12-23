@@ -560,53 +560,86 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     )
   }
 
-  // Calculate executive summary stats
-  const totalContractValue = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
-  const totalBillable = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
-  const totalPendingTickets = projectsData.reduce((sum, p) => sum + (p.pendingTickets || 0), 0)
-  const avgProgress = projectsData.length > 0
-    ? Math.round(projectsData.reduce((sum, p) => sum + (p.progress || 0), 0) / projectsData.length)
+  // Calculate business-level portfolio metrics
+  const totalPortfolioValue = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+  const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
+  const totalRemaining = totalPortfolioValue - totalEarned
+
+  // Weighted completion (by contract value, not simple average)
+  const weightedCompletion = totalPortfolioValue > 0
+    ? Math.round((totalEarned / totalPortfolioValue) * 100)
     : 0
+
+  // Project health breakdown
+  const projectsComplete = projectsData.filter(p => p.progress >= 100).length
+  const projectsOnTrack = projectsData.filter(p => p.progress < 100 && p.billable <= p.contract_value * (p.progress / 100) * 1.1).length
   const projectsAtRisk = projectsData.filter(p => p.billable > p.contract_value * 0.9 && p.progress < 90).length
+  const projectsOverBudget = projectsData.filter(p => p.billable > p.contract_value).length
 
   return (
     <div>
-      {/* Executive Summary - Compact Single Row */}
-      <div className="executive-summary">
-        <div className="summary-grid">
-          <div className="summary-card">
-            <div className="summary-value">{projects.length}</div>
-            <div className="summary-label">Projects</div>
+      {/* Business Overview - High Level Portfolio Health */}
+      <div className="business-overview">
+        <div className="bo-header">
+          <h2 className="bo-title">Portfolio Overview</h2>
+          <div className="bo-project-count">{projects.length} Active Project{projects.length !== 1 ? 's' : ''}</div>
+        </div>
+
+        {/* Main Financial Bar */}
+        <div className="bo-financial">
+          <div className="bo-progress-bar">
+            <div
+              className="bo-progress-fill"
+              style={{ width: `${Math.min(weightedCompletion, 100)}%` }}
+            ></div>
           </div>
-          <div className="summary-card">
-            <div className="summary-value">{formatCurrency(totalContractValue)}</div>
-            <div className="summary-label">Contract Value</div>
-          </div>
-          <div className="summary-card">
-            <div className="summary-value">{formatCurrency(totalBillable)}</div>
-            <div className="summary-label">Billable</div>
-          </div>
-          <div className="summary-card">
-            <div className="summary-value">{avgProgress}%</div>
-            <div className="summary-label">Avg Progress</div>
+          <div className="bo-financial-row">
+            <div className="bo-metric primary">
+              <span className="bo-metric-value">{formatCurrency(totalEarned)}</span>
+              <span className="bo-metric-label">Earned Revenue</span>
+            </div>
+            <div className="bo-metric-separator">of</div>
+            <div className="bo-metric primary">
+              <span className="bo-metric-value">{formatCurrency(totalPortfolioValue)}</span>
+              <span className="bo-metric-label">Total Portfolio</span>
+            </div>
+            <div className="bo-metric highlight">
+              <span className="bo-metric-value">{formatCurrency(totalRemaining)}</span>
+              <span className="bo-metric-label">Remaining to Bill</span>
+            </div>
           </div>
         </div>
 
-        {/* Alerts Row - Only show if there are alerts */}
-        {(totalPendingTickets > 0 || projectsAtRisk > 0) && (
-          <div className="summary-alerts">
-            {totalPendingTickets > 0 && (
-              <div className="alert-badge pending">
-                {totalPendingTickets} T&M Pending
+        {/* Project Health Summary */}
+        <div className="bo-health">
+          <div className="bo-health-title">Project Health</div>
+          <div className="bo-health-pills">
+            {projectsComplete > 0 && (
+              <div className="bo-pill complete">
+                <span className="bo-pill-count">{projectsComplete}</span>
+                <span className="bo-pill-label">Complete</span>
+              </div>
+            )}
+            {projectsOnTrack > 0 && (
+              <div className="bo-pill on-track">
+                <span className="bo-pill-count">{projectsOnTrack}</span>
+                <span className="bo-pill-label">On Track</span>
               </div>
             )}
             {projectsAtRisk > 0 && (
-              <div className="alert-badge warning">
-                {projectsAtRisk} At Risk
+              <div className="bo-pill at-risk">
+                <span className="bo-pill-count">{projectsAtRisk}</span>
+                <span className="bo-pill-label">At Risk</span>
+              </div>
+            )}
+            {projectsOverBudget > 0 && (
+              <div className="bo-pill over-budget">
+                <span className="bo-pill-count">{projectsOverBudget}</span>
+                <span className="bo-pill-label">Over Budget</span>
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Projects Header */}
