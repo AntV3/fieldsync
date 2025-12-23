@@ -388,121 +388,104 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     // View Mode
     return (
       <div className="project-detail-view">
-        {/* Header Row */}
-        <div className="project-detail-header">
-          <button className="btn btn-secondary btn-small" onClick={handleBack}>
-            ← Back
-          </button>
-          <h1 className="project-detail-title">{selectedProject.name}</h1>
-          <div className="project-detail-actions">
-            <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>
-              Share
-            </button>
-            <button className="btn btn-secondary btn-small" onClick={() => setShowNotificationSettings(true)}>
-              Notifications
-            </button>
-            <button className="btn btn-secondary btn-small" onClick={handleEditClick}>
-              Edit
-            </button>
+        {/* Compact Header */}
+        <div className="project-header-compact">
+          <div className="project-header-left">
+            <button className="back-btn-inline" onClick={handleBack}>←</button>
+            <div className="project-title-group">
+              <h1>{selectedProject.name}</h1>
+              <div className="project-tags-inline">
+                {selectedProject.job_number && <span className="tag">#{selectedProject.job_number}</span>}
+                {selectedProject.pin && <span className="tag">PIN: {selectedProject.pin}</span>}
+                {selectedProject.work_type && <span className="tag">{selectedProject.work_type}</span>}
+              </div>
+            </div>
+          </div>
+          <div className="project-header-actions">
+            <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>Share</button>
+            <button className="btn btn-secondary btn-small" onClick={() => setShowNotificationSettings(true)}>Alerts</button>
+            <button className="btn btn-secondary btn-small" onClick={handleEditClick}>Edit</button>
           </div>
         </div>
 
-        {/* Top Grid: Key Metrics */}
-        <div className="project-metrics-grid">
-          <div className="metric-card">
-            <div className="metric-label">Contract Value</div>
-            <div className="metric-value">{formatCurrency(selectedProject.contract_value)}</div>
+        {/* Metrics Bar - Single Row */}
+        <div className="metrics-bar">
+          <div className="metric-inline">
+            <span className="metric-val">{formatCurrency(selectedProject.contract_value)}</span>
+            <span className="metric-lbl">Contract</span>
           </div>
-          <div className="metric-card">
-            <div className="metric-label">Billable to Date</div>
-            <div className="metric-value accent">{formatCurrency(billable)}</div>
+          <div className="metric-inline accent">
+            <span className="metric-val">{formatCurrency(billable)}</span>
+            <span className="metric-lbl">Billable</span>
           </div>
-          <div className="metric-card">
-            <div className="metric-label">Remaining</div>
-            <div className="metric-value">{formatCurrency(selectedProject.contract_value - billable)}</div>
+          <div className="metric-inline">
+            <span className="metric-val">{formatCurrency(selectedProject.contract_value - billable)}</span>
+            <span className="metric-lbl">Remaining</span>
           </div>
-          <div className="metric-card">
-            <div className="metric-label">Progress</div>
-            <div className="metric-value">{progress}%</div>
-            <div className="metric-progress-bar">
-              <div className="metric-progress-fill" style={{ width: `${progress}%` }}></div>
+          <div className="metric-inline progress-metric">
+            <span className="metric-val">{progress}%</span>
+            <div className="progress-bar-inline">
+              <div className="progress-fill-inline" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
         </div>
 
-        {/* Project Info Row */}
-        <div className="project-info-row">
-          {selectedProject.job_number && (
-            <span className="info-tag">Job #{selectedProject.job_number}</span>
-          )}
-          {selectedProject.pin && (
-            <span className="info-tag">PIN: {selectedProject.pin}</span>
-          )}
-          {selectedProject.work_type && (
-            <span className="info-tag type">{selectedProject.work_type}</span>
-          )}
-          {selectedProject.job_type && (
-            <span className="info-tag type">{selectedProject.job_type === 'pla' ? 'PLA' : 'Standard'}</span>
-          )}
-        </div>
-
-        {/* Man Day Costs Section */}
-        <ManDayCosts
-          project={selectedProject}
-          company={company}
-          onShowToast={onShowToast}
-        />
-
-        {/* Areas - Compact Grid */}
-        <div className="card areas-compact">
-          <div className="areas-compact-header">
-            <h3>Areas</h3>
-            <span className="areas-count">{areas.length} areas</span>
-          </div>
-          <div className="areas-compact-grid">
-            {areas.map(area => (
-              <div key={area.id} className={`area-compact-item ${area.status}`}>
-                <span className="area-compact-name">{area.name}</span>
-                <span className="area-compact-weight">{area.weight}%</span>
-                <span className={`area-compact-status ${area.status}`}>
-                  {area.status === 'done' ? '✓' : area.status === 'working' ? '◐' : '○'}
-                </span>
+        {/* Two Column Layout */}
+        <div className="project-two-col">
+          {/* Left Column - Main Content */}
+          <div className="project-col-main">
+            {/* Areas - Inline */}
+            <div className="section-compact">
+              <div className="section-header-inline">
+                <h3>Areas</h3>
+                <span className="section-count">{areas.filter(a => a.status === 'done').length}/{areas.length} complete</span>
               </div>
-            ))}
+              <div className="areas-inline-grid">
+                {areas.map(area => (
+                  <div key={area.id} className={`area-chip ${area.status}`}>
+                    <span className="area-chip-status">
+                      {area.status === 'done' ? '✓' : area.status === 'working' ? '◐' : '○'}
+                    </span>
+                    <span className="area-chip-name">{area.name}</span>
+                    <span className="area-chip-weight">{area.weight}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Man Day Costs */}
+            <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+
+            {/* T&M Tickets */}
+            <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
+
+            {/* Daily Reports */}
+            <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+          </div>
+
+          {/* Right Column - Messages */}
+          <div className="project-col-side">
+            <ProjectMessages
+              project={selectedProject}
+              company={company}
+              userName={company?.name || 'Office'}
+              onShowToast={onShowToast}
+            />
           </div>
         </div>
 
-        {/* T&M Tickets Section */}
-        <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
-
-        {/* Injury Reports Section */}
-        <InjuryReportsList
-          project={selectedProject}
-          companyId={company?.id || selectedProject?.company_id}
-          onShowToast={onShowToast}
-        />
-
-        {/* Material Requests Section */}
-        <MaterialRequestsList
-          project={selectedProject}
-          company={company}
-          onShowToast={onShowToast}
-        />
-
-        {/* Daily Reports Section */}
-        <DailyReportsList
-          project={selectedProject}
-          company={company}
-          onShowToast={onShowToast}
-        />
-
-        {/* Messages Section */}
-        <ProjectMessages
-          project={selectedProject}
-          company={company}
-          userName={company?.name || 'Office'}
-          onShowToast={onShowToast}
-        />
+        {/* Bottom Section - Less Frequent */}
+        <div className="project-bottom-section">
+          <div className="bottom-section-grid">
+            <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
+            <InjuryReportsList
+              project={selectedProject}
+              companyId={company?.id || selectedProject?.company_id}
+              company={company}
+              onShowToast={onShowToast}
+            />
+          </div>
+        </div>
 
         {/* Share Modal */}
         {showShareModal && (
