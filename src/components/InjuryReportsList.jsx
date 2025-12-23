@@ -1,9 +1,40 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
+import { useBranding } from '../lib/BrandingContext'
 import InjuryReportForm from './InjuryReportForm'
 import Toast from './Toast'
+import jsPDF from 'jspdf'
 
-export default function InjuryReportsList({ project, companyId, onShowToast }) {
+// Helper to convert hex color to RGB array for jsPDF
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? [
+    parseInt(result[1], 16),
+    parseInt(result[2], 16),
+    parseInt(result[3], 16)
+  ] : [30, 41, 59]
+}
+
+// Helper to load image as base64 for PDF
+const loadImageAsBase64 = (url) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
+export default function InjuryReportsList({ project, companyId, company, onShowToast }) {
+  const { branding } = useBranding()
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -91,6 +122,142 @@ export default function InjuryReportsList({ project, companyId, onShowToast }) {
     return colors[type] || '#9ca3af'
   }
 
+  // Export to PDF with company branding
+  const exportToPDF = async () => {
+    if (reports.length === 0) {
+      setToast({ type: 'error', message: 'No reports to export' })
+      return
+    }
+
+    setToast({ type: 'info', message: 'Generating PDF...' })
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 20
+    let yPos = margin
+
+    const primaryColor = hexToRgb(branding?.primary_color || '#3B82F6')
+    const secondaryColor = hexToRgb(branding?.secondary_color || '#1E40AF')
+
+    // Header with branding
+    doc.setFillColor(...primaryColor)
+    doc.rect(0, 0, pageWidth, 45, 'F')
+    doc.setFillColor(...secondaryColor)
+    doc.rect(0, 42, pageWidth, 3, 'F')
+
+    // Add logo if available
+    let logoOffset = margin
+    if (branding?.logo_url) {
+      try {
+        const logoBase64 = await loadImageAsBase64(branding.logo_url)
+        if (logoBase64) {
+          doc.addImage(logoBase64, 'PNG', margin, 7, 30, 30)
+          logoOffset = margin + 40
+        }
+      } catch (e) {
+        console.error('Error adding logo:', e)
+      }
+    }
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(22)
+    doc.setFont('helvetica', 'bold')
+    doc.text(company?.name || 'Company', logoOffset, 20)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('INJURY & INCIDENT REPORTS', logoOffset, 30)
+
+    doc.setFontSize(9)
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 20, { align: 'right' })
+    doc.text(`Total Reports: ${reports.length}`, pageWidth - margin, 28, { align: 'right' })
+
+    yPos = 55
+
+    // Project info if available
+    if (project) {
+      doc.setFillColor(248, 250, 252)
+      doc.rect(margin, yPos - 5, pageWidth - margin * 2, 15, 'F')
+      doc.setTextColor(...primaryColor)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Project: ${project.name}`, margin + 5, yPos + 5)
+      yPos += 20
+    }
+
+    // Reports
+    reports.forEach((report) => {
+      // Check if we need a new page (injury reports need more space)
+      if (yPos > 200) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      // Report header with injury type color
+      const typeColor = hexToRgb(getInjuryTypeColor(report.injury_type))
+      doc.setFillColor(...typeColor)
+      doc.rect(margin, yPos, pageWidth - margin * 2, 12, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`${report.employee_name} - ${getInjuryTypeLabel(report.injury_type)}`, margin + 5, yPos + 8)
+      doc.text(formatDate(report.incident_date), pageWidth - margin - 5, yPos + 8, { align: 'right' })
+      yPos += 17
+
+      doc.setTextColor(50, 50, 50)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+
+      // Location and time
+      doc.text(`Location: ${report.incident_location}`, margin + 5, yPos)
+      if (report.incident_time) {
+        doc.text(`Time: ${formatTime(report.incident_time)}`, margin + 100, yPos)
+      }
+      yPos += 6
+
+      // Description
+      doc.setFont('helvetica', 'bold')
+      doc.text('Description:', margin + 5, yPos)
+      doc.setFont('helvetica', 'normal')
+      yPos += 5
+      const descLines = doc.splitTextToSize(report.incident_description, pageWidth - margin * 2 - 10)
+      doc.text(descLines, margin + 5, yPos)
+      yPos += descLines.length * 4 + 3
+
+      // Key details
+      const details = []
+      if (report.body_part_affected) details.push(`Body Part: ${report.body_part_affected}`)
+      if (report.osha_recordable) details.push('OSHA Recordable')
+      if (report.workers_comp_claim) details.push('Workers\' Comp Filed')
+      if (report.medical_treatment_required) details.push('Medical Treatment Required')
+
+      if (details.length > 0) {
+        doc.setFontSize(8)
+        doc.setTextColor(100, 100, 100)
+        doc.text(details.join('  |  '), margin + 5, yPos)
+        yPos += 5
+      }
+
+      // Reported by
+      doc.setFontSize(8)
+      doc.text(`Reported by: ${report.reported_by_name} (${report.reported_by_title})`, margin + 5, yPos)
+      yPos += 12
+    })
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(150, 150, 150)
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' })
+      doc.text('CONFIDENTIAL - Injury Report', margin, doc.internal.pageSize.getHeight() - 10)
+    }
+
+    const fileName = `Injury_Reports_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(fileName)
+    setToast({ type: 'success', message: 'PDF exported!' })
+  }
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -105,9 +272,16 @@ export default function InjuryReportsList({ project, companyId, onShowToast }) {
       <div className="injury-reports-section">
         <div className="section-header">
           <h3>Injury & Incident Reports</h3>
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + File Injury Report
-          </button>
+          <div className="section-header-actions">
+            {reports.length > 0 && (
+              <button className="btn-secondary" onClick={exportToPDF}>
+                PDF
+              </button>
+            )}
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              + File Injury Report
+            </button>
+          </div>
         </div>
 
         {reports.length === 0 ? (
@@ -619,17 +793,31 @@ export default function InjuryReportsList({ project, companyId, onShowToast }) {
           color: #6b7280;
         }
 
-        .btn-primary {
+        .section-header-actions {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+
+        .btn-primary, .btn-secondary {
           padding: 0.5rem 1rem;
           border-radius: 6px;
           font-weight: 500;
           cursor: pointer;
           border: none;
+        }
+
+        .btn-primary {
           background-color: var(--primary-color, #3b82f6);
           color: white;
         }
 
-        .btn-primary:hover {
+        .btn-secondary {
+          background-color: #e5e7eb;
+          color: #374151;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover {
           opacity: 0.9;
         }
 

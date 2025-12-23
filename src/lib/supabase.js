@@ -1,4 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
+import {
+  initOfflineDB,
+  getConnectionStatus,
+  onConnectionChange,
+  cacheProjects,
+  getCachedProjects,
+  cacheAreas,
+  getCachedAreas,
+  updateCachedAreaStatus,
+  cacheCrewCheckin,
+  getCachedCrewCheckin,
+  addPendingAction,
+  getPendingActionCount,
+  syncPendingActions,
+  ACTION_TYPES
+} from './offlineManager'
 
 // For demo purposes, we'll use a mock mode that falls back to localStorage
 // In production, you would set these environment variables
@@ -7,6 +23,9 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
 // Check if Supabase is configured
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
+
+// Initialize offline database
+initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
 
 // Create client only if configured
 export const supabase = isSupabaseConfigured 
@@ -185,21 +204,41 @@ export const db = {
   // Projects
   async getProjects(companyId = null, includeArchived = false) {
     if (isSupabaseConfigured) {
+      // If offline, return cached data
+      if (!getConnectionStatus()) {
+        console.log('Offline: returning cached projects')
+        const cached = await getCachedProjects(companyId)
+        if (includeArchived) return cached
+        return cached.filter(p => p.status !== 'archived')
+      }
+
       let query = supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false })
-      
+
       if (companyId) {
         query = query.eq('company_id', companyId)
       }
-      
+
       if (!includeArchived) {
         query = query.eq('status', 'active')
       }
-      
+
       const { data, error } = await query
-      if (error) throw error
+      if (error) {
+        // On error, try cache
+        console.log('Error fetching projects, trying cache:', error.message)
+        const cached = await getCachedProjects(companyId)
+        if (cached.length > 0) return cached
+        throw error
+      }
+
+      // Cache projects for offline use
+      if (data?.length > 0) {
+        cacheProjects(data).catch(err => console.error('Failed to cache projects:', err))
+      }
+
       return data
     } else {
       const projects = getLocalData().projects
@@ -450,12 +489,31 @@ export const db = {
   // Areas
   async getAreas(projectId) {
     if (isSupabaseConfigured) {
+      // If offline, return cached data
+      if (!getConnectionStatus()) {
+        console.log('Offline: returning cached areas')
+        return getCachedAreas(projectId)
+      }
+
       const { data, error } = await supabase
         .from('areas')
         .select('*')
         .eq('project_id', projectId)
         .order('sort_order', { ascending: true })
-      if (error) throw error
+
+      if (error) {
+        // On error, try cache
+        console.log('Error fetching areas, trying cache:', error.message)
+        const cached = await getCachedAreas(projectId)
+        if (cached.length > 0) return cached
+        throw error
+      }
+
+      // Cache areas for offline use
+      if (data?.length > 0) {
+        cacheAreas(data).catch(err => console.error('Failed to cache areas:', err))
+      }
+
       return data
     } else {
       return getLocalData().areas.filter(a => a.project_id === projectId)
@@ -486,13 +544,39 @@ export const db = {
 
   async updateAreaStatus(id, status) {
     if (isSupabaseConfigured) {
+      // If offline, update cache and queue action
+      if (!getConnectionStatus()) {
+        console.log('Offline: queuing area status update')
+        const area = await updateCachedAreaStatus(id, status)
+        await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
+        return area
+      }
+
       const { data, error } = await supabase
         .from('areas')
         .update({ status, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single()
-      if (error) throw error
+
+      if (error) {
+        // If network error, queue for later
+        if (error.message?.includes('fetch') || error.message?.includes('network')) {
+          console.log('Network error: queuing area status update')
+          const area = await updateCachedAreaStatus(id, status)
+          await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
+          return area
+        }
+        throw error
+      }
+
+      // Update cache with server response
+      if (data) {
+        updateCachedAreaStatus(id, status).catch(err =>
+          console.error('Failed to update cached area:', err)
+        )
+      }
+
       return data
     } else {
       const localData = getLocalData()
@@ -2652,4 +2736,34 @@ export const db = {
     return true
   }
 }
+
+// ============================================
+// Offline Support Exports
+// ============================================
+
+// Re-export offline utilities for UI components
+export {
+  getConnectionStatus,
+  onConnectionChange,
+  getPendingActionCount,
+  syncPendingActions
+}
+
+// Sync pending actions when coming back online
+onConnectionChange(async (online) => {
+  if (online && isSupabaseConfigured) {
+    console.log('Back online - syncing pending actions...')
+    try {
+      const results = await syncPendingActions(db)
+      if (results.synced > 0) {
+        console.log(`Synced ${results.synced} pending actions`)
+      }
+      if (results.failed > 0) {
+        console.warn(`Failed to sync ${results.failed} actions`)
+      }
+    } catch (err) {
+      console.error('Error syncing pending actions:', err)
+    }
+  }
+})
 

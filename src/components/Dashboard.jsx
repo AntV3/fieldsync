@@ -552,20 +552,20 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
 
   return (
     <div>
-      {/* Executive Summary */}
+      {/* Executive Summary - Compact Single Row */}
       <div className="executive-summary">
         <div className="summary-grid">
           <div className="summary-card">
             <div className="summary-value">{projects.length}</div>
-            <div className="summary-label">Active Projects</div>
+            <div className="summary-label">Projects</div>
           </div>
           <div className="summary-card">
             <div className="summary-value">{formatCurrency(totalContractValue)}</div>
-            <div className="summary-label">Total Contract Value</div>
+            <div className="summary-label">Contract Value</div>
           </div>
           <div className="summary-card">
             <div className="summary-value">{formatCurrency(totalBillable)}</div>
-            <div className="summary-label">Total Billable</div>
+            <div className="summary-label">Billable</div>
           </div>
           <div className="summary-card">
             <div className="summary-value">{avgProgress}%</div>
@@ -573,23 +573,30 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           </div>
         </div>
 
-        {/* Alerts Row */}
-        <div className="summary-alerts">
-          {totalPendingTickets > 0 && (
-            <div className="alert-badge pending">
-              {totalPendingTickets} T&M Pending Approval
-            </div>
-          )}
-          {projectsAtRisk > 0 && (
-            <div className="alert-badge warning">
-              {projectsAtRisk} Project{projectsAtRisk > 1 ? 's' : ''} At Risk
-            </div>
-          )}
-        </div>
+        {/* Alerts Row - Only show if there are alerts */}
+        {(totalPendingTickets > 0 || projectsAtRisk > 0) && (
+          <div className="summary-alerts">
+            {totalPendingTickets > 0 && (
+              <div className="alert-badge pending">
+                {totalPendingTickets} T&M Pending
+              </div>
+            )}
+            {projectsAtRisk > 0 && (
+              <div className="alert-badge warning">
+                {projectsAtRisk} At Risk
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <h2 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Projects</h2>
+      {/* Projects Header */}
+      <div className="dashboard-header">
+        <h2>Projects</h2>
+        <span className="project-count">{projects.length} active</span>
+      </div>
 
+      {/* Project Grid */}
       <div className="project-list">
         {projectsData.map(project => (
           <EnhancedProjectCard

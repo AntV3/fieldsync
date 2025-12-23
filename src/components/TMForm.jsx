@@ -15,6 +15,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [notes, setNotes] = useState('')
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [submitProgress, setSubmitProgress] = useState('')
   
   // Crew check-in state
   const [todaysCrew, setTodaysCrew] = useState([])
@@ -272,6 +273,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     }
 
     setSubmitting(true)
+    setSubmitProgress('Creating ticket...')
     try {
       // Create ticket first (to get ticket ID for photo paths)
       const ticket = await db.createTMTicket({
@@ -283,25 +285,26 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         created_by_name: submittedByName.trim()
       })
 
-      // Upload photos to storage
-      const photoUrls = []
-      for (const photo of photos) {
-        try {
-          const url = await db.uploadPhoto(
-            companyId,
-            project.id,
-            ticket.id,
-            photo.file
-          )
-          if (url) photoUrls.push(url)
-        } catch (err) {
-          console.error('Error uploading photo:', err)
-          // Continue with other photos
-        }
+      // Upload photos in PARALLEL for speed
+      let photoUrls = []
+      if (photos.length > 0) {
+        setSubmitProgress(`Uploading ${photos.length} photo${photos.length > 1 ? 's' : ''}...`)
+
+        const uploadPromises = photos.map(photo =>
+          db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
+            .catch(err => {
+              console.error('Error uploading photo:', err)
+              return null // Continue with other photos
+            })
+        )
+
+        const results = await Promise.all(uploadPromises)
+        photoUrls = results.filter(url => url !== null)
       }
 
       // Update ticket with photo URLs if any were uploaded
       if (photoUrls.length > 0) {
+        setSubmitProgress('Saving photos...')
         await db.updateTMTicketPhotos(ticket.id, photoUrls)
       }
 
@@ -333,9 +336,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }))
       ]
 
+      setSubmitProgress('Saving workers...')
       await db.addTMWorkers(ticket.id, allWorkers)
 
       if (items.length > 0) {
+        setSubmitProgress('Saving materials...')
         await db.addTMItems(ticket.id, items.map(item => ({
           material_equipment_id: item.material_equipment_id,
           custom_name: item.custom_name || null,
@@ -356,6 +361,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       onShowToast('Error submitting T&M', 'error')
     } finally {
       setSubmitting(false)
+      setSubmitProgress('')
     }
   }
 
@@ -1050,12 +1056,12 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
              step === 2 ? `Review (${items.length} items)` : 'Next'}
           </button>
         ) : (
-          <button 
-            className="tm-big-btn submit" 
+          <button
+            className="tm-big-btn submit"
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? 'Submitting...' : '✓ Submit T&M'}
+            {submitting ? submitProgress || 'Submitting...' : '✓ Submit T&M'}
           </button>
         )}
         

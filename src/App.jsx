@@ -12,6 +12,7 @@ import Toast from './components/Toast'
 import Logo from './components/Logo'
 import NotificationCenter from './components/NotificationCenter'
 import ErrorBoundary from './components/ErrorBoundary'
+import OfflineIndicator from './components/OfflineIndicator'
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
@@ -336,6 +337,7 @@ export default function App() {
             onExit={handleExitForeman}
           />
         </ErrorBoundary>
+        <OfflineIndicator />
         {toast && (
           <Toast
             message={toast.message}
@@ -466,6 +468,9 @@ export default function App() {
             )}
           </div>
         </ErrorBoundary>
+
+        {/* Offline Indicator */}
+        <OfflineIndicator />
 
         {/* Toast Notifications */}
         {toast && (

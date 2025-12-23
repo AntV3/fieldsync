@@ -15,6 +15,24 @@ const hexToRgb = (hex) => {
   ] : [30, 41, 59] // Default dark slate
 }
 
+// Helper to load image as base64 for PDF
+const loadImageAsBase64 = (url) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
 export default function TMList({ project, company, onShowToast }) {
   const { branding } = useBranding()
   const [tickets, setTickets] = useState([])
@@ -225,13 +243,15 @@ export default function TMList({ project, company, onShowToast }) {
   }
 
   // Export to PDF - Professional format with company branding
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const exportTickets = getExportTickets()
 
     if (exportTickets.length === 0) {
       onShowToast('No tickets to export', 'error')
       return
     }
+
+    onShowToast('Generating PDF...', 'info')
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
@@ -255,9 +275,14 @@ export default function TMList({ project, company, onShowToast }) {
     let logoOffset = margin
     if (branding?.logo_url) {
       try {
-        // Note: Logo will be added as image if URL is valid
-        // For now, we'll leave space for it
-        logoOffset = margin + 45
+        const logoBase64 = await loadImageAsBase64(branding.logo_url)
+        if (logoBase64) {
+          // Add logo (max height 30px, maintain aspect ratio)
+          const logoHeight = 30
+          const logoWidth = 30 // Square assumption, will be adjusted by aspect ratio
+          doc.addImage(logoBase64, 'PNG', margin, 7, logoWidth, logoHeight)
+          logoOffset = margin + logoWidth + 10
+        }
       } catch (e) {
         console.error('Error adding logo:', e)
       }
