@@ -6349,6 +6349,151 @@ input::placeholder {
   margin: 0;
 }
 
+/* Project Health Card - Executive Overview */
+.pv-health-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.pv-health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pv-health-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pv-health-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.pv-health-indicator.complete {
+  background: var(--accent-green);
+  animation: none;
+}
+
+.pv-health-indicator.active {
+  background: var(--accent-blue);
+}
+
+.pv-health-indicator.pending {
+  background: var(--text-muted);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pv-health-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-health-percent {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.pv-health-bar {
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.pv-health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.pv-health-context {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Area Summary Pills */
+.pv-area-summary {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Needs Attention Card */
+.pv-attention-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.pv-attention-card h3 {
+  color: var(--accent-amber);
+}
+
+.pv-attention-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pv-attention-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pv-attention-item:hover {
+  background: var(--bg-secondary);
+  transform: translateX(4px);
+}
+
+.pv-attention-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  background: var(--accent-amber);
+  color: #000;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.pv-attention-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.pv-attention-arrow {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+
+.pv-attention-item:hover .pv-attention-arrow {
+  transform: translateX(4px);
+  color: var(--accent-amber);
+}
+
 /* Area Counts in Card Header */
 .pv-area-counts {
   display: flex;
@@ -6439,6 +6584,98 @@ input::placeholder {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-top: 0.25rem;
+}
+
+/* Reports Summary Card */
+.pv-reports-summary {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
+}
+
+.pv-reports-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pv-report-stat {
+  text-align: center;
+  padding: 1rem 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+}
+
+.pv-report-stat.injury {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.pv-report-stat-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-report-stat.injury .pv-report-stat-value {
+  color: var(--accent-red);
+}
+
+.pv-report-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.pv-last-report {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Activity Summary Card */
+.pv-activity-summary {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+.pv-activity-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.pv-activity-stat {
+  text-align: center;
+  padding: 1rem 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+}
+
+.pv-activity-stat.has-pending {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.pv-activity-stat-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-activity-stat.has-pending .pv-activity-stat-value {
+  color: var(--accent-amber);
+}
+
+.pv-activity-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 

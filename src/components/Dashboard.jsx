@@ -64,6 +64,9 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         const projectAreas = await db.getAreas(project.id)
         const tickets = await db.getTMTickets(project.id)
         const changeOrderData = await db.getChangeOrderTotals(project.id)
+        const dailyReports = await db.getDailyReports(project.id, 100)
+        const injuryReports = await db.getInjuryReports(project.id)
+        const materialRequests = await db.getMaterialRequests(project.id)
         const progress = calculateProgress(projectAreas)
 
         // Calculate revised contract value (original + change orders)
@@ -71,6 +74,11 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         const revisedContractValue = project.contract_value + changeOrderValue
         const billable = (progress / 100) * revisedContractValue
         const pendingTickets = tickets.filter(t => t.status === 'pending').length
+
+        // Get recent report activity (last 7 days)
+        const oneWeekAgo = new Date()
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+        const recentDailyReports = dailyReports.filter(r => new Date(r.report_date) >= oneWeekAgo).length
 
         return {
           ...project,
@@ -82,7 +90,13 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           changeOrderPending: changeOrderData?.pendingCount || 0,
           totalTickets: tickets.length,
           pendingTickets,
-          approvedTickets: tickets.filter(t => t.status === 'approved').length
+          approvedTickets: tickets.filter(t => t.status === 'approved').length,
+          dailyReportsCount: dailyReports.length,
+          recentDailyReports,
+          injuryReportsCount: injuryReports.length,
+          lastDailyReport: dailyReports[0]?.report_date || null,
+          pendingMaterialRequests: materialRequests.filter(r => r.status === 'pending').length,
+          totalMaterialRequests: materialRequests.length
         }
       }))
       setProjectsData(enhanced)
@@ -484,28 +498,33 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           {/* OVERVIEW TAB */}
           {activeProjectTab === 'overview' && (
             <div className="pv-tab-panel">
-              {/* Progress Card */}
-              <div className="pv-card">
-                <h3>Project Progress</h3>
-                <div className="pv-progress-large">
-                  <div className="pv-progress-track">
-                    <div className="pv-progress-fill" style={{ width: `${progress}%` }}></div>
+              {/* Project Health Summary */}
+              <div className="pv-card pv-health-card">
+                <div className="pv-health-header">
+                  <div className="pv-health-status">
+                    <span className={`pv-health-indicator ${progress >= 100 ? 'complete' : progress > 0 ? 'active' : 'pending'}`}></span>
+                    <span className="pv-health-label">
+                      {progress >= 100 ? 'Complete' : progress > 0 ? 'In Progress' : 'Not Started'}
+                    </span>
                   </div>
-                  <div className="pv-progress-stats">
-                    <span className="pv-progress-percent-lg">{progress}%</span>
-                    <span className="pv-progress-label">Complete</span>
-                  </div>
+                  <div className="pv-health-percent">{progress}%</div>
+                </div>
+                <div className="pv-health-bar">
+                  <div className="pv-health-fill" style={{ width: `${progress}%` }}></div>
+                </div>
+                <div className="pv-health-context">
+                  <span>{areasComplete} of {areas.length} work areas complete</span>
                 </div>
               </div>
 
-              {/* Areas Grid */}
+              {/* Work Areas Breakdown */}
               <div className="pv-card">
                 <div className="pv-card-header">
-                  <h3>Areas</h3>
-                  <div className="pv-area-counts">
-                    <span className="pv-count done">{areasComplete} done</span>
-                    {areasWorking > 0 && <span className="pv-count working">{areasWorking} active</span>}
-                    {areasNotStarted > 0 && <span className="pv-count pending">{areasNotStarted} pending</span>}
+                  <h3>Work Areas</h3>
+                  <div className="pv-area-summary">
+                    {areasComplete > 0 && <span className="pv-count done">{areasComplete} Complete</span>}
+                    {areasWorking > 0 && <span className="pv-count working">{areasWorking} Active</span>}
+                    {areasNotStarted > 0 && <span className="pv-count pending">{areasNotStarted} Pending</span>}
                   </div>
                 </div>
                 <div className="pv-areas-grid">
@@ -518,31 +537,35 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                       </div>
                       <div className="pv-area-info">
                         <span className="pv-area-name">{area.name}</span>
-                        <span className="pv-area-weight">{area.weight}%</span>
+                        <span className="pv-area-weight">{area.weight}% of contract</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Quick Stats */}
-              <div className="pv-card">
-                <h3>Quick Stats</h3>
-                <div className="pv-quick-stats">
-                  <div className="pv-quick-stat">
-                    <span className="pv-qs-value">{areas.length}</span>
-                    <span className="pv-qs-label">Total Areas</span>
-                  </div>
-                  <div className="pv-quick-stat">
-                    <span className="pv-qs-value">{projectData?.totalTickets || 0}</span>
-                    <span className="pv-qs-label">T&M Tickets</span>
-                  </div>
-                  <div className="pv-quick-stat">
-                    <span className="pv-qs-value">{projectData?.pendingTickets || 0}</span>
-                    <span className="pv-qs-label">Pending Review</span>
+              {/* Action Items - What needs attention */}
+              {(projectData?.pendingTickets > 0 || projectData?.pendingMaterialRequests > 0) && (
+                <div className="pv-card pv-attention-card">
+                  <h3>Needs Attention</h3>
+                  <div className="pv-attention-items">
+                    {projectData?.pendingTickets > 0 && (
+                      <div className="pv-attention-item" onClick={() => setActiveProjectTab('financials')}>
+                        <span className="pv-attention-count">{projectData.pendingTickets}</span>
+                        <span className="pv-attention-label">T&M tickets awaiting approval</span>
+                        <span className="pv-attention-arrow">→</span>
+                      </div>
+                    )}
+                    {projectData?.pendingMaterialRequests > 0 && (
+                      <div className="pv-attention-item" onClick={() => setActiveProjectTab('activity')}>
+                        <span className="pv-attention-count">{projectData.pendingMaterialRequests}</span>
+                        <span className="pv-attention-label">Material requests pending review</span>
+                        <span className="pv-attention-arrow">→</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -626,6 +649,30 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           {/* REPORTS TAB */}
           {activeProjectTab === 'reports' && (
             <div className="pv-tab-panel">
+              {/* Reports Executive Summary */}
+              <div className="pv-card pv-reports-summary">
+                <h3>Field Documentation Summary</h3>
+                <div className="pv-reports-stats">
+                  <div className="pv-report-stat">
+                    <span className="pv-report-stat-value">{projectData?.dailyReportsCount || 0}</span>
+                    <span className="pv-report-stat-label">Daily Reports Filed</span>
+                  </div>
+                  <div className="pv-report-stat">
+                    <span className="pv-report-stat-value">{projectData?.recentDailyReports || 0}</span>
+                    <span className="pv-report-stat-label">Reports This Week</span>
+                  </div>
+                  <div className="pv-report-stat injury">
+                    <span className="pv-report-stat-value">{projectData?.injuryReportsCount || 0}</span>
+                    <span className="pv-report-stat-label">Injury Reports</span>
+                  </div>
+                </div>
+                {projectData?.lastDailyReport && (
+                  <div className="pv-last-report">
+                    Last report filed: {new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                )}
+              </div>
+
               {/* Daily Reports */}
               <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
 
@@ -642,6 +689,21 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           {/* ACTIVITY TAB */}
           {activeProjectTab === 'activity' && (
             <div className="pv-tab-panel">
+              {/* Activity Summary */}
+              <div className="pv-card pv-activity-summary">
+                <h3>Project Activity Status</h3>
+                <div className="pv-activity-stats">
+                  <div className={`pv-activity-stat ${projectData?.pendingMaterialRequests > 0 ? 'has-pending' : ''}`}>
+                    <span className="pv-activity-stat-value">{projectData?.pendingMaterialRequests || 0}</span>
+                    <span className="pv-activity-stat-label">Pending Requests</span>
+                  </div>
+                  <div className="pv-activity-stat">
+                    <span className="pv-activity-stat-value">{projectData?.totalMaterialRequests || 0}</span>
+                    <span className="pv-activity-stat-label">Total Requests</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Material Requests - Priority */}
               <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
 
