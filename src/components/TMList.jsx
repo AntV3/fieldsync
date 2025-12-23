@@ -41,6 +41,11 @@ export default function TMList({ project, company, onShowToast }) {
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
 
+  // Change order approval modal state
+  const [showChangeOrderModal, setShowChangeOrderModal] = useState(false)
+  const [pendingApprovalTicket, setPendingApprovalTicket] = useState(null)
+  const [changeOrderValue, setChangeOrderValue] = useState('')
+
   useEffect(() => {
     loadTickets()
   }, [project.id])
@@ -60,13 +65,48 @@ export default function TMList({ project, company, onShowToast }) {
   const updateStatus = async (ticketId, newStatus) => {
     try {
       await db.updateTMTicketStatus(ticketId, newStatus)
-      setTickets(tickets.map(t => 
+      setTickets(tickets.map(t =>
         t.id === ticketId ? { ...t, status: newStatus } : t
       ))
       onShowToast(`Ticket ${newStatus}`, 'success')
     } catch (error) {
       console.error('Error updating status:', error)
       onShowToast('Error updating status', 'error')
+    }
+  }
+
+  // Handle approval - check if ticket has CE/PCO and prompt for value
+  const handleApprove = (ticket) => {
+    if (ticket.ce_pco_number) {
+      // Has CE/PCO - show modal to enter change order value
+      setPendingApprovalTicket(ticket)
+      setChangeOrderValue('')
+      setShowChangeOrderModal(true)
+    } else {
+      // No CE/PCO - approve directly
+      updateStatus(ticket.id, 'approved')
+    }
+  }
+
+  // Confirm approval with change order value
+  const confirmChangeOrderApproval = async () => {
+    if (!pendingApprovalTicket) return
+
+    try {
+      const value = parseFloat(changeOrderValue) || 0
+      await db.approveTMTicket(pendingApprovalTicket.id, null, null, value)
+      setTickets(tickets.map(t =>
+        t.id === pendingApprovalTicket.id
+          ? { ...t, status: 'approved', change_order_value: value }
+          : t
+      ))
+      onShowToast(`Ticket approved with $${value.toLocaleString()} change order`, 'success')
+      setShowChangeOrderModal(false)
+      setPendingApprovalTicket(null)
+      setChangeOrderValue('')
+    } catch (error) {
+      console.error('Error approving ticket:', error)
+      onShowToast('Error approving ticket', 'error')
     }
   }
 
@@ -787,6 +827,9 @@ export default function TMList({ project, company, onShowToast }) {
                 />
                 <div className="tm-ticket-info">
                   <span className="tm-ticket-date">{formatDate(ticket.work_date)}</span>
+                  {ticket.ce_pco_number && (
+                    <span className="tm-ce-badge">{ticket.ce_pco_number}</span>
+                  )}
                   <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
                 </div>
                 <div className="tm-ticket-summary">
@@ -869,16 +912,24 @@ export default function TMList({ project, company, onShowToast }) {
                     </div>
                   )}
 
+                  {/* Show change order value if approved with CE/PCO */}
+                  {ticket.ce_pco_number && ticket.change_order_value > 0 && (
+                    <div className="tm-change-order-value">
+                      <span className="tm-co-label">Change Order Value:</span>
+                      <span className="tm-co-amount">${ticket.change_order_value.toLocaleString()}</span>
+                    </div>
+                  )}
+
                   <div className="tm-ticket-actions">
                     {ticket.status === 'pending' && (
                       <>
-                        <button 
+                        <button
                           className="btn btn-success btn-small"
-                          onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'approved'); }}
+                          onClick={(e) => { e.stopPropagation(); handleApprove(ticket); }}
                         >
-                          ✓ Approve
+                          ✓ Approve {ticket.ce_pco_number ? '+ CO' : ''}
                         </button>
-                        <button 
+                        <button
                           className="btn btn-warning btn-small"
                           onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'rejected'); }}
                         >
@@ -913,6 +964,47 @@ export default function TMList({ project, company, onShowToast }) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Change Order Approval Modal */}
+      {showChangeOrderModal && pendingApprovalTicket && (
+        <div className="modal-overlay" onClick={() => setShowChangeOrderModal(false)}>
+          <div className="modal change-order-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Approve Change Order Work</h3>
+            <p className="modal-subtitle">
+              This T&M ticket is associated with <strong>{pendingApprovalTicket.ce_pco_number}</strong>
+            </p>
+
+            <div className="form-group">
+              <label>Change Order Value ($)</label>
+              <input
+                type="number"
+                value={changeOrderValue}
+                onChange={(e) => setChangeOrderValue(e.target.value)}
+                placeholder="Enter the change order amount"
+                autoFocus
+              />
+              <p className="form-help">
+                This amount will be added to the project's total contract value.
+              </p>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowChangeOrderModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-success"
+                onClick={confirmChangeOrderApproval}
+              >
+                Approve with ${parseFloat(changeOrderValue || 0).toLocaleString()}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

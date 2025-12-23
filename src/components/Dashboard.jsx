@@ -62,8 +62,13 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       const enhanced = await Promise.all(data.map(async (project) => {
         const projectAreas = await db.getAreas(project.id)
         const tickets = await db.getTMTickets(project.id)
+        const changeOrderData = await db.getChangeOrderTotals(project.id)
         const progress = calculateProgress(projectAreas)
-        const billable = (progress / 100) * project.contract_value
+
+        // Calculate revised contract value (original + change orders)
+        const changeOrderValue = changeOrderData?.totalApprovedValue || 0
+        const revisedContractValue = project.contract_value + changeOrderValue
+        const billable = (progress / 100) * revisedContractValue
         const pendingTickets = tickets.filter(t => t.status === 'pending').length
 
         return {
@@ -71,6 +76,9 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           areas: projectAreas,
           progress,
           billable,
+          changeOrderValue,
+          revisedContractValue,
+          changeOrderPending: changeOrderData?.pendingCount || 0,
           totalTickets: tickets.length,
           pendingTickets,
           approvedTickets: tickets.filter(t => t.status === 'approved').length
@@ -280,7 +288,12 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   // Project Detail View
   if (selectedProject) {
     const progress = calculateProgress(areas)
-    const billable = (progress / 100) * selectedProject.contract_value
+
+    // Get change order data from enhanced project data
+    const projectData = projectsData.find(p => p.id === selectedProject.id)
+    const changeOrderValue = projectData?.changeOrderValue || 0
+    const revisedContractValue = selectedProject.contract_value + changeOrderValue
+    const billable = (progress / 100) * revisedContractValue
 
     // Edit Mode
     if (editMode && editData) {
@@ -388,9 +401,10 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     // View Mode - Calculate additional metrics for context
     const areasComplete = areas.filter(a => a.status === 'done').length
     const areasWorking = areas.filter(a => a.status === 'working').length
-    const percentBilled = selectedProject.contract_value > 0
-      ? Math.round((billable / selectedProject.contract_value) * 100)
+    const percentBilled = revisedContractValue > 0
+      ? Math.round((billable / revisedContractValue) * 100)
       : 0
+    const hasChangeOrders = changeOrderValue > 0
 
     return (
       <div className="project-view">
@@ -443,14 +457,29 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
               <span className="pv-fin-separator">of</span>
             </div>
             <div className="pv-fin-item">
-              <span className="pv-fin-value">{formatCurrency(selectedProject.contract_value)}</span>
-              <span className="pv-fin-label">Contract</span>
+              <span className="pv-fin-value">{formatCurrency(revisedContractValue)}</span>
+              <span className="pv-fin-label">{hasChangeOrders ? 'Revised Total' : 'Contract'}</span>
             </div>
             <div className="pv-fin-item pv-fin-remaining">
-              <span className="pv-fin-value-sm">{formatCurrency(selectedProject.contract_value - billable)}</span>
+              <span className="pv-fin-value-sm">{formatCurrency(revisedContractValue - billable)}</span>
               <span className="pv-fin-label">Remaining</span>
             </div>
           </div>
+
+          {/* Change Order Breakdown - Only show if there are change orders */}
+          {hasChangeOrders && (
+            <div className="pv-change-orders">
+              <div className="pv-co-row">
+                <span className="pv-co-label">Original Contract</span>
+                <span className="pv-co-value">{formatCurrency(selectedProject.contract_value)}</span>
+              </div>
+              <div className="pv-co-row pv-co-added">
+                <span className="pv-co-label">+ Change Orders</span>
+                <span className="pv-co-value">+{formatCurrency(changeOrderValue)}</span>
+              </div>
+            </div>
+          )}
+
           <div className="pv-progress-context">
             <span className="pv-progress-percent">{progress}%</span>
             <span className="pv-progress-label">Project Complete</span>
@@ -561,7 +590,9 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   }
 
   // Calculate business-level portfolio metrics
-  const totalPortfolioValue = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+  const totalOriginalContract = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+  const totalChangeOrders = projectsData.reduce((sum, p) => sum + (p.changeOrderValue || 0), 0)
+  const totalPortfolioValue = totalOriginalContract + totalChangeOrders
   const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
   const totalRemaining = totalPortfolioValue - totalEarned
 
@@ -570,11 +601,12 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     ? Math.round((totalEarned / totalPortfolioValue) * 100)
     : 0
 
-  // Project health breakdown
+  // Project health breakdown (use revised contract values)
   const projectsComplete = projectsData.filter(p => p.progress >= 100).length
-  const projectsOnTrack = projectsData.filter(p => p.progress < 100 && p.billable <= p.contract_value * (p.progress / 100) * 1.1).length
-  const projectsAtRisk = projectsData.filter(p => p.billable > p.contract_value * 0.9 && p.progress < 90).length
-  const projectsOverBudget = projectsData.filter(p => p.billable > p.contract_value).length
+  const projectsOnTrack = projectsData.filter(p => p.progress < 100 && p.billable <= (p.revisedContractValue || p.contract_value) * (p.progress / 100) * 1.1).length
+  const projectsAtRisk = projectsData.filter(p => p.billable > (p.revisedContractValue || p.contract_value) * 0.9 && p.progress < 90).length
+  const projectsOverBudget = projectsData.filter(p => p.billable > (p.revisedContractValue || p.contract_value)).length
+  const projectsWithChangeOrders = projectsData.filter(p => (p.changeOrderValue || 0) > 0).length
 
   return (
     <div>
@@ -608,6 +640,20 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
               <span className="bo-metric-label">Remaining to Bill</span>
             </div>
           </div>
+
+          {/* Change Orders Summary - Only show if there are change orders */}
+          {totalChangeOrders > 0 && (
+            <div className="bo-change-orders">
+              <div className="bo-co-item">
+                <span className="bo-co-label">Original Contracts</span>
+                <span className="bo-co-value">{formatCurrency(totalOriginalContract)}</span>
+              </div>
+              <div className="bo-co-item bo-co-added">
+                <span className="bo-co-label">+ Change Orders ({projectsWithChangeOrders} project{projectsWithChangeOrders !== 1 ? 's' : ''})</span>
+                <span className="bo-co-value">+{formatCurrency(totalChangeOrders)}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Project Health Summary */}

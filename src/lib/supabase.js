@@ -1023,6 +1023,48 @@ export const db = {
     return []
   },
 
+  // Get change order totals for a project
+  async getChangeOrderTotals(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select('ce_pco_number, change_order_value, status')
+        .eq('project_id', projectId)
+        .not('ce_pco_number', 'is', null)
+        .neq('ce_pco_number', '')
+
+      if (error) throw error
+
+      // Group by CE/PCO number
+      const changeOrders = {}
+      let totalApproved = 0
+      let totalPending = 0
+
+      data?.forEach(ticket => {
+        const ceNumber = ticket.ce_pco_number
+        if (!changeOrders[ceNumber]) {
+          changeOrders[ceNumber] = { approved: 0, pending: 0, count: 0 }
+        }
+        changeOrders[ceNumber].count++
+
+        if (ticket.status === 'approved' || ticket.status === 'billed') {
+          const value = parseFloat(ticket.change_order_value) || 0
+          changeOrders[ceNumber].approved += value
+          totalApproved += value
+        } else if (ticket.status === 'pending') {
+          totalPending++
+        }
+      })
+
+      return {
+        changeOrders,
+        totalApprovedValue: totalApproved,
+        pendingCount: totalPending
+      }
+    }
+    return { changeOrders: {}, totalApprovedValue: 0, pendingCount: 0 }
+  },
+
   async getTMTicketsByStatus(projectId, status) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
@@ -1113,22 +1155,29 @@ export const db = {
     return null
   },
 
-  // Approve T&M ticket (with certification)
-  async approveTMTicket(ticketId, userId, userName) {
+  // Approve T&M ticket (with certification and optional change order value)
+  async approveTMTicket(ticketId, userId, userName, changeOrderValue = null) {
     if (isSupabaseConfigured) {
+      const updateData = {
+        status: 'approved',
+        approved_by_user_id: userId,
+        approved_by_name: userName,
+        approved_at: new Date().toISOString(),
+        // Clear any previous rejection
+        rejected_by_user_id: null,
+        rejected_by_name: null,
+        rejected_at: null,
+        rejection_reason: null
+      }
+
+      // Add change order value if provided (for tickets with CE/PCO)
+      if (changeOrderValue !== null) {
+        updateData.change_order_value = parseFloat(changeOrderValue) || 0
+      }
+
       const { data, error } = await supabase
         .from('t_and_m_tickets')
-        .update({ 
-          status: 'approved',
-          approved_by_user_id: userId,
-          approved_by_name: userName,
-          approved_at: new Date().toISOString(),
-          // Clear any previous rejection
-          rejected_by_user_id: null,
-          rejected_by_name: null,
-          rejected_at: null,
-          rejection_reason: null
-        })
+        .update(updateData)
         .eq('id', ticketId)
         .select()
         .single()
