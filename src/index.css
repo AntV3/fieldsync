@@ -6679,6 +6679,128 @@ input::placeholder {
   margin-top: 0.25rem;
 }
 
+/* Burn Rate Card */
+.pv-burn-rate-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(239, 68, 68, 0.05) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.pv-burn-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pv-burn-header h3 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.pv-burn-badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pv-burn-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pv-burn-stat {
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+}
+
+.pv-burn-stat.main {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.pv-burn-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-burn-stat.main .pv-burn-value {
+  color: var(--accent-red);
+  font-size: 1.4rem;
+}
+
+.pv-burn-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Burn Ratio Bar */
+.pv-burn-context {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.pv-burn-ratio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pv-burn-ratio-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.pv-burn-ratio-bar {
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pv-burn-ratio-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-amber), var(--accent-red));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pv-burn-ratio-pct {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-burn-ratio-pct.warning {
+  color: var(--accent-amber);
+}
+
+/* Burn Footer */
+.pv-burn-footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.pv-burn-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* Financial Card Styles */
 .pv-financial-card {
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);

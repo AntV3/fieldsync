@@ -67,6 +67,12 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         const dailyReports = await db.getDailyReports(project.id, 100)
         const injuryReports = await db.getInjuryReports(project.id)
         const materialRequests = await db.getMaterialRequests(project.id)
+        const laborCosts = await db.calculateManDayCosts(
+          project.id,
+          company?.id,
+          project.work_type || 'demolition',
+          project.job_type || 'standard'
+        )
         const progress = calculateProgress(projectAreas)
 
         // Calculate revised contract value (original + change orders)
@@ -96,7 +102,14 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           injuryReportsCount: injuryReports.length,
           lastDailyReport: dailyReports[0]?.report_date || null,
           pendingMaterialRequests: materialRequests.filter(r => r.status === 'pending').length,
-          totalMaterialRequests: materialRequests.length
+          totalMaterialRequests: materialRequests.length,
+          // Burn rate data (MVP - labor costs)
+          laborCost: laborCosts?.totalCost || 0,
+          laborDaysWorked: laborCosts?.byDate?.length || 0,
+          laborManDays: laborCosts?.totalManDays || 0,
+          avgDailyBurn: laborCosts?.byDate?.length > 0
+            ? (laborCosts.totalCost / laborCosts.byDate.length)
+            : 0
         }
       }))
       setProjectsData(enhanced)
@@ -621,6 +634,55 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                       <span className="pv-revenue-pct">{100 - percentBilled}% to bill</span>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Burn Rate Card - MVP */}
+              <div className="pv-card pv-burn-rate-card">
+                <div className="pv-burn-header">
+                  <h3>Burn Rate</h3>
+                  <span className="pv-burn-badge">Labor Costs</span>
+                </div>
+
+                <div className="pv-burn-stats">
+                  <div className="pv-burn-stat main">
+                    <span className="pv-burn-value">{formatCurrency(projectData?.laborCost || 0)}</span>
+                    <span className="pv-burn-label">Total Labor Spent</span>
+                  </div>
+                  <div className="pv-burn-stat">
+                    <span className="pv-burn-value">{formatCurrency(projectData?.avgDailyBurn || 0)}</span>
+                    <span className="pv-burn-label">Avg Daily Burn</span>
+                  </div>
+                  <div className="pv-burn-stat">
+                    <span className="pv-burn-value">{projectData?.laborDaysWorked || 0}</span>
+                    <span className="pv-burn-label">Days Active</span>
+                  </div>
+                  <div className="pv-burn-stat">
+                    <span className="pv-burn-value">{projectData?.laborManDays || 0}</span>
+                    <span className="pv-burn-label">Man Days</span>
+                  </div>
+                </div>
+
+                {/* Labor as % of Revenue */}
+                {billable > 0 && projectData?.laborCost > 0 && (
+                  <div className="pv-burn-context">
+                    <div className="pv-burn-ratio">
+                      <span className="pv-burn-ratio-label">Labor Cost vs Revenue Earned</span>
+                      <div className="pv-burn-ratio-bar">
+                        <div
+                          className="pv-burn-ratio-fill"
+                          style={{ width: `${Math.min((projectData.laborCost / billable) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                      <span className={`pv-burn-ratio-pct ${(projectData.laborCost / billable) > 0.5 ? 'warning' : ''}`}>
+                        {Math.round((projectData.laborCost / billable) * 100)}% of earned revenue
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pv-burn-footer">
+                  <span className="pv-burn-note">Currently tracking labor costs. Materials and other expenses coming soon.</span>
                 </div>
               </div>
 
