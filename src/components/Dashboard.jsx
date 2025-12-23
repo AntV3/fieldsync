@@ -385,77 +385,115 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       )
     }
 
-    // View Mode
+    // View Mode - Calculate additional metrics for context
+    const areasComplete = areas.filter(a => a.status === 'done').length
+    const areasWorking = areas.filter(a => a.status === 'working').length
+    const percentBilled = selectedProject.contract_value > 0
+      ? Math.round((billable / selectedProject.contract_value) * 100)
+      : 0
+
     return (
-      <div className="project-detail-view">
-        {/* Compact Header */}
-        <div className="project-header-compact">
-          <div className="project-header-left">
-            <button className="back-btn-inline" onClick={handleBack}>←</button>
-            <div className="project-title-group">
-              <h1>{selectedProject.name}</h1>
-              <div className="project-tags-inline">
-                {selectedProject.job_number && <span className="tag">#{selectedProject.job_number}</span>}
-                {selectedProject.pin && <span className="tag">PIN: {selectedProject.pin}</span>}
-                {selectedProject.work_type && <span className="tag">{selectedProject.work_type}</span>}
-              </div>
-            </div>
-          </div>
-          <div className="project-header-actions">
-            <button className="btn btn-primary btn-small" onClick={() => setShowShareModal(true)}>Share</button>
-            <button className="btn btn-secondary btn-small" onClick={() => setShowNotificationSettings(true)}>Alerts</button>
-            <button className="btn btn-secondary btn-small" onClick={handleEditClick}>Edit</button>
+      <div className="project-view">
+        {/* Header - Minimal */}
+        <div className="pv-header">
+          <button className="pv-back" onClick={handleBack}>
+            <span>←</span>
+            <span>Back</span>
+          </button>
+          <div className="pv-actions">
+            <button className="pv-action" onClick={() => setShowShareModal(true)}>Share</button>
+            <button className="pv-action" onClick={() => setShowNotificationSettings(true)}>Alerts</button>
+            <button className="pv-action" onClick={handleEditClick}>Edit</button>
           </div>
         </div>
 
-        {/* Metrics Bar - Single Row */}
-        <div className="metrics-bar">
-          <div className="metric-inline">
-            <span className="metric-val">{formatCurrency(selectedProject.contract_value)}</span>
-            <span className="metric-lbl">Contract</span>
-          </div>
-          <div className="metric-inline accent">
-            <span className="metric-val">{formatCurrency(billable)}</span>
-            <span className="metric-lbl">Billable</span>
-          </div>
-          <div className="metric-inline">
-            <span className="metric-val">{formatCurrency(selectedProject.contract_value - billable)}</span>
-            <span className="metric-lbl">Remaining</span>
-          </div>
-          <div className="metric-inline progress-metric">
-            <span className="metric-val">{progress}%</span>
-            <div className="progress-bar-inline">
-              <div className="progress-fill-inline" style={{ width: `${progress}%` }}></div>
+        {/* Project Title */}
+        <div className="pv-title-section">
+          <h1 className="pv-title">{selectedProject.name}</h1>
+          {(selectedProject.job_number || selectedProject.work_type) && (
+            <div className="pv-subtitle">
+              {selectedProject.job_number && <span>Job #{selectedProject.job_number}</span>}
+              {selectedProject.job_number && selectedProject.work_type && <span className="pv-dot">•</span>}
+              {selectedProject.work_type && <span>{selectedProject.work_type}</span>}
             </div>
+          )}
+        </div>
+
+        {/* HERO: Financial Overview - Most Important */}
+        <div className="pv-hero-card">
+          <div className="pv-financial-bar">
+            <div className="pv-fin-track">
+              <div
+                className="pv-fin-fill"
+                style={{ width: `${Math.min(percentBilled, 100)}%` }}
+              ></div>
+              <div
+                className="pv-fin-marker"
+                style={{ left: `${progress}%` }}
+                title={`${progress}% complete`}
+              ></div>
+            </div>
+          </div>
+          <div className="pv-financial-numbers">
+            <div className="pv-fin-item">
+              <span className="pv-fin-value">{formatCurrency(billable)}</span>
+              <span className="pv-fin-label">Billed</span>
+            </div>
+            <div className="pv-fin-item pv-fin-of">
+              <span className="pv-fin-separator">of</span>
+            </div>
+            <div className="pv-fin-item">
+              <span className="pv-fin-value">{formatCurrency(selectedProject.contract_value)}</span>
+              <span className="pv-fin-label">Contract</span>
+            </div>
+            <div className="pv-fin-item pv-fin-remaining">
+              <span className="pv-fin-value-sm">{formatCurrency(selectedProject.contract_value - billable)}</span>
+              <span className="pv-fin-label">Remaining</span>
+            </div>
+          </div>
+          <div className="pv-progress-context">
+            <span className="pv-progress-percent">{progress}%</span>
+            <span className="pv-progress-label">Project Complete</span>
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="project-two-col">
-          {/* Left Column - Main Content */}
-          <div className="project-col-main">
-            {/* Areas - Inline */}
-            <div className="section-compact">
-              <div className="section-header-inline">
-                <h3>Areas</h3>
-                <span className="section-count">{areas.filter(a => a.status === 'done').length}/{areas.length} complete</span>
-              </div>
-              <div className="areas-inline-grid">
-                {areas.map(area => (
-                  <div key={area.id} className={`area-chip ${area.status}`}>
-                    <span className="area-chip-status">
-                      {area.status === 'done' ? '✓' : area.status === 'working' ? '◐' : '○'}
-                    </span>
-                    <span className="area-chip-name">{area.name}</span>
-                    <span className="area-chip-weight">{area.weight}%</span>
-                  </div>
-                ))}
-              </div>
+        {/* Areas Status - Visual Grid */}
+        <div className="pv-section">
+          <div className="pv-section-header">
+            <div className="pv-section-title">
+              <span className="pv-section-icon">◉</span>
+              <h2>Areas</h2>
             </div>
+            <div className="pv-section-summary">
+              <span className="pv-summary-done">{areasComplete} done</span>
+              {areasWorking > 0 && <span className="pv-summary-working">{areasWorking} in progress</span>}
+            </div>
+          </div>
+          <div className="pv-areas-grid">
+            {areas.map(area => (
+              <div key={area.id} className={`pv-area-card ${area.status}`}>
+                <div className="pv-area-status">
+                  {area.status === 'done' && <span className="pv-check">✓</span>}
+                  {area.status === 'working' && <span className="pv-working">●</span>}
+                  {area.status === 'not_started' && <span className="pv-pending">○</span>}
+                </div>
+                <div className="pv-area-info">
+                  <span className="pv-area-name">{area.name}</span>
+                  <span className="pv-area-weight">{area.weight}% of project</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-            {/* Man Day Costs */}
-            <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+        {/* Quick Stats Row */}
+        <div className="pv-stats-row">
+          <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+        </div>
 
+        {/* Main Content Sections */}
+        <div className="pv-content-grid">
+          <div className="pv-content-main">
             {/* T&M Tickets */}
             <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
 
@@ -463,8 +501,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
           </div>
 
-          {/* Right Column - Messages */}
-          <div className="project-col-side">
+          <div className="pv-content-side">
+            {/* Messages */}
             <ProjectMessages
               project={selectedProject}
               company={company}
@@ -474,17 +512,15 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           </div>
         </div>
 
-        {/* Bottom Section - Less Frequent */}
-        <div className="project-bottom-section">
-          <div className="bottom-section-grid">
-            <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
-            <InjuryReportsList
-              project={selectedProject}
-              companyId={company?.id || selectedProject?.company_id}
-              company={company}
-              onShowToast={onShowToast}
-            />
-          </div>
+        {/* Secondary Sections */}
+        <div className="pv-secondary">
+          <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
+          <InjuryReportsList
+            project={selectedProject}
+            companyId={company?.id || selectedProject?.company_id}
+            company={company}
+            onShowToast={onShowToast}
+          />
         </div>
 
         {/* Share Modal */}
