@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
-import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck, Info, Building2, Phone, MapPin } from 'lucide-react'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
@@ -582,7 +582,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
       { id: 'financials', label: 'Financials', Icon: DollarSign },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
-      { id: 'activity', label: 'Activity', Icon: MessageSquare }
+      { id: 'activity', label: 'Activity', Icon: MessageSquare },
+      { id: 'info', label: 'Info', Icon: Info }
     ]
 
     return (
@@ -971,6 +972,149 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                   userName={company?.name || 'Office'}
                   onShowToast={onShowToast}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* INFO TAB */}
+          {activeProjectTab === 'info' && (
+            <div className="pv-tab-panel">
+              {/* Project Details */}
+              <div className="pv-card pv-info-card">
+                <div className="pv-info-header">
+                  <h3>Project Details</h3>
+                  <button className="btn btn-secondary btn-sm" onClick={handleEditClick}>
+                    Edit Project
+                  </button>
+                </div>
+
+                <div className="pv-info-grid">
+                  {/* Basic Info */}
+                  <div className="pv-info-section">
+                    <div className="pv-info-section-title">Basic Information</div>
+                    <div className="pv-info-row">
+                      <span className="pv-info-label">Project Name</span>
+                      <span className="pv-info-value">{selectedProject.name}</span>
+                    </div>
+                    {selectedProject.job_number && (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">Job Number</span>
+                        <span className="pv-info-value">{selectedProject.job_number}</span>
+                      </div>
+                    )}
+                    {selectedProject.address && (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">
+                          <MapPin size={14} className="pv-info-icon" />
+                          Address
+                        </span>
+                        <span className="pv-info-value">{selectedProject.address}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Client & Contractor */}
+                  <div className="pv-info-section">
+                    <div className="pv-info-section-title">
+                      <Building2 size={16} className="pv-info-icon" />
+                      Client & Contractor
+                    </div>
+                    {selectedProject.general_contractor ? (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">General Contractor</span>
+                        <span className="pv-info-value">{selectedProject.general_contractor}</span>
+                      </div>
+                    ) : (
+                      <div className="pv-info-empty">No general contractor specified</div>
+                    )}
+                    {selectedProject.client_contact && (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">Client Contact</span>
+                        <span className="pv-info-value">{selectedProject.client_contact}</span>
+                      </div>
+                    )}
+                    {selectedProject.client_phone && (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">
+                          <Phone size={14} className="pv-info-icon" />
+                          Phone
+                        </span>
+                        <a href={`tel:${selectedProject.client_phone}`} className="pv-info-value pv-info-link">
+                          {selectedProject.client_phone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Project Settings */}
+                  <div className="pv-info-section">
+                    <div className="pv-info-section-title">Project Settings</div>
+                    <div className="pv-info-row">
+                      <span className="pv-info-label">Work Type</span>
+                      <span className="pv-info-value pv-info-badge">
+                        {selectedProject.work_type === 'environmental' ? 'Environmental' : 'Demolition'}
+                      </span>
+                    </div>
+                    <div className="pv-info-row">
+                      <span className="pv-info-label">Job Type</span>
+                      <span className="pv-info-value pv-info-badge">
+                        {selectedProject.job_type === 'prevailing_wage' ? 'Prevailing Wage' : 'Standard'}
+                      </span>
+                    </div>
+                    {selectedProject.pin && (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">Foreman PIN</span>
+                        <span className="pv-info-value pv-info-mono">{selectedProject.pin}</span>
+                      </div>
+                    )}
+                    {selectedProject.default_dump_site_id && (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">Default Dump Site</span>
+                        <span className="pv-info-value">
+                          {dumpSites.find(s => s.id === selectedProject.default_dump_site_id)?.name || 'Unknown'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contract Value */}
+                  <div className="pv-info-section">
+                    <div className="pv-info-section-title">
+                      <DollarSign size={16} className="pv-info-icon" />
+                      Contract
+                    </div>
+                    <div className="pv-info-row">
+                      <span className="pv-info-label">Original Contract</span>
+                      <span className="pv-info-value pv-info-currency">{formatCurrency(selectedProject.contract_value)}</span>
+                    </div>
+                    {changeOrderValue > 0 && (
+                      <div className="pv-info-row">
+                        <span className="pv-info-label">Change Orders</span>
+                        <span className="pv-info-value pv-info-currency positive">+{formatCurrency(changeOrderValue)}</span>
+                      </div>
+                    )}
+                    <div className="pv-info-row pv-info-total">
+                      <span className="pv-info-label">Current Value</span>
+                      <span className="pv-info-value pv-info-currency">{formatCurrency(revisedContractValue)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Work Areas Summary */}
+              <div className="pv-card">
+                <h3>Work Areas ({areas.length})</h3>
+                <div className="pv-info-areas">
+                  {areas.map(area => (
+                    <div key={area.id} className={`pv-info-area ${area.status}`}>
+                      <span className="pv-info-area-name">{area.name}</span>
+                      <span className="pv-info-area-weight">{area.weight}%</span>
+                      <span className={`pv-info-area-status status-badge ${area.status}`}>
+                        {area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In Progress' : 'Not Started'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
