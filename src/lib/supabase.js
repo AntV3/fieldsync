@@ -557,7 +557,7 @@ export const db = {
 
       const { data, error } = await supabase
         .from('areas')
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({ status })
         .eq('id', id)
         .select()
         .single()
@@ -598,7 +598,7 @@ export const db = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('areas')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(updates)
         .eq('id', id)
         .select()
         .single()
