@@ -10455,3 +10455,143 @@ input::placeholder {
   color: var(--text-muted);
   font-size: 0.7rem;
 }
+
+/* ============================================
+   PRICING MANAGER - TABBED INTERFACE
+   ============================================ */
+
+.pricing-manager {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.pricing-header {
+  margin-bottom: 1.5rem;
+}
+
+.pricing-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.pricing-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.pricing-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.pricing-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pricing-tab:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.pricing-tab.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.pricing-tab-icon {
+  font-size: 1.1rem;
+}
+
+.pricing-tab-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .pricing-tabs {
+    flex-direction: column;
+  }
+
+  .pricing-tab {
+    justify-content: flex-start;
+  }
+}
+
+.pricing-content {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.pricing-section h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.section-desc {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.pricing-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pricing-section-header > div {
+  flex: 1;
+}
+
+.pricing-section-header .btn {
+  flex-shrink: 0;
+}
+
+/* Override dump site header for section */
+.pricing-section .dump-site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pricing-section .dump-site-header > div {
+  flex: 1;
+}
+
+.pricing-section .dump-site-header h2 {
+  margin-bottom: 0.5rem;
+}
+
+.pricing-section .dump-site-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.pricing-section .dump-site-empty p {
+  margin: 0.25rem 0;
+}

@@ -6,8 +6,7 @@ import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
 import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
-import MaterialsManager from './components/MaterialsManager'
-import DumpSiteManager from './components/DumpSiteManager'
+import PricingManager from './components/PricingManager'
 import PublicView from './components/PublicView'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -385,12 +384,6 @@ export default function App() {
                 Pricing
               </button>
               <button
-                className={`nav-tab ${activeTab === 'dumpsites' ? 'active' : ''}`}
-                onClick={() => setActiveTab('dumpsites')}
-              >
-                Dump Sites
-              </button>
-              <button
                 className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
                 onClick={() => setActiveTab('branding')}
               >
@@ -462,13 +455,7 @@ export default function App() {
               />
             )}
             {activeTab === 'pricing' && (
-              <MaterialsManager
-                company={company}
-                onShowToast={showToast}
-              />
-            )}
-            {activeTab === 'dumpsites' && (
-              <DumpSiteManager
+              <PricingManager
                 company={company}
                 onShowToast={showToast}
               />

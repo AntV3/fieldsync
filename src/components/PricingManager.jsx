@@ -1,0 +1,50 @@
+import { useState } from 'react'
+import LaborRatesSection from './pricing/LaborRatesSection'
+import MaterialsSection from './pricing/MaterialsSection'
+import DumpSitesSection from './pricing/DumpSitesSection'
+
+const PRICING_TABS = [
+  { id: 'labor', label: 'Labor Rates', icon: '👷' },
+  { id: 'materials', label: 'Materials & Equipment', icon: '🔧' },
+  { id: 'disposal', label: 'Disposal & Haul-Off', icon: '🚛' }
+]
+
+export default function PricingManager({ company, onShowToast }) {
+  const [activeTab, setActiveTab] = useState('labor')
+
+  return (
+    <div className="pricing-manager">
+      <div className="pricing-header">
+        <h1>Pricing Configuration</h1>
+        <p className="pricing-subtitle">Set up labor rates, materials pricing, and disposal costs</p>
+      </div>
+
+      {/* Pricing Tabs */}
+      <div className="pricing-tabs">
+        {PRICING_TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={`pricing-tab ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span className="pricing-tab-icon">{tab.icon}</span>
+            <span className="pricing-tab-label">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="pricing-content">
+        {activeTab === 'labor' && (
+          <LaborRatesSection company={company} onShowToast={onShowToast} />
+        )}
+        {activeTab === 'materials' && (
+          <MaterialsSection company={company} onShowToast={onShowToast} />
+        )}
+        {activeTab === 'disposal' && (
+          <DumpSitesSection company={company} onShowToast={onShowToast} />
+        )}
+      </div>
+    </div>
+  )
+}
