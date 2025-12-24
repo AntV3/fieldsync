@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 
@@ -17,12 +17,21 @@ export default function DumpSitesSection({ company, onShowToast }) {
   const [editingSite, setEditingSite] = useState(null)
   const [newSite, setNewSite] = useState({ name: '', address: '', notes: '' })
   const [saving, setSaving] = useState(false)
+  const [pendingRates, setPendingRates] = useState({}) // Track pending rate values
+  const debounceTimers = useRef({}) // Debounce timers for rate changes
 
   useEffect(() => {
     if (company?.id) {
       loadDumpSites()
     }
   }, [company?.id])
+
+  // Cleanup debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer))
+    }
+  }, [])
 
   const loadDumpSites = async () => {
     setLoading(true)
@@ -95,16 +104,16 @@ export default function DumpSitesSection({ company, onShowToast }) {
     }
   }
 
-  const handleRateChange = async (siteId, wasteType, value) => {
-    const cost = parseFloat(value) || 0
+  // Debounced rate save - waits 500ms after last keystroke
+  const saveRate = useCallback(async (siteId, wasteType, cost) => {
     try {
       await db.setDumpSiteRate(siteId, wasteType, cost)
       setDumpSites(prev => prev.map(site => {
         if (site.id === siteId) {
-          const rates = site.dump_site_rates || []
+          const rates = [...(site.dump_site_rates || [])]
           const existingIndex = rates.findIndex(r => r.waste_type === wasteType)
           if (existingIndex >= 0) {
-            rates[existingIndex].estimated_cost_per_load = cost
+            rates[existingIndex] = { ...rates[existingIndex], estimated_cost_per_load: cost }
           } else {
             rates.push({ waste_type: wasteType, estimated_cost_per_load: cost })
           }
@@ -112,13 +121,42 @@ export default function DumpSitesSection({ company, onShowToast }) {
         }
         return site
       }))
+      // Clear pending state after successful save
+      setPendingRates(prev => {
+        const next = { ...prev }
+        delete next[`${siteId}-${wasteType}`]
+        return next
+      })
     } catch (error) {
-      console.error('Error saving rate:', error)
+      console.error('Error saving rate:', error?.message || error)
       onShowToast('Error saving rate', 'error')
     }
+  }, [onShowToast])
+
+  const handleRateChange = (siteId, wasteType, value) => {
+    const key = `${siteId}-${wasteType}`
+
+    // Update pending value immediately for responsive UI
+    setPendingRates(prev => ({ ...prev, [key]: value }))
+
+    // Clear existing timer
+    if (debounceTimers.current[key]) {
+      clearTimeout(debounceTimers.current[key])
+    }
+
+    // Set new timer to save after 500ms
+    debounceTimers.current[key] = setTimeout(() => {
+      const cost = parseFloat(value) || 0
+      saveRate(siteId, wasteType, cost)
+    }, 500)
   }
 
   const getRate = (site, wasteType) => {
+    const key = `${site.id}-${wasteType}`
+    // Show pending value if exists, otherwise show saved value
+    if (pendingRates[key] !== undefined) {
+      return pendingRates[key]
+    }
     const rate = site.dump_site_rates?.find(r => r.waste_type === wasteType)
     return rate?.estimated_cost_per_load ?? ''
   }
