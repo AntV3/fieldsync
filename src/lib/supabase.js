@@ -458,7 +458,10 @@ export const db = {
         .eq('id', id)
         .select()
         .single()
-      if (error) throw error
+      if (error) {
+        console.error('Error updating project:', error)
+        throw error
+      }
       return data
     } else {
       const localData = getLocalData()

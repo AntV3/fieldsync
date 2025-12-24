@@ -306,8 +306,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       setEditData(null)
       onShowToast('Project updated!', 'success')
     } catch (error) {
-      console.error('Error saving project:', error)
-      onShowToast('Error saving changes', 'error')
+      console.error('Error saving project:', error?.message || error)
+      onShowToast(error?.message || 'Error saving changes', 'error')
     } finally {
       setSaving(false)
     }
