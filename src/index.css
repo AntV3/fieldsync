@@ -126,6 +126,36 @@ h3 {
   vertical-align: middle;
   margin-right: 0.25rem;
   flex-shrink: 0;
+  color: currentColor;
+}
+
+/* Lucide icons general styling */
+svg.lucide {
+  color: inherit;
+}
+
+/* Ensure icons in buttons and interactive elements are visible */
+button svg,
+.btn svg,
+label svg,
+h3 svg,
+h4 svg,
+span svg {
+  color: currentColor;
+}
+
+/* Empty state icons */
+.empty-icon {
+  color: var(--text-secondary);
+}
+
+.empty-icon svg {
+  color: var(--text-secondary);
+}
+
+/* Empty state containers */
+.empty-state-icon svg {
+  color: var(--text-secondary);
 }
 
 /* Cards */
@@ -4404,6 +4434,15 @@ input::placeholder {
 .entry-mode-icon {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  display: flex;
+  justify-content: center;
+}
+
+.entry-mode-icon svg {
+  width: 32px;
+  height: 32px;
+  color: var(--text-primary);
 }
 
 .entry-mode-title {
@@ -5344,6 +5383,11 @@ input::placeholder {
 
 .field-action-btn .icon {
   font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.field-action-btn svg {
+  color: var(--text-primary);
 }
 
 .field-action-btn .badge {
@@ -10526,6 +10570,12 @@ input::placeholder {
 
 .pricing-tab-icon {
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+}
+
+.pricing-tab-icon svg {
+  color: currentColor;
 }
 
 .pricing-tab-label {
