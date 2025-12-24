@@ -72,7 +72,7 @@ export default function MaterialsManager({ company, onShowToast }) {
         .eq('company_id', company.id)
 
       if (error) {
-        console.log('Labor rates table may not exist:', error.message)
+        // Labor rates table may not exist yet - use defaults
         setLaborRates(rates)
         return
       }

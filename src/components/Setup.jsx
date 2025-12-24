@@ -91,8 +91,6 @@ export default function Setup({ onProjectCreated, onShowToast }) {
           // Convert to array of arrays
           const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })
 
-          console.log('Excel rows:', rows)
-
           const tasks = []
           let currentGroup = 'General'
 
@@ -116,7 +114,6 @@ export default function Setup({ onProjectCreated, onShowToast }) {
             if (cells.length === 0) continue
 
             const rowText = cells.join(' ')
-            console.log('Row cells:', cells, '| Combined:', rowText)
 
             // Skip header rows
             if (headerPattern.test(cells[0]) || (cells.length > 1 && headerPattern.test(cells[1]))) {
@@ -145,7 +142,6 @@ export default function Setup({ onProjectCreated, onShowToast }) {
                 .replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/i, '')
                 .replace(/\s*[-:]\s*$/, '')
                 .trim()
-              console.log('Found group:', currentGroup)
               continue
             }
 
@@ -211,7 +207,6 @@ export default function Setup({ onProjectCreated, onShowToast }) {
                 itemNumber: itemNumber,
                 selected: true
               })
-              console.log('Found task:', description, 'in', currentGroup, 'item:', itemNumber)
             }
           }
 
