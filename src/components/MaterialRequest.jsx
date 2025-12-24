@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Package } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 
 export default function MaterialRequest({ project, requestedBy, onShowToast, onClose }) {
@@ -168,7 +169,7 @@ export default function MaterialRequest({ project, requestedBy, onShowToast, onC
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? 'Submitting...' : '📦 Submit Request'}
+          {submitting ? 'Submitting...' : <><Package size={16} className="inline-icon" /> Submit Request</>}
         </button>
       </div>
     </div>

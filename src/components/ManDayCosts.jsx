@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { HardHat } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function ManDayCosts({ project, company, onShowToast }) {
@@ -81,7 +82,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
           <h3>Man Day Costs</h3>
         </div>
         <div className="man-day-empty">
-          <span className="empty-icon">👷</span>
+          <span className="empty-icon"><HardHat size={32} /></span>
           <p>No crew check-ins yet</p>
           <small>Costs will appear as crew checks in from the field</small>
         </div>

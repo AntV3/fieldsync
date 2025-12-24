@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HardHat, Briefcase } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
 
@@ -241,7 +242,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               className="entry-mode-btn foreman"
               onClick={() => setMode('foreman')}
             >
-              <span className="entry-mode-icon">👷</span>
+              <span className="entry-mode-icon"><HardHat size={32} /></span>
               <span className="entry-mode-title">Foreman</span>
               <span className="entry-mode-desc">Enter project PIN</span>
             </button>
@@ -250,7 +251,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               className="entry-mode-btn office"
               onClick={() => setMode('office')}
             >
-              <span className="entry-mode-icon">💼</span>
+              <span className="entry-mode-icon"><Briefcase size={32} /></span>
               <span className="entry-mode-title">Office</span>
               <span className="entry-mode-desc">Sign in to dashboard</span>
             </button>

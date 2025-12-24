@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import { HardHat, Wrench, Truck } from 'lucide-react'
 import LaborRatesSection from './pricing/LaborRatesSection'
 import MaterialsSection from './pricing/MaterialsSection'
 import DumpSitesSection from './pricing/DumpSitesSection'
 
 const PRICING_TABS = [
-  { id: 'labor', label: 'Labor Rates', icon: '👷' },
-  { id: 'materials', label: 'Materials & Equipment', icon: '🔧' },
-  { id: 'disposal', label: 'Disposal & Haul-Off', icon: '🚛' }
+  { id: 'labor', label: 'Labor Rates', Icon: HardHat },
+  { id: 'materials', label: 'Materials & Equipment', Icon: Wrench },
+  { id: 'disposal', label: 'Disposal & Haul-Off', Icon: Truck }
 ]
 
 export default function PricingManager({ company, onShowToast }) {
@@ -27,7 +28,7 @@ export default function PricingManager({ company, onShowToast }) {
             className={`pricing-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            <span className="pricing-tab-icon">{tab.icon}</span>
+            <tab.Icon size={18} className="pricing-tab-icon" />
             <span className="pricing-tab-label">{tab.label}</span>
           </button>
         ))}

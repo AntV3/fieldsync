@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 const WASTE_TYPES = [
@@ -258,14 +259,14 @@ export default function DumpSiteManager({ company, onShowToast }) {
                       onClick={() => setEditingSite({ ...site })}
                       title="Edit"
                     >
-                      ✏️
+                      <Pencil size={16} />
                     </button>
                     <button
                       className="btn-icon"
                       onClick={() => handleDeleteSite(site.id)}
                       title="Delete"
                     >
-                      🗑️
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </>

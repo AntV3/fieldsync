@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
+import { FileText, MessageSquare, Package, ClipboardList, Truck, AlertTriangle, Info, FileQuestion } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
@@ -218,7 +219,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           className="foreman-info-btn"
           onClick={() => setShowProjectInfo(!showProjectInfo)}
         >
-          ℹ️
+          <Info size={20} />
         </button>
       </div>
 
@@ -282,14 +283,14 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           className="field-action-btn"
           onClick={() => setShowTMForm(true)}
         >
-          <span className="icon">📝</span>
+          <FileText size={20} className="icon" />
           T&M Ticket
         </button>
         <button
           className="field-action-btn"
           onClick={() => setShowMessages(true)}
         >
-          <span className="icon">💬</span>
+          <MessageSquare size={20} className="icon" />
           Messages
           {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
         </button>
@@ -297,28 +298,28 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           className="field-action-btn"
           onClick={() => setShowMaterialRequest(true)}
         >
-          <span className="icon">📦</span>
+          <Package size={20} className="icon" />
           Materials
         </button>
         <button
           className="field-action-btn"
           onClick={() => setShowDailyReport(true)}
         >
-          <span className="icon">📋</span>
+          <ClipboardList size={20} className="icon" />
           Daily Report
         </button>
         <button
           className="field-action-btn"
           onClick={() => setShowHaulOff(true)}
         >
-          <span className="icon">🚛</span>
+          <Truck size={20} className="icon" />
           Haul-Off
         </button>
         <button
           className="field-action-btn danger"
           onClick={() => setShowInjuryReport(true)}
         >
-          <span className="icon">🚨</span>
+          <AlertTriangle size={20} className="icon" />
           Report Injury
         </button>
       </div>
@@ -404,7 +405,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
 
       {areas.length === 0 && (
         <div className="foreman-empty">
-          <div className="foreman-empty-icon">📋</div>
+          <ClipboardList size={48} className="foreman-empty-icon" />
           <div className="foreman-empty-text">No areas yet</div>
           <div className="foreman-empty-subtext">Office needs to add areas to this project</div>
         </div>

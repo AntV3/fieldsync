@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Building2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress } from '../lib/utils'
 
@@ -133,7 +134,7 @@ export default function Field({ onShowToast }) {
   if (projects.length === 0) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">🏗️</div>
+        <div className="empty-state-icon"><Building2 size={48} /></div>
         <h3>No Projects</h3>
         <p>No projects have been created yet</p>
       </div>

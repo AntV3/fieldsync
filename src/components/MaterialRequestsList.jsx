@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Package } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function MaterialRequestsList({ project, company, onShowToast }) {
@@ -119,7 +120,7 @@ export default function MaterialRequestsList({ project, company, onShowToast }) 
 
       {filteredRequests.length === 0 ? (
         <div className="material-empty-state">
-          <span className="empty-icon">📦</span>
+          <span className="empty-icon"><Package size={32} /></span>
           <p>No {filter === 'all' ? '' : filter} material requests</p>
         </div>
       ) : (

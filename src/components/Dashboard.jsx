@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
+import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck } from 'lucide-react'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
@@ -474,10 +475,10 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
 
     // Tab definitions
     const tabs = [
-      { id: 'overview', label: 'Overview', icon: '◉' },
-      { id: 'financials', label: 'Financials', icon: '$' },
-      { id: 'reports', label: 'Reports', icon: '📋' },
-      { id: 'activity', label: 'Activity', icon: '💬' }
+      { id: 'overview', label: 'Overview', Icon: LayoutGrid },
+      { id: 'financials', label: 'Financials', Icon: DollarSign },
+      { id: 'reports', label: 'Reports', Icon: ClipboardList },
+      { id: 'activity', label: 'Activity', Icon: MessageSquare }
     ]
 
     return (
@@ -535,7 +536,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                 className={`pv-tab ${activeProjectTab === tab.id ? 'active' : ''}`}
                 onClick={() => setActiveProjectTab(tab.id)}
               >
-                <span className="pv-tab-icon">{tab.icon}</span>
+                <tab.Icon size={16} className="pv-tab-icon" />
                 <span className="pv-tab-label">{tab.label}</span>
               </button>
             ))}
@@ -701,7 +702,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                   {/* Labor */}
                   <div className="pv-burn-category">
                     <div className="pv-burn-cat-header">
-                      <span className="pv-burn-cat-icon">👷</span>
+                      <HardHat size={18} className="pv-burn-cat-icon" />
                       <span className="pv-burn-cat-title">Labor</span>
                     </div>
                     <div className="pv-burn-cat-stats">
@@ -719,7 +720,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                   {/* Haul-Off */}
                   <div className="pv-burn-category">
                     <div className="pv-burn-cat-header">
-                      <span className="pv-burn-cat-icon">🚛</span>
+                      <Truck size={18} className="pv-burn-cat-icon" />
                       <span className="pv-burn-cat-title">Haul-Off</span>
                       <span className="pv-burn-cat-badge">Est.</span>
                     </div>
@@ -901,7 +902,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   if (projects.length === 0) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">📋</div>
+        <ClipboardList size={48} className="empty-state-icon" />
         <h3>No Projects Yet</h3>
         <p>Create your first project to get started</p>
       </div>

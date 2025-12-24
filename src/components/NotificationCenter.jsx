@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { MessageSquare, Package, AlertCircle, ClipboardList, Bell } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function NotificationCenter({ company, projects, userId, onNotificationClick, onShowToast }) {
@@ -307,11 +308,11 @@ export default function NotificationCenter({ company, projects, userId, onNotifi
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'message': return '💬'
-      case 'material_request': return '📦'
-      case 'injury_report': return '🚨'
-      case 'tm_ticket': return '📋'
-      default: return '🔔'
+      case 'message': return <MessageSquare size={16} />
+      case 'material_request': return <Package size={16} />
+      case 'injury_report': return <AlertCircle size={16} />
+      case 'tm_ticket': return <ClipboardList size={16} />
+      default: return <Bell size={16} />
     }
   }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { HardHat } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function CrewCheckin({ project, onShowToast }) {
@@ -84,7 +85,7 @@ export default function CrewCheckin({ project, onShowToast }) {
     return (
       <div className="crew-checkin">
         <div className="crew-header">
-          <h3>👷 Today's Crew</h3>
+          <h3><HardHat size={18} className="inline-icon" /> Today's Crew</h3>
           <span className="crew-date">{today}</span>
         </div>
         <div className="crew-loading">Loading...</div>
@@ -95,7 +96,7 @@ export default function CrewCheckin({ project, onShowToast }) {
   return (
     <div className="crew-checkin">
       <div className="crew-header">
-        <h3>👷 Today's Crew</h3>
+        <h3><HardHat size={18} className="inline-icon" /> Today's Crew</h3>
         <span className="crew-date">{today}</span>
       </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
@@ -541,7 +542,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 className="tm-crew-picker-btn"
                 onClick={() => setShowCrewPicker(!showCrewPicker)}
               >
-                👷 {showCrewPicker ? 'Hide' : 'Select from'} Today's Crew ({todaysCrew.length})
+                <HardHat size={16} /> {showCrewPicker ? 'Hide' : 'Select from'} Today's Crew ({todaysCrew.length})
               </button>
               
               {showCrewPicker && (
@@ -824,7 +825,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {/* Photos Section */}
           <div className="tm-field">
             <label>
-              📷 Photos 
+              <Camera size={16} className="inline-icon" /> Photos 
               {maxPhotos !== -1 && (
                 <span className="tm-photo-count">({photos.length}/{maxPhotos})</span>
               )}
@@ -848,7 +849,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   onChange={handlePhotoAdd}
                   style={{ display: 'none' }}
                 />
-                📷 {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
+                <Camera size={16} className="inline-icon" /> {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
               </label>
             )}
             {maxPhotos !== -1 && photos.length >= maxPhotos && (
@@ -920,7 +921,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {notes && (
             <div className="tm-review-section">
               <div className="tm-review-header">
-                <span>📝 Description</span>
+                <span><FileText size={16} className="inline-icon" /> Description</span>
               </div>
               <div className="tm-review-notes">{notes}</div>
             </div>
@@ -929,7 +930,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {photos.length > 0 && (
             <div className="tm-review-section">
               <div className="tm-review-header">
-                <span>📷 Photos</span>
+                <span><Camera size={16} className="inline-icon" /> Photos</span>
                 <span>{photos.length}</span>
               </div>
               <div className="tm-review-photos">
@@ -943,7 +944,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {validSupervision.length > 0 && (
             <div className="tm-review-section">
               <div className="tm-review-header">
-                <span>👔 Supervision</span>
+                <span><UserCheck size={16} className="inline-icon" /> Supervision</span>
                 <span>{validSupervision.reduce((sum, s) => sum + parseFloat(s.hours || 0) + parseFloat(s.overtimeHours || 0), 0)} hrs</span>
               </div>
               <div className="tm-review-list">
@@ -989,7 +990,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {validLaborers.length > 0 && (
             <div className="tm-review-section">
               <div className="tm-review-header">
-                <span>👷 Laborers</span>
+                <span><HardHat size={16} className="inline-icon" /> Laborers</span>
                 <span>{validLaborers.reduce((sum, l) => sum + parseFloat(l.hours || 0) + parseFloat(l.overtimeHours || 0), 0)} hrs</span>
               </div>
               <div className="tm-review-list">
@@ -1011,13 +1012,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {items.length > 0 && (
             <div className="tm-review-section">
               <div className="tm-review-header">
-                <span>🔧 Materials & Equipment</span>
+                <span><Wrench size={16} className="inline-icon" /> Materials & Equipment</span>
                 <span>{items.length} items</span>
               </div>
               <div className="tm-review-list">
                 {items.map((item, i) => (
                   <div key={i} className="tm-review-row">
-                    <span>{item.isCustom && '⚡ '}{item.name}</span>
+                    <span>{item.isCustom && <><Zap size={14} className="inline-icon" /> </>}{item.name}</span>
                     <span>{item.quantity} {item.unit}</span>
                   </div>
                 ))}
@@ -1028,7 +1029,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {/* Submitted By - Certification */}
           <div className="tm-review-section tm-certification">
             <div className="tm-review-header">
-              <span>✍️ Submitted By</span>
+              <span><PenLine size={16} className="inline-icon" /> Submitted By</span>
             </div>
             <input
               type="text"

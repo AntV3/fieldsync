@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Briefcase, HardHat } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 
 export default function Messages({ project, viewerType, viewerName, onShowToast, onClose }) {
@@ -122,7 +123,7 @@ export default function Messages({ project, viewerType, viewerName, onShowToast,
             >
               <div className="message-bubble">
                 <div className="message-sender">
-                  {msg.sender_type === 'office' ? '💼' : '👷'} {msg.sender_name}
+                  {msg.sender_type === 'office' ? <Briefcase size={14} className="inline-icon" /> : <HardHat size={14} className="inline-icon" />} {msg.sender_name}
                 </div>
                 <div className="message-text">{msg.message}</div>
                 {msg.photo_url && (

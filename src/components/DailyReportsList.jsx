@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ClipboardList } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import jsPDF from 'jspdf'
@@ -259,7 +260,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
       {reports.length === 0 ? (
         <div className="reports-empty-state">
-          <span className="empty-icon">📋</span>
+          <span className="empty-icon"><ClipboardList size={32} /></span>
           <p>No daily reports yet</p>
           <small>Reports from the field will appear here</small>
         </div>

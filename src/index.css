@@ -120,6 +120,14 @@ h3 {
   margin-bottom: 2rem;
 }
 
+/* Inline Icons (Lucide) */
+.inline-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+}
+
 /* Cards */
 .card {
   background: var(--bg-card);

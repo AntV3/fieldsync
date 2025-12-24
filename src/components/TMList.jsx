@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { HardHat, FileText, Wrench, Camera } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import * as XLSX from 'xlsx'
@@ -843,7 +844,7 @@ export default function TMList({ project, company, onShowToast }) {
                 <div className="tm-ticket-details">
                   {ticket.t_and_m_workers?.length > 0 && (
                     <div className="tm-detail-section">
-                      <h4>👷 Workers</h4>
+                      <h4><HardHat size={16} className="inline-icon" /> Workers</h4>
                       <div className="tm-detail-list">
                         {ticket.t_and_m_workers.map(worker => (
                           <div key={worker.id} className="tm-detail-row">
@@ -867,7 +868,7 @@ export default function TMList({ project, company, onShowToast }) {
 
                   {ticket.t_and_m_items?.length > 0 && (
                     <div className="tm-detail-section">
-                      <h4>🔧 Materials & Equipment</h4>
+                      <h4><Wrench size={16} className="inline-icon" /> Materials & Equipment</h4>
                       <div className="tm-detail-list">
                         {ticket.t_and_m_items.map(item => (
                           <div key={item.id} className="tm-detail-row">
@@ -894,14 +895,14 @@ export default function TMList({ project, company, onShowToast }) {
 
                   {ticket.notes && (
                     <div className="tm-detail-section">
-                      <h4>📝 Description</h4>
+                      <h4><FileText size={16} className="inline-icon" /> Description</h4>
                       <p className="tm-notes-text">{ticket.notes}</p>
                     </div>
                   )}
 
                   {ticket.photos && ticket.photos.length > 0 && (
                     <div className="tm-detail-section">
-                      <h4>📷 Photos ({ticket.photos.length})</h4>
+                      <h4><Camera size={16} className="inline-icon" /> Photos ({ticket.photos.length})</h4>
                       <div className="tm-photos-grid">
                         {ticket.photos.map((photo, idx) => (
                           <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">

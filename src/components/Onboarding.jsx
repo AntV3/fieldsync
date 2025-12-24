@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { ClipboardList, Upload, Pencil } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 import * as XLSX from 'xlsx'
@@ -249,7 +250,7 @@ export default function Onboarding({ onComplete, onShowToast }) {
                 className="onboarding-option"
                 onClick={() => { setMethod('template'); setStep(2) }}
               >
-                <span className="option-icon">📋</span>
+                <span className="option-icon"><ClipboardList size={24} /></span>
                 <span className="option-title">Industry Template</span>
                 <span className="option-desc">Start with common items for your trade</span>
               </button>
@@ -258,7 +259,7 @@ export default function Onboarding({ onComplete, onShowToast }) {
                 className="onboarding-option"
                 onClick={() => { setMethod('import'); setStep(2) }}
               >
-                <span className="option-icon">📤</span>
+                <span className="option-icon"><Upload size={24} /></span>
                 <span className="option-title">Import Excel</span>
                 <span className="option-desc">Upload your existing materials list</span>
               </button>
@@ -267,7 +268,7 @@ export default function Onboarding({ onComplete, onShowToast }) {
                 className="onboarding-option"
                 onClick={() => { setMethod('scratch'); skipOnboarding() }}
               >
-                <span className="option-icon">✏️</span>
+                <span className="option-icon"><Pencil size={24} /></span>
                 <span className="option-title">Start from Scratch</span>
                 <span className="option-desc">Add items manually as you go</span>
               </button>

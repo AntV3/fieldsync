@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import Logo from './Logo'
@@ -71,7 +72,7 @@ export default function PublicView({ shareToken }) {
     return (
       <div className="public-view">
         <div className="error-container">
-          <div className="error-icon">⚠️</div>
+          <div className="error-icon"><AlertTriangle size={48} /></div>
           <h2>{error}</h2>
           <p>Please contact the project owner for a valid link.</p>
         </div>

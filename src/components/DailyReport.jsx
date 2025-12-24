@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { HardHat, FileText, AlertTriangle, CheckCircle, Upload } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
@@ -131,7 +132,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         {/* Crew List */}
         {report.crew_list?.length > 0 && (
           <div className="daily-report-section">
-            <h3>👷 Crew</h3>
+            <h3><HardHat size={18} className="inline-icon" /> Crew</h3>
             <div className="daily-report-crew">
               {report.crew_list.map((worker, i) => (
                 <div key={i} className="daily-report-crew-item">
@@ -146,7 +147,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         {/* Completed Tasks */}
         {report.completed_tasks?.length > 0 && (
           <div className="daily-report-section">
-            <h3>✓ Completed Today</h3>
+            <h3><CheckCircle size={18} className="inline-icon" /> Completed Today</h3>
             <ul className="daily-report-tasks">
               {report.completed_tasks.map((task, i) => (
                 <li key={i}>
@@ -160,7 +161,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
         {/* Field Notes */}
         <div className="daily-report-section">
-          <h3>📝 Notes</h3>
+          <h3><FileText size={18} className="inline-icon" /> Notes</h3>
           <textarea
             value={fieldNotes}
             onChange={(e) => setFieldNotes(e.target.value)}
@@ -172,7 +173,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
         {/* Issues */}
         <div className="daily-report-section">
-          <h3>⚠️ Issues / Concerns</h3>
+          <h3><AlertTriangle size={18} className="inline-icon" /> Issues / Concerns</h3>
           <textarea
             value={issues}
             onChange={(e) => setIssues(e.target.value)}
@@ -191,7 +192,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? 'Submitting...' : '📤 Submit Report'}
+            {submitting ? 'Submitting...' : <><Upload size={16} className="inline-icon" /> Submit Report</>}
           </button>
           <p className="daily-report-hint">This will be sent to the office</p>
         </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
+import { MessageSquare, Package, AlertCircle, ClipboardList } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 const NOTIFICATION_TYPES = [
-  { id: 'message', label: 'Messages', icon: '💬', description: 'Chat messages from field' },
-  { id: 'material_request', label: 'Material Requests', icon: '📦', description: 'Equipment and material requests' },
-  { id: 'injury_report', label: 'Safety Reports', icon: '🚨', description: 'Injury and safety incident reports' },
-  { id: 'tm_ticket', label: 'T&M Tickets', icon: '📋', description: 'Time and materials tickets' }
+  { id: 'message', label: 'Messages', Icon: MessageSquare, description: 'Chat messages from field' },
+  { id: 'material_request', label: 'Material Requests', Icon: Package, description: 'Equipment and material requests' },
+  { id: 'injury_report', label: 'Safety Reports', Icon: AlertCircle, description: 'Injury and safety incident reports' },
+  { id: 'tm_ticket', label: 'T&M Tickets', Icon: ClipboardList, description: 'Time and materials tickets' }
 ]
 
 export default function NotificationSettings({ project, company, onShowToast, onClose }) {
@@ -194,7 +195,7 @@ export default function NotificationSettings({ project, company, onShowToast, on
                         checked={userPrefs.types.includes(type.id)}
                         onChange={() => handleToggleType(user.id, type.id)}
                       />
-                      <span className="type-icon">{type.icon}</span>
+                      <span className="type-icon"><type.Icon size={16} /></span>
                       <span className="type-label">{type.label}</span>
                     </label>
                   ))}

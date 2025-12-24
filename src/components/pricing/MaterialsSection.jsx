@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
@@ -400,14 +401,14 @@ function MaterialItem({ item, editingItem, setEditingItem, handleUpdateItem, han
           onClick={() => setEditingItem({ ...item })}
           title="Edit"
         >
-          ✏️
+          <Pencil size={16} />
         </button>
         <button
           className="btn-icon danger"
           onClick={() => handleDeleteItem(item.id)}
           title="Delete"
         >
-          🗑️
+          <Trash2 size={16} />
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Briefcase, HardHat, MessageSquare } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function ProjectMessages({ project, company, userName, onShowToast }) {
@@ -131,7 +132,7 @@ export default function ProjectMessages({ project, company, userName, onShowToas
           {recentMessages.map(msg => (
             <div key={msg.id} className={`preview-message ${msg.sender_type}`}>
               <span className="preview-sender">
-                {msg.sender_type === 'office' ? '💼' : '👷'} {msg.sender_name}:
+                {msg.sender_type === 'office' ? <Briefcase size={12} className="inline-icon" /> : <HardHat size={12} className="inline-icon" />} {msg.sender_name}:
               </span>
               <span className="preview-text">
                 {msg.message?.slice(0, 50)}{msg.message?.length > 50 ? '...' : ''}
@@ -150,7 +151,7 @@ export default function ProjectMessages({ project, company, userName, onShowToas
           <div className="messages-list-container">
             {messages.length === 0 ? (
               <div className="messages-empty">
-                <span className="empty-icon">💬</span>
+                <span className="empty-icon"><MessageSquare size={32} /></span>
                 <p>No messages yet</p>
                 <small>Send a message to the field crew</small>
               </div>
@@ -161,7 +162,7 @@ export default function ProjectMessages({ project, company, userName, onShowToas
                   className={`message-bubble ${msg.sender_type === 'office' ? 'sent' : 'received'}`}
                 >
                   <div className="message-sender">
-                    {msg.sender_type === 'office' ? '💼' : '👷'} {msg.sender_name}
+                    {msg.sender_type === 'office' ? <Briefcase size={14} className="inline-icon" /> : <HardHat size={14} className="inline-icon" />} {msg.sender_name}
                   </div>
                   <div className="message-text">{msg.message}</div>
                   {msg.photo_url && (
