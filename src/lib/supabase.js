@@ -2889,25 +2889,50 @@ export const db = {
   // Set rate for a waste type at a dump site
   async setDumpSiteRate(dumpSiteId, wasteType, estimatedCostPerLoad, unit = 'load') {
     if (isSupabaseConfigured) {
-      // Upsert: insert or update if exists
-      const { data, error } = await supabase
+      // First check if rate exists
+      const { data: existing } = await supabase
         .from('dump_site_rates')
-        .upsert({
-          dump_site_id: dumpSiteId,
-          waste_type: wasteType,
-          estimated_cost_per_load: estimatedCostPerLoad,
-          unit
-        }, {
-          onConflict: 'dump_site_id,waste_type'
-        })
-        .select()
-        .single()
+        .select('id')
+        .eq('dump_site_id', dumpSiteId)
+        .eq('waste_type', wasteType)
+        .maybeSingle()
 
-      if (error) {
-        console.error('Error setting dump site rate:', error)
-        throw error
+      if (existing) {
+        // Update existing rate
+        const { data, error } = await supabase
+          .from('dump_site_rates')
+          .update({
+            estimated_cost_per_load: estimatedCostPerLoad,
+            unit
+          })
+          .eq('id', existing.id)
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Error updating dump site rate:', error)
+          throw error
+        }
+        return data
+      } else {
+        // Insert new rate
+        const { data, error } = await supabase
+          .from('dump_site_rates')
+          .insert({
+            dump_site_id: dumpSiteId,
+            waste_type: wasteType,
+            estimated_cost_per_load: estimatedCostPerLoad,
+            unit
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error('Error inserting dump site rate:', error)
+          throw error
+        }
+        return data
       }
-      return data
     }
     // Demo mode
     const localData = getLocalData()
