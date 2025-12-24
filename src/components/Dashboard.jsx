@@ -167,7 +167,14 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   const handleEditClick = () => {
     setEditData({
       name: selectedProject.name,
+      job_number: selectedProject.job_number || '',
+      address: selectedProject.address || '',
+      general_contractor: selectedProject.general_contractor || '',
+      client_contact: selectedProject.client_contact || '',
+      client_phone: selectedProject.client_phone || '',
       contract_value: selectedProject.contract_value,
+      work_type: selectedProject.work_type || 'demolition',
+      job_type: selectedProject.job_type || 'standard',
       pin: selectedProject.pin || '',
       default_dump_site_id: selectedProject.default_dump_site_id || '',
       areas: areas.map(a => ({
@@ -259,7 +266,14 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       // Update project
       await db.updateProject(selectedProject.id, {
         name: editData.name.trim(),
+        job_number: editData.job_number?.trim() || null,
+        address: editData.address?.trim() || null,
+        general_contractor: editData.general_contractor?.trim() || null,
+        client_contact: editData.client_contact?.trim() || null,
+        client_phone: editData.client_phone?.trim() || null,
         contract_value: contractVal,
+        work_type: editData.work_type || 'demolition',
+        job_type: editData.job_type || 'standard',
         pin: editData.pin || null,
         default_dump_site_id: editData.default_dump_site_id || null
       })
@@ -360,34 +374,124 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           <h1>Edit Project</h1>
           <p className="subtitle">Update project details</p>
 
+          {/* Basic Info */}
           <div className="card">
-            <div className="form-group">
-              <label>Project Name</label>
-              <input
-                type="text"
-                value={editData.name}
-                onChange={(e) => handleEditChange('name', e.target.value)}
-              />
+            <h3>Basic Info</h3>
+            <div className="form-row">
+              <div className="form-group" style={{ flex: 2 }}>
+                <label>Project Name *</label>
+                <input
+                  type="text"
+                  value={editData.name}
+                  onChange={(e) => handleEditChange('name', e.target.value)}
+                  placeholder="e.g., Downtown Office Demolition"
+                />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Job Number</label>
+                <input
+                  type="text"
+                  value={editData.job_number}
+                  onChange={(e) => handleEditChange('job_number', e.target.value)}
+                  placeholder="e.g., 2024-001"
+                />
+              </div>
             </div>
 
             <div className="form-group">
-              <label>Contract Value ($)</label>
+              <label>Project Address</label>
               <input
-                type="number"
-                value={editData.contract_value}
-                onChange={(e) => handleEditChange('contract_value', e.target.value)}
+                type="text"
+                value={editData.address}
+                onChange={(e) => handleEditChange('address', e.target.value)}
+                placeholder="123 Main St, City, State 12345"
+              />
+            </div>
+          </div>
+
+          {/* Client & Contractor Info */}
+          <div className="card">
+            <h3>Client & Contractor</h3>
+            <div className="form-group">
+              <label>General Contractor</label>
+              <input
+                type="text"
+                value={editData.general_contractor}
+                onChange={(e) => handleEditChange('general_contractor', e.target.value)}
+                placeholder="e.g., ABC Construction"
               />
             </div>
 
-            <div className="form-group">
-              <label>Foreman PIN (4 digits)</label>
-              <input
-                type="text"
-                value={editData.pin}
-                onChange={(e) => handleEditChange('pin', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="e.g., 2847"
-                maxLength={4}
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label>Client Contact</label>
+                <input
+                  type="text"
+                  value={editData.client_contact}
+                  onChange={(e) => handleEditChange('client_contact', e.target.value)}
+                  placeholder="Contact name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Client Phone</label>
+                <input
+                  type="tel"
+                  value={editData.client_phone}
+                  onChange={(e) => handleEditChange('client_phone', e.target.value)}
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Financial & Project Settings */}
+          <div className="card">
+            <h3>Financials & Settings</h3>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Contract Value ($) *</label>
+                <input
+                  type="number"
+                  value={editData.contract_value}
+                  onChange={(e) => handleEditChange('contract_value', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="form-group">
+                <label>Foreman PIN</label>
+                <input
+                  type="text"
+                  value={editData.pin}
+                  onChange={(e) => handleEditChange('pin', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="4 digits"
+                  maxLength={4}
+                />
+                <span className="form-hint">Used for field crew access</span>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Work Type</label>
+                <select
+                  value={editData.work_type}
+                  onChange={(e) => handleEditChange('work_type', e.target.value)}
+                >
+                  <option value="demolition">Demolition</option>
+                  <option value="environmental">Environmental</option>
+                </select>
+                <span className="form-hint">Affects labor rate calculations</span>
+              </div>
+              <div className="form-group">
+                <label>Job Type</label>
+                <select
+                  value={editData.job_type}
+                  onChange={(e) => handleEditChange('job_type', e.target.value)}
+                >
+                  <option value="standard">Standard</option>
+                  <option value="prevailing_wage">Prevailing Wage</option>
+                </select>
+              </div>
             </div>
 
             <div className="form-group">

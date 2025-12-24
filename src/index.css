@@ -8049,6 +8049,11 @@ input::placeholder {
   margin-bottom: 1rem;
 }
 
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 .form-row input,
 .form-row select {
   flex: 1;
@@ -8244,6 +8249,14 @@ input::placeholder {
 
   .form-row {
     flex-direction: column;
+  }
+
+  .form-row .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-row .form-group:last-child {
+    margin-bottom: 0;
   }
 
   .material-item {
