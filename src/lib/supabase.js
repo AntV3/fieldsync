@@ -2783,6 +2783,302 @@ export const db = {
     localData.notificationPresets = localData.notificationPresets.filter(p => p.id !== presetId)
     setLocalData(localData)
     return true
+  },
+
+  // ============================================
+  // Dump Sites & Haul-Off Tracking
+  // ============================================
+
+  // Get all dump sites for a company
+  async getDumpSites(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('dump_sites')
+        .select(`
+          *,
+          dump_site_rates (*)
+        `)
+        .eq('company_id', companyId)
+        .eq('active', true)
+        .order('name')
+
+      if (error) {
+        console.error('Error fetching dump sites:', error)
+        return []
+      }
+      return data || []
+    }
+    // Demo mode
+    const localData = getLocalData()
+    return (localData.dumpSites || []).filter(ds => ds.company_id === companyId && ds.active)
+  },
+
+  // Create a new dump site
+  async createDumpSite(companyId, name, address = '', notes = '') {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('dump_sites')
+        .insert({
+          company_id: companyId,
+          name,
+          address,
+          notes,
+          active: true
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating dump site:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.dumpSites) localData.dumpSites = []
+    const dumpSite = {
+      id: crypto.randomUUID(),
+      company_id: companyId,
+      name,
+      address,
+      notes,
+      active: true,
+      created_at: new Date().toISOString(),
+      dump_site_rates: []
+    }
+    localData.dumpSites.push(dumpSite)
+    setLocalData(localData)
+    return dumpSite
+  },
+
+  // Update a dump site
+  async updateDumpSite(dumpSiteId, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('dump_sites')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', dumpSiteId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating dump site:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.dumpSites) return null
+    const index = localData.dumpSites.findIndex(ds => ds.id === dumpSiteId)
+    if (index === -1) return null
+    localData.dumpSites[index] = { ...localData.dumpSites[index], ...updates }
+    setLocalData(localData)
+    return localData.dumpSites[index]
+  },
+
+  // Delete (soft) a dump site
+  async deleteDumpSite(dumpSiteId) {
+    return this.updateDumpSite(dumpSiteId, { active: false })
+  },
+
+  // Set rate for a waste type at a dump site
+  async setDumpSiteRate(dumpSiteId, wasteType, estimatedCostPerLoad, unit = 'load') {
+    if (isSupabaseConfigured) {
+      // Upsert: insert or update if exists
+      const { data, error } = await supabase
+        .from('dump_site_rates')
+        .upsert({
+          dump_site_id: dumpSiteId,
+          waste_type: wasteType,
+          estimated_cost_per_load: estimatedCostPerLoad,
+          unit
+        }, {
+          onConflict: 'dump_site_id,waste_type'
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error setting dump site rate:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.dumpSiteRates) localData.dumpSiteRates = []
+    const existingIndex = localData.dumpSiteRates.findIndex(
+      r => r.dump_site_id === dumpSiteId && r.waste_type === wasteType
+    )
+    const rate = {
+      id: existingIndex >= 0 ? localData.dumpSiteRates[existingIndex].id : crypto.randomUUID(),
+      dump_site_id: dumpSiteId,
+      waste_type: wasteType,
+      estimated_cost_per_load: estimatedCostPerLoad,
+      unit,
+      created_at: new Date().toISOString()
+    }
+    if (existingIndex >= 0) {
+      localData.dumpSiteRates[existingIndex] = rate
+    } else {
+      localData.dumpSiteRates.push(rate)
+    }
+    setLocalData(localData)
+    return rate
+  },
+
+  // Get rates for a dump site
+  async getDumpSiteRates(dumpSiteId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('dump_site_rates')
+        .select('*')
+        .eq('dump_site_id', dumpSiteId)
+
+      if (error) {
+        console.error('Error fetching dump site rates:', error)
+        return []
+      }
+      return data || []
+    }
+    // Demo mode
+    const localData = getLocalData()
+    return (localData.dumpSiteRates || []).filter(r => r.dump_site_id === dumpSiteId)
+  },
+
+  // Get all haul-offs for a project
+  async getHaulOffs(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('haul_offs')
+        .select(`
+          *,
+          dump_sites (name)
+        `)
+        .eq('project_id', projectId)
+        .order('work_date', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching haul-offs:', error)
+        return []
+      }
+      return data || []
+    }
+    // Demo mode
+    const localData = getLocalData()
+    return (localData.haulOffs || [])
+      .filter(h => h.project_id === projectId)
+      .sort((a, b) => new Date(b.work_date) - new Date(a.work_date))
+  },
+
+  // Create a haul-off event
+  async createHaulOff(projectId, data) {
+    const haulOff = {
+      project_id: projectId,
+      dump_site_id: data.dumpSiteId,
+      waste_type: data.wasteType,
+      loads: data.loads,
+      hauling_company: data.haulingCompany || '',
+      work_date: data.workDate,
+      notes: data.notes || '',
+      estimated_cost: data.estimatedCost || 0,
+      created_by: data.createdBy || ''
+    }
+
+    if (isSupabaseConfigured) {
+      const { data: result, error } = await supabase
+        .from('haul_offs')
+        .insert(haulOff)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating haul-off:', error)
+        throw error
+      }
+      return result
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.haulOffs) localData.haulOffs = []
+    const newHaulOff = {
+      ...haulOff,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString()
+    }
+    localData.haulOffs.push(newHaulOff)
+    setLocalData(localData)
+    return newHaulOff
+  },
+
+  // Calculate haul-off costs for burn rate
+  async calculateHaulOffCosts(projectId) {
+    const haulOffs = await this.getHaulOffs(projectId)
+
+    let totalCost = 0
+    let totalLoads = 0
+    const byWasteType = {}
+    const byDate = []
+
+    // Group by date for daily breakdown
+    const dateMap = {}
+
+    haulOffs.forEach(h => {
+      const cost = parseFloat(h.estimated_cost) || 0
+      const loads = parseInt(h.loads) || 0
+
+      totalCost += cost
+      totalLoads += loads
+
+      // By waste type
+      if (!byWasteType[h.waste_type]) {
+        byWasteType[h.waste_type] = { loads: 0, cost: 0 }
+      }
+      byWasteType[h.waste_type].loads += loads
+      byWasteType[h.waste_type].cost += cost
+
+      // By date
+      if (!dateMap[h.work_date]) {
+        dateMap[h.work_date] = { date: h.work_date, loads: 0, cost: 0 }
+      }
+      dateMap[h.work_date].loads += loads
+      dateMap[h.work_date].cost += cost
+    })
+
+    // Convert dateMap to sorted array
+    Object.values(dateMap)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .forEach(d => byDate.push(d))
+
+    const daysWithHaulOff = byDate.length
+
+    return {
+      totalCost,
+      totalLoads,
+      byWasteType,
+      byDate,
+      daysWithHaulOff,
+      avgDailyHaulOffCost: daysWithHaulOff > 0 ? totalCost / daysWithHaulOff : 0
+    }
+  },
+
+  // Subscribe to haul-off updates for a project
+  subscribeToHaulOffs(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`haul_offs:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'haul_offs', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
   }
 }
 

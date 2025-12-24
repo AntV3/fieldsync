@@ -22,12 +22,23 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   const [showShareModal, setShowShareModal] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
+  const [dumpSites, setDumpSites] = useState([])
 
   useEffect(() => {
     if (company?.id) {
       loadProjects()
+      loadDumpSites()
     }
   }, [company?.id])
+
+  const loadDumpSites = async () => {
+    try {
+      const sites = await db.getDumpSites(company.id)
+      setDumpSites(sites || [])
+    } catch (error) {
+      console.error('Error loading dump sites:', error)
+    }
+  }
 
   // Handle navigation from notifications
   useEffect(() => {
@@ -73,6 +84,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           project.work_type || 'demolition',
           project.job_type || 'standard'
         )
+        const haulOffCosts = await db.calculateHaulOffCosts(project.id)
         const progress = calculateProgress(projectAreas)
 
         // Calculate revised contract value (original + change orders)
@@ -109,7 +121,15 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           laborManDays: laborCosts?.totalManDays || 0,
           avgDailyBurn: laborCosts?.byDate?.length > 0
             ? (laborCosts.totalCost / laborCosts.byDate.length)
-            : 0
+            : 0,
+          // Haul-off costs
+          haulOffCost: haulOffCosts?.totalCost || 0,
+          haulOffLoads: haulOffCosts?.totalLoads || 0,
+          haulOffDays: haulOffCosts?.daysWithHaulOff || 0,
+          haulOffByType: haulOffCosts?.byWasteType || {},
+          // Combined burn rate
+          totalBurn: (laborCosts?.totalCost || 0) + (haulOffCosts?.totalCost || 0),
+          totalBurnDays: Math.max(laborCosts?.byDate?.length || 0, haulOffCosts?.daysWithHaulOff || 0)
         }
       }))
       setProjectsData(enhanced)
@@ -148,6 +168,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       name: selectedProject.name,
       contract_value: selectedProject.contract_value,
       pin: selectedProject.pin || '',
+      default_dump_site_id: selectedProject.default_dump_site_id || '',
       areas: areas.map(a => ({
         id: a.id,
         name: a.name,
@@ -238,7 +259,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       await db.updateProject(selectedProject.id, {
         name: editData.name.trim(),
         contract_value: contractVal,
-        pin: editData.pin || null
+        pin: editData.pin || null,
+        default_dump_site_id: editData.default_dump_site_id || null
       })
 
       // Handle areas
@@ -365,6 +387,20 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                 placeholder="e.g., 2847"
                 maxLength={4}
               />
+            </div>
+
+            <div className="form-group">
+              <label>Default Dump Site</label>
+              <select
+                value={editData.default_dump_site_id}
+                onChange={(e) => handleEditChange('default_dump_site_id', e.target.value)}
+              >
+                <option value="">-- Select Dump Site --</option>
+                {dumpSites.map(site => (
+                  <option key={site.id} value={site.id}>{site.name}</option>
+                ))}
+              </select>
+              <span className="form-hint">Used for haul-off tracking and cost estimates</span>
             </div>
           </div>
 
@@ -637,52 +673,105 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                 </div>
               </div>
 
-              {/* Burn Rate Card - MVP */}
+              {/* Burn Rate Card */}
               <div className="pv-card pv-burn-rate-card">
                 <div className="pv-burn-header">
                   <h3>Burn Rate</h3>
-                  <span className="pv-burn-badge">Labor Costs</span>
+                  <span className="pv-burn-badge">Labor + Haul-Off</span>
                 </div>
 
-                <div className="pv-burn-stats">
-                  <div className="pv-burn-stat main">
-                    <span className="pv-burn-value">{formatCurrency(projectData?.laborCost || 0)}</span>
-                    <span className="pv-burn-label">Total Labor Spent</span>
+                {/* Total Burn Summary */}
+                <div className="pv-burn-total">
+                  <div className="pv-burn-total-main">
+                    <span className="pv-burn-total-value">{formatCurrency(projectData?.totalBurn || 0)}</span>
+                    <span className="pv-burn-total-label">Total Burn</span>
                   </div>
-                  <div className="pv-burn-stat">
-                    <span className="pv-burn-value">{formatCurrency(projectData?.avgDailyBurn || 0)}</span>
-                    <span className="pv-burn-label">Avg Daily Burn</span>
+                  {projectData?.totalBurnDays > 0 && (
+                    <div className="pv-burn-total-avg">
+                      <span className="pv-burn-avg-value">
+                        {formatCurrency((projectData?.totalBurn || 0) / projectData.totalBurnDays)}
+                      </span>
+                      <span className="pv-burn-avg-label">per day</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cost Breakdown */}
+                <div className="pv-burn-breakdown">
+                  {/* Labor */}
+                  <div className="pv-burn-category">
+                    <div className="pv-burn-cat-header">
+                      <span className="pv-burn-cat-icon">👷</span>
+                      <span className="pv-burn-cat-title">Labor</span>
+                    </div>
+                    <div className="pv-burn-cat-stats">
+                      <div className="pv-burn-cat-main">
+                        <span className="pv-burn-cat-value">{formatCurrency(projectData?.laborCost || 0)}</span>
+                      </div>
+                      <div className="pv-burn-cat-details">
+                        <span>{projectData?.laborManDays || 0} man-days</span>
+                        <span className="pv-burn-cat-divider">•</span>
+                        <span>{projectData?.laborDaysWorked || 0} days</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="pv-burn-stat">
-                    <span className="pv-burn-value">{projectData?.laborDaysWorked || 0}</span>
-                    <span className="pv-burn-label">Days Active</span>
-                  </div>
-                  <div className="pv-burn-stat">
-                    <span className="pv-burn-value">{projectData?.laborManDays || 0}</span>
-                    <span className="pv-burn-label">Man Days</span>
+
+                  {/* Haul-Off */}
+                  <div className="pv-burn-category">
+                    <div className="pv-burn-cat-header">
+                      <span className="pv-burn-cat-icon">🚛</span>
+                      <span className="pv-burn-cat-title">Haul-Off</span>
+                      <span className="pv-burn-cat-badge">Est.</span>
+                    </div>
+                    <div className="pv-burn-cat-stats">
+                      <div className="pv-burn-cat-main">
+                        <span className={`pv-burn-cat-value ${(projectData?.haulOffCost || 0) < 0 ? 'revenue' : ''}`}>
+                          {formatCurrency(projectData?.haulOffCost || 0)}
+                        </span>
+                      </div>
+                      <div className="pv-burn-cat-details">
+                        <span>{projectData?.haulOffLoads || 0} loads</span>
+                        <span className="pv-burn-cat-divider">•</span>
+                        <span>{projectData?.haulOffDays || 0} days</span>
+                      </div>
+                    </div>
+                    {/* Haul-off by waste type */}
+                    {projectData?.haulOffByType && Object.keys(projectData.haulOffByType).length > 0 && (
+                      <div className="pv-burn-waste-types">
+                        {Object.entries(projectData.haulOffByType).map(([type, data]) => (
+                          <div key={type} className="pv-burn-waste-item">
+                            <span className="pv-waste-label">{type}</span>
+                            <span className={`pv-waste-cost ${data.cost < 0 ? 'revenue' : ''}`}>
+                              {formatCurrency(data.cost)}
+                            </span>
+                            <span className="pv-waste-loads">{data.loads} loads</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Labor as % of Revenue */}
-                {billable > 0 && projectData?.laborCost > 0 && (
+                {/* Burn as % of Revenue */}
+                {billable > 0 && (projectData?.totalBurn || 0) > 0 && (
                   <div className="pv-burn-context">
                     <div className="pv-burn-ratio">
-                      <span className="pv-burn-ratio-label">Labor Cost vs Revenue Earned</span>
+                      <span className="pv-burn-ratio-label">Total Burn vs Revenue Earned</span>
                       <div className="pv-burn-ratio-bar">
                         <div
                           className="pv-burn-ratio-fill"
-                          style={{ width: `${Math.min((projectData.laborCost / billable) * 100, 100)}%` }}
+                          style={{ width: `${Math.min((projectData.totalBurn / billable) * 100, 100)}%` }}
                         ></div>
                       </div>
-                      <span className={`pv-burn-ratio-pct ${(projectData.laborCost / billable) > 0.5 ? 'warning' : ''}`}>
-                        {Math.round((projectData.laborCost / billable) * 100)}% of earned revenue
+                      <span className={`pv-burn-ratio-pct ${(projectData.totalBurn / billable) > 0.6 ? 'warning' : ''}`}>
+                        {Math.round((projectData.totalBurn / billable) * 100)}% of earned revenue
                       </span>
                     </div>
                   </div>
                 )}
 
                 <div className="pv-burn-footer">
-                  <span className="pv-burn-note">Currently tracking labor costs. Materials and other expenses coming soon.</span>
+                  <span className="pv-burn-note">Haul-off costs are estimates for tracking purposes, not invoiced amounts.</span>
                 </div>
               </div>
 
