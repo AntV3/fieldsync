@@ -283,43 +283,23 @@ export default function CORList({ project, company, areas, onShowToast, onCreate
   }
 
   return (
-    <div className="cor-list card">
-      {/* Quick Stats */}
-      <div className="cor-stats">
-        <div className="cor-stat">
-          <span className="cor-stat-value">{counts.all}</span>
-          <span className="cor-stat-label">Total CORs</span>
-        </div>
-        <div className="cor-stat draft">
-          <span className="cor-stat-value">{counts.draft}</span>
-          <span className="cor-stat-label">Draft</span>
-        </div>
-        <div className="cor-stat pending">
-          <span className="cor-stat-value">{counts.pending_approval}</span>
-          <span className="cor-stat-label">Pending</span>
-        </div>
-        <div className="cor-stat approved">
-          <span className="cor-stat-value">{counts.approved}</span>
-          <span className="cor-stat-label">Approved</span>
-        </div>
-        {stats?.totalApproved > 0 && (
-          <div className="cor-stat total-approved">
-            <span className="cor-stat-value">{formatCurrency(stats.totalApproved)}</span>
-            <span className="cor-stat-label">Total Approved</span>
-          </div>
-        )}
-      </div>
-
-      {/* Header with Create Button */}
+    <div className="cor-list">
+      {/* Compact Header with Stats */}
       <div className="cor-list-header">
         <div className="cor-list-title">
           <h3>Change Order Requests</h3>
-          {counts.pending_approval > 0 && (
-            <span className="pending-badge">{counts.pending_approval} pending</span>
-          )}
+          <div className="cor-header-stats">
+            <span className="cor-header-stat">{counts.all} total</span>
+            {counts.pending_approval > 0 && (
+              <span className="cor-header-stat pending">{counts.pending_approval} pending</span>
+            )}
+            {stats?.totalApproved > 0 && (
+              <span className="cor-header-stat approved">{formatCurrency(stats.totalApproved)} approved</span>
+            )}
+          </div>
         </div>
-        <button className="btn btn-primary" onClick={onCreateCOR}>
-          <Plus size={16} /> New COR
+        <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
+          <Plus size={14} /> New COR
         </button>
       </div>
 

@@ -11142,13 +11142,31 @@ input::placeholder {
 
 .cor-list-title {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .cor-list-title h3 {
   margin: 0;
   color: #ffffff;
+}
+
+.cor-header-stats {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.cor-header-stat {
+  color: var(--text-secondary);
+}
+
+.cor-header-stat.pending {
+  color: var(--accent-amber);
+}
+
+.cor-header-stat.approved {
+  color: var(--accent-green);
 }
 
 /* COR Filter Tabs */

@@ -93,11 +93,18 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   const loadLaborRates = async () => {
     try {
-      const rates = await db.getLaborRates?.(company?.id)
+      // Load rates for the project's work type and job type
+      const rates = await db.getLaborRates?.(company?.id, project?.work_type, project?.job_type)
       setLaborRates(rates || [])
     } catch (error) {
       console.error('Error loading labor rates:', error)
     }
+  }
+
+  // Find rate for a specific labor class
+  const getRateForClass = (laborClass) => {
+    const classLower = laborClass?.toLowerCase() || ''
+    return laborRates.find(r => r.role?.toLowerCase() === classLower) || null
   }
 
   const generateCORNumber = async () => {
@@ -196,15 +203,16 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   // Labor item management
   const addLaborItem = () => {
-    const defaultRate = laborRates[0]
+    const defaultClass = LABOR_CLASSES[0]
+    const rate = getRateForClass(defaultClass)
     setLaborItems([...laborItems, {
       id: `temp-${Date.now()}`,
-      labor_class: LABOR_CLASSES[0],
+      labor_class: defaultClass,
       wage_type: 'standard',
       regular_hours: 0,
       overtime_hours: 0,
-      regular_rate: defaultRate?.regular_rate || 0,
-      overtime_rate: defaultRate?.overtime_rate || 0,
+      regular_rate: rate ? Math.round((parseFloat(rate.regular_rate) || 0) * 100) : 0,
+      overtime_rate: rate ? Math.round((parseFloat(rate.overtime_rate) || 0) * 100) : 0,
       total: 0
     }])
   }
@@ -212,6 +220,15 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const updateLaborItem = (index, field, value) => {
     const newItems = [...laborItems]
     newItems[index] = { ...newItems[index], [field]: value }
+
+    // Auto-populate rates when labor class changes
+    if (field === 'labor_class') {
+      const rate = getRateForClass(value)
+      if (rate) {
+        newItems[index].regular_rate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+        newItems[index].overtime_rate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+      }
+    }
 
     // Recalculate total
     const { total } = calculateLaborItemTotal(

@@ -588,7 +588,6 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     const tabs = [
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
       { id: 'financials', label: 'Financials', Icon: DollarSign },
-      { id: 'cors', label: 'CORs', Icon: FileText },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
       { id: 'activity', label: 'Activity', Icon: MessageSquare },
       { id: 'info', label: 'Info', Icon: Info }
@@ -903,35 +902,33 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                 <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
               </div>
 
+              {/* Change Order Requests */}
+              <div className="pv-card">
+                <CORList
+                  project={selectedProject}
+                  company={company}
+                  areas={areas}
+                  onShowToast={onShowToast}
+                  onCreateCOR={() => {
+                    setEditingCOR(null)
+                    setShowCORForm(true)
+                  }}
+                  onViewCOR={(cor) => {
+                    setViewingCOR(cor)
+                    setShowCORDetail(true)
+                  }}
+                  onEditCOR={(cor) => {
+                    setEditingCOR(cor)
+                    setShowCORForm(true)
+                  }}
+                />
+              </div>
+
               {/* Labor Costs */}
               <div className="pv-card">
                 <h3>Labor Cost Analysis</h3>
                 <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
               </div>
-            </div>
-          )}
-
-          {/* CORs TAB */}
-          {activeProjectTab === 'cors' && (
-            <div className="pv-tab-panel">
-              <CORList
-                project={selectedProject}
-                company={company}
-                areas={areas}
-                onShowToast={onShowToast}
-                onCreateCOR={() => {
-                  setEditingCOR(null)
-                  setShowCORForm(true)
-                }}
-                onViewCOR={(cor) => {
-                  setViewingCOR(cor)
-                  setShowCORDetail(true)
-                }}
-                onEditCOR={(cor) => {
-                  setEditingCOR(cor)
-                  setShowCORForm(true)
-                }}
-              />
             </div>
           )}
 
