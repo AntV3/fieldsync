@@ -3,7 +3,7 @@ import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edi
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 
-export default function CORList({ project, company, areas, onShowToast, onCreateCOR, onViewCOR, onEditCOR }) {
+export default function CORList({ project, company, areas, refreshKey, onShowToast, onCreateCOR, onViewCOR, onEditCOR }) {
   const [cors, setCORs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -32,7 +32,7 @@ export default function CORList({ project, company, areas, onShowToast, onCreate
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
-  }, [project.id])
+  }, [project.id, refreshKey])
 
   const loadCORs = async () => {
     try {

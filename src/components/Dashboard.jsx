@@ -31,6 +31,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   const [editingCOR, setEditingCOR] = useState(null)
   const [showCORDetail, setShowCORDetail] = useState(false)
   const [viewingCOR, setViewingCOR] = useState(null)
+  const [corRefreshKey, setCORRefreshKey] = useState(0)
 
   useEffect(() => {
     if (company?.id) {
@@ -805,6 +806,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                       project={selectedProject}
                       company={company}
                       areas={areas}
+                      refreshKey={corRefreshKey}
                       onShowToast={onShowToast}
                       onCreateCOR={() => {
                         setEditingCOR(null)
@@ -1091,6 +1093,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             onSaved={() => {
               setShowCORForm(false)
               setEditingCOR(null)
+              setCORRefreshKey(prev => prev + 1)
             }}
             onShowToast={onShowToast}
           />
