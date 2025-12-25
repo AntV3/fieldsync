@@ -12401,6 +12401,12 @@ input::placeholder {
   flex-direction: column;
 }
 
+.cor-detail-loading {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
 .cor-detail-header {
   background: var(--bg-secondary);
   padding-bottom: 1rem;

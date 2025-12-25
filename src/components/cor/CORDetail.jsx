@@ -14,9 +14,27 @@ import { exportCORToPDF } from '../../lib/corPdfExport'
 import SignatureCapture from './SignatureCapture'
 
 export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [corData, setCORData] = useState(cor)
   const [showSignature, setShowSignature] = useState(false)
+
+  // Fetch full COR data with line items on mount
+  useEffect(() => {
+    const fetchFullCOR = async () => {
+      try {
+        const fullCOR = await db.getCORById(cor.id)
+        if (fullCOR) {
+          setCORData(fullCOR)
+        }
+      } catch (error) {
+        console.error('Error fetching COR details:', error)
+        onShowToast?.('Error loading COR details', 'error')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFullCOR()
+  }, [cor.id])
 
   // Calculate totals
   const totals = useMemo(() => calculateCORTotals(corData), [corData])
@@ -116,6 +134,16 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       console.error('Error exporting PDF:', error)
       onShowToast?.('Error generating PDF', 'error')
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content cor-detail-modal" onClick={e => e.stopPropagation()}>
+          <div className="cor-detail-loading">Loading COR details...</div>
+        </div>
+      </div>
+    )
   }
 
   return (

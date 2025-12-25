@@ -3671,6 +3671,41 @@ export const db = {
     return []
   },
 
+  // Clear all line items for a COR (used when replacing items during update)
+  async clearCORLineItems(corId) {
+    if (isSupabaseConfigured) {
+      // Delete all line items for this COR
+      await supabase.from('change_order_labor').delete().eq('change_order_id', corId)
+      await supabase.from('change_order_materials').delete().eq('change_order_id', corId)
+      await supabase.from('change_order_equipment').delete().eq('change_order_id', corId)
+      await supabase.from('change_order_subcontractors').delete().eq('change_order_id', corId)
+    }
+  },
+
+  // Save all line items for a COR (clears existing and adds new)
+  async saveCORLineItems(corId, { laborItems, materialItems, equipmentItems, subcontractorItems }) {
+    if (isSupabaseConfigured) {
+      // Clear existing line items first
+      await this.clearCORLineItems(corId)
+
+      // Add new line items
+      const results = await Promise.all([
+        laborItems?.length > 0 ? this.addBulkLaborItems(corId, laborItems) : [],
+        materialItems?.length > 0 ? this.addBulkMaterialItems(corId, materialItems) : [],
+        equipmentItems?.length > 0 ? this.addBulkEquipmentItems(corId, equipmentItems) : [],
+        subcontractorItems?.length > 0 ? this.addBulkSubcontractorItems(corId, subcontractorItems) : []
+      ])
+
+      return {
+        labor: results[0],
+        materials: results[1],
+        equipment: results[2],
+        subcontractors: results[3]
+      }
+    }
+    return null
+  },
+
   // ============================================
   // Ticket-COR Associations
   // ============================================

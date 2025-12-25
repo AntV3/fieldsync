@@ -372,8 +372,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
       // Save line items
       if (savedCOR?.id) {
-        // For simplicity, we'll handle line items on the backend
-        // The main COR record is saved with totals
+        await db.saveCORLineItems(savedCOR.id, {
+          laborItems,
+          materialItems: materialsItems,
+          equipmentItems,
+          subcontractorItems: subcontractorsItems
+        })
       }
 
       onShowToast?.('COR saved as draft', 'success')
@@ -408,11 +412,25 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       let savedCOR
       if (existingCOR?.id) {
         savedCOR = await db.updateCOR(existingCOR.id, { ...corPayload, status: 'draft' })
+        // Save line items
+        await db.saveCORLineItems(existingCOR.id, {
+          laborItems,
+          materialItems: materialsItems,
+          equipmentItems,
+          subcontractorItems: subcontractorsItems
+        })
         await db.submitCORForApproval(existingCOR.id)
       } else {
         // Create new COR and submit for approval
         savedCOR = await db.createCOR({ ...corPayload, status: 'draft' })
         if (savedCOR?.id) {
+          // Save line items
+          await db.saveCORLineItems(savedCOR.id, {
+            laborItems,
+            materialItems: materialsItems,
+            equipmentItems,
+            subcontractorItems: subcontractorsItems
+          })
           await db.submitCORForApproval(savedCOR.id)
         }
       }
