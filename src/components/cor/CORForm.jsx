@@ -356,6 +356,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     setLoading(true)
     try {
       const corPayload = {
+        company_id: company.id,
         project_id: project.id,
         ...corData,
         ...totals,
@@ -397,6 +398,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     setLoading(true)
     try {
       const corPayload = {
+        company_id: company.id,
         project_id: project.id,
         ...corData,
         ...totals,
@@ -408,7 +410,11 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         savedCOR = await db.updateCOR(existingCOR.id, { ...corPayload, status: 'draft' })
         await db.submitCORForApproval(existingCOR.id)
       } else {
-        savedCOR = await db.createCOR(corPayload)
+        // Create new COR and submit for approval
+        savedCOR = await db.createCOR({ ...corPayload, status: 'draft' })
+        if (savedCOR?.id) {
+          await db.submitCORForApproval(savedCOR.id)
+        }
       }
 
       onShowToast?.('COR submitted for approval', 'success')
