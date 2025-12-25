@@ -693,75 +693,156 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         <div className="pv-tab-content">
           {/* OVERVIEW TAB */}
           {activeProjectTab === 'overview' && (
-            <div className="pv-tab-panel">
-              {/* Project Health Summary */}
-              <div className="pv-card pv-health-card">
-                <div className="pv-health-header">
-                  <div className="pv-health-status">
-                    <span className={`pv-health-indicator ${progress >= 100 ? 'complete' : progress > 0 ? 'active' : 'pending'}`}></span>
-                    <span className="pv-health-label">
-                      {progress >= 100 ? 'Complete' : progress > 0 ? 'In Progress' : 'Not Started'}
-                    </span>
+            <div className="pv-tab-panel overview-tab">
+              {/* Hero Metrics */}
+              <div className="overview-hero">
+                <div className="overview-hero-grid">
+                  {/* Progress */}
+                  <div className="overview-metric primary">
+                    <div className="overview-metric-value">{progress}%</div>
+                    <div className="overview-metric-label">Complete</div>
+                    <div className="overview-metric-bar">
+                      <div className="overview-metric-fill" style={{ width: `${progress}%` }}></div>
+                    </div>
                   </div>
-                  <div className="pv-health-percent">{progress}%</div>
-                </div>
-                <div className="pv-health-bar">
-                  <div className="pv-health-fill" style={{ width: `${progress}%` }}></div>
-                </div>
-                <div className="pv-health-context">
-                  <span>{areasComplete} of {areas.length} work areas complete</span>
+
+                  {/* Areas Status */}
+                  <div className="overview-metric">
+                    <div className="overview-metric-value">{areasComplete}/{areas.length}</div>
+                    <div className="overview-metric-label">Areas Done</div>
+                    <div className="overview-metric-detail">
+                      {areasWorking > 0 && <span className="working">{areasWorking} active</span>}
+                    </div>
+                  </div>
+
+                  {/* Contract Value */}
+                  <div className="overview-metric">
+                    <div className="overview-metric-value">{formatCurrency(revisedContractValue)}</div>
+                    <div className="overview-metric-label">Contract</div>
+                    {hasChangeOrders && (
+                      <div className="overview-metric-detail green">+{formatCurrency(changeOrderValue)} COs</div>
+                    )}
+                  </div>
+
+                  {/* Billable */}
+                  <div className="overview-metric">
+                    <div className="overview-metric-value green">{formatCurrency(billable)}</div>
+                    <div className="overview-metric-label">Earned</div>
+                    <div className="overview-metric-detail">{percentBilled}% billed</div>
+                  </div>
                 </div>
               </div>
 
-              {/* Work Areas Breakdown */}
-              <div className="pv-card">
-                <div className="pv-card-header">
-                  <h3>Work Areas</h3>
-                  <div className="pv-area-summary">
-                    {areasComplete > 0 && <span className="pv-count done">{areasComplete} Complete</span>}
-                    {areasWorking > 0 && <span className="pv-count working">{areasWorking} Active</span>}
-                    {areasNotStarted > 0 && <span className="pv-count pending">{areasNotStarted} Pending</span>}
+              {/* Action Items - What needs attention */}
+              {(projectData?.pendingTickets > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.changeOrderPending > 0) && (
+                <div className="overview-attention-card">
+                  <div className="attention-header">
+                    <h3>Needs Attention</h3>
+                    <span className="attention-count">
+                      {(projectData?.pendingTickets || 0) + (projectData?.pendingMaterialRequests || 0) + (projectData?.changeOrderPending || 0)} items
+                    </span>
+                  </div>
+                  <div className="attention-items">
+                    {projectData?.pendingTickets > 0 && (
+                      <div className="attention-item" onClick={() => setActiveProjectTab('financials')}>
+                        <div className="attention-item-icon warning">
+                          <ClipboardList size={16} />
+                        </div>
+                        <div className="attention-item-content">
+                          <span className="attention-item-title">{projectData.pendingTickets} T&M ticket{projectData.pendingTickets !== 1 ? 's' : ''} awaiting approval</span>
+                          <span className="attention-item-action">Review in Financials</span>
+                        </div>
+                        <span className="attention-item-arrow">→</span>
+                      </div>
+                    )}
+                    {projectData?.changeOrderPending > 0 && (
+                      <div className="attention-item" onClick={() => setActiveProjectTab('financials')}>
+                        <div className="attention-item-icon info">
+                          <FileText size={16} />
+                        </div>
+                        <div className="attention-item-content">
+                          <span className="attention-item-title">{projectData.changeOrderPending} change order{projectData.changeOrderPending !== 1 ? 's' : ''} pending</span>
+                          <span className="attention-item-action">Review in Financials</span>
+                        </div>
+                        <span className="attention-item-arrow">→</span>
+                      </div>
+                    )}
+                    {projectData?.pendingMaterialRequests > 0 && (
+                      <div className="attention-item" onClick={() => setActiveProjectTab('activity')}>
+                        <div className="attention-item-icon warning">
+                          <MessageSquare size={16} />
+                        </div>
+                        <div className="attention-item-content">
+                          <span className="attention-item-title">{projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending</span>
+                          <span className="attention-item-action">Review in Activity</span>
+                        </div>
+                        <span className="attention-item-arrow">→</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="pv-areas-grid">
+              )}
+
+              {/* Work Areas */}
+              <div className="overview-section-card">
+                <div className="section-card-header">
+                  <h3>Work Areas</h3>
+                  <div className="section-card-badges">
+                    {areasComplete > 0 && <span className="section-badge done">{areasComplete} Complete</span>}
+                    {areasWorking > 0 && <span className="section-badge working">{areasWorking} Active</span>}
+                    {areasNotStarted > 0 && <span className="section-badge pending">{areasNotStarted} Pending</span>}
+                  </div>
+                </div>
+                <div className="work-areas-list">
                   {areas.map(area => (
-                    <div key={area.id} className={`pv-area-card ${area.status}`}>
-                      <div className="pv-area-status">
-                        {area.status === 'done' && <span className="pv-check">✓</span>}
-                        {area.status === 'working' && <span className="pv-working">●</span>}
-                        {area.status === 'not_started' && <span className="pv-pending">○</span>}
+                    <div key={area.id} className={`work-area-item ${area.status}`}>
+                      <div className="work-area-status">
+                        {area.status === 'done' && <span className="status-icon done">✓</span>}
+                        {area.status === 'working' && <span className="status-icon working">●</span>}
+                        {area.status === 'not_started' && <span className="status-icon pending">○</span>}
                       </div>
-                      <div className="pv-area-info">
-                        <span className="pv-area-name">{area.name}</span>
-                        <span className="pv-area-weight">{area.weight}% of contract</span>
+                      <div className="work-area-info">
+                        <span className="work-area-name">{area.name}</span>
+                        <span className="work-area-weight">{area.weight}%</span>
+                      </div>
+                      <div className="work-area-bar">
+                        <div
+                          className={`work-area-fill ${area.status}`}
+                          style={{ width: area.status === 'done' ? '100%' : area.status === 'working' ? '50%' : '0%' }}
+                        ></div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Action Items - What needs attention */}
-              {(projectData?.pendingTickets > 0 || projectData?.pendingMaterialRequests > 0) && (
-                <div className="pv-card pv-attention-card">
-                  <h3>Needs Attention</h3>
-                  <div className="pv-attention-items">
-                    {projectData?.pendingTickets > 0 && (
-                      <div className="pv-attention-item" onClick={() => setActiveProjectTab('financials')}>
-                        <span className="pv-attention-count">{projectData.pendingTickets}</span>
-                        <span className="pv-attention-label">T&M tickets awaiting approval</span>
-                        <span className="pv-attention-arrow">→</span>
-                      </div>
-                    )}
-                    {projectData?.pendingMaterialRequests > 0 && (
-                      <div className="pv-attention-item" onClick={() => setActiveProjectTab('activity')}>
-                        <span className="pv-attention-count">{projectData.pendingMaterialRequests}</span>
-                        <span className="pv-attention-label">Material requests pending review</span>
-                        <span className="pv-attention-arrow">→</span>
-                      </div>
-                    )}
+              {/* Quick Stats Row */}
+              <div className="overview-stats-row">
+                <div className="quick-stat-card" onClick={() => setActiveProjectTab('reports')}>
+                  <div className="quick-stat-icon"><ClipboardList size={20} /></div>
+                  <div className="quick-stat-content">
+                    <span className="quick-stat-value">{projectData?.dailyReportsCount || 0}</span>
+                    <span className="quick-stat-label">Daily Reports</span>
                   </div>
+                  <span className="quick-stat-arrow">→</span>
                 </div>
-              )}
+                <div className="quick-stat-card" onClick={() => setActiveProjectTab('financials')}>
+                  <div className="quick-stat-icon"><DollarSign size={20} /></div>
+                  <div className="quick-stat-content">
+                    <span className="quick-stat-value">{projectData?.totalTickets || 0}</span>
+                    <span className="quick-stat-label">T&M Tickets</span>
+                  </div>
+                  <span className="quick-stat-arrow">→</span>
+                </div>
+                <div className="quick-stat-card" onClick={() => setActiveProjectTab('activity')}>
+                  <div className="quick-stat-icon"><MessageSquare size={20} /></div>
+                  <div className="quick-stat-content">
+                    <span className="quick-stat-value">{projectData?.totalMaterialRequests || 0}</span>
+                    <span className="quick-stat-label">Material Requests</span>
+                  </div>
+                  <span className="quick-stat-arrow">→</span>
+                </div>
+              </div>
             </div>
           )}
 
@@ -917,217 +998,380 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
 
           {/* REPORTS TAB */}
           {activeProjectTab === 'reports' && (
-            <div className="pv-tab-panel">
-              {/* Reports Executive Summary */}
-              <div className="pv-card pv-reports-summary">
-                <h3>Field Documentation Summary</h3>
-                <div className="pv-reports-stats">
-                  <div className="pv-report-stat">
-                    <span className="pv-report-stat-value">{projectData?.dailyReportsCount || 0}</span>
-                    <span className="pv-report-stat-label">Daily Reports Filed</span>
+            <div className="pv-tab-panel reports-tab">
+              {/* Hero Metrics */}
+              <div className="reports-hero">
+                <div className="reports-hero-grid">
+                  {/* Total Reports */}
+                  <div className="reports-metric primary">
+                    <div className="reports-metric-icon">
+                      <ClipboardList size={24} />
+                    </div>
+                    <div className="reports-metric-content">
+                      <div className="reports-metric-value">{projectData?.dailyReportsCount || 0}</div>
+                      <div className="reports-metric-label">Daily Reports</div>
+                    </div>
                   </div>
-                  <div className="pv-report-stat">
-                    <span className="pv-report-stat-value">{projectData?.recentDailyReports || 0}</span>
-                    <span className="pv-report-stat-label">Reports This Week</span>
+
+                  {/* This Week */}
+                  <div className="reports-metric">
+                    <div className="reports-metric-value">{projectData?.recentDailyReports || 0}</div>
+                    <div className="reports-metric-label">This Week</div>
+                    <div className="reports-metric-bar">
+                      <div
+                        className="reports-metric-fill"
+                        style={{ width: `${Math.min((projectData?.recentDailyReports || 0) / 7 * 100, 100)}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="pv-report-stat injury">
-                    <span className="pv-report-stat-value">{projectData?.injuryReportsCount || 0}</span>
-                    <span className="pv-report-stat-label">Injury Reports</span>
+
+                  {/* Injury Reports */}
+                  <div className={`reports-metric ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
+                    <div className="reports-metric-value">{projectData?.injuryReportsCount || 0}</div>
+                    <div className="reports-metric-label">Injuries</div>
+                    <div className="reports-metric-status">
+                      {(projectData?.injuryReportsCount || 0) === 0 ? 'No incidents' : 'Review required'}
+                    </div>
+                  </div>
+
+                  {/* Last Report */}
+                  <div className="reports-metric">
+                    <div className="reports-metric-value small">
+                      {projectData?.lastDailyReport
+                        ? new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : 'None'
+                      }
+                    </div>
+                    <div className="reports-metric-label">Last Filed</div>
+                    {projectData?.lastDailyReport && (
+                      <div className="reports-metric-detail">
+                        {Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))} days ago
+                      </div>
+                    )}
                   </div>
                 </div>
-                {projectData?.lastDailyReport && (
-                  <div className="pv-last-report">
-                    Last report filed: {new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                )}
               </div>
 
-              {/* Daily Reports */}
-              <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+              {/* Daily Reports Section */}
+              <div className="reports-section-card">
+                <div className="reports-section-header">
+                  <div className="reports-section-title">
+                    <ClipboardList size={18} />
+                    <h3>Daily Reports</h3>
+                  </div>
+                  <span className="reports-section-count">{projectData?.dailyReportsCount || 0} total</span>
+                </div>
+                <div className="reports-section-content">
+                  <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+                </div>
+              </div>
 
-              {/* Injury Reports */}
-              <InjuryReportsList
-                project={selectedProject}
-                companyId={company?.id || selectedProject?.company_id}
-                company={company}
-                onShowToast={onShowToast}
-              />
+              {/* Injury Reports Section */}
+              <div className={`reports-section-card ${(projectData?.injuryReportsCount || 0) > 0 ? 'has-warning' : ''}`}>
+                <div className="reports-section-header">
+                  <div className="reports-section-title">
+                    <span className={`reports-section-icon ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
+                      {(projectData?.injuryReportsCount || 0) > 0 ? '⚠' : '✓'}
+                    </span>
+                    <h3>Safety & Injury Reports</h3>
+                  </div>
+                  <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
+                    {(projectData?.injuryReportsCount || 0) > 0
+                      ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
+                      : 'No incidents'
+                    }
+                  </span>
+                </div>
+                <div className="reports-section-content">
+                  <InjuryReportsList
+                    project={selectedProject}
+                    companyId={company?.id || selectedProject?.company_id}
+                    company={company}
+                    onShowToast={onShowToast}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
           {/* ACTIVITY TAB */}
           {activeProjectTab === 'activity' && (
-            <div className="pv-tab-panel">
-              {/* Activity Summary */}
-              <div className="pv-card pv-activity-summary">
-                <h3>Project Activity Status</h3>
-                <div className="pv-activity-stats">
-                  <div className={`pv-activity-stat ${projectData?.pendingMaterialRequests > 0 ? 'has-pending' : ''}`}>
-                    <span className="pv-activity-stat-value">{projectData?.pendingMaterialRequests || 0}</span>
-                    <span className="pv-activity-stat-label">Pending Requests</span>
+            <div className="pv-tab-panel activity-tab">
+              {/* Hero Metrics */}
+              <div className="activity-hero">
+                <div className="activity-hero-grid">
+                  {/* Pending Requests */}
+                  <div className={`activity-metric ${(projectData?.pendingMaterialRequests || 0) > 0 ? 'warning' : 'success'}`}>
+                    <div className="activity-metric-icon">
+                      {(projectData?.pendingMaterialRequests || 0) > 0 ? '!' : '✓'}
+                    </div>
+                    <div className="activity-metric-content">
+                      <div className="activity-metric-value">{projectData?.pendingMaterialRequests || 0}</div>
+                      <div className="activity-metric-label">Pending</div>
+                    </div>
                   </div>
-                  <div className="pv-activity-stat">
-                    <span className="pv-activity-stat-value">{projectData?.totalMaterialRequests || 0}</span>
-                    <span className="pv-activity-stat-label">Total Requests</span>
+
+                  {/* Total Requests */}
+                  <div className="activity-metric">
+                    <div className="activity-metric-value">{projectData?.totalMaterialRequests || 0}</div>
+                    <div className="activity-metric-label">Total Requests</div>
+                  </div>
+
+                  {/* Fulfillment Rate */}
+                  <div className="activity-metric">
+                    <div className="activity-metric-value">
+                      {projectData?.totalMaterialRequests > 0
+                        ? Math.round(((projectData.totalMaterialRequests - (projectData.pendingMaterialRequests || 0)) / projectData.totalMaterialRequests) * 100)
+                        : 100
+                      }%
+                    </div>
+                    <div className="activity-metric-label">Fulfilled</div>
+                    <div className="activity-metric-bar">
+                      <div
+                        className="activity-metric-fill"
+                        style={{
+                          width: `${projectData?.totalMaterialRequests > 0
+                            ? ((projectData.totalMaterialRequests - (projectData.pendingMaterialRequests || 0)) / projectData.totalMaterialRequests) * 100
+                            : 100
+                          }%`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Quick Status */}
+                  <div className="activity-metric status">
+                    <div className="activity-metric-status-icon">
+                      <MessageSquare size={20} />
+                    </div>
+                    <div className="activity-metric-label">Messages Active</div>
                   </div>
                 </div>
               </div>
 
-              {/* Material Requests - Priority */}
-              <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
+              {/* Attention Banner - Only if pending */}
+              {(projectData?.pendingMaterialRequests || 0) > 0 && (
+                <div className="activity-attention-banner">
+                  <span className="attention-icon">!</span>
+                  <span className="attention-text">
+                    {projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} awaiting response
+                  </span>
+                </div>
+              )}
 
-              {/* Messages */}
-              <div className="pv-messages-full">
-                <ProjectMessages
-                  project={selectedProject}
-                  company={company}
-                  userName={company?.name || 'Office'}
-                  onShowToast={onShowToast}
-                />
+              {/* Material Requests Section */}
+              <div className={`activity-section-card ${(projectData?.pendingMaterialRequests || 0) > 0 ? 'has-pending' : ''}`}>
+                <div className="activity-section-header">
+                  <div className="activity-section-title">
+                    <HardHat size={18} />
+                    <h3>Material Requests</h3>
+                  </div>
+                  <div className="activity-section-badges">
+                    {(projectData?.pendingMaterialRequests || 0) > 0 && (
+                      <span className="activity-badge pending">{projectData.pendingMaterialRequests} pending</span>
+                    )}
+                    <span className="activity-badge total">{projectData?.totalMaterialRequests || 0} total</span>
+                  </div>
+                </div>
+                <div className="activity-section-content">
+                  <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
+                </div>
+              </div>
+
+              {/* Messages Section */}
+              <div className="activity-section-card messages">
+                <div className="activity-section-header">
+                  <div className="activity-section-title">
+                    <MessageSquare size={18} />
+                    <h3>Project Messages</h3>
+                  </div>
+                </div>
+                <div className="activity-section-content">
+                  <ProjectMessages
+                    project={selectedProject}
+                    company={company}
+                    userName={company?.name || 'Office'}
+                    onShowToast={onShowToast}
+                  />
+                </div>
               </div>
             </div>
           )}
 
           {/* INFO TAB */}
           {activeProjectTab === 'info' && (
-            <div className="pv-tab-panel">
-              {/* Project Details */}
-              <div className="pv-card pv-info-card">
-                <div className="pv-info-header">
-                  <h3>Project Details</h3>
-                  <button className="btn btn-secondary btn-sm" onClick={handleEditClick}>
-                    Edit Project
+            <div className="pv-tab-panel info-tab">
+              {/* Hero Header */}
+              <div className="info-hero">
+                <div className="info-hero-content">
+                  <div className="info-hero-main">
+                    <h2 className="info-hero-title">{selectedProject.name}</h2>
+                    {selectedProject.job_number && (
+                      <span className="info-hero-job">Job #{selectedProject.job_number}</span>
+                    )}
+                  </div>
+                  <button className="btn btn-primary btn-with-icon" onClick={handleEditClick}>
+                    <span>Edit Project</span>
                   </button>
                 </div>
-
-                <div className="pv-info-grid">
-                  {/* Basic Info */}
-                  <div className="pv-info-section">
-                    <div className="pv-info-section-title">Basic Information</div>
-                    <div className="pv-info-row">
-                      <span className="pv-info-label">Project Name</span>
-                      <span className="pv-info-value">{selectedProject.name}</span>
-                    </div>
-                    {selectedProject.job_number && (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">Job Number</span>
-                        <span className="pv-info-value">{selectedProject.job_number}</span>
-                      </div>
-                    )}
-                    {selectedProject.address && (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">
-                          <MapPin size={14} className="pv-info-icon" />
-                          Address
-                        </span>
-                        <span className="pv-info-value">{selectedProject.address}</span>
-                      </div>
-                    )}
+                {selectedProject.address && (
+                  <div className="info-hero-address">
+                    <MapPin size={14} />
+                    <span>{selectedProject.address}</span>
                   </div>
+                )}
+              </div>
 
-                  {/* Client & Contractor */}
-                  <div className="pv-info-section">
-                    <div className="pv-info-section-title">
-                      <Building2 size={16} className="pv-info-icon" />
-                      Client & Contractor
-                    </div>
-                    {selectedProject.general_contractor ? (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">General Contractor</span>
-                        <span className="pv-info-value">{selectedProject.general_contractor}</span>
-                      </div>
-                    ) : (
-                      <div className="pv-info-empty">No general contractor specified</div>
-                    )}
-                    {selectedProject.client_contact && (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">Client Contact</span>
-                        <span className="pv-info-value">{selectedProject.client_contact}</span>
-                      </div>
-                    )}
-                    {selectedProject.client_phone && (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">
-                          <Phone size={14} className="pv-info-icon" />
-                          Phone
-                        </span>
-                        <a href={`tel:${selectedProject.client_phone}`} className="pv-info-value pv-info-link">
-                          {selectedProject.client_phone}
-                        </a>
-                      </div>
-                    )}
+              {/* Quick Info Cards */}
+              <div className="info-quick-grid">
+                {/* Work Type */}
+                <div className="info-quick-card">
+                  <div className="info-quick-icon">
+                    <HardHat size={20} />
                   </div>
+                  <div className="info-quick-content">
+                    <span className="info-quick-value">
+                      {selectedProject.work_type === 'environmental' ? 'Environmental' : 'Demolition'}
+                    </span>
+                    <span className="info-quick-label">Work Type</span>
+                  </div>
+                </div>
 
-                  {/* Project Settings */}
-                  <div className="pv-info-section">
-                    <div className="pv-info-section-title">Project Settings</div>
-                    <div className="pv-info-row">
-                      <span className="pv-info-label">Work Type</span>
-                      <span className="pv-info-value pv-info-badge">
-                        {selectedProject.work_type === 'environmental' ? 'Environmental' : 'Demolition'}
+                {/* Job Type */}
+                <div className="info-quick-card">
+                  <div className="info-quick-icon">
+                    <FileText size={20} />
+                  </div>
+                  <div className="info-quick-content">
+                    <span className="info-quick-value">
+                      {selectedProject.job_type === 'prevailing_wage' ? 'Prevailing Wage' : 'Standard'}
+                    </span>
+                    <span className="info-quick-label">Job Type</span>
+                  </div>
+                </div>
+
+                {/* Contract Value */}
+                <div className="info-quick-card highlight">
+                  <div className="info-quick-icon">
+                    <DollarSign size={20} />
+                  </div>
+                  <div className="info-quick-content">
+                    <span className="info-quick-value">{formatCurrency(revisedContractValue)}</span>
+                    <span className="info-quick-label">
+                      {changeOrderValue > 0 ? `Incl. +${formatCurrency(changeOrderValue)} COs` : 'Contract Value'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Foreman PIN */}
+                {selectedProject.pin && (
+                  <div className="info-quick-card">
+                    <div className="info-quick-icon">
+                      <span className="info-pin-icon">#</span>
+                    </div>
+                    <div className="info-quick-content">
+                      <span className="info-quick-value mono">{selectedProject.pin}</span>
+                      <span className="info-quick-label">Foreman PIN</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Client & Contractor Card */}
+              <div className="info-section-card">
+                <div className="info-section-header">
+                  <Building2 size={18} />
+                  <h3>Client & Contractor</h3>
+                </div>
+                <div className="info-section-content">
+                  {selectedProject.general_contractor ? (
+                    <div className="info-detail-row">
+                      <span className="info-detail-label">General Contractor</span>
+                      <span className="info-detail-value">{selectedProject.general_contractor}</span>
+                    </div>
+                  ) : (
+                    <div className="info-detail-row empty">
+                      <span className="info-detail-value">No general contractor specified</span>
+                    </div>
+                  )}
+                  {selectedProject.client_contact && (
+                    <div className="info-detail-row">
+                      <span className="info-detail-label">Client Contact</span>
+                      <span className="info-detail-value">{selectedProject.client_contact}</span>
+                    </div>
+                  )}
+                  {selectedProject.client_phone && (
+                    <div className="info-detail-row clickable">
+                      <span className="info-detail-label">
+                        <Phone size={14} />
+                        Phone
                       </span>
+                      <a href={`tel:${selectedProject.client_phone}`} className="info-detail-value link">
+                        {selectedProject.client_phone}
+                      </a>
                     </div>
-                    <div className="pv-info-row">
-                      <span className="pv-info-label">Job Type</span>
-                      <span className="pv-info-value pv-info-badge">
-                        {selectedProject.job_type === 'prevailing_wage' ? 'Prevailing Wage' : 'Standard'}
-                      </span>
-                    </div>
-                    {selectedProject.pin && (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">Foreman PIN</span>
-                        <span className="pv-info-value pv-info-mono">{selectedProject.pin}</span>
-                      </div>
-                    )}
-                    {selectedProject.default_dump_site_id && (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">Default Dump Site</span>
-                        <span className="pv-info-value">
-                          {dumpSites.find(s => s.id === selectedProject.default_dump_site_id)?.name || 'Unknown'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Contract Value */}
-                  <div className="pv-info-section">
-                    <div className="pv-info-section-title">
-                      <DollarSign size={16} className="pv-info-icon" />
-                      Contract
-                    </div>
-                    <div className="pv-info-row">
-                      <span className="pv-info-label">Original Contract</span>
-                      <span className="pv-info-value pv-info-currency">{formatCurrency(selectedProject.contract_value)}</span>
-                    </div>
-                    {changeOrderValue > 0 && (
-                      <div className="pv-info-row">
-                        <span className="pv-info-label">Change Orders</span>
-                        <span className="pv-info-value pv-info-currency positive">+{formatCurrency(changeOrderValue)}</span>
-                      </div>
-                    )}
-                    <div className="pv-info-row pv-info-total">
-                      <span className="pv-info-label">Current Value</span>
-                      <span className="pv-info-value pv-info-currency">{formatCurrency(revisedContractValue)}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Work Areas Summary */}
-              <div className="pv-card">
-                <h3>Work Areas ({areas.length})</h3>
-                <div className="pv-info-areas">
+              {/* Work Areas Card */}
+              <div className="info-section-card">
+                <div className="info-section-header">
+                  <LayoutGrid size={18} />
+                  <h3>Work Areas</h3>
+                  <div className="info-section-badges">
+                    {areasComplete > 0 && <span className="info-badge done">{areasComplete} Done</span>}
+                    {areasWorking > 0 && <span className="info-badge working">{areasWorking} Active</span>}
+                    {areasNotStarted > 0 && <span className="info-badge pending">{areasNotStarted} Pending</span>}
+                  </div>
+                </div>
+                <div className="info-areas-list">
                   {areas.map(area => (
-                    <div key={area.id} className={`pv-info-area ${area.status}`}>
-                      <span className="pv-info-area-name">{area.name}</span>
-                      <span className="pv-info-area-weight">{area.weight}%</span>
-                      <span className={`pv-info-area-status status-badge ${area.status}`}>
-                        {area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In Progress' : 'Not Started'}
-                      </span>
+                    <div key={area.id} className={`info-area-item ${area.status}`}>
+                      <div className="info-area-status">
+                        {area.status === 'done' && <span className="status-dot done">✓</span>}
+                        {area.status === 'working' && <span className="status-dot working">●</span>}
+                        {area.status === 'not_started' && <span className="status-dot pending">○</span>}
+                      </div>
+                      <div className="info-area-details">
+                        <span className="info-area-name">{area.name}</span>
+                        <span className={`info-area-status-label ${area.status}`}>
+                          {area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In Progress' : 'Not Started'}
+                        </span>
+                      </div>
+                      <span className="info-area-weight">{area.weight}%</span>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Project Settings - Collapsible */}
+              <details className="info-details-section">
+                <summary className="info-details-summary">
+                  <Info size={16} />
+                  <span>Additional Settings</span>
+                </summary>
+                <div className="info-details-content">
+                  <div className="info-detail-row">
+                    <span className="info-detail-label">Original Contract</span>
+                    <span className="info-detail-value">{formatCurrency(selectedProject.contract_value)}</span>
+                  </div>
+                  {changeOrderValue > 0 && (
+                    <div className="info-detail-row">
+                      <span className="info-detail-label">Approved Change Orders</span>
+                      <span className="info-detail-value positive">+{formatCurrency(changeOrderValue)}</span>
+                    </div>
+                  )}
+                  {selectedProject.default_dump_site_id && (
+                    <div className="info-detail-row">
+                      <span className="info-detail-label">Default Dump Site</span>
+                      <span className="info-detail-value">
+                        {dumpSites.find(s => s.id === selectedProject.default_dump_site_id)?.name || 'Unknown'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </details>
             </div>
           )}
         </div>
