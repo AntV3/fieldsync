@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool } from 'lucide-react'
+import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -12,11 +12,13 @@ import {
 } from '../../lib/corCalculations'
 import { exportCORToPDF } from '../../lib/corPdfExport'
 import SignatureCapture from './SignatureCapture'
+import SignatureLinkGenerator from '../SignatureLinkGenerator'
 
 export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
   const [loading, setLoading] = useState(true)
   const [corData, setCORData] = useState(cor)
   const [showSignature, setShowSignature] = useState(false)
+  const [showSignatureLink, setShowSignatureLink] = useState(false)
 
   // Fetch full COR data with line items on mount
   useEffect(() => {
@@ -421,16 +423,64 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             </div>
           </div>
 
-          {/* Signature Section (if signed) */}
-          {corData.gc_signature && (
+          {/* Signature Section */}
+          {(corData.gc_signature_data || corData.gc_signature || corData.client_signature_data) && (
             <div className="cor-detail-section signature-section">
-              <h3><Stamp size={18} /> GC Signature</h3>
-              <div className="signature-display">
-                <img src={corData.gc_signature} alt="GC Signature" className="signature-image" />
-                <div className="signature-info">
-                  <span className="signer-name">{corData.gc_signer_name}</span>
-                  <span className="signed-date">Signed: {formatDate(corData.signed_at)}</span>
-                </div>
+              <h3><Stamp size={18} /> Signatures</h3>
+              <div className="dual-signatures">
+                {/* GC Signature */}
+                {(corData.gc_signature_data || corData.gc_signature) && (
+                  <div className="signature-block">
+                    <span className="signature-label">GC Authorization</span>
+                    <div className="signature-display">
+                      <img
+                        src={corData.gc_signature_data || corData.gc_signature}
+                        alt="GC Signature"
+                        className="signature-image"
+                      />
+                      <div className="signature-info">
+                        <span className="signer-name">{corData.gc_signature_name || corData.gc_signer_name}</span>
+                        {(corData.gc_signature_title || corData.gc_signature_company) && (
+                          <span className="signer-org">
+                            {corData.gc_signature_title}
+                            {corData.gc_signature_title && corData.gc_signature_company && ' - '}
+                            {corData.gc_signature_company}
+                          </span>
+                        )}
+                        <span className="signed-date">
+                          Signed: {formatDate(corData.gc_signature_date || corData.signed_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Client Signature */}
+                {corData.client_signature_data && (
+                  <div className="signature-block">
+                    <span className="signature-label">Client Authorization</span>
+                    <div className="signature-display">
+                      <img
+                        src={corData.client_signature_data}
+                        alt="Client Signature"
+                        className="signature-image"
+                      />
+                      <div className="signature-info">
+                        <span className="signer-name">{corData.client_signature_name}</span>
+                        {(corData.client_signature_title || corData.client_signature_company) && (
+                          <span className="signer-org">
+                            {corData.client_signature_title}
+                            {corData.client_signature_title && corData.client_signature_company && ' - '}
+                            {corData.client_signature_company}
+                          </span>
+                        )}
+                        <span className="signed-date">
+                          Signed: {formatDate(corData.client_signature_date)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -475,6 +525,18 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
               </button>
             )}
 
+            {/* Show signature link button for approved/pending CORs */}
+            {(corData.status === 'approved' || corData.status === 'pending_approval') && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowSignatureLink(true)}
+                disabled={loading}
+                aria-label="Get shareable signature link"
+              >
+                <Link size={16} aria-hidden="true" /> Get Signature Link
+              </button>
+            )}
+
             {corData.status === 'approved' && (
               <button className="btn btn-primary" onClick={handleMarkBilled} disabled={loading} aria-label="Mark this COR as billed">
                 <DollarSign size={16} aria-hidden="true" /> Mark Billed
@@ -494,6 +556,19 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
           onSave={handleSaveSignature}
           onClose={() => setShowSignature(false)}
           signerName=""
+        />
+      )}
+
+      {/* Signature Link Generator Modal */}
+      {showSignatureLink && (
+        <SignatureLinkGenerator
+          documentType="cor"
+          documentId={corData.id}
+          companyId={company?.id}
+          projectId={project?.id}
+          documentTitle={`COR ${corData.cor_number}: ${corData.title || 'Untitled'}`}
+          onClose={() => setShowSignatureLink(false)}
+          onShowToast={onShowToast}
         />
       )}
     </div>

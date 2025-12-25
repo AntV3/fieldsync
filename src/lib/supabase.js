@@ -4176,6 +4176,205 @@ export const db = {
         .subscribe()
     }
     return null
+  },
+
+  // ============================================
+  // Signature Workflow Functions
+  // ============================================
+
+  // Create a signature request for a document (COR or T&M)
+  async createSignatureRequest(documentType, documentId, companyId, projectId, createdBy = null, expiresAt = null) {
+    if (isSupabaseConfigured) {
+      // Generate a unique token using the database function
+      const { data: tokenResult, error: tokenError } = await supabase.rpc('generate_signature_token')
+      if (tokenError) throw tokenError
+
+      const { data, error } = await supabase
+        .from('signature_requests')
+        .insert({
+          document_type: documentType,
+          document_id: documentId,
+          company_id: companyId,
+          project_id: projectId,
+          signature_token: tokenResult,
+          expires_at: expiresAt,
+          created_by: createdBy
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Get signature request by token (for public signing page)
+  async getSignatureRequestByToken(token) {
+    if (isSupabaseConfigured) {
+      // Increment view count
+      await supabase.rpc('increment_signature_view_count', { token })
+
+      const { data, error } = await supabase
+        .from('signature_requests')
+        .select(`
+          *,
+          signatures (*)
+        `)
+        .eq('signature_token', token)
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Get all signature requests for a document
+  async getSignatureRequestsForDocument(documentType, documentId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('signature_requests')
+        .select(`
+          *,
+          signatures (*)
+        `)
+        .eq('document_type', documentType)
+        .eq('document_id', documentId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
+    }
+    return []
+  },
+
+  // Add a signature to a request
+  async addSignature(requestId, slot, signatureData) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('signatures')
+        .insert({
+          signature_request_id: requestId,
+          signature_slot: slot,
+          signature_image: signatureData.signature,
+          signer_name: signatureData.signerName,
+          signer_title: signatureData.signerTitle || null,
+          signer_company: signatureData.signerCompany || null,
+          signed_at: signatureData.signedAt || new Date().toISOString(),
+          ip_address: signatureData.ipAddress || null,
+          user_agent: signatureData.userAgent || null
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Sync signature to the main document table (COR or T&M)
+  async syncSignatureToDocument(signature, signatureRequest) {
+    if (!isSupabaseConfigured) return null
+
+    const { document_type, document_id } = signatureRequest
+    const slot = signature.signature_slot
+
+    // Build update object based on slot
+    const updates = {}
+    if (slot === 1) {
+      // GC signature
+      updates.gc_signature_data = signature.signature_image
+      updates.gc_signature_name = signature.signer_name
+      updates.gc_signature_title = signature.signer_title
+      updates.gc_signature_company = signature.signer_company
+      updates.gc_signature_date = signature.signed_at
+      updates.gc_signature_ip = signature.ip_address
+    } else if (slot === 2) {
+      // Client signature
+      updates.client_signature_data = signature.signature_image
+      updates.client_signature_name = signature.signer_name
+      updates.client_signature_title = signature.signer_title
+      updates.client_signature_company = signature.signer_company
+      updates.client_signature_date = signature.signed_at
+      updates.client_signature_ip = signature.ip_address
+    }
+
+    const tableName = document_type === 'cor' ? 'change_orders' : 't_and_m_tickets'
+    const { data, error } = await supabase
+      .from(tableName)
+      .update(updates)
+      .eq('id', document_id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // Revoke a signature request
+  async revokeSignatureRequest(requestId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('signature_requests')
+        .update({ status: 'revoked' })
+        .eq('id', requestId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Get document data for signature page (COR or T&M with project info)
+  async getDocumentForSigning(documentType, documentId) {
+    if (!isSupabaseConfigured) return null
+
+    if (documentType === 'cor') {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .select(`
+          *,
+          projects (
+            id,
+            name,
+            job_number,
+            companies (
+              id,
+              name,
+              logo_url
+            )
+          ),
+          change_order_labor (*),
+          change_order_materials (*),
+          change_order_equipment (*),
+          change_order_subcontractors (*)
+        `)
+        .eq('id', documentId)
+        .single()
+      if (error) throw error
+      return data
+    } else if (documentType === 'tm_ticket') {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          projects (
+            id,
+            name,
+            job_number,
+            companies (
+              id,
+              name,
+              logo_url
+            )
+          ),
+          t_and_m_workers (*),
+          t_and_m_items (*)
+        `)
+        .eq('id', documentId)
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
   }
 }
 

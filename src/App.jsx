@@ -8,6 +8,7 @@ import Setup from './components/Setup'
 import BrandingSettings from './components/BrandingSettings'
 import PricingManager from './components/PricingManager'
 import PublicView from './components/PublicView'
+import SignaturePage from './components/SignaturePage'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
 import NotificationCenter from './components/NotificationCenter'
@@ -15,13 +16,14 @@ import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
 
 export default function App() {
-  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public'
+  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
   const [userCompanies, setUserCompanies] = useState([]) // All companies user can access
   const [projects, setProjects] = useState([]) // For notification subscriptions
   const [foremanProject, setForemanProject] = useState(null)
   const [shareToken, setShareToken] = useState(null)
+  const [signatureToken, setSignatureToken] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
@@ -29,13 +31,18 @@ export default function App() {
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
 
   useEffect(() => {
-    // Check if this is a public share link
+    // Check if this is a public share link or signature link
     const path = window.location.pathname
     const shareMatch = path.match(/^\/view\/([a-zA-Z0-9]+)$/)
+    const signatureMatch = path.match(/^\/sign\/([a-zA-Z0-9_]+)$/)
 
     if (shareMatch) {
       setShareToken(shareMatch[1])
       setView('public')
+      setLoading(false)
+    } else if (signatureMatch) {
+      setSignatureToken(signatureMatch[1])
+      setView('signature')
       setLoading(false)
     } else {
       checkAuth()
@@ -313,6 +320,24 @@ export default function App() {
       <BrandingProvider>
         <ErrorBoundary>
           <PublicView shareToken={shareToken} />
+        </ErrorBoundary>
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </BrandingProvider>
+    )
+  }
+
+  // Signature View (Public Signing Page - No Authentication Required)
+  if (view === 'signature' && signatureToken) {
+    return (
+      <BrandingProvider>
+        <ErrorBoundary>
+          <SignaturePage signatureToken={signatureToken} />
         </ErrorBoundary>
         {toast && (
           <Toast

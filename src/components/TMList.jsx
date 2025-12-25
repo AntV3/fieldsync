@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
+import SignatureLinkGenerator from './SignatureLinkGenerator'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -51,6 +52,10 @@ export default function TMList({ project, company, onShowToast }) {
   const [showChangeOrderModal, setShowChangeOrderModal] = useState(false)
   const [pendingApprovalTicket, setPendingApprovalTicket] = useState(null)
   const [changeOrderValue, setChangeOrderValue] = useState('')
+
+  // Signature link modal state
+  const [showSignatureLink, setShowSignatureLink] = useState(false)
+  const [signatureLinkTicket, setSignatureLinkTicket] = useState(null)
 
   useEffect(() => {
     loadTickets()
@@ -676,7 +681,7 @@ export default function TMList({ project, company, onShowToast }) {
       yPos = margin
     }
 
-    // Authorization Signature Section
+    // Authorization Signature Section (Dual Signatures)
     yPos += 10
     doc.setDrawColor(...primaryColor)
     doc.setLineWidth(1)
@@ -693,24 +698,86 @@ export default function TMList({ project, company, onShowToast }) {
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(71, 85, 105)
     doc.text('I hereby authorize the above time and materials charges as accurate and approved for billing.', margin, yPos)
-    yPos += 25
+    yPos += 20
 
-    // Signature lines
-    const sigLineWidth = (pageWidth - margin * 2 - 30) / 2
+    // Helper to get first ticket's signature data (for single-ticket exports)
+    // For multi-ticket exports, signatures would be per-ticket
+    const firstTicket = ticketsToExport[0] || {}
 
-    // Left signature block
-    doc.setDrawColor(...secondaryColor)
-    doc.setLineWidth(0.5)
-    doc.line(margin, yPos + 20, margin + sigLineWidth, yPos + 20)
-    doc.setFontSize(9)
-    doc.setTextColor(100, 116, 139)
-    doc.text('Authorized Signature (GC / Client)', margin, yPos + 28)
-    doc.text('Date: ____________________', margin, yPos + 38)
+    // Helper function to render a signature block
+    const renderSignatureBlock = (startY, label, signatureData, signerName, signerTitle, signerCompany, signedDate) => {
+      // Label
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(...primaryColor)
+      doc.text(label, margin, startY)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 116, 139)
 
-    // Right signature block
-    doc.line(margin + sigLineWidth + 30, yPos + 20, pageWidth - margin, yPos + 20)
-    doc.text('Print Name', margin + sigLineWidth + 30, yPos + 28)
-    doc.text('Title: ____________________', margin + sigLineWidth + 30, yPos + 38)
+      const sigLineY = startY + 18
+
+      // Signature line
+      doc.setDrawColor(...secondaryColor)
+      doc.setLineWidth(0.5)
+      doc.line(margin, sigLineY, margin + 70, sigLineY)
+      doc.text('Signature', margin, sigLineY + 8)
+
+      // Title/Company line
+      doc.line(margin + 85, sigLineY, margin + 145, sigLineY)
+      doc.text('Title / Company', margin + 85, sigLineY + 8)
+
+      // Date line
+      doc.line(pageWidth - margin - 40, sigLineY, pageWidth - margin, sigLineY)
+      doc.text('Date', pageWidth - margin - 40, sigLineY + 8)
+
+      // If signature exists, add it
+      if (signatureData) {
+        try {
+          doc.addImage(signatureData, 'PNG', margin, sigLineY - 16, 60, 16)
+          if (signerName) {
+            doc.setFontSize(8)
+            doc.text(signerName, margin, sigLineY + 15)
+          }
+          if (signerTitle || signerCompany) {
+            const titleCompany = [signerTitle, signerCompany].filter(Boolean).join(' - ')
+            doc.text(titleCompany, margin + 85, sigLineY - 5)
+          }
+          if (signedDate) {
+            const formattedDate = new Date(signedDate).toLocaleDateString()
+            doc.text(formattedDate, pageWidth - margin - 40, sigLineY - 5)
+          }
+        } catch (e) {
+          console.error('Error adding signature to PDF:', e)
+        }
+      }
+
+      return sigLineY + 25
+    }
+
+    // GC Signature (Signature 1)
+    yPos = renderSignatureBlock(
+      yPos,
+      'GC AUTHORIZATION',
+      firstTicket.gc_signature_data,
+      firstTicket.gc_signature_name,
+      firstTicket.gc_signature_title,
+      firstTicket.gc_signature_company,
+      firstTicket.gc_signature_date
+    )
+
+    yPos += 8
+
+    // Client Signature (Signature 2)
+    yPos = renderSignatureBlock(
+      yPos,
+      'CLIENT AUTHORIZATION',
+      firstTicket.client_signature_data,
+      firstTicket.client_signature_name,
+      firstTicket.client_signature_title,
+      firstTicket.client_signature_company,
+      firstTicket.client_signature_date
+    )
 
     // Add page numbers to all pages
     const totalPages = doc.internal.getNumberOfPages()
@@ -946,12 +1013,24 @@ export default function TMList({ project, company, onShowToast }) {
               </>
             )}
             {ticket.status === 'approved' && (
-              <button
-                className="btn btn-primary btn-small"
-                onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'billed'); }}
-              >
-                Mark Billed
-              </button>
+              <>
+                <button
+                  className="btn btn-primary btn-small"
+                  onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'billed'); }}
+                >
+                  Mark Billed
+                </button>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSignatureLinkTicket(ticket)
+                    setShowSignatureLink(true)
+                  }}
+                >
+                  <Link size={14} /> Signature Link
+                </button>
+              </>
             )}
             {ticket.status === 'rejected' && (
               <button
@@ -1171,6 +1250,22 @@ export default function TMList({ project, company, onShowToast }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Signature Link Generator Modal */}
+      {showSignatureLink && signatureLinkTicket && (
+        <SignatureLinkGenerator
+          documentType="tm_ticket"
+          documentId={signatureLinkTicket.id}
+          companyId={company?.id}
+          projectId={project?.id}
+          documentTitle={`T&M Ticket - ${new Date(signatureLinkTicket.work_date).toLocaleDateString()}${signatureLinkTicket.ce_pco_number ? ` (${signatureLinkTicket.ce_pco_number})` : ''}`}
+          onClose={() => {
+            setShowSignatureLink(false)
+            setSignatureLinkTicket(null)
+          }}
+          onShowToast={onShowToast}
+        />
       )}
     </div>
   )

@@ -381,10 +381,10 @@ export async function exportCORToPDF(cor, project, company, branding = {}) {
   yPos += 25
 
   // ============================================
-  // SIGNATURE SECTION
+  // SIGNATURE SECTION (Dual Signatures)
   // ============================================
 
-  if (yPos > pageHeight - 80) {
+  if (yPos > pageHeight - 120) {
     doc.addPage()
     yPos = margin
   }
@@ -393,30 +393,82 @@ export async function exportCORToPDF(cor, project, company, branding = {}) {
   doc.setTextColor(0, 0, 0)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.text('APPROVAL', margin, yPos)
-  yPos += 10
+  doc.text('AUTHORIZATION', margin, yPos)
+  yPos += 15
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
-
-  // Signature line
   doc.setDrawColor(0, 0, 0)
-  doc.line(margin, yPos + 15, margin + 70, yPos + 15)
-  doc.text('GC Signature', margin, yPos + 22)
 
-  doc.line(margin + 90, yPos + 15, margin + 150, yPos + 15)
-  doc.text('Date', margin + 90, yPos + 22)
+  // Helper function to render a signature block
+  const renderSignatureBlock = (startY, label, signatureData, signerName, signerTitle, signerCompany, signedDate) => {
+    // Label
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.text(label, margin, startY)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
 
-  // If signature exists, add it
-  if (cor.gc_signature) {
-    try {
-      doc.addImage(cor.gc_signature, 'PNG', margin, yPos - 5, 60, 20)
-      doc.text(cor.gc_signer_name || '', margin, yPos + 28)
-      doc.text(formatDate(cor.signed_at), margin + 90, yPos + 10)
-    } catch (e) {
-      console.error('Error adding signature:', e)
+    const sigLineY = startY + 20
+
+    // Signature line
+    doc.line(margin, sigLineY, margin + 70, sigLineY)
+    doc.text('Signature', margin, sigLineY + 8)
+
+    // Title/Company line
+    doc.line(margin + 85, sigLineY, margin + 145, sigLineY)
+    doc.text('Title / Company', margin + 85, sigLineY + 8)
+
+    // Date line
+    doc.line(pageWidth - margin - 40, sigLineY, pageWidth - margin, sigLineY)
+    doc.text('Date', pageWidth - margin - 40, sigLineY + 8)
+
+    // If signature exists, add it
+    if (signatureData) {
+      try {
+        doc.addImage(signatureData, 'PNG', margin, sigLineY - 18, 60, 18)
+        if (signerName) {
+          doc.setFontSize(8)
+          doc.text(signerName, margin, sigLineY + 15)
+        }
+        if (signerTitle || signerCompany) {
+          const titleCompany = [signerTitle, signerCompany].filter(Boolean).join(' - ')
+          doc.text(titleCompany, margin + 85, sigLineY - 5)
+        }
+        if (signedDate) {
+          doc.text(formatDate(signedDate), pageWidth - margin - 40, sigLineY - 5)
+        }
+      } catch (e) {
+        console.error('Error adding signature:', e)
+      }
     }
+
+    return sigLineY + 25
   }
+
+  // GC Signature (Signature 1)
+  yPos = renderSignatureBlock(
+    yPos,
+    'GC AUTHORIZATION',
+    cor.gc_signature_data || cor.gc_signature,
+    cor.gc_signature_name || cor.gc_signer_name,
+    cor.gc_signature_title,
+    cor.gc_signature_company,
+    cor.gc_signature_date || cor.signed_at
+  )
+
+  yPos += 10
+
+  // Client Signature (Signature 2)
+  yPos = renderSignatureBlock(
+    yPos,
+    'CLIENT AUTHORIZATION',
+    cor.client_signature_data,
+    cor.client_signature_name,
+    cor.client_signature_title,
+    cor.client_signature_company,
+    cor.client_signature_date
+  )
 
   // ============================================
   // FOOTER
