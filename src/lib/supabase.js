@@ -4375,6 +4375,161 @@ export const db = {
       return data
     }
     return null
+  },
+
+  // ============================================
+  // Project Costs (Custom Cost Contributors)
+  // ============================================
+
+  // Get all custom costs for a project
+  async getProjectCosts(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('project_costs')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('cost_date', { ascending: false })
+      if (error) {
+        console.error('Error fetching project costs:', error)
+        return []
+      }
+      return data || []
+    }
+    // Demo mode
+    const localData = getLocalData()
+    return (localData.projectCosts || [])
+      .filter(c => c.project_id === projectId)
+      .sort((a, b) => new Date(b.cost_date) - new Date(a.cost_date))
+  },
+
+  // Add a new custom cost
+  async addProjectCost(projectId, companyId, costData) {
+    const cost = {
+      project_id: projectId,
+      company_id: companyId,
+      category: costData.category,
+      description: costData.description,
+      amount: parseFloat(costData.amount),
+      cost_date: costData.cost_date || new Date().toISOString().split('T')[0],
+      notes: costData.notes || null,
+      created_by: costData.created_by || null
+    }
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('project_costs')
+        .insert(cost)
+        .select()
+        .single()
+      if (error) {
+        console.error('Error adding project cost:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.projectCosts) localData.projectCosts = []
+    const newCost = {
+      ...cost,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    localData.projectCosts.push(newCost)
+    setLocalData(localData)
+    return newCost
+  },
+
+  // Update an existing cost
+  async updateProjectCost(costId, costData) {
+    const updates = {
+      category: costData.category,
+      description: costData.description,
+      amount: parseFloat(costData.amount),
+      cost_date: costData.cost_date,
+      notes: costData.notes || null,
+      updated_at: new Date().toISOString()
+    }
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('project_costs')
+        .update(updates)
+        .eq('id', costId)
+        .select()
+        .single()
+      if (error) {
+        console.error('Error updating project cost:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.projectCosts) return null
+    const index = localData.projectCosts.findIndex(c => c.id === costId)
+    if (index === -1) return null
+    localData.projectCosts[index] = { ...localData.projectCosts[index], ...updates }
+    setLocalData(localData)
+    return localData.projectCosts[index]
+  },
+
+  // Delete a cost
+  async deleteProjectCost(costId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('project_costs')
+        .delete()
+        .eq('id', costId)
+      if (error) {
+        console.error('Error deleting project cost:', error)
+        throw error
+      }
+      return true
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.projectCosts) return true
+    localData.projectCosts = localData.projectCosts.filter(c => c.id !== costId)
+    setLocalData(localData)
+    return true
+  },
+
+  // Get costs summary aggregated by category
+  async getProjectCostsSummary(projectId) {
+    const costs = await this.getProjectCosts(projectId)
+
+    const byCategory = {}
+    let totalCost = 0
+
+    costs.forEach(cost => {
+      const amount = parseFloat(cost.amount) || 0
+      totalCost += amount
+
+      if (!byCategory[cost.category]) {
+        byCategory[cost.category] = {
+          category: cost.category,
+          total: 0,
+          count: 0,
+          items: []
+        }
+      }
+      byCategory[cost.category].total += amount
+      byCategory[cost.category].count++
+      byCategory[cost.category].items.push(cost)
+    })
+
+    // Calculate percentages
+    Object.values(byCategory).forEach(cat => {
+      cat.percentage = totalCost > 0 ? (cat.total / totalCost) * 100 : 0
+    })
+
+    return {
+      totalCost,
+      byCategory,
+      itemCount: costs.length
+    }
   }
 }
 

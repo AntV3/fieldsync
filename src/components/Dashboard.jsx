@@ -13,6 +13,10 @@ import ManDayCosts from './ManDayCosts'
 import CORList from './cor/CORList'
 import CORForm from './cor/CORForm'
 import CORDetail from './cor/CORDetail'
+import BurnRateCard from './BurnRateCard'
+import CostContributorsCard from './CostContributorsCard'
+import ProfitabilityCard from './ProfitabilityCard'
+import AddCostModal from './AddCostModal'
 
 export default function Dashboard({ company, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -32,6 +36,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   const [showCORDetail, setShowCORDetail] = useState(false)
   const [viewingCOR, setViewingCOR] = useState(null)
   const [corRefreshKey, setCORRefreshKey] = useState(0)
+  const [showAddCostModal, setShowAddCostModal] = useState(false)
+  const [savingCost, setSavingCost] = useState(false)
 
   useEffect(() => {
     if (company?.id) {
@@ -94,6 +100,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           project.job_type || 'standard'
         )
         const haulOffCosts = await db.calculateHaulOffCosts(project.id)
+        const customCosts = await db.getProjectCosts(project.id)
         const progress = calculateProgress(projectAreas)
 
         // Calculate revised contract value (original + change orders)
@@ -106,6 +113,25 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         const oneWeekAgo = new Date()
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
         const recentDailyReports = dailyReports.filter(r => new Date(r.report_date) >= oneWeekAgo).length
+
+        // Calculate total custom costs
+        const customCostTotal = customCosts.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0)
+
+        // Total costs combining labor, haul-off, and custom
+        const laborCost = laborCosts?.totalCost || 0
+        const haulOffCost = haulOffCosts?.totalCost || 0
+        const allCostsTotal = laborCost + haulOffCost + customCostTotal
+
+        // Calculate profit and margin
+        const currentProfit = billable - allCostsTotal
+        const profitMargin = billable > 0 ? (currentProfit / billable) * 100 : 0
+
+        // Burn rate calculations
+        const laborDays = laborCosts?.byDate?.length || 0
+        const haulOffDays = haulOffCosts?.daysWithHaulOff || 0
+        const totalBurnDays = Math.max(laborDays, haulOffDays)
+        const totalBurn = laborCost + haulOffCost
+        const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
         return {
           ...project,
@@ -124,21 +150,28 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           lastDailyReport: dailyReports[0]?.report_date || null,
           pendingMaterialRequests: materialRequests.filter(r => r.status === 'pending').length,
           totalMaterialRequests: materialRequests.length,
-          // Burn rate data (MVP - labor costs)
-          laborCost: laborCosts?.totalCost || 0,
-          laborDaysWorked: laborCosts?.byDate?.length || 0,
+          // Burn rate data
+          laborCost,
+          laborDaysWorked: laborDays,
           laborManDays: laborCosts?.totalManDays || 0,
-          avgDailyBurn: laborCosts?.byDate?.length > 0
-            ? (laborCosts.totalCost / laborCosts.byDate.length)
-            : 0,
+          laborByDate: laborCosts?.byDate || [],
+          dailyBurn,
           // Haul-off costs
-          haulOffCost: haulOffCosts?.totalCost || 0,
+          haulOffCost,
           haulOffLoads: haulOffCosts?.totalLoads || 0,
-          haulOffDays: haulOffCosts?.daysWithHaulOff || 0,
+          haulOffDays,
           haulOffByType: haulOffCosts?.byWasteType || {},
-          // Combined burn rate
-          totalBurn: (laborCosts?.totalCost || 0) + (haulOffCosts?.totalCost || 0),
-          totalBurnDays: Math.max(laborCosts?.byDate?.length || 0, haulOffCosts?.daysWithHaulOff || 0)
+          haulOffByDate: haulOffCosts?.byDate || [],
+          // Custom costs
+          customCosts,
+          customCostTotal,
+          // Combined totals
+          totalBurn,
+          totalBurnDays,
+          allCostsTotal,
+          // Profitability
+          currentProfit,
+          profitMargin
         }
       }))
       setProjectsData(enhanced)
@@ -735,7 +768,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           {/* FINANCIALS TAB */}
           {activeProjectTab === 'financials' && (
             <div className="pv-tab-panel financials-tab">
-              {/* Financial Snapshot - Hero Metrics */}
+              {/* Key Metrics - Hero Section */}
               <div className="financials-hero">
                 <div className="financials-hero-grid">
                   {/* Contract Value */}
@@ -756,25 +789,68 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                     </div>
                   </div>
 
-                  {/* Remaining */}
-                  <div className="fin-metric">
-                    <div className="fin-metric-label">Remaining</div>
-                    <div className="fin-metric-value green">{formatCurrency(revisedContractValue - billable)}</div>
-                    <div className="fin-metric-detail">{100 - percentBilled}% left</div>
-                  </div>
-
                   {/* Total Costs */}
                   <div className="fin-metric">
                     <div className="fin-metric-label">Costs</div>
-                    <div className="fin-metric-value">{formatCurrency(projectData?.totalBurn || 0)}</div>
+                    <div className="fin-metric-value">{formatCurrency(projectData?.allCostsTotal || 0)}</div>
                     {billable > 0 && (
-                      <div className={`fin-metric-detail ${(projectData?.totalBurn / billable) > 0.6 ? 'warning' : ''}`}>
-                        {Math.round(((projectData?.totalBurn || 0) / billable) * 100)}% of revenue
+                      <div className={`fin-metric-detail ${((projectData?.allCostsTotal || 0) / billable) > 0.6 ? 'warning' : ''}`}>
+                        {Math.round(((projectData?.allCostsTotal || 0) / billable) * 100)}% of revenue
                       </div>
                     )}
                   </div>
+
+                  {/* Profit */}
+                  <div className="fin-metric">
+                    <div className="fin-metric-label">Profit</div>
+                    <div className={`fin-metric-value ${(projectData?.currentProfit || 0) < 0 ? 'negative' : 'positive'}`}>
+                      {formatCurrency(projectData?.currentProfit || 0)}
+                    </div>
+                    <div className={`fin-metric-detail ${(projectData?.profitMargin || 0) < 20 ? 'warning' : ''}`}>
+                      {Math.round(projectData?.profitMargin || 0)}% margin
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Burn Rate & Profitability Row */}
+              <div className="financials-analysis-row">
+                <BurnRateCard
+                  dailyBurn={projectData?.dailyBurn || 0}
+                  totalBurn={projectData?.totalBurn || 0}
+                  daysWorked={projectData?.totalBurnDays || 0}
+                  laborCost={projectData?.laborCost || 0}
+                  haulOffCost={projectData?.haulOffCost || 0}
+                  progress={progress}
+                  contractValue={revisedContractValue}
+                  laborByDate={projectData?.laborByDate || []}
+                  haulOffByDate={projectData?.haulOffByDate || []}
+                />
+
+                <ProfitabilityCard
+                  revenue={billable}
+                  totalCosts={projectData?.allCostsTotal || 0}
+                  contractValue={revisedContractValue}
+                  progress={progress}
+                />
+              </div>
+
+              {/* Cost Contributors */}
+              <CostContributorsCard
+                laborCost={projectData?.laborCost || 0}
+                haulOffCost={projectData?.haulOffCost || 0}
+                customCosts={projectData?.customCosts || []}
+                onAddCost={() => setShowAddCostModal(true)}
+                onDeleteCost={async (costId) => {
+                  try {
+                    await db.deleteProjectCost(costId)
+                    loadProjects()
+                    onShowToast('Cost deleted', 'success')
+                  } catch (err) {
+                    onShowToast('Error deleting cost', 'error')
+                  }
+                }}
+              />
 
               {/* Extra Work Pipeline */}
               <div className="financials-pipeline">
@@ -825,12 +901,12 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                 </div>
               </div>
 
-              {/* Cost Analysis - Collapsible */}
+              {/* Legacy Cost Breakdown - Now Collapsible */}
               <details className="financials-details">
                 <summary className="financials-details-summary">
                   <HardHat size={16} />
-                  <span>Cost Breakdown</span>
-                  <span className="financials-details-value">{formatCurrency(projectData?.totalBurn || 0)}</span>
+                  <span>Labor Details</span>
+                  <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
                 </summary>
                 <div className="financials-details-content">
                   <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
@@ -1119,6 +1195,28 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             onShowToast={onShowToast}
             onStatusChange={() => {
               // Trigger a refresh of the COR list
+            }}
+          />
+        )}
+
+        {/* Add Cost Modal */}
+        {showAddCostModal && (
+          <AddCostModal
+            onClose={() => setShowAddCostModal(false)}
+            saving={savingCost}
+            onSave={async (costData) => {
+              try {
+                setSavingCost(true)
+                await db.addProjectCost(selectedProject.id, company.id, costData)
+                setShowAddCostModal(false)
+                loadProjects()
+                onShowToast('Cost added successfully', 'success')
+              } catch (err) {
+                console.error('Error adding cost:', err)
+                onShowToast('Error adding cost', 'error')
+              } finally {
+                setSavingCost(false)
+              }
             }}
           />
         )}
