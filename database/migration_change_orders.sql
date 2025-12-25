@@ -492,26 +492,6 @@ ALTER TABLE change_order_equipment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE change_order_subcontractors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE change_order_ticket_associations ENABLE ROW LEVEL SECURITY;
 
--- Helper function to check user's company
-CREATE OR REPLACE FUNCTION get_user_company_id()
-RETURNS UUID
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-AS $$
-  SELECT company_id FROM user_companies WHERE user_id = auth.uid() LIMIT 1;
-$$;
-
--- Helper function to check user's role
-CREATE OR REPLACE FUNCTION get_user_role()
-RETURNS TEXT
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-AS $$
-  SELECT role FROM user_companies WHERE user_id = auth.uid() LIMIT 1;
-$$;
-
 -- CHANGE_ORDERS POLICIES
 
 -- Drop existing policies first
@@ -519,163 +499,104 @@ DROP POLICY IF EXISTS "Users can view their company CORs" ON change_orders;
 DROP POLICY IF EXISTS "Office and Admin can create CORs" ON change_orders;
 DROP POLICY IF EXISTS "Office and Admin can update draft/pending CORs" ON change_orders;
 DROP POLICY IF EXISTS "Only Admin can delete draft CORs" ON change_orders;
+DROP POLICY IF EXISTS "Authenticated users full access to CORs" ON change_orders;
 
--- Users can view CORs from their company
-CREATE POLICY "Users can view their company CORs"
-ON change_orders FOR SELECT
-USING (company_id = get_user_company_id());
-
--- Office and Admin can create CORs
-CREATE POLICY "Office and Admin can create CORs"
-ON change_orders FOR INSERT
-WITH CHECK (
-  company_id = get_user_company_id() AND
-  get_user_role() IN ('office', 'admin')
-);
-
--- Office and Admin can update draft/pending CORs
-CREATE POLICY "Office and Admin can update draft/pending CORs"
-ON change_orders FOR UPDATE
+-- Simple policy: authenticated users can access CORs from their company
+-- Uses direct EXISTS check instead of helper functions for reliability
+CREATE POLICY "Authenticated users full access to CORs"
+ON change_orders FOR ALL
 USING (
-  company_id = get_user_company_id() AND
-  get_user_role() IN ('office', 'admin') AND
-  status IN ('draft', 'pending_approval', 'rejected')
+  EXISTS (
+    SELECT 1 FROM user_companies uc
+    WHERE uc.user_id = auth.uid()
+    AND uc.company_id = change_orders.company_id
+  )
 )
 WITH CHECK (
-  company_id = get_user_company_id() AND
-  get_user_role() IN ('office', 'admin')
-);
-
--- Only Admin can delete CORs (and only drafts)
-CREATE POLICY "Only Admin can delete draft CORs"
-ON change_orders FOR DELETE
-USING (
-  company_id = get_user_company_id() AND
-  get_user_role() = 'admin' AND
-  status = 'draft'
+  EXISTS (
+    SELECT 1 FROM user_companies uc
+    WHERE uc.user_id = auth.uid()
+    AND uc.company_id = change_orders.company_id
+  )
 );
 
 -- CHANGE_ORDER_LABOR POLICIES
 DROP POLICY IF EXISTS "Users can view labor items for their company CORs" ON change_order_labor;
 DROP POLICY IF EXISTS "Office and Admin can manage labor items" ON change_order_labor;
+DROP POLICY IF EXISTS "Authenticated users full access to labor items" ON change_order_labor;
 
-CREATE POLICY "Users can view labor items for their company CORs"
-ON change_order_labor FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id AND co.company_id = get_user_company_id()
-  )
-);
-
-CREATE POLICY "Office and Admin can manage labor items"
+CREATE POLICY "Authenticated users full access to labor items"
 ON change_order_labor FOR ALL
 USING (
   EXISTS (
     SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id
-    AND co.company_id = get_user_company_id()
-    AND get_user_role() IN ('office', 'admin')
-    AND co.status IN ('draft', 'pending_approval', 'rejected')
+    JOIN user_companies uc ON uc.company_id = co.company_id
+    WHERE co.id = change_order_labor.change_order_id
+    AND uc.user_id = auth.uid()
   )
 );
 
 -- CHANGE_ORDER_MATERIALS POLICIES
 DROP POLICY IF EXISTS "Users can view material items for their company CORs" ON change_order_materials;
 DROP POLICY IF EXISTS "Office and Admin can manage material items" ON change_order_materials;
+DROP POLICY IF EXISTS "Authenticated users full access to material items" ON change_order_materials;
 
-CREATE POLICY "Users can view material items for their company CORs"
-ON change_order_materials FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id AND co.company_id = get_user_company_id()
-  )
-);
-
-CREATE POLICY "Office and Admin can manage material items"
+CREATE POLICY "Authenticated users full access to material items"
 ON change_order_materials FOR ALL
 USING (
   EXISTS (
     SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id
-    AND co.company_id = get_user_company_id()
-    AND get_user_role() IN ('office', 'admin')
-    AND co.status IN ('draft', 'pending_approval', 'rejected')
+    JOIN user_companies uc ON uc.company_id = co.company_id
+    WHERE co.id = change_order_materials.change_order_id
+    AND uc.user_id = auth.uid()
   )
 );
 
 -- CHANGE_ORDER_EQUIPMENT POLICIES
 DROP POLICY IF EXISTS "Users can view equipment items for their company CORs" ON change_order_equipment;
 DROP POLICY IF EXISTS "Office and Admin can manage equipment items" ON change_order_equipment;
+DROP POLICY IF EXISTS "Authenticated users full access to equipment items" ON change_order_equipment;
 
-CREATE POLICY "Users can view equipment items for their company CORs"
-ON change_order_equipment FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id AND co.company_id = get_user_company_id()
-  )
-);
-
-CREATE POLICY "Office and Admin can manage equipment items"
+CREATE POLICY "Authenticated users full access to equipment items"
 ON change_order_equipment FOR ALL
 USING (
   EXISTS (
     SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id
-    AND co.company_id = get_user_company_id()
-    AND get_user_role() IN ('office', 'admin')
-    AND co.status IN ('draft', 'pending_approval', 'rejected')
+    JOIN user_companies uc ON uc.company_id = co.company_id
+    WHERE co.id = change_order_equipment.change_order_id
+    AND uc.user_id = auth.uid()
   )
 );
 
 -- CHANGE_ORDER_SUBCONTRACTORS POLICIES
 DROP POLICY IF EXISTS "Users can view subcontractor items for their company CORs" ON change_order_subcontractors;
 DROP POLICY IF EXISTS "Office and Admin can manage subcontractor items" ON change_order_subcontractors;
+DROP POLICY IF EXISTS "Authenticated users full access to subcontractor items" ON change_order_subcontractors;
 
-CREATE POLICY "Users can view subcontractor items for their company CORs"
-ON change_order_subcontractors FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id AND co.company_id = get_user_company_id()
-  )
-);
-
-CREATE POLICY "Office and Admin can manage subcontractor items"
+CREATE POLICY "Authenticated users full access to subcontractor items"
 ON change_order_subcontractors FOR ALL
 USING (
   EXISTS (
     SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id
-    AND co.company_id = get_user_company_id()
-    AND get_user_role() IN ('office', 'admin')
-    AND co.status IN ('draft', 'pending_approval', 'rejected')
+    JOIN user_companies uc ON uc.company_id = co.company_id
+    WHERE co.id = change_order_subcontractors.change_order_id
+    AND uc.user_id = auth.uid()
   )
 );
 
 -- CHANGE_ORDER_TICKET_ASSOCIATIONS POLICIES
 DROP POLICY IF EXISTS "Users can view ticket associations for their company CORs" ON change_order_ticket_associations;
 DROP POLICY IF EXISTS "Office and Admin can manage ticket associations" ON change_order_ticket_associations;
+DROP POLICY IF EXISTS "Authenticated users full access to ticket associations" ON change_order_ticket_associations;
 
-CREATE POLICY "Users can view ticket associations for their company CORs"
-ON change_order_ticket_associations FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id AND co.company_id = get_user_company_id()
-  )
-);
-
-CREATE POLICY "Office and Admin can manage ticket associations"
+CREATE POLICY "Authenticated users full access to ticket associations"
 ON change_order_ticket_associations FOR ALL
 USING (
   EXISTS (
     SELECT 1 FROM change_orders co
-    WHERE co.id = change_order_id
-    AND co.company_id = get_user_company_id()
-    AND get_user_role() IN ('office', 'admin')
+    JOIN user_companies uc ON uc.company_id = co.company_id
+    WHERE co.id = change_order_ticket_associations.change_order_id
+    AND uc.user_id = auth.uid()
   )
 );
 
@@ -692,8 +613,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON change_order_ticket_associations TO auth
 
 -- Grant execute on functions
 GRANT EXECUTE ON FUNCTION recalculate_cor_totals(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION get_user_company_id() TO authenticated;
-GRANT EXECUTE ON FUNCTION get_user_role() TO authenticated;
 
 -- ============================================
 -- 13. COMMENTS FOR DOCUMENTATION
