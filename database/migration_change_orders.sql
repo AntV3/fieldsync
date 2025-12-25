@@ -369,6 +369,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_recalculate_cor_labor ON change_order_labor;
 CREATE TRIGGER trg_recalculate_cor_labor
 AFTER INSERT OR UPDATE OR DELETE ON change_order_labor
 FOR EACH ROW EXECUTE FUNCTION trigger_recalculate_cor_from_labor();
@@ -389,6 +390,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_recalculate_cor_materials ON change_order_materials;
 CREATE TRIGGER trg_recalculate_cor_materials
 AFTER INSERT OR UPDATE OR DELETE ON change_order_materials
 FOR EACH ROW EXECUTE FUNCTION trigger_recalculate_cor_from_materials();
@@ -409,6 +411,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_recalculate_cor_equipment ON change_order_equipment;
 CREATE TRIGGER trg_recalculate_cor_equipment
 AFTER INSERT OR UPDATE OR DELETE ON change_order_equipment
 FOR EACH ROW EXECUTE FUNCTION trigger_recalculate_cor_from_equipment();
@@ -429,6 +432,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_recalculate_cor_subcontractors ON change_order_subcontractors;
 CREATE TRIGGER trg_recalculate_cor_subcontractors
 AFTER INSERT OR UPDATE OR DELETE ON change_order_subcontractors
 FOR EACH ROW EXECUTE FUNCTION trigger_recalculate_cor_from_subcontractors();
@@ -453,6 +457,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_recalculate_cor_percentages ON change_orders;
 CREATE TRIGGER trg_recalculate_cor_percentages
 AFTER UPDATE ON change_orders
 FOR EACH ROW EXECUTE FUNCTION trigger_recalculate_cor_on_percentage_change();
@@ -470,6 +475,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_change_orders_updated_at ON change_orders;
 CREATE TRIGGER trg_change_orders_updated_at
 BEFORE UPDATE ON change_orders
 FOR EACH ROW EXECUTE FUNCTION update_change_orders_updated_at();
@@ -508,6 +514,12 @@ $$;
 
 -- CHANGE_ORDERS POLICIES
 
+-- Drop existing policies first
+DROP POLICY IF EXISTS "Users can view their company CORs" ON change_orders;
+DROP POLICY IF EXISTS "Office and Admin can create CORs" ON change_orders;
+DROP POLICY IF EXISTS "Office and Admin can update draft/pending CORs" ON change_orders;
+DROP POLICY IF EXISTS "Only Admin can delete draft CORs" ON change_orders;
+
 -- Users can view CORs from their company
 CREATE POLICY "Users can view their company CORs"
 ON change_orders FOR SELECT
@@ -544,6 +556,9 @@ USING (
 );
 
 -- CHANGE_ORDER_LABOR POLICIES
+DROP POLICY IF EXISTS "Users can view labor items for their company CORs" ON change_order_labor;
+DROP POLICY IF EXISTS "Office and Admin can manage labor items" ON change_order_labor;
+
 CREATE POLICY "Users can view labor items for their company CORs"
 ON change_order_labor FOR SELECT
 USING (
@@ -566,6 +581,9 @@ USING (
 );
 
 -- CHANGE_ORDER_MATERIALS POLICIES
+DROP POLICY IF EXISTS "Users can view material items for their company CORs" ON change_order_materials;
+DROP POLICY IF EXISTS "Office and Admin can manage material items" ON change_order_materials;
+
 CREATE POLICY "Users can view material items for their company CORs"
 ON change_order_materials FOR SELECT
 USING (
@@ -588,6 +606,9 @@ USING (
 );
 
 -- CHANGE_ORDER_EQUIPMENT POLICIES
+DROP POLICY IF EXISTS "Users can view equipment items for their company CORs" ON change_order_equipment;
+DROP POLICY IF EXISTS "Office and Admin can manage equipment items" ON change_order_equipment;
+
 CREATE POLICY "Users can view equipment items for their company CORs"
 ON change_order_equipment FOR SELECT
 USING (
@@ -610,6 +631,9 @@ USING (
 );
 
 -- CHANGE_ORDER_SUBCONTRACTORS POLICIES
+DROP POLICY IF EXISTS "Users can view subcontractor items for their company CORs" ON change_order_subcontractors;
+DROP POLICY IF EXISTS "Office and Admin can manage subcontractor items" ON change_order_subcontractors;
+
 CREATE POLICY "Users can view subcontractor items for their company CORs"
 ON change_order_subcontractors FOR SELECT
 USING (
@@ -632,6 +656,9 @@ USING (
 );
 
 -- CHANGE_ORDER_TICKET_ASSOCIATIONS POLICIES
+DROP POLICY IF EXISTS "Users can view ticket associations for their company CORs" ON change_order_ticket_associations;
+DROP POLICY IF EXISTS "Office and Admin can manage ticket associations" ON change_order_ticket_associations;
+
 CREATE POLICY "Users can view ticket associations for their company CORs"
 ON change_order_ticket_associations FOR SELECT
 USING (

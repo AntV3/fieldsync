@@ -78,8 +78,8 @@ export default function CORList({ project, company, areas, onShowToast, onCreate
       onShowToast?.('COR submitted for approval', 'success')
       loadStats()
     } catch (error) {
-      console.error('Error submitting COR:', error)
-      onShowToast?.('Error submitting COR', 'error')
+      console.error('Error submitting COR:', error?.message || error)
+      onShowToast?.(error?.message || 'Error submitting COR', 'error')
     }
   }
 
