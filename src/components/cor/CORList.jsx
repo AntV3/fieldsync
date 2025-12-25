@@ -284,17 +284,17 @@ export default function CORList({ project, company, areas, onShowToast, onCreate
 
   return (
     <div className="cor-list">
-      {/* Compact Header with Stats */}
+      {/* Clean Header */}
       <div className="cor-list-header">
-        <div className="cor-list-title">
-          <h3>Change Order Requests</h3>
-          <div className="cor-header-stats">
-            <span className="cor-header-stat">{counts.all} total</span>
+        <div className="cor-list-info">
+          <h3>Change Orders</h3>
+          <div className="cor-stats-inline">
+            <span className="cor-stat-item">{counts.all} total</span>
             {counts.pending_approval > 0 && (
-              <span className="cor-header-stat pending">{counts.pending_approval} pending</span>
+              <span className="cor-stat-item pending">{counts.pending_approval} pending</span>
             )}
             {stats?.totalApproved > 0 && (
-              <span className="cor-header-stat approved">{formatCurrency(stats.totalApproved)} approved</span>
+              <span className="cor-stat-item approved">{formatCurrency(stats.totalApproved)}</span>
             )}
           </div>
         </div>
@@ -303,140 +303,101 @@ export default function CORList({ project, company, areas, onShowToast, onCreate
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="cor-filter-tabs" role="tablist" aria-label="Filter CORs by status">
-        {[
-          { id: 'all', label: 'All' },
-          { id: 'draft', label: 'Draft' },
-          { id: 'pending_approval', label: 'Pending' },
-          { id: 'approved', label: 'Approved' },
-          { id: 'rejected', label: 'Rejected' },
-          { id: 'billed', label: 'Billed' }
-        ].map(status => (
+      {/* Minimal Filter Row */}
+      <div className="cor-controls">
+        <div className="cor-filter-pills" role="tablist">
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'draft', label: 'Draft' },
+            { id: 'pending_approval', label: 'Pending' },
+            { id: 'approved', label: 'Approved' }
+          ].map(status => (
+            <button
+              key={status.id}
+              role="tab"
+              aria-selected={filter === status.id}
+              className={`cor-pill ${filter === status.id ? 'active' : ''}`}
+              onClick={() => setFilter(status.id)}
+            >
+              {status.label}
+              {counts[status.id] > 0 && <span className="cor-pill-count">{counts[status.id]}</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* View Toggle */}
+        <div className="cor-view-toggle">
           <button
-            key={status.id}
-            role="tab"
-            aria-selected={filter === status.id}
-            className={`cor-filter-tab ${filter === status.id ? 'active' : ''}`}
-            onClick={() => setFilter(status.id)}
+            className={`cor-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
+            onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
           >
-            {status.label}
-            <span className="cor-filter-count" aria-label={`${counts[status.id]} items`}>{counts[status.id]}</span>
+            Recent
           </button>
-        ))}
+          <button
+            className={`cor-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+            onClick={() => setViewMode('all')}
+          >
+            All
+          </button>
+        </div>
       </div>
 
-      {/* Area Filter (if areas exist) */}
-      {areas && areas.length > 0 && (
-        <div className="cor-area-filter">
-          <label htmlFor="cor-area-filter" className="sr-only">Filter by area</label>
-          <select
-            id="cor-area-filter"
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
-            className="cor-area-select"
-            aria-label="Filter CORs by project area"
-          >
-            <option value="all">All Areas</option>
-            {areas.map(area => (
-              <option key={area.id} value={area.id}>{area.name}</option>
-            ))}
-          </select>
+      {/* Date Filter - Only in All mode */}
+      {viewMode === 'all' && (
+        <div className="cor-date-filter">
+          <Calendar size={14} />
+          <input
+            type="date"
+            value={dateFilter.start}
+            onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+          />
+          <span className="cor-date-sep">to</span>
+          <input
+            type="date"
+            value={dateFilter.end}
+            onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+          />
+          {(dateFilter.start || dateFilter.end) && (
+            <button className="cor-clear-btn" onClick={() => setDateFilter({ start: '', end: '' })}>
+              Clear
+            </button>
+          )}
         </div>
       )}
 
-      {/* View Mode Bar */}
-      <div className="view-mode-bar">
-        <div className="view-mode-tabs">
-          <button
-            className={`view-mode-tab ${viewMode === 'recent' ? 'active' : ''}`}
-            onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
-          >
-            Recent (7 days)
-          </button>
-          <button
-            className={`view-mode-tab ${viewMode === 'all' ? 'active' : ''}`}
-            onClick={() => setViewMode('all')}
-          >
-            All ({totalCORsCount})
-          </button>
-        </div>
-
-        {viewMode === 'all' && (
-          <div className="date-filter">
-            <Calendar size={16} />
-            <input
-              type="date"
-              value={dateFilter.start}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-              placeholder="Start date"
-            />
-            <span>to</span>
-            <input
-              type="date"
-              value={dateFilter.end}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-              placeholder="End date"
-            />
-            {(dateFilter.start || dateFilter.end) && (
-              <button
-                className="btn btn-ghost btn-small"
-                onClick={() => setDateFilter({ start: '', end: '' })}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* COR List */}
       {filteredCORs.length === 0 ? (
-        <div className="cor-empty-state">
-          <span className="empty-icon"><FileText size={32} /></span>
-          <p>No {filter === 'all' ? '' : filter.replace('_', ' ')} change order requests
-            {viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
-          {viewMode === 'recent' && totalCORsCount > 0 && (
-            <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
-              View All CORs
-            </button>
-          )}
-          <button className="btn btn-primary" onClick={onCreateCOR}>
-            <Plus size={16} /> Create Your First COR
+        <div className="cor-empty">
+          <FileText size={24} className="cor-empty-icon" />
+          <p>No change orders {filter !== 'all' ? `(${filter.replace('_', ' ')})` : ''}</p>
+          <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
+            <Plus size={14} /> Create COR
           </button>
         </div>
       ) : (
         <div className="cor-cards">
-          {/* Render CORs - with month grouping in 'all' mode */}
           {viewMode === 'all' && corsByMonth ? (
             corsByMonth.map(([monthKey, monthData]) => (
-              <div key={monthKey} className="month-group">
-                <div
-                  className="month-header"
+              <div key={monthKey} className="cor-month-group">
+                <button
+                  className="cor-month-header"
                   onClick={() => toggleMonthExpand(monthKey)}
                 >
-                  <div className="month-header-left">
-                    {expandedMonths.has(monthKey) ? (
-                      <ChevronDown size={18} />
-                    ) : (
-                      <ChevronRight size={18} />
-                    )}
-                    <span className="month-label">{monthData.label}</span>
-                    <span className="month-count">{monthData.cors.length} CORs</span>
+                  <div className="cor-month-left">
+                    {expandedMonths.has(monthKey) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    <span>{monthData.label}</span>
+                    <span className="cor-month-count">{monthData.cors.length}</span>
                   </div>
-                  <div className="month-header-right">
-                    <span className="month-stat">{formatCurrency(monthData.totalAmount)}</span>
-                  </div>
-                </div>
+                  <span className="cor-month-total">{formatCurrency(monthData.totalAmount)}</span>
+                </button>
                 {expandedMonths.has(monthKey) && (
-                  <div className="month-cors">
+                  <div className="cor-month-items">
                     {monthData.cors.map(cor => renderCORCard(cor))}
                   </div>
                 )}
               </div>
             ))
           ) : (
-            // Recent view - simple list
             filteredCORs.map(cor => renderCORCard(cor))
           )}
         </div>

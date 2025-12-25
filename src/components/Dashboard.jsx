@@ -733,202 +733,107 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
 
           {/* FINANCIALS TAB */}
           {activeProjectTab === 'financials' && (
-            <div className="pv-tab-panel">
-              {/* Executive Summary Card */}
-              <div className="pv-card pv-executive-card">
-                <div className="pv-exec-header">
-                  <h3>Project Value Summary</h3>
-                  <span className="pv-exec-badge">{hasChangeOrders ? 'Modified Contract' : 'Original Scope'}</span>
-                </div>
-
-                {/* The Story: Original → Changes → Current */}
-                <div className="pv-value-story">
-                  <div className="pv-story-item original">
-                    <div className="pv-story-label">Original Contract</div>
-                    <div className="pv-story-value">{formatCurrency(selectedProject.contract_value)}</div>
-                    <div className="pv-story-desc">Awarded contract value</div>
+            <div className="pv-tab-panel financials-tab">
+              {/* Financial Snapshot - Hero Metrics */}
+              <div className="financials-hero">
+                <div className="financials-hero-grid">
+                  {/* Contract Value */}
+                  <div className="fin-metric">
+                    <div className="fin-metric-label">Contract</div>
+                    <div className="fin-metric-value">{formatCurrency(revisedContractValue)}</div>
+                    {hasChangeOrders && (
+                      <div className="fin-metric-detail green">+{formatCurrency(changeOrderValue)} COs</div>
+                    )}
                   </div>
 
-                  {hasChangeOrders && (
-                    <div className="pv-story-item change-orders">
-                      <div className="pv-story-arrow">+</div>
-                      <div className="pv-story-label">Approved Change Orders</div>
-                      <div className="pv-story-value green">+{formatCurrency(changeOrderValue)}</div>
-                      <div className="pv-story-desc">Additional work from CE/PCO approvals</div>
-                    </div>
-                  )}
-
-                  <div className="pv-story-item current-total">
-                    <div className="pv-story-equals">=</div>
-                    <div className="pv-story-label">Current Contract Value</div>
-                    <div className="pv-story-value large">{formatCurrency(revisedContractValue)}</div>
-                  </div>
-                </div>
-
-                {/* Revenue Status */}
-                <div className="pv-revenue-status">
-                  <div className="pv-revenue-bar">
-                    <div className="pv-revenue-fill" style={{ width: `${percentBilled}%` }}></div>
-                    <div className="pv-revenue-marker" style={{ left: `${progress}%` }}></div>
-                  </div>
-                  <div className="pv-revenue-row">
-                    <div className="pv-revenue-item">
-                      <span className="pv-revenue-label">Revenue Earned</span>
-                      <span className="pv-revenue-value">{formatCurrency(billable)}</span>
-                      <span className="pv-revenue-pct">{percentBilled}% of contract</span>
-                    </div>
-                    <div className="pv-revenue-item right">
-                      <span className="pv-revenue-label">Revenue Remaining</span>
-                      <span className="pv-revenue-value green">{formatCurrency(revisedContractValue - billable)}</span>
-                      <span className="pv-revenue-pct">{100 - percentBilled}% to bill</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Burn Rate Card */}
-              <div className="pv-card pv-burn-rate-card">
-                <div className="pv-burn-header">
-                  <h3>Burn Rate</h3>
-                  <span className="pv-burn-badge">Labor + Haul-Off</span>
-                </div>
-
-                {/* Total Burn Summary */}
-                <div className="pv-burn-total">
-                  <div className="pv-burn-total-main">
-                    <span className="pv-burn-total-value">{formatCurrency(projectData?.totalBurn || 0)}</span>
-                    <span className="pv-burn-total-label">Total Burn</span>
-                  </div>
-                  {projectData?.totalBurnDays > 0 && (
-                    <div className="pv-burn-total-avg">
-                      <span className="pv-burn-avg-value">
-                        {formatCurrency((projectData?.totalBurn || 0) / projectData.totalBurnDays)}
-                      </span>
-                      <span className="pv-burn-avg-label">per day</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Cost Breakdown */}
-                <div className="pv-burn-breakdown">
-                  {/* Labor */}
-                  <div className="pv-burn-category">
-                    <div className="pv-burn-cat-header">
-                      <HardHat size={18} className="pv-burn-cat-icon" />
-                      <span className="pv-burn-cat-title">Labor</span>
-                    </div>
-                    <div className="pv-burn-cat-stats">
-                      <div className="pv-burn-cat-main">
-                        <span className="pv-burn-cat-value">{formatCurrency(projectData?.laborCost || 0)}</span>
-                      </div>
-                      <div className="pv-burn-cat-details">
-                        <span>{projectData?.laborManDays || 0} man-days</span>
-                        <span className="pv-burn-cat-divider">•</span>
-                        <span>{projectData?.laborDaysWorked || 0} days</span>
-                      </div>
+                  {/* Revenue Earned */}
+                  <div className="fin-metric">
+                    <div className="fin-metric-label">Earned</div>
+                    <div className="fin-metric-value">{formatCurrency(billable)}</div>
+                    <div className="fin-metric-bar">
+                      <div className="fin-metric-fill" style={{ width: `${percentBilled}%` }}></div>
                     </div>
                   </div>
 
-                  {/* Haul-Off */}
-                  <div className="pv-burn-category">
-                    <div className="pv-burn-cat-header">
-                      <Truck size={18} className="pv-burn-cat-icon" />
-                      <span className="pv-burn-cat-title">Haul-Off</span>
-                      <span className="pv-burn-cat-badge">Est.</span>
-                    </div>
-                    <div className="pv-burn-cat-stats">
-                      <div className="pv-burn-cat-main">
-                        <span className={`pv-burn-cat-value ${(projectData?.haulOffCost || 0) < 0 ? 'revenue' : ''}`}>
-                          {formatCurrency(projectData?.haulOffCost || 0)}
-                        </span>
-                      </div>
-                      <div className="pv-burn-cat-details">
-                        <span>{projectData?.haulOffLoads || 0} loads</span>
-                        <span className="pv-burn-cat-divider">•</span>
-                        <span>{projectData?.haulOffDays || 0} days</span>
-                      </div>
-                    </div>
-                    {/* Haul-off by waste type */}
-                    {projectData?.haulOffByType && Object.keys(projectData.haulOffByType).length > 0 && (
-                      <div className="pv-burn-waste-types">
-                        {Object.entries(projectData.haulOffByType).map(([type, data]) => (
-                          <div key={type} className="pv-burn-waste-item">
-                            <span className="pv-waste-label">{type}</span>
-                            <span className={`pv-waste-cost ${data.cost < 0 ? 'revenue' : ''}`}>
-                              {formatCurrency(data.cost)}
-                            </span>
-                            <span className="pv-waste-loads">{data.loads} loads</span>
-                          </div>
-                        ))}
+                  {/* Remaining */}
+                  <div className="fin-metric">
+                    <div className="fin-metric-label">Remaining</div>
+                    <div className="fin-metric-value green">{formatCurrency(revisedContractValue - billable)}</div>
+                    <div className="fin-metric-detail">{100 - percentBilled}% left</div>
+                  </div>
+
+                  {/* Total Costs */}
+                  <div className="fin-metric">
+                    <div className="fin-metric-label">Costs</div>
+                    <div className="fin-metric-value">{formatCurrency(projectData?.totalBurn || 0)}</div>
+                    {billable > 0 && (
+                      <div className={`fin-metric-detail ${(projectData?.totalBurn / billable) > 0.6 ? 'warning' : ''}`}>
+                        {Math.round(((projectData?.totalBurn || 0) / billable) * 100)}% of revenue
                       </div>
                     )}
                   </div>
                 </div>
+              </div>
 
-                {/* Burn as % of Revenue */}
-                {billable > 0 && (projectData?.totalBurn || 0) > 0 && (
-                  <div className="pv-burn-context">
-                    <div className="pv-burn-ratio">
-                      <span className="pv-burn-ratio-label">Total Burn vs Revenue Earned</span>
-                      <div className="pv-burn-ratio-bar">
-                        <div
-                          className="pv-burn-ratio-fill"
-                          style={{ width: `${Math.min((projectData.totalBurn / billable) * 100, 100)}%` }}
-                        ></div>
-                      </div>
-                      <span className={`pv-burn-ratio-pct ${(projectData.totalBurn / billable) > 0.6 ? 'warning' : ''}`}>
-                        {Math.round((projectData.totalBurn / billable) * 100)}% of earned revenue
+              {/* Extra Work Pipeline */}
+              <div className="financials-pipeline">
+                <div className="pipeline-header">
+                  <h2>Extra Work</h2>
+                  <div className="pipeline-flow">
+                    <span className="pipeline-step">T&M Tickets</span>
+                    <span className="pipeline-arrow">→</span>
+                    <span className="pipeline-step active">Change Orders</span>
+                  </div>
+                </div>
+
+                <div className="pipeline-content">
+                  {/* T&M Work Orders */}
+                  <div className="pipeline-section">
+                    <div className="pipeline-section-header">
+                      <h3>T&M Tickets</h3>
+                      <span className="pipeline-badge">
+                        {projectData?.totalTickets || 0} total
+                        {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
                       </span>
                     </div>
+                    <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
                   </div>
-                )}
 
-                <div className="pv-burn-footer">
-                  <span className="pv-burn-note">Haul-off costs are estimates for tracking purposes, not invoiced amounts.</span>
+                  {/* Change Order Requests */}
+                  <div className="pipeline-section">
+                    <CORList
+                      project={selectedProject}
+                      company={company}
+                      areas={areas}
+                      onShowToast={onShowToast}
+                      onCreateCOR={() => {
+                        setEditingCOR(null)
+                        setShowCORForm(true)
+                      }}
+                      onViewCOR={(cor) => {
+                        setViewingCOR(cor)
+                        setShowCORDetail(true)
+                      }}
+                      onEditCOR={(cor) => {
+                        setEditingCOR(cor)
+                        setShowCORForm(true)
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* T&M Work Summary */}
-              <div className="pv-card">
-                <div className="pv-card-header">
-                  <h3>T&M Work Orders</h3>
-                  <div className="pv-tm-summary-badge">
-                    {projectData?.totalTickets || 0} Total
-                    {projectData?.pendingTickets > 0 && (
-                      <span className="pending-count"> • {projectData.pendingTickets} Pending Review</span>
-                    )}
-                  </div>
+              {/* Cost Analysis - Collapsible */}
+              <details className="financials-details">
+                <summary className="financials-details-summary">
+                  <HardHat size={16} />
+                  <span>Cost Breakdown</span>
+                  <span className="financials-details-value">{formatCurrency(projectData?.totalBurn || 0)}</span>
+                </summary>
+                <div className="financials-details-content">
+                  <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
                 </div>
-                <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
-              </div>
-
-              {/* Change Order Requests */}
-              <div className="pv-card">
-                <CORList
-                  project={selectedProject}
-                  company={company}
-                  areas={areas}
-                  onShowToast={onShowToast}
-                  onCreateCOR={() => {
-                    setEditingCOR(null)
-                    setShowCORForm(true)
-                  }}
-                  onViewCOR={(cor) => {
-                    setViewingCOR(cor)
-                    setShowCORDetail(true)
-                  }}
-                  onEditCOR={(cor) => {
-                    setEditingCOR(cor)
-                    setShowCORForm(true)
-                  }}
-                />
-              </div>
-
-              {/* Labor Costs */}
-              <div className="pv-card">
-                <h3>Labor Cost Analysis</h3>
-                <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
-              </div>
+              </details>
             </div>
           )}
 
