@@ -3107,6 +3107,1040 @@ export const db = {
         .subscribe()
     }
     return null
+  },
+
+  // ============================================
+  // Change Order Requests (COR)
+  // ============================================
+
+  // Create a new COR
+  async createCOR(corData) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .insert({
+          company_id: corData.company_id,
+          project_id: corData.project_id,
+          area_id: corData.area_id || null,
+          cor_number: corData.cor_number,
+          title: corData.title,
+          description: corData.description || '',
+          scope_of_work: corData.scope_of_work,
+          period_start: corData.period_start,
+          period_end: corData.period_end,
+          status: 'draft',
+          // Default markup percentages (basis points)
+          labor_markup_percent: corData.labor_markup_percent ?? 1500,
+          materials_markup_percent: corData.materials_markup_percent ?? 1500,
+          equipment_markup_percent: corData.equipment_markup_percent ?? 1500,
+          subcontractors_markup_percent: corData.subcontractors_markup_percent ?? 500,
+          // Default fee percentages (basis points)
+          liability_insurance_percent: corData.liability_insurance_percent ?? 144,
+          bond_percent: corData.bond_percent ?? 100,
+          license_fee_percent: corData.license_fee_percent ?? 10,
+          created_by: corData.created_by || null
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Update COR fields (not line items)
+  async updateCOR(corId, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Delete COR (cascade deletes line items and associations)
+  async deleteCOR(corId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_orders')
+        .delete()
+        .eq('id', corId)
+      if (error) throw error
+    }
+  },
+
+  // Get all CORs for a project
+  async getCORs(projectId, filters = {}) {
+    if (isSupabaseConfigured) {
+      let query = supabase
+        .from('change_orders')
+        .select(`
+          *,
+          areas (id, name),
+          labor_count:change_order_labor(count),
+          materials_count:change_order_materials(count),
+          equipment_count:change_order_equipment(count),
+          subcontractors_count:change_order_subcontractors(count),
+          tickets_count:change_order_ticket_associations(count)
+        `)
+        .eq('project_id', projectId)
+
+      // Apply filters
+      if (filters.status) {
+        query = query.eq('status', filters.status)
+      }
+      if (filters.area_id) {
+        query = query.eq('area_id', filters.area_id)
+      }
+      if (filters.date_start) {
+        query = query.gte('period_start', filters.date_start)
+      }
+      if (filters.date_end) {
+        query = query.lte('period_end', filters.date_end)
+      }
+
+      query = query.order('created_at', { ascending: false })
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  // Get single COR with all line items
+  async getCORById(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .select(`
+          *,
+          areas (id, name),
+          change_order_labor (*),
+          change_order_materials (*),
+          change_order_equipment (*),
+          change_order_subcontractors (*),
+          change_order_ticket_associations (
+            *,
+            t_and_m_tickets (
+              id, work_date, ce_pco_number, status, notes
+            )
+          )
+        `)
+        .eq('id', corId)
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Get all CORs for a specific work area
+  async getCORsByArea(projectId, areaId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('area_id', areaId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  // Get next available COR number for project
+  async getNextCORNumber(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .select('cor_number')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        // Extract number from "COR #N" format
+        const match = data[0].cor_number.match(/COR #(\d+)/)
+        if (match) {
+          return `COR #${parseInt(match[1]) + 1}`
+        }
+      }
+      return 'COR #1'
+    }
+    return 'COR #1'
+  },
+
+  // ============================================
+  // COR Line Items - Labor
+  // ============================================
+
+  async addCORLaborItem(corId, laborItem) {
+    if (isSupabaseConfigured) {
+      // Calculate totals
+      const regularTotal = Math.round(laborItem.regular_hours * laborItem.regular_rate)
+      const overtimeTotal = Math.round(laborItem.overtime_hours * laborItem.overtime_rate)
+      const total = regularTotal + overtimeTotal
+
+      const { data, error } = await supabase
+        .from('change_order_labor')
+        .insert({
+          change_order_id: corId,
+          labor_class: laborItem.labor_class,
+          wage_type: laborItem.wage_type || 'standard',
+          regular_hours: laborItem.regular_hours || 0,
+          overtime_hours: laborItem.overtime_hours || 0,
+          regular_rate: laborItem.regular_rate || 0,
+          overtime_rate: laborItem.overtime_rate || 0,
+          regular_total: regularTotal,
+          overtime_total: overtimeTotal,
+          total: total,
+          sort_order: laborItem.sort_order || 0,
+          source_ticket_id: laborItem.source_ticket_id || null
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async updateCORLaborItem(itemId, updates) {
+    if (isSupabaseConfigured) {
+      // Recalculate totals if hours or rates changed
+      let updateData = { ...updates }
+      if (updates.regular_hours !== undefined || updates.regular_rate !== undefined ||
+          updates.overtime_hours !== undefined || updates.overtime_rate !== undefined) {
+        // Get current values if not provided
+        const { data: current } = await supabase
+          .from('change_order_labor')
+          .select('regular_hours, overtime_hours, regular_rate, overtime_rate')
+          .eq('id', itemId)
+          .single()
+
+        const regHours = updates.regular_hours ?? current?.regular_hours ?? 0
+        const otHours = updates.overtime_hours ?? current?.overtime_hours ?? 0
+        const regRate = updates.regular_rate ?? current?.regular_rate ?? 0
+        const otRate = updates.overtime_rate ?? current?.overtime_rate ?? 0
+
+        updateData.regular_total = Math.round(regHours * regRate)
+        updateData.overtime_total = Math.round(otHours * otRate)
+        updateData.total = updateData.regular_total + updateData.overtime_total
+      }
+
+      const { data, error } = await supabase
+        .from('change_order_labor')
+        .update(updateData)
+        .eq('id', itemId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async deleteCORLaborItem(itemId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_order_labor')
+        .delete()
+        .eq('id', itemId)
+      if (error) throw error
+    }
+  },
+
+  // ============================================
+  // COR Line Items - Materials
+  // ============================================
+
+  async addCORMaterialItem(corId, materialItem) {
+    if (isSupabaseConfigured) {
+      const total = Math.round(materialItem.quantity * materialItem.unit_cost)
+
+      const { data, error } = await supabase
+        .from('change_order_materials')
+        .insert({
+          change_order_id: corId,
+          description: materialItem.description,
+          quantity: materialItem.quantity || 1,
+          unit: materialItem.unit || 'each',
+          unit_cost: materialItem.unit_cost || 0,
+          total: total,
+          source_type: materialItem.source_type || 'custom',
+          source_reference: materialItem.source_reference || null,
+          source_ticket_id: materialItem.source_ticket_id || null,
+          sort_order: materialItem.sort_order || 0
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async updateCORMaterialItem(itemId, updates) {
+    if (isSupabaseConfigured) {
+      let updateData = { ...updates }
+      if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
+        const { data: current } = await supabase
+          .from('change_order_materials')
+          .select('quantity, unit_cost')
+          .eq('id', itemId)
+          .single()
+
+        const qty = updates.quantity ?? current?.quantity ?? 1
+        const cost = updates.unit_cost ?? current?.unit_cost ?? 0
+        updateData.total = Math.round(qty * cost)
+      }
+
+      const { data, error } = await supabase
+        .from('change_order_materials')
+        .update(updateData)
+        .eq('id', itemId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async deleteCORMaterialItem(itemId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_order_materials')
+        .delete()
+        .eq('id', itemId)
+      if (error) throw error
+    }
+  },
+
+  // ============================================
+  // COR Line Items - Equipment
+  // ============================================
+
+  async addCOREquipmentItem(corId, equipmentItem) {
+    if (isSupabaseConfigured) {
+      const total = Math.round(equipmentItem.quantity * equipmentItem.unit_cost)
+
+      const { data, error } = await supabase
+        .from('change_order_equipment')
+        .insert({
+          change_order_id: corId,
+          description: equipmentItem.description,
+          quantity: equipmentItem.quantity || 1,
+          unit: equipmentItem.unit || 'day',
+          unit_cost: equipmentItem.unit_cost || 0,
+          total: total,
+          source_type: equipmentItem.source_type || 'custom',
+          source_reference: equipmentItem.source_reference || null,
+          source_ticket_id: equipmentItem.source_ticket_id || null,
+          sort_order: equipmentItem.sort_order || 0
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async updateCOREquipmentItem(itemId, updates) {
+    if (isSupabaseConfigured) {
+      let updateData = { ...updates }
+      if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
+        const { data: current } = await supabase
+          .from('change_order_equipment')
+          .select('quantity, unit_cost')
+          .eq('id', itemId)
+          .single()
+
+        const qty = updates.quantity ?? current?.quantity ?? 1
+        const cost = updates.unit_cost ?? current?.unit_cost ?? 0
+        updateData.total = Math.round(qty * cost)
+      }
+
+      const { data, error } = await supabase
+        .from('change_order_equipment')
+        .update(updateData)
+        .eq('id', itemId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async deleteCOREquipmentItem(itemId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_order_equipment')
+        .delete()
+        .eq('id', itemId)
+      if (error) throw error
+    }
+  },
+
+  // ============================================
+  // COR Line Items - Subcontractors
+  // ============================================
+
+  async addCORSubcontractorItem(corId, subItem) {
+    if (isSupabaseConfigured) {
+      const total = Math.round(subItem.quantity * subItem.unit_cost)
+
+      const { data, error } = await supabase
+        .from('change_order_subcontractors')
+        .insert({
+          change_order_id: corId,
+          description: subItem.description,
+          quantity: subItem.quantity || 1,
+          unit: subItem.unit || 'lump sum',
+          unit_cost: subItem.unit_cost || 0,
+          total: total,
+          source_type: subItem.source_type || 'custom',
+          source_reference: subItem.source_reference || null,
+          sort_order: subItem.sort_order || 0
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async updateCORSubcontractorItem(itemId, updates) {
+    if (isSupabaseConfigured) {
+      let updateData = { ...updates }
+      if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
+        const { data: current } = await supabase
+          .from('change_order_subcontractors')
+          .select('quantity, unit_cost')
+          .eq('id', itemId)
+          .single()
+
+        const qty = updates.quantity ?? current?.quantity ?? 1
+        const cost = updates.unit_cost ?? current?.unit_cost ?? 0
+        updateData.total = Math.round(qty * cost)
+      }
+
+      const { data, error } = await supabase
+        .from('change_order_subcontractors')
+        .update(updateData)
+        .eq('id', itemId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async deleteCORSubcontractorItem(itemId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_order_subcontractors')
+        .delete()
+        .eq('id', itemId)
+      if (error) throw error
+    }
+  },
+
+  // ============================================
+  // Bulk Line Item Operations
+  // ============================================
+
+  async addBulkLaborItems(corId, laborItems) {
+    if (isSupabaseConfigured && laborItems.length > 0) {
+      const items = laborItems.map((item, index) => {
+        const regularTotal = Math.round(item.regular_hours * item.regular_rate)
+        const overtimeTotal = Math.round(item.overtime_hours * item.overtime_rate)
+        return {
+          change_order_id: corId,
+          labor_class: item.labor_class,
+          wage_type: item.wage_type || 'standard',
+          regular_hours: item.regular_hours || 0,
+          overtime_hours: item.overtime_hours || 0,
+          regular_rate: item.regular_rate || 0,
+          overtime_rate: item.overtime_rate || 0,
+          regular_total: regularTotal,
+          overtime_total: overtimeTotal,
+          total: regularTotal + overtimeTotal,
+          sort_order: item.sort_order ?? index,
+          source_ticket_id: item.source_ticket_id || null
+        }
+      })
+
+      const { data, error } = await supabase
+        .from('change_order_labor')
+        .insert(items)
+        .select()
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async addBulkMaterialItems(corId, materialItems) {
+    if (isSupabaseConfigured && materialItems.length > 0) {
+      const items = materialItems.map((item, index) => ({
+        change_order_id: corId,
+        description: item.description,
+        quantity: item.quantity || 1,
+        unit: item.unit || 'each',
+        unit_cost: item.unit_cost || 0,
+        total: Math.round((item.quantity || 1) * (item.unit_cost || 0)),
+        source_type: item.source_type || 'custom',
+        source_reference: item.source_reference || null,
+        source_ticket_id: item.source_ticket_id || null,
+        sort_order: item.sort_order ?? index
+      }))
+
+      const { data, error } = await supabase
+        .from('change_order_materials')
+        .insert(items)
+        .select()
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async addBulkEquipmentItems(corId, equipmentItems) {
+    if (isSupabaseConfigured && equipmentItems.length > 0) {
+      const items = equipmentItems.map((item, index) => ({
+        change_order_id: corId,
+        description: item.description,
+        quantity: item.quantity || 1,
+        unit: item.unit || 'day',
+        unit_cost: item.unit_cost || 0,
+        total: Math.round((item.quantity || 1) * (item.unit_cost || 0)),
+        source_type: item.source_type || 'custom',
+        source_reference: item.source_reference || null,
+        source_ticket_id: item.source_ticket_id || null,
+        sort_order: item.sort_order ?? index
+      }))
+
+      const { data, error } = await supabase
+        .from('change_order_equipment')
+        .insert(items)
+        .select()
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async addBulkSubcontractorItems(corId, subItems) {
+    if (isSupabaseConfigured && subItems.length > 0) {
+      const items = subItems.map((item, index) => ({
+        change_order_id: corId,
+        description: item.description,
+        quantity: item.quantity || 1,
+        unit: item.unit || 'lump sum',
+        unit_cost: item.unit_cost || 0,
+        total: Math.round((item.quantity || 1) * (item.unit_cost || 0)),
+        source_type: item.source_type || 'custom',
+        source_reference: item.source_reference || null,
+        sort_order: item.sort_order ?? index
+      }))
+
+      const { data, error } = await supabase
+        .from('change_order_subcontractors')
+        .insert(items)
+        .select()
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  // ============================================
+  // Ticket-COR Associations
+  // ============================================
+
+  async assignTicketToCOR(ticketId, corId) {
+    if (isSupabaseConfigured) {
+      // Create association
+      const { data: assoc, error: assocError } = await supabase
+        .from('change_order_ticket_associations')
+        .insert({
+          change_order_id: corId,
+          ticket_id: ticketId,
+          data_imported: false
+        })
+        .select()
+        .single()
+      if (assocError) throw assocError
+
+      // Update ticket's assigned_cor_id
+      const { error: ticketError } = await supabase
+        .from('t_and_m_tickets')
+        .update({ assigned_cor_id: corId })
+        .eq('id', ticketId)
+      if (ticketError) throw ticketError
+
+      return assoc
+    }
+    return null
+  },
+
+  async unassignTicketFromCOR(ticketId, corId) {
+    if (isSupabaseConfigured) {
+      // Delete association
+      const { error: assocError } = await supabase
+        .from('change_order_ticket_associations')
+        .delete()
+        .eq('ticket_id', ticketId)
+        .eq('change_order_id', corId)
+      if (assocError) throw assocError
+
+      // Clear ticket's assigned_cor_id
+      const { error: ticketError } = await supabase
+        .from('t_and_m_tickets')
+        .update({ assigned_cor_id: null })
+        .eq('id', ticketId)
+      if (ticketError) throw ticketError
+    }
+  },
+
+  async getTicketsForCOR(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_order_ticket_associations')
+        .select(`
+          *,
+          t_and_m_tickets (
+            *,
+            t_and_m_workers (*),
+            t_and_m_items (
+              *,
+              materials_equipment (name, unit, cost_per_unit, category)
+            )
+          )
+        `)
+        .eq('change_order_id', corId)
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async getUnassignedTickets(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          t_and_m_workers (*),
+          t_and_m_items (
+            *,
+            materials_equipment (name, unit, cost_per_unit, category)
+          )
+        `)
+        .eq('project_id', projectId)
+        .is('assigned_cor_id', null)
+        .order('work_date', { ascending: false })
+      if (error) throw error
+      return data
+    }
+    return []
+  },
+
+  async importTicketDataToCOR(ticketId, corId, companyId, workType, jobType) {
+    if (isSupabaseConfigured) {
+      // 1. Get ticket with workers and items
+      const { data: ticket, error: ticketError } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          t_and_m_workers (*),
+          t_and_m_items (
+            *,
+            materials_equipment (name, unit, cost_per_unit, category)
+          )
+        `)
+        .eq('id', ticketId)
+        .single()
+      if (ticketError) throw ticketError
+
+      // 2. Get labor rates for this company/work type/job type
+      const { data: rates, error: ratesError } = await supabase
+        .from('labor_rates')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('work_type', workType || 'demolition')
+        .eq('job_type', jobType || 'standard')
+      if (ratesError) throw ratesError
+
+      // Create rate lookup
+      const rateLookup = {}
+      rates?.forEach(rate => {
+        rateLookup[rate.role.toLowerCase()] = rate
+      })
+
+      // 3. Group workers by role and sum hours
+      const laborByRole = {}
+      ticket.t_and_m_workers?.forEach(worker => {
+        const role = (worker.role || 'laborer').toLowerCase()
+        if (!laborByRole[role]) {
+          laborByRole[role] = { regular_hours: 0, overtime_hours: 0 }
+        }
+        laborByRole[role].regular_hours += parseFloat(worker.hours) || 0
+        laborByRole[role].overtime_hours += parseFloat(worker.overtime_hours) || 0
+      })
+
+      // 4. Create labor items
+      const laborItems = Object.entries(laborByRole).map(([role, hours]) => {
+        const rate = rateLookup[role] || { regular_rate: 0, overtime_rate: 0 }
+        // Convert dollar rates to cents
+        const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+        const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+        return {
+          labor_class: role.charAt(0).toUpperCase() + role.slice(1),
+          wage_type: jobType || 'standard',
+          regular_hours: hours.regular_hours,
+          overtime_hours: hours.overtime_hours,
+          regular_rate: regRate,
+          overtime_rate: otRate,
+          source_ticket_id: ticketId
+        }
+      })
+
+      if (laborItems.length > 0) {
+        await this.addBulkLaborItems(corId, laborItems)
+      }
+
+      // 5. Get materials/equipment from t_and_m_items
+      const materialItems = []
+      const equipmentItems = []
+
+      ticket.t_and_m_items?.forEach(item => {
+        const name = item.custom_name || item.materials_equipment?.name || 'Unknown Item'
+        const category = item.custom_category || item.materials_equipment?.category || 'Other'
+        const unit = item.materials_equipment?.unit || 'each'
+        // Convert dollar cost to cents
+        const unitCost = Math.round((parseFloat(item.materials_equipment?.cost_per_unit) || 0) * 100)
+
+        const lineItem = {
+          description: name,
+          quantity: item.quantity || 1,
+          unit: unit,
+          unit_cost: unitCost,
+          source_type: 'backup_sheet',
+          source_ticket_id: ticketId
+        }
+
+        if (category === 'Equipment') {
+          equipmentItems.push(lineItem)
+        } else {
+          materialItems.push(lineItem)
+        }
+      })
+
+      if (materialItems.length > 0) {
+        await this.addBulkMaterialItems(corId, materialItems)
+      }
+      if (equipmentItems.length > 0) {
+        await this.addBulkEquipmentItems(corId, equipmentItems)
+      }
+
+      // 6. Mark association as data_imported
+      const { error: updateError } = await supabase
+        .from('change_order_ticket_associations')
+        .update({
+          data_imported: true,
+          imported_at: new Date().toISOString()
+        })
+        .eq('change_order_id', corId)
+        .eq('ticket_id', ticketId)
+      if (updateError) throw updateError
+
+      return { laborItems, materialItems, equipmentItems }
+    }
+    return null
+  },
+
+  async reimportTicketDataToCOR(ticketId, corId, companyId, workType, jobType) {
+    if (isSupabaseConfigured) {
+      // Delete existing line items from this ticket
+      await supabase
+        .from('change_order_labor')
+        .delete()
+        .eq('change_order_id', corId)
+        .eq('source_ticket_id', ticketId)
+
+      await supabase
+        .from('change_order_materials')
+        .delete()
+        .eq('change_order_id', corId)
+        .eq('source_ticket_id', ticketId)
+
+      await supabase
+        .from('change_order_equipment')
+        .delete()
+        .eq('change_order_id', corId)
+        .eq('source_ticket_id', ticketId)
+
+      // Re-import fresh data
+      return this.importTicketDataToCOR(ticketId, corId, companyId, workType, jobType)
+    }
+    return null
+  },
+
+  // ============================================
+  // COR Calculations
+  // ============================================
+
+  async recalculateCOR(corId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.rpc('recalculate_cor_totals', { cor_id: corId })
+      if (error) throw error
+
+      // Return updated COR
+      return this.getCORById(corId)
+    }
+    return null
+  },
+
+  async updateCORMarkupPercentages(corId, percentages) {
+    if (isSupabaseConfigured) {
+      const updates = {}
+      if (percentages.labor !== undefined) updates.labor_markup_percent = percentages.labor
+      if (percentages.materials !== undefined) updates.materials_markup_percent = percentages.materials
+      if (percentages.equipment !== undefined) updates.equipment_markup_percent = percentages.equipment
+      if (percentages.subcontractors !== undefined) updates.subcontractors_markup_percent = percentages.subcontractors
+
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update(updates)
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+
+      // Trigger recalculation happens via database trigger
+      return data
+    }
+    return null
+  },
+
+  async updateCORFeePercentages(corId, percentages) {
+    if (isSupabaseConfigured) {
+      const updates = {}
+      if (percentages.liabilityInsurance !== undefined) updates.liability_insurance_percent = percentages.liabilityInsurance
+      if (percentages.bond !== undefined) updates.bond_percent = percentages.bond
+      if (percentages.licenseFee !== undefined) updates.license_fee_percent = percentages.licenseFee
+
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update(updates)
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+
+      // Trigger recalculation happens via database trigger
+      return data
+    }
+    return null
+  },
+
+  // ============================================
+  // COR Status & Workflow
+  // ============================================
+
+  async submitCORForApproval(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({
+          status: 'pending_approval',
+          submitted_at: new Date().toISOString()
+        })
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async approveCOR(corId, userId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({
+          status: 'approved',
+          approved_by: userId,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async rejectCOR(corId, reason = null) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({
+          status: 'rejected',
+          rejection_reason: reason
+        })
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async markCORAsBilled(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({ status: 'billed' })
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async closeCOR(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({ status: 'closed' })
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  async saveCORSignature(corId, signatureData, signerName) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({
+          gc_signature_data: signatureData,
+          gc_signature_name: signerName,
+          gc_signature_date: new Date().toISOString(),
+          status: 'approved' // Auto-approve when signed
+        })
+        .eq('id', corId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // ============================================
+  // COR Stats & Analytics
+  // ============================================
+
+  async getCORStats(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .select('status, cor_total')
+        .eq('project_id', projectId)
+
+      if (error) throw error
+
+      const stats = {
+        total_cors: data.length,
+        draft_count: 0,
+        pending_count: 0,
+        approved_count: 0,
+        rejected_count: 0,
+        billed_count: 0,
+        total_approved_value: 0,
+        total_pending_value: 0,
+        total_billed_value: 0
+      }
+
+      data.forEach(cor => {
+        switch (cor.status) {
+          case 'draft':
+            stats.draft_count++
+            break
+          case 'pending_approval':
+            stats.pending_count++
+            stats.total_pending_value += cor.cor_total || 0
+            break
+          case 'approved':
+            stats.approved_count++
+            stats.total_approved_value += cor.cor_total || 0
+            break
+          case 'rejected':
+            stats.rejected_count++
+            break
+          case 'billed':
+          case 'closed':
+            stats.billed_count++
+            stats.total_billed_value += cor.cor_total || 0
+            break
+        }
+      })
+
+      return stats
+    }
+    return {
+      total_cors: 0,
+      draft_count: 0,
+      pending_count: 0,
+      approved_count: 0,
+      rejected_count: 0,
+      billed_count: 0,
+      total_approved_value: 0,
+      total_pending_value: 0,
+      total_billed_value: 0
+    }
+  },
+
+  // Subscribe to COR updates for a project
+  subscribeToCORs(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`change_orders:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
   }
 }
 

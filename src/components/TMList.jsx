@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, Camera } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import * as XLSX from 'xlsx'
@@ -41,6 +41,11 @@ export default function TMList({ project, company, onShowToast }) {
   const [filter, setFilter] = useState('all')
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
+
+  // View mode state
+  const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
+  const [expandedMonths, setExpandedMonths] = useState(new Set())
+  const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
   // Change order approval modal state
   const [showChangeOrderModal, setShowChangeOrderModal] = useState(false)
@@ -724,13 +729,87 @@ export default function TMList({ project, company, onShowToast }) {
     onShowToast('PDF exported!', 'success')
   }
 
-  const filteredTickets = filter === 'all' 
-    ? tickets 
-    : tickets.filter(t => t.status === filter)
+  // Filter tickets by status, view mode, and date range
+  const filteredTickets = useMemo(() => {
+    let filtered = filter === 'all'
+      ? [...tickets]
+      : tickets.filter(t => t.status === filter)
+
+    // Apply date filter if set
+    if (dateFilter.start) {
+      const startDate = new Date(dateFilter.start)
+      startDate.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(t => {
+        const ticketDate = new Date(t.work_date)
+        return ticketDate >= startDate
+      })
+    }
+    if (dateFilter.end) {
+      const endDate = new Date(dateFilter.end)
+      endDate.setHours(23, 59, 59, 999)
+      filtered = filtered.filter(t => {
+        const ticketDate = new Date(t.work_date)
+        return ticketDate <= endDate
+      })
+    }
+
+    // In recent mode, show only last 7 days
+    if (viewMode === 'recent') {
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      sevenDaysAgo.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(t => {
+        const ticketDate = new Date(t.work_date)
+        return ticketDate >= sevenDaysAgo
+      })
+    }
+
+    return filtered
+  }, [tickets, filter, viewMode, dateFilter])
+
+  // Group tickets by month for 'all' view
+  const ticketsByMonth = useMemo(() => {
+    if (viewMode !== 'all') return null
+
+    const groups = {}
+    filteredTickets.forEach(ticket => {
+      const date = new Date(ticket.work_date)
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+      if (!groups[monthKey]) {
+        groups[monthKey] = { label: monthLabel, tickets: [], hours: 0, cost: 0 }
+      }
+      groups[monthKey].tickets.push(ticket)
+      groups[monthKey].hours += calculateTotalHours(ticket)
+      groups[monthKey].cost += calculateTicketTotal(ticket)
+    })
+
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]))
+  }, [filteredTickets, viewMode])
+
+  // Auto-expand current month
+  useEffect(() => {
+    if (ticketsByMonth && ticketsByMonth.length > 0) {
+      const currentMonthKey = ticketsByMonth[0][0]
+      setExpandedMonths(new Set([currentMonthKey]))
+    }
+  }, [ticketsByMonth])
+
+  const toggleMonthExpand = (monthKey) => {
+    const newExpanded = new Set(expandedMonths)
+    if (newExpanded.has(monthKey)) {
+      newExpanded.delete(monthKey)
+    } else {
+      newExpanded.add(monthKey)
+    }
+    setExpandedMonths(newExpanded)
+  }
 
   // Calculate totals for summary
   const totalHours = filteredTickets.reduce((sum, t) => sum + calculateTotalHours(t), 0)
   const totalCost = filteredTickets.reduce((sum, t) => sum + calculateTicketTotal(t), 0)
+  const totalTicketsCount = filter === 'all' ? tickets.length : tickets.filter(t => t.status === filter).length
 
   if (loading) {
     return <div className="loading">Loading T&M tickets...</div>
@@ -739,6 +818,160 @@ export default function TMList({ project, company, onShowToast }) {
   // Check if all filtered tickets are selected
   const allFilteredSelected = filteredTickets.length > 0 && filteredTickets.every(t => selectedTickets.has(t.id))
   const someSelected = selectedTickets.size > 0
+
+  // Helper function to render a single ticket card
+  const renderTicketCard = (ticket) => (
+    <div key={ticket.id} className={`tm-ticket-card ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''}`}>
+      <div
+        className="tm-ticket-header"
+        onClick={() => setExpandedTicket(expandedTicket === ticket.id ? null : ticket.id)}
+      >
+        <input
+          type="checkbox"
+          checked={selectedTickets.has(ticket.id)}
+          onChange={(e) => toggleTicketSelection(ticket.id, e)}
+          onClick={(e) => e.stopPropagation()}
+          className="tm-checkbox"
+        />
+        <div className="tm-ticket-info">
+          <span className="tm-ticket-date">{formatDate(ticket.work_date)}</span>
+          {ticket.ce_pco_number && (
+            <span className="tm-ce-badge">{ticket.ce_pco_number}</span>
+          )}
+          <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
+        </div>
+        <div className="tm-ticket-summary">
+          <span className="tm-ticket-hours">{calculateTotalHours(ticket)} hrs</span>
+          <span className="tm-ticket-total">${calculateTicketTotal(ticket).toFixed(2)}</span>
+          <span className="tm-expand-arrow">{expandedTicket === ticket.id ? '▼' : '▶'}</span>
+        </div>
+      </div>
+
+      {expandedTicket === ticket.id && (
+        <div className="tm-ticket-details">
+          {ticket.t_and_m_workers?.length > 0 && (
+            <div className="tm-detail-section">
+              <h4><HardHat size={16} className="inline-icon" /> Workers</h4>
+              <div className="tm-detail-list">
+                {ticket.t_and_m_workers.map(worker => (
+                  <div key={worker.id} className="tm-detail-row">
+                    <span>
+                      {worker.role && worker.role !== 'Laborer' && (
+                        <span className="tm-role-badge">{worker.role}</span>
+                      )}
+                      {worker.name}
+                    </span>
+                    <span>
+                      {worker.hours} hrs
+                      {parseFloat(worker.overtime_hours) > 0 && (
+                        <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {ticket.t_and_m_items?.length > 0 && (
+            <div className="tm-detail-section">
+              <h4><Wrench size={16} className="inline-icon" /> Materials & Equipment</h4>
+              <div className="tm-detail-list">
+                {ticket.t_and_m_items.map(item => (
+                  <div key={item.id} className="tm-detail-row">
+                    <span>
+                      {item.custom_name ? (
+                        <><span className="tm-custom-badge">Custom</span> {item.custom_name}</>
+                      ) : (
+                        item.materials_equipment?.name
+                      )}
+                    </span>
+                    <span className="tm-detail-qty">
+                      {item.quantity} {item.materials_equipment?.unit || 'each'}
+                      {item.materials_equipment?.cost_per_unit > 0 && (
+                        <span className="tm-item-cost">
+                          ${(item.quantity * item.materials_equipment.cost_per_unit).toFixed(2)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {ticket.notes && (
+            <div className="tm-detail-section">
+              <h4><FileText size={16} className="inline-icon" /> Description</h4>
+              <p className="tm-notes-text">{ticket.notes}</p>
+            </div>
+          )}
+
+          {ticket.photos && ticket.photos.length > 0 && (
+            <div className="tm-detail-section">
+              <h4><Camera size={16} className="inline-icon" /> Photos ({ticket.photos.length})</h4>
+              <div className="tm-photos-grid">
+                {ticket.photos.map((photo, idx) => (
+                  <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">
+                    <img src={photo} alt={`Photo ${idx + 1}`} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Show change order value if approved with CE/PCO */}
+          {ticket.ce_pco_number && ticket.change_order_value > 0 && (
+            <div className="tm-change-order-value">
+              <span className="tm-co-label">Change Order Value:</span>
+              <span className="tm-co-amount">${ticket.change_order_value.toLocaleString()}</span>
+            </div>
+          )}
+
+          <div className="tm-ticket-actions">
+            {ticket.status === 'pending' && (
+              <>
+                <button
+                  className="btn btn-success btn-small"
+                  onClick={(e) => { e.stopPropagation(); handleApprove(ticket); }}
+                >
+                  Approve {ticket.ce_pco_number ? '+ CO' : ''}
+                </button>
+                <button
+                  className="btn btn-warning btn-small"
+                  onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'rejected'); }}
+                >
+                  Reject
+                </button>
+              </>
+            )}
+            {ticket.status === 'approved' && (
+              <button
+                className="btn btn-primary btn-small"
+                onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'billed'); }}
+              >
+                Mark Billed
+              </button>
+            )}
+            {ticket.status === 'rejected' && (
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'pending'); }}
+              >
+                Restore
+              </button>
+            )}
+            <button
+              className="btn btn-danger btn-small"
+              onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div className="tm-list">
@@ -774,6 +1007,51 @@ export default function TMList({ project, company, onShowToast }) {
             </button>
           ))}
         </div>
+
+        {/* View Mode Bar */}
+        <div className="view-mode-bar">
+          <div className="view-mode-tabs">
+            <button
+              className={`view-mode-tab ${viewMode === 'recent' ? 'active' : ''}`}
+              onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
+            >
+              Recent (7 days)
+            </button>
+            <button
+              className={`view-mode-tab ${viewMode === 'all' ? 'active' : ''}`}
+              onClick={() => setViewMode('all')}
+            >
+              All ({totalTicketsCount})
+            </button>
+          </div>
+
+          {viewMode === 'all' && (
+            <div className="date-filter">
+              <Calendar size={16} />
+              <input
+                type="date"
+                value={dateFilter.start}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+                placeholder="Start date"
+              />
+              <span>to</span>
+              <input
+                type="date"
+                value={dateFilter.end}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+                placeholder="End date"
+              />
+              {(dateFilter.start || dateFilter.end) && (
+                <button
+                  className="btn btn-ghost btn-small"
+                  onClick={() => setDateFilter({ start: '', end: '' })}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary Bar */}
@@ -796,7 +1074,12 @@ export default function TMList({ project, company, onShowToast }) {
 
       {filteredTickets.length === 0 ? (
         <div className="tm-empty-state">
-          <p>No {filter === 'all' ? '' : filter} T&M tickets</p>
+          <p>No {filter === 'all' ? '' : filter} T&M tickets{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
+          {viewMode === 'recent' && totalTicketsCount > 0 && (
+            <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
+              View All Tickets
+            </button>
+          )}
         </div>
       ) : (
         <div className="tm-tickets">
@@ -813,158 +1096,39 @@ export default function TMList({ project, company, onShowToast }) {
             </label>
           </div>
 
-          {filteredTickets.map(ticket => (
-            <div key={ticket.id} className={`tm-ticket-card ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''}`}>
-              <div
-                className="tm-ticket-header"
-                onClick={() => setExpandedTicket(expandedTicket === ticket.id ? null : ticket.id)}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedTickets.has(ticket.id)}
-                  onChange={(e) => toggleTicketSelection(ticket.id, e)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="tm-checkbox"
-                />
-                <div className="tm-ticket-info">
-                  <span className="tm-ticket-date">{formatDate(ticket.work_date)}</span>
-                  {ticket.ce_pco_number && (
-                    <span className="tm-ce-badge">{ticket.ce_pco_number}</span>
-                  )}
-                  <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
-                </div>
-                <div className="tm-ticket-summary">
-                  <span className="tm-ticket-hours">{calculateTotalHours(ticket)} hrs</span>
-                  <span className="tm-ticket-total">${calculateTicketTotal(ticket).toFixed(2)}</span>
-                  <span className="tm-expand-arrow">{expandedTicket === ticket.id ? '▼' : '▶'}</span>
-                </div>
-              </div>
-
-              {expandedTicket === ticket.id && (
-                <div className="tm-ticket-details">
-                  {ticket.t_and_m_workers?.length > 0 && (
-                    <div className="tm-detail-section">
-                      <h4><HardHat size={16} className="inline-icon" /> Workers</h4>
-                      <div className="tm-detail-list">
-                        {ticket.t_and_m_workers.map(worker => (
-                          <div key={worker.id} className="tm-detail-row">
-                            <span>
-                              {worker.role && worker.role !== 'Laborer' && (
-                                <span className="tm-role-badge">{worker.role}</span>
-                              )}
-                              {worker.name}
-                            </span>
-                            <span>
-                              {worker.hours} hrs
-                              {parseFloat(worker.overtime_hours) > 0 && (
-                                <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
-                              )}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {ticket.t_and_m_items?.length > 0 && (
-                    <div className="tm-detail-section">
-                      <h4><Wrench size={16} className="inline-icon" /> Materials & Equipment</h4>
-                      <div className="tm-detail-list">
-                        {ticket.t_and_m_items.map(item => (
-                          <div key={item.id} className="tm-detail-row">
-                            <span>
-                              {item.custom_name ? (
-                                <><span className="tm-custom-badge">Custom</span> {item.custom_name}</>
-                              ) : (
-                                item.materials_equipment?.name
-                              )}
-                            </span>
-                            <span className="tm-detail-qty">
-                              {item.quantity} {item.materials_equipment?.unit || 'each'}
-                              {item.materials_equipment?.cost_per_unit > 0 && (
-                                <span className="tm-item-cost">
-                                  ${(item.quantity * item.materials_equipment.cost_per_unit).toFixed(2)}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {ticket.notes && (
-                    <div className="tm-detail-section">
-                      <h4><FileText size={16} className="inline-icon" /> Description</h4>
-                      <p className="tm-notes-text">{ticket.notes}</p>
-                    </div>
-                  )}
-
-                  {ticket.photos && ticket.photos.length > 0 && (
-                    <div className="tm-detail-section">
-                      <h4><Camera size={16} className="inline-icon" /> Photos ({ticket.photos.length})</h4>
-                      <div className="tm-photos-grid">
-                        {ticket.photos.map((photo, idx) => (
-                          <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">
-                            <img src={photo} alt={`Photo ${idx + 1}`} />
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Show change order value if approved with CE/PCO */}
-                  {ticket.ce_pco_number && ticket.change_order_value > 0 && (
-                    <div className="tm-change-order-value">
-                      <span className="tm-co-label">Change Order Value:</span>
-                      <span className="tm-co-amount">${ticket.change_order_value.toLocaleString()}</span>
-                    </div>
-                  )}
-
-                  <div className="tm-ticket-actions">
-                    {ticket.status === 'pending' && (
-                      <>
-                        <button
-                          className="btn btn-success btn-small"
-                          onClick={(e) => { e.stopPropagation(); handleApprove(ticket); }}
-                        >
-                          ✓ Approve {ticket.ce_pco_number ? '+ CO' : ''}
-                        </button>
-                        <button
-                          className="btn btn-warning btn-small"
-                          onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'rejected'); }}
-                        >
-                          ✗ Reject
-                        </button>
-                      </>
+          {/* Render tickets - with month grouping in 'all' mode */}
+          {viewMode === 'all' && ticketsByMonth ? (
+            ticketsByMonth.map(([monthKey, monthData]) => (
+              <div key={monthKey} className="month-group">
+                <div
+                  className="month-header"
+                  onClick={() => toggleMonthExpand(monthKey)}
+                >
+                  <div className="month-header-left">
+                    {expandedMonths.has(monthKey) ? (
+                      <ChevronDown size={18} />
+                    ) : (
+                      <ChevronRight size={18} />
                     )}
-                    {ticket.status === 'approved' && (
-                      <button 
-                        className="btn btn-primary btn-small"
-                        onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'billed'); }}
-                      >
-                        💰 Mark Billed
-                      </button>
-                    )}
-                    {ticket.status === 'rejected' && (
-                      <button 
-                        className="btn btn-secondary btn-small"
-                        onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'pending'); }}
-                      >
-                        ↩ Restore
-                      </button>
-                    )}
-                    <button 
-                      className="btn btn-danger btn-small"
-                      onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }}
-                    >
-                      🗑 Delete
-                    </button>
+                    <span className="month-label">{monthData.label}</span>
+                    <span className="month-count">{monthData.tickets.length} tickets</span>
+                  </div>
+                  <div className="month-header-right">
+                    <span className="month-stat">{monthData.hours.toFixed(1)} hrs</span>
+                    <span className="month-stat">${monthData.cost.toFixed(2)}</span>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+                {expandedMonths.has(monthKey) && (
+                  <div className="month-tickets">
+                    {monthData.tickets.map(ticket => renderTicketCard(ticket))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            // Recent view - simple list
+            filteredTickets.map(ticket => renderTicketCard(ticket))
+          )}
         </div>
       )}
 

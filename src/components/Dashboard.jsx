@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
-import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck, Info, Building2, Phone, MapPin } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
@@ -10,6 +10,9 @@ import MaterialRequestsList from './MaterialRequestsList'
 import DailyReportsList from './DailyReportsList'
 import ProjectMessages from './ProjectMessages'
 import ManDayCosts from './ManDayCosts'
+import CORList from './cor/CORList'
+import CORForm from './cor/CORForm'
+import CORDetail from './cor/CORDetail'
 
 export default function Dashboard({ company, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -24,6 +27,10 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
   const [dumpSites, setDumpSites] = useState([])
+  const [showCORForm, setShowCORForm] = useState(false)
+  const [editingCOR, setEditingCOR] = useState(null)
+  const [showCORDetail, setShowCORDetail] = useState(false)
+  const [viewingCOR, setViewingCOR] = useState(null)
 
   useEffect(() => {
     if (company?.id) {
@@ -581,6 +588,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     const tabs = [
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
       { id: 'financials', label: 'Financials', Icon: DollarSign },
+      { id: 'cors', label: 'CORs', Icon: FileText },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
       { id: 'activity', label: 'Activity', Icon: MessageSquare },
       { id: 'info', label: 'Info', Icon: Info }
@@ -903,6 +911,30 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             </div>
           )}
 
+          {/* CORs TAB */}
+          {activeProjectTab === 'cors' && (
+            <div className="pv-tab-panel">
+              <CORList
+                project={selectedProject}
+                company={company}
+                areas={areas}
+                onShowToast={onShowToast}
+                onCreateCOR={() => {
+                  setEditingCOR(null)
+                  setShowCORForm(true)
+                }}
+                onViewCOR={(cor) => {
+                  setViewingCOR(cor)
+                  setShowCORDetail(true)
+                }}
+                onEditCOR={(cor) => {
+                  setEditingCOR(cor)
+                  setShowCORForm(true)
+                }}
+              />
+            </div>
+          )}
+
           {/* REPORTS TAB */}
           {activeProjectTab === 'reports' && (
             <div className="pv-tab-panel">
@@ -1141,6 +1173,49 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
               onClose={() => setShowNotificationSettings(false)}
             />
           </div>
+        )}
+
+        {/* COR Form Modal */}
+        {showCORForm && (
+          <CORForm
+            project={selectedProject}
+            company={company}
+            areas={areas}
+            existingCOR={editingCOR}
+            onClose={() => {
+              setShowCORForm(false)
+              setEditingCOR(null)
+            }}
+            onSaved={() => {
+              setShowCORForm(false)
+              setEditingCOR(null)
+            }}
+            onShowToast={onShowToast}
+          />
+        )}
+
+        {/* COR Detail Modal */}
+        {showCORDetail && viewingCOR && (
+          <CORDetail
+            cor={viewingCOR}
+            project={selectedProject}
+            company={company}
+            areas={areas}
+            onClose={() => {
+              setShowCORDetail(false)
+              setViewingCOR(null)
+            }}
+            onEdit={(cor) => {
+              setShowCORDetail(false)
+              setViewingCOR(null)
+              setEditingCOR(cor)
+              setShowCORForm(true)
+            }}
+            onShowToast={onShowToast}
+            onStatusChange={() => {
+              // Trigger a refresh of the COR list
+            }}
+          />
         )}
       </div>
     )

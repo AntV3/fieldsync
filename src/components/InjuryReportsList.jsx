@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import InjuryReportForm from './InjuryReportForm'
@@ -40,6 +41,11 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
+
+  // View mode state
+  const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
+  const [expandedMonths, setExpandedMonths] = useState(new Set())
+  const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
   useEffect(() => {
     loadReports()
@@ -120,6 +126,79 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
       near_miss: '#6b7280'
     }
     return colors[type] || '#9ca3af'
+  }
+
+  // Filter reports by view mode and date range
+  const filteredReports = useMemo(() => {
+    let filtered = [...reports]
+
+    // Apply date filter if set
+    if (dateFilter.start) {
+      const startDate = new Date(dateFilter.start)
+      startDate.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(r => {
+        const reportDate = new Date(r.incident_date)
+        return reportDate >= startDate
+      })
+    }
+    if (dateFilter.end) {
+      const endDate = new Date(dateFilter.end)
+      endDate.setHours(23, 59, 59, 999)
+      filtered = filtered.filter(r => {
+        const reportDate = new Date(r.incident_date)
+        return reportDate <= endDate
+      })
+    }
+
+    // In recent mode, show only last 7 days
+    if (viewMode === 'recent') {
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      sevenDaysAgo.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(r => {
+        const reportDate = new Date(r.incident_date)
+        return reportDate >= sevenDaysAgo
+      })
+    }
+
+    return filtered
+  }, [reports, viewMode, dateFilter])
+
+  // Group reports by month for 'all' view
+  const reportsByMonth = useMemo(() => {
+    if (viewMode !== 'all') return null
+
+    const groups = {}
+    filteredReports.forEach(report => {
+      const date = new Date(report.incident_date)
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+      if (!groups[monthKey]) {
+        groups[monthKey] = { label: monthLabel, reports: [] }
+      }
+      groups[monthKey].reports.push(report)
+    })
+
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]))
+  }, [filteredReports, viewMode])
+
+  // Auto-expand current month
+  useEffect(() => {
+    if (reportsByMonth && reportsByMonth.length > 0) {
+      const currentMonthKey = reportsByMonth[0][0]
+      setExpandedMonths(new Set([currentMonthKey]))
+    }
+  }, [reportsByMonth])
+
+  const toggleMonthExpand = (monthKey) => {
+    const newExpanded = new Set(expandedMonths)
+    if (newExpanded.has(monthKey)) {
+      newExpanded.delete(monthKey)
+    } else {
+      newExpanded.add(monthKey)
+    }
+    setExpandedMonths(newExpanded)
   }
 
   // Export to PDF with company branding
@@ -284,72 +363,207 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           </div>
         </div>
 
-        {reports.length === 0 ? (
+        {/* View Mode Bar */}
+        <div className="view-mode-bar">
+          <div className="view-mode-tabs">
+            <button
+              className={`view-mode-tab ${viewMode === 'recent' ? 'active' : ''}`}
+              onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
+            >
+              Recent (7 days)
+            </button>
+            <button
+              className={`view-mode-tab ${viewMode === 'all' ? 'active' : ''}`}
+              onClick={() => setViewMode('all')}
+            >
+              All ({reports.length})
+            </button>
+          </div>
+
+          {viewMode === 'all' && (
+            <div className="date-filter">
+              <Calendar size={16} />
+              <input
+                type="date"
+                value={dateFilter.start}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+                placeholder="Start date"
+              />
+              <span>to</span>
+              <input
+                type="date"
+                value={dateFilter.end}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+                placeholder="End date"
+              />
+              {(dateFilter.start || dateFilter.end) && (
+                <button
+                  className="btn-ghost"
+                  onClick={() => setDateFilter({ start: '', end: '' })}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {filteredReports.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">🏥</div>
-            <h4>No Injury Reports</h4>
+            <h4>No Injury Reports{viewMode === 'recent' ? ' in the last 7 days' : ''}</h4>
             <p>Click "File Injury Report" to document a workplace incident</p>
+            {viewMode === 'recent' && reports.length > 0 && (
+              <button className="btn-secondary" onClick={() => setViewMode('all')}>
+                View All Reports
+              </button>
+            )}
           </div>
         ) : (
           <div className="reports-list">
-            {reports.map(report => (
-              <div
-                key={report.id}
-                className="report-card"
-                onClick={() => handleViewDetails(report)}
-              >
-                <div className="report-header">
-                  <div>
-                    <div className="report-date">
-                      {formatDate(report.incident_date)} at {formatTime(report.incident_time)}
+            {/* Render reports - with month grouping in 'all' mode */}
+            {viewMode === 'all' && reportsByMonth ? (
+              reportsByMonth.map(([monthKey, monthData]) => (
+                <div key={monthKey} className="month-group">
+                  <div
+                    className="month-header"
+                    onClick={() => toggleMonthExpand(monthKey)}
+                  >
+                    <div className="month-header-left">
+                      {expandedMonths.has(monthKey) ? (
+                        <ChevronDown size={18} />
+                      ) : (
+                        <ChevronRight size={18} />
+                      )}
+                      <span className="month-label">{monthData.label}</span>
+                      <span className="month-count">{monthData.reports.length} reports</span>
                     </div>
-                    <div className="employee-name">{report.employee_name}</div>
                   </div>
-                  <div className="report-badges">
-                    <span
-                      className="badge"
-                      style={{ backgroundColor: getInjuryTypeColor(report.injury_type) }}
-                    >
-                      {getInjuryTypeLabel(report.injury_type)}
-                    </span>
-                    <span
-                      className="badge"
-                      style={{ backgroundColor: getStatusColor(report.status) }}
-                    >
-                      {report.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                </div>
+                  {expandedMonths.has(monthKey) && (
+                    <div className="month-reports">
+                      {monthData.reports.map(report => (
+                        <div
+                          key={report.id}
+                          className="report-card"
+                          onClick={() => handleViewDetails(report)}
+                        >
+                          <div className="report-header">
+                            <div>
+                              <div className="report-date">
+                                {formatDate(report.incident_date)} at {formatTime(report.incident_time)}
+                              </div>
+                              <div className="employee-name">{report.employee_name}</div>
+                            </div>
+                            <div className="report-badges">
+                              <span
+                                className="badge"
+                                style={{ backgroundColor: getInjuryTypeColor(report.injury_type) }}
+                              >
+                                {getInjuryTypeLabel(report.injury_type)}
+                              </span>
+                              <span
+                                className="badge"
+                                style={{ backgroundColor: getStatusColor(report.status) }}
+                              >
+                                {report.status.replace('_', ' ')}
+                              </span>
+                            </div>
+                          </div>
 
-                <div className="report-summary">
-                  <div className="summary-item">
-                    <strong>Location:</strong> {report.incident_location}
-                  </div>
-                  <div className="summary-item">
-                    <strong>Reported by:</strong> {report.reported_by_name} ({report.reported_by_title})
-                  </div>
-                  {report.body_part_affected && (
-                    <div className="summary-item">
-                      <strong>Body Part:</strong> {report.body_part_affected}
+                          <div className="report-summary">
+                            <div className="summary-item">
+                              <strong>Location:</strong> {report.incident_location}
+                            </div>
+                            <div className="summary-item">
+                              <strong>Reported by:</strong> {report.reported_by_name} ({report.reported_by_title})
+                            </div>
+                            {report.body_part_affected && (
+                              <div className="summary-item">
+                                <strong>Body Part:</strong> {report.body_part_affected}
+                              </div>
+                            )}
+                            {report.osha_recordable && (
+                              <div className="summary-item">
+                                <span className="osha-badge">OSHA Recordable</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="report-description">
+                            {report.incident_description.substring(0, 150)}
+                            {report.incident_description.length > 150 && '...'}
+                          </div>
+
+                          <div className="report-footer">
+                            <span>Click to view full details</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
-                  {report.osha_recordable && (
-                    <div className="summary-item">
-                      <span className="osha-badge">OSHA Recordable</span>
+                </div>
+              ))
+            ) : (
+              // Recent view - simple list
+              filteredReports.map(report => (
+                <div
+                  key={report.id}
+                  className="report-card"
+                  onClick={() => handleViewDetails(report)}
+                >
+                  <div className="report-header">
+                    <div>
+                      <div className="report-date">
+                        {formatDate(report.incident_date)} at {formatTime(report.incident_time)}
+                      </div>
+                      <div className="employee-name">{report.employee_name}</div>
                     </div>
-                  )}
-                </div>
+                    <div className="report-badges">
+                      <span
+                        className="badge"
+                        style={{ backgroundColor: getInjuryTypeColor(report.injury_type) }}
+                      >
+                        {getInjuryTypeLabel(report.injury_type)}
+                      </span>
+                      <span
+                        className="badge"
+                        style={{ backgroundColor: getStatusColor(report.status) }}
+                      >
+                        {report.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
 
-                <div className="report-description">
-                  {report.incident_description.substring(0, 150)}
-                  {report.incident_description.length > 150 && '...'}
-                </div>
+                  <div className="report-summary">
+                    <div className="summary-item">
+                      <strong>Location:</strong> {report.incident_location}
+                    </div>
+                    <div className="summary-item">
+                      <strong>Reported by:</strong> {report.reported_by_name} ({report.reported_by_title})
+                    </div>
+                    {report.body_part_affected && (
+                      <div className="summary-item">
+                        <strong>Body Part:</strong> {report.body_part_affected}
+                      </div>
+                    )}
+                    {report.osha_recordable && (
+                      <div className="summary-item">
+                        <span className="osha-badge">OSHA Recordable</span>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="report-footer">
-                  <span>Click to view full details</span>
+                  <div className="report-description">
+                    {report.incident_description.substring(0, 150)}
+                    {report.incident_description.length > 150 && '...'}
+                  </div>
+
+                  <div className="report-footer">
+                    <span>Click to view full details</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
@@ -596,6 +810,111 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           margin: 0;
           font-size: 1.25rem;
           color: #111827;
+        }
+
+        .view-mode-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
+          padding: 0.75rem;
+          background: #f8fafc;
+          border-radius: 8px;
+          flex-wrap: wrap;
+        }
+
+        .view-mode-tabs {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .view-mode-tab {
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          cursor: pointer;
+          background: transparent;
+          color: #64748b;
+          transition: all 0.2s;
+        }
+
+        .view-mode-tab:hover {
+          background: #e2e8f0;
+        }
+
+        .view-mode-tab.active {
+          background: var(--primary-color, #3b82f6);
+          color: white;
+        }
+
+        .date-filter {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #64748b;
+        }
+
+        .date-filter input[type="date"] {
+          padding: 0.4rem 0.5rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .btn-ghost {
+          background: transparent;
+          border: none;
+          padding: 0.4rem 0.75rem;
+          color: #64748b;
+          cursor: pointer;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .btn-ghost:hover {
+          background: #e2e8f0;
+        }
+
+        .month-group {
+          margin-bottom: 0.5rem;
+        }
+
+        .month-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.75rem 1rem;
+          background: #f1f5f9;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .month-header:hover {
+          background: #e2e8f0;
+        }
+
+        .month-header-left {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .month-label {
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .month-count {
+          font-size: 0.875rem;
+          color: #64748b;
+        }
+
+        .month-reports {
+          margin-top: 0.5rem;
+          padding-left: 0.5rem;
         }
 
         .reports-list {
