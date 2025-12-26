@@ -193,7 +193,8 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     const statusInfo = getStatusInfo(cor.status)
     const isExpanded = expandedCOR === cor.id
     const canEdit = cor.status === 'draft'
-    const canDelete = cor.status === 'draft'
+    // Allow deleting CORs that haven't been approved/billed/closed
+    const canDelete = ['draft', 'pending_approval', 'rejected'].includes(cor.status)
     const canSubmit = cor.status === 'draft'
 
     return (

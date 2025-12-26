@@ -9,7 +9,7 @@ export function formatCurrency(amount) {
 
 export function calculateProgress(areas) {
   if (!areas || areas.length === 0) return 0
-  
+
   let progress = 0
   areas.forEach(area => {
     if (area.status === 'done') {
@@ -17,6 +17,39 @@ export function calculateProgress(areas) {
     }
   })
   return Math.round(progress)
+}
+
+/**
+ * Calculate progress based on SOV scheduled values when available
+ * Falls back to percentage-based calculation if no scheduled values exist
+ * @param {Array} areas - Array of area objects
+ * @returns {Object} { progress, earnedValue, totalValue, isValueBased }
+ */
+export function calculateValueProgress(areas) {
+  if (!areas || areas.length === 0) {
+    return { progress: 0, earnedValue: 0, totalValue: 0, isValueBased: false }
+  }
+
+  // Check if any areas have scheduled values
+  const hasScheduledValues = areas.some(a => a.scheduled_value > 0)
+
+  if (hasScheduledValues) {
+    // Value-based calculation using SOV amounts
+    const totalValue = areas.reduce((sum, a) => sum + (a.scheduled_value || 0), 0)
+    const earnedValue = areas
+      .filter(a => a.status === 'done')
+      .reduce((sum, a) => sum + (a.scheduled_value || 0), 0)
+    const progress = totalValue > 0 ? Math.round((earnedValue / totalValue) * 100) : 0
+
+    return { progress, earnedValue, totalValue, isValueBased: true }
+  }
+
+  // Fallback to percentage-based calculation
+  const progress = areas
+    .filter(a => a.status === 'done')
+    .reduce((sum, a) => sum + (a.weight || 0), 0)
+
+  return { progress: Math.round(progress), earnedValue: 0, totalValue: 0, isValueBased: false }
 }
 
 export function getOverallStatus(areas) {

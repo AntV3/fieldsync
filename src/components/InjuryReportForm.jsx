@@ -659,28 +659,28 @@ export default function InjuryReportForm({ project, companyId, onClose, onReport
           display: flex;
           justify-content: space-between;
           padding: 1rem 1.5rem;
-          border-bottom: 1px solid #e5e7eb;
-          background-color: #f9fafb;
+          border-bottom: 1px solid var(--border-color);
+          background-color: var(--bg-elevated);
           overflow-x: auto;
         }
 
         .progress-steps .step {
           font-size: 0.875rem;
-          color: #9ca3af;
+          color: var(--text-muted);
           font-weight: 500;
           white-space: nowrap;
           padding: 0.5rem;
         }
 
         .progress-steps .step.active {
-          color: var(--primary-color, #3b82f6);
+          color: var(--accent-primary);
           font-weight: 600;
         }
 
         .form-step h3 {
           margin-top: 0;
           margin-bottom: 1.5rem;
-          color: #111827;
+          color: var(--text-primary);
           font-size: 1.25rem;
         }
 
@@ -698,7 +698,7 @@ export default function InjuryReportForm({ project, companyId, onClose, onReport
           display: block;
           margin-bottom: 0.5rem;
           font-weight: 500;
-          color: #374151;
+          color: var(--text-secondary);
         }
 
         .form-group input,
@@ -706,9 +706,11 @@ export default function InjuryReportForm({ project, companyId, onClose, onReport
         .form-group textarea {
           width: 100%;
           padding: 0.5rem;
-          border: 1px solid #d1d5db;
+          border: 1px solid var(--border-color);
           border-radius: 4px;
           font-size: 1rem;
+          background: var(--bg-card);
+          color: var(--text-primary);
         }
 
         .form-group textarea {
@@ -733,7 +735,7 @@ export default function InjuryReportForm({ project, companyId, onClose, onReport
         }
 
         .witness-item {
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--border-color);
           border-radius: 6px;
           padding: 1rem;
           margin-bottom: 0.5rem;
@@ -744,24 +746,25 @@ export default function InjuryReportForm({ project, companyId, onClose, onReport
 
         .witness-info {
           flex: 1;
+          color: var(--text-primary);
         }
 
         .witness-testimony {
           margin-top: 0.5rem;
-          color: #6b7280;
+          color: var(--text-secondary);
           font-style: italic;
           font-size: 0.875rem;
         }
 
         .add-witness-form {
-          border: 2px dashed #d1d5db;
+          border: 2px dashed var(--border-color);
           border-radius: 6px;
           padding: 1rem;
-          background-color: #f9fafb;
+          background-color: var(--bg-elevated);
         }
 
         .modal-footer {
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--border-color);
           padding: 1rem 1.5rem;
         }
 
@@ -796,12 +799,13 @@ export default function InjuryReportForm({ project, companyId, onClose, onReport
         }
 
         .btn-secondary {
-          background-color: #f3f4f6;
-          color: #374151;
+          background-color: var(--bg-elevated);
+          color: var(--text-primary);
+          border: 1px solid var(--border-color);
         }
 
         .btn-secondary:hover {
-          background-color: #e5e7eb;
+          background-color: var(--bg-tertiary);
         }
 
         .btn-danger {

@@ -12,9 +12,9 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const [workType, setWorkType] = useState('demolition')
   const [jobType, setJobType] = useState('standard')
   const [areas, setAreas] = useState([
-    { name: '', weight: '', group: '' },
-    { name: '', weight: '', group: '' },
-    { name: '', weight: '', group: '' }
+    { name: '', weight: '', group: '', scheduledValue: null },
+    { name: '', weight: '', group: '', scheduledValue: null },
+    { name: '', weight: '', group: '', scheduledValue: null }
   ])
   const [creating, setCreating] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -43,7 +43,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   }
 
   const addArea = () => {
-    setAreas(prev => [...prev, { name: '', weight: '', group: '' }])
+    setAreas(prev => [...prev, { name: '', weight: '', group: '', scheduledValue: null }])
   }
 
   const removeArea = (index) => {
@@ -62,9 +62,9 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     setWorkType('demolition')
     setJobType('standard')
     setAreas([
-      { name: '', weight: '', group: '' },
-      { name: '', weight: '', group: '' },
-      { name: '', weight: '', group: '' }
+      { name: '', weight: '', group: '', scheduledValue: null },
+      { name: '', weight: '', group: '', scheduledValue: null },
+      { name: '', weight: '', group: '', scheduledValue: null }
     ])
     setShowImportReview(false)
     setImportedTasks([])
@@ -149,6 +149,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
             let description = ''
             let hasValue = false
             let itemNumber = ''
+            let scheduledValue = null
 
             const descParts = []
 
@@ -165,8 +166,17 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
               if (/^ID-\d+$/i.test(cell)) continue
               if (/^KN\s*\d+$/i.test(cell)) continue
 
-              // Check for dollar amounts (SOV scheduled values)
+              // Check for dollar amounts (SOV scheduled values) - CAPTURE the value
               if (dollarPattern.test(cell.replace(/[$,]/g, '') + (cell.includes('.') ? '' : '.00')) || /^\$/.test(cell)) {
+                const cleanValue = cell.replace(/[$,]/g, '')
+                const parsedValue = parseFloat(cleanValue)
+                // Only capture if it's a reasonable dollar amount (> $100, likely a line item value)
+                if (!isNaN(parsedValue) && parsedValue > 100) {
+                  // Keep the largest dollar value found (likely the scheduled value, not quantities)
+                  if (scheduledValue === null || parsedValue > scheduledValue) {
+                    scheduledValue = parsedValue
+                  }
+                }
                 hasValue = true
                 continue
               }
@@ -205,6 +215,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
                 name: description,
                 group: currentGroup,
                 itemNumber: itemNumber,
+                scheduledValue: scheduledValue,
                 selected: true
               })
             }
@@ -283,22 +294,32 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       onShowToast('Please select at least one task', 'error')
       return
     }
-    
+
     // Calculate even weight
     const weight = Math.round((100 / selectedTasks.length) * 100) / 100
-    
+
     // Adjust last item to make total exactly 100
     const newAreas = selectedTasks.map((task, index) => ({
       name: task.name,
-      weight: index === selectedTasks.length - 1 
+      weight: index === selectedTasks.length - 1
         ? (100 - (weight * (selectedTasks.length - 1))).toFixed(2)
         : weight.toFixed(2),
-      group: task.group
+      group: task.group,
+      scheduledValue: task.scheduledValue || null
     }))
-    
+
+    // Calculate total SOV for toast message
+    const totalSOV = selectedTasks.reduce((sum, t) => sum + (t.scheduledValue || 0), 0)
+
     setAreas(newAreas)
     setShowImportReview(false)
-    onShowToast('Tasks imported!', 'success')
+
+    if (totalSOV > 0) {
+      const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+      onShowToast(`Tasks imported! Total SOV: ${formatter.format(totalSOV)}`, 'success')
+    } else {
+      onShowToast('Tasks imported!', 'success')
+    }
   }
 
   const handleSubmit = async () => {
@@ -361,6 +382,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
           project_id: project.id,
           name: validAreas[i].name.trim(),
           weight: parseFloat(validAreas[i].weight),
+          scheduled_value: validAreas[i].scheduledValue || null,
           group_name: validAreas[i].group || null,
           status: 'not_started',
           sort_order: i
@@ -382,14 +404,21 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   if (showImportReview) {
     const groups = [...new Set(importedTasks.map(t => t.group))]
     const selectedCount = importedTasks.filter(t => t.selected).length
-    
+    const totalSOV = importedTasks.reduce((sum, t) => sum + (t.scheduledValue || 0), 0)
+    const selectedSOV = importedTasks.filter(t => t.selected).reduce((sum, t) => sum + (t.scheduledValue || 0), 0)
+
     return (
       <div>
         <h1>Review Imported Tasks</h1>
         <p className="subtitle">Select the tasks to include in your project</p>
-        
+
         <div className="import-summary">
           <span>{selectedCount} of {importedTasks.length} tasks selected</span>
+          {totalSOV > 0 && (
+            <span className="import-sov-total">
+              · Total SOV: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(selectedSOV)}
+            </span>
+          )}
         </div>
         
         {groups.map(group => {
@@ -413,6 +442,11 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
                         onChange={() => toggleTaskSelection(taskIndex)}
                       />
                       <span className="import-task-name">{task.name}</span>
+                      {task.scheduledValue > 0 && (
+                        <span className="import-task-value">
+                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(task.scheduledValue)}
+                        </span>
+                      )}
                     </label>
                   )
                 })}

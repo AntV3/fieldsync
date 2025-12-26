@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
-import { formatCurrency, calculateProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
+import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
@@ -101,12 +101,19 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         )
         const haulOffCosts = await db.calculateHaulOffCosts(project.id)
         const customCosts = await db.getProjectCosts(project.id)
-        const progress = calculateProgress(projectAreas)
+
+        // Calculate progress - use SOV values if available, otherwise fallback to percentage
+        const progressData = calculateValueProgress(projectAreas)
+        const progress = progressData.progress
 
         // Calculate revised contract value (original + change orders)
         const changeOrderValue = changeOrderData?.totalApprovedValue || 0
         const revisedContractValue = project.contract_value + changeOrderValue
-        const billable = (progress / 100) * revisedContractValue
+
+        // Billable: use actual earned value from SOV if available, otherwise percentage-based
+        const billable = progressData.isValueBased
+          ? progressData.earnedValue
+          : (progress / 100) * revisedContractValue
         const pendingTickets = tickets.filter(t => t.status === 'pending').length
 
         // Get recent report activity (last 7 days)
@@ -150,6 +157,10 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           lastDailyReport: dailyReports[0]?.report_date || null,
           pendingMaterialRequests: materialRequests.filter(r => r.status === 'pending').length,
           totalMaterialRequests: materialRequests.length,
+          // SOV/Scheduled Value data
+          isValueBased: progressData.isValueBased,
+          earnedValue: progressData.earnedValue,
+          totalSOVValue: progressData.totalValue,
           // Burn rate data
           laborCost,
           laborDaysWorked: laborDays,
@@ -394,13 +405,26 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
 
   // Project Detail View
   if (selectedProject) {
-    const progress = calculateProgress(areas)
+    // Get enhanced project data with SOV values
+    const projectData = projectsData.find(p => p.id === selectedProject.id)
+
+    // Calculate progress - use SOV values if available
+    const progressData = calculateValueProgress(areas)
+    const progress = progressData.progress
 
     // Get change order data from enhanced project data
-    const projectData = projectsData.find(p => p.id === selectedProject.id)
     const changeOrderValue = projectData?.changeOrderValue || 0
     const revisedContractValue = selectedProject.contract_value + changeOrderValue
-    const billable = (progress / 100) * revisedContractValue
+
+    // Billable: use actual earned value from SOV if available
+    const billable = progressData.isValueBased
+      ? progressData.earnedValue
+      : (progress / 100) * revisedContractValue
+
+    // SOV data for UI display
+    const isValueBased = progressData.isValueBased
+    const earnedValue = progressData.earnedValue
+    const totalSOVValue = progressData.totalValue
 
     // Edit Mode
     if (editMode && editData) {
@@ -728,7 +752,13 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                   <div className="overview-metric">
                     <div className="overview-metric-value green">{formatCurrency(billable)}</div>
                     <div className="overview-metric-label">Earned</div>
-                    <div className="overview-metric-detail">{percentBilled}% billed</div>
+                    <div className="overview-metric-detail">
+                      {isValueBased ? (
+                        <span>of {formatCurrency(totalSOVValue)} SOV</span>
+                      ) : (
+                        <span>{percentBilled}% billed</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -803,7 +833,9 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                       </div>
                       <div className="work-area-info">
                         <span className="work-area-name">{area.name}</span>
-                        <span className="work-area-weight">{area.weight}%</span>
+                        <span className="work-area-weight">
+                          {area.scheduled_value ? formatCurrency(area.scheduled_value) : `${area.weight}%`}
+                        </span>
                       </div>
                       <div className="work-area-bar">
                         <div

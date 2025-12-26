@@ -347,12 +347,13 @@ function ShareModal({ project, onClose, onShareCreated }) {
           justify-content: space-between;
           align-items: center;
           padding: 1.5rem;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--border-color);
         }
 
         .modal-header h2 {
           margin: 0;
           font-size: 1.25rem;
+          color: var(--text-primary);
         }
 
         .close-btn {
@@ -360,7 +361,7 @@ function ShareModal({ project, onClose, onShareCreated }) {
           border: none;
           font-size: 2rem;
           cursor: pointer;
-          color: #6b7280;
+          color: var(--text-secondary);
           padding: 0;
           width: 2rem;
           height: 2rem;
@@ -370,7 +371,7 @@ function ShareModal({ project, onClose, onShareCreated }) {
         }
 
         .close-btn:hover {
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .modal-body {
@@ -385,6 +386,7 @@ function ShareModal({ project, onClose, onShareCreated }) {
           margin-top: 0;
           margin-bottom: 1rem;
           font-size: 1.1rem;
+          color: var(--text-primary);
         }
 
         .shares-list {
@@ -394,18 +396,19 @@ function ShareModal({ project, onClose, onShareCreated }) {
         }
 
         .share-item {
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--border-color);
           border-radius: 8px;
           padding: 1rem;
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
           gap: 1rem;
+          background: var(--bg-card);
         }
 
         .share-item.inactive {
           opacity: 0.6;
-          background-color: #f9fafb;
+          background-color: var(--bg-elevated);
         }
 
         .share-info {
@@ -420,7 +423,7 @@ function ShareModal({ project, onClose, onShareCreated }) {
         }
 
         .share-token code {
-          background-color: #f3f4f6;
+          background-color: var(--bg-elevated);
           padding: 0.25rem 0.5rem;
           border-radius: 4px;
           font-size: 0.875rem;
@@ -428,6 +431,7 @@ function ShareModal({ project, onClose, onShareCreated }) {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          color: var(--text-primary);
         }
 
         .share-meta {
@@ -435,7 +439,7 @@ function ShareModal({ project, onClose, onShareCreated }) {
           flex-wrap: wrap;
           gap: 1rem;
           font-size: 0.875rem;
-          color: #6b7280;
+          color: var(--text-secondary);
         }
 
         .status-badge {
@@ -464,16 +468,17 @@ function ShareModal({ project, onClose, onShareCreated }) {
         }
 
         .new-share-form {
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--border-color);
           border-radius: 8px;
           padding: 1.5rem;
-          background-color: #f9fafb;
+          background-color: var(--bg-elevated);
         }
 
         .new-share-form h3 {
           margin-top: 0;
           margin-bottom: 1.5rem;
           font-size: 1.1rem;
+          color: var(--text-primary);
         }
 
         .form-section {
@@ -484,6 +489,7 @@ function ShareModal({ project, onClose, onShareCreated }) {
           display: block;
           font-weight: 500;
           margin-bottom: 0.5rem;
+          color: var(--text-primary);
         }
 
         .checkbox-group,
@@ -509,9 +515,11 @@ function ShareModal({ project, onClose, onShareCreated }) {
         .date-input {
           margin-top: 0.5rem;
           padding: 0.5rem;
-          border: 1px solid #d1d5db;
+          border: 1px solid var(--border-color);
           border-radius: 4px;
           width: 100%;
+          background: var(--bg-card);
+          color: var(--text-primary);
         }
 
         .form-actions {
@@ -524,14 +532,15 @@ function ShareModal({ project, onClose, onShareCreated }) {
         .btn-small {
           padding: 0.25rem 0.75rem;
           font-size: 0.875rem;
-          border: 1px solid #d1d5db;
-          background-color: white;
+          border: 1px solid var(--border-color);
+          background-color: var(--bg-card);
+          color: var(--text-primary);
           border-radius: 4px;
           cursor: pointer;
         }
 
         .btn-small:hover:not(:disabled) {
-          background-color: #f3f4f6;
+          background-color: var(--bg-elevated);
         }
 
         .btn-small:disabled {
@@ -564,12 +573,13 @@ function ShareModal({ project, onClose, onShareCreated }) {
         }
 
         .btn-secondary {
-          background-color: #f3f4f6;
-          color: #374151;
+          background-color: var(--bg-elevated);
+          color: var(--text-primary);
+          border: 1px solid var(--border-color);
         }
 
         .btn-secondary:hover {
-          background-color: #e5e7eb;
+          background-color: var(--bg-tertiary);
         }
 
         .btn-danger {

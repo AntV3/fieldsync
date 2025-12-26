@@ -809,7 +809,7 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
         .section-header h3 {
           margin: 0;
           font-size: 1.25rem;
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .view-mode-bar {
@@ -819,7 +819,7 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           gap: 1rem;
           margin-bottom: 1rem;
           padding: 0.75rem;
-          background: #f8fafc;
+          background: var(--bg-elevated);
           border-radius: 8px;
           flex-wrap: wrap;
         }
@@ -836,12 +836,12 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           font-size: 0.875rem;
           cursor: pointer;
           background: transparent;
-          color: #64748b;
+          color: var(--text-secondary);
           transition: all 0.2s;
         }
 
         .view-mode-tab:hover {
-          background: #e2e8f0;
+          background: var(--bg-tertiary);
         }
 
         .view-mode-tab.active {
@@ -853,28 +853,30 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: #64748b;
+          color: var(--text-secondary);
         }
 
         .date-filter input[type="date"] {
           padding: 0.4rem 0.5rem;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--border-color);
           border-radius: 4px;
           font-size: 0.875rem;
+          background: var(--bg-card);
+          color: var(--text-primary);
         }
 
         .btn-ghost {
           background: transparent;
           border: none;
           padding: 0.4rem 0.75rem;
-          color: #64748b;
+          color: var(--text-secondary);
           cursor: pointer;
           border-radius: 4px;
           font-size: 0.875rem;
         }
 
         .btn-ghost:hover {
-          background: #e2e8f0;
+          background: var(--bg-tertiary);
         }
 
         .month-group {
@@ -886,14 +888,14 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           justify-content: space-between;
           align-items: center;
           padding: 0.75rem 1rem;
-          background: #f1f5f9;
+          background: var(--bg-elevated);
           border-radius: 8px;
           cursor: pointer;
           transition: background 0.2s;
         }
 
         .month-header:hover {
-          background: #e2e8f0;
+          background: var(--bg-tertiary);
         }
 
         .month-header-left {
@@ -904,12 +906,12 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
 
         .month-label {
           font-weight: 600;
-          color: #1e293b;
+          color: var(--text-primary);
         }
 
         .month-count {
           font-size: 0.875rem;
-          color: #64748b;
+          color: var(--text-secondary);
         }
 
         .month-reports {
@@ -924,8 +926,8 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
         }
 
         .report-card {
-          background: white;
-          border: 1px solid #e5e7eb;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
           border-radius: 8px;
           padding: 1.5rem;
           cursor: pointer;
@@ -933,8 +935,8 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
         }
 
         .report-card:hover {
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          border-color: var(--primary-color, #3b82f6);
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+          border-color: var(--accent-primary);
         }
 
         .report-header {
@@ -946,14 +948,14 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
 
         .report-date {
           font-size: 0.875rem;
-          color: #6b7280;
+          color: var(--text-secondary);
           margin-bottom: 0.25rem;
         }
 
         .employee-name {
           font-size: 1.125rem;
           font-weight: 600;
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .report-badges {
@@ -986,21 +988,21 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           gap: 0.75rem;
           margin-bottom: 1rem;
           padding: 1rem;
-          background-color: #f9fafb;
+          background-color: var(--bg-elevated);
           border-radius: 6px;
         }
 
         .summary-item {
           font-size: 0.875rem;
-          color: #374151;
+          color: var(--text-secondary);
         }
 
         .summary-item strong {
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .report-description {
-          color: #6b7280;
+          color: var(--text-secondary);
           line-height: 1.6;
           margin-bottom: 1rem;
         }
@@ -1020,7 +1022,7 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
         .details-section {
           margin-bottom: 2rem;
           padding-bottom: 2rem;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--border-color);
         }
 
         .details-section:last-child {
@@ -1031,7 +1033,7 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           margin-top: 0;
           margin-bottom: 1rem;
           font-size: 1.125rem;
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .detail-grid {
@@ -1044,12 +1046,12 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           display: block;
           font-size: 0.875rem;
           font-weight: 600;
-          color: #6b7280;
+          color: var(--text-secondary);
           margin-bottom: 0.25rem;
         }
 
         .detail-item div {
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .detail-item.full-width {
@@ -1057,16 +1059,17 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
         }
 
         .description-box {
-          background-color: #f9fafb;
-          border: 1px solid #e5e7eb;
+          background-color: var(--bg-elevated);
+          border: 1px solid var(--border-color);
           border-radius: 6px;
           padding: 1rem;
           white-space: pre-wrap;
           line-height: 1.6;
+          color: var(--text-primary);
         }
 
         .witness-card {
-          background-color: #f9fafb;
+          background-color: var(--bg-elevated);
           border-radius: 6px;
           padding: 1rem;
           margin-bottom: 0.5rem;
@@ -1074,22 +1077,22 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
 
         .witness-header {
           margin-bottom: 0.5rem;
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .witness-testimony {
-          color: #6b7280;
+          color: var(--text-secondary);
           font-size: 0.875rem;
           padding-left: 1rem;
-          border-left: 3px solid #d1d5db;
+          border-left: 3px solid var(--border-color);
         }
 
         .report-meta {
           text-align: center;
           font-size: 0.875rem;
-          color: #6b7280;
+          color: var(--text-secondary);
           padding-top: 1rem;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--border-color);
         }
 
         .empty-state {
@@ -1104,12 +1107,12 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
 
         .empty-state h4 {
           margin: 0 0 0.5rem 0;
-          color: #111827;
+          color: var(--text-primary);
         }
 
         .empty-state p {
           margin: 0;
-          color: #6b7280;
+          color: var(--text-secondary);
         }
 
         .section-header-actions {
@@ -1132,8 +1135,9 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
         }
 
         .btn-secondary {
-          background-color: #e5e7eb;
-          color: #374151;
+          background-color: var(--bg-elevated);
+          color: var(--text-primary);
+          border: 1px solid var(--border-color);
         }
 
         .btn-primary:hover, .btn-secondary:hover {
@@ -1150,8 +1154,8 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
         .spinner {
           width: 40px;
           height: 40px;
-          border: 4px solid #e5e7eb;
-          border-top-color: var(--primary-color, #3b82f6);
+          border: 4px solid var(--border-color);
+          border-top-color: var(--accent-primary);
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
