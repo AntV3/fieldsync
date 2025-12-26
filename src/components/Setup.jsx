@@ -302,6 +302,11 @@ export default function Setup({ company, onProjectCreated, onShowToast }) {
   }
 
   const handleSubmit = async () => {
+    if (!company?.id) {
+      onShowToast('No company selected. Please log in again.', 'error')
+      return
+    }
+
     if (!projectName.trim()) {
       onShowToast('Please enter a project name', 'error')
       return

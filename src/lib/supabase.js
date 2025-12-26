@@ -343,6 +343,7 @@ export const db = {
 
   async createProject(project) {
     if (isSupabaseConfigured) {
+      console.log('Creating project with data:', project)
       const { data, error } = await supabase
         .from('projects')
         .insert({
@@ -351,7 +352,10 @@ export const db = {
         })
         .select()
         .single()
-      if (error) throw error
+      if (error) {
+        console.error('Supabase createProject error:', error.message, error.details, error.hint)
+        throw error
+      }
       return data
     } else {
       const localData = getLocalData()
