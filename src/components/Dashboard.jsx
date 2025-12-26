@@ -43,8 +43,23 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     if (company?.id) {
       loadProjects()
       loadDumpSites()
+
+      // Subscribe to company-wide activity to refresh metrics in real-time
+      const projectIds = projects.map(p => p.id)
+      const subscription = projectIds.length > 0
+        ? db.subscribeToCompanyActivity?.(company.id, projectIds, {
+            onMessage: () => loadProjects(),
+            onMaterialRequest: () => loadProjects(),
+            onTMTicket: () => loadProjects(),
+            onInjuryReport: () => loadProjects()
+          })
+        : null
+
+      return () => {
+        if (subscription) db.unsubscribe?.(subscription)
+      }
     }
-  }, [company?.id])
+  }, [company?.id, projects.length])
 
   const loadDumpSites = async () => {
     try {
@@ -69,13 +84,45 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   useEffect(() => {
     if (selectedProject) {
       loadAreas(selectedProject.id)
-      
-      // Subscribe to real-time updates
-      const subscription = db.subscribeToAreas(selectedProject.id, (payload) => {
-        loadAreas(selectedProject.id)
-      })
 
-      return () => db.unsubscribe(subscription)
+      // Subscribe to real-time updates for the selected project
+      const subscriptions = []
+
+      // Areas subscription
+      const areasSub = db.subscribeToAreas?.(selectedProject.id, () => {
+        loadAreas(selectedProject.id)
+        loadProjects() // Refresh metrics when areas change
+      })
+      if (areasSub) subscriptions.push(areasSub)
+
+      // Daily reports subscription
+      const dailyReportsSub = db.subscribeToDailyReports?.(selectedProject.id, () => {
+        loadProjects()
+      })
+      if (dailyReportsSub) subscriptions.push(dailyReportsSub)
+
+      // Crew checkins subscription (affects labor costs)
+      const checkinsSub = db.subscribeToCrewCheckins?.(selectedProject.id, () => {
+        loadProjects()
+      })
+      if (checkinsSub) subscriptions.push(checkinsSub)
+
+      // Haul offs subscription
+      const haulOffsSub = db.subscribeToHaulOffs?.(selectedProject.id, () => {
+        loadProjects()
+      })
+      if (haulOffsSub) subscriptions.push(haulOffsSub)
+
+      // CORs subscription
+      const corsSub = db.subscribeToCORs?.(selectedProject.id, () => {
+        loadProjects()
+        setCORRefreshKey(prev => prev + 1)
+      })
+      if (corsSub) subscriptions.push(corsSub)
+
+      return () => {
+        subscriptions.forEach(sub => db.unsubscribe?.(sub))
+      }
     }
   }, [selectedProject])
 

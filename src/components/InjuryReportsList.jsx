@@ -49,7 +49,19 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
 
   useEffect(() => {
     loadReports()
-  }, [project?.id])
+
+    // Subscribe to real-time updates for injury reports
+    const effectiveCompanyId = companyId || project?.company_id
+    const subscription = effectiveCompanyId
+      ? db.subscribeToInjuryReports?.(effectiveCompanyId, () => {
+          loadReports()
+        })
+      : null
+
+    return () => {
+      if (subscription) db.unsubscribe?.(subscription)
+    }
+  }, [project?.id, companyId])
 
   const loadReports = async () => {
     setLoading(true)

@@ -59,6 +59,15 @@ export default function TMList({ project, company, onShowToast }) {
 
   useEffect(() => {
     loadTickets()
+
+    // Subscribe to real-time updates for T&M tickets
+    const subscription = db.subscribeToTMTickets?.(project.id, () => {
+      loadTickets()
+    })
+
+    return () => {
+      if (subscription) db.unsubscribe?.(subscription)
+    }
   }, [project.id])
 
   const loadTickets = async () => {
