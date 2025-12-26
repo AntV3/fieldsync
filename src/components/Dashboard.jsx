@@ -552,16 +552,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     }
   }
 
-  if (loading) {
-    return (
-      <div className="loading">
-        <div className="spinner"></div>
-        Loading projects...
-      </div>
-    )
-  }
-
   // Memoize selected project data lookup to avoid repeated finds
+  // NOTE: All hooks must be before any conditional returns (React rules of hooks)
   const projectData = useMemo(() => {
     if (!selectedProject) return null
     return projectsData.find(p => p.id === selectedProject.id)
@@ -570,7 +562,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   // Memoize progress calculations - these are expensive and only change when areas change
   const progressCalculations = useMemo(() => {
     if (!selectedProject) {
-      return { progress: 0, billable: 0, isValueBased: false, earnedValue: 0, totalSOVValue: 0 }
+      return { progress: 0, billable: 0, isValueBased: false, earnedValue: 0, totalSOVValue: 0, changeOrderValue: 0, revisedContractValue: 0 }
     }
 
     // Calculate progress - use SOV values if available
@@ -596,6 +588,70 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       totalSOVValue: progressData.totalValue
     }
   }, [selectedProject, areas, projectData])
+
+  // Memoize portfolio-level metrics to avoid recalculating on every render
+  // These only change when projectsData changes (after data loads or real-time updates)
+  const portfolioMetrics = useMemo(() => {
+    const totalOriginalContract = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+    const totalChangeOrders = projectsData.reduce((sum, p) => sum + (p.changeOrderValue || 0), 0)
+    const totalPortfolioValue = totalOriginalContract + totalChangeOrders
+    const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
+    const totalRemaining = totalPortfolioValue - totalEarned
+
+    // Weighted completion (by contract value, not simple average)
+    const weightedCompletion = totalPortfolioValue > 0
+      ? Math.round((totalEarned / totalPortfolioValue) * 100)
+      : 0
+
+    return {
+      totalOriginalContract,
+      totalChangeOrders,
+      totalPortfolioValue,
+      totalEarned,
+      totalRemaining,
+      weightedCompletion
+    }
+  }, [projectsData])
+
+  // Memoize project health breakdown separately (still derived from projectsData)
+  // Single pass through array instead of 5 separate filter operations
+  const projectHealth = useMemo(() => {
+    let complete = 0
+    let onTrack = 0
+    let atRisk = 0
+    let overBudget = 0
+    let withChangeOrders = 0
+
+    for (const p of projectsData) {
+      const contractVal = p.revisedContractValue || p.contract_value
+      if (p.progress >= 100) complete++
+      if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
+      if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
+      if (p.billable > contractVal) overBudget++
+      if ((p.changeOrderValue || 0) > 0) withChangeOrders++
+    }
+
+    return {
+      projectsComplete: complete,
+      projectsOnTrack: onTrack,
+      projectsAtRisk: atRisk,
+      projectsOverBudget: overBudget,
+      projectsWithChangeOrders: withChangeOrders
+    }
+  }, [projectsData])
+
+  // Destructure memoized values for cleaner usage below
+  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion } = portfolioMetrics
+  const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
+
+  if (loading) {
+    return (
+      <div className="loading">
+        <div className="spinner"></div>
+        Loading projects...
+      </div>
+    )
+  }
 
   // Project Detail View
   if (selectedProject) {
@@ -1676,7 +1732,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     )
   }
 
-  // Project List View
+  // Project List View - empty state
   if (projects.length === 0) {
     return (
       <div className="empty-state">
@@ -1687,61 +1743,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     )
   }
 
-  // Memoize portfolio-level metrics to avoid recalculating on every render
-  // These only change when projectsData changes (after data loads or real-time updates)
-  const portfolioMetrics = useMemo(() => {
-    const totalOriginalContract = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
-    const totalChangeOrders = projectsData.reduce((sum, p) => sum + (p.changeOrderValue || 0), 0)
-    const totalPortfolioValue = totalOriginalContract + totalChangeOrders
-    const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
-    const totalRemaining = totalPortfolioValue - totalEarned
-
-    // Weighted completion (by contract value, not simple average)
-    const weightedCompletion = totalPortfolioValue > 0
-      ? Math.round((totalEarned / totalPortfolioValue) * 100)
-      : 0
-
-    return {
-      totalOriginalContract,
-      totalChangeOrders,
-      totalPortfolioValue,
-      totalEarned,
-      totalRemaining,
-      weightedCompletion
-    }
-  }, [projectsData])
-
-  // Memoize project health breakdown separately (still derived from projectsData)
-  // Single pass through array instead of 5 separate filter operations
-  const projectHealth = useMemo(() => {
-    let complete = 0
-    let onTrack = 0
-    let atRisk = 0
-    let overBudget = 0
-    let withChangeOrders = 0
-
-    for (const p of projectsData) {
-      const contractVal = p.revisedContractValue || p.contract_value
-      if (p.progress >= 100) complete++
-      if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
-      if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
-      if (p.billable > contractVal) overBudget++
-      if ((p.changeOrderValue || 0) > 0) withChangeOrders++
-    }
-
-    return {
-      projectsComplete: complete,
-      projectsOnTrack: onTrack,
-      projectsAtRisk: atRisk,
-      projectsOverBudget: overBudget,
-      projectsWithChangeOrders: withChangeOrders
-    }
-  }, [projectsData])
-
-  // Destructure memoized values for cleaner usage below
-  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion } = portfolioMetrics
-  const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
-
+  // Portfolio overview - uses memoized values from above
   return (
     <div>
       {/* Business Overview - High Level Portfolio Health */}
