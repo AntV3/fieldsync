@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
 import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
@@ -39,19 +39,66 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   const [showAddCostModal, setShowAddCostModal] = useState(false)
   const [savingCost, setSavingCost] = useState(false)
 
+  // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
+  // When multiple real-time events fire rapidly, this coalesces them into a single refresh
+  const refreshTimeoutRef = useRef(null)
+  const pendingAreasRefreshRef = useRef(false)
+  const pendingCORRefreshRef = useRef(false)
+
+  // Debounced refresh function that coalesces multiple rapid refresh requests
+  // This prevents 5+ loadProjects() calls when multiple subscriptions fire at once
+  const debouncedRefresh = useCallback((options = {}) => {
+    const { refreshAreas = false, refreshCOR = false, projectId = null } = options
+
+    // Track what needs refreshing
+    if (refreshAreas && projectId) pendingAreasRefreshRef.current = projectId
+    if (refreshCOR) pendingCORRefreshRef.current = true
+
+    // Clear any pending refresh
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current)
+    }
+
+    // Schedule a single refresh after debounce period (150ms)
+    // This is fast enough to feel "live" but prevents cascading calls
+    refreshTimeoutRef.current = setTimeout(async () => {
+      // Execute pending refreshes
+      if (pendingAreasRefreshRef.current) {
+        await loadAreas(pendingAreasRefreshRef.current)
+        pendingAreasRefreshRef.current = false
+      }
+      if (pendingCORRefreshRef.current) {
+        setCORRefreshKey(prev => prev + 1)
+        pendingCORRefreshRef.current = false
+      }
+      // Always refresh projects to update metrics
+      await loadProjects()
+    }, 150)
+  }, [])
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (company?.id) {
       loadProjects()
       loadDumpSites()
 
       // Subscribe to company-wide activity to refresh metrics in real-time
+      // Uses debounced refresh to coalesce rapid updates from multiple sources
       const projectIds = projects.map(p => p.id)
       const subscription = projectIds.length > 0
         ? db.subscribeToCompanyActivity?.(company.id, projectIds, {
-            onMessage: () => loadProjects(),
-            onMaterialRequest: () => loadProjects(),
-            onTMTicket: () => loadProjects(),
-            onInjuryReport: () => loadProjects()
+            onMessage: () => debouncedRefresh(),
+            onMaterialRequest: () => debouncedRefresh(),
+            onTMTicket: () => debouncedRefresh(),
+            onInjuryReport: () => debouncedRefresh()
           })
         : null
 
@@ -59,7 +106,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         if (subscription) db.unsubscribe?.(subscription)
       }
     }
-  }, [company?.id, projects.length])
+  }, [company?.id, projects.length, debouncedRefresh])
 
   const loadDumpSites = async () => {
     try {
@@ -86,37 +133,37 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       loadAreas(selectedProject.id)
 
       // Subscribe to real-time updates for the selected project
+      // All callbacks use debouncedRefresh to prevent cascading refreshes
       const subscriptions = []
+      const projectId = selectedProject.id
 
-      // Areas subscription
-      const areasSub = db.subscribeToAreas?.(selectedProject.id, () => {
-        loadAreas(selectedProject.id)
-        loadProjects() // Refresh metrics when areas change
+      // Areas subscription - also refreshes areas list
+      const areasSub = db.subscribeToAreas?.(projectId, () => {
+        debouncedRefresh({ refreshAreas: true, projectId })
       })
       if (areasSub) subscriptions.push(areasSub)
 
       // Daily reports subscription
-      const dailyReportsSub = db.subscribeToDailyReports?.(selectedProject.id, () => {
-        loadProjects()
+      const dailyReportsSub = db.subscribeToDailyReports?.(projectId, () => {
+        debouncedRefresh()
       })
       if (dailyReportsSub) subscriptions.push(dailyReportsSub)
 
       // Crew checkins subscription (affects labor costs)
-      const checkinsSub = db.subscribeToCrewCheckins?.(selectedProject.id, () => {
-        loadProjects()
+      const checkinsSub = db.subscribeToCrewCheckins?.(projectId, () => {
+        debouncedRefresh()
       })
       if (checkinsSub) subscriptions.push(checkinsSub)
 
       // Haul offs subscription
-      const haulOffsSub = db.subscribeToHaulOffs?.(selectedProject.id, () => {
-        loadProjects()
+      const haulOffsSub = db.subscribeToHaulOffs?.(projectId, () => {
+        debouncedRefresh()
       })
       if (haulOffsSub) subscriptions.push(haulOffsSub)
 
-      // CORs subscription
-      const corsSub = db.subscribeToCORs?.(selectedProject.id, () => {
-        loadProjects()
-        setCORRefreshKey(prev => prev + 1)
+      // CORs subscription - also refreshes COR list
+      const corsSub = db.subscribeToCORs?.(projectId, () => {
+        debouncedRefresh({ refreshCOR: true })
       })
       if (corsSub) subscriptions.push(corsSub)
 
@@ -124,7 +171,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
         subscriptions.forEach(sub => db.unsubscribe?.(sub))
       }
     }
-  }, [selectedProject])
+  }, [selectedProject, debouncedRefresh])
 
   const loadProjects = async () => {
     try {
@@ -133,103 +180,167 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       setProjects(data)
 
       // Load enhanced data for executive summary
+      // Each project is wrapped in try/catch so one failure doesn't break the entire dashboard
       const enhanced = await Promise.all(data.map(async (project) => {
-        const projectAreas = await db.getAreas(project.id)
-        const tickets = await db.getTMTickets(project.id)
-        const changeOrderData = await db.getChangeOrderTotals(project.id)
-        const dailyReports = await db.getDailyReports(project.id, 100)
-        const injuryReports = await db.getInjuryReports(project.id)
-        const materialRequests = await db.getMaterialRequests(project.id)
-        const laborCosts = await db.calculateManDayCosts(
-          project.id,
-          company?.id,
-          project.work_type || 'demolition',
-          project.job_type || 'standard'
-        )
-        const haulOffCosts = await db.calculateHaulOffCosts(project.id)
-        const customCosts = await db.getProjectCosts(project.id)
+        try {
+          // Fetch all project data in parallel for better performance
+          const [
+            projectAreas,
+            tickets,
+            changeOrderData,
+            dailyReports,
+            injuryReports,
+            materialRequests,
+            laborCosts,
+            haulOffCosts,
+            customCosts
+          ] = await Promise.all([
+            db.getAreas(project.id).catch(() => []),
+            db.getTMTickets(project.id).catch(() => []),
+            db.getChangeOrderTotals(project.id).catch(() => null),
+            db.getDailyReports(project.id, 100).catch(() => []),
+            db.getInjuryReports(project.id).catch(() => []),
+            db.getMaterialRequests(project.id).catch(() => []),
+            db.calculateManDayCosts(
+              project.id,
+              company?.id,
+              project.work_type || 'demolition',
+              project.job_type || 'standard'
+            ).catch(() => null),
+            db.calculateHaulOffCosts(project.id).catch(() => null),
+            db.getProjectCosts(project.id).catch(() => [])
+          ])
 
-        // Calculate progress - use SOV values if available, otherwise fallback to percentage
-        const progressData = calculateValueProgress(projectAreas)
-        const progress = progressData.progress
+          // Calculate progress - use SOV values if available, otherwise fallback to percentage
+          const progressData = calculateValueProgress(projectAreas)
+          const progress = progressData.progress
 
-        // Calculate revised contract value (original + change orders)
-        const changeOrderValue = changeOrderData?.totalApprovedValue || 0
-        const revisedContractValue = project.contract_value + changeOrderValue
+          // Calculate revised contract value (original + change orders)
+          const changeOrderValue = changeOrderData?.totalApprovedValue || 0
+          const revisedContractValue = project.contract_value + changeOrderValue
 
-        // Billable: use actual earned value from SOV if available, otherwise percentage-based
-        const billable = progressData.isValueBased
-          ? progressData.earnedValue
-          : (progress / 100) * revisedContractValue
-        const pendingTickets = tickets.filter(t => t.status === 'pending').length
+          // Billable: use actual earned value from SOV if available, otherwise percentage-based
+          const billable = progressData.isValueBased
+            ? progressData.earnedValue
+            : (progress / 100) * revisedContractValue
+          const pendingTickets = tickets.filter(t => t.status === 'pending').length
 
-        // Get recent report activity (last 7 days)
-        const oneWeekAgo = new Date()
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-        const recentDailyReports = dailyReports.filter(r => new Date(r.report_date) >= oneWeekAgo).length
+          // Get recent report activity (last 7 days)
+          const oneWeekAgo = new Date()
+          oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+          const recentDailyReports = dailyReports.filter(r => new Date(r.report_date) >= oneWeekAgo).length
 
-        // Calculate total custom costs
-        const customCostTotal = customCosts.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0)
+          // Calculate total custom costs (with validation)
+          const customCostTotal = customCosts.reduce((sum, c) => {
+            const amount = parseFloat(c.amount)
+            return sum + (isNaN(amount) ? 0 : amount)
+          }, 0)
 
-        // Total costs combining labor, haul-off, and custom
-        const laborCost = laborCosts?.totalCost || 0
-        const haulOffCost = haulOffCosts?.totalCost || 0
-        const allCostsTotal = laborCost + haulOffCost + customCostTotal
+          // Total costs combining labor, haul-off, and custom
+          const laborCost = laborCosts?.totalCost || 0
+          const haulOffCost = haulOffCosts?.totalCost || 0
+          const allCostsTotal = laborCost + haulOffCost + customCostTotal
 
-        // Calculate profit and margin
-        const currentProfit = billable - allCostsTotal
-        const profitMargin = billable > 0 ? (currentProfit / billable) * 100 : 0
+          // Calculate profit and margin
+          const currentProfit = billable - allCostsTotal
+          const profitMargin = billable > 0 ? (currentProfit / billable) * 100 : 0
 
-        // Burn rate calculations
-        const laborDays = laborCosts?.byDate?.length || 0
-        const haulOffDays = haulOffCosts?.daysWithHaulOff || 0
-        const totalBurnDays = Math.max(laborDays, haulOffDays)
-        const totalBurn = laborCost + haulOffCost
-        const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
+          // Burn rate calculations
+          const laborDays = laborCosts?.byDate?.length || 0
+          const haulOffDays = haulOffCosts?.daysWithHaulOff || 0
+          const totalBurnDays = Math.max(laborDays, haulOffDays)
+          const totalBurn = laborCost + haulOffCost
+          const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
-        return {
-          ...project,
-          areas: projectAreas,
-          progress,
-          billable,
-          changeOrderValue,
-          revisedContractValue,
-          changeOrderPending: changeOrderData?.pendingCount || 0,
-          totalTickets: tickets.length,
-          pendingTickets,
-          approvedTickets: tickets.filter(t => t.status === 'approved').length,
-          dailyReportsCount: dailyReports.length,
-          recentDailyReports,
-          injuryReportsCount: injuryReports.length,
-          lastDailyReport: dailyReports[0]?.report_date || null,
-          pendingMaterialRequests: materialRequests.filter(r => r.status === 'pending').length,
-          totalMaterialRequests: materialRequests.length,
-          // SOV/Scheduled Value data
-          isValueBased: progressData.isValueBased,
-          earnedValue: progressData.earnedValue,
-          totalSOVValue: progressData.totalValue,
-          // Burn rate data
-          laborCost,
-          laborDaysWorked: laborDays,
-          laborManDays: laborCosts?.totalManDays || 0,
-          laborByDate: laborCosts?.byDate || [],
-          dailyBurn,
-          // Haul-off costs
-          haulOffCost,
-          haulOffLoads: haulOffCosts?.totalLoads || 0,
-          haulOffDays,
-          haulOffByType: haulOffCosts?.byWasteType || {},
-          haulOffByDate: haulOffCosts?.byDate || [],
-          // Custom costs
-          customCosts,
-          customCostTotal,
-          // Combined totals
-          totalBurn,
-          totalBurnDays,
-          allCostsTotal,
-          // Profitability
-          currentProfit,
-          profitMargin
+          return {
+            ...project,
+            areas: projectAreas,
+            progress,
+            billable,
+            changeOrderValue,
+            revisedContractValue,
+            changeOrderPending: changeOrderData?.pendingCount || 0,
+            totalTickets: tickets.length,
+            pendingTickets,
+            approvedTickets: tickets.filter(t => t.status === 'approved').length,
+            dailyReportsCount: dailyReports.length,
+            recentDailyReports,
+            injuryReportsCount: injuryReports.length,
+            lastDailyReport: dailyReports[0]?.report_date || null,
+            pendingMaterialRequests: materialRequests.filter(r => r.status === 'pending').length,
+            totalMaterialRequests: materialRequests.length,
+            // SOV/Scheduled Value data
+            isValueBased: progressData.isValueBased,
+            earnedValue: progressData.earnedValue,
+            totalSOVValue: progressData.totalValue,
+            // Burn rate data
+            laborCost,
+            laborDaysWorked: laborDays,
+            laborManDays: laborCosts?.totalManDays || 0,
+            laborByDate: laborCosts?.byDate || [],
+            dailyBurn,
+            // Haul-off costs
+            haulOffCost,
+            haulOffLoads: haulOffCosts?.totalLoads || 0,
+            haulOffDays,
+            haulOffByType: haulOffCosts?.byWasteType || {},
+            haulOffByDate: haulOffCosts?.byDate || [],
+            // Custom costs
+            customCosts,
+            customCostTotal,
+            // Combined totals
+            totalBurn,
+            totalBurnDays,
+            allCostsTotal,
+            // Profitability
+            currentProfit,
+            profitMargin,
+            // No error flag
+            hasError: false
+          }
+        } catch (error) {
+          // If project data fails to load, return project with fallback values
+          console.error(`Error loading data for project ${project.id}:`, error)
+          return {
+            ...project,
+            areas: [],
+            progress: 0,
+            billable: 0,
+            changeOrderValue: 0,
+            revisedContractValue: project.contract_value,
+            changeOrderPending: 0,
+            totalTickets: 0,
+            pendingTickets: 0,
+            approvedTickets: 0,
+            dailyReportsCount: 0,
+            recentDailyReports: 0,
+            injuryReportsCount: 0,
+            lastDailyReport: null,
+            pendingMaterialRequests: 0,
+            totalMaterialRequests: 0,
+            isValueBased: false,
+            earnedValue: 0,
+            totalSOVValue: 0,
+            laborCost: 0,
+            laborDaysWorked: 0,
+            laborManDays: 0,
+            laborByDate: [],
+            dailyBurn: 0,
+            haulOffCost: 0,
+            haulOffLoads: 0,
+            haulOffDays: 0,
+            haulOffByType: {},
+            haulOffByDate: [],
+            customCosts: [],
+            customCostTotal: 0,
+            totalBurn: 0,
+            totalBurnDays: 0,
+            allCostsTotal: 0,
+            currentProfit: 0,
+            profitMargin: 0,
+            // Flag that this project had an error loading
+            hasError: true
+          }
         }
       }))
       setProjectsData(enhanced)
@@ -450,10 +561,17 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     )
   }
 
-  // Project Detail View
-  if (selectedProject) {
-    // Get enhanced project data with SOV values
-    const projectData = projectsData.find(p => p.id === selectedProject.id)
+  // Memoize selected project data lookup to avoid repeated finds
+  const projectData = useMemo(() => {
+    if (!selectedProject) return null
+    return projectsData.find(p => p.id === selectedProject.id)
+  }, [selectedProject, projectsData])
+
+  // Memoize progress calculations - these are expensive and only change when areas change
+  const progressCalculations = useMemo(() => {
+    if (!selectedProject) {
+      return { progress: 0, billable: 0, isValueBased: false, earnedValue: 0, totalSOVValue: 0 }
+    }
 
     // Calculate progress - use SOV values if available
     const progressData = calculateValueProgress(areas)
@@ -468,10 +586,21 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       ? progressData.earnedValue
       : (progress / 100) * revisedContractValue
 
-    // SOV data for UI display
-    const isValueBased = progressData.isValueBased
-    const earnedValue = progressData.earnedValue
-    const totalSOVValue = progressData.totalValue
+    return {
+      progress,
+      billable,
+      changeOrderValue,
+      revisedContractValue,
+      isValueBased: progressData.isValueBased,
+      earnedValue: progressData.earnedValue,
+      totalSOVValue: progressData.totalValue
+    }
+  }, [selectedProject, areas, projectData])
+
+  // Project Detail View
+  if (selectedProject) {
+    // Extract memoized values
+    const { progress, billable, changeOrderValue, revisedContractValue, isValueBased, earnedValue, totalSOVValue } = progressCalculations
 
     // Edit Mode
     if (editMode && editData) {
@@ -1558,24 +1687,60 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     )
   }
 
-  // Calculate business-level portfolio metrics
-  const totalOriginalContract = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
-  const totalChangeOrders = projectsData.reduce((sum, p) => sum + (p.changeOrderValue || 0), 0)
-  const totalPortfolioValue = totalOriginalContract + totalChangeOrders
-  const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
-  const totalRemaining = totalPortfolioValue - totalEarned
+  // Memoize portfolio-level metrics to avoid recalculating on every render
+  // These only change when projectsData changes (after data loads or real-time updates)
+  const portfolioMetrics = useMemo(() => {
+    const totalOriginalContract = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
+    const totalChangeOrders = projectsData.reduce((sum, p) => sum + (p.changeOrderValue || 0), 0)
+    const totalPortfolioValue = totalOriginalContract + totalChangeOrders
+    const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
+    const totalRemaining = totalPortfolioValue - totalEarned
 
-  // Weighted completion (by contract value, not simple average)
-  const weightedCompletion = totalPortfolioValue > 0
-    ? Math.round((totalEarned / totalPortfolioValue) * 100)
-    : 0
+    // Weighted completion (by contract value, not simple average)
+    const weightedCompletion = totalPortfolioValue > 0
+      ? Math.round((totalEarned / totalPortfolioValue) * 100)
+      : 0
 
-  // Project health breakdown (use revised contract values)
-  const projectsComplete = projectsData.filter(p => p.progress >= 100).length
-  const projectsOnTrack = projectsData.filter(p => p.progress < 100 && p.billable <= (p.revisedContractValue || p.contract_value) * (p.progress / 100) * 1.1).length
-  const projectsAtRisk = projectsData.filter(p => p.billable > (p.revisedContractValue || p.contract_value) * 0.9 && p.progress < 90).length
-  const projectsOverBudget = projectsData.filter(p => p.billable > (p.revisedContractValue || p.contract_value)).length
-  const projectsWithChangeOrders = projectsData.filter(p => (p.changeOrderValue || 0) > 0).length
+    return {
+      totalOriginalContract,
+      totalChangeOrders,
+      totalPortfolioValue,
+      totalEarned,
+      totalRemaining,
+      weightedCompletion
+    }
+  }, [projectsData])
+
+  // Memoize project health breakdown separately (still derived from projectsData)
+  // Single pass through array instead of 5 separate filter operations
+  const projectHealth = useMemo(() => {
+    let complete = 0
+    let onTrack = 0
+    let atRisk = 0
+    let overBudget = 0
+    let withChangeOrders = 0
+
+    for (const p of projectsData) {
+      const contractVal = p.revisedContractValue || p.contract_value
+      if (p.progress >= 100) complete++
+      if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
+      if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
+      if (p.billable > contractVal) overBudget++
+      if ((p.changeOrderValue || 0) > 0) withChangeOrders++
+    }
+
+    return {
+      projectsComplete: complete,
+      projectsOnTrack: onTrack,
+      projectsAtRisk: atRisk,
+      projectsOverBudget: overBudget,
+      projectsWithChangeOrders: withChangeOrders
+    }
+  }, [projectsData])
+
+  // Destructure memoized values for cleaner usage below
+  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion } = portfolioMetrics
+  const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
 
   return (
     <div>
