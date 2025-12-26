@@ -476,6 +476,7 @@ export default function App() {
             {activeTab === 'setup' && (
               <Setup
                 company={company}
+                user={user}
                 onProjectCreated={handleProjectCreated}
                 onShowToast={showToast}
               />
