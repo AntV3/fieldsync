@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download } from 'lucide-react'
+import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download, Camera, HardHat, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
 import { exportCORToPDF } from '../lib/corPdfExport'
@@ -47,6 +47,11 @@ export default function SignaturePage({ signatureToken }) {
   const [successMessage, setSuccessMessage] = useState(null)
   const [downloading, setDownloading] = useState(false)
 
+  // T&M backup documentation state
+  const [backupTickets, setBackupTickets] = useState([])
+  const [backupExpanded, setBackupExpanded] = useState(false)
+  const [expandedTickets, setExpandedTickets] = useState(new Set())
+
   // Load signature request and document
   useEffect(() => {
     loadData()
@@ -89,6 +94,16 @@ export default function SignaturePage({ signatureToken }) {
       }
 
       setDocument(docData)
+
+      // Load T&M backup tickets if this is a COR
+      if (request.document_type === 'cor' && docData?.id) {
+        try {
+          const tickets = await db.getCORTickets(docData.id)
+          setBackupTickets(tickets || [])
+        } catch (err) {
+          console.warn('Failed to load backup tickets:', err)
+        }
+      }
     } catch (err) {
       console.error('Error loading signature data:', err)
       setError('Unable to load signature request. Please try again.')
@@ -596,6 +611,143 @@ export default function SignaturePage({ signatureToken }) {
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* T&M Backup Documentation Section */}
+        {backupTickets.length > 0 && (
+          <div className="cor-section cor-backup-section">
+            <div
+              className="cor-section-header cor-backup-header"
+              onClick={() => setBackupExpanded(!backupExpanded)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="backup-header-left">
+                <FileText size={18} />
+                <h4>Supporting T&M Documentation</h4>
+                <span className="backup-count">{backupTickets.length} ticket{backupTickets.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="backup-header-toggle">
+                {backupExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              </div>
+            </div>
+
+            {backupExpanded && (
+              <div className="backup-tickets-list">
+                {backupTickets.map((ticket, idx) => {
+                  const isExpanded = expandedTickets.has(ticket.id)
+                  const totalHours = ticket.t_and_m_workers?.reduce((sum, w) =>
+                    sum + (parseFloat(w.hours) || 0) + (parseFloat(w.overtime_hours) || 0), 0
+                  ) || 0
+
+                  return (
+                    <div key={ticket.id} className="backup-ticket">
+                      <div
+                        className="backup-ticket-header"
+                        onClick={() => {
+                          const next = new Set(expandedTickets)
+                          if (isExpanded) {
+                            next.delete(ticket.id)
+                          } else {
+                            next.add(ticket.id)
+                          }
+                          setExpandedTickets(next)
+                        }}
+                      >
+                        <div className="backup-ticket-info">
+                          <span className="backup-ticket-date">
+                            {formatDate(ticket.work_date)}
+                          </span>
+                          {ticket.ce_pco_number && (
+                            <span className="backup-ticket-ce">{ticket.ce_pco_number}</span>
+                          )}
+                          <span className="backup-ticket-summary">
+                            {ticket.t_and_m_workers?.length || 0} workers • {totalHours} hrs
+                            {ticket.photos?.length > 0 && ` • ${ticket.photos.length} photos`}
+                          </span>
+                        </div>
+                        <div className="backup-ticket-toggle">
+                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="backup-ticket-details">
+                          {/* Workers */}
+                          {ticket.t_and_m_workers?.length > 0 && (
+                            <div className="backup-detail-group">
+                              <div className="backup-detail-label">
+                                <HardHat size={14} /> Workers
+                              </div>
+                              <div className="backup-workers-list">
+                                {ticket.t_and_m_workers.map((worker, wIdx) => (
+                                  <div key={wIdx} className="backup-worker">
+                                    <span className="worker-name">
+                                      {worker.role && worker.role !== 'Laborer' && (
+                                        <span className="worker-role">{worker.role}</span>
+                                      )}
+                                      {worker.name}
+                                    </span>
+                                    <span className="worker-hours">
+                                      {worker.hours || 0} hrs
+                                      {parseFloat(worker.overtime_hours) > 0 && (
+                                        <span className="worker-ot"> + {worker.overtime_hours} OT</span>
+                                      )}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Notes */}
+                          {ticket.notes && (
+                            <div className="backup-detail-group">
+                              <div className="backup-detail-label">Description</div>
+                              <p className="backup-notes">{ticket.notes}</p>
+                            </div>
+                          )}
+
+                          {/* Photos */}
+                          {ticket.photos?.length > 0 && (
+                            <div className="backup-detail-group">
+                              <div className="backup-detail-label">
+                                <Camera size={14} /> Photos ({ticket.photos.length})
+                              </div>
+                              <div className="backup-photos-grid">
+                                {ticket.photos.map((photo, pIdx) => (
+                                  <a
+                                    key={pIdx}
+                                    href={photo}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="backup-photo"
+                                  >
+                                    <img
+                                      src={photo}
+                                      alt={`Photo ${pIdx + 1}`}
+                                      onError={(e) => {
+                                        e.target.onerror = null
+                                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiI+PHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iMiIvPjxjaXJjbGUgY3g9IjguNSIgY3k9IjguNSIgcj0iMS41Ii8+PHBvbHlsaW5lIHBvaW50cz0iMjEgMTUgMTYgMTAgNSAyMSIvPjwvc3ZnPg=='
+                                      }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="backup-note">
+              <AlertCircle size={14} />
+              <span>This documentation supports the work described in this Change Order Request.</span>
             </div>
           </div>
         )}

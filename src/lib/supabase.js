@@ -3326,12 +3326,14 @@ export const db = {
 
   // Get all CORs available for T&M ticket assignment
   // Used by foremen to assign T&M tickets directly to a COR from the field
+  // Excludes archived CORs to keep the list relevant
   async getAssignableCORs(projectId) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
         .select('id, cor_number, title, status, cor_total')
         .eq('project_id', projectId)
+        .neq('status', 'archived')
         .order('cor_number', { ascending: true })
       if (error) throw error
       return data || []
