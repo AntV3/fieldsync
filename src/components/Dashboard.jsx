@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { db } from '../lib/supabase'
-import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus } from '../lib/utils'
+import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
@@ -254,6 +254,12 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
           const totalBurn = laborCost + haulOffCost
           const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
+          // Schedule performance insights
+          const scheduleInsights = calculateScheduleInsights(
+            { ...project, progress },
+            laborCosts?.totalManDays || 0
+          )
+
           return {
             ...project,
             areas: projectAreas,
@@ -303,6 +309,16 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             corApprovedValue: corStats?.total_approved_value || 0,
             corBilledValue: corStats?.total_billed_value || 0,
             corTotalCount: corStats?.total_cors || 0,
+            // Schedule performance insights
+            scheduleStatus: scheduleInsights.scheduleStatus,
+            scheduleVariance: scheduleInsights.scheduleVariance,
+            scheduleLabel: scheduleInsights.scheduleLabel,
+            laborStatus: scheduleInsights.laborStatus,
+            laborVariance: scheduleInsights.laborVariance,
+            laborLabel: scheduleInsights.laborLabel,
+            hasScheduleData: scheduleInsights.hasScheduleData,
+            hasLaborData: scheduleInsights.hasLaborData,
+            actualManDays: laborCosts?.totalManDays || 0,
             // No error flag
             hasError: false
           }
@@ -660,9 +676,65 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
     }
   }, [projectsData])
 
+  // Memoize schedule performance metrics
+  const scheduleMetrics = useMemo(() => {
+    let ahead = 0
+    let onTrack = 0
+    let behind = 0
+    let overLabor = 0
+    let underLabor = 0
+    let onTrackLabor = 0
+
+    for (const p of projectsData) {
+      if (p.hasScheduleData) {
+        if (p.scheduleStatus === 'ahead') ahead++
+        else if (p.scheduleStatus === 'behind') behind++
+        else onTrack++
+      }
+      if (p.hasLaborData) {
+        if (p.laborStatus === 'over') overLabor++
+        else if (p.laborStatus === 'under') underLabor++
+        else onTrackLabor++
+      }
+    }
+
+    return {
+      scheduleAhead: ahead,
+      scheduleOnTrack: onTrack,
+      scheduleBehind: behind,
+      laborOver: overLabor,
+      laborUnder: underLabor,
+      laborOnTrack: onTrackLabor,
+      hasAnyScheduleData: ahead + onTrack + behind > 0,
+      hasAnyLaborData: overLabor + underLabor + onTrackLabor > 0
+    }
+  }, [projectsData])
+
+  // Auto-archive projects that have been complete for 30+ days
+  useEffect(() => {
+    const checkAutoArchive = async () => {
+      for (const project of projectsData) {
+        if (shouldAutoArchive(project, 30)) {
+          console.log(`Auto-archiving completed project: ${project.name}`)
+          try {
+            await db.archiveProject(project.id)
+            onShowToast(`Project "${project.name}" has been auto-archived after 30 days of completion`, 'info')
+          } catch (error) {
+            console.error('Failed to auto-archive project:', error)
+          }
+        }
+      }
+    }
+
+    if (projectsData.length > 0) {
+      checkAutoArchive()
+    }
+  }, []) // Only run on mount
+
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
+  const { scheduleAhead, scheduleOnTrack, scheduleBehind, laborOver, laborUnder, laborOnTrack, hasAnyScheduleData, hasAnyLaborData } = scheduleMetrics
 
   if (loading) {
     return (
@@ -1854,6 +1926,49 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             )}
           </div>
         </div>
+
+        {/* Schedule Performance Summary */}
+        {hasAnyScheduleData && (
+          <div className="bo-schedule">
+            <div className="bo-schedule-title">Schedule Performance</div>
+            <div className="bo-schedule-pills">
+              {scheduleAhead > 0 && (
+                <div className="bo-pill ahead">
+                  <span className="bo-pill-count">{scheduleAhead}</span>
+                  <span className="bo-pill-label">Ahead</span>
+                </div>
+              )}
+              {scheduleOnTrack > 0 && (
+                <div className="bo-pill schedule-on-track">
+                  <span className="bo-pill-count">{scheduleOnTrack}</span>
+                  <span className="bo-pill-label">On Track</span>
+                </div>
+              )}
+              {scheduleBehind > 0 && (
+                <div className="bo-pill behind">
+                  <span className="bo-pill-count">{scheduleBehind}</span>
+                  <span className="bo-pill-label">Behind</span>
+                </div>
+              )}
+            </div>
+
+            {/* Labor Performance (if any projects have planned man-days) */}
+            {hasAnyLaborData && (
+              <div className="bo-labor-summary">
+                <span className="bo-labor-label">Man-Days:</span>
+                {laborUnder > 0 && (
+                  <span className="bo-labor-badge under">{laborUnder} under</span>
+                )}
+                {laborOnTrack > 0 && (
+                  <span className="bo-labor-badge on-track">{laborOnTrack} on track</span>
+                )}
+                {laborOver > 0 && (
+                  <span className="bo-labor-badge over">{laborOver} over</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Projects Header */}
@@ -1957,6 +2072,20 @@ function EnhancedProjectCard({ project, onClick }) {
           )}
           {project.approvedTickets > 0 && (
             <span className="badge approved">{project.approvedTickets} Approved T&M</span>
+          )}
+        </div>
+      )}
+
+      {/* Schedule Badge */}
+      {project.hasScheduleData && (
+        <div className="project-schedule-badge">
+          <span className={`schedule-indicator ${project.scheduleStatus}`}>
+            {project.scheduleLabel}
+          </span>
+          {project.hasLaborData && project.laborLabel && (
+            <span className={`labor-indicator ${project.laborStatus}`}>
+              {project.laborLabel}
+            </span>
           )}
         </div>
       )}

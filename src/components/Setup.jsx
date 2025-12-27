@@ -42,6 +42,9 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const [showImportReview, setShowImportReview] = useState(false)
   const [importedTasks, setImportedTasks] = useState([])
   const [showWeightDropdown, setShowWeightDropdown] = useState(false)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [plannedManDays, setPlannedManDays] = useState('')
   const fileInputRef = useRef(null)
 
   const totalWeight = areas.reduce((sum, area) => {
@@ -145,6 +148,9 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     setPin('')
     setWorkType('demolition')
     setJobType('standard')
+    setStartDate('')
+    setEndDate('')
+    setPlannedManDays('')
     setAreas([
       { name: '', weight: '', group: '', scheduledValue: null },
       { name: '', weight: '', group: '', scheduledValue: null },
@@ -466,6 +472,16 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       return
     }
 
+    if (!startDate || !endDate) {
+      onShowToast('Start date and end date are required', 'error')
+      return
+    }
+
+    if (new Date(endDate) < new Date(startDate)) {
+      onShowToast('End date must be on or after start date', 'error')
+      return
+    }
+
     setCreating(true)
 
     try {
@@ -479,7 +495,10 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         work_type: workType,
         job_type: jobType,
         company_id: company?.id,
-        created_by: user?.id
+        created_by: user?.id,
+        start_date: startDate,
+        end_date: endDate,
+        planned_man_days: plannedManDays ? parseInt(plannedManDays) : null
       })
 
       for (let i = 0; i < validAreas.length; i++) {
@@ -649,6 +668,46 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
             placeholder="e.g., ABC Construction Inc."
             value={generalContractor}
             onChange={(e) => setGeneralContractor(e.target.value)}
+          />
+        </div>
+
+        <div className="form-row-2">
+          <div className="form-group">
+            <label>Start Date <span className="required">*</span></label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>End Date <span className="required">*</span></label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={startDate || undefined}
+              required
+            />
+            {startDate && endDate && new Date(endDate) < new Date(startDate) && (
+              <span className="error-text">End date must be after start date</span>
+            )}
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Planned Man-Days <span className="optional">(optional)</span></label>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+            Total estimated man-days to complete the project
+          </p>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="e.g., 120"
+            value={plannedManDays}
+            onChange={(e) => setPlannedManDays(e.target.value.replace(/\D/g, ''))}
+            min="1"
           />
         </div>
 
