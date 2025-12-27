@@ -117,7 +117,7 @@ export default function TMList({ project, company, onShowToast }) {
     }
   }
 
-  // Handle approval - check if ticket has CE/PCO and prompt for value
+  // Handle approval - approve directly (CE/PCO is informational only)
   const handleApprove = (ticket) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticket.id]) {
@@ -125,15 +125,7 @@ export default function TMList({ project, company, onShowToast }) {
       return
     }
 
-    if (ticket.ce_pco_number) {
-      // Has CE/PCO - show modal to enter change order value
-      setPendingApprovalTicket(ticket)
-      setChangeOrderValue('')
-      setShowChangeOrderModal(true)
-    } else {
-      // No CE/PCO - approve directly
-      updateStatus(ticket.id, 'approved')
-    }
+    updateStatus(ticket.id, 'approved')
   }
 
   // Confirm approval with change order value
@@ -1079,7 +1071,7 @@ export default function TMList({ project, company, onShowToast }) {
                   className="btn btn-success btn-small"
                   onClick={(e) => { e.stopPropagation(); handleApprove(ticket); }}
                 >
-                  Approve {ticket.ce_pco_number ? '+ CO' : ''}
+                  Approve
                 </button>
                 <button
                   className="btn btn-warning btn-small"

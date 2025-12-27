@@ -3324,7 +3324,7 @@ export const db = {
     return []
   },
 
-  // Get CORs available for T&M ticket assignment (draft or pending_approval only)
+  // Get all CORs available for T&M ticket assignment
   // Used by foremen to assign T&M tickets directly to a COR from the field
   async getAssignableCORs(projectId) {
     if (isSupabaseConfigured) {
@@ -3332,7 +3332,6 @@ export const db = {
         .from('change_orders')
         .select('id, cor_number, title, status, cor_total')
         .eq('project_id', projectId)
-        .in('status', ['draft', 'pending_approval'])
         .order('cor_number', { ascending: true })
       if (error) throw error
       return data || []

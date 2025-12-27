@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 
@@ -14,6 +14,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   // COR assignment state - allows T&M tickets to be linked directly to a Change Order Request
   const [selectedCorId, setSelectedCorId] = useState('')
   const [assignableCORs, setAssignableCORs] = useState([])
+  const [loadingCORs, setLoadingCORs] = useState(false)
+
+  // Batch hours modal state
+  const [showBatchHoursModal, setShowBatchHoursModal] = useState(false)
+  const [batchHours, setBatchHours] = useState({ timeStarted: '', timeEnded: '', hours: '', overtimeHours: '' })
   const [supervision, setSupervision] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '', role: 'Foreman' }])
   const [operators, setOperators] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
   const [laborers, setLaborers] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
@@ -40,14 +45,48 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     loadAssignableCORs()
   }, [project.id])
 
-  // Load CORs that can receive T&M tickets (draft or pending_approval only)
+  // Load all CORs that can receive T&M tickets
   const loadAssignableCORs = async () => {
+    setLoadingCORs(true)
     try {
       const cors = await db.getAssignableCORs(project.id)
       setAssignableCORs(cors || [])
     } catch (err) {
       console.error('Error loading assignable CORs:', err)
+    } finally {
+      setLoadingCORs(false)
     }
+  }
+
+  // Apply batch hours to all workers with names
+  const applyBatchHours = () => {
+    const { timeStarted, timeEnded, hours, overtimeHours } = batchHours
+
+    // Apply to supervision
+    setSupervision(supervision.map(s =>
+      s.name.trim() ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
+    ))
+
+    // Apply to operators
+    setOperators(operators.map(o =>
+      o.name.trim() ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
+    ))
+
+    // Apply to laborers
+    setLaborers(laborers.map(l =>
+      l.name.trim() ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
+    ))
+
+    // Count how many workers were updated
+    const updatedCount = [
+      ...supervision.filter(s => s.name.trim()),
+      ...operators.filter(o => o.name.trim()),
+      ...laborers.filter(l => l.name.trim())
+    ].length
+
+    setShowBatchHoursModal(false)
+    setBatchHours({ timeStarted: '', timeEnded: '', hours: '', overtimeHours: '' })
+    onShowToast(`Applied hours to ${updatedCount} worker${updatedCount !== 1 ? 's' : ''}`, 'success')
   }
 
   const loadTodaysCrew = async () => {
@@ -601,9 +640,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           </div>
 
           {/* COR Assignment - Link T&M directly to a Change Order Request */}
-          {assignableCORs.length > 0 && (
-            <div className="tm-field">
-              <label>Link to Change Order Request (Optional)</label>
+          <div className="tm-field">
+            <label>Link to Change Order Request (Optional)</label>
+            <div className="tm-cor-row">
               <select
                 value={selectedCorId}
                 onChange={(e) => setSelectedCorId(e.target.value)}
@@ -616,11 +655,20 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   </option>
                 ))}
               </select>
-              <span className="tm-field-hint">
-                T&M data will be imported into the selected COR
-              </span>
+              <button
+                type="button"
+                className="tm-refresh-btn"
+                onClick={loadAssignableCORs}
+                disabled={loadingCORs}
+                title="Refresh COR list"
+              >
+                <RefreshCw size={16} className={loadingCORs ? 'spinning' : ''} />
+              </button>
             </div>
-          )}
+            <span className="tm-field-hint">
+              T&M data will be imported into the selected COR
+            </span>
+          </div>
 
           {/* Select from Today's Crew */}
           {todaysCrew.length > 0 && (
@@ -897,6 +945,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </button>
           </div>
 
+          {/* Batch Hours Button */}
+          <button
+            type="button"
+            className="tm-batch-hours-btn"
+            onClick={() => setShowBatchHoursModal(true)}
+          >
+            <Clock size={16} /> Apply Same Hours to All
+          </button>
+
           {/* Description of Work */}
           <div className="tm-field">
             <label>Description of Work</label>
@@ -1159,6 +1216,88 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           </button>
         )}
       </div>
+
+      {/* Batch Hours Modal */}
+      {showBatchHoursModal && (
+        <div className="tm-modal-overlay" onClick={() => setShowBatchHoursModal(false)}>
+          <div className="tm-batch-modal" onClick={(e) => e.stopPropagation()}>
+            <h3><Clock size={18} /> Apply Same Hours</h3>
+            <p className="tm-batch-description">
+              Set hours for all workers with names entered. Individual times can still be adjusted afterwards.
+            </p>
+
+            <div className="tm-batch-form">
+              <div className="tm-batch-row">
+                <div className="tm-batch-field">
+                  <label>Start Time</label>
+                  <input
+                    type="time"
+                    value={batchHours.timeStarted}
+                    onChange={(e) => setBatchHours({ ...batchHours, timeStarted: e.target.value })}
+                  />
+                </div>
+                <div className="tm-batch-field">
+                  <label>End Time</label>
+                  <input
+                    type="time"
+                    value={batchHours.timeEnded}
+                    onChange={(e) => setBatchHours({ ...batchHours, timeEnded: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="tm-batch-row">
+                <div className="tm-batch-field">
+                  <label>Regular Hours</label>
+                  <input
+                    type="number"
+                    placeholder="8"
+                    value={batchHours.hours}
+                    onChange={(e) => setBatchHours({ ...batchHours, hours: e.target.value })}
+                  />
+                </div>
+                <div className="tm-batch-field">
+                  <label>OT Hours</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={batchHours.overtimeHours}
+                    onChange={(e) => setBatchHours({ ...batchHours, overtimeHours: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="tm-batch-preview">
+              <strong>Will apply to:</strong>
+              <span>
+                {[
+                  ...supervision.filter(s => s.name.trim()),
+                  ...operators.filter(o => o.name.trim()),
+                  ...laborers.filter(l => l.name.trim())
+                ].length} worker(s) with names entered
+              </span>
+            </div>
+
+            <div className="tm-batch-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowBatchHoursModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={applyBatchHours}
+                disabled={!batchHours.hours && !batchHours.overtimeHours}
+              >
+                Apply Hours
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
