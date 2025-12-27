@@ -9,6 +9,7 @@ import Messages from './Messages'
 import MaterialRequest from './MaterialRequest'
 import InjuryReportForm from './InjuryReportForm'
 import HaulOffForm from './HaulOffForm'
+import ThemeToggle from './ThemeToggle'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -215,12 +216,15 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           <div className="foreman-project-name">{project.name}</div>
           <div className="foreman-progress">{progress}% Complete</div>
         </div>
-        <button
-          className="foreman-info-btn"
-          onClick={() => setShowProjectInfo(!showProjectInfo)}
-        >
-          <Info size={20} />
-        </button>
+        <div className="foreman-header-actions">
+          <ThemeToggle compact />
+          <button
+            className="foreman-info-btn"
+            onClick={() => setShowProjectInfo(!showProjectInfo)}
+          >
+            <Info size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Project Info Panel */}

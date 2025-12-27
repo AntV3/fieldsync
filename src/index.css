@@ -1,21 +1,146 @@
+/* Dark Theme (Default) */
 :root {
   --bg-primary: #0a0a0b;
   --bg-secondary: #141416;
+  --bg-tertiary: #1a1a1f;
   --bg-card: #1a1a1f;
   --bg-elevated: #222228;
+  --bg-input: #1a1a1f;
   --text-primary: #ffffff;
   --text-secondary: #a8a9b5;
   --text-muted: #787986;
+  --text-inverse: #0a0a0b;
   --accent-blue: #3b82f6;
   --accent-green: #10b981;
   --accent-amber: #f59e0b;
+  --accent-orange: #f97316;
   --accent-red: #ef4444;
   --border-color: #2a2a32;
+  --border-light: #1f1f25;
   --progress-bg: #2a2a32;
+  --shadow-color: rgba(0, 0, 0, 0.3);
 
   /* Branding CSS Variables (can be overridden dynamically) */
   --primary-color: #3b82f6;
   --secondary-color: #1e40af;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+  --accent-blue: #2563eb;
+  --accent-green: #059669;
+  --accent-amber: #d97706;
+  --accent-orange: #ea580c;
+  --accent-red: #dc2626;
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+  --progress-bg: #e2e8f0;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+
+  /* Slightly darker accents for better contrast on light backgrounds */
+  --primary-color: #2563eb;
+  --secondary-color: #1e40af;
+}
+
+/* Light Theme Specific Overrides */
+[data-theme="light"] .nav {
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+[data-theme="light"] .card,
+[data-theme="light"] .project-card,
+[data-theme="light"] .foreman-card,
+[data-theme="light"] .cor-section,
+[data-theme="light"] .tm-wizard {
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background: var(--bg-input);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .demo-banner {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Ensure buttons with white text stay readable in light mode */
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-success,
+[data-theme="light"] .btn-danger {
+  color: white;
+}
+
+/* Status badges - ensure contrast in light mode */
+[data-theme="light"] .status-badge.done,
+[data-theme="light"] .status-badge.approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-theme="light"] .status-badge.working,
+[data-theme="light"] .status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-theme="light"] .status-badge.not_started {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Modal and overlay adjustments for light mode */
+[data-theme="light"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .modal-content {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Table row hover in light mode */
+[data-theme="light"] table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Progress bars in light mode */
+[data-theme="light"] .progress-bar {
+  background: var(--progress-bg);
+}
+
+/* Foreman view cards */
+[data-theme="light"] .foreman-header,
+[data-theme="light"] .foreman-project-info,
+[data-theme="light"] .foreman-card {
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+/* Entry page cards in light mode */
+[data-theme="light"] .entry-card {
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+[data-theme="light"] .entry-card:hover {
+  box-shadow: 0 8px 24px var(--shadow-color);
 }
 
 * {
@@ -79,6 +204,37 @@ body {
 
 .logo span {
   color: var(--accent-blue);
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+}
+
+.theme-toggle-compact {
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+.theme-toggle svg {
+  flex-shrink: 0;
 }
 
 .nav-tabs {
@@ -1430,6 +1586,12 @@ input[type="number"] {
 .foreman-header .foreman-progress {
   color: var(--accent-green);
   font-weight: 500;
+}
+
+.foreman-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .foreman-info-btn {

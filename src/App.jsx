@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { isSupabaseConfigured, auth, supabase, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
+import { ThemeProvider } from './lib/ThemeContext'
 import AppEntry from './components/AppEntry'
 import ForemanView from './components/ForemanView'
 import Dashboard from './components/Dashboard'
@@ -12,6 +13,7 @@ import SignaturePage from './components/SignaturePage'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
 import NotificationCenter from './components/NotificationCenter'
+import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
 
@@ -284,19 +286,22 @@ export default function App() {
   // Loading screen
   if (loading) {
     return (
-      <BrandingProvider companyId={company?.id}>
-        <div className="loading-screen">
-          <Logo className="loading-logo" />
-          <div className="spinner"></div>
-        </div>
-      </BrandingProvider>
+      <ThemeProvider>
+        <BrandingProvider companyId={company?.id}>
+          <div className="loading-screen">
+            <Logo className="loading-logo" />
+            <div className="spinner"></div>
+          </div>
+        </BrandingProvider>
+      </ThemeProvider>
     )
   }
 
   // Entry screen (Foreman / Office selection)
   if (view === 'entry') {
     return (
-      <BrandingProvider>
+      <ThemeProvider>
+        <BrandingProvider>
         <ErrorBoundary>
           <AppEntry
             onForemanAccess={handleForemanAccess}
@@ -311,73 +316,81 @@ export default function App() {
             onClose={() => setToast(null)}
           />
         )}
-      </BrandingProvider>
+        </BrandingProvider>
+      </ThemeProvider>
     )
   }
 
   // Public View (Share Link - No Authentication Required)
   if (view === 'public' && shareToken) {
     return (
-      <BrandingProvider>
-        <ErrorBoundary>
-          <PublicView shareToken={shareToken} />
-        </ErrorBoundary>
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-      </BrandingProvider>
+      <ThemeProvider>
+        <BrandingProvider>
+          <ErrorBoundary>
+            <PublicView shareToken={shareToken} />
+          </ErrorBoundary>
+          {toast && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
+          )}
+        </BrandingProvider>
+      </ThemeProvider>
     )
   }
 
   // Signature View (Public Signing Page - No Authentication Required)
   if (view === 'signature' && signatureToken) {
     return (
-      <BrandingProvider>
-        <ErrorBoundary>
-          <SignaturePage signatureToken={signatureToken} />
-        </ErrorBoundary>
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-      </BrandingProvider>
+      <ThemeProvider>
+        <BrandingProvider>
+          <ErrorBoundary>
+            <SignaturePage signatureToken={signatureToken} />
+          </ErrorBoundary>
+          {toast && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
+          )}
+        </BrandingProvider>
+      </ThemeProvider>
     )
   }
 
   // Foreman View
   if (view === 'foreman' && foremanProject) {
     return (
-      <BrandingProvider companyId={foremanProject.company_id}>
-        <ErrorBoundary>
-          <ForemanView
-            project={foremanProject}
-            companyId={foremanProject.company_id}
-            onShowToast={showToast}
-            onExit={handleExitForeman}
-          />
-        </ErrorBoundary>
-        <OfflineIndicator />
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-      </BrandingProvider>
+      <ThemeProvider>
+        <BrandingProvider companyId={foremanProject.company_id}>
+          <ErrorBoundary>
+            <ForemanView
+              project={foremanProject}
+              companyId={foremanProject.company_id}
+              onShowToast={showToast}
+              onExit={handleExitForeman}
+            />
+          </ErrorBoundary>
+          <OfflineIndicator />
+          {toast && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
+          )}
+        </BrandingProvider>
+      </ThemeProvider>
     )
   }
 
   // Office View (full dashboard)
   return (
-    <BrandingProvider companyId={company?.id}>
+    <ThemeProvider>
+      <BrandingProvider companyId={company?.id}>
       <div>
         {/* Demo Banner */}
         {!isSupabaseConfigured && (
@@ -417,6 +430,9 @@ export default function App() {
               </button>
             </div>
             <div className="nav-user">
+              {/* Theme Toggle */}
+              <ThemeToggle compact />
+
               {/* Notification Center */}
               <NotificationCenter
                 company={company}
@@ -509,7 +525,8 @@ export default function App() {
           />
         )}
       </div>
-    </BrandingProvider>
+      </BrandingProvider>
+    </ThemeProvider>
   )
 }
 
