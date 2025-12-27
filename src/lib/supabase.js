@@ -1101,6 +1101,7 @@ export const db = {
           project_id: ticket.project_id,
           work_date: ticket.work_date,
           ce_pco_number: ticket.ce_pco_number || null,
+          assigned_cor_id: ticket.assigned_cor_id || null, // Link to COR if provided
           notes: ticket.notes,
           photos: ticket.photos || [],
           status: 'pending',
@@ -1248,6 +1249,46 @@ export const db = {
         .eq('id', ticketId)
       if (error) throw error
     }
+  },
+
+  // Check if a T&M ticket can be edited
+  // Tickets are locked once their associated COR is approved/billed/closed
+  async isTicketEditable(ticket) {
+    // If no assigned COR, ticket is editable
+    if (!ticket?.assigned_cor_id) {
+      return { editable: true }
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: cor, error } = await supabase
+          .from('change_orders')
+          .select('id, status, cor_number')
+          .eq('id', ticket.assigned_cor_id)
+          .single()
+
+        if (error || !cor) {
+          // COR not found - allow editing
+          return { editable: true }
+        }
+
+        // Only draft and pending_approval CORs allow ticket editing
+        const editableStatuses = ['draft', 'pending_approval']
+        const isEditable = editableStatuses.includes(cor.status)
+
+        return {
+          editable: isEditable,
+          lockedBy: isEditable ? null : cor,
+          reason: isEditable ? null : `This ticket is linked to ${cor.cor_number} which has been ${cor.status === 'approved' ? 'approved' : cor.status}`
+        }
+      } catch (err) {
+        console.error('Error checking ticket editability:', err)
+        // On error, allow editing to avoid blocking users
+        return { editable: true }
+      }
+    }
+
+    return { editable: true }
   },
 
   // ============================================
@@ -3262,6 +3303,22 @@ export const db = {
     return []
   },
 
+  // Get CORs available for T&M ticket assignment (draft or pending_approval only)
+  // Used by foremen to assign T&M tickets directly to a COR from the field
+  async getAssignableCORs(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .select('id, cor_number, title, status, cor_total')
+        .eq('project_id', projectId)
+        .in('status', ['draft', 'pending_approval'])
+        .order('cor_number', { ascending: true })
+      if (error) throw error
+      return data || []
+    }
+    return []
+  },
+
   // Get next available COR number for project
   async getNextCORNumber(projectId) {
     if (isSupabaseConfigured) {
@@ -4175,6 +4232,21 @@ export const db = {
         .channel(`change_orders:${projectId}`)
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to T&M ticket associations for a specific COR
+  // Fires when tickets are added to or removed from a COR
+  subscribeToCorTickets(corId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`cor-tickets:${corId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'change_order_ticket_associations', filter: `change_order_id=eq.${corId}` },
           callback
         )
         .subscribe()

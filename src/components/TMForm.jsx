@@ -9,6 +9,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
   const [cePcoNumber, setCePcoNumber] = useState('')
   const [submittedByName, setSubmittedByName] = useState('') // Foreman's name for certification
+
+  // COR assignment state - allows T&M tickets to be linked directly to a Change Order Request
+  const [selectedCorId, setSelectedCorId] = useState('')
+  const [assignableCORs, setAssignableCORs] = useState([])
   const [supervision, setSupervision] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '', role: 'Foreman' }])
   const [operators, setOperators] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
   const [laborers, setLaborers] = useState([{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }])
@@ -29,10 +33,21 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customItem, setCustomItem] = useState({ name: '', category: '', quantity: '' })
 
-  // Load today's crew on mount
+  // Load today's crew and assignable CORs on mount
   useEffect(() => {
     loadTodaysCrew()
+    loadAssignableCORs()
   }, [project.id])
+
+  // Load CORs that can receive T&M tickets (draft or pending_approval only)
+  const loadAssignableCORs = async () => {
+    try {
+      const cors = await db.getAssignableCORs(project.id)
+      setAssignableCORs(cors || [])
+    } catch (err) {
+      console.error('Error loading assignable CORs:', err)
+    }
+  }
 
   const loadTodaysCrew = async () => {
     try {
@@ -277,10 +292,12 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     setSubmitProgress('Creating ticket...')
     try {
       // Create ticket first (to get ticket ID for photo paths)
+      // If a COR is selected, the ticket will be linked via assigned_cor_id
       const ticket = await db.createTMTicket({
         project_id: project.id,
         work_date: workDate,
         ce_pco_number: cePcoNumber.trim() || null,
+        assigned_cor_id: selectedCorId || null,
         notes: notes.trim() || null,
         photos: [], // Will update after uploading
         created_by_name: submittedByName.trim()
@@ -348,6 +365,25 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           custom_category: item.custom_category || null,
           quantity: item.quantity
         })))
+      }
+
+      // Auto-import T&M data into selected COR if one was chosen
+      // This populates the COR with labor and material line items from this ticket
+      if (selectedCorId) {
+        setSubmitProgress('Importing to COR...')
+        try {
+          await db.importTicketDataToCOR(
+            ticket.id,
+            selectedCorId,
+            companyId,
+            project.work_type || 'demolition',
+            project.job_type || 'standard'
+          )
+        } catch (importError) {
+          // Log error but don't fail the whole submission
+          console.error('Error importing to COR:', importError)
+          onShowToast('T&M saved, but COR import failed', 'warning')
+        }
       }
 
       // Clean up preview URLs
@@ -534,6 +570,28 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               />
             </div>
           </div>
+
+          {/* COR Assignment - Link T&M directly to a Change Order Request */}
+          {assignableCORs.length > 0 && (
+            <div className="tm-field">
+              <label>Link to Change Order Request (Optional)</label>
+              <select
+                value={selectedCorId}
+                onChange={(e) => setSelectedCorId(e.target.value)}
+                className="tm-input tm-select"
+              >
+                <option value="">-- No COR --</option>
+                {assignableCORs.map(cor => (
+                  <option key={cor.id} value={cor.id}>
+                    {cor.cor_number}: {cor.title || 'Untitled'} ({cor.status})
+                  </option>
+                ))}
+              </select>
+              <span className="tm-field-hint">
+                T&M data will be imported into the selected COR
+              </span>
+            </div>
+          )}
 
           {/* Select from Today's Crew */}
           {todaysCrew.length > 0 && (

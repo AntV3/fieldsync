@@ -6009,6 +6009,51 @@ input::placeholder {
   color: var(--accent-green);
 }
 
+/* Pending CORs (unapproved extra work) */
+.bo-pending-cors {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+}
+
+.bo-pending-cor-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.bo-pending-cor-icon {
+  width: 18px;
+  height: 18px;
+  background: var(--accent-warning);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.bo-pending-cor-label {
+  color: var(--accent-warning);
+  font-weight: 500;
+}
+
+.bo-pending-cor-value {
+  font-weight: 600;
+  color: var(--accent-warning);
+}
+
+.bo-pending-cor-count {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
 /* Project View Change Orders */
 .pv-change-orders {
   margin: 1rem 0;
@@ -6048,6 +6093,49 @@ input::placeholder {
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+/* T&M COR Link Badge */
+.tm-cor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tm-cor-badge.locked {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* T&M Ticket Card locked state */
+.tm-ticket-card.locked {
+  border-left: 3px solid var(--accent-warning);
+}
+
+/* T&M Lock Notice */
+.tm-lock-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  color: var(--accent-warning);
+  font-size: 0.85rem;
+}
+
+.tm-lock-notice svg {
+  flex-shrink: 0;
 }
 
 /* T&M Change Order Value Display */

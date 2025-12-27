@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import {
@@ -20,23 +20,40 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   const [showSignature, setShowSignature] = useState(false)
   const [showSignatureLink, setShowSignatureLink] = useState(false)
 
-  // Fetch full COR data with line items on mount
+  // Fetch full COR data with line items
+  const fetchFullCOR = useCallback(async () => {
+    try {
+      const fullCOR = await db.getCORById(cor.id)
+      if (fullCOR) {
+        setCORData(fullCOR)
+      }
+    } catch (error) {
+      console.error('Error fetching COR details:', error)
+      onShowToast?.('Error loading COR details', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }, [cor.id, onShowToast])
+
+  // Fetch on mount
   useEffect(() => {
-    const fetchFullCOR = async () => {
-      try {
-        const fullCOR = await db.getCORById(cor.id)
-        if (fullCOR) {
-          setCORData(fullCOR)
-        }
-      } catch (error) {
-        console.error('Error fetching COR details:', error)
-        onShowToast?.('Error loading COR details', 'error')
-      } finally {
-        setLoading(false)
+    fetchFullCOR()
+  }, [fetchFullCOR])
+
+  // Subscribe to T&M ticket associations for real-time updates
+  // When tickets are added/removed from this COR, refresh the data
+  useEffect(() => {
+    const subscription = db.subscribeToCorTickets?.(cor.id, () => {
+      // Refetch COR data when ticket associations change
+      fetchFullCOR()
+    })
+
+    return () => {
+      if (subscription) {
+        db.unsubscribe?.(subscription)
       }
     }
-    fetchFullCOR()
-  }, [cor.id])
+  }, [cor.id, fetchFullCOR])
 
   // Calculate totals
   const totals = useMemo(() => calculateCORTotals(corData), [corData])

@@ -193,7 +193,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             materialRequests,
             laborCosts,
             haulOffCosts,
-            customCosts
+            customCosts,
+            corStats
           ] = await Promise.all([
             db.getAreas(project.id).catch(() => []),
             db.getTMTickets(project.id).catch(() => []),
@@ -208,7 +209,8 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
               project.job_type || 'standard'
             ).catch(() => null),
             db.calculateHaulOffCosts(project.id).catch(() => null),
-            db.getProjectCosts(project.id).catch(() => [])
+            db.getProjectCosts(project.id).catch(() => []),
+            db.getCORStats(project.id).catch(() => null)
           ])
 
           // Calculate progress - use SOV values if available, otherwise fallback to percentage
@@ -295,6 +297,12 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             // Profitability
             currentProfit,
             profitMargin,
+            // COR (Change Order Request) stats - pending value represents unapproved extra work
+            corPendingValue: corStats?.total_pending_value || 0,
+            corPendingCount: corStats?.pending_count || 0,
+            corApprovedValue: corStats?.total_approved_value || 0,
+            corBilledValue: corStats?.total_billed_value || 0,
+            corTotalCount: corStats?.total_cors || 0,
             // No error flag
             hasError: false
           }
@@ -338,6 +346,12 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
             allCostsTotal: 0,
             currentProfit: 0,
             profitMargin: 0,
+            // COR fallback values
+            corPendingValue: 0,
+            corPendingCount: 0,
+            corApprovedValue: 0,
+            corBilledValue: 0,
+            corTotalCount: 0,
             // Flag that this project had an error loading
             hasError: true
           }
@@ -603,13 +617,19 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
       ? Math.round((totalEarned / totalPortfolioValue) * 100)
       : 0
 
+    // Pending COR metrics (unapproved extra work value)
+    const totalPendingCORValue = projectsData.reduce((sum, p) => sum + (p.corPendingValue || 0), 0)
+    const totalPendingCORCount = projectsData.reduce((sum, p) => sum + (p.corPendingCount || 0), 0)
+
     return {
       totalOriginalContract,
       totalChangeOrders,
       totalPortfolioValue,
       totalEarned,
       totalRemaining,
-      weightedCompletion
+      weightedCompletion,
+      totalPendingCORValue,
+      totalPendingCORCount
     }
   }, [projectsData])
 
@@ -641,7 +661,7 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
   }, [projectsData])
 
   // Destructure memoized values for cleaner usage below
-  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion } = portfolioMetrics
+  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
 
   if (loading) {
@@ -1787,6 +1807,18 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
               <div className="bo-co-item bo-co-added">
                 <span className="bo-co-label">+ Change Orders ({projectsWithChangeOrders} project{projectsWithChangeOrders !== 1 ? 's' : ''})</span>
                 <span className="bo-co-value">+{formatCurrency(totalChangeOrders)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Pending CORs - Unapproved extra work (not yet part of contract value) */}
+          {totalPendingCORCount > 0 && (
+            <div className="bo-pending-cors">
+              <div className="bo-pending-cor-item">
+                <span className="bo-pending-cor-icon">!</span>
+                <span className="bo-pending-cor-label">Pending CORs</span>
+                <span className="bo-pending-cor-value">{formatCurrency(totalPendingCORValue)}</span>
+                <span className="bo-pending-cor-count">({totalPendingCORCount} pending)</span>
               </div>
             </div>
           )}

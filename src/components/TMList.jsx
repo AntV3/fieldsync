@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -57,6 +57,9 @@ export default function TMList({ project, company, onShowToast }) {
   const [showSignatureLink, setShowSignatureLink] = useState(false)
   const [signatureLinkTicket, setSignatureLinkTicket] = useState(null)
 
+  // Track which tickets are locked (linked to approved COR)
+  const [lockedTickets, setLockedTickets] = useState({})
+
   useEffect(() => {
     loadTickets()
 
@@ -74,6 +77,19 @@ export default function TMList({ project, company, onShowToast }) {
     try {
       const data = await db.getTMTickets(project.id)
       setTickets(data)
+
+      // Check editability for tickets with COR assignments
+      const ticketsWithCOR = data.filter(t => t.assigned_cor_id)
+      if (ticketsWithCOR.length > 0) {
+        const lockResults = {}
+        await Promise.all(ticketsWithCOR.map(async (ticket) => {
+          const result = await db.isTicketEditable(ticket)
+          if (!result.editable) {
+            lockResults[ticket.id] = result
+          }
+        }))
+        setLockedTickets(lockResults)
+      }
     } catch (error) {
       console.error('Error loading tickets:', error)
       onShowToast('Error loading T&M tickets', 'error')
@@ -83,6 +99,12 @@ export default function TMList({ project, company, onShowToast }) {
   }
 
   const updateStatus = async (ticketId, newStatus) => {
+    // Check if ticket is locked due to approved COR
+    if (lockedTickets[ticketId]) {
+      onShowToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
+      return
+    }
+
     try {
       await db.updateTMTicketStatus(ticketId, newStatus)
       setTickets(tickets.map(t =>
@@ -97,6 +119,12 @@ export default function TMList({ project, company, onShowToast }) {
 
   // Handle approval - check if ticket has CE/PCO and prompt for value
   const handleApprove = (ticket) => {
+    // Check if ticket is locked due to approved COR
+    if (lockedTickets[ticket.id]) {
+      onShowToast(lockedTickets[ticket.id].reason || 'This ticket is locked (COR approved)', 'error')
+      return
+    }
+
     if (ticket.ce_pco_number) {
       // Has CE/PCO - show modal to enter change order value
       setPendingApprovalTicket(ticket)
@@ -131,6 +159,12 @@ export default function TMList({ project, company, onShowToast }) {
   }
 
   const deleteTicket = async (ticketId) => {
+    // Check if ticket is locked due to approved COR
+    if (lockedTickets[ticketId]) {
+      onShowToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
+      return
+    }
+
     if (!confirm('Delete this T&M ticket?')) return
     try {
       await db.deleteTMTicket(ticketId)
@@ -896,8 +930,12 @@ export default function TMList({ project, company, onShowToast }) {
   const someSelected = selectedTickets.size > 0
 
   // Helper function to render a single ticket card
-  const renderTicketCard = (ticket) => (
-    <div key={ticket.id} className={`tm-ticket-card ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''}`}>
+  const renderTicketCard = (ticket) => {
+    const isLocked = !!lockedTickets[ticket.id]
+    const lockInfo = lockedTickets[ticket.id]
+
+    return (
+    <div key={ticket.id} className={`tm-ticket-card ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}>
       <div
         className="tm-ticket-header"
         onClick={() => setExpandedTicket(expandedTicket === ticket.id ? null : ticket.id)}
@@ -913,6 +951,13 @@ export default function TMList({ project, company, onShowToast }) {
           <span className="tm-ticket-date">{formatDate(ticket.work_date)}</span>
           {ticket.ce_pco_number && (
             <span className="tm-ce-badge">{ticket.ce_pco_number}</span>
+          )}
+          {/* Show COR link badge if assigned to a COR */}
+          {ticket.assigned_cor_id && lockInfo?.lockedBy && (
+            <span className={`tm-cor-badge ${isLocked ? 'locked' : ''}`} title={lockInfo.reason}>
+              {isLocked && <Lock size={10} />}
+              {lockInfo.lockedBy.cor_number}
+            </span>
           )}
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
         </div>
@@ -1004,8 +1049,16 @@ export default function TMList({ project, company, onShowToast }) {
             </div>
           )}
 
+          {/* Lock notice if ticket is locked */}
+          {isLocked && (
+            <div className="tm-lock-notice">
+              <Lock size={14} />
+              <span>{lockInfo?.reason || 'This ticket is locked (COR approved)'}</span>
+            </div>
+          )}
+
           <div className="tm-ticket-actions">
-            {ticket.status === 'pending' && (
+            {ticket.status === 'pending' && !isLocked && (
               <>
                 <button
                   className="btn btn-success btn-small"
@@ -1021,7 +1074,7 @@ export default function TMList({ project, company, onShowToast }) {
                 </button>
               </>
             )}
-            {ticket.status === 'approved' && (
+            {ticket.status === 'approved' && !isLocked && (
               <>
                 <button
                   className="btn btn-primary btn-small"
@@ -1041,7 +1094,7 @@ export default function TMList({ project, company, onShowToast }) {
                 </button>
               </>
             )}
-            {ticket.status === 'rejected' && (
+            {ticket.status === 'rejected' && !isLocked && (
               <button
                 className="btn btn-secondary btn-small"
                 onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'pending'); }}
@@ -1049,17 +1102,20 @@ export default function TMList({ project, company, onShowToast }) {
                 Restore
               </button>
             )}
-            <button
-              className="btn btn-danger btn-small"
-              onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }}
-            >
-              Delete
-            </button>
+            {!isLocked && (
+              <button
+                className="btn btn-danger btn-small"
+                onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }}
+              >
+                Delete
+              </button>
+            )}
           </div>
         </div>
       )}
     </div>
   )
+  }
 
   return (
     <div className="tm-list">

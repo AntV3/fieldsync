@@ -3,7 +3,7 @@
  * Handles asset caching for offline functionality
  */
 
-const CACHE_NAME = 'fieldsync-v3'
+const CACHE_NAME = 'fieldsync-v4'
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html'
