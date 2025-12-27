@@ -342,8 +342,32 @@ input::placeholder {
   margin-bottom: 0.75rem;
 }
 
+.area-row.area-row-with-value {
+  grid-template-columns: 1fr 120px 80px 40px;
+}
+
 .area-row input[type="number"] {
   text-align: center;
+}
+
+/* Currency Input */
+.currency-input {
+  text-align: right;
+}
+
+.weight-input {
+  text-align: center;
+}
+
+/* Hide number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .remove-btn {
@@ -366,15 +390,22 @@ input::placeholder {
   color: white;
 }
 
-/* Weight Total */
-.weight-total {
+/* Weight Total Row */
+.weight-total-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
   padding: 1rem 0;
   border-top: 1px solid var(--border-color);
   margin-top: 1rem;
+  gap: 1rem;
+}
+
+.weight-total {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .weight-total-label {
@@ -389,6 +420,58 @@ input::placeholder {
 
 .weight-total-value.valid {
   color: var(--accent-green);
+}
+
+.sov-total {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+/* Auto-Weight Dropdown */
+.auto-weight-dropdown {
+  position: relative;
+}
+
+.weight-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.weight-dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+
+.weight-dropdown-menu button:hover {
+  background: var(--bg-elevated);
+}
+
+.weight-dropdown-menu button:first-child {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-left: 0.25rem;
 }
 
 .weight-total-value.invalid {
@@ -967,6 +1050,20 @@ input::placeholder {
 
   .area-row {
     grid-template-columns: 1fr 80px 40px;
+  }
+
+  .area-row.area-row-with-value {
+    grid-template-columns: 1fr 90px 60px 40px;
+  }
+
+  .weight-total-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .auto-weight-dropdown {
+    align-self: flex-end;
   }
 
   .project-card-header {

@@ -2,6 +2,27 @@ import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 
+// Currency formatting helpers
+const formatCurrencyDisplay = (value) => {
+  if (value === null || value === undefined || value === '') return ''
+  const num = parseFloat(value)
+  if (isNaN(num)) return ''
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(num)
+}
+
+const parseCurrencyInput = (value) => {
+  if (!value) return null
+  // Remove currency symbols, commas, and spaces
+  const cleaned = String(value).replace(/[$,\s]/g, '')
+  const num = parseFloat(cleaned)
+  return isNaN(num) ? null : num
+}
+
 export default function Setup({ company, user, onProjectCreated, onShowToast }) {
   const [projectName, setProjectName] = useState('')
   const [jobNumber, setJobNumber] = useState('')
@@ -20,6 +41,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const [importing, setImporting] = useState(false)
   const [showImportReview, setShowImportReview] = useState(false)
   const [importedTasks, setImportedTasks] = useState([])
+  const [showWeightDropdown, setShowWeightDropdown] = useState(false)
   const fileInputRef = useRef(null)
 
   const totalWeight = areas.reduce((sum, area) => {
@@ -50,6 +72,68 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     if (areas.length > 1) {
       setAreas(prev => prev.filter((_, i) => i !== index))
     }
+  }
+
+  // Auto-generate weights based on scheduled values or equal distribution
+  const autoGenerateWeights = (method = 'value') => {
+    const validAreas = areas.filter(a => a.name.trim())
+    if (validAreas.length === 0) {
+      onShowToast('Add tasks first', 'error')
+      return
+    }
+
+    let newAreas = [...areas]
+    const validIndices = areas.map((a, i) => a.name.trim() ? i : -1).filter(i => i >= 0)
+
+    if (method === 'value') {
+      const totalValue = validAreas.reduce((sum, a) => sum + (parseFloat(a.scheduledValue) || 0), 0)
+
+      if (totalValue === 0) {
+        // Fallback to equal if no values
+        onShowToast('No scheduled values - using equal distribution', 'info')
+        method = 'equal'
+      } else {
+        let runningTotal = 0
+        validIndices.forEach((areaIndex, i) => {
+          const value = parseFloat(areas[areaIndex].scheduledValue) || 0
+          let weight
+
+          if (i === validIndices.length - 1) {
+            // Last item gets remainder to ensure exactly 100%
+            weight = 100 - runningTotal
+          } else {
+            weight = Math.round((value / totalValue) * 10000) / 100
+            runningTotal += weight
+          }
+
+          newAreas[areaIndex] = { ...newAreas[areaIndex], weight: weight.toFixed(2) }
+        })
+
+        setAreas(newAreas)
+        setShowWeightDropdown(false)
+        onShowToast('Weights calculated by value', 'success')
+        return
+      }
+    }
+
+    // Equal distribution
+    const weight = Math.round((100 / validIndices.length) * 100) / 100
+    let runningTotal = 0
+
+    validIndices.forEach((areaIndex, i) => {
+      let w
+      if (i === validIndices.length - 1) {
+        w = 100 - runningTotal
+      } else {
+        w = weight
+        runningTotal += w
+      }
+      newAreas[areaIndex] = { ...newAreas[areaIndex], weight: w.toFixed(2) }
+    })
+
+    setAreas(newAreas)
+    setShowWeightDropdown(false)
+    onShowToast('Weights distributed equally', 'success')
   }
 
   const resetForm = () => {
@@ -295,31 +379,52 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       return
     }
 
-    // Calculate even weight
-    const weight = Math.round((100 / selectedTasks.length) * 100) / 100
-
-    // Adjust last item to make total exactly 100
-    const newAreas = selectedTasks.map((task, index) => ({
-      name: task.name,
-      weight: index === selectedTasks.length - 1
-        ? (100 - (weight * (selectedTasks.length - 1))).toFixed(2)
-        : weight.toFixed(2),
-      group: task.group,
-      scheduledValue: task.scheduledValue || null
-    }))
-
-    // Calculate total SOV for toast message
+    // Calculate total SOV
     const totalSOV = selectedTasks.reduce((sum, t) => sum + (t.scheduledValue || 0), 0)
+    const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+
+    let newAreas
+    if (totalSOV > 0) {
+      // Value-based weights (proportional to scheduled value)
+      let runningTotal = 0
+      newAreas = selectedTasks.map((task, index) => {
+        const value = task.scheduledValue || 0
+        let weight
+
+        if (index === selectedTasks.length - 1) {
+          // Last item gets remainder to ensure exactly 100%
+          weight = 100 - runningTotal
+        } else {
+          weight = Math.round((value / totalSOV) * 10000) / 100
+          runningTotal += weight
+        }
+
+        return {
+          name: task.name,
+          weight: weight.toFixed(2),
+          group: task.group,
+          scheduledValue: task.scheduledValue || null
+        }
+      })
+
+      onShowToast(`Tasks imported with value-based weights! Total SOV: ${formatter.format(totalSOV)}`, 'success')
+    } else {
+      // Equal distribution fallback (no scheduled values)
+      const weight = Math.round((100 / selectedTasks.length) * 100) / 100
+      newAreas = selectedTasks.map((task, index) => ({
+        name: task.name,
+        weight: index === selectedTasks.length - 1
+          ? (100 - (weight * (selectedTasks.length - 1))).toFixed(2)
+          : weight.toFixed(2),
+        group: task.group,
+        scheduledValue: task.scheduledValue || null
+      }))
+
+      onShowToast('Tasks imported with equal weights', 'success')
+    }
 
     setAreas(newAreas)
     setShowImportReview(false)
-
-    if (totalSOV > 0) {
-      const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-      onShowToast(`Tasks imported! Total SOV: ${formatter.format(totalSOV)}`, 'success')
-    } else {
-      onShowToast('Tasks imported!', 'success')
-    }
   }
 
   const handleSubmit = async () => {
@@ -514,10 +619,15 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
           <div className="form-group">
             <label>Contract Value ($)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder="e.g., 365000"
               value={contractValue}
-              onChange={(e) => setContractValue(e.target.value)}
+              onChange={(e) => {
+                const cleaned = e.target.value.replace(/[^0-9.]/g, '')
+                setContractValue(cleaned)
+              }}
+              className="currency-input"
             />
           </div>
         </div>
@@ -641,20 +751,29 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
             <div key={group} className="area-group">
               <div className="area-group-header">{group}</div>
               {groupAreas.map(area => (
-                <div key={area.originalIndex} className="area-row">
+                <div key={area.originalIndex} className="area-row area-row-with-value">
                   <input
                     type="text"
                     placeholder="Task name"
                     value={area.name}
                     onChange={(e) => handleAreaChange(area.originalIndex, 'name', e.target.value)}
+                    className="area-name-input"
                   />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="$0"
+                    value={area.scheduledValue ? formatCurrencyDisplay(area.scheduledValue) : ''}
+                    onChange={(e) => handleAreaChange(area.originalIndex, 'scheduledValue', parseCurrencyInput(e.target.value))}
+                    className="currency-input"
+                  />
+                  <input
+                    type="text"
+                    inputMode="decimal"
                     placeholder="%"
-                    min="0"
-                    max="100"
                     value={area.weight}
                     onChange={(e) => handleAreaChange(area.originalIndex, 'weight', e.target.value)}
+                    className="weight-input"
                   />
                   <button className="remove-btn" onClick={() => removeArea(area.originalIndex)}>
                     ×
@@ -666,20 +785,29 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         ) : (
           // Flat display
           areas.map((area, index) => (
-            <div key={index} className="area-row">
+            <div key={index} className="area-row area-row-with-value">
               <input
                 type="text"
                 placeholder="Area name (e.g., Level 1)"
                 value={area.name}
                 onChange={(e) => handleAreaChange(index, 'name', e.target.value)}
+                className="area-name-input"
               />
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                placeholder="$0"
+                value={area.scheduledValue ? formatCurrencyDisplay(area.scheduledValue) : ''}
+                onChange={(e) => handleAreaChange(index, 'scheduledValue', parseCurrencyInput(e.target.value))}
+                className="currency-input"
+              />
+              <input
+                type="text"
+                inputMode="decimal"
                 placeholder="%"
-                min="0"
-                max="100"
                 value={area.weight}
                 onChange={(e) => handleAreaChange(index, 'weight', e.target.value)}
+                className="weight-input"
               />
               <button className="remove-btn" onClick={() => removeArea(index)}>
                 ×
@@ -688,11 +816,37 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
           ))
         )}
 
-        <div className="weight-total">
-          <span className="weight-total-label">Total Weight:</span>
-          <span className={`weight-total-value ${Math.abs(totalWeight - 100) < 0.1 ? 'valid' : 'invalid'}`}>
-            {totalWeight.toFixed(1)}%
-          </span>
+        <div className="weight-total-row">
+          <div className="weight-total">
+            <span className="weight-total-label">Total Weight:</span>
+            <span className={`weight-total-value ${Math.abs(totalWeight - 100) < 0.1 ? 'valid' : 'invalid'}`}>
+              {totalWeight.toFixed(1)}%
+            </span>
+            {areas.some(a => a.scheduledValue > 0) && (
+              <span className="sov-total">
+                · SOV: {formatCurrencyDisplay(areas.reduce((sum, a) => sum + (parseFloat(a.scheduledValue) || 0), 0))}
+              </span>
+            )}
+          </div>
+          <div className="auto-weight-dropdown">
+            <button
+              type="button"
+              className="btn btn-secondary btn-small"
+              onClick={() => setShowWeightDropdown(!showWeightDropdown)}
+            >
+              Auto-Calculate ▼
+            </button>
+            {showWeightDropdown && (
+              <div className="weight-dropdown-menu">
+                <button onClick={() => autoGenerateWeights('value')}>
+                  By Value <span className="dropdown-hint">(Recommended)</span>
+                </button>
+                <button onClick={() => autoGenerateWeights('equal')}>
+                  Equal Distribution
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <button className="btn btn-secondary" onClick={addArea}>
