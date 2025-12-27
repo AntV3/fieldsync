@@ -756,6 +756,21 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           )}
 
+          {/* Batch Hours - Prominent placement before workers */}
+          <div className="tm-batch-hours-panel">
+            <div className="tm-batch-hours-header">
+              <Clock size={18} />
+              <span>Quick Hours Entry</span>
+            </div>
+            <button
+              type="button"
+              className="tm-batch-hours-btn"
+              onClick={() => setShowBatchHoursModal(true)}
+            >
+              Set hours for entire crew at once
+            </button>
+          </div>
+
           {/* Supervision Section */}
           <div className="tm-field">
             <label>Supervision</label>
@@ -944,15 +959,6 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               + Add Laborer
             </button>
           </div>
-
-          {/* Batch Hours Button */}
-          <button
-            type="button"
-            className="tm-batch-hours-btn"
-            onClick={() => setShowBatchHoursModal(true)}
-          >
-            <Clock size={16} /> Apply Same Hours to All
-          </button>
 
           {/* Description of Work */}
           <div className="tm-field">
