@@ -13899,6 +13899,340 @@ input::placeholder {
   }
 }
 
+/* ============================================
+   Full COR Document View (Signature Page)
+   ============================================ */
+
+.cor-full-document {
+  max-width: 900px;
+}
+
+.cor-header-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.cor-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.cor-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cor-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cor-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cor-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.cor-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+}
+
+.cor-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.cor-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cor-info-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cor-info-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cor-scope {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.cor-scope h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem 0;
+}
+
+.cor-scope p {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* COR Section (Labor, Materials, Equipment, Subcontractors) */
+.cor-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.cor-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cor-section-header svg {
+  color: var(--accent-blue);
+}
+
+.cor-section-header h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cor-table-wrapper {
+  overflow-x: auto;
+}
+
+.cor-line-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cor-line-items-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.cor-line-items-table th.text-right {
+  text-align: right;
+}
+
+.cor-line-items-table td {
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.cor-line-items-table td.text-right {
+  text-align: right;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.cor-line-items-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+.cor-line-items-table tfoot tr {
+  background: var(--bg-tertiary);
+}
+
+.cor-line-items-table tfoot td {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.cor-line-items-table tfoot .markup-row td {
+  color: var(--accent-green);
+}
+
+.cor-line-items-table tfoot .section-total-row td {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-top: 2px solid var(--border-color);
+}
+
+/* COR Totals Card */
+.cor-totals-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.cor-totals-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+}
+
+.cor-totals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cor-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.cor-total-row span:last-child {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-weight: 600;
+}
+
+.cor-fees-section {
+  margin: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.cor-fee-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.cor-fee-row span:last-child {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.cor-grand-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.cor-grand-total span:last-child {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+/* COR Signature Section */
+.cor-signature-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.cor-signature-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.signature-instruction {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem 0;
+}
+
+.signature-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.signature-image {
+  max-width: 200px;
+  height: 60px;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Mobile responsiveness for COR document */
+@media (max-width: 640px) {
+  .cor-full-document {
+    padding: 0.75rem;
+  }
+
+  .cor-header-top {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .cor-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cor-line-items-table {
+    font-size: 0.75rem;
+  }
+
+  .cor-line-items-table th,
+  .cor-line-items-table td {
+    padding: 0.5rem;
+  }
+
+  .signature-slots-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cor-grand-total {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
 
 /* ============================================
    Financial Dashboard - Burn Rate, Costs, Profitability
