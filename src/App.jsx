@@ -32,9 +32,10 @@ export default function App() {
 
   useEffect(() => {
     // Check if this is a public share link or signature link
+    // Token patterns support alphanumeric, underscore, and hyphen (for UUID-style tokens)
     const path = window.location.pathname
-    const shareMatch = path.match(/^\/view\/([a-zA-Z0-9]+)$/)
-    const signatureMatch = path.match(/^\/sign\/([a-zA-Z0-9_]+)$/)
+    const shareMatch = path.match(/^\/view\/([a-zA-Z0-9_-]+)$/)
+    const signatureMatch = path.match(/^\/sign\/([a-zA-Z0-9_-]+)$/)
 
     if (shareMatch) {
       setShareToken(shareMatch[1])

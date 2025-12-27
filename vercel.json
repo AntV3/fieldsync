@@ -1,0 +1,27 @@
+{
+  "rewrites": [
+    {
+      "source": "/sign/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/view/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!assets|sw\\.js|favicon\\.ico|robots\\.txt|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
