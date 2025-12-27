@@ -1093,6 +1093,27 @@ export const db = {
     return []
   },
 
+  // Get T&M tickets associated with a COR (for backup documentation)
+  async getCORTickets(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          *,
+          t_and_m_workers (*),
+          t_and_m_items (
+            *,
+            materials_equipment (name, unit, cost_per_unit, category)
+          )
+        `)
+        .eq('assigned_cor_id', corId)
+        .order('work_date', { ascending: true })
+      if (error) throw error
+      return data || []
+    }
+    return []
+  },
+
   async createTMTicket(ticket) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase

@@ -2651,6 +2651,32 @@ input[type="number"] {
   transform: scale(1.05);
 }
 
+/* Photo error placeholder */
+.tm-photo-thumb img.photo-error {
+  background: var(--bg-secondary);
+  object-fit: contain;
+  padding: 0.5rem;
+}
+
+/* Photo count badge in ticket header */
+.tm-photo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.tm-photo-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* Role styles */
 .tm-role-select {
   flex-shrink: 0;
@@ -13666,6 +13692,57 @@ input[type="number"] {
 .fully-signed-message p {
   margin: 0;
   font-weight: 500;
+}
+
+/* COR Download Section */
+.cor-download-section {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary, #f8fafc);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.cor-download-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cor-download-section .download-description {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.cor-download-section .download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  min-width: 200px;
+}
+
+.cor-download-section .download-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.download-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Enhanced Signature Modal */

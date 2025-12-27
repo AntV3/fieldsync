@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { compressImage } from '../lib/imageUtils'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
@@ -303,21 +304,49 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         created_by_name: submittedByName.trim()
       })
 
-      // Upload photos in PARALLEL for speed
+      // Compress and upload photos in PARALLEL for speed
       let photoUrls = []
       if (photos.length > 0) {
+        // Compress photos first
+        setSubmitProgress(`Compressing ${photos.length} photo${photos.length > 1 ? 's' : ''}...`)
+
+        const compressedPhotos = await Promise.all(
+          photos.map(async (photo, idx) => {
+            try {
+              const compressed = await compressImage(photo.file)
+              return { ...photo, file: compressed }
+            } catch (err) {
+              console.warn(`Failed to compress photo ${idx + 1}, using original:`, err)
+              return photo
+            }
+          })
+        )
+
+        // Upload compressed photos
         setSubmitProgress(`Uploading ${photos.length} photo${photos.length > 1 ? 's' : ''}...`)
 
-        const uploadPromises = photos.map(photo =>
-          db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
-            .catch(err => {
-              console.error('Error uploading photo:', err)
-              return null // Continue with other photos
-            })
-        )
+        let uploadedCount = 0
+        const uploadPromises = compressedPhotos.map(async (photo, idx) => {
+          try {
+            const url = await db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
+            uploadedCount++
+            setSubmitProgress(`Uploading ${uploadedCount}/${photos.length} photos...`)
+            console.log(`Photo ${idx + 1} uploaded successfully:`, url)
+            return url
+          } catch (err) {
+            console.error(`Photo ${idx + 1} upload failed:`, err)
+            onShowToast(`Photo ${idx + 1} failed to upload`, 'error')
+            return null
+          }
+        })
 
         const results = await Promise.all(uploadPromises)
         photoUrls = results.filter(url => url !== null)
+
+        // Notify if some photos failed
+        if (photoUrls.length < photos.length && photoUrls.length > 0) {
+          onShowToast(`${photoUrls.length}/${photos.length} photos uploaded`, 'warning')
+        }
       }
 
       // Update ticket with photo URLs if any were uploaded

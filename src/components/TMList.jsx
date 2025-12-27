@@ -959,6 +959,12 @@ export default function TMList({ project, company, onShowToast }) {
               {lockInfo.lockedBy.cor_number}
             </span>
           )}
+          {/* Show photo count badge */}
+          {ticket.photos?.length > 0 && (
+            <span className="tm-photo-badge" title={`${ticket.photos.length} photo${ticket.photos.length > 1 ? 's' : ''}`}>
+              <Camera size={12} /> {ticket.photos.length}
+            </span>
+          )}
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
         </div>
         <div className="tm-ticket-summary">
@@ -1034,7 +1040,16 @@ export default function TMList({ project, company, onShowToast }) {
               <div className="tm-photos-grid">
                 {ticket.photos.map((photo, idx) => (
                   <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">
-                    <img src={photo} alt={`Photo ${idx + 1}`} />
+                    <img
+                      src={photo}
+                      alt={`Photo ${idx + 1}`}
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.classList.add('photo-error')
+                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSIzIiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIiByeT0iMiIvPjxjaXJjbGUgY3g9IjguNSIgY3k9IjguNSIgcj0iMS41Ii8+PHBvbHlsaW5lIHBvaW50cz0iMjEgMTUgMTYgMTAgNSAyMSIvPjwvc3ZnPg=='
+                        console.error('Failed to load photo:', photo)
+                      }}
+                    />
                   </a>
                 ))}
               </div>

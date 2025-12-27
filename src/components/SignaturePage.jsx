@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase } from 'lucide-react'
+import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
+import { exportCORToPDF } from '../lib/corPdfExport'
 import EnhancedSignatureCapture from './EnhancedSignatureCapture'
 
 // Helper to format date
@@ -44,6 +45,7 @@ export default function SignaturePage({ signatureToken }) {
   const [activeSlot, setActiveSlot] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState(null)
+  const [downloading, setDownloading] = useState(false)
 
   // Load signature request and document
   useEffect(() => {
@@ -167,6 +169,43 @@ export default function SignaturePage({ signatureToken }) {
   const openSignatureModal = (slot) => {
     setActiveSlot(slot)
     setShowSignatureModal(true)
+  }
+
+  // Handle PDF download with T&M backup
+  const handleDownload = async () => {
+    if (!document || !signatureRequest) return
+
+    try {
+      setDownloading(true)
+
+      // Fetch associated T&M tickets if this is a COR
+      let tmTickets = null
+      if (isCOR) {
+        try {
+          tmTickets = await db.getCORTickets(document.id)
+        } catch (err) {
+          console.warn('Failed to fetch T&M tickets for backup:', err)
+          // Continue without T&M backup
+        }
+      }
+
+      // Get branding from company
+      const branding = {
+        logoUrl: company?.logo_url,
+        primaryColor: company?.branding_color
+      }
+
+      // Export PDF with T&M backup
+      await exportCORToPDF(document, project, company, branding, tmTickets)
+
+      setSuccessMessage('PDF downloaded successfully!')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      console.error('Download failed:', err)
+      setError('Failed to generate PDF. Please try again.')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   // Render loading state
@@ -681,6 +720,33 @@ export default function SignaturePage({ signatureToken }) {
             <div className="fully-signed-message">
               <CheckCircle size={24} />
               <p>This change order request has been fully signed by all parties.</p>
+            </div>
+          )}
+
+          {/* Download section - show when both signatures are complete */}
+          {isFullySigned && (
+            <div className="cor-download-section">
+              <h4>Download Your Copy</h4>
+              <p className="download-description">
+                Download a PDF copy of this signed COR including all T&M backup documentation.
+              </p>
+              <button
+                className="btn btn-primary download-btn"
+                onClick={handleDownload}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <>
+                    <span className="download-spinner"></span>
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download size={18} />
+                    Download COR + Backup
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>

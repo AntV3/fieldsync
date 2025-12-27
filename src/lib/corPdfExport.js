@@ -43,9 +43,10 @@ const loadImageAsBase64 = (url) => {
  * @param {Object} project - The project data
  * @param {Object} company - The company data
  * @param {Object} branding - Optional branding settings
+ * @param {Object[]} tmTickets - Optional T&M tickets for backup documentation
  * @returns {Promise<void>}
  */
-export async function exportCORToPDF(cor, project, company, branding = {}) {
+export async function exportCORToPDF(cor, project, company, branding = {}, tmTickets = null) {
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -471,16 +472,225 @@ export async function exportCORToPDF(cor, project, company, branding = {}) {
   )
 
   // ============================================
-  // FOOTER
+  // T&M BACKUP SECTION (if tickets provided)
   // ============================================
 
-  const footerY = pageHeight - 10
-  doc.setFontSize(8)
-  doc.setTextColor(150, 150, 150)
-  doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
-  doc.text('Page 1', pageWidth - margin, footerY, { align: 'right' })
+  if (tmTickets && tmTickets.length > 0) {
+    doc.addPage()
+    yPos = margin
+
+    // Backup section header
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...primaryColor)
+    doc.text('T&M BACKUP DOCUMENTATION', margin, yPos)
+    yPos += 8
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    doc.text(`${tmTickets.length} T&M ticket${tmTickets.length > 1 ? 's' : ''} associated with this COR`, margin, yPos)
+    yPos += 12
+
+    doc.setDrawColor(...primaryColor)
+    doc.setLineWidth(0.5)
+    doc.line(margin, yPos, pageWidth - margin, yPos)
+    yPos += 10
+
+    // Render each ticket
+    for (const ticket of tmTickets) {
+      // Check if we need a new page
+      if (yPos > pageHeight - 100) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      // Ticket header
+      doc.setFillColor(245, 247, 250)
+      doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 18, 2, 2, 'F')
+
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(0, 0, 0)
+      doc.text(`T&M Ticket — ${formatDate(ticket.work_date)}`, margin + 5, yPos + 7)
+
+      if (ticket.ce_pco_number) {
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(100, 100, 100)
+        doc.text(`CE/PCO: ${ticket.ce_pco_number}`, margin + 5, yPos + 14)
+      }
+
+      // Status badge
+      const statusColors = {
+        pending: [217, 119, 6],
+        approved: [5, 150, 105],
+        billed: [37, 99, 235]
+      }
+      const statusColor = statusColors[ticket.status] || [100, 100, 100]
+      doc.setFontSize(8)
+      doc.setTextColor(...statusColor)
+      doc.text(ticket.status?.toUpperCase() || 'PENDING', pageWidth - margin - 30, yPos + 10)
+
+      yPos += 24
+
+      // Description/Notes
+      if (ticket.notes) {
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'italic')
+        doc.setTextColor(80, 80, 80)
+        const notesLines = doc.splitTextToSize(ticket.notes, pageWidth - (margin * 2) - 10)
+        doc.text(notesLines, margin + 5, yPos)
+        yPos += (notesLines.length * 4) + 6
+      }
+
+      // Workers table
+      if (ticket.t_and_m_workers?.length > 0) {
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0, 0, 0)
+        doc.text('Labor:', margin + 5, yPos)
+        yPos += 4
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Worker', 'Class', 'Hours', 'Rate', 'OT Hrs', 'OT Rate']],
+          body: ticket.t_and_m_workers.map(w => [
+            w.name,
+            w.labor_class || '-',
+            w.hours?.toString() || '0',
+            w.rate ? `$${w.rate}/hr` : '-',
+            w.overtime_hours?.toString() || '-',
+            w.overtime_rate ? `$${w.overtime_rate}/hr` : '-'
+          ]),
+          margin: { left: margin + 5, right: margin },
+          headStyles: { fillColor: [100, 116, 139], textColor: [255, 255, 255], fontSize: 7, cellPadding: 2 },
+          bodyStyles: { fontSize: 7, cellPadding: 2 },
+          theme: 'grid',
+          tableWidth: 'auto'
+        })
+
+        yPos = doc.lastAutoTable.finalY + 8
+      }
+
+      // Items table (materials/equipment)
+      if (ticket.t_and_m_items?.length > 0) {
+        if (yPos > pageHeight - 60) {
+          doc.addPage()
+          yPos = margin
+        }
+
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0, 0, 0)
+        doc.text('Materials/Equipment:', margin + 5, yPos)
+        yPos += 4
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Item', 'Qty', 'Unit', 'Unit Cost', 'Total']],
+          body: ticket.t_and_m_items.map(item => [
+            item.materials_equipment?.name || item.description || 'Item',
+            item.quantity?.toString() || '1',
+            item.materials_equipment?.unit || 'ea',
+            item.materials_equipment?.cost_per_unit ? `$${item.materials_equipment.cost_per_unit}` : '-',
+            item.materials_equipment?.cost_per_unit && item.quantity
+              ? `$${(item.quantity * item.materials_equipment.cost_per_unit).toFixed(2)}`
+              : '-'
+          ]),
+          margin: { left: margin + 5, right: margin },
+          headStyles: { fillColor: [100, 116, 139], textColor: [255, 255, 255], fontSize: 7, cellPadding: 2 },
+          bodyStyles: { fontSize: 7, cellPadding: 2 },
+          theme: 'grid',
+          tableWidth: 'auto'
+        })
+
+        yPos = doc.lastAutoTable.finalY + 8
+      }
+
+      // Photos
+      if (ticket.photos?.length > 0) {
+        if (yPos > pageHeight - 80) {
+          doc.addPage()
+          yPos = margin
+        }
+
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0, 0, 0)
+        doc.text(`Photos (${ticket.photos.length}):`, margin + 5, yPos)
+        yPos += 6
+
+        let xPos = margin + 5
+        const photoWidth = 45
+        const photoHeight = 35
+        const photosPerRow = 3
+
+        for (let i = 0; i < ticket.photos.length; i++) {
+          // Check if we need to wrap to next row
+          if (i > 0 && i % photosPerRow === 0) {
+            xPos = margin + 5
+            yPos += photoHeight + 5
+          }
+
+          // Check if we need a new page
+          if (yPos + photoHeight > pageHeight - 20) {
+            doc.addPage()
+            yPos = margin
+            xPos = margin + 5
+          }
+
+          try {
+            const imgData = await loadImageAsBase64(ticket.photos[i])
+            if (imgData) {
+              doc.addImage(imgData, 'JPEG', xPos, yPos, photoWidth, photoHeight)
+            } else {
+              // Draw placeholder for failed images
+              doc.setFillColor(240, 240, 240)
+              doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
+              doc.setFontSize(7)
+              doc.setTextColor(150, 150, 150)
+              doc.text('Photo unavailable', xPos + 5, yPos + photoHeight / 2)
+            }
+          } catch (e) {
+            // Draw placeholder for failed images
+            doc.setFillColor(240, 240, 240)
+            doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
+            doc.setFontSize(7)
+            doc.setTextColor(150, 150, 150)
+            doc.text('Photo unavailable', xPos + 5, yPos + photoHeight / 2)
+          }
+
+          xPos += photoWidth + 5
+        }
+
+        yPos += photoHeight + 10
+      }
+
+      // Ticket divider
+      yPos += 5
+      doc.setDrawColor(200, 200, 200)
+      doc.setLineWidth(0.2)
+      doc.line(margin, yPos, pageWidth - margin, yPos)
+      yPos += 10
+    }
+  }
+
+  // ============================================
+  // FOOTER (on all pages)
+  // ============================================
+
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    const footerY = pageHeight - 10
+    doc.setFontSize(8)
+    doc.setTextColor(150, 150, 150)
+    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+  }
 
   // Save the PDF
-  const fileName = `${cor.cor_number || 'COR'}_${project?.job_number || 'export'}.pdf`
+  const fileName = `${cor.cor_number || 'COR'}_${project?.job_number || 'export'}${tmTickets?.length ? '_with_backup' : ''}.pdf`
   doc.save(fileName)
 }
