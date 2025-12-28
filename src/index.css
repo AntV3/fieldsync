@@ -2252,6 +2252,33 @@ input[type="number"] {
   justify-content: center;
 }
 
+.tm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tm-lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tm-lang-toggle:hover {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
 .tm-step-dots {
   display: flex;
   gap: 0.5rem;

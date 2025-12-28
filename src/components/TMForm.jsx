@@ -1,9 +1,213 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
+
+// Translations for English and Spanish
+const TRANSLATIONS = {
+  en: {
+    // Steps
+    workers: 'Workers',
+    materialsEquipment: 'Materials & Equipment',
+    review: 'Review',
+
+    // Quick Actions
+    quickActions: 'Quick Actions',
+    sameAsYesterday: 'Same as Yesterday',
+    setCrewHours: 'Set Crew Hours',
+    loading: 'Loading...',
+
+    // Worker sections
+    supervision: 'Supervision',
+    operators: 'Operators',
+    laborers: 'Laborers',
+    addSupervision: '+ Add Supervision',
+    addOperator: '+ Add Operator',
+    addLaborer: '+ Add Laborer',
+
+    // Worker fields
+    foreman: 'Foreman',
+    superintendent: 'Superintendent',
+    firstLastName: 'First & Last Name',
+    start: 'Start',
+    end: 'End',
+    regHrs: 'Reg Hrs',
+    otHrs: 'OT Hrs',
+
+    // Materials
+    selectCategory: 'Select a category:',
+    addCustomItem: '+ Add Custom Item',
+    customItem: 'Custom Item',
+    itemName: 'Item Name',
+    category: 'Category',
+    quantity: 'Quantity',
+    addItem: 'Add Item',
+    cancel: 'Cancel',
+    noItemsCategory: 'No items in this category yet',
+
+    // Review
+    workDate: 'Work Date',
+    ceNumber: 'CE/PCO #',
+    optional: 'optional',
+    linkedCOR: 'Link to Change Order',
+    selectCOR: 'Select COR (optional)',
+    noCORs: 'No pending CORs',
+    laborSummary: 'Labor Summary',
+    worker: 'worker',
+    workers_plural: 'workers',
+    totalHours: 'Total Hours',
+    regular: 'Regular',
+    overtime: 'Overtime',
+    materials: 'Materials',
+    item: 'item',
+    items_plural: 'items',
+    noMaterials: 'No materials added',
+    notes: 'Notes',
+    addNotes: 'Add notes about the work performed...',
+    photos: 'Photos',
+    addPhotos: 'Add Photos',
+    maxPhotos: 'max',
+    noPhotos: 'No photos added',
+    certification: 'Certification',
+    certifyStatement: 'I certify that this T&M ticket accurately reflects the work performed.',
+    foremanSignature: "Foreman's Name (Signature)",
+    yourName: 'Your name',
+
+    // Navigation
+    back: 'Back',
+    next: 'Next',
+    nextMaterials: 'Next: Materials',
+    reviewItems: 'Review',
+    skipNoMaterials: 'Skip (no materials)',
+    submitTM: 'Submit T&M',
+    submitting: 'Submitting...',
+
+    // Batch hours modal
+    applySameHours: 'Apply Same Hours',
+    batchDescription: 'Set start/end time and hours for all workers with names entered.',
+    timeStarted: 'Time Started',
+    timeEnded: 'Time Ended',
+    regularHours: 'Regular Hours',
+    overtimeHours: 'Overtime Hours',
+    willApplyTo: 'Will apply to',
+    applyToAll: 'Apply to All',
+
+    // Time presets
+    preset8hr: '8hr Day',
+    preset10hr: '10hr Day',
+    preset4hr: '4hr Day',
+
+    // Toast messages
+    loadedWorkers: 'Loaded {count} workers from {date}',
+    noPreviousCrew: 'No previous crew found for this project',
+    appliedHours: 'Applied hours to {count} worker(s)',
+
+    // COR
+    assignedToCOR: 'Assigned to COR'
+  },
+  es: {
+    // Steps
+    workers: 'Trabajadores',
+    materialsEquipment: 'Materiales y Equipo',
+    review: 'Revisar',
+
+    // Quick Actions
+    quickActions: 'Acciones Rapidas',
+    sameAsYesterday: 'Igual que Ayer',
+    setCrewHours: 'Poner Horas',
+    loading: 'Cargando...',
+
+    // Worker sections
+    supervision: 'Supervision',
+    operators: 'Operadores',
+    laborers: 'Trabajadores',
+    addSupervision: '+ Agregar Supervision',
+    addOperator: '+ Agregar Operador',
+    addLaborer: '+ Agregar Trabajador',
+
+    // Worker fields
+    foreman: 'Capataz',
+    superintendent: 'Superintendente',
+    firstLastName: 'Nombre y Apellido',
+    start: 'Inicio',
+    end: 'Fin',
+    regHrs: 'Hrs Reg',
+    otHrs: 'Hrs Extra',
+
+    // Materials
+    selectCategory: 'Seleccione una categoria:',
+    addCustomItem: '+ Agregar Articulo',
+    customItem: 'Articulo Personalizado',
+    itemName: 'Nombre del Articulo',
+    category: 'Categoria',
+    quantity: 'Cantidad',
+    addItem: 'Agregar',
+    cancel: 'Cancelar',
+    noItemsCategory: 'No hay articulos en esta categoria',
+
+    // Review
+    workDate: 'Fecha de Trabajo',
+    ceNumber: 'CE/PCO #',
+    optional: 'opcional',
+    linkedCOR: 'Vincular a Orden de Cambio',
+    selectCOR: 'Seleccionar COR (opcional)',
+    noCORs: 'No hay CORs pendientes',
+    laborSummary: 'Resumen de Mano de Obra',
+    worker: 'trabajador',
+    workers_plural: 'trabajadores',
+    totalHours: 'Horas Totales',
+    regular: 'Regular',
+    overtime: 'Extra',
+    materials: 'Materiales',
+    item: 'articulo',
+    items_plural: 'articulos',
+    noMaterials: 'No se agregaron materiales',
+    notes: 'Notas',
+    addNotes: 'Agregar notas sobre el trabajo realizado...',
+    photos: 'Fotos',
+    addPhotos: 'Agregar Fotos',
+    maxPhotos: 'max',
+    noPhotos: 'No se agregaron fotos',
+    certification: 'Certificacion',
+    certifyStatement: 'Certifico que este ticket T&M refleja con precision el trabajo realizado.',
+    foremanSignature: 'Nombre del Capataz (Firma)',
+    yourName: 'Su nombre',
+
+    // Navigation
+    back: 'Atras',
+    next: 'Siguiente',
+    nextMaterials: 'Siguiente: Materiales',
+    reviewItems: 'Revisar',
+    skipNoMaterials: 'Saltar (sin materiales)',
+    submitTM: 'Enviar T&M',
+    submitting: 'Enviando...',
+
+    // Batch hours modal
+    applySameHours: 'Aplicar Mismas Horas',
+    batchDescription: 'Establezca hora de inicio/fin y horas para todos los trabajadores.',
+    timeStarted: 'Hora de Inicio',
+    timeEnded: 'Hora de Fin',
+    regularHours: 'Horas Regulares',
+    overtimeHours: 'Horas Extra',
+    willApplyTo: 'Se aplicara a',
+    applyToAll: 'Aplicar a Todos',
+
+    // Time presets
+    preset8hr: 'Dia 8hr',
+    preset10hr: 'Dia 10hr',
+    preset4hr: 'Dia 4hr',
+
+    // Toast messages
+    loadedWorkers: 'Se cargaron {count} trabajadores del {date}',
+    noPreviousCrew: 'No se encontro equipo anterior para este proyecto',
+    appliedHours: 'Horas aplicadas a {count} trabajador(es)',
+
+    // COR
+    assignedToCOR: 'Asignado a COR'
+  }
+}
 
 export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review
@@ -41,6 +245,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Same as Yesterday state
   const [loadingPreviousCrew, setLoadingPreviousCrew] = useState(false)
+
+  // Language state
+  const [lang, setLang] = useState('en')
+  const t = (key) => TRANSLATIONS[lang][key] || key
 
   // Calculate hours from time range (auto-split into regular + OT)
   const calculateHoursFromTimeRange = (startTime, endTime) => {
@@ -707,14 +915,24 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       <div className="tm-wizard-header">
         <button className="tm-back-btn" onClick={goBack}>←</button>
         <h2>
-          {step === 1 && 'Workers'}
-          {step === 2 && 'Materials & Equipment'}
-          {step === 3 && 'Review'}
+          {step === 1 && t('workers')}
+          {step === 2 && t('materialsEquipment')}
+          {step === 3 && t('review')}
         </h2>
-        <div className="tm-step-dots">
-          <span className={`tm-dot ${step >= 1 ? 'active' : ''}`}></span>
-          <span className={`tm-dot ${step >= 2 ? 'active' : ''}`}></span>
-          <span className={`tm-dot ${step >= 3 ? 'active' : ''}`}></span>
+        <div className="tm-header-right">
+          <button
+            className="tm-lang-toggle"
+            onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
+            title={lang === 'en' ? 'Cambiar a Español' : 'Switch to English'}
+          >
+            <Globe size={16} />
+            {lang === 'en' ? 'ES' : 'EN'}
+          </button>
+          <div className="tm-step-dots">
+            <span className={`tm-dot ${step >= 1 ? 'active' : ''}`}></span>
+            <span className={`tm-dot ${step >= 2 ? 'active' : ''}`}></span>
+            <span className={`tm-dot ${step >= 3 ? 'active' : ''}`}></span>
+          </div>
         </div>
       </div>
 
@@ -890,7 +1108,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           <div className="tm-quick-actions-panel">
             <div className="tm-batch-hours-header">
               <Zap size={18} />
-              <span>Quick Actions</span>
+              <span>{t('quickActions')}</span>
             </div>
             <div className="tm-quick-actions-buttons">
               <button
@@ -900,7 +1118,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 disabled={loadingPreviousCrew}
               >
                 <Copy size={16} />
-                {loadingPreviousCrew ? 'Loading...' : 'Same as Yesterday'}
+                {loadingPreviousCrew ? t('loading') : t('sameAsYesterday')}
               </button>
               <button
                 type="button"
@@ -908,14 +1126,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 onClick={() => setShowBatchHoursModal(true)}
               >
                 <Clock size={16} />
-                Set Crew Hours
+                {t('setCrewHours')}
               </button>
             </div>
           </div>
 
           {/* Supervision Section */}
           <div className="tm-field">
-            <label>Supervision</label>
+            <label>{t('supervision')}</label>
             <div className="tm-workers-list">
               {supervision.map((sup, index) => (
                 <div key={index} className="tm-worker-card-expanded">
@@ -925,13 +1143,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                         value={sup.role}
                         onChange={(e) => updateSupervision(index, 'role', e.target.value)}
                       >
-                        <option value="Foreman">Foreman</option>
-                        <option value="Superintendent">Superintendent</option>
+                        <option value="Foreman">{t('foreman')}</option>
+                        <option value="Superintendent">{t('superintendent')}</option>
                       </select>
                     </div>
                     <input
                       type="text"
-                      placeholder="First & Last Name"
+                      placeholder={t('firstLastName')}
                       value={sup.name}
                       onChange={(e) => updateSupervision(index, 'name', e.target.value)}
                       className="tm-worker-input"
@@ -940,7 +1158,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   </div>
                   <div className="tm-worker-row-bottom">
                     <div className="tm-time-group">
-                      <label>Start</label>
+                      <label>{t('start')}</label>
                       <input
                         type="time"
                         value={sup.timeStarted}
@@ -948,7 +1166,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>End</label>
+                      <label>{t('end')}</label>
                       <input
                         type="time"
                         value={sup.timeEnded}
@@ -956,7 +1174,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>Reg Hrs</label>
+                      <label>{t('regHrs')}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -965,7 +1183,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>OT Hrs</label>
+                      <label>{t('otHrs')}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -978,20 +1196,20 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               ))}
             </div>
             <button className="tm-add-btn" onClick={addSupervision}>
-              + Add Supervision
+              {t('addSupervision')}
             </button>
           </div>
 
           {/* Operators Section */}
           <div className="tm-field">
-            <label>Operators</label>
+            <label>{t('operators')}</label>
             <div className="tm-workers-list">
               {operators.map((operator, index) => (
                 <div key={index} className="tm-worker-card-expanded">
                   <div className="tm-worker-row-top">
                     <input
                       type="text"
-                      placeholder="First & Last Name"
+                      placeholder={t('firstLastName')}
                       value={operator.name}
                       onChange={(e) => updateOperator(index, 'name', e.target.value)}
                       className="tm-worker-input"
@@ -1000,7 +1218,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   </div>
                   <div className="tm-worker-row-bottom">
                     <div className="tm-time-group">
-                      <label>Start</label>
+                      <label>{t('start')}</label>
                       <input
                         type="time"
                         value={operator.timeStarted}
@@ -1008,7 +1226,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>End</label>
+                      <label>{t('end')}</label>
                       <input
                         type="time"
                         value={operator.timeEnded}
@@ -1016,7 +1234,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>Reg Hrs</label>
+                      <label>{t('regHrs')}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1025,7 +1243,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>OT Hrs</label>
+                      <label>{t('otHrs')}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1038,20 +1256,20 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               ))}
             </div>
             <button className="tm-add-btn" onClick={addOperator}>
-              + Add Operator
+              {t('addOperator')}
             </button>
           </div>
 
           {/* Laborers Section */}
           <div className="tm-field">
-            <label>Laborers</label>
+            <label>{t('laborers')}</label>
             <div className="tm-workers-list">
               {laborers.map((laborer, index) => (
                 <div key={index} className="tm-worker-card-expanded">
                   <div className="tm-worker-row-top">
                     <input
                       type="text"
-                      placeholder="First & Last Name"
+                      placeholder={t('firstLastName')}
                       value={laborer.name}
                       onChange={(e) => updateLaborer(index, 'name', e.target.value)}
                       className="tm-worker-input"
@@ -1060,7 +1278,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   </div>
                   <div className="tm-worker-row-bottom">
                     <div className="tm-time-group">
-                      <label>Start</label>
+                      <label>{t('start')}</label>
                       <input
                         type="time"
                         value={laborer.timeStarted}
@@ -1068,7 +1286,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>End</label>
+                      <label>{t('end')}</label>
                       <input
                         type="time"
                         value={laborer.timeEnded}
@@ -1076,7 +1294,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>Reg Hrs</label>
+                      <label>{t('regHrs')}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1085,7 +1303,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       />
                     </div>
                     <div className="tm-time-group">
-                      <label>OT Hrs</label>
+                      <label>{t('otHrs')}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -1098,7 +1316,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               ))}
             </div>
             <button className="tm-add-btn" onClick={addLaborer}>
-              + Add Laborer
+              {t('addLaborer')}
             </button>
           </div>
 
@@ -1340,13 +1558,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       {/* Footer */}
       <div className="tm-wizard-footer">
         {step < 3 ? (
-          <button 
-            className="tm-big-btn primary" 
+          <button
+            className="tm-big-btn primary"
             onClick={goNext}
             disabled={step === 1 && !canGoNext()}
           >
-            {step === 1 ? `Next: Materials (${totalWorkers} workers, ${totalRegHours + totalOTHours} hrs)` : 
-             step === 2 ? `Review (${items.length} items)` : 'Next'}
+            {step === 1 ? `${t('nextMaterials')} (${totalWorkers} ${totalWorkers === 1 ? t('worker') : t('workers_plural')}, ${totalRegHours + totalOTHours} hrs)` :
+             step === 2 ? `${t('reviewItems')} (${items.length} ${items.length === 1 ? t('item') : t('items_plural')})` : t('next')}
           </button>
         ) : (
           <button
@@ -1354,13 +1572,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? submitProgress || 'Submitting...' : '✓ Submit T&M'}
+            {submitting ? submitProgress || t('submitting') : `✓ ${t('submitTM')}`}
           </button>
         )}
-        
+
         {step === 2 && (
           <button className="tm-skip-btn" onClick={goNext}>
-            Skip (no materials)
+            {t('skipNoMaterials')}
           </button>
         )}
       </div>
@@ -1369,28 +1587,28 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       {showBatchHoursModal && (
         <div className="tm-modal-overlay" onClick={() => setShowBatchHoursModal(false)}>
           <div className="tm-batch-modal" onClick={(e) => e.stopPropagation()}>
-            <h3><Clock size={18} /> Apply Same Hours</h3>
+            <h3><Clock size={18} /> {t('applySameHours')}</h3>
             <p className="tm-batch-description">
-              Set hours for all workers with names entered. Individual times can still be adjusted afterwards.
+              {t('batchDescription')}
             </p>
 
             {/* Time Presets - Quick Selection */}
             <div className="tm-time-presets">
               <button type="button" className="tm-preset-btn" onClick={() => applyTimePreset('full')}>
-                Full Day (8hr)
+                {t('preset8hr')}
               </button>
               <button type="button" className="tm-preset-btn" onClick={() => applyTimePreset('10hr')}>
-                10-Hour Day
+                {t('preset10hr')}
               </button>
               <button type="button" className="tm-preset-btn" onClick={() => applyTimePreset('half')}>
-                Half Day (4hr)
+                {t('preset4hr')}
               </button>
             </div>
 
             <div className="tm-batch-form">
               <div className="tm-batch-row">
                 <div className="tm-batch-field">
-                  <label>Start Time</label>
+                  <label>{t('timeStarted')}</label>
                   <input
                     type="time"
                     value={batchHours.timeStarted}
@@ -1406,7 +1624,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   />
                 </div>
                 <div className="tm-batch-field">
-                  <label>End Time</label>
+                  <label>{t('timeEnded')}</label>
                   <input
                     type="time"
                     value={batchHours.timeEnded}
@@ -1424,7 +1642,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               </div>
               <div className="tm-batch-row">
                 <div className="tm-batch-field">
-                  <label>Regular Hours</label>
+                  <label>{t('regularHours')}</label>
                   <input
                     type="number"
                     placeholder="8"
@@ -1433,7 +1651,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   />
                 </div>
                 <div className="tm-batch-field">
-                  <label>OT Hours</label>
+                  <label>{t('overtimeHours')}</label>
                   <input
                     type="number"
                     placeholder="0"
@@ -1445,13 +1663,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
 
             <div className="tm-batch-preview">
-              <strong>Will apply to:</strong>
+              <strong>{t('willApplyTo')}:</strong>
               <span>
                 {[
                   ...supervision.filter(s => s.name.trim()),
                   ...operators.filter(o => o.name.trim()),
                   ...laborers.filter(l => l.name.trim())
-                ].length} worker(s) with names entered
+                ].length} {t('workers_plural')}
               </span>
             </div>
 
@@ -1461,7 +1679,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 className="btn btn-secondary"
                 onClick={() => setShowBatchHoursModal(false)}
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -1469,7 +1687,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 onClick={applyBatchHours}
                 disabled={!batchHours.hours && !batchHours.overtimeHours}
               >
-                Apply Hours
+                {t('applyToAll')}
               </button>
             </div>
           </div>
