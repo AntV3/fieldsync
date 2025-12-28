@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
-import { AlertTriangle, UserCheck, UserX, UserMinus, Users, ChevronDown, Shield, User } from 'lucide-react'
+import { AlertTriangle, UserCheck, UserX, UserMinus, Users, ChevronDown, Shield, User, Briefcase } from 'lucide-react'
 
 const ACCESS_LEVEL_OPTIONS = [
   { value: 'member', label: 'Member', icon: User, description: 'Standard access to projects' },
   { value: 'administrator', label: 'Administrator', icon: Shield, description: 'Full control, can manage team' }
+]
+
+const COMPANY_ROLE_OPTIONS = [
+  { value: 'Project Manager', label: 'Project Manager' },
+  { value: 'Superintendent', label: 'Superintendent' },
+  { value: 'Job Costing', label: 'Job Costing' },
+  { value: 'Accounting', label: 'Accounting' }
 ]
 
 export default function MembershipManager({ company, user, onShowToast }) {
@@ -12,7 +19,8 @@ export default function MembershipManager({ company, user, onShowToast }) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
-  const [selectedAccessLevels, setSelectedAccessLevels] = useState({}) // Track access level selection per pending member
+  const [selectedAccessLevels, setSelectedAccessLevels] = useState({})
+  const [selectedCompanyRoles, setSelectedCompanyRoles] = useState({})
 
   useEffect(() => {
     if (company?.id) {
@@ -34,14 +42,26 @@ export default function MembershipManager({ company, user, onShowToast }) {
   }
 
   const handleApprove = async (membership) => {
+    const companyRole = selectedCompanyRoles[membership.id]
+    if (!companyRole) {
+      onShowToast('Please select a role for this member', 'error')
+      return
+    }
+
     try {
       setActionLoading(membership.id)
       const accessLevel = selectedAccessLevels[membership.id] || 'member'
       await db.approveMembershipWithRole(membership.id, user.id, accessLevel)
-      const levelLabel = ACCESS_LEVEL_OPTIONS.find(o => o.value === accessLevel)?.label || accessLevel
-      onShowToast(`${membership.users?.name || membership.users?.email} approved as ${levelLabel}`, 'success')
-      // Clear the access level selection for this membership
+      // Set the company role after approval
+      await db.updateMemberCompanyRole(membership.id, companyRole)
+      onShowToast(`${membership.users?.name || membership.users?.email} approved as ${companyRole}`, 'success')
+      // Clear selections
       setSelectedAccessLevels(prev => {
+        const updated = { ...prev }
+        delete updated[membership.id]
+        return updated
+      })
+      setSelectedCompanyRoles(prev => {
         const updated = { ...prev }
         delete updated[membership.id]
         return updated
@@ -57,6 +77,24 @@ export default function MembershipManager({ company, user, onShowToast }) {
 
   const handleAccessLevelChange = (membershipId, accessLevel) => {
     setSelectedAccessLevels(prev => ({ ...prev, [membershipId]: accessLevel }))
+  }
+
+  const handleCompanyRoleChange = (membershipId, companyRole) => {
+    setSelectedCompanyRoles(prev => ({ ...prev, [membershipId]: companyRole }))
+  }
+
+  const handleUpdateCompanyRole = async (membership, newCompanyRole) => {
+    try {
+      setActionLoading(membership.id)
+      await db.updateMemberCompanyRole(membership.id, newCompanyRole)
+      onShowToast(`${membership.users?.name || 'User'} role updated to ${newCompanyRole}`, 'success')
+      loadMembers()
+    } catch (error) {
+      console.error('Error updating company role:', error)
+      onShowToast('Error updating role', 'error')
+    } finally {
+      setActionLoading(null)
+    }
   }
 
   const handleUpdateAccessLevel = async (membership, newAccessLevel) => {
@@ -210,11 +248,14 @@ export default function MembershipManager({ company, user, onShowToast }) {
                   )}
                 </div>
                 {member.status === 'active' && (
-                  <div className="member-access-level">
+                  <div className="member-badges">
                     {member.access_level === 'administrator' ? (
                       <span className="access-badge admin"><Shield size={12} /> Administrator</span>
                     ) : (
                       <span className="access-badge member"><User size={12} /> Member</span>
+                    )}
+                    {member.company_role && (
+                      <span className="access-badge role"><Briefcase size={12} /> {member.company_role}</span>
                     )}
                   </div>
                 )}
@@ -222,6 +263,20 @@ export default function MembershipManager({ company, user, onShowToast }) {
               <div className="member-actions">
                 {member.status === 'pending' && (
                   <>
+                    <div className="role-selector">
+                      <select
+                        value={selectedCompanyRoles[member.id] || ''}
+                        onChange={(e) => handleCompanyRoleChange(member.id, e.target.value)}
+                        disabled={actionLoading === member.id}
+                        className="role-select"
+                      >
+                        <option value="">Select Role...</option>
+                        {COMPANY_ROLE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="role-select-icon" />
+                    </div>
                     <div className="role-selector">
                       <select
                         value={selectedAccessLevels[member.id] || 'member'}
@@ -257,6 +312,20 @@ export default function MembershipManager({ company, user, onShowToast }) {
                 )}
                 {member.status === 'active' && member.users?.id !== user.id && (
                   <>
+                    <div className="role-selector">
+                      <select
+                        value={member.company_role || ''}
+                        onChange={(e) => handleUpdateCompanyRole(member, e.target.value)}
+                        disabled={actionLoading === member.id}
+                        className="role-select"
+                      >
+                        <option value="">No Role</option>
+                        {COMPANY_ROLE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="role-select-icon" />
+                    </div>
                     <div className="role-selector">
                       <select
                         value={member.access_level || 'member'}

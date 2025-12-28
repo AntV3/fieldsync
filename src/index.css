@@ -17459,8 +17459,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    Access Level Badges
    ============================================ */
 
-.member-access-level {
+.member-access-level,
+.member-badges {
   margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .access-badge {
@@ -17485,6 +17489,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #60a5fa;
 }
 
+.access-badge.role {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
 [data-theme="light"] .access-badge.admin {
   background: rgba(139, 92, 246, 0.12);
   color: #7c3aed;
@@ -17493,6 +17502,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="light"] .access-badge.member {
   background: rgba(59, 130, 246, 0.12);
   color: #2563eb;
+}
+
+[data-theme="light"] .access-badge.role {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
 }
 
 /* ============================================

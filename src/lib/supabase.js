@@ -1404,6 +1404,7 @@ export const db = {
         .select(`
           id,
           access_level,
+          company_role,
           status,
           created_at,
           approved_at,
@@ -1596,6 +1597,18 @@ export const db = {
       const { error } = await supabase
         .from('user_companies')
         .update({ access_level: newAccessLevel })
+        .eq('id', membershipId)
+
+      if (error) throw error
+    }
+  },
+
+  // Update a member's company role (job title)
+  async updateMemberCompanyRole(membershipId, newCompanyRole) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('user_companies')
+        .update({ company_role: newCompanyRole })
         .eq('id', membershipId)
 
       if (error) throw error
