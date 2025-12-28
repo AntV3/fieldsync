@@ -302,11 +302,93 @@ export const db = {
     }
   },
 
+  // Get estimated storage usage for a project (photos only - they're 95% of storage)
+  async getProjectStorageStats(projectId) {
+    if (!isSupabaseConfigured) return { photoCount: 0, estimatedMB: 0 }
+
+    // Get all T&M tickets with photos
+    const { data: tickets, error } = await supabase
+      .from('t_and_m_tickets')
+      .select('photos')
+      .eq('project_id', projectId)
+
+    if (error) throw error
+
+    // Count photos across all tickets
+    let photoCount = 0
+    const photoUrls = []
+    tickets?.forEach(ticket => {
+      if (ticket.photos && Array.isArray(ticket.photos)) {
+        photoCount += ticket.photos.length
+        photoUrls.push(...ticket.photos)
+      }
+    })
+
+    // Estimate: average photo is 1-2MB after compression
+    const estimatedMB = photoCount * 1.5
+
+    return { photoCount, estimatedMB, photoUrls }
+  },
+
+  // Deep archive: archive project AND delete photos to reclaim storage
+  // Call this after user has exported their important documents
+  async archiveProjectDeep(projectId, companyId) {
+    if (!isSupabaseConfigured) return null
+
+    // 1. Get all photo URLs for this project
+    const { photoUrls } = await this.getProjectStorageStats(projectId)
+
+    // 2. Delete all photos from storage
+    if (photoUrls.length > 0) {
+      const filePaths = photoUrls
+        .map(url => {
+          try {
+            const urlObj = new URL(url)
+            const match = urlObj.pathname.match(/\/tm-photos\/(.+)$/)
+            return match ? match[1] : null
+          } catch {
+            return null
+          }
+        })
+        .filter(Boolean)
+
+      if (filePaths.length > 0) {
+        // Delete in batches of 100
+        for (let i = 0; i < filePaths.length; i += 100) {
+          const batch = filePaths.slice(i, i + 100)
+          await supabase.storage.from('tm-photos').remove(batch)
+        }
+      }
+    }
+
+    // 3. Clear photo arrays in tickets (keep ticket data for records)
+    await supabase
+      .from('t_and_m_tickets')
+      .update({ photos: [] })
+      .eq('project_id', projectId)
+
+    // 4. Archive the project with cleanup flag
+    const { data, error } = await supabase
+      .from('projects')
+      .update({
+        status: 'archived',
+        archived_at: new Date().toISOString(),
+        photos: [], // Clear project photos too
+        storage_cleaned: true // Flag that photos were removed
+      })
+      .eq('id', projectId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { ...data, photosDeleted: photoUrls.length }
+  },
+
   async restoreProject(id) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('projects')
-        .update({ 
+        .update({
           status: 'active',
           archived_at: null
         })
