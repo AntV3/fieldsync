@@ -196,9 +196,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Join existing company
+  // Join existing company - supports both new users and existing users joining additional companies
   const joinCompany = async ({ email, password, name, companyCode }) => {
     try {
+      const normalizedEmail = email.toLowerCase().trim()
+
       // 1. Find company by code
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -224,7 +226,7 @@ export function AuthProvider({ children }) {
         .single()
 
       const { count: userCount } = await supabase
-        .from('users')
+        .from('user_companies')
         .select('*', { count: 'exact', head: true })
         .eq('company_id', companyData.id)
 
@@ -232,29 +234,98 @@ export function AuthProvider({ children }) {
         throw new Error('Company has reached maximum users for their plan')
       }
 
-      // 3. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password
-      })
-
-      if (authError) throw authError
-
-      // 4. Create user record
-      const { data: userData, error: userError } = await supabase
+      // 3. Check if user already exists
+      const { data: existingUser } = await supabase
         .from('users')
-        .insert({
-          id: authData.user.id,
-          email,
-          name,
-          company_id: companyData.id,
-          role: 'member',
-          password_hash: 'managed_by_supabase_auth'
-        })
-        .select()
-        .single()
+        .select('id, email')
+        .eq('email', normalizedEmail)
+        .maybeSingle()
 
-      if (userError) throw userError
+      let userId
+      let userData
+
+      if (existingUser) {
+        // EXISTING USER - verify password and add to new company
+        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password
+        })
+
+        if (signInError) {
+          throw new Error('Account exists with this email. Enter correct password to join.')
+        }
+
+        userId = authData.user.id
+
+        // Check if already in this company (any status)
+        const { data: existingMembership } = await supabase
+          .from('user_companies')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('company_id', companyData.id)
+          .maybeSingle()
+
+        if (existingMembership) {
+          if (existingMembership.status === 'active') {
+            throw new Error('You already belong to this company')
+          } else if (existingMembership.status === 'pending') {
+            throw new Error('Your request is still pending approval')
+          } else {
+            throw new Error('Your membership was removed. Contact the company admin.')
+          }
+        }
+
+        // Add to user_companies with PENDING status
+        await supabase
+          .from('user_companies')
+          .insert({
+            user_id: userId,
+            company_id: companyData.id,
+            role: 'member',
+            status: 'pending'
+          })
+
+        userData = existingUser
+
+      } else {
+        // NEW USER - create auth account and user record
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password
+        })
+
+        if (authError) throw authError
+
+        userId = authData.user.id
+
+        // Create user record
+        const { data: newUserData, error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: normalizedEmail,
+            name,
+            company_id: companyData.id,
+            role: 'member',
+            password_hash: 'managed_by_supabase_auth'
+          })
+          .select()
+          .single()
+
+        if (userError) throw userError
+
+        userData = newUserData
+
+        // Add to user_companies junction table with PENDING status
+        await supabase
+          .from('user_companies')
+          .insert({
+            user_id: userId,
+            company_id: companyData.id,
+            role: 'member',
+            status: 'pending'
+          })
+      }
 
       return { user: userData, company: companyData }
     } catch (error) {

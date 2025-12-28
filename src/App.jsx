@@ -10,6 +10,7 @@ import BrandingSettings from './components/BrandingSettings'
 import PricingManager from './components/PricingManager'
 import PublicView from './components/PublicView'
 import SignaturePage from './components/SignaturePage'
+import MembershipManager from './components/MembershipManager'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
 import NotificationCenter from './components/NotificationCenter'
@@ -18,7 +19,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
 
 export default function App() {
-  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature'
+  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature', 'pending'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
   const [userCompanies, setUserCompanies] = useState([]) // All companies user can access
@@ -31,6 +32,7 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
+  const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
   useEffect(() => {
     // Check if this is a public share link or signature link
@@ -71,9 +73,40 @@ export default function App() {
       if (userData) {
         setUser(userData)
 
-        // Fetch all companies user has access to
-        const companies = await db.getUserCompanies(user.id)
+        // Fetch all companies user has ACTIVE access to
+        let companies = await db.getUserCompanies(user.id)
+
+        // If no active companies, check if this is a legacy user
+        if (companies.length === 0 && userData.company_id) {
+          // Legacy user detected - attempt repair
+          console.log('Legacy user detected, attempting repair...')
+          const repaired = await db.repairLegacyUser(
+            user.id,
+            userData.company_id,
+            userData.role || 'member'
+          )
+
+          if (repaired) {
+            // Retry fetching companies after repair
+            companies = await db.getUserCompanies(user.id)
+            console.log('Legacy user repaired, companies:', companies.length)
+          }
+        }
+
         setUserCompanies(companies)
+
+        // If still no active companies, check for pending memberships
+        if (companies.length === 0) {
+          const pendingCount = await db.getUserPendingMemberships(user.id)
+          if (pendingCount > 0) {
+            setView('pending')
+            return
+          }
+          // No active or pending - show entry screen
+          showToast('No company access. Join a company to continue.', 'error')
+          await auth.signOut()
+          return
+        }
 
         // Use saved company or first available
         const savedCompanyId = localStorage.getItem('selectedCompanyId')
@@ -83,14 +116,6 @@ export default function App() {
           selectedCompany = companies.find(c => c.id === savedCompanyId)
         } else if (companies.length > 0) {
           selectedCompany = companies[0]
-        } else if (userData.company_id) {
-          // Fallback to user's default company
-          const { data: companyData } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('id', userData.company_id)
-            .single()
-          selectedCompany = companyData
         }
 
         if (selectedCompany) {
@@ -148,7 +173,25 @@ export default function App() {
         setUser(userData)
 
         // Fetch all companies user has access to
-        const companies = await db.getUserCompanies(data.user.id)
+        let companies = await db.getUserCompanies(data.user.id)
+
+        // If no active companies, check if this is a legacy user
+        if (companies.length === 0 && userData.company_id) {
+          // Legacy user detected - attempt repair
+          console.log('Legacy user detected on login, attempting repair...')
+          const repaired = await db.repairLegacyUser(
+            data.user.id,
+            userData.company_id,
+            userData.role || 'member'
+          )
+
+          if (repaired) {
+            // Retry fetching companies after repair
+            companies = await db.getUserCompanies(data.user.id)
+            console.log('Legacy user repaired on login, companies:', companies.length)
+          }
+        }
+
         setUserCompanies(companies)
 
         // Use saved company or first available
@@ -159,14 +202,6 @@ export default function App() {
           selectedCompany = companies.find(c => c.id === savedCompanyId)
         } else if (companies.length > 0) {
           selectedCompany = companies[0]
-        } else if (userData.company_id) {
-          // Fallback to user's default company
-          const { data: companyData } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('id', userData.company_id)
-            .single()
-          selectedCompany = companyData
         }
 
         if (selectedCompany) {
@@ -180,7 +215,13 @@ export default function App() {
           setCompany(fullCompany)
           setView('office')
         } else {
-          showToast('No company access. Please contact admin.', 'error')
+          // Check if there are pending memberships
+          const pendingCount = await db.getUserPendingMemberships(data.user.id)
+          if (pendingCount > 0) {
+            setView('pending')
+          } else {
+            showToast('No company access. Please contact admin.', 'error')
+          }
         }
       } else {
         showToast('Profile not found. Please contact admin.', 'error')
@@ -260,8 +301,21 @@ export default function App() {
   useEffect(() => {
     if (company?.id && view === 'office') {
       loadProjects()
+      loadPendingRequestCount()
     }
   }, [company?.id, view])
+
+  // Load pending membership request count (for admin badge)
+  const loadPendingRequestCount = async () => {
+    if (!company?.id) return
+    try {
+      const memberships = await db.getCompanyMemberships(company.id)
+      const pendingCount = memberships.filter(m => m.status === 'pending').length
+      setPendingRequestCount(pendingCount)
+    } catch (error) {
+      console.error('Error loading pending count:', error)
+    }
+  }
 
   // Handle notification click - navigate to relevant project
   const handleNotificationClick = (notification) => {
@@ -361,6 +415,39 @@ export default function App() {
     )
   }
 
+  // Pending Approval View (User awaiting admin approval)
+  if (view === 'pending') {
+    return (
+      <ThemeProvider>
+        <BrandingProvider>
+          <ErrorBoundary>
+            <div className="pending-approval-screen">
+              <Logo className="pending-logo" />
+              <h2>Awaiting Approval</h2>
+              <p>Your membership request has been submitted.</p>
+              <p>A company admin will review your request.</p>
+              <div className="pending-actions">
+                <button className="btn btn-secondary" onClick={handleLogout}>
+                  Sign Out
+                </button>
+                <button className="btn btn-primary" onClick={checkAuth}>
+                  Check Status
+                </button>
+              </div>
+            </div>
+          </ErrorBoundary>
+          {toast && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
+          )}
+        </BrandingProvider>
+      </ThemeProvider>
+    )
+  }
+
   // Foreman View
   if (view === 'foreman' && foremanProject) {
     return (
@@ -386,6 +473,9 @@ export default function App() {
       </ThemeProvider>
     )
   }
+
+  // Check if user is owner or admin (for Team tab visibility)
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner' || company?.owner_user_id === user?.id
 
   // Office View (full dashboard)
   return (
@@ -428,6 +518,17 @@ export default function App() {
               >
                 Branding
               </button>
+              {isAdmin && (
+                <button
+                  className={`nav-tab ${activeTab === 'team' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('team')}
+                >
+                  Team
+                  {pendingRequestCount > 0 && (
+                    <span className="nav-tab-badge">{pendingRequestCount}</span>
+                  )}
+                </button>
+              )}
             </div>
             <div className="nav-user">
               {/* Theme Toggle */}
@@ -507,6 +608,13 @@ export default function App() {
             {activeTab === 'branding' && (
               <BrandingSettings
                 company={company}
+                onShowToast={showToast}
+              />
+            )}
+            {activeTab === 'team' && isAdmin && (
+              <MembershipManager
+                company={company}
+                user={user}
                 onShowToast={showToast}
               />
             )}

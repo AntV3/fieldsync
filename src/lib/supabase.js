@@ -1342,7 +1342,7 @@ export const db = {
     return null
   },
 
-  // Get all companies a user has access to
+  // Get all companies a user has ACTIVE access to
   async getUserCompanies(userId) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
@@ -1351,6 +1351,7 @@ export const db = {
           id,
           role,
           company_id,
+          status,
           companies (
             id,
             name,
@@ -1358,6 +1359,7 @@ export const db = {
           )
         `)
         .eq('user_id', userId)
+        .eq('status', 'active')
         .order('created_at', { ascending: true })
 
       if (error) {
@@ -1374,6 +1376,168 @@ export const db = {
       }))
     }
     return []
+  },
+
+  // Get count of pending memberships for a user
+  async getUserPendingMemberships(userId) {
+    if (isSupabaseConfigured) {
+      const { count, error } = await supabase
+        .from('user_companies')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+
+      if (error) {
+        console.error('Error fetching pending memberships:', error)
+        return 0
+      }
+      return count || 0
+    }
+    return 0
+  },
+
+  // Get all memberships for a company (for admin view)
+  async getCompanyMemberships(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('user_companies')
+        .select(`
+          id,
+          role,
+          status,
+          created_at,
+          approved_at,
+          approved_by,
+          removed_at,
+          removed_by,
+          users (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching company memberships:', error)
+        return []
+      }
+      return data || []
+    }
+    return []
+  },
+
+  // Approve a pending membership
+  async approveMembership(membershipId, approvedBy) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('user_companies')
+        .update({
+          status: 'active',
+          approved_at: new Date().toISOString(),
+          approved_by: approvedBy
+        })
+        .eq('id', membershipId)
+
+      if (error) throw error
+    }
+  },
+
+  // Approve a pending membership with role assignment (uses RPC for security)
+  async approveMembershipWithRole(membershipId, approvedBy, role = 'member') {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.rpc('approve_membership_with_role', {
+        membership_id: membershipId,
+        approved_by_user: approvedBy,
+        new_role: role
+      })
+
+      if (error) throw error
+    }
+  },
+
+  // Reject a pending membership (hard delete)
+  async rejectMembership(membershipId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('user_companies')
+        .delete()
+        .eq('id', membershipId)
+
+      if (error) throw error
+    }
+  },
+
+  // Remove an active member (soft delete)
+  async removeMember(membershipId, removedBy) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('user_companies')
+        .update({
+          status: 'removed',
+          removed_at: new Date().toISOString(),
+          removed_by: removedBy
+        })
+        .eq('id', membershipId)
+
+      if (error) throw error
+    }
+  },
+
+  // Repair legacy user - creates missing user_companies record
+  // Called when user has company_id but no active memberships
+  // Uses RPC function to bypass RLS restrictions
+  async repairLegacyUser(userId, companyId, role = 'member') {
+    if (!isSupabaseConfigured || !userId || !companyId) return false
+
+    try {
+      // Use RPC function which has SECURITY DEFINER to bypass RLS
+      const { data, error } = await supabase.rpc('repair_legacy_user', {
+        p_user_id: userId,
+        p_company_id: companyId,
+        p_role: role
+      })
+
+      if (error) {
+        console.error('RPC repair_legacy_user failed:', error)
+        return false
+      }
+
+      console.log('Legacy user repaired via RPC:', data)
+      return data === true
+    } catch (error) {
+      console.error('Error repairing legacy user:', error)
+      return false
+    }
+  },
+
+  // Check if user is a legacy user (has company_id but no memberships)
+  async isLegacyUser(userId) {
+    if (!isSupabaseConfigured) return false
+
+    try {
+      // Get user's company_id
+      const { data: user } = await supabase
+        .from('users')
+        .select('company_id, role')
+        .eq('id', userId)
+        .single()
+
+      if (!user?.company_id) return false
+
+      // Check if any user_companies records exist
+      const { count } = await supabase
+        .from('user_companies')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+
+      // Legacy user if has company_id but no memberships
+      return count === 0
+    } catch (error) {
+      console.error('Error checking legacy user:', error)
+      return false
+    }
   },
 
   // ============================================

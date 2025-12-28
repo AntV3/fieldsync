@@ -157,7 +157,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     }
   }
 
-  // Handle join submit
+  // Handle join submit - supports both new users and existing users joining additional companies
   const handleJoinSubmit = async () => {
     if (!joinName.trim()) {
       onShowToast('Enter your name', 'error')
@@ -174,53 +174,120 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
     setLoading(true)
     try {
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: joinEmail,
-        password: joinPassword
-      })
-      
-      if (authError) throw authError
+      const normalizedEmail = joinEmail.toLowerCase().trim()
 
-      const userId = authData.user?.id
-      if (!userId) throw new Error('Failed to create user')
-
-      // 2. Create user record
-      const { error: userError } = await supabase
+      // 1. Check if user already exists in our users table
+      const { data: existingUser } = await supabase
         .from('users')
-        .insert({
-          id: userId,
-          email: joinEmail,
-          password_hash: 'managed_by_supabase_auth',
-          name: joinName.trim(),
-          company_id: joinCompany.id,
-          role: 'member',
-          is_active: true
+        .select('id, email')
+        .eq('email', normalizedEmail)
+        .maybeSingle()
+
+      let userId
+
+      if (existingUser) {
+        // EXISTING USER - verify their password and add them to the new company
+        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: joinPassword
         })
 
-      if (userError) throw userError
+        if (signInError) {
+          // Password doesn't match their existing account
+          onShowToast('Account exists. Enter correct password to join this company.', 'error')
+          setLoading(false)
+          return
+        }
 
-      // 3. Add to user_companies junction table for multi-company support
-      const { error: ucError } = await supabase
-        .from('user_companies')
-        .insert({
-          user_id: userId,
-          company_id: joinCompany.id,
-          role: 'member'
+        userId = authData.user.id
+
+        // Check if they're already a member of this company (any status)
+        const { data: existingMembership } = await supabase
+          .from('user_companies')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('company_id', joinCompany.id)
+          .maybeSingle()
+
+        if (existingMembership) {
+          if (existingMembership.status === 'active') {
+            onShowToast('You already belong to this company. Logging you in...', 'success')
+            setTimeout(() => window.location.reload(), 1000)
+          } else if (existingMembership.status === 'pending') {
+            onShowToast('Your request is still pending approval.', 'error')
+          } else {
+            onShowToast('Your membership was removed. Contact the company admin.', 'error')
+          }
+          return
+        }
+
+        // Add existing user to new company via user_companies with PENDING status
+        const { error: ucError } = await supabase
+          .from('user_companies')
+          .insert({
+            user_id: userId,
+            company_id: joinCompany.id,
+            role: 'member',
+            status: 'pending'
+          })
+
+        if (ucError) {
+          console.error('Error adding to user_companies:', ucError)
+          throw new Error('Failed to submit join request')
+        }
+
+        // Sign out so they see the pending screen on next login
+        await supabase.auth.signOut()
+        onShowToast('Request submitted! Awaiting admin approval.', 'success')
+        // Don't reload - stay on entry screen
+
+      } else {
+        // NEW USER - create auth account and user record
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password: joinPassword
         })
 
-      if (ucError) {
-        console.error('Error adding to user_companies:', ucError)
-        // Don't throw - user was created, they can still login
+        if (authError) throw authError
+
+        userId = authData.user?.id
+        if (!userId) throw new Error('Failed to create user')
+
+        // Create user record (company_id is their first/primary company)
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: normalizedEmail,
+            password_hash: 'managed_by_supabase_auth',
+            name: joinName.trim(),
+            company_id: joinCompany.id,
+            role: 'member',
+            is_active: true
+          })
+
+        if (userError) throw userError
+
+        // Add to user_companies junction table with PENDING status
+        const { error: ucError } = await supabase
+          .from('user_companies')
+          .insert({
+            user_id: userId,
+            company_id: joinCompany.id,
+            role: 'member',
+            status: 'pending'
+          })
+
+        if (ucError) {
+          console.error('Error adding to user_companies:', ucError)
+          throw new Error('Failed to submit join request')
+        }
+
+        // Sign out - they need admin approval first
+        await supabase.auth.signOut()
+        onShowToast('Account created! Awaiting admin approval.', 'success')
+        // Don't reload - stay on entry screen
       }
-
-      // 4. Show success and reload
-      onShowToast('Account created! Logging you in...', 'success')
-      
-      // Small delay then reload to trigger auth
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
 
     } catch (err) {
       console.error('Join error:', err)
