@@ -1349,7 +1349,7 @@ export const db = {
         .from('user_companies')
         .select(`
           id,
-          role,
+          access_level,
           company_id,
           status,
           companies (
@@ -1372,7 +1372,7 @@ export const db = {
         id: uc.companies.id,
         name: uc.companies.name,
         code: uc.companies.code,
-        role: uc.role
+        access_level: uc.access_level
       }))
     }
     return []
@@ -1403,7 +1403,7 @@ export const db = {
         .from('user_companies')
         .select(`
           id,
-          role,
+          access_level,
           status,
           created_at,
           approved_at,
@@ -1444,13 +1444,13 @@ export const db = {
     }
   },
 
-  // Approve a pending membership with role assignment (uses RPC for security)
-  async approveMembershipWithRole(membershipId, approvedBy, role = 'member') {
+  // Approve a pending membership with access level assignment (uses RPC for security)
+  async approveMembershipWithRole(membershipId, approvedBy, accessLevel = 'member') {
     if (isSupabaseConfigured) {
       const { error } = await supabase.rpc('approve_membership_with_role', {
         membership_id: membershipId,
         approved_by_user: approvedBy,
-        new_role: role
+        new_access_level: accessLevel
       })
 
       if (error) throw error
@@ -1479,6 +1479,123 @@ export const db = {
           removed_at: new Date().toISOString(),
           removed_by: removedBy
         })
+        .eq('id', membershipId)
+
+      if (error) throw error
+    }
+  },
+
+  // ============================================
+  // Project Team Management
+  // ============================================
+
+  // Get all team members assigned to a project
+  async getProjectTeam(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('project_users')
+        .select(`
+          id,
+          project_role,
+          assigned_at,
+          notes,
+          users!project_users_user_id_fkey (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('project_id', projectId)
+        .order('assigned_at', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching project team:', error)
+        return []
+      }
+      return data || []
+    }
+    return []
+  },
+
+  // Get all company members (for adding to project)
+  async getCompanyMembers(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('user_companies')
+        .select(`
+          id,
+          access_level,
+          users!user_companies_user_id_fkey (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching company members:', error)
+        return []
+      }
+      return data || []
+    }
+    return []
+  },
+
+  // Add a user to a project with a role
+  async addProjectMember(projectId, userId, projectRole, assignedBy) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('project_users')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          project_role: projectRole,
+          assigned_by: assignedBy
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Update a project member's role
+  async updateProjectMemberRole(projectId, userId, newRole) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('project_users')
+        .update({ project_role: newRole })
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+
+      if (error) throw error
+    }
+  },
+
+  // Remove a user from a project
+  async removeProjectMember(projectId, userId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('project_users')
+        .delete()
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+
+      if (error) throw error
+    }
+  },
+
+  // Update a member's access level
+  async updateMemberAccessLevel(membershipId, newAccessLevel) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('user_companies')
+        .update({ access_level: newAccessLevel })
         .eq('id', membershipId)
 
       if (error) throw error

@@ -474,11 +474,11 @@ export default function App() {
     )
   }
 
-  // Check if user is owner or admin (for Team tab visibility)
-  // Get user's role in the current company from userCompanies
+  // Check if user is administrator (for Team tab visibility)
+  // Get user's access level in the current company from userCompanies
   const currentMembership = userCompanies.find(uc => uc.id === company?.id)
-  const membershipRole = currentMembership?.role
-  const isAdmin = membershipRole === 'admin' || membershipRole === 'owner' || company?.owner_user_id === user?.id
+  const accessLevel = currentMembership?.access_level
+  const isAdmin = accessLevel === 'administrator' || company?.owner_user_id === user?.id
 
   // Office View (full dashboard)
   return (
@@ -589,6 +589,8 @@ export default function App() {
             {activeTab === 'dashboard' && (
               <Dashboard
                 company={company}
+                user={user}
+                isAdmin={isAdmin}
                 onShowToast={showToast}
                 navigateToProjectId={navigateToProjectId}
                 onProjectNavigated={handleProjectNavigated}

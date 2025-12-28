@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
-import { AlertTriangle, UserCheck, UserX, UserMinus, Users, ChevronDown } from 'lucide-react'
+import { AlertTriangle, UserCheck, UserX, UserMinus, Users, ChevronDown, Shield, User } from 'lucide-react'
 
-const ROLE_OPTIONS = [
-  { value: 'member', label: 'Member' },
-  { value: 'office', label: 'Office' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'foreman', label: 'Foreman' }
+const ACCESS_LEVEL_OPTIONS = [
+  { value: 'member', label: 'Member', icon: User, description: 'Standard access to projects' },
+  { value: 'administrator', label: 'Administrator', icon: Shield, description: 'Full control, can manage team' }
 ]
 
 export default function MembershipManager({ company, user, onShowToast }) {
@@ -14,7 +12,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
-  const [selectedRoles, setSelectedRoles] = useState({}) // Track role selection per pending member
+  const [selectedAccessLevels, setSelectedAccessLevels] = useState({}) // Track access level selection per pending member
 
   useEffect(() => {
     if (company?.id) {
@@ -38,11 +36,12 @@ export default function MembershipManager({ company, user, onShowToast }) {
   const handleApprove = async (membership) => {
     try {
       setActionLoading(membership.id)
-      const role = selectedRoles[membership.id] || 'member'
-      await db.approveMembershipWithRole(membership.id, user.id, role)
-      onShowToast(`${membership.users?.name || membership.users?.email} approved as ${role}`, 'success')
-      // Clear the role selection for this membership
-      setSelectedRoles(prev => {
+      const accessLevel = selectedAccessLevels[membership.id] || 'member'
+      await db.approveMembershipWithRole(membership.id, user.id, accessLevel)
+      const levelLabel = ACCESS_LEVEL_OPTIONS.find(o => o.value === accessLevel)?.label || accessLevel
+      onShowToast(`${membership.users?.name || membership.users?.email} approved as ${levelLabel}`, 'success')
+      // Clear the access level selection for this membership
+      setSelectedAccessLevels(prev => {
         const updated = { ...prev }
         delete updated[membership.id]
         return updated
@@ -56,8 +55,29 @@ export default function MembershipManager({ company, user, onShowToast }) {
     }
   }
 
-  const handleRoleChange = (membershipId, role) => {
-    setSelectedRoles(prev => ({ ...prev, [membershipId]: role }))
+  const handleAccessLevelChange = (membershipId, accessLevel) => {
+    setSelectedAccessLevels(prev => ({ ...prev, [membershipId]: accessLevel }))
+  }
+
+  const handleUpdateAccessLevel = async (membership, newAccessLevel) => {
+    // Don't allow demoting yourself
+    if (membership.users?.id === user.id && newAccessLevel !== 'administrator') {
+      onShowToast('You cannot demote yourself', 'error')
+      return
+    }
+
+    try {
+      setActionLoading(membership.id)
+      await db.updateMemberAccessLevel(membership.id, newAccessLevel)
+      const levelLabel = ACCESS_LEVEL_OPTIONS.find(o => o.value === newAccessLevel)?.label || newAccessLevel
+      onShowToast(`${membership.users?.name || 'User'} is now ${levelLabel}`, 'success')
+      loadMembers()
+    } catch (error) {
+      console.error('Error updating access level:', error)
+      onShowToast('Error updating access level', 'error')
+    } finally {
+      setActionLoading(null)
+    }
   }
 
   const handleReject = async (membership) => {
@@ -189,21 +209,27 @@ export default function MembershipManager({ company, user, onShowToast }) {
                     <>Removed {new Date(member.removed_at).toLocaleDateString()}</>
                   )}
                 </div>
-                <div className="member-role">
-                  Role: <span className="member-role-value">{member.role}</span>
-                </div>
+                {member.status === 'active' && (
+                  <div className="member-access-level">
+                    {member.access_level === 'administrator' ? (
+                      <span className="access-badge admin"><Shield size={12} /> Administrator</span>
+                    ) : (
+                      <span className="access-badge member"><User size={12} /> Member</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="member-actions">
                 {member.status === 'pending' && (
                   <>
                     <div className="role-selector">
                       <select
-                        value={selectedRoles[member.id] || 'member'}
-                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                        value={selectedAccessLevels[member.id] || 'member'}
+                        onChange={(e) => handleAccessLevelChange(member.id, e.target.value)}
                         disabled={actionLoading === member.id}
                         className="role-select"
                       >
-                        {ROLE_OPTIONS.map(opt => (
+                        {ACCESS_LEVEL_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                       </select>
@@ -230,15 +256,30 @@ export default function MembershipManager({ company, user, onShowToast }) {
                   </>
                 )}
                 {member.status === 'active' && member.users?.id !== user.id && (
-                  <button
-                    className="btn btn-danger btn-small"
-                    onClick={() => handleRemove(member)}
-                    disabled={actionLoading === member.id}
-                  >
-                    {actionLoading === member.id ? '...' : (
-                      <><UserMinus size={16} /> Remove</>
-                    )}
-                  </button>
+                  <>
+                    <div className="role-selector">
+                      <select
+                        value={member.access_level || 'member'}
+                        onChange={(e) => handleUpdateAccessLevel(member, e.target.value)}
+                        disabled={actionLoading === member.id}
+                        className="role-select"
+                      >
+                        {ACCESS_LEVEL_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="role-select-icon" />
+                    </div>
+                    <button
+                      className="btn btn-danger btn-small"
+                      onClick={() => handleRemove(member)}
+                      disabled={actionLoading === member.id}
+                    >
+                      {actionLoading === member.id ? '...' : (
+                        <><UserMinus size={16} /> Remove</>
+                      )}
+                    </button>
+                  </>
                 )}
               </div>
             </div>

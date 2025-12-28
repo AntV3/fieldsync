@@ -17,8 +17,9 @@ import BurnRateCard from './BurnRateCard'
 import CostContributorsCard from './CostContributorsCard'
 import ProfitabilityCard from './ProfitabilityCard'
 import AddCostModal from './AddCostModal'
+import ProjectTeam from './ProjectTeam'
 
-export default function Dashboard({ company, onShowToast, navigateToProjectId, onProjectNavigated }) {
+export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
   const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
@@ -1700,6 +1701,15 @@ export default function Dashboard({ company, onShowToast, navigateToProjectId, o
                   ))}
                 </div>
               </div>
+
+              {/* Project Team */}
+              <ProjectTeam
+                project={selectedProject}
+                company={company}
+                user={user}
+                isAdmin={isAdmin}
+                onShowToast={onShowToast}
+              />
 
               {/* Project Settings - Collapsible */}
               <details className="info-details-section">
