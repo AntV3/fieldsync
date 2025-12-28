@@ -15325,7 +15325,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: #f8fafc;
+  background: var(--bg-elevated);
   border-radius: 6px;
   font-size: 0.85rem;
   margin-bottom: 1rem;
