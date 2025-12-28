@@ -515,12 +515,14 @@ export default function App() {
               >
                 Pricing
               </button>
-              <button
-                className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
-                onClick={() => setActiveTab('branding')}
-              >
-                Branding
-              </button>
+              {isAdmin && (
+                <button
+                  className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('branding')}
+                >
+                  Branding
+                </button>
+              )}
               {isAdmin && (
                 <button
                   className={`nav-tab ${activeTab === 'team' ? 'active' : ''}`}
