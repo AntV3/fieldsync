@@ -475,7 +475,10 @@ export default function App() {
   }
 
   // Check if user is owner or admin (for Team tab visibility)
-  const isAdmin = user?.role === 'admin' || user?.role === 'owner' || company?.owner_user_id === user?.id
+  // Get user's role in the current company from userCompanies
+  const currentMembership = userCompanies.find(uc => uc.id === company?.id)
+  const membershipRole = currentMembership?.role
+  const isAdmin = membershipRole === 'admin' || membershipRole === 'owner' || company?.owner_user_id === user?.id
 
   // Office View (full dashboard)
   return (
