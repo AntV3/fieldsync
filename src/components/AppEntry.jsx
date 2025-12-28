@@ -176,30 +176,33 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     try {
       const normalizedEmail = joinEmail.toLowerCase().trim()
 
-      // 1. Check if user already exists in our users table
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('email', normalizedEmail)
-        .maybeSingle()
+      // Try to create a new user first
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password: joinPassword
+      })
 
       let userId
 
-      if (existingUser) {
+      // Check if user already exists (signUp returns error or user with identities = [])
+      const userAlreadyExists = authError?.message?.includes('already registered') ||
+        (authData?.user && authData.user.identities?.length === 0)
+
+      if (userAlreadyExists) {
         // EXISTING USER - verify their password and add them to the new company
-        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: normalizedEmail,
           password: joinPassword
         })
 
         if (signInError) {
           // Password doesn't match their existing account
-          onShowToast('Account exists. Enter correct password to join this company.', 'error')
+          onShowToast('Account exists with different password. Use your existing password.', 'error')
           setLoading(false)
           return
         }
 
-        userId = authData.user.id
+        userId = signInData.user.id
 
         // Check if they're already a member of this company (any status)
         const { data: existingMembership } = await supabase
@@ -215,13 +218,15 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
             setTimeout(() => window.location.reload(), 1000)
           } else if (existingMembership.status === 'pending') {
             onShowToast('Your request is still pending approval.', 'error')
+            await supabase.auth.signOut()
           } else {
             onShowToast('Your membership was removed. Contact the company admin.', 'error')
+            await supabase.auth.signOut()
           }
           return
         }
 
-        // Add existing user to new company via user_companies with PENDING status
+        // Add existing user to new company with PENDING status
         const { error: ucError } = await supabase
           .from('user_companies')
           .insert({
@@ -233,23 +238,20 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
         if (ucError) {
           console.error('Error adding to user_companies:', ucError)
+          await supabase.auth.signOut()
           throw new Error('Failed to submit join request')
         }
 
         // Sign out so they see the pending screen on next login
         await supabase.auth.signOut()
-        onShowToast('Request submitted! Awaiting admin approval.', 'success')
-        // Don't reload - stay on entry screen
+        onShowToast('Request to join submitted! Awaiting admin approval.', 'success')
+
+      } else if (authError) {
+        // Some other signup error
+        throw authError
 
       } else {
-        // NEW USER - create auth account and user record
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: normalizedEmail,
-          password: joinPassword
-        })
-
-        if (authError) throw authError
-
+        // NEW USER - signup succeeded
         userId = authData.user?.id
         if (!userId) throw new Error('Failed to create user')
 
@@ -286,7 +288,6 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         // Sign out - they need admin approval first
         await supabase.auth.signOut()
         onShowToast('Account created! Awaiting admin approval.', 'success')
-        // Don't reload - stay on entry screen
       }
 
     } catch (err) {

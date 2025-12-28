@@ -1410,7 +1410,7 @@ export const db = {
           approved_by,
           removed_at,
           removed_by,
-          users (
+          users!user_companies_user_id_fkey (
             id,
             name,
             email
