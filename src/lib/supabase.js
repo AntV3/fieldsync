@@ -1170,6 +1170,68 @@ export const db = {
     }
   },
 
+  // Get the most recent ticket's crew for "Same as Yesterday" feature
+  async getPreviousTicketCrew(projectId, beforeDate) {
+    if (!isSupabaseConfigured) return null
+
+    // Find the most recent ticket before the given date
+    const { data: ticket, error } = await supabase
+      .from('t_and_m_tickets')
+      .select(`
+        id,
+        work_date,
+        t_and_m_workers (*)
+      `)
+      .eq('project_id', projectId)
+      .lt('work_date', beforeDate)
+      .order('work_date', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error || !ticket) return null
+
+    // Group workers by role
+    const workers = ticket.t_and_m_workers || []
+    const supervision = workers
+      .filter(w => ['Foreman', 'General Foreman', 'Superintendent'].includes(w.role))
+      .map(w => ({
+        name: w.name,
+        hours: w.hours?.toString() || '',
+        overtimeHours: w.overtime_hours?.toString() || '',
+        timeStarted: w.time_started || '',
+        timeEnded: w.time_ended || '',
+        role: w.role
+      }))
+
+    const operators = workers
+      .filter(w => w.role === 'Operator')
+      .map(w => ({
+        name: w.name,
+        hours: w.hours?.toString() || '',
+        overtimeHours: w.overtime_hours?.toString() || '',
+        timeStarted: w.time_started || '',
+        timeEnded: w.time_ended || ''
+      }))
+
+    const laborers = workers
+      .filter(w => w.role === 'Laborer')
+      .map(w => ({
+        name: w.name,
+        hours: w.hours?.toString() || '',
+        overtimeHours: w.overtime_hours?.toString() || '',
+        timeStarted: w.time_started || '',
+        timeEnded: w.time_ended || ''
+      }))
+
+    return {
+      workDate: ticket.work_date,
+      supervision: supervision.length > 0 ? supervision : null,
+      operators: operators.length > 0 ? operators : null,
+      laborers: laborers.length > 0 ? laborers : null,
+      totalWorkers: workers.length
+    }
+  },
+
   async updateTMTicketStatus(ticketId, status) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase

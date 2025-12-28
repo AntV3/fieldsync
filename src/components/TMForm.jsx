@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 
@@ -38,6 +38,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [loadingItems, setLoadingItems] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customItem, setCustomItem] = useState({ name: '', category: '', quantity: '' })
+
+  // Same as Yesterday state
+  const [loadingPreviousCrew, setLoadingPreviousCrew] = useState(false)
 
   // Calculate hours from time range (auto-split into regular + OT)
   const calculateHoursFromTimeRange = (startTime, endTime) => {
@@ -167,6 +170,38 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       onShowToast('Error loading items', 'error')
     } finally {
       setLoadingItems(false)
+    }
+  }
+
+  // Load previous ticket's crew ("Same as Yesterday")
+  const loadPreviousCrew = async () => {
+    setLoadingPreviousCrew(true)
+    try {
+      const previousCrew = await db.getPreviousTicketCrew(project.id, workDate)
+
+      if (!previousCrew || previousCrew.totalWorkers === 0) {
+        onShowToast('No previous crew found for this project', 'info')
+        return
+      }
+
+      // Apply previous crew data
+      if (previousCrew.supervision) {
+        setSupervision(previousCrew.supervision)
+      }
+      if (previousCrew.operators) {
+        setOperators(previousCrew.operators)
+      }
+      if (previousCrew.laborers) {
+        setLaborers(previousCrew.laborers)
+      }
+
+      const dateStr = new Date(previousCrew.workDate).toLocaleDateString()
+      onShowToast(`Loaded ${previousCrew.totalWorkers} workers from ${dateStr}`, 'success')
+    } catch (error) {
+      console.error('Error loading previous crew:', error)
+      onShowToast('Error loading previous crew', 'error')
+    } finally {
+      setLoadingPreviousCrew(false)
     }
   }
 
@@ -851,19 +886,31 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           )}
 
-          {/* Batch Hours - Prominent placement before workers */}
-          <div className="tm-batch-hours-panel">
+          {/* Quick Actions - Same as Yesterday + Batch Hours */}
+          <div className="tm-quick-actions-panel">
             <div className="tm-batch-hours-header">
-              <Clock size={18} />
-              <span>Quick Hours Entry</span>
+              <Zap size={18} />
+              <span>Quick Actions</span>
             </div>
-            <button
-              type="button"
-              className="tm-batch-hours-btn"
-              onClick={() => setShowBatchHoursModal(true)}
-            >
-              Set hours for entire crew at once
-            </button>
+            <div className="tm-quick-actions-buttons">
+              <button
+                type="button"
+                className="tm-quick-action-btn primary"
+                onClick={loadPreviousCrew}
+                disabled={loadingPreviousCrew}
+              >
+                <Copy size={16} />
+                {loadingPreviousCrew ? 'Loading...' : 'Same as Yesterday'}
+              </button>
+              <button
+                type="button"
+                className="tm-quick-action-btn"
+                onClick={() => setShowBatchHoursModal(true)}
+              >
+                <Clock size={16} />
+                Set Crew Hours
+              </button>
+            </div>
           </div>
 
           {/* Supervision Section */}
