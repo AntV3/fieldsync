@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md
 > Canonical source of truth for FieldSync. Authoritative over ad-hoc instructions.
-> Last updated: 2025-12-27
+> Last updated: 2025-12-27 (Updated with Access Levels, Company Roles, Project Teams)
 
 ---
 
@@ -22,17 +22,39 @@ The core value proposition: when a foreman marks an area complete, the office se
 | **Owner** | Same as Office (role-based) | All admin capabilities + billing + company deletion |
 | **Public Viewer** | Share link (no auth) | Read-only project progress via time-limited tokens |
 
-### Role Hierarchy
+### Access Levels & Roles (NEW ARCHITECTURE)
 
-```
-owner > admin > office > member > foreman
-```
+The system now separates **security** from **visibility**:
 
-- **owner**: Full control, can delete company, manage billing
-- **admin**: Approve/reject memberships, manage users, update company settings
-- **office**: Full project management, change orders, reports
-- **member**: Basic access to company data
-- **foreman**: Field-only access via PIN, no dashboard access
+#### Access Levels (Security - stored in `user_companies.access_level`)
+
+| Level | Capabilities |
+|-------|-------------|
+| **Administrator** | Full control: approve members, manage team, access branding, assign project teams |
+| **Member** | Standard access: view/edit projects, no team management or branding |
+
+#### Company Roles (Job Titles - stored in `user_companies.company_role`)
+
+Purely informational - identifies what the person does at the company:
+- Project Manager
+- Superintendent
+- Job Costing
+- Accounting
+
+#### Project Roles (Per-Project - stored in `project_users.project_role`)
+
+Assigned per-project to identify involvement:
+- Project Manager
+- Superintendent
+- Foreman
+- Office Support
+- Engineer
+- Inspector
+- Team Member
+
+#### Foreman Access
+
+- **foreman**: Field-only access via Company Code + Project PIN, no dashboard access
 
 ---
 
@@ -48,6 +70,9 @@ These must work reliably. Regressions here are critical failures.
 6. **Daily/injury reporting** — Structured forms with required fields and status tracking
 7. **Project sharing** — Granular permission tokens with expiration for external stakeholders
 8. **Company join approval** — Admin-gated membership with pending/active/removed states
+9. **Multi-company support** — Users can belong to multiple companies with independent access levels
+10. **Project team management** — Assign company members to specific projects with roles
+11. **Company role assignment** — Admins assign job titles when approving members
 
 ---
 
@@ -118,9 +143,10 @@ These are explicitly out of scope. Do not implement.
 ```
 Company (multi-tenant root)
  ├── CompanyBranding (white-label customization)
- ├── User ←→ UserCompany (junction with role + status)
+ ├── User ←→ UserCompany (junction with access_level, company_role, status)
  │
  └── Project
+      ├── ProjectUser (team assignment with project_role)
       ├── Area (weight OR scheduled_value, status)
       ├── CrewCheckin (daily labor log)
       ├── DailyReport
@@ -139,10 +165,30 @@ Company (multi-tenant root)
 |-------|---------|
 | `companies` | Multi-tenant root. Has `code` (public) and `office_code` (secret). |
 | `users` | User profiles linked to `auth.users`. Has primary `company_id`. |
-| `user_companies` | Junction table for multi-company access. Contains `role` and `status`. |
+| `user_companies` | Junction table for multi-company access. Contains `access_level`, `company_role`, and `status`. |
+| `project_users` | Junction table for project team assignments. Contains `project_role`. |
 | `projects` | Belongs to company. Has unique 4-digit PIN for foreman access. |
 | `areas` | Progress tracking units within projects. |
 | `change_orders` | COR workflow with line items across 4 cost categories. |
+
+### user_companies Columns
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `access_level` | TEXT | Security: 'administrator' or 'member' |
+| `company_role` | TEXT | Job title: 'Project Manager', 'Superintendent', 'Job Costing', 'Accounting' |
+| `status` | TEXT | Membership state: 'pending', 'active', 'removed' |
+| `role` | TEXT | DEPRECATED - legacy field, use access_level instead |
+
+### project_users Columns
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `project_id` | UUID | FK to projects |
+| `user_id` | UUID | FK to users |
+| `project_role` | TEXT | Role on this project (informational only) |
+| `assigned_by` | UUID | Who assigned them |
+| `assigned_at` | TIMESTAMP | When assigned |
 
 ### Membership States
 
@@ -241,14 +287,23 @@ USING (
 | Table | Policy Type |
 |-------|-------------|
 | `companies` | Public SELECT, admin UPDATE |
-| `users` | Own record + admin view company users |
-| `user_companies` | Own memberships + admin manage |
+| `users` | Own record + admins see company users |
+| `user_companies` | Own memberships + admins manage (uses `has_admin_access()` function to avoid recursion) |
+| `project_users` | Active members view, admins manage |
 | `projects` | Active members only |
 | `areas` | Via project → company |
 | `change_orders` | Active members only |
 | `signature_requests` | Active members only |
 | `injury_reports` | Active members only |
-| `company_branding` | Active members + public domain lookup |
+| `company_branding` | Active members view, admins update |
+
+### Key RLS Functions
+
+| Function | Purpose |
+|----------|---------|
+| `has_admin_access(user_id, company_id)` | SECURITY DEFINER function that checks if user is an active administrator. Used in policies to avoid infinite recursion. |
+| `approve_membership_with_role(membership_id, approver, access_level)` | Approves pending member with specified access level. |
+| `repair_legacy_user(user_id, company_id, role)` | Creates missing user_companies record for legacy users. |
 
 ---
 
@@ -285,13 +340,15 @@ USING (
 
 | File | Purpose |
 |------|---------|
-| `src/App.jsx` | Main routing, auth state, company context, admin detection |
+| `src/App.jsx` | Main routing, auth state, company context, admin detection via `access_level` |
 | `src/components/AppEntry.jsx` | Company join flow (code entry, account creation) |
-| `src/components/MembershipManager.jsx` | Admin UI for approving/rejecting members |
-| `src/components/BrandingSettings.jsx` | Company branding + office code management |
-| `src/lib/supabase.js` | Database functions, membership management |
+| `src/components/MembershipManager.jsx` | Admin UI for approving members with access level + company role |
+| `src/components/ProjectTeam.jsx` | Project team management - assign members with project roles |
+| `src/components/BrandingSettings.jsx` | Company branding + office code management (admin only) |
+| `src/components/Dashboard.jsx` | Office dashboard with ProjectTeam in Info tab |
+| `src/lib/supabase.js` | Database functions, membership management, project team functions |
 | `database/migration_company_join_approval.sql` | Complete membership approval migration |
-| `database/migration_membership_approval.sql` | Original membership status migration |
+| `database/migration_access_levels.sql` | Access levels + project_users table migration |
 
 ---
 
@@ -334,6 +391,7 @@ USING (
 | `migration_membership_approval.sql` | Status column + basic RLS |
 | `migration_company_join_approval.sql` | Complete approval layer with RPC functions |
 | `migration_legacy_user_repair.sql` | **Fixes legacy users** missing membership records |
+| `migration_access_levels.sql` | **Access levels + project teams** - separates security from visibility |
 
 ---
 
@@ -400,4 +458,48 @@ Continue normal flow
 
 ---
 
-*Last significant update: Added Legacy User Repair system for backwards compatibility with pre-membership accounts.*
+*Last significant update: Implemented Access Levels (administrator/member) separated from Company Roles (job titles) and Project Roles (per-project assignments). Added ProjectTeam component, restricted Branding to admins, fixed RLS infinite recursion issues.*
+
+---
+
+## 15. Access Levels Architecture
+
+### Design Principles
+
+1. **Security vs Visibility**: Access levels control what you CAN do. Roles identify WHO you are.
+2. **No Recursion**: RLS policies use `has_admin_access()` SECURITY DEFINER function to avoid infinite loops.
+3. **Multi-Tenant Safe**: Each company has independent access levels. One user can be admin of Company A and member of Company B.
+
+### Admin Detection in Code
+
+```javascript
+// In App.jsx
+const currentMembership = userCompanies.find(uc => uc.id === company?.id)
+const accessLevel = currentMembership?.access_level
+const isAdmin = accessLevel === 'administrator' || company?.owner_user_id === user?.id
+```
+
+### Admin-Only Features
+
+- Team tab (approve/reject members, change access levels)
+- Branding tab (company customization)
+- Project Team management (assign members to projects)
+- Change company roles for existing members
+
+### Approval Flow
+
+```
+1. User joins with Company Code + Office Code
+2. Creates pending membership in user_companies
+3. Admin sees pending request in Team tab
+4. Admin selects:
+   - Access Level: Administrator or Member
+   - Company Role: PM, Superintendent, Job Costing, Accounting
+5. Admin clicks Approve
+6. User refreshes → Full access granted
+7. Admin can later:
+   - Change access level
+   - Change company role
+   - Assign to projects with project roles
+   - Remove from company
+```
