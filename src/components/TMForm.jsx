@@ -39,6 +39,56 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customItem, setCustomItem] = useState({ name: '', category: '', quantity: '' })
 
+  // Calculate hours from time range (auto-split into regular + OT)
+  const calculateHoursFromTimeRange = (startTime, endTime) => {
+    if (!startTime || !endTime) return null
+
+    const [startHour, startMin] = startTime.split(':').map(Number)
+    const [endHour, endMin] = endTime.split(':').map(Number)
+
+    let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin)
+    if (totalMinutes < 0) totalMinutes += 24 * 60 // Handle overnight
+
+    const totalHours = totalMinutes / 60
+    const regularHours = Math.min(totalHours, 8)
+    const overtimeHours = Math.max(0, totalHours - 8)
+
+    return {
+      hours: regularHours.toFixed(1),
+      overtimeHours: overtimeHours > 0 ? overtimeHours.toFixed(1) : ''
+    }
+  }
+
+  // Apply time preset to batch hours
+  const applyTimePreset = (preset) => {
+    let timeStarted, timeEnded, hours, overtimeHours
+
+    switch (preset) {
+      case 'full':
+        timeStarted = '07:00'
+        timeEnded = '15:30'
+        hours = '8'
+        overtimeHours = ''
+        break
+      case '10hr':
+        timeStarted = '06:00'
+        timeEnded = '16:30'
+        hours = '8'
+        overtimeHours = '2'
+        break
+      case 'half':
+        timeStarted = '07:00'
+        timeEnded = '11:00'
+        hours = '4'
+        overtimeHours = ''
+        break
+      default:
+        return
+    }
+
+    setBatchHours({ timeStarted, timeEnded, hours, overtimeHours })
+  }
+
   // Load today's crew and assignable CORs on mount
   useEffect(() => {
     loadTodaysCrew()
@@ -126,9 +176,24 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   const updateSupervision = (index, field, value) => {
-    setSupervision(supervision.map((s, i) => 
-      i === index ? { ...s, [field]: value } : s
-    ))
+    setSupervision(supervision.map((s, i) => {
+      if (i !== index) return s
+
+      const updated = { ...s, [field]: value }
+
+      // Auto-calculate hours when time changes
+      if (field === 'timeStarted' || field === 'timeEnded') {
+        const startTime = field === 'timeStarted' ? value : s.timeStarted
+        const endTime = field === 'timeEnded' ? value : s.timeEnded
+        const calculated = calculateHoursFromTimeRange(startTime, endTime)
+        if (calculated) {
+          updated.hours = calculated.hours
+          updated.overtimeHours = calculated.overtimeHours
+        }
+      }
+
+      return updated
+    }))
   }
 
   const removeSupervision = (index) => {
@@ -145,9 +210,24 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   const updateLaborer = (index, field, value) => {
-    setLaborers(laborers.map((l, i) => 
-      i === index ? { ...l, [field]: value } : l
-    ))
+    setLaborers(laborers.map((l, i) => {
+      if (i !== index) return l
+
+      const updated = { ...l, [field]: value }
+
+      // Auto-calculate hours when time changes
+      if (field === 'timeStarted' || field === 'timeEnded') {
+        const startTime = field === 'timeStarted' ? value : l.timeStarted
+        const endTime = field === 'timeEnded' ? value : l.timeEnded
+        const calculated = calculateHoursFromTimeRange(startTime, endTime)
+        if (calculated) {
+          updated.hours = calculated.hours
+          updated.overtimeHours = calculated.overtimeHours
+        }
+      }
+
+      return updated
+    }))
   }
 
   const removeLaborer = (index) => {
@@ -164,9 +244,24 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   const updateOperator = (index, field, value) => {
-    setOperators(operators.map((o, i) =>
-      i === index ? { ...o, [field]: value } : o
-    ))
+    setOperators(operators.map((o, i) => {
+      if (i !== index) return o
+
+      const updated = { ...o, [field]: value }
+
+      // Auto-calculate hours when time changes
+      if (field === 'timeStarted' || field === 'timeEnded') {
+        const startTime = field === 'timeStarted' ? value : o.timeStarted
+        const endTime = field === 'timeEnded' ? value : o.timeEnded
+        const calculated = calculateHoursFromTimeRange(startTime, endTime)
+        if (calculated) {
+          updated.hours = calculated.hours
+          updated.overtimeHours = calculated.overtimeHours
+        }
+      }
+
+      return updated
+    }))
   }
 
   const removeOperator = (index) => {
@@ -1232,6 +1327,19 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               Set hours for all workers with names entered. Individual times can still be adjusted afterwards.
             </p>
 
+            {/* Time Presets - Quick Selection */}
+            <div className="tm-time-presets">
+              <button type="button" className="tm-preset-btn" onClick={() => applyTimePreset('full')}>
+                Full Day (8hr)
+              </button>
+              <button type="button" className="tm-preset-btn" onClick={() => applyTimePreset('10hr')}>
+                10-Hour Day
+              </button>
+              <button type="button" className="tm-preset-btn" onClick={() => applyTimePreset('half')}>
+                Half Day (4hr)
+              </button>
+            </div>
+
             <div className="tm-batch-form">
               <div className="tm-batch-row">
                 <div className="tm-batch-field">
@@ -1239,7 +1347,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   <input
                     type="time"
                     value={batchHours.timeStarted}
-                    onChange={(e) => setBatchHours({ ...batchHours, timeStarted: e.target.value })}
+                    onChange={(e) => {
+                      const newStart = e.target.value
+                      const calculated = calculateHoursFromTimeRange(newStart, batchHours.timeEnded)
+                      setBatchHours({
+                        ...batchHours,
+                        timeStarted: newStart,
+                        ...(calculated || {})
+                      })
+                    }}
                   />
                 </div>
                 <div className="tm-batch-field">
@@ -1247,7 +1363,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   <input
                     type="time"
                     value={batchHours.timeEnded}
-                    onChange={(e) => setBatchHours({ ...batchHours, timeEnded: e.target.value })}
+                    onChange={(e) => {
+                      const newEnd = e.target.value
+                      const calculated = calculateHoursFromTimeRange(batchHours.timeStarted, newEnd)
+                      setBatchHours({
+                        ...batchHours,
+                        timeEnded: newEnd,
+                        ...(calculated || {})
+                      })
+                    }}
                   />
                 </div>
               </div>

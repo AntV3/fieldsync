@@ -2364,8 +2364,9 @@ input[type="number"] {
 }
 
 .tm-remove {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border: none;
   background: rgba(239, 68, 68, 0.1);
   color: var(--accent-red);
@@ -2375,6 +2376,7 @@ input[type="number"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .tm-add-btn {
@@ -2826,7 +2828,39 @@ input[type="number"] {
 .tm-batch-description {
   font-size: 0.85rem;
   color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* Time Preset Buttons */
+.tm-time-presets {
+  display: flex;
+  gap: 0.5rem;
   margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.tm-preset-btn {
+  flex: 1;
+  min-width: 90px;
+  padding: 0.75rem 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tm-preset-btn:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.tm-preset-btn:active {
+  transform: scale(0.97);
 }
 
 .tm-batch-form {
@@ -3169,14 +3203,14 @@ input[type="number"] {
 
 .tm-worker-row-top {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
   margin-bottom: 0.75rem;
 }
 
 .tm-worker-row-bottom {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .tm-time-group {
@@ -3195,13 +3229,14 @@ input[type="number"] {
 
 .tm-time-group input {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--bg-elevated);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 1rem;
   text-align: center;
+  min-height: 48px; /* Touch-friendly minimum */
 }
 
 /* Review detailed rows */
