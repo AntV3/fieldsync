@@ -10,6 +10,7 @@ import MaterialRequest from './MaterialRequest'
 import InjuryReportForm from './InjuryReportForm'
 import HaulOffForm from './HaulOffForm'
 import ThemeToggle from './ThemeToggle'
+import DisposalLoadInput from './DisposalLoadInput'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -329,8 +330,15 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
       </div>
 
       {/* Crew Check-In */}
-      <CrewCheckin 
+      <CrewCheckin
         project={project}
+        onShowToast={onShowToast}
+      />
+
+      {/* Disposal Load Tracking */}
+      <DisposalLoadInput
+        project={project}
+        date={new Date().toISOString().split('T')[0]}
         onShowToast={onShowToast}
       />
 

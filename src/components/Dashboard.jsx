@@ -16,6 +16,7 @@ import CORDetail from './cor/CORDetail'
 import BurnRateCard from './BurnRateCard'
 import CostContributorsCard from './CostContributorsCard'
 import ProfitabilityCard from './ProfitabilityCard'
+import DisposalSummary from './DisposalSummary'
 import AddCostModal from './AddCostModal'
 import ProjectTeam from './ProjectTeam'
 
@@ -1270,6 +1271,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   totalCosts={projectData?.allCostsTotal || 0}
                   contractValue={revisedContractValue}
                   progress={progress}
+                />
+
+                <DisposalSummary
+                  project={selectedProject}
+                  period="week"
                 />
               </div>
 

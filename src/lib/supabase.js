@@ -15,6 +15,7 @@ import {
   syncPendingActions,
   ACTION_TYPES
 } from './offlineManager'
+import { observe } from './observability'
 
 // For demo purposes, we'll use a mock mode that falls back to localStorage
 // In production, you would set these environment variables
@@ -212,34 +213,44 @@ export const db = {
         return cached.filter(p => p.status !== 'archived')
       }
 
-      let query = supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const start = performance.now()
+      try {
+        let query = supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false })
 
-      if (companyId) {
-        query = query.eq('company_id', companyId)
-      }
+        if (companyId) {
+          query = query.eq('company_id', companyId)
+        }
 
-      if (!includeArchived) {
-        query = query.eq('status', 'active')
-      }
+        if (!includeArchived) {
+          query = query.eq('status', 'active')
+        }
 
-      const { data, error } = await query
-      if (error) {
-        // On error, try cache
-        console.log('Error fetching projects, trying cache:', error.message)
-        const cached = await getCachedProjects(companyId)
-        if (cached.length > 0) return cached
+        const { data, error } = await query
+        const duration = Math.round(performance.now() - start)
+        observe.query('getProjects', { duration, rows: data?.length, company_id: companyId })
+
+        if (error) {
+          observe.error('database', { message: error.message, operation: 'getProjects', company_id: companyId })
+          // On error, try cache
+          console.log('Error fetching projects, trying cache:', error.message)
+          const cached = await getCachedProjects(companyId)
+          if (cached.length > 0) return cached
+          throw error
+        }
+
+        // Cache projects for offline use
+        if (data?.length > 0) {
+          cacheProjects(data).catch(err => console.error('Failed to cache projects:', err))
+        }
+
+        return data
+      } catch (error) {
+        observe.error('database', { message: error.message, operation: 'getProjects', company_id: companyId })
         throw error
       }
-
-      // Cache projects for offline use
-      if (data?.length > 0) {
-        cacheProjects(data).catch(err => console.error('Failed to cache projects:', err))
-      }
-
-      return data
     } else {
       const projects = getLocalData().projects
       if (includeArchived) return projects
@@ -1094,20 +1105,34 @@ export const db = {
 
   async getTMTickets(projectId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('t_and_m_tickets')
-        .select(`
-          *,
-          t_and_m_workers (*),
-          t_and_m_items (
+      const start = performance.now()
+      try {
+        const { data, error } = await supabase
+          .from('t_and_m_tickets')
+          .select(`
             *,
-            materials_equipment (name, unit, cost_per_unit, category)
-          )
-        `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data
+            t_and_m_workers (*),
+            t_and_m_items (
+              *,
+              materials_equipment (name, unit, cost_per_unit, category)
+            )
+          `)
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+
+        const duration = Math.round(performance.now() - start)
+        observe.query('getTMTickets', { duration, rows: data?.length, project_id: projectId })
+
+        if (error) throw error
+        return data
+      } catch (error) {
+        observe.error('database', {
+          message: error.message,
+          operation: 'getTMTickets',
+          project_id: projectId
+        })
+        throw error
+      }
     }
     return []
   },
@@ -1815,36 +1840,250 @@ export const db = {
   },
 
   // ============================================
+  // Disposal Load Tracking
+  // ============================================
+
+  // Load type options (matches database enum)
+  DISPOSAL_LOAD_TYPES: [
+    { value: 'concrete', label: 'Concrete' },
+    { value: 'trash', label: 'Trash' },
+    { value: 'metals', label: 'Metals' },
+    { value: 'hazardous_waste', label: 'Hazardous Waste' }
+  ],
+
+  // Get disposal loads for a specific date
+  async getDisposalLoads(projectId, date) {
+    if (!isSupabaseConfigured) return []
+
+    const start = performance.now()
+    try {
+      const { data, error } = await supabase
+        .from('disposal_loads')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('work_date', date)
+        .order('created_at', { ascending: false })
+
+      const duration = Math.round(performance.now() - start)
+      observe.query('getDisposalLoads', { duration, rows: data?.length, project_id: projectId })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'getDisposalLoads', project_id: projectId })
+      throw error
+    }
+  },
+
+  // Add a new disposal load entry
+  async addDisposalLoad(projectId, userId, workDate, loadType, loadCount, notes = null) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('disposal_loads')
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        work_date: workDate,
+        load_type: loadType,
+        load_count: loadCount,
+        notes
+      })
+      .select()
+      .single()
+
+    if (error) {
+      observe.error('database', { message: error.message, operation: 'addDisposalLoad', project_id: projectId })
+      throw error
+    }
+    return data
+  },
+
+  // Update an existing disposal load entry
+  async updateDisposalLoad(id, loadType, loadCount, notes = null) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('disposal_loads')
+      .update({
+        load_type: loadType,
+        load_count: loadCount,
+        notes
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      observe.error('database', { message: error.message, operation: 'updateDisposalLoad' })
+      throw error
+    }
+    return data
+  },
+
+  // Delete a disposal load entry
+  async deleteDisposalLoad(id) {
+    if (!isSupabaseConfigured) return false
+
+    const { error } = await supabase
+      .from('disposal_loads')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      observe.error('database', { message: error.message, operation: 'deleteDisposalLoad' })
+      throw error
+    }
+    return true
+  },
+
+  // Get disposal summary for burn rate view
+  async getDisposalSummary(projectId, startDate = null, endDate = null) {
+    if (!isSupabaseConfigured) return []
+
+    const start = performance.now()
+    try {
+      // Use RPC function for efficient aggregation
+      const { data, error } = await supabase.rpc('get_disposal_summary', {
+        p_project_id: projectId,
+        p_start_date: startDate,
+        p_end_date: endDate
+      })
+
+      const duration = Math.round(performance.now() - start)
+      observe.query('getDisposalSummary', { duration, rows: data?.length, project_id: projectId })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'getDisposalSummary', project_id: projectId })
+      // Fallback to direct query if RPC doesn't exist
+      return this.getDisposalSummaryFallback(projectId, startDate, endDate)
+    }
+  },
+
+  // Fallback aggregation (if RPC not available)
+  async getDisposalSummaryFallback(projectId, startDate, endDate) {
+    let query = supabase
+      .from('disposal_loads')
+      .select('load_type, load_count, work_date')
+      .eq('project_id', projectId)
+
+    if (startDate) {
+      query = query.gte('work_date', startDate)
+    }
+    if (endDate) {
+      query = query.lte('work_date', endDate)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    // Aggregate in JS
+    const summary = {}
+    data?.forEach(row => {
+      if (!summary[row.load_type]) {
+        summary[row.load_type] = { load_type: row.load_type, total_loads: 0, days: new Set() }
+      }
+      summary[row.load_type].total_loads += row.load_count
+      summary[row.load_type].days.add(row.work_date)
+    })
+
+    return Object.values(summary).map(s => ({
+      load_type: s.load_type,
+      total_loads: s.total_loads,
+      days_with_activity: s.days.size
+    }))
+  },
+
+  // Get weekly disposal summary for charts
+  async getWeeklyDisposalSummary(projectId, weeks = 4) {
+    if (!isSupabaseConfigured) return []
+
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - (weeks * 7))
+
+    const { data, error } = await supabase
+      .from('disposal_loads')
+      .select('load_type, load_count, work_date')
+      .eq('project_id', projectId)
+      .gte('work_date', startDate.toISOString().split('T')[0])
+      .lte('work_date', endDate.toISOString().split('T')[0])
+      .order('work_date', { ascending: true })
+
+    if (error) throw error
+
+    // Group by week and load type
+    const weeklyData = {}
+    data?.forEach(row => {
+      const date = new Date(row.work_date)
+      const weekStart = new Date(date)
+      weekStart.setDate(date.getDate() - date.getDay())
+      const weekKey = weekStart.toISOString().split('T')[0]
+
+      if (!weeklyData[weekKey]) {
+        weeklyData[weekKey] = { week: weekKey, concrete: 0, trash: 0, metals: 0, hazardous_waste: 0 }
+      }
+      weeklyData[weekKey][row.load_type] += row.load_count
+    })
+
+    return Object.values(weeklyData).sort((a, b) => a.week.localeCompare(b.week))
+  },
+
+  // ============================================
   // Photo Storage
   // ============================================
 
   async uploadPhoto(companyId, projectId, ticketId, file) {
     if (!isSupabaseConfigured) return null
 
+    const start = performance.now()
+    const fileSize = file.size || 0
+
     // Create unique filename
     const timestamp = Date.now()
     const randomId = Math.random().toString(36).substring(7)
     const extension = file.name?.split('.').pop() || 'jpg'
     const fileName = `${timestamp}-${randomId}.${extension}`
-    
+
     // Path: company/project/ticket/filename
     const filePath = `${companyId}/${projectId}/${ticketId}/${fileName}`
 
-    const { data, error } = await supabase.storage
-      .from('tm-photos')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
+    try {
+      const { data, error } = await supabase.storage
+        .from('tm-photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      const duration = Math.round(performance.now() - start)
+      observe.storage('upload', {
+        company_id: companyId,
+        project_id: projectId,
+        size: fileSize,
+        duration,
+        success: !error
       })
 
-    if (error) throw error
+      if (error) throw error
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('tm-photos')
-      .getPublicUrl(filePath)
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('tm-photos')
+        .getPublicUrl(filePath)
 
-    return urlData.publicUrl
+      return urlData.publicUrl
+    } catch (error) {
+      observe.error('storage', {
+        message: error.message,
+        operation: 'uploadPhoto',
+        company_id: companyId,
+        project_id: projectId
+      })
+      throw error
+    }
   },
 
   async uploadPhotoBase64(companyId, projectId, ticketId, base64Data, fileName = 'photo.jpg') {
