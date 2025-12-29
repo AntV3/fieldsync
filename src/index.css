@@ -6995,6 +6995,83 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   flex: 1;
 }
 
+/* COR Assignment Modal */
+.cor-assign-modal {
+  max-width: 450px;
+  width: 90%;
+}
+
+.cor-assign-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.cor-assign-modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.cor-assign-modal .modal-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.cor-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cor-select-wrapper label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cor-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.cor-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.cor-assign-modal .empty-state {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.cor-assign-modal .empty-state .text-muted {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.cor-assign-modal .modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.cor-assign-modal .modal-footer .btn {
+  flex: 1;
+}
+
 /* Enhanced Project Card - Compact */
 .project-card.enhanced {
   padding: 1rem;

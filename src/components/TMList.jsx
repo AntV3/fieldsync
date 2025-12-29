@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -56,6 +56,13 @@ export default function TMList({ project, company, onShowToast }) {
   // Signature link modal state
   const [showSignatureLink, setShowSignatureLink] = useState(false)
   const [signatureLinkTicket, setSignatureLinkTicket] = useState(null)
+
+  // COR association modal state
+  const [showCorAssignModal, setShowCorAssignModal] = useState(false)
+  const [pendingCorAssignTicket, setPendingCorAssignTicket] = useState(null)
+  const [availableCors, setAvailableCors] = useState([])
+  const [selectedCorForAssign, setSelectedCorForAssign] = useState('')
+  const [loadingCors, setLoadingCors] = useState(false)
 
   // Track which tickets are locked (linked to approved COR)
   const [lockedTickets, setLockedTickets] = useState({})
@@ -165,6 +172,52 @@ export default function TMList({ project, company, onShowToast }) {
     } catch (error) {
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
+    }
+  }
+
+  // Open COR association modal
+  const openCorAssignModal = async (ticket) => {
+    setPendingCorAssignTicket(ticket)
+    setSelectedCorForAssign(ticket.assigned_cor_id || '')
+    setShowCorAssignModal(true)
+    setLoadingCors(true)
+
+    try {
+      // Load all CORs for this project
+      const cors = await db.getChangeOrders(project.id)
+      setAvailableCors(cors || [])
+    } catch (error) {
+      console.error('Error loading CORs:', error)
+      onShowToast('Error loading change orders', 'error')
+    } finally {
+      setLoadingCors(false)
+    }
+  }
+
+  // Associate ticket with selected COR
+  const handleAssignToCor = async () => {
+    if (!pendingCorAssignTicket) return
+
+    try {
+      if (selectedCorForAssign) {
+        // Associate with COR
+        await db.associateTicketWithCOR(selectedCorForAssign, pendingCorAssignTicket.id)
+        const cor = availableCors.find(c => c.id === selectedCorForAssign)
+        onShowToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
+      } else if (pendingCorAssignTicket.assigned_cor_id) {
+        // Remove association
+        await db.removeTicketFromCOR(pendingCorAssignTicket.assigned_cor_id, pendingCorAssignTicket.id)
+        onShowToast('Ticket unlinked from COR', 'success')
+      }
+
+      // Refresh tickets
+      loadTickets()
+      setShowCorAssignModal(false)
+      setPendingCorAssignTicket(null)
+      setSelectedCorForAssign('')
+    } catch (error) {
+      console.error('Error updating COR association:', error)
+      onShowToast('Error updating COR link', 'error')
     }
   }
 
@@ -1109,6 +1162,16 @@ export default function TMList({ project, company, onShowToast }) {
                 Restore
               </button>
             )}
+            {/* Link to COR button - show for any ticket not locked */}
+            {!isLocked && (
+              <button
+                className={`btn btn-small ${ticket.assigned_cor_id ? 'btn-ghost' : 'btn-secondary'}`}
+                onClick={(e) => { e.stopPropagation(); openCorAssignModal(ticket); }}
+                title={ticket.assigned_cor_id ? 'Change COR link' : 'Link to Change Order'}
+              >
+                <Link2 size={14} /> {ticket.assigned_cor_id ? 'COR' : 'Link COR'}
+              </button>
+            )}
             {!isLocked && (
               <button
                 className="btn btn-danger btn-small"
@@ -1338,6 +1401,70 @@ export default function TMList({ project, company, onShowToast }) {
           }}
           onShowToast={onShowToast}
         />
+      )}
+
+      {/* COR Association Modal */}
+      {showCorAssignModal && pendingCorAssignTicket && (
+        <div className="modal-overlay" onClick={() => setShowCorAssignModal(false)}>
+          <div className="modal cor-assign-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Link Ticket to Change Order</h3>
+              <button className="close-btn" onClick={() => setShowCorAssignModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p className="modal-subtitle">
+                Ticket: <strong>{new Date(pendingCorAssignTicket.work_date).toLocaleDateString()}</strong>
+                {pendingCorAssignTicket.ce_pco_number && ` (${pendingCorAssignTicket.ce_pco_number})`}
+              </p>
+
+              {loadingCors ? (
+                <div className="loading">Loading change orders...</div>
+              ) : availableCors.length === 0 ? (
+                <div className="empty-state">
+                  <p>No change orders found for this project.</p>
+                  <p className="text-muted">Create a COR first, then link tickets to it.</p>
+                </div>
+              ) : (
+                <div className="cor-select-wrapper">
+                  <label>Select Change Order:</label>
+                  <select
+                    value={selectedCorForAssign}
+                    onChange={(e) => setSelectedCorForAssign(e.target.value)}
+                    className="cor-select"
+                  >
+                    <option value="">-- No COR (unlink) --</option>
+                    {availableCors.map(cor => (
+                      <option key={cor.id} value={cor.id}>
+                        {cor.cor_number} - {cor.title || 'Untitled'} ({cor.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowCorAssignModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAssignToCor}
+                disabled={loadingCors || (availableCors.length === 0)}
+              >
+                {pendingCorAssignTicket.assigned_cor_id && !selectedCorForAssign
+                  ? 'Unlink from COR'
+                  : 'Link to COR'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
