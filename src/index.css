@@ -1726,12 +1726,16 @@ input[type="number"] {
 
 /* Danger action button */
 .field-action-btn.danger {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.field-action-btn.danger svg {
+  color: #ef4444;
 }
 
 .field-action-btn.danger:active {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* Foreman Areas */
@@ -5334,7 +5338,8 @@ input[type="number"] {
    ============================================ */
 
 .crew-checkin {
-  background: var(--bg-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -5344,17 +5349,26 @@ input[type="number"] {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .crew-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.crew-header h3 svg {
+  color: var(--primary);
 }
 
 .crew-date {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -6052,44 +6066,53 @@ input[type="number"] {
 .field-actions {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .field-action-btn {
-  padding: 0.75rem;
-  background: var(--bg-secondary);
+  padding: 1rem 0.75rem;
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 80px;
+  transition: all 0.15s ease;
 }
 
-.field-action-btn:hover {
-  border-color: var(--accent-blue);
-}
-
-.field-action-btn .icon {
-  font-size: 1.25rem;
-  color: var(--text-primary);
+.field-action-btn:active {
+  transform: scale(0.97);
+  background: var(--bg-secondary);
 }
 
 .field-action-btn svg {
-  color: var(--text-primary);
+  color: var(--primary);
+  flex-shrink: 0;
 }
 
 .field-action-btn .badge {
   background: #ef4444;
   color: white;
-  font-size: 0.7rem;
-  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
   border-radius: 10px;
-  margin-left: 0.25rem;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+/* Make button position relative for badge */
+.field-action-btn {
+  position: relative;
 }
 
 
@@ -18202,6 +18225,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .disposal-load-input {
   background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -18220,8 +18244,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.disposal-title svg {
+  color: var(--primary);
 }
 
 .disposal-badge {
