@@ -183,8 +183,8 @@ export default function TMList({ project, company, onShowToast }) {
     setLoadingCors(true)
 
     try {
-      // Load all CORs for this project
-      const cors = await db.getChangeOrders(project.id)
+      // Load CORs that can receive tickets (not billed/archived)
+      const cors = await db.getAssignableCORs(project.id)
       setAvailableCors(cors || [])
     } catch (error) {
       console.error('Error loading CORs:', error)
@@ -200,13 +200,13 @@ export default function TMList({ project, company, onShowToast }) {
 
     try {
       if (selectedCorForAssign) {
-        // Associate with COR
-        await db.associateTicketWithCOR(selectedCorForAssign, pendingCorAssignTicket.id)
+        // Associate with COR using atomic function (ticketId, corId)
+        await db.assignTicketToCOR(pendingCorAssignTicket.id, selectedCorForAssign)
         const cor = availableCors.find(c => c.id === selectedCorForAssign)
         onShowToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
       } else if (pendingCorAssignTicket.assigned_cor_id) {
-        // Remove association
-        await db.removeTicketFromCOR(pendingCorAssignTicket.assigned_cor_id, pendingCorAssignTicket.id)
+        // Remove association using atomic function (ticketId, corId)
+        await db.unassignTicketFromCOR(pendingCorAssignTicket.id, pendingCorAssignTicket.assigned_cor_id)
         onShowToast('Ticket unlinked from COR', 'success')
       }
 
