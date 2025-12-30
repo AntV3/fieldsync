@@ -3856,16 +3856,22 @@ export const db = {
   // Change Order Requests (COR)
   // ============================================
 
-  // Create a new COR
-  async createCOR(corData) {
+  // Create a new COR (with retry on conflict)
+  async createCOR(corData, retryCount = 0) {
     if (isSupabaseConfigured) {
+      // Get a fresh COR number if this is a retry
+      let corNumber = corData.cor_number
+      if (retryCount > 0) {
+        corNumber = await this.getNextCORNumber(corData.project_id)
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .insert({
           company_id: corData.company_id,
           project_id: corData.project_id,
           area_id: corData.area_id || null,
-          cor_number: corData.cor_number,
+          cor_number: corNumber,
           title: corData.title,
           description: corData.description || '',
           scope_of_work: corData.scope_of_work,
@@ -3885,6 +3891,19 @@ export const db = {
         })
         .select()
         .single()
+
+      // Handle 409 conflict (duplicate COR number) by retrying with fresh number
+      // PostgreSQL unique violation = 23505, HTTP conflict = 409
+      const isConflict = error?.code === '23505' ||
+                         error?.code === 'PGRST116' ||
+                         error?.status === 409 ||
+                         error?.message?.includes('duplicate') ||
+                         error?.message?.includes('unique_cor_number')
+      if (isConflict && retryCount < 3) {
+        console.warn(`COR number conflict, retrying with fresh number (attempt ${retryCount + 1})`)
+        return this.createCOR(corData, retryCount + 1)
+      }
+
       if (error) throw error
       return data
     }
@@ -4026,21 +4045,25 @@ export const db = {
   // Get next available COR number for project
   async getNextCORNumber(projectId) {
     if (isSupabaseConfigured) {
+      // Get ALL COR numbers for this project to find the highest
       const { data, error } = await supabase
         .from('change_orders')
         .select('cor_number')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: false })
-        .limit(1)
 
       if (error) throw error
 
       if (data && data.length > 0) {
-        // Extract number from "COR #N" format
-        const match = data[0].cor_number.match(/COR #(\d+)/)
-        if (match) {
-          return `COR #${parseInt(match[1]) + 1}`
+        // Extract all numbers and find the maximum
+        let maxNumber = 0
+        for (const cor of data) {
+          const match = cor.cor_number?.match(/COR #(\d+)/)
+          if (match) {
+            const num = parseInt(match[1])
+            if (num > maxNumber) maxNumber = num
+          }
         }
+        return `COR #${maxNumber + 1}`
       }
       return 'COR #1'
     }
