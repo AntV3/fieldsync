@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
-import { FileText, MessageSquare, Package, ClipboardList, Truck, AlertTriangle, Info, FileQuestion } from 'lucide-react'
+import { FileText, MessageSquare, Package, ClipboardList, AlertTriangle, Info } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import Messages from './Messages'
 import MaterialRequest from './MaterialRequest'
 import InjuryReportForm from './InjuryReportForm'
-import HaulOffForm from './HaulOffForm'
 import ThemeToggle from './ThemeToggle'
 import DisposalLoadInput from './DisposalLoadInput'
 
@@ -23,7 +22,6 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [showMessages, setShowMessages] = useState(false)
   const [showMaterialRequest, setShowMaterialRequest] = useState(false)
   const [showInjuryReport, setShowInjuryReport] = useState(false)
-  const [showHaulOff, setShowHaulOff] = useState(false)
   const [showProjectInfo, setShowProjectInfo] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
@@ -168,21 +166,6 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
-  // Show Haul-Off Form
-  if (showHaulOff) {
-    return (
-      <div className="foreman-container">
-        <HaulOffForm
-          project={project}
-          companyId={companyId}
-          onClose={() => setShowHaulOff(false)}
-          onSubmit={() => setShowHaulOff(false)}
-          onShowToast={onShowToast}
-        />
-      </div>
-    )
-  }
-
   const progress = calculateProgress(areas)
   
   // Group areas by group_name
@@ -312,13 +295,6 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         >
           <ClipboardList size={20} className="icon" />
           Daily Report
-        </button>
-        <button
-          className="field-action-btn"
-          onClick={() => setShowHaulOff(true)}
-        >
-          <Truck size={20} className="icon" />
-          Haul-Off
         </button>
         <button
           className="field-action-btn danger"

@@ -13685,6 +13685,272 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0;
 }
 
+/* Backup Documentation Section */
+.backup-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.backup-summary {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+}
+
+.backup-tickets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.backup-ticket-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.backup-ticket-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.backup-ticket-header:hover {
+  background: var(--bg-hover);
+}
+
+.backup-ticket-toggle {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.backup-ticket-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.backup-ticket-date {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.backup-ticket-pco {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.backup-ticket-stats {
+  display: flex;
+  gap: 1rem;
+  margin-right: 1rem;
+}
+
+.backup-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.backup-ticket-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.backup-ticket-status.status-pending {
+  background: rgba(217, 119, 6, 0.15);
+  color: #d97706;
+}
+
+.backup-ticket-status.status-approved {
+  background: rgba(5, 150, 105, 0.15);
+  color: #059669;
+}
+
+.backup-ticket-status.status-billed {
+  background: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
+}
+
+.backup-ticket-details {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.backup-ticket-notes {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-card);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-blue);
+}
+
+.backup-workers,
+.backup-items,
+.backup-photos {
+  margin-bottom: 1rem;
+}
+
+.backup-workers:last-child,
+.backup-items:last-child,
+.backup-photos:last-child {
+  margin-bottom: 0;
+}
+
+.backup-workers h4,
+.backup-items h4,
+.backup-photos h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.backup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  background: var(--bg-card);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.backup-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.backup-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.backup-table tr:last-child td {
+  border-bottom: none;
+}
+
+.backup-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+.backup-photo-thumb {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.backup-photo-thumb:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.backup-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Photo Lightbox */
+.photo-lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 2rem;
+}
+
+.photo-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Backup Section Responsive */
+@media (max-width: 768px) {
+  .backup-ticket-header {
+    flex-wrap: wrap;
+  }
+
+  .backup-ticket-stats {
+    width: 100%;
+    margin-top: 0.5rem;
+    margin-right: 0;
+    padding-left: 1.75rem;
+  }
+
+  .backup-ticket-status {
+    position: absolute;
+    right: 1rem;
+    top: 0.75rem;
+  }
+
+  .backup-ticket-card {
+    position: relative;
+  }
+
+  .backup-photos-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* Footer */
 .cor-detail-footer {
   display: flex;

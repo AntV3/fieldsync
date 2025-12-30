@@ -3959,7 +3959,7 @@ export const db = {
     return []
   },
 
-  // Get single COR with all line items
+  // Get single COR with all line items and full backup documentation
   async getCORById(corId) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
@@ -3974,7 +3974,12 @@ export const db = {
           change_order_ticket_associations (
             *,
             t_and_m_tickets (
-              id, work_date, ce_pco_number, status, notes
+              *,
+              t_and_m_workers (*),
+              t_and_m_items (
+                *,
+                materials_equipment (name, unit, cost_per_unit, category)
+              )
             )
           )
         `)
@@ -4003,14 +4008,14 @@ export const db = {
 
   // Get all CORs available for T&M ticket assignment
   // Used by foremen to assign T&M tickets directly to a COR from the field
-  // Excludes archived CORs to keep the list relevant
+  // Only returns CORs that can still receive tickets (not billed or archived)
   async getAssignableCORs(projectId) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
         .select('id, cor_number, title, status, cor_total')
         .eq('project_id', projectId)
-        .neq('status', 'archived')
+        .in('status', ['draft', 'pending_approval', 'approved'])
         .order('cor_number', { ascending: true })
       if (error) throw error
       return data || []
@@ -4467,52 +4472,57 @@ export const db = {
   },
 
   // ============================================
-  // Ticket-COR Associations
+  // Ticket-COR Associations (Atomic Operations)
   // ============================================
 
   async assignTicketToCOR(ticketId, corId) {
     if (isSupabaseConfigured) {
-      // Create association
-      const { data: assoc, error: assocError } = await supabase
-        .from('change_order_ticket_associations')
-        .insert({
-          change_order_id: corId,
-          ticket_id: ticketId,
-          data_imported: false
-        })
-        .select()
-        .single()
-      if (assocError) throw assocError
-
-      // Update ticket's assigned_cor_id
-      const { error: ticketError } = await supabase
-        .from('t_and_m_tickets')
-        .update({ assigned_cor_id: corId })
-        .eq('id', ticketId)
-      if (ticketError) throw ticketError
-
-      return assoc
+      // Use atomic database function to ensure both junction table and FK stay in sync
+      const { error } = await supabase.rpc('assign_ticket_to_cor', {
+        p_ticket_id: ticketId,
+        p_cor_id: corId
+      })
+      if (error) {
+        observe.error('database', { message: error.message, operation: 'assignTicketToCOR', extra: { ticketId, corId } })
+        throw error
+      }
+      return { ticket_id: ticketId, change_order_id: corId }
     }
     return null
   },
 
   async unassignTicketFromCOR(ticketId, corId) {
     if (isSupabaseConfigured) {
-      // Delete association
-      const { error: assocError } = await supabase
-        .from('change_order_ticket_associations')
-        .delete()
-        .eq('ticket_id', ticketId)
-        .eq('change_order_id', corId)
-      if (assocError) throw assocError
-
-      // Clear ticket's assigned_cor_id
-      const { error: ticketError } = await supabase
-        .from('t_and_m_tickets')
-        .update({ assigned_cor_id: null })
-        .eq('id', ticketId)
-      if (ticketError) throw ticketError
+      // Use atomic database function to ensure both junction table and FK stay in sync
+      const { error } = await supabase.rpc('unassign_ticket_from_cor', {
+        p_ticket_id: ticketId,
+        p_cor_id: corId
+      })
+      if (error) {
+        observe.error('database', { message: error.message, operation: 'unassignTicketFromCOR', extra: { ticketId, corId } })
+        throw error
+      }
     }
+  },
+
+  // Check for data integrity issues between dual associations
+  async checkTicketCORIntegrity() {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.rpc('check_ticket_cor_integrity')
+      if (error) throw error
+      return data || []
+    }
+    return []
+  },
+
+  // Fix any existing data integrity issues
+  async fixTicketCORIntegrity() {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.rpc('fix_ticket_cor_integrity')
+      if (error) throw error
+      return data
+    }
+    return 0
   },
 
   async getTicketsForCOR(corId) {

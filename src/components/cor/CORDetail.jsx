@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link } from 'lucide-react'
+import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -19,6 +19,8 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   const [corData, setCORData] = useState(cor)
   const [showSignature, setShowSignature] = useState(false)
   const [showSignatureLink, setShowSignatureLink] = useState(false)
+  const [expandedTickets, setExpandedTickets] = useState(new Set())
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
 
   // Fetch full COR data with line items
   const fetchFullCOR = useCallback(async () => {
@@ -144,10 +146,37 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
   const canSign = corData.status === 'approved' && !corData.gc_signature
 
+  // Toggle ticket expansion in backup section
+  const toggleTicketExpanded = (ticketId) => {
+    setExpandedTickets(prev => {
+      const next = new Set(prev)
+      if (next.has(ticketId)) {
+        next.delete(ticketId)
+      } else {
+        next.add(ticketId)
+      }
+      return next
+    })
+  }
+
+  // Get associated tickets from the COR data
+  const associatedTickets = useMemo(() => {
+    return corData.change_order_ticket_associations?.map(assoc => assoc.t_and_m_tickets).filter(Boolean) || []
+  }, [corData.change_order_ticket_associations])
+
+  // Calculate total hours for a ticket
+  const getTicketHours = (ticket) => {
+    const workers = ticket.t_and_m_workers || []
+    const regular = workers.reduce((sum, w) => sum + (parseFloat(w.hours) || 0), 0)
+    const overtime = workers.reduce((sum, w) => sum + (parseFloat(w.overtime_hours) || 0), 0)
+    return { regular, overtime, total: regular + overtime }
+  }
+
   const handleExportPDF = async () => {
     try {
-      onShowToast?.('Generating PDF...', 'info')
-      await exportCORToPDF(corData, project, company)
+      onShowToast?.('Generating PDF with backup...', 'info')
+      // Pass associated tickets to include backup documentation in PDF
+      await exportCORToPDF(corData, project, company, {}, associatedTickets)
       onShowToast?.('PDF downloaded', 'success')
     } catch (error) {
       console.error('Error exporting PDF:', error)
@@ -440,6 +469,145 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             </div>
           </div>
 
+          {/* Backup Documentation Section */}
+          {associatedTickets.length > 0 && (
+            <div className="cor-detail-section backup-section">
+              <h3><FileText size={18} /> Backup Documentation</h3>
+              <p className="backup-summary">
+                {associatedTickets.length} T&M ticket{associatedTickets.length !== 1 ? 's' : ''} associated with this COR
+              </p>
+
+              <div className="backup-tickets-list">
+                {associatedTickets.map(ticket => {
+                  const isExpanded = expandedTickets.has(ticket.id)
+                  const hours = getTicketHours(ticket)
+                  const workerCount = ticket.t_and_m_workers?.length || 0
+                  const itemCount = ticket.t_and_m_items?.length || 0
+                  const photoCount = ticket.photos?.length || 0
+
+                  return (
+                    <div key={ticket.id} className="backup-ticket-card">
+                      <div
+                        className="backup-ticket-header"
+                        onClick={() => toggleTicketExpanded(ticket.id)}
+                      >
+                        <div className="backup-ticket-toggle">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </div>
+                        <div className="backup-ticket-info">
+                          <div className="backup-ticket-date">
+                            <Calendar size={14} />
+                            <span>{formatDate(ticket.work_date)}</span>
+                          </div>
+                          {ticket.ce_pco_number && (
+                            <span className="backup-ticket-pco">CE/PCO: {ticket.ce_pco_number}</span>
+                          )}
+                        </div>
+                        <div className="backup-ticket-stats">
+                          <span className="backup-stat">
+                            <Users size={14} /> {workerCount}
+                          </span>
+                          <span className="backup-stat">
+                            {hours.total.toFixed(1)} hrs
+                          </span>
+                          {photoCount > 0 && (
+                            <span className="backup-stat">
+                              <Image size={14} /> {photoCount}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`backup-ticket-status status-${ticket.status}`}>
+                          {ticket.status}
+                        </span>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="backup-ticket-details">
+                          {/* Notes */}
+                          {ticket.notes && (
+                            <div className="backup-ticket-notes">
+                              <strong>Notes:</strong> {ticket.notes}
+                            </div>
+                          )}
+
+                          {/* Workers Table */}
+                          {ticket.t_and_m_workers?.length > 0 && (
+                            <div className="backup-workers">
+                              <h4>Labor ({workerCount} workers)</h4>
+                              <table className="backup-table">
+                                <thead>
+                                  <tr>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Reg Hrs</th>
+                                    <th>OT Hrs</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {ticket.t_and_m_workers.map((worker, idx) => (
+                                    <tr key={idx}>
+                                      <td>{worker.name}</td>
+                                      <td>{worker.role || '-'}</td>
+                                      <td>{worker.hours || 0}</td>
+                                      <td>{worker.overtime_hours || '-'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {/* Materials/Equipment Table */}
+                          {ticket.t_and_m_items?.length > 0 && (
+                            <div className="backup-items">
+                              <h4>Materials & Equipment ({itemCount} items)</h4>
+                              <table className="backup-table">
+                                <thead>
+                                  <tr>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Qty</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {ticket.t_and_m_items.map((item, idx) => (
+                                    <tr key={idx}>
+                                      <td>{item.materials_equipment?.name || item.custom_name || 'Item'}</td>
+                                      <td>{item.materials_equipment?.category || item.custom_category || '-'}</td>
+                                      <td>{item.quantity}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {/* Photos Gallery */}
+                          {ticket.photos?.length > 0 && (
+                            <div className="backup-photos">
+                              <h4>Photos ({photoCount})</h4>
+                              <div className="backup-photos-grid">
+                                {ticket.photos.map((photoUrl, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="backup-photo-thumb"
+                                    onClick={() => setSelectedPhoto(photoUrl)}
+                                  >
+                                    <img src={photoUrl} alt={`Photo ${idx + 1}`} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Signature Section */}
           {(corData.gc_signature_data || corData.gc_signature || corData.client_signature_data) && (
             <div className="cor-detail-section signature-section">
@@ -587,6 +755,16 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
           onClose={() => setShowSignatureLink(false)}
           onShowToast={onShowToast}
         />
+      )}
+
+      {/* Photo Lightbox Modal */}
+      {selectedPhoto && (
+        <div className="photo-lightbox" onClick={() => setSelectedPhoto(null)}>
+          <button className="lightbox-close" onClick={() => setSelectedPhoto(null)}>
+            <X size={24} />
+          </button>
+          <img src={selectedPhoto} alt="Full size photo" onClick={e => e.stopPropagation()} />
+        </div>
       )}
     </div>
   )
