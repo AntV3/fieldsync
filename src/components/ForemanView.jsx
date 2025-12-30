@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
-import { FileText, MessageSquare, Package, ClipboardList, AlertTriangle, Info, CheckSquare, Zap } from 'lucide-react'
+import { FileText, MessageSquare, Package, ClipboardList, AlertTriangle, Info, CheckSquare, Zap, HardHat, Truck } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
@@ -17,7 +17,8 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
   const [showTMForm, setShowTMForm] = useState(false)
-  const [showCrewCheckin, setShowCrewCheckin] = useState(true)
+  const [showCrewCheckin, setShowCrewCheckin] = useState(false)
+  const [showDisposalLoads, setShowDisposalLoads] = useState(false)
   const [showDailyReport, setShowDailyReport] = useState(false)
   const [showMessages, setShowMessages] = useState(false)
   const [showMaterialRequest, setShowMaterialRequest] = useState(false)
@@ -167,6 +168,43 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
+  // Show Crew Check-in
+  if (showCrewCheckin) {
+    return (
+      <div className="foreman-container">
+        <div className="foreman-view-header">
+          <button className="back-btn-simple" onClick={() => setShowCrewCheckin(false)}>
+            ←
+          </button>
+          <h2>Crew Check-in</h2>
+        </div>
+        <CrewCheckin
+          project={project}
+          onShowToast={onShowToast}
+        />
+      </div>
+    )
+  }
+
+  // Show Disposal Loads
+  if (showDisposalLoads) {
+    return (
+      <div className="foreman-container">
+        <div className="foreman-view-header">
+          <button className="back-btn-simple" onClick={() => setShowDisposalLoads(false)}>
+            ←
+          </button>
+          <h2>Disposal Loads</h2>
+        </div>
+        <DisposalLoadInput
+          project={project}
+          date={new Date().toISOString().split('T')[0]}
+          onShowToast={onShowToast}
+        />
+      </div>
+    )
+  }
+
   const progress = calculateProgress(areas)
   
   // Group areas by group_name
@@ -286,60 +324,58 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
 
       {/* Actions Tab */}
       {activeTab === 'actions' && (
-        <>
-          {/* Action Buttons */}
-          <div className="field-actions">
-            <button
-              className="field-action-btn"
-              onClick={() => setShowTMForm(true)}
-            >
-              <FileText size={20} className="icon" />
-              T&M Ticket
-            </button>
-            <button
-              className="field-action-btn"
-              onClick={() => setShowMessages(true)}
-            >
-              <MessageSquare size={20} className="icon" />
-              Messages
-              {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
-            </button>
-            <button
-              className="field-action-btn"
-              onClick={() => setShowMaterialRequest(true)}
-            >
-              <Package size={20} className="icon" />
-              Materials
-            </button>
-            <button
-              className="field-action-btn"
-              onClick={() => setShowDailyReport(true)}
-            >
-              <ClipboardList size={20} className="icon" />
-              Daily Report
-            </button>
-            <button
-              className="field-action-btn danger"
-              onClick={() => setShowInjuryReport(true)}
-            >
-              <AlertTriangle size={20} className="icon" />
-              Report Injury
-            </button>
-          </div>
-
-          {/* Crew Check-In */}
-          <CrewCheckin
-            project={project}
-            onShowToast={onShowToast}
-          />
-
-          {/* Disposal Load Tracking */}
-          <DisposalLoadInput
-            project={project}
-            date={new Date().toISOString().split('T')[0]}
-            onShowToast={onShowToast}
-          />
-        </>
+        <div className="field-actions">
+          <button
+            className="field-action-btn"
+            onClick={() => setShowTMForm(true)}
+          >
+            <FileText size={22} />
+            T&M Ticket
+          </button>
+          <button
+            className="field-action-btn"
+            onClick={() => setShowCrewCheckin(true)}
+          >
+            <HardHat size={22} />
+            Crew Check-in
+          </button>
+          <button
+            className="field-action-btn"
+            onClick={() => setShowDisposalLoads(true)}
+          >
+            <Truck size={22} />
+            Disposal Loads
+          </button>
+          <button
+            className="field-action-btn"
+            onClick={() => setShowMaterialRequest(true)}
+          >
+            <Package size={22} />
+            Materials
+          </button>
+          <button
+            className="field-action-btn"
+            onClick={() => setShowMessages(true)}
+          >
+            <MessageSquare size={22} />
+            Messages
+            {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
+          </button>
+          <button
+            className="field-action-btn"
+            onClick={() => setShowDailyReport(true)}
+          >
+            <ClipboardList size={22} />
+            Daily Report
+          </button>
+          <button
+            className="field-action-btn danger"
+            onClick={() => setShowInjuryReport(true)}
+          >
+            <AlertTriangle size={22} />
+            Report Injury
+          </button>
+        </div>
       )}
 
       {/* Progress Tab */}
