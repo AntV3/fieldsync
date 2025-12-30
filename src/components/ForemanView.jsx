@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
-import { FileText, MessageSquare, Package, ClipboardList, AlertTriangle, Info } from 'lucide-react'
+import { FileText, MessageSquare, Package, ClipboardList, AlertTriangle, Info, CheckSquare, Zap } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
@@ -24,6 +24,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [showInjuryReport, setShowInjuryReport] = useState(false)
   const [showProjectInfo, setShowProjectInfo] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [activeTab, setActiveTab] = useState('actions')
 
   useEffect(() => {
     loadAreas()
@@ -265,60 +266,85 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="field-actions">
+      {/* Tab Navigation */}
+      <div className="foreman-tabs">
         <button
-          className="field-action-btn"
-          onClick={() => setShowTMForm(true)}
+          className={`foreman-tab ${activeTab === 'actions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('actions')}
         >
-          <FileText size={20} className="icon" />
-          T&M Ticket
+          <Zap size={18} />
+          Actions
         </button>
         <button
-          className="field-action-btn"
-          onClick={() => setShowMessages(true)}
+          className={`foreman-tab ${activeTab === 'progress' ? 'active' : ''}`}
+          onClick={() => setActiveTab('progress')}
         >
-          <MessageSquare size={20} className="icon" />
-          Messages
-          {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
-        </button>
-        <button
-          className="field-action-btn"
-          onClick={() => setShowMaterialRequest(true)}
-        >
-          <Package size={20} className="icon" />
-          Materials
-        </button>
-        <button
-          className="field-action-btn"
-          onClick={() => setShowDailyReport(true)}
-        >
-          <ClipboardList size={20} className="icon" />
-          Daily Report
-        </button>
-        <button
-          className="field-action-btn danger"
-          onClick={() => setShowInjuryReport(true)}
-        >
-          <AlertTriangle size={20} className="icon" />
-          Report Injury
+          <CheckSquare size={18} />
+          Progress
         </button>
       </div>
 
-      {/* Crew Check-In */}
-      <CrewCheckin
-        project={project}
-        onShowToast={onShowToast}
-      />
+      {/* Actions Tab */}
+      {activeTab === 'actions' && (
+        <>
+          {/* Action Buttons */}
+          <div className="field-actions">
+            <button
+              className="field-action-btn"
+              onClick={() => setShowTMForm(true)}
+            >
+              <FileText size={20} className="icon" />
+              T&M Ticket
+            </button>
+            <button
+              className="field-action-btn"
+              onClick={() => setShowMessages(true)}
+            >
+              <MessageSquare size={20} className="icon" />
+              Messages
+              {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
+            </button>
+            <button
+              className="field-action-btn"
+              onClick={() => setShowMaterialRequest(true)}
+            >
+              <Package size={20} className="icon" />
+              Materials
+            </button>
+            <button
+              className="field-action-btn"
+              onClick={() => setShowDailyReport(true)}
+            >
+              <ClipboardList size={20} className="icon" />
+              Daily Report
+            </button>
+            <button
+              className="field-action-btn danger"
+              onClick={() => setShowInjuryReport(true)}
+            >
+              <AlertTriangle size={20} className="icon" />
+              Report Injury
+            </button>
+          </div>
 
-      {/* Disposal Load Tracking */}
-      <DisposalLoadInput
-        project={project}
-        date={new Date().toISOString().split('T')[0]}
-        onShowToast={onShowToast}
-      />
+          {/* Crew Check-In */}
+          <CrewCheckin
+            project={project}
+            onShowToast={onShowToast}
+          />
 
-      <div className="foreman-areas">
+          {/* Disposal Load Tracking */}
+          <DisposalLoadInput
+            project={project}
+            date={new Date().toISOString().split('T')[0]}
+            onShowToast={onShowToast}
+          />
+        </>
+      )}
+
+      {/* Progress Tab */}
+      {activeTab === 'progress' && (
+        <div className="foreman-areas">
         {hasGroups ? (
           // Grouped display with clear sections
           Object.entries(groupedAreas).map(([group, groupAreas]) => (
@@ -389,13 +415,14 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
             </div>
           ))
         )}
-      </div>
 
-      {areas.length === 0 && (
-        <div className="foreman-empty">
-          <ClipboardList size={48} className="foreman-empty-icon" />
-          <div className="foreman-empty-text">No areas yet</div>
-          <div className="foreman-empty-subtext">Office needs to add areas to this project</div>
+          {areas.length === 0 && (
+            <div className="foreman-empty">
+              <ClipboardList size={48} className="foreman-empty-icon" />
+              <div className="foreman-empty-text">No areas yet</div>
+              <div className="foreman-empty-subtext">Office needs to add areas to this project</div>
+            </div>
+          )}
         </div>
       )}
     </div>
