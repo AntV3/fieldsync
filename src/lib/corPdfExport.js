@@ -442,6 +442,14 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       } catch (e) {
         console.error('Error adding signature:', e)
       }
+    } else {
+      // Show "Awaiting Signature" when not yet signed
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(9)
+      doc.setTextColor(150, 150, 150)
+      doc.text('Awaiting Signature', margin + 5, sigLineY - 5)
+      doc.setTextColor(0, 0, 0)
+      doc.setFont('helvetica', 'normal')
     }
 
     return sigLineY + 25

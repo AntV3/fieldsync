@@ -132,6 +132,22 @@
 
 ---
 
+### Client PDF Download for COR Signing
+**Problem:** Clients accessing the signature page could only download the COR PDF after both signatures were collected. They couldn't save a copy for their records before or during the signing process.
+
+**Solution:**
+- Moved PDF download button outside the `isFullySigned` conditional
+- Clients can now download COR + T&M backup at any point:
+  - Before signing (to review offline)
+  - After their signature (before other party signs)
+  - After fully signed
+- Added "Awaiting Signature" indicator in PDF for unsigned slots
+- Dynamic description text based on signature status
+
+**Files:** `src/components/SignaturePage.jsx`, `src/lib/corPdfExport.js`
+
+---
+
 ## December 29, 2024
 
 ### COR-Ticket Linking Fix (Office Side)

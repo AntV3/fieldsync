@@ -875,32 +875,32 @@ export default function SignaturePage({ signatureToken }) {
             </div>
           )}
 
-          {/* Download section - show when both signatures are complete */}
-          {isFullySigned && (
-            <div className="cor-download-section">
-              <h4>Download Your Copy</h4>
-              <p className="download-description">
-                Download a PDF copy of this signed COR including all T&M backup documentation.
-              </p>
-              <button
-                className="btn btn-primary download-btn"
-                onClick={handleDownload}
-                disabled={downloading}
-              >
-                {downloading ? (
-                  <>
-                    <span className="download-spinner"></span>
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <Download size={18} />
-                    Download COR + Backup
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+          {/* Download section - always available so clients can save a copy */}
+          <div className="cor-download-section">
+            <h4>Download Your Copy</h4>
+            <p className="download-description">
+              {isFullySigned
+                ? 'Download a PDF copy of this fully signed COR including all T&M backup documentation.'
+                : 'Download a PDF copy of this COR for your records. Signature status will be included.'}
+            </p>
+            <button
+              className="btn btn-primary download-btn"
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              {downloading ? (
+                <>
+                  <span className="download-spinner"></span>
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <Download size={18} />
+                  Download COR + Backup
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </main>
 
