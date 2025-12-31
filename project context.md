@@ -144,6 +144,13 @@ FieldSync is a construction progress tracking application that connects field cr
 - Fixed `getNextCORNumber` to find actual max instead of most recent
 - Added retry logic for 409 conflicts
 
+### Ticket-COR Junction Sync (20241230)
+- Added reverse sync trigger: when `assigned_cor_id` is set on a ticket,
+  automatically creates entry in `change_order_ticket_associations`
+- Fixes issue where linked tickets didn't appear in COR detail view
+- Fixes PDF export not including backup documentation
+- Also backfills existing tickets missing junction entries
+
 ## Environment Variables
 
 ```env
