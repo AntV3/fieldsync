@@ -154,14 +154,243 @@ GRANT EXECUTE ON FUNCTION unassign_ticket_from_cor(UUID, UUID) TO anon;
 GRANT EXECUTE ON FUNCTION recalculate_cor_totals(UUID) TO anon;
 
 -- ============================================================
+-- 7. COMPANY BRANDING - Allow field to view branding
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view company branding" ON company_branding;
+CREATE POLICY "Field users can view company branding"
+ON company_branding FOR SELECT
+USING (auth.uid() IS NULL);
+
+GRANT SELECT ON company_branding TO anon;
+
+-- ============================================================
+-- 8. CREW CHECKINS - Allow field to manage crew check-ins
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view crew checkins" ON crew_checkins;
+CREATE POLICY "Field users can view crew checkins"
+ON crew_checkins FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create crew checkins" ON crew_checkins;
+CREATE POLICY "Field users can create crew checkins"
+ON crew_checkins FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can update crew checkins" ON crew_checkins;
+CREATE POLICY "Field users can update crew checkins"
+ON crew_checkins FOR UPDATE
+USING (auth.uid() IS NULL)
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT, UPDATE ON crew_checkins TO anon;
+
+-- ============================================================
+-- 9. PROJECTS - Allow field to view project details
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view projects" ON projects;
+CREATE POLICY "Field users can view projects"
+ON projects FOR SELECT
+USING (auth.uid() IS NULL);
+
+GRANT SELECT ON projects TO anon;
+
+-- ============================================================
+-- 10. COMPANIES - Allow field to view company info
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view companies" ON companies;
+CREATE POLICY "Field users can view companies"
+ON companies FOR SELECT
+USING (auth.uid() IS NULL);
+
+GRANT SELECT ON companies TO anon;
+
+-- ============================================================
+-- 11. AREAS - Allow field to view and update areas
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view areas" ON areas;
+CREATE POLICY "Field users can view areas"
+ON areas FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can update areas" ON areas;
+CREATE POLICY "Field users can update areas"
+ON areas FOR UPDATE
+USING (auth.uid() IS NULL)
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, UPDATE ON areas TO anon;
+
+-- ============================================================
+-- 12. MESSAGES - Allow field to view and send messages
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view messages" ON messages;
+CREATE POLICY "Field users can view messages"
+ON messages FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can send messages" ON messages;
+CREATE POLICY "Field users can send messages"
+ON messages FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can update messages" ON messages;
+CREATE POLICY "Field users can update messages"
+ON messages FOR UPDATE
+USING (auth.uid() IS NULL)
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT, UPDATE ON messages TO anon;
+
+-- ============================================================
+-- 13. DAILY REPORTS - Allow field to create daily reports
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view daily reports" ON daily_reports;
+CREATE POLICY "Field users can view daily reports"
+ON daily_reports FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create daily reports" ON daily_reports;
+CREATE POLICY "Field users can create daily reports"
+ON daily_reports FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT ON daily_reports TO anon;
+
+-- ============================================================
+-- 14. INJURY REPORTS - Allow field to create injury reports
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view injury reports" ON injury_reports;
+CREATE POLICY "Field users can view injury reports"
+ON injury_reports FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create injury reports" ON injury_reports;
+CREATE POLICY "Field users can create injury reports"
+ON injury_reports FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT ON injury_reports TO anon;
+
+-- ============================================================
+-- 15. MATERIAL REQUESTS - Allow field to create material requests
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view material requests" ON material_requests;
+CREATE POLICY "Field users can view material requests"
+ON material_requests FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create material requests" ON material_requests;
+CREATE POLICY "Field users can create material requests"
+ON material_requests FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT ON material_requests TO anon;
+
+-- ============================================================
+-- 16. DISPOSAL LOADS - Allow field to manage disposal loads
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view disposal loads" ON disposal_loads;
+CREATE POLICY "Field users can view disposal loads"
+ON disposal_loads FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create disposal loads" ON disposal_loads;
+CREATE POLICY "Field users can create disposal loads"
+ON disposal_loads FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can update disposal loads" ON disposal_loads;
+CREATE POLICY "Field users can update disposal loads"
+ON disposal_loads FOR UPDATE
+USING (auth.uid() IS NULL)
+WITH CHECK (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can delete disposal loads" ON disposal_loads;
+CREATE POLICY "Field users can delete disposal loads"
+ON disposal_loads FOR DELETE
+USING (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON disposal_loads TO anon;
+
+-- ============================================================
+-- 17. DUMP SITES - Allow field to view dump sites
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view dump sites" ON dump_sites;
+CREATE POLICY "Field users can view dump sites"
+ON dump_sites FOR SELECT
+USING (auth.uid() IS NULL);
+
+GRANT SELECT ON dump_sites TO anon;
+
+-- ============================================================
+-- 18. T&M TICKETS - Ensure full field access
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view tickets" ON t_and_m_tickets;
+CREATE POLICY "Field users can view tickets"
+ON t_and_m_tickets FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create tickets" ON t_and_m_tickets;
+CREATE POLICY "Field users can create tickets"
+ON t_and_m_tickets FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT, UPDATE ON t_and_m_tickets TO anon;
+
+-- ============================================================
+-- 19. T&M WORKERS - Allow field to manage workers
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view workers" ON t_and_m_workers;
+CREATE POLICY "Field users can view workers"
+ON t_and_m_workers FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create workers" ON t_and_m_workers;
+CREATE POLICY "Field users can create workers"
+ON t_and_m_workers FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT ON t_and_m_workers TO anon;
+
+-- ============================================================
+-- 20. T&M ITEMS - Allow field to manage items
+-- ============================================================
+
+DROP POLICY IF EXISTS "Field users can view items" ON t_and_m_items;
+CREATE POLICY "Field users can view items"
+ON t_and_m_items FOR SELECT
+USING (auth.uid() IS NULL);
+
+DROP POLICY IF EXISTS "Field users can create items" ON t_and_m_items;
+CREATE POLICY "Field users can create items"
+ON t_and_m_items FOR INSERT
+WITH CHECK (auth.uid() IS NULL);
+
+GRANT SELECT, INSERT ON t_and_m_items TO anon;
+
+-- ============================================================
 -- SUCCESS MESSAGE
 -- ============================================================
 
 DO $$
 BEGIN
-  RAISE NOTICE '✓ Field COR access policies created successfully!';
-  RAISE NOTICE '  - Field users can now SELECT CORs by project_id';
-  RAISE NOTICE '  - Field users can create ticket-COR associations';
-  RAISE NOTICE '  - Field users can import T&M data to CORs (labor, materials, equipment)';
-  RAISE NOTICE '  - T&M tickets can be linked to CORs from field';
+  RAISE NOTICE '✓ Field access policies created successfully!';
+  RAISE NOTICE '  - CORs: SELECT, ticket associations';
+  RAISE NOTICE '  - T&M: Full ticket/worker/item access';
+  RAISE NOTICE '  - Crew check-ins, disposal loads, daily reports';
+  RAISE NOTICE '  - Messages, material requests, injury reports';
+  RAISE NOTICE '  - Company branding, projects, areas';
 END $$;
