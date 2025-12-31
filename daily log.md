@@ -62,6 +62,28 @@
 
 ---
 
+### Testing & Deployment Safety (Late Session)
+
+**RLS Policy Test Suite** (`supabase/tests/rls_policy_tests.sql`)
+- Verifies RLS enabled on all critical tables
+- Checks multi-tenant data isolation
+- Validates anon/field policies exist
+- Tests ticket-COR association integrity
+- Detects overly permissive policies
+- Run in Supabase SQL Editor to verify security
+
+**Migration Workflow** (`docs/migration-workflow.md`)
+- Supabase branching workflow for safe testing
+- Pre/post deployment checklists
+- Migration file template with verification
+- Emergency rollback procedure
+
+**Rollback Scripts** (`supabase/rollbacks/`)
+- Created structure for rollback scripts
+- Every migration should have a corresponding rollback
+
+---
+
 ## December 29, 2024
 
 ### COR-Ticket Linking Fix (Office Side)
