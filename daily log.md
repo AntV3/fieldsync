@@ -84,6 +84,54 @@
 
 ---
 
+### RLS Security Fixes (Test Suite Results)
+
+**Initial Test Run:** 48/52 passing
+
+**Issues Found & Fixed:**
+1. `daily_reports` - RLS not enabled → Fixed
+2. `material_requests` - RLS not enabled → Fixed
+3. `messages` - RLS not enabled → Fixed
+4. 2 orphaned projects with NULL company_id → Deleted
+5. `projects.company_id` had no NOT NULL constraint → Added
+
+**Final Test Run:** 52/52 passing
+
+**Database Constraints Added:**
+- `projects.company_id` now NOT NULL (prevents orphaned projects)
+
+---
+
+### T&M Form UX Acceleration (Field Efficiency)
+**Goal:** Reduce clicks per ticket from 50-60+ to ~15-20 for typical 8-worker crew.
+
+**Implemented Features:**
+1. **Auto-Calculate Hours from Time Range**
+   - When start/end times entered, automatically calculates regular + OT hours
+   - ≤8 hours = all regular, >8 hours = 8 regular + remainder as OT
+   - Manual override still available
+
+2. **Time Presets (Quick Buttons)**
+   - "8hr Day" (7:00 AM - 3:30 PM)
+   - "10hr Day" (6:00 AM - 4:30 PM) → 8 reg + 2 OT
+   - "4hr Day" (Half Day)
+
+3. **"Same as Yesterday" Crew Copy**
+   - One-tap loads previous day's crew with names, roles, and hours
+   - Uses `db.getPreviousTicketCrew()` to fetch most recent ticket
+
+4. **Batch Hours Application**
+   - "Set Crew Hours" modal applies same time/hours to all workers with names
+   - Combines with presets for maximum efficiency
+
+5. **Larger Touch Targets**
+   - Remove buttons: 48×48px minimum
+   - Time inputs with adequate padding (0.75rem)
+
+**Files:** `src/components/TMForm.jsx`, `src/lib/supabase.js`, `src/index.css`
+
+---
+
 ## December 29, 2024
 
 ### COR-Ticket Linking Fix (Office Side)
