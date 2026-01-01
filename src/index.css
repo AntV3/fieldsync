@@ -3099,6 +3099,45 @@ input[type="number"] {
   color: var(--accent-orange);
 }
 
+/* Review Step - Notes & Photos Sections */
+.tm-notes-section,
+.tm-photos-section {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.tm-review-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-top: 0.5rem;
+}
+
+.tm-review-textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.tm-review-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.tm-optional {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
 /* Batch Hours Modal */
 .tm-modal-overlay {
   position: fixed;

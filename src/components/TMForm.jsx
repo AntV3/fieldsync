@@ -1463,54 +1463,6 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </button>
           </div>
 
-          {/* Description of Work */}
-          <div className="tm-field">
-            <label>Description of Work</label>
-            <textarea
-              placeholder="What work was performed today?"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="tm-description"
-            />
-          </div>
-
-          {/* Photos Section */}
-          <div className="tm-field">
-            <label>
-              <Camera size={16} className="inline-icon" /> Photos 
-              {maxPhotos !== -1 && (
-                <span className="tm-photo-count">({photos.length}/{maxPhotos})</span>
-              )}
-            </label>
-            {photos.length > 0 && (
-              <div className="tm-photo-grid">
-                {photos.map(photo => (
-                  <div key={photo.id} className="tm-photo-item">
-                    <img src={photo.previewUrl} alt={photo.name} />
-                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {(maxPhotos === -1 || photos.length < maxPhotos) && (
-              <label className="tm-photo-btn">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoAdd}
-                  style={{ display: 'none' }}
-                />
-                <Camera size={16} className="inline-icon" /> {photos.length > 0 ? 'Add More Photos' : 'Add Photos'}
-              </label>
-            )}
-            {maxPhotos !== -1 && photos.length >= maxPhotos && (
-              <div className="tm-photo-limit-reached">
-                Photo limit reached ({maxPhotos} max)
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -1571,28 +1523,52 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           </div>
 
-          {notes && (
-            <div className="tm-review-section">
-              <div className="tm-review-header">
-                <span><FileText size={16} className="inline-icon" /> Description</span>
-              </div>
-              <div className="tm-review-notes">{notes}</div>
+          {/* Description of Work - Editable */}
+          <div className="tm-review-section tm-notes-section">
+            <div className="tm-review-header">
+              <span><FileText size={16} className="inline-icon" /> {t('notes')}</span>
+              <span className="tm-optional">({t('optional')})</span>
             </div>
-          )}
+            <textarea
+              placeholder={t('addNotes')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="tm-review-textarea"
+            />
+          </div>
 
-          {photos.length > 0 && (
-            <div className="tm-review-section">
-              <div className="tm-review-header">
-                <span><Camera size={16} className="inline-icon" /> Photos</span>
-                <span>{photos.length}</span>
-              </div>
-              <div className="tm-review-photos">
+          {/* Photos - Editable */}
+          <div className="tm-review-section tm-photos-section">
+            <div className="tm-review-header">
+              <span><Camera size={16} className="inline-icon" /> {t('photos')}</span>
+              {maxPhotos !== -1 && photos.length > 0 && (
+                <span className="tm-photo-count">{photos.length}/{maxPhotos}</span>
+              )}
+            </div>
+            {photos.length > 0 && (
+              <div className="tm-photo-grid">
                 {photos.map(photo => (
-                  <img key={photo.id} src={photo.previewUrl} alt={photo.name} />
+                  <div key={photo.id} className="tm-photo-item">
+                    <img src={photo.previewUrl} alt={photo.name} />
+                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
+                  </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+            {(maxPhotos === -1 || photos.length < maxPhotos) && (
+              <label className="tm-photo-btn">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoAdd}
+                  style={{ display: 'none' }}
+                />
+                <Camera size={16} className="inline-icon" /> {photos.length > 0 ? (lang === 'en' ? 'Add More' : 'Más') : t('addPhotos')}
+              </label>
+            )}
+          </div>
 
           {validSupervision.length > 0 && (
             <div className="tm-review-section">
