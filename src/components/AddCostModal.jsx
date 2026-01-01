@@ -117,11 +117,13 @@ export default function AddCostModal({ onClose, onSave, saving = false }) {
                   <span className="input-prefix">$</span>
                   <input
                     id="cost-amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.amount}
-                    onChange={(e) => handleChange('amount', e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.]/g, '')
+                      handleChange('amount', val)
+                    }}
                     placeholder="0.00"
                     className={errors.amount ? 'error' : ''}
                   />

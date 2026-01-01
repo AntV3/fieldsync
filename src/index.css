@@ -19790,3 +19790,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding-left: 1.75rem !important;
   text-align: right;
 }
+
+.dollar-input-wrapper.compact {
+  min-width: 80px;
+}
+
+.dollar-input-wrapper.compact .dollar-prefix {
+  left: 0.5rem;
+}
+
+.dollar-input-wrapper.compact .dollar-input {
+  padding-left: 1.25rem !important;
+}

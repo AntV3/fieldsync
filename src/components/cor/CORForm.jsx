@@ -638,13 +638,21 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         </div>
                         <div className="form-group">
                           <label>Reg Rate ($/hr)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={centsToDollars(item.regular_rate)}
-                            onChange={(e) => updateLaborItem(index, 'regular_rate', dollarsToCents(e.target.value))}
-                          />
+                          <div className="dollar-input-wrapper">
+                            <span className="dollar-prefix">$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="dollar-input"
+                              value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                const cents = Math.round(parseFloat(val || 0) * 100)
+                                updateLaborItem(index, 'regular_rate', cents)
+                              }}
+                              placeholder="0.00"
+                            />
+                          </div>
                         </div>
                         <div className="form-group">
                           <label>OT Hours</label>
@@ -658,13 +666,21 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         </div>
                         <div className="form-group">
                           <label>OT Rate ($/hr)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={centsToDollars(item.overtime_rate)}
-                            onChange={(e) => updateLaborItem(index, 'overtime_rate', dollarsToCents(e.target.value))}
-                          />
+                          <div className="dollar-input-wrapper">
+                            <span className="dollar-prefix">$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="dollar-input"
+                              value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                const cents = Math.round(parseFloat(val || 0) * 100)
+                                updateLaborItem(index, 'overtime_rate', cents)
+                              }}
+                              placeholder="0.00"
+                            />
+                          </div>
                         </div>
                       </div>
 

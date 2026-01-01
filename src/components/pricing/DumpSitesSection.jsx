@@ -316,10 +316,14 @@ export default function DumpSitesSection({ company, onShowToast }) {
                       <div className="rate-input-wrapper">
                         <span className="rate-prefix">$</span>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           className="rate-input"
                           value={getRate(site, type.id)}
-                          onChange={(e) => handleRateChange(site.id, type.id, e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.-]/g, '')
+                            handleRateChange(site.id, type.id, val)
+                          }}
                           placeholder="0"
                         />
                       </div>

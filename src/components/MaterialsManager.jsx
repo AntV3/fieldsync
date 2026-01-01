@@ -372,11 +372,14 @@ export default function MaterialsManager({ company, onShowToast }) {
                           <div className="rate-input-inline">
                             <span>$</span>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={rateData.regular}
-                              onChange={(e) => updateRate(activeWorkType, jobType, role, 'regular', e.target.value)}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                updateRate(activeWorkType, jobType, role, 'regular', val)
+                              }}
                               placeholder="0.00"
-                              step="0.01"
                             />
                             <span>/hr</span>
                           </div>
@@ -389,11 +392,14 @@ export default function MaterialsManager({ company, onShowToast }) {
                           <div className="rate-input-inline">
                             <span>$</span>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={rateData.overtime}
-                              onChange={(e) => updateRate(activeWorkType, jobType, role, 'overtime', e.target.value)}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                updateRate(activeWorkType, jobType, role, 'overtime', val)
+                              }}
                               placeholder="0.00"
-                              step="0.01"
                             />
                             <span>/hr</span>
                           </div>
@@ -495,13 +501,20 @@ export default function MaterialsManager({ company, onShowToast }) {
                 value={newItem.unit}
                 onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
               />
-              <input
-                type="number"
-                placeholder="Cost per unit"
-                value={newItem.cost_per_unit}
-                onChange={(e) => setNewItem({ ...newItem, cost_per_unit: e.target.value })}
-                step="0.01"
-              />
+              <div className="dollar-input-wrapper">
+                <span className="dollar-prefix">$</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="dollar-input"
+                  placeholder="Cost per unit"
+                  value={newItem.cost_per_unit}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '')
+                    setNewItem({ ...newItem, cost_per_unit: val })
+                  }}
+                />
+              </div>
             </div>
             <div className="form-actions">
               <button className="btn btn-secondary" onClick={() => setShowAddForm(false)}>
@@ -566,13 +579,20 @@ export default function MaterialsManager({ company, onShowToast }) {
                             onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value })}
                             placeholder="Unit"
                           />
-                          <input
-                            type="number"
-                            value={editingItem.cost_per_unit}
-                            onChange={(e) => setEditingItem({ ...editingItem, cost_per_unit: e.target.value })}
-                            placeholder="Cost"
-                            step="0.01"
-                          />
+                          <div className="dollar-input-wrapper compact">
+                            <span className="dollar-prefix">$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="dollar-input"
+                              value={editingItem.cost_per_unit}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                setEditingItem({ ...editingItem, cost_per_unit: val })
+                              }}
+                              placeholder="Cost"
+                            />
+                          </div>
                           <div className="edit-actions">
                             <button className="btn btn-success btn-small" onClick={() => handleUpdateItem(editingItem)}>
                               Save
@@ -641,13 +661,20 @@ export default function MaterialsManager({ company, onShowToast }) {
                           onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value })}
                           placeholder="Unit"
                         />
-                        <input
-                          type="number"
-                          value={editingItem.cost_per_unit}
-                          onChange={(e) => setEditingItem({ ...editingItem, cost_per_unit: e.target.value })}
-                          placeholder="Cost"
-                          step="0.01"
-                        />
+                        <div className="dollar-input-wrapper compact">
+                          <span className="dollar-prefix">$</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="dollar-input"
+                            value={editingItem.cost_per_unit}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9.]/g, '')
+                              setEditingItem({ ...editingItem, cost_per_unit: val })
+                            }}
+                            placeholder="Cost"
+                          />
+                        </div>
                         <div className="edit-actions">
                           <button className="btn btn-success btn-small" onClick={() => handleUpdateItem(editingItem)}>
                             Save
