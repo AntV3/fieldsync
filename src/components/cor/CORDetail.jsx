@@ -519,6 +519,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                               <Image size={14} /> {photoCount}
                             </span>
                           )}
+                          {ticket.client_signature_data && (
+                            <span className="backup-stat verified" title={`Verified by ${ticket.client_signature_name}`}>
+                              <PenTool size={14} /> Verified
+                            </span>
+                          )}
                         </div>
                         <span className={`backup-ticket-status status-${ticket.status}`}>
                           {ticket.status}
@@ -600,6 +605,32 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                                     <img src={photoUrl} alt={`Photo ${idx + 1}`} />
                                   </div>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Client Verification Signature */}
+                          {ticket.client_signature_data && (
+                            <div className="backup-verification">
+                              <h4><PenTool size={14} /> Client Verification</h4>
+                              <div className="backup-signature-display">
+                                <img
+                                  src={ticket.client_signature_data}
+                                  alt="Client Signature"
+                                  className="backup-signature-image"
+                                />
+                                <div className="backup-signature-info">
+                                  <span className="backup-signer-name">{ticket.client_signature_name}</span>
+                                  {ticket.client_signature_title && (
+                                    <span className="backup-signer-title">{ticket.client_signature_title}</span>
+                                  )}
+                                  {ticket.client_signature_company && (
+                                    <span className="backup-signer-company">{ticket.client_signature_company}</span>
+                                  )}
+                                  <span className="backup-signed-date">
+                                    Verified: {formatDate(ticket.client_signature_date)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           )}
