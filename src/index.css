@@ -2991,6 +2991,64 @@ input[type="number"] {
   color: white;
 }
 
+/* Running Total Banner */
+.tm-running-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.tm-running-total.has-data {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border-color: var(--accent-green);
+}
+
+.tm-running-total-workers,
+.tm-running-total-hours {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tm-running-total-workers svg,
+.tm-running-total-hours svg {
+  color: var(--text-secondary);
+}
+
+.tm-running-total.has-data .tm-running-total-workers svg,
+.tm-running-total.has-data .tm-running-total-hours svg {
+  color: var(--accent-green);
+}
+
+.tm-running-total-count {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tm-running-total-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.tm-running-total-warning {
+  font-size: 0.75rem;
+  color: var(--accent-orange);
+  font-weight: 500;
+}
+
+.tm-running-total-ot {
+  font-size: 0.75rem;
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
 /* Batch Hours Modal */
 .tm-modal-overlay {
   position: fixed;

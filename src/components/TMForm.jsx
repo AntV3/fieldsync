@@ -869,6 +869,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const totalOTHours = [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.overtimeHours || 0), 0)
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
 
+  // Workers with names (for running total - shows who needs hours)
+  const namedWorkers = [
+    ...supervision.filter(s => s.name.trim()),
+    ...operators.filter(o => o.name.trim()),
+    ...laborers.filter(l => l.name.trim())
+  ]
+  const workersWithHours = totalWorkers
+  const workersNeedingHours = namedWorkers.length - workersWithHours
+
   // STEP 2: Item Selection View
   if (step === 2 && (selectedCategory || showCustomForm)) {
     return (
@@ -1210,6 +1219,34 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               >
                 {t('preset4hr')}
               </button>
+            </div>
+          </div>
+
+          {/* Running Total Banner - Live feedback */}
+          <div className={`tm-running-total ${totalWorkers > 0 ? 'has-data' : ''}`}>
+            <div className="tm-running-total-workers">
+              <HardHat size={18} />
+              <span className="tm-running-total-count">{namedWorkers.length}</span>
+              <span className="tm-running-total-label">
+                {namedWorkers.length === 1 ? t('worker') : t('workers_plural')}
+              </span>
+              {workersNeedingHours > 0 && (
+                <span className="tm-running-total-warning">
+                  ({workersNeedingHours} {lang === 'en' ? 'need hours' : 'sin horas'})
+                </span>
+              )}
+            </div>
+            <div className="tm-running-total-hours">
+              <Clock size={18} />
+              <span className="tm-running-total-count">{totalRegHours + totalOTHours}</span>
+              <span className="tm-running-total-label">
+                {lang === 'en' ? 'total hrs' : 'hrs total'}
+              </span>
+              {totalOTHours > 0 && (
+                <span className="tm-running-total-ot">
+                  ({totalOTHours} OT)
+                </span>
+              )}
             </div>
           </div>
 
