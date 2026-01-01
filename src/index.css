@@ -3158,6 +3158,181 @@ input[type="number"] {
   color: var(--accent-orange);
 }
 
+/* Success Step (Step 4) */
+.tm-success-step {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.tm-success-header {
+  margin-bottom: 1.5rem;
+}
+
+.tm-success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%);
+  border-radius: 50%;
+  color: white;
+  margin-bottom: 1rem;
+  animation: successPop 0.4s ease-out;
+}
+
+@keyframes successPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.tm-success-header h2 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+  color: var(--text-primary);
+}
+
+.tm-success-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.tm-success-summary {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+
+.tm-success-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tm-success-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tm-success-stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tm-success-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-green);
+}
+
+/* Signature Options */
+.tm-signature-options {
+  text-align: left;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.tm-signature-options h3 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+  color: var(--text-primary);
+}
+
+.tm-signature-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+}
+
+.tm-signature-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tm-signature-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.tm-signature-option-btn:hover {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.tm-signature-option-btn.primary {
+  border-color: var(--accent-green);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.tm-signature-option-btn.primary:hover {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.tm-signature-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.tm-signature-option-btn.primary .tm-signature-option-icon {
+  background: var(--accent-green);
+  color: white;
+}
+
+.tm-signature-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tm-signature-option-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tm-signature-option-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 /* Review Step - Notes & Photos Sections */
 .tm-notes-section,
 .tm-photos-section {

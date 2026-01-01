@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2 } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2, Send, Link, ExternalLink, CheckCircle2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
+import SignatureLinkGenerator from './SignatureLinkGenerator'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
@@ -210,8 +211,12 @@ const TRANSLATIONS = {
 }
 
 export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
-  const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review
+  const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review, 4: Success/Signature
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
+
+  // Post-submit signature state
+  const [submittedTicket, setSubmittedTicket] = useState(null)
+  const [showSignatureLinkModal, setShowSignatureLinkModal] = useState(false)
   const [cePcoNumber, setCePcoNumber] = useState('')
   const [submittedByName, setSubmittedByName] = useState('') // Foreman's name for certification
 
@@ -858,8 +863,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
       })
 
+      // Store the ticket and go to success/signature step
+      setSubmittedTicket(ticket)
       onShowToast('T&M submitted!', 'success')
-      onSubmit()
+      setStep(4) // Go to success/signature step
     } catch (error) {
       console.error('Error submitting T&M:', error)
       onShowToast('Error submitting T&M', 'error')
@@ -983,26 +990,35 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     <div className="tm-wizard">
       {/* Header */}
       <div className="tm-wizard-header">
-        <button className="tm-back-btn" onClick={goBack}>←</button>
+        {step < 4 ? (
+          <button className="tm-back-btn" onClick={goBack}>←</button>
+        ) : (
+          <div className="tm-success-check"><CheckCircle2 size={24} /></div>
+        )}
         <h2>
           {step === 1 && t('workers')}
           {step === 2 && t('materialsEquipment')}
           {step === 3 && t('review')}
+          {step === 4 && (lang === 'en' ? 'Submitted' : 'Enviado')}
         </h2>
         <div className="tm-header-right">
-          <button
-            className="tm-lang-toggle"
-            onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-            title={lang === 'en' ? 'Cambiar a Español' : 'Switch to English'}
-          >
-            <Globe size={16} />
-            {lang === 'en' ? 'ES' : 'EN'}
-          </button>
-          <div className="tm-step-dots">
-            <span className={`tm-dot ${step >= 1 ? 'active' : ''}`}></span>
-            <span className={`tm-dot ${step >= 2 ? 'active' : ''}`}></span>
-            <span className={`tm-dot ${step >= 3 ? 'active' : ''}`}></span>
-          </div>
+          {step < 4 && (
+            <button
+              className="tm-lang-toggle"
+              onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
+              title={lang === 'en' ? 'Cambiar a Español' : 'Switch to English'}
+            >
+              <Globe size={16} />
+              {lang === 'en' ? 'ES' : 'EN'}
+            </button>
+          )}
+          {step < 4 && (
+            <div className="tm-step-dots">
+              <span className={`tm-dot ${step >= 1 ? 'active' : ''}`}></span>
+              <span className={`tm-dot ${step >= 2 ? 'active' : ''}`}></span>
+              <span className={`tm-dot ${step >= 3 ? 'active' : ''}`}></span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1674,6 +1690,101 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
+      {/* Step 4: Success & Client Signature */}
+      {step === 4 && submittedTicket && (
+        <div className="tm-step-content tm-success-step">
+          <div className="tm-success-header">
+            <div className="tm-success-icon">
+              <CheckCircle2 size={48} />
+            </div>
+            <h2>{lang === 'en' ? 'T&M Ticket Submitted!' : '¡Ticket T&M Enviado!'}</h2>
+            <p className="tm-success-subtitle">
+              {lang === 'en'
+                ? 'Your ticket has been saved and is ready for client signature.'
+                : 'Su ticket ha sido guardado y está listo para la firma del cliente.'}
+            </p>
+          </div>
+
+          <div className="tm-success-summary">
+            <div className="tm-success-stat">
+              <span className="tm-success-stat-value">{totalWorkers}</span>
+              <span className="tm-success-stat-label">{lang === 'en' ? 'Workers' : 'Trabajadores'}</span>
+            </div>
+            <div className="tm-success-stat">
+              <span className="tm-success-stat-value">{totalRegHours + totalOTHours}</span>
+              <span className="tm-success-stat-label">{lang === 'en' ? 'Total Hours' : 'Horas Total'}</span>
+            </div>
+            <div className="tm-success-stat">
+              <span className="tm-success-stat-value">{new Date(workDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <span className="tm-success-stat-label">{lang === 'en' ? 'Work Date' : 'Fecha'}</span>
+            </div>
+          </div>
+
+          <div className="tm-signature-options">
+            <h3>{lang === 'en' ? 'Get Client Signature' : 'Obtener Firma del Cliente'}</h3>
+            <p className="tm-signature-description">
+              {lang === 'en'
+                ? 'Have the client sign this T&M ticket to verify the work performed.'
+                : 'Haga que el cliente firme este ticket T&M para verificar el trabajo realizado.'}
+            </p>
+
+            <div className="tm-signature-buttons">
+              {/* On-site signature option */}
+              <button
+                className="tm-signature-option-btn primary"
+                onClick={() => {
+                  // For now, use the link generator - on-site capture will be added
+                  setShowSignatureLinkModal(true)
+                }}
+              >
+                <div className="tm-signature-option-icon">
+                  <PenLine size={24} />
+                </div>
+                <div className="tm-signature-option-text">
+                  <span className="tm-signature-option-title">
+                    {lang === 'en' ? 'Sign Now (On-Site)' : 'Firmar Ahora'}
+                  </span>
+                  <span className="tm-signature-option-desc">
+                    {lang === 'en' ? 'Client signs on this device' : 'Cliente firma en este dispositivo'}
+                  </span>
+                </div>
+              </button>
+
+              {/* Send link option */}
+              <button
+                className="tm-signature-option-btn"
+                onClick={() => setShowSignatureLinkModal(true)}
+              >
+                <div className="tm-signature-option-icon">
+                  <Send size={24} />
+                </div>
+                <div className="tm-signature-option-text">
+                  <span className="tm-signature-option-title">
+                    {lang === 'en' ? 'Send Signature Link' : 'Enviar Enlace'}
+                  </span>
+                  <span className="tm-signature-option-desc">
+                    {lang === 'en' ? 'Client signs later via link' : 'Cliente firma después vía enlace'}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Signature Link Generator Modal */}
+      {showSignatureLinkModal && submittedTicket && (
+        <SignatureLinkGenerator
+          documentType="tm_ticket"
+          documentId={submittedTicket.id}
+          companyId={companyId}
+          projectId={project.id}
+          documentTitle={`T&M - ${new Date(workDate).toLocaleDateString()}`}
+          onClose={() => setShowSignatureLinkModal(false)}
+          onShowToast={onShowToast}
+        />
+      )}
+
       {/* Footer */}
       <div className="tm-wizard-footer">
         {step < 3 ? (
@@ -1685,7 +1796,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             {step === 1 ? `${t('nextMaterials')} (${totalWorkers} ${totalWorkers === 1 ? t('worker') : t('workers_plural')}, ${totalRegHours + totalOTHours} hrs)` :
              step === 2 ? `${t('reviewItems')} (${items.length} ${items.length === 1 ? t('item') : t('items_plural')})` : t('next')}
           </button>
-        ) : (
+        ) : step === 3 ? (
           <button
             className={`tm-big-btn submit ${submitting ? 'submitting' : ''} ${!submittedByName.trim() ? 'needs-name' : 'ready'}`}
             onClick={handleSubmit}
@@ -1708,11 +1819,26 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               </>
             )}
           </button>
+        ) : (
+          /* Step 4: Done button */
+          <button
+            className="tm-big-btn primary"
+            onClick={onSubmit}
+          >
+            <Check size={20} />
+            <span>{lang === 'en' ? 'Done' : 'Listo'}</span>
+          </button>
         )}
 
         {step === 2 && (
           <button className="tm-skip-btn" onClick={goNext}>
             {t('skipNoMaterials')}
+          </button>
+        )}
+
+        {step === 4 && (
+          <button className="tm-skip-btn" onClick={onSubmit}>
+            {lang === 'en' ? 'Skip signature for now' : 'Saltar firma por ahora'}
           </button>
         )}
       </div>
