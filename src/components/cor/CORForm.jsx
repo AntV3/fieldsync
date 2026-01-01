@@ -43,6 +43,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const [scopeOfWork, setScopeOfWork] = useState(existingCOR?.scope_of_work || '')
   const [areaId, setAreaId] = useState(existingCOR?.area_id || '')
   const [corNumber, setCORNumber] = useState(existingCOR?.cor_number || '')
+  const [groupName, setGroupName] = useState(existingCOR?.group_name || '')
 
   // Period (Step 2)
   const [periodStart, setPeriodStart] = useState(existingCOR?.period_start || '')
@@ -123,6 +124,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     scope_of_work: scopeOfWork,
     area_id: areaId || null,
     cor_number: corNumber,
+    group_name: groupName || null,
     period_start: periodStart,
     period_end: periodEnd,
     change_order_labor: laborItems,
@@ -137,7 +139,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     bond_percent: bondPercent,
     license_fee_percent: licenseFeePercent
   }), [
-    title, scopeOfWork, areaId, corNumber, periodStart, periodEnd,
+    title, scopeOfWork, areaId, corNumber, groupName, periodStart, periodEnd,
     laborItems, materialsItems, equipmentItems, subcontractorsItems,
     laborMarkupPercent, materialsMarkupPercent, equipmentMarkupPercent, subcontractorsMarkupPercent,
     liabilityInsurancePercent, bondPercent, licenseFeePercent
@@ -517,6 +519,17 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                   </select>
                 </div>
               )}
+
+              <div className="form-group">
+                <label>Group Name (Optional)</label>
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="e.g., Phase 1, Building A, Week 12"
+                />
+                <span className="form-hint">Group related CORs together for easier organization</span>
+              </div>
             </div>
           )}
 

@@ -4462,12 +4462,11 @@ export const db = {
     if (isSupabaseConfigured && subItems.length > 0) {
       const items = subItems.map((item, index) => ({
         change_order_id: corId,
-        description: item.description,
-        quantity: item.quantity || 1,
-        unit: item.unit || 'lump sum',
-        unit_cost: item.unit_cost || 0,
-        total: Math.round((item.quantity || 1) * (item.unit_cost || 0)),
-        source_type: item.source_type || 'custom',
+        company_name: item.company_name || '',
+        description: item.description || '',
+        amount: item.amount || item.total || 0,
+        total: item.total || item.amount || 0,
+        source_type: item.source_type || 'invoice',
         source_reference: item.source_reference || null,
         sort_order: item.sort_order ?? index
       }))

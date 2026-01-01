@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2, Send, Link, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2, Send, Link, ExternalLink, CheckCircle2, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -11,8 +11,9 @@ const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 const TRANSLATIONS = {
   en: {
     // Steps
-    workers: 'Workers',
-    materialsEquipment: 'Materials & Equipment',
+    workInfo: 'Work Info',
+    crewHours: 'Crew & Hours',
+    materialsEquipment: 'Materials',
     review: 'Review',
 
     // Quick Actions
@@ -77,9 +78,20 @@ const TRANSLATIONS = {
     foremanSignature: "Foreman's Name (Signature)",
     yourName: 'Your name',
 
+    // Work Info step
+    describeWork: 'Describe the work performed',
+    descriptionRequired: 'Description is required',
+    whatWorkPerformed: 'What work was performed today?',
+
+    // Materials search
+    searchMaterials: 'Search materials & equipment...',
+    noSearchResults: 'No items found',
+    orBrowse: 'Or browse by category:',
+
     // Navigation
     back: 'Back',
     next: 'Next',
+    nextCrew: 'Next: Crew',
     nextMaterials: 'Next: Materials',
     reviewItems: 'Review',
     skipNoMaterials: 'Skip (no materials)',
@@ -111,8 +123,9 @@ const TRANSLATIONS = {
   },
   es: {
     // Steps
-    workers: 'Trabajadores',
-    materialsEquipment: 'Materiales y Equipo',
+    workInfo: 'Info del Trabajo',
+    crewHours: 'Cuadrilla y Horas',
+    materialsEquipment: 'Materiales',
     review: 'Revisar',
 
     // Quick Actions
@@ -177,9 +190,20 @@ const TRANSLATIONS = {
     foremanSignature: 'Nombre del Capataz (Firma)',
     yourName: 'Su nombre',
 
+    // Work Info step
+    describeWork: 'Describir el trabajo realizado',
+    descriptionRequired: 'Descripcion es requerida',
+    whatWorkPerformed: 'Que trabajo se realizo hoy?',
+
+    // Materials search
+    searchMaterials: 'Buscar materiales y equipo...',
+    noSearchResults: 'No se encontraron articulos',
+    orBrowse: 'O navegar por categoria:',
+
     // Navigation
     back: 'Atras',
     next: 'Siguiente',
+    nextCrew: 'Siguiente: Cuadrilla',
     nextMaterials: 'Siguiente: Materiales',
     reviewItems: 'Revisar',
     skipNoMaterials: 'Saltar (sin materiales)',
@@ -212,7 +236,7 @@ const TRANSLATIONS = {
 }
 
 export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
-  const [step, setStep] = useState(1) // 1: Workers, 2: Items, 3: Review, 4: Success/Signature
+  const [step, setStep] = useState(1) // 1: Work Info, 2: Crew & Hours, 3: Materials, 4: Review, 5: Success/Signature
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
 
   // Post-submit signature state
@@ -248,6 +272,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categoryItems, setCategoryItems] = useState([])
   const [loadingItems, setLoadingItems] = useState(false)
+  const [materialSearch, setMaterialSearch] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [allMaterials, setAllMaterials] = useState([]) // Cache all materials for search
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customItem, setCustomItem] = useState({ name: '', category: '', quantity: '' })
 
@@ -448,6 +475,36 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     } finally {
       setLoadingItems(false)
     }
+  }
+
+  // Load all materials for search (on first access to materials step)
+  const loadAllMaterials = async () => {
+    if (allMaterials.length > 0) return // Already loaded
+    try {
+      const allItems = []
+      for (const category of CATEGORIES) {
+        const data = await db.getMaterialsEquipmentByCategory(companyId, category)
+        allItems.push(...data.map(item => ({ ...item, category })))
+      }
+      setAllMaterials(allItems)
+    } catch (error) {
+      console.error('Error loading all materials:', error)
+    }
+  }
+
+  // Filter materials based on search query
+  const handleMaterialSearch = (query) => {
+    setMaterialSearch(query)
+    if (!query.trim()) {
+      setSearchResults([])
+      return
+    }
+    const lowerQuery = query.toLowerCase()
+    const results = allMaterials.filter(item =>
+      item.name.toLowerCase().includes(lowerQuery) ||
+      item.category.toLowerCase().includes(lowerQuery)
+    )
+    setSearchResults(results.slice(0, 10)) // Limit to 10 results
   }
 
   // Load previous ticket's crew ("Same as Yesterday")
@@ -692,7 +749,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   // Navigation
   const canGoNext = () => {
     if (step === 1) {
-      // At least one supervision, operator, or laborer with name and hours (regular or OT)
+      // Description is required on Work Info step
+      return notes.trim().length > 0
+    }
+    if (step === 2) {
+      // At least one worker with name and hours (regular or OT)
       const hasSupervision = supervision.some(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
       const hasOperators = operators.some(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
       const hasLaborers = laborers.some(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
@@ -702,7 +763,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   const goNext = () => {
-    if (step < 3) setStep(step + 1)
+    if (step < 4) setStep(step + 1)
   }
 
   const goBack = () => {
@@ -869,7 +930,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       // Store the ticket and go to success/signature step
       setSubmittedTicket(ticket)
       onShowToast('T&M submitted!', 'success')
-      setStep(4) // Go to success/signature step
+      setStep(5) // Go to success/signature step
     } catch (error) {
       console.error('Error submitting T&M:', error)
       onShowToast('Error submitting T&M', 'error')
@@ -898,7 +959,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const workersNeedingHours = namedWorkers.length - workersWithHours
 
   // STEP 2: Item Selection View
-  if (step === 2 && (selectedCategory || showCustomForm)) {
+  if (step === 3 && (selectedCategory || showCustomForm)) {
     return (
       <div className="tm-wizard">
         <div className="tm-wizard-header">
@@ -993,19 +1054,20 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     <div className="tm-wizard">
       {/* Header */}
       <div className="tm-wizard-header">
-        {step < 4 ? (
+        {step < 5 ? (
           <button className="tm-back-btn" onClick={goBack}>←</button>
         ) : (
           <div className="tm-success-check"><CheckCircle2 size={24} /></div>
         )}
         <h2>
-          {step === 1 && t('workers')}
-          {step === 2 && t('materialsEquipment')}
-          {step === 3 && t('review')}
-          {step === 4 && (lang === 'en' ? 'Submitted' : 'Enviado')}
+          {step === 1 && t('workInfo')}
+          {step === 2 && t('crewHours')}
+          {step === 3 && t('materialsEquipment')}
+          {step === 4 && t('review')}
+          {step === 5 && (lang === 'en' ? 'Submitted' : 'Enviado')}
         </h2>
         <div className="tm-header-right">
-          {step < 4 && (
+          {step < 5 && (
             <button
               className="tm-lang-toggle"
               onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
@@ -1015,17 +1077,18 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               {lang === 'en' ? 'ES' : 'EN'}
             </button>
           )}
-          {step < 4 && (
+          {step < 5 && (
             <div className="tm-step-dots">
               <span className={`tm-dot ${step >= 1 ? 'active' : ''}`}></span>
               <span className={`tm-dot ${step >= 2 ? 'active' : ''}`}></span>
               <span className={`tm-dot ${step >= 3 ? 'active' : ''}`}></span>
+              <span className={`tm-dot ${step >= 4 ? 'active' : ''}`}></span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Step 1: Workers */}
+      {/* Step 1: Work Info */}
       {step === 1 && (
         <div className="tm-step-content">
           {/* Project Info Header */}
@@ -1076,9 +1139,56 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           </div>
 
+          {/* Description of Work - REQUIRED */}
+          <div className="tm-field tm-description-field">
+            <label>
+              <FileText size={16} className="inline-icon" />
+              {t('describeWork')} <span className="tm-required">*</span>
+            </label>
+            <textarea
+              placeholder={t('whatWorkPerformed')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              className={`tm-description ${!notes.trim() ? 'tm-field-required' : ''}`}
+            />
+          </div>
+
+          {/* Photos Section */}
+          <div className="tm-field">
+            <label>
+              <Camera size={16} className="inline-icon" /> {t('photos')}
+              {maxPhotos !== -1 && (
+                <span className="tm-photo-count">({photos.length}/{maxPhotos})</span>
+              )}
+            </label>
+            {photos.length > 0 && (
+              <div className="tm-photo-grid">
+                {photos.map(photo => (
+                  <div key={photo.id} className="tm-photo-item">
+                    <img src={photo.previewUrl} alt={photo.name} />
+                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(maxPhotos === -1 || photos.length < maxPhotos) && (
+              <label className="tm-photo-btn">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoAdd}
+                  style={{ display: 'none' }}
+                />
+                <Camera size={16} className="inline-icon" /> {photos.length > 0 ? (lang === 'en' ? 'Add More Photos' : 'Más Fotos') : t('addPhotos')}
+              </label>
+            )}
+          </div>
+
           {/* COR Assignment - Link T&M directly to a Change Order Request */}
           <div className="tm-field">
-            <label>Link to Change Order Request (Optional)</label>
+            <label>Link to Change Order Request ({t('optional')})</label>
             <div className="tm-cor-row">
               <select
                 value={selectedCorId}
@@ -1102,11 +1212,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 <RefreshCw size={16} className={loadingCORs ? 'spinning' : ''} />
               </button>
             </div>
-            <span className="tm-field-hint">
-              T&M data will be imported into the selected COR
-            </span>
           </div>
+        </div>
+      )}
 
+      {/* Step 2: Crew & Hours */}
+      {step === 2 && (
+        <div className="tm-step-content">
           {/* Select from Today's Crew */}
           {todaysCrew.length > 0 && (
             <div className="tm-crew-picker">
@@ -1485,11 +1597,60 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 2: Items */}
-      {step === 2 && !selectedCategory && (
+      {/* Step 3: Materials & Equipment */}
+      {step === 3 && !selectedCategory && (
         <div className="tm-step-content">
+          {/* Quick Search */}
+          <div className="tm-field tm-search-field">
+            <div className="tm-search-input-wrapper">
+              <Search size={18} className="tm-search-icon" />
+              <input
+                type="text"
+                placeholder={t('searchMaterials')}
+                value={materialSearch}
+                onChange={(e) => handleMaterialSearch(e.target.value)}
+                onFocus={() => loadAllMaterials()}
+                className="tm-search-input"
+              />
+              {materialSearch && (
+                <button className="tm-search-clear" onClick={() => { setMaterialSearch(''); setSearchResults([]); }}>×</button>
+              )}
+            </div>
+
+            {/* Search Results */}
+            {materialSearch && searchResults.length > 0 && (
+              <div className="tm-search-results">
+                {searchResults.map((item, idx) => {
+                  const existingItem = items.find(i => i.id === item.id)
+                  return (
+                    <button
+                      key={idx}
+                      className={`tm-search-result-item ${existingItem ? 'added' : ''}`}
+                      onClick={() => {
+                        if (existingItem) {
+                          updateItemQuantity(items.indexOf(existingItem), existingItem.quantity + 1)
+                        } else {
+                          setItems([...items, { ...item, quantity: 1, isCustom: false }])
+                        }
+                        setMaterialSearch('')
+                        setSearchResults([])
+                      }}
+                    >
+                      <span className="tm-search-result-name">{item.name}</span>
+                      <span className="tm-search-result-category">{item.category}</span>
+                      {existingItem && <span className="tm-search-result-qty">×{existingItem.quantity}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {materialSearch && searchResults.length === 0 && (
+              <div className="tm-search-no-results">{t('noSearchResults')}</div>
+            )}
+          </div>
+
           <div className="tm-field">
-            <label>What was used?</label>
+            <label>{t('orBrowse')}</label>
             <div className="tm-category-grid">
               {CATEGORIES.map(cat => {
                 const catItems = items.filter(i => i.category === cat)
@@ -1532,9 +1693,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 3: Review */}
-      {step === 3 && (
+      {/* Step 4: Review */}
+      {step === 4 && (
         <div className="tm-step-content">
+          {/* Work Info Summary */}
           <div className="tm-review-section">
             <div className="tm-review-header">
               <span>📅 Date</span>
@@ -1542,52 +1704,42 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           </div>
 
-          {/* Description of Work - Editable */}
-          <div className="tm-review-section tm-notes-section">
-            <div className="tm-review-header">
-              <span><FileText size={16} className="inline-icon" /> {t('notes')}</span>
-              <span className="tm-optional">({t('optional')})</span>
+          {/* Description */}
+          {notes && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span><FileText size={16} className="inline-icon" /> {t('notes')}</span>
+              </div>
+              <div className="tm-review-notes">{notes}</div>
             </div>
-            <textarea
-              placeholder={t('addNotes')}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="tm-review-textarea"
-            />
-          </div>
+          )}
 
-          {/* Photos - Editable */}
-          <div className="tm-review-section tm-photos-section">
-            <div className="tm-review-header">
-              <span><Camera size={16} className="inline-icon" /> {t('photos')}</span>
-              {maxPhotos !== -1 && photos.length > 0 && (
-                <span className="tm-photo-count">{photos.length}/{maxPhotos}</span>
-              )}
-            </div>
-            {photos.length > 0 && (
-              <div className="tm-photo-grid">
+          {/* Photos */}
+          {photos.length > 0 && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span><Camera size={16} className="inline-icon" /> {t('photos')}</span>
+                <span>{photos.length}</span>
+              </div>
+              <div className="tm-review-photos">
                 {photos.map(photo => (
-                  <div key={photo.id} className="tm-photo-item">
-                    <img src={photo.previewUrl} alt={photo.name} />
-                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
-                  </div>
+                  <img key={photo.id} src={photo.previewUrl} alt={photo.name} />
                 ))}
               </div>
-            )}
-            {(maxPhotos === -1 || photos.length < maxPhotos) && (
-              <label className="tm-photo-btn">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoAdd}
-                  style={{ display: 'none' }}
-                />
-                <Camera size={16} className="inline-icon" /> {photos.length > 0 ? (lang === 'en' ? 'Add More' : 'Más') : t('addPhotos')}
-              </label>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* COR Assignment Display */}
+          {selectedCorId && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span>🔗 {t('linkedCOR')}</span>
+              </div>
+              <div className="tm-review-cor">
+                {assignableCORs.find(c => c.id === selectedCorId)?.cor_number}: {assignableCORs.find(c => c.id === selectedCorId)?.title || 'Untitled'}
+              </div>
+            </div>
+          )}
 
           {validSupervision.length > 0 && (
             <div className="tm-review-section">
@@ -1693,8 +1845,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 4: Success & Client Signature */}
-      {step === 4 && submittedTicket && (
+      {/* Step 5: Success & Client Signature */}
+      {step === 5 && submittedTicket && (
         <div className="tm-step-content tm-success-step">
           <div className="tm-success-header">
             <div className="tm-success-icon">
@@ -1813,41 +1965,74 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       )}
 
       {/* Footer */}
-      <div className="tm-wizard-footer">
-        {step < 3 ? (
-          <button
-            className="tm-big-btn primary"
-            onClick={goNext}
-            disabled={step === 1 && !canGoNext()}
-          >
-            {step === 1 ? `${t('nextMaterials')} (${totalWorkers} ${totalWorkers === 1 ? t('worker') : t('workers_plural')}, ${totalRegHours + totalOTHours} hrs)` :
-             step === 2 ? `${t('reviewItems')} (${items.length} ${items.length === 1 ? t('item') : t('items_plural')})` : t('next')}
-          </button>
-        ) : step === 3 ? (
-          <button
-            className={`tm-big-btn submit ${submitting ? 'submitting' : ''} ${!submittedByName.trim() ? 'needs-name' : 'ready'}`}
-            onClick={handleSubmit}
-            disabled={submitting || !submittedByName.trim()}
-          >
-            {submitting ? (
-              <>
-                <Loader2 size={20} className="tm-spinner" />
-                <span className="tm-submit-text">{submitProgress || t('submitting')}</span>
-              </>
-            ) : !submittedByName.trim() ? (
-              <>
-                <PenLine size={18} />
-                <span>{lang === 'en' ? 'Enter name to submit' : 'Ingrese nombre'}</span>
-              </>
-            ) : (
-              <>
-                <Check size={20} />
-                <span>{t('submitTM')}</span>
-              </>
-            )}
-          </button>
-        ) : (
-          /* Step 4: Done button */
+      {step < 5 && (
+        <div className="tm-wizard-footer">
+          {step === 1 && (
+            <button
+              className="tm-big-btn primary"
+              onClick={goNext}
+              disabled={!canGoNext()}
+            >
+              {t('nextCrew')}
+            </button>
+          )}
+
+          {step === 2 && (
+            <>
+              <button
+                className="tm-big-btn primary"
+                onClick={goNext}
+                disabled={!canGoNext()}
+              >
+                {t('nextMaterials')} ({totalWorkers} {totalWorkers === 1 ? t('worker') : t('workers_plural')}, {totalRegHours + totalOTHours} hrs)
+              </button>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <button
+                className="tm-big-btn primary"
+                onClick={goNext}
+              >
+                {t('reviewItems')} ({items.length} {items.length === 1 ? t('item') : t('items_plural')})
+              </button>
+              <button className="tm-skip-btn" onClick={goNext}>
+                {t('skipNoMaterials')}
+              </button>
+            </>
+          )}
+
+          {step === 4 && (
+            <button
+              className={`tm-big-btn submit ${submitting ? 'submitting' : ''} ${!submittedByName.trim() ? 'needs-name' : 'ready'}`}
+              onClick={handleSubmit}
+              disabled={submitting || !submittedByName.trim()}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={20} className="tm-spinner" />
+                  <span className="tm-submit-text">{submitProgress || t('submitting')}</span>
+                </>
+              ) : !submittedByName.trim() ? (
+                <>
+                  <PenLine size={18} />
+                  <span>{lang === 'en' ? 'Enter name to submit' : 'Ingrese nombre'}</span>
+                </>
+              ) : (
+                <>
+                  <Check size={20} />
+                  <span>{t('submitTM')}</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Step 5: Success Footer */}
+      {step === 5 && (
+        <div className="tm-wizard-footer">
           <button
             className="tm-big-btn primary"
             onClick={onSubmit}
@@ -1855,20 +2040,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             <Check size={20} />
             <span>{lang === 'en' ? 'Done' : 'Listo'}</span>
           </button>
-        )}
-
-        {step === 2 && (
-          <button className="tm-skip-btn" onClick={goNext}>
-            {t('skipNoMaterials')}
-          </button>
-        )}
-
-        {step === 4 && (
           <button className="tm-skip-btn" onClick={onSubmit}>
             {lang === 'en' ? 'Skip signature for now' : 'Saltar firma por ahora'}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Batch Hours Modal */}
       {showBatchHoursModal && (

@@ -8,6 +8,7 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [areaFilter, setAreaFilter] = useState('all')
+  const [groupFilter, setGroupFilter] = useState('all')
   const [expandedCOR, setExpandedCOR] = useState(null)
   const [selectedCORs, setSelectedCORs] = useState(new Set())
 
@@ -83,7 +84,15 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     }
   }
 
-  // Filter CORs by status, area, view mode, and date range
+  // Get unique groups from CORs
+  const availableGroups = useMemo(() => {
+    const groups = cors
+      .map(c => c.group_name)
+      .filter(Boolean)
+    return [...new Set(groups)].sort()
+  }, [cors])
+
+  // Filter CORs by status, area, group, view mode, and date range
   const filteredCORs = useMemo(() => {
     let filtered = [...cors]
 
@@ -95,6 +104,11 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     // Area filter
     if (areaFilter !== 'all') {
       filtered = filtered.filter(c => c.area_id === areaFilter)
+    }
+
+    // Group filter
+    if (groupFilter !== 'all') {
+      filtered = filtered.filter(c => c.group_name === groupFilter)
     }
 
     // Apply date filter if set
@@ -130,7 +144,7 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
     return filtered
-  }, [cors, filter, areaFilter, viewMode, dateFilter])
+  }, [cors, filter, areaFilter, groupFilter, viewMode, dateFilter])
 
   // Group CORs by month for 'all' view
   const corsByMonth = useMemo(() => {
@@ -192,7 +206,8 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
   const renderCORCard = (cor) => {
     const statusInfo = getStatusInfo(cor.status)
     const isExpanded = expandedCOR === cor.id
-    const canEdit = cor.status === 'draft'
+    // Allow editing before billed (draft, pending_approval, approved)
+    const canEdit = ['draft', 'pending_approval', 'approved'].includes(cor.status)
     // Allow deleting CORs that haven't been approved/billed/closed
     const canDelete = ['draft', 'pending_approval', 'rejected'].includes(cor.status)
     const canSubmit = cor.status === 'draft'
@@ -225,6 +240,9 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
         <div className="cor-card-body">
           <h4 className="cor-title">{cor.title || 'Untitled COR'}</h4>
           <div className="cor-meta">
+            {cor.group_name && (
+              <span className="cor-group-badge">{cor.group_name}</span>
+            )}
             {cor.area_id && (
               <span className="cor-area">{getAreaName(cor.area_id)}</span>
             )}
@@ -325,6 +343,20 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
             </button>
           ))}
         </div>
+
+        {/* Group Filter */}
+        {availableGroups.length > 0 && (
+          <select
+            className="cor-group-filter"
+            value={groupFilter}
+            onChange={(e) => setGroupFilter(e.target.value)}
+          >
+            <option value="all">All Groups</option>
+            {availableGroups.map(group => (
+              <option key={group} value={group}>{group}</option>
+            ))}
+          </select>
+        )}
 
         {/* View Toggle */}
         <div className="cor-view-toggle">

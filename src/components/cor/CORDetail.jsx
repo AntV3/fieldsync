@@ -62,7 +62,8 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
   const statusInfo = getStatusInfo(corData.status)
   const canApprove = corData.status === 'pending_approval'
-  const canEdit = corData.status === 'draft'
+  // Allow editing before billed (draft, pending_approval, approved)
+  const canEdit = ['draft', 'pending_approval', 'approved'].includes(corData.status)
 
   const getAreaName = (areaId) => {
     const area = areas?.find(a => a.id === areaId)
@@ -213,6 +214,9 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             >
               {statusInfo.label}
             </span>
+            {corData.group_name && (
+              <span className="cor-detail-group">{corData.group_name}</span>
+            )}
             {getAreaName(corData.area_id) && (
               <span className="cor-detail-area">{getAreaName(corData.area_id)}</span>
             )}

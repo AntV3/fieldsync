@@ -6,6 +6,96 @@
 
 ## December 31, 2024
 
+### T&M Form Workflow Restructure (Major UX Overhaul)
+**Goal:** Reorganize the T&M ticket creation workflow for better field efficiency and logical flow.
+
+**New 5-Step Workflow:**
+```
+Step 1: Work Info → Step 2: Crew & Hours → Step 3: Materials → Step 4: Review → Step 5: Signature
+```
+
+**Key Changes:**
+
+1. **Step 1: Work Info (NEW)**
+   - Date and CE/PCO number
+   - **Description of work (REQUIRED)** - moved to beginning
+   - Photos - can be added early while on-site
+   - COR assignment (optional)
+   - Ensures context is captured first before crew entry
+
+2. **Step 2: Crew & Hours (Dedicated)**
+   - Focused solely on worker entry
+   - Quick actions: "Same as Yesterday", "Set Crew Hours"
+   - Inline time presets (8hr/10hr/4hr)
+   - Running total banner with live feedback
+   - Visual state indicators for complete/incomplete workers
+
+3. **Step 3: Materials & Equipment**
+   - **Quick search feature (NEW)** - search across all categories
+   - Browse by category still available
+   - Search results show category tags
+   - Foremen no longer need to browse each tab
+
+4. **Step 4: Review (Read-Only)**
+   - Displays work description (read-only)
+   - Shows photos (read-only)
+   - COR assignment display
+   - Worker summaries with hours
+   - Materials list
+   - Certification/name entry for submission
+
+5. **Step 5: Success & Signature**
+   - Submission confirmation
+   - Client signature options (on-site or send link)
+
+**Validation Changes:**
+- Step 1: Description is now required (orange border if empty)
+- Step 2: At least one worker with hours required
+
+**Files Modified:**
+- `src/components/TMForm.jsx` - Complete workflow restructure
+- `src/index.css` - Search UI, description field, review display styles
+
+---
+
+### COR (Change Order Request) Fixes & Enhancements
+**Goal:** Improve COR usability for office staff - easier data entry, editing flexibility, and organization.
+
+**Fixes Implemented:**
+
+1. **0% Markup Now Shows $0**
+   - Fixed bug where 0% markup would default to 15%
+   - Changed `||` to `??` operator in calculations
+   - Now properly displays $0.00 when markup is set to 0%
+
+2. **Subcontractors Now Saving Correctly**
+   - Fixed `addBulkSubcontractorItems` to include `company_name` field
+   - Changed from quantity × unit_cost to direct amount field
+   - Subcontractor entries now properly saved and displayed
+
+3. **COR Editing Before Billed**
+   - Previously: Only draft CORs could be edited
+   - Now: Draft, Pending Approval, and Approved CORs can be edited
+   - Only billed/closed CORs are locked
+   - Applies to both CORList and CORDetail views
+
+4. **COR Grouping Feature (NEW)**
+   - Added optional "Group Name" field to COR creation
+   - Examples: "Phase 1", "Building A", "Week 12"
+   - Group badge displays on COR cards (purple)
+   - Filter dropdown to view CORs by group
+   - Helps organize related change orders together
+
+**Files Modified:**
+- `src/lib/corCalculations.js` - Fixed 0% markup bug
+- `src/lib/supabase.js` - Fixed subcontractor save function
+- `src/components/cor/CORForm.jsx` - Added group_name field
+- `src/components/cor/CORDetail.jsx` - Allow editing before billed, show group
+- `src/components/cor/CORList.jsx` - Allow editing before billed, group filter
+- `src/index.css` - Group badge and filter styles
+
+---
+
 ### T&M Form UX Acceleration (Phase 2)
 **Goal:** Further reduce clicks and improve visual feedback for field foremen entering T&M tickets.
 

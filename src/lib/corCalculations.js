@@ -96,20 +96,20 @@ export const calculateCORTotals = (cor) => {
     (sum, item) => sum + (parseInt(item.total) || 0), 0
   )
 
-  // Calculate markups
-  const laborMarkupAmount = calculateMarkup(laborSubtotal, cor.labor_markup_percent || 1500)
-  const materialsMarkupAmount = calculateMarkup(materialsSubtotal, cor.materials_markup_percent || 1500)
-  const equipmentMarkupAmount = calculateMarkup(equipmentSubtotal, cor.equipment_markup_percent || 1500)
-  const subcontractorsMarkupAmount = calculateMarkup(subcontractorsSubtotal, cor.subcontractors_markup_percent || 500)
+  // Calculate markups (use ?? to allow 0% markup)
+  const laborMarkupAmount = calculateMarkup(laborSubtotal, cor.labor_markup_percent ?? 1500)
+  const materialsMarkupAmount = calculateMarkup(materialsSubtotal, cor.materials_markup_percent ?? 1500)
+  const equipmentMarkupAmount = calculateMarkup(equipmentSubtotal, cor.equipment_markup_percent ?? 1500)
+  const subcontractorsMarkupAmount = calculateMarkup(subcontractorsSubtotal, cor.subcontractors_markup_percent ?? 500)
 
   // COR subtotal (all costs + all markups)
   const corSubtotal = laborSubtotal + materialsSubtotal + equipmentSubtotal + subcontractorsSubtotal +
                       laborMarkupAmount + materialsMarkupAmount + equipmentMarkupAmount + subcontractorsMarkupAmount
 
-  // Calculate additional fees
-  const liabilityInsuranceAmount = calculateFee(corSubtotal, cor.liability_insurance_percent || 144)
-  const bondAmount = calculateFee(corSubtotal, cor.bond_percent || 100)
-  const licenseFeeAmount = calculateFee(corSubtotal, cor.license_fee_percent || 10)
+  // Calculate additional fees (use ?? to allow 0% fees)
+  const liabilityInsuranceAmount = calculateFee(corSubtotal, cor.liability_insurance_percent ?? 144)
+  const bondAmount = calculateFee(corSubtotal, cor.bond_percent ?? 100)
+  const licenseFeeAmount = calculateFee(corSubtotal, cor.license_fee_percent ?? 10)
 
   const additionalFeesTotal = liabilityInsuranceAmount + bondAmount + licenseFeeAmount
 
