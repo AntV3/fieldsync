@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Plus, Trash2, ChevronLeft, ChevronRight, Save, Send, AlertCircle, FileText } from 'lucide-react'
+import { X, Plus, Trash2, ChevronLeft, ChevronRight, Save, Send, AlertCircle, FileText, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -37,6 +37,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
   const [showTicketSelector, setShowTicketSelector] = useState(false)
+
+  // Quick select state for materials/equipment
+  const [companyMaterials, setCompanyMaterials] = useState([])
+  const [materialSearch, setMaterialSearch] = useState('')
+  const [materialCategory, setMaterialCategory] = useState('all')
+  const [equipmentSearch, setEquipmentSearch] = useState('')
+  const [equipmentCategory, setEquipmentCategory] = useState('all')
 
   // Basic Info (Step 1)
   const [title, setTitle] = useState(existingCOR?.title || '')
@@ -84,13 +91,76 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     existingCOR?.license_fee_percent ?? DEFAULT_PERCENTAGES.license_fee
   )
 
-  // Load labor rates on mount
+  // Load labor rates and company materials on mount
   useEffect(() => {
     loadLaborRates()
+    loadCompanyMaterials()
     if (!existingCOR) {
       generateCORNumber()
     }
   }, [])
+
+  const loadCompanyMaterials = async () => {
+    try {
+      const data = await db.getAllMaterialsEquipment(company?.id)
+      setCompanyMaterials(data || [])
+    } catch (error) {
+      console.error('Error loading company materials:', error)
+    }
+  }
+
+  // Filter company materials for quick select
+  const filteredMaterials = useMemo(() => {
+    return companyMaterials.filter(item => {
+      // Filter for materials categories (Containment, PPE, Disposal)
+      if (!['Containment', 'PPE', 'Disposal'].includes(item.category)) return false
+      if (item.active === false) return false
+      if (materialCategory !== 'all' && item.category !== materialCategory) return false
+      if (materialSearch) {
+        return item.name.toLowerCase().includes(materialSearch.toLowerCase())
+      }
+      return true
+    })
+  }, [companyMaterials, materialSearch, materialCategory])
+
+  // Filter company equipment for quick select
+  const filteredEquipment = useMemo(() => {
+    return companyMaterials.filter(item => {
+      // Filter for equipment category
+      if (item.category !== 'Equipment') return false
+      if (item.active === false) return false
+      if (equipmentCategory !== 'all' && item.category !== equipmentCategory) return false
+      if (equipmentSearch) {
+        return item.name.toLowerCase().includes(equipmentSearch.toLowerCase())
+      }
+      return true
+    })
+  }, [companyMaterials, equipmentSearch, equipmentCategory])
+
+  // Add item from quick select
+  const addMaterialFromLibrary = (libraryItem) => {
+    setMaterialsItems([...materialsItems, {
+      description: libraryItem.name,
+      source_type: 'field_ticket',
+      source_reference: '',
+      quantity: 1,
+      unit: libraryItem.unit || 'each',
+      unit_cost: libraryItem.cost_per_unit || 0,
+      total: libraryItem.cost_per_unit || 0
+    }])
+  }
+
+  const addEquipmentFromLibrary = (libraryItem) => {
+    setEquipmentItems([...equipmentItems, {
+      description: libraryItem.name,
+      source_type: 'rental',
+      source_reference: '',
+      quantity: 1,
+      unit: libraryItem.unit || 'day',
+      unit_cost: libraryItem.cost_per_unit || 0,
+      total: libraryItem.cost_per_unit || 0
+    }])
+  }
 
   const loadLaborRates = async () => {
     try {
@@ -704,19 +774,68 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
               <div className="step-header">
                 <div>
                   <h3>Materials</h3>
-                  <p className="step-description">Add material costs for this change order.</p>
+                  <p className="step-description">Quick select from library or add custom materials.</p>
                 </div>
                 <button className="btn btn-secondary" onClick={addMaterialsItem}>
-                  <Plus size={16} /> Add Material
+                  <Plus size={16} /> Add Custom
                 </button>
               </div>
 
+              {/* Quick Select Panel */}
+              {companyMaterials.filter(m => ['Containment', 'PPE', 'Disposal'].includes(m.category) && m.active !== false).length > 0 && (
+                <div className="quick-select-panel">
+                  <div className="quick-select-header">
+                    <div className="quick-select-search">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        placeholder="Search materials..."
+                        value={materialSearch}
+                        onChange={(e) => setMaterialSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="quick-select-tabs">
+                      <button
+                        className={`quick-tab ${materialCategory === 'all' ? 'active' : ''}`}
+                        onClick={() => setMaterialCategory('all')}
+                      >
+                        All
+                      </button>
+                      {['Containment', 'PPE', 'Disposal'].map(cat => (
+                        <button
+                          key={cat}
+                          className={`quick-tab ${materialCategory === cat ? 'active' : ''}`}
+                          onClick={() => setMaterialCategory(cat)}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="quick-select-grid">
+                    {filteredMaterials.slice(0, 12).map(item => (
+                      <button
+                        key={item.id}
+                        className="quick-select-item"
+                        onClick={() => addMaterialFromLibrary(item)}
+                      >
+                        <span className="quick-item-name">{item.name}</span>
+                        <span className="quick-item-cost">${(item.cost_per_unit / 100).toFixed(2)}/{item.unit}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {filteredMaterials.length > 12 && (
+                    <div className="quick-select-more">
+                      +{filteredMaterials.length - 12} more items
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Added Materials List */}
               {materialsItems.length === 0 ? (
                 <div className="empty-items">
-                  <p>No materials added yet.</p>
-                  <button className="btn btn-primary" onClick={addMaterialsItem}>
-                    <Plus size={16} /> Add First Material
-                  </button>
+                  <p>No materials added yet. Select from above or add custom.</p>
                 </div>
               ) : (
                 <div className="line-items-list">
@@ -827,19 +946,51 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
               <div className="step-header">
                 <div>
                   <h3>Equipment</h3>
-                  <p className="step-description">Add equipment rental costs for this change order.</p>
+                  <p className="step-description">Quick select from library or add custom equipment.</p>
                 </div>
                 <button className="btn btn-secondary" onClick={addEquipmentItem}>
-                  <Plus size={16} /> Add Equipment
+                  <Plus size={16} /> Add Custom
                 </button>
               </div>
 
+              {/* Quick Select Panel */}
+              {companyMaterials.filter(m => m.category === 'Equipment' && m.active !== false).length > 0 && (
+                <div className="quick-select-panel">
+                  <div className="quick-select-header">
+                    <div className="quick-select-search">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        placeholder="Search equipment..."
+                        value={equipmentSearch}
+                        onChange={(e) => setEquipmentSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="quick-select-grid">
+                    {filteredEquipment.slice(0, 12).map(item => (
+                      <button
+                        key={item.id}
+                        className="quick-select-item"
+                        onClick={() => addEquipmentFromLibrary(item)}
+                      >
+                        <span className="quick-item-name">{item.name}</span>
+                        <span className="quick-item-cost">${(item.cost_per_unit / 100).toFixed(2)}/{item.unit}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {filteredEquipment.length > 12 && (
+                    <div className="quick-select-more">
+                      +{filteredEquipment.length - 12} more items
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Added Equipment List */}
               {equipmentItems.length === 0 ? (
                 <div className="empty-items">
-                  <p>No equipment added yet.</p>
-                  <button className="btn btn-primary" onClick={addEquipmentItem}>
-                    <Plus size={16} /> Add First Equipment
-                  </button>
+                  <p>No equipment added yet. Select from above or add custom.</p>
                 </div>
               ) : (
                 <div className="line-items-list">

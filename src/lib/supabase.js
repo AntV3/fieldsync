@@ -3962,6 +3962,17 @@ export const db = {
     }
   },
 
+  // Bulk update COR group name
+  async bulkUpdateCORGroup(corIds, groupName) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_orders')
+        .update({ group_name: groupName, updated_at: new Date().toISOString() })
+        .in('id', corIds)
+      if (error) throw error
+    }
+  },
+
   // Get all CORs for a project
   async getCORs(projectId, filters = {}) {
     if (isSupabaseConfigured) {

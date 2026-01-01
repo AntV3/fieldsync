@@ -10,6 +10,14 @@ FieldSync exists to **eliminate information lag between construction field crews
 
 The core value proposition: when a foreman marks an area complete, the office sees it within seconds—not hours or days.
 
+## Tech Stack
+
+- **Frontend**: React 18 + Vite 7
+- **Backend**: Supabase (PostgreSQL + Realtime + Storage + Auth)
+- **Styling**: Custom CSS with CSS variables for theming (light/dark mode)
+- **Hosting**: Vercel
+- **Icons**: Lucide React
+
 ---
 
 ## 2. Users

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -21,6 +21,8 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   const [showSignatureLink, setShowSignatureLink] = useState(false)
   const [expandedTickets, setExpandedTickets] = useState(new Set())
   const [selectedPhoto, setSelectedPhoto] = useState(null)
+  const [editingNumber, setEditingNumber] = useState(false)
+  const [newCorNumber, setNewCorNumber] = useState('')
 
   // Fetch full COR data with line items
   const fetchFullCOR = useCallback(async () => {
@@ -147,6 +149,30 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
   const canSign = corData.status === 'approved' && !corData.gc_signature
 
+  const handleUpdateCorNumber = async () => {
+    if (!newCorNumber.trim()) {
+      setEditingNumber(false)
+      return
+    }
+    setLoading(true)
+    try {
+      await db.updateCOR(corData.id, { cor_number: newCorNumber.trim() })
+      setCORData({ ...corData, cor_number: newCorNumber.trim() })
+      setEditingNumber(false)
+      onShowToast?.('COR number updated', 'success')
+    } catch (error) {
+      console.error('Error updating COR number:', error)
+      onShowToast?.('Error updating COR number', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const startEditingNumber = () => {
+    setNewCorNumber(corData.cor_number || '')
+    setEditingNumber(true)
+  }
+
   // Toggle ticket expansion in backup section
   const toggleTicketExpanded = (ticketId) => {
     setExpandedTickets(prev => {
@@ -201,7 +227,38 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
         <div className="modal-header cor-detail-header">
           <div className="cor-detail-title-row">
             <div>
-              <div className="cor-detail-number">{corData.cor_number}</div>
+              <div className="cor-detail-number">
+                {editingNumber ? (
+                  <div className="cor-number-edit">
+                    <input
+                      type="text"
+                      value={newCorNumber}
+                      onChange={(e) => setNewCorNumber(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleUpdateCorNumber()
+                        if (e.key === 'Escape') setEditingNumber(false)
+                      }}
+                      autoFocus
+                      className="cor-number-input"
+                    />
+                    <button className="btn-icon-sm" onClick={handleUpdateCorNumber} title="Save">
+                      <Check size={14} />
+                    </button>
+                    <button className="btn-icon-sm" onClick={() => setEditingNumber(false)} title="Cancel">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="cor-number-display">
+                    <span>{corData.cor_number}</span>
+                    {canEdit && (
+                      <button className="btn-icon-sm" onClick={startEditingNumber} title="Edit COR number">
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               <h2 id="cor-detail-title">{corData.title || 'Untitled COR'}</h2>
             </div>
             <button className="close-btn" onClick={onClose} aria-label="Close COR details"><X size={20} aria-hidden="true" /></button>

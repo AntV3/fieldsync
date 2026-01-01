@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send } from 'lucide-react'
+import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 
@@ -11,6 +11,9 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
   const [groupFilter, setGroupFilter] = useState('all')
   const [expandedCOR, setExpandedCOR] = useState(null)
   const [selectedCORs, setSelectedCORs] = useState(new Set())
+  const [selectMode, setSelectMode] = useState(false)
+  const [showGroupModal, setShowGroupModal] = useState(false)
+  const [newGroupName, setNewGroupName] = useState('')
 
   // View mode state
   const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
@@ -81,6 +84,47 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     } catch (error) {
       console.error('Error submitting COR:', error?.message || error)
       onShowToast?.(error?.message || 'Error submitting COR', 'error')
+    }
+  }
+
+  // Toggle COR selection
+  const toggleCORSelection = (corId, e) => {
+    e?.stopPropagation()
+    setSelectedCORs(prev => {
+      const next = new Set(prev)
+      if (next.has(corId)) {
+        next.delete(corId)
+      } else {
+        next.add(corId)
+      }
+      return next
+    })
+  }
+
+  // Exit select mode
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedCORs(new Set())
+  }
+
+  // Group selected CORs
+  const handleGroupSelected = async () => {
+    if (!newGroupName.trim()) {
+      onShowToast?.('Please enter a group name', 'error')
+      return
+    }
+
+    try {
+      await db.bulkUpdateCORGroup([...selectedCORs], newGroupName.trim())
+      onShowToast?.(`${selectedCORs.size} CORs grouped as "${newGroupName.trim()}"`, 'success')
+      setShowGroupModal(false)
+      setNewGroupName('')
+      setSelectedCORs(new Set())
+      setSelectMode(false)
+      loadCORs()
+    } catch (error) {
+      console.error('Error grouping CORs:', error)
+      onShowToast?.('Error grouping CORs', 'error')
     }
   }
 
@@ -206,6 +250,7 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
   const renderCORCard = (cor) => {
     const statusInfo = getStatusInfo(cor.status)
     const isExpanded = expandedCOR === cor.id
+    const isSelected = selectedCORs.has(cor.id)
     // Allow editing before billed (draft, pending_approval, approved)
     const canEdit = ['draft', 'pending_approval', 'approved'].includes(cor.status)
     // Allow deleting CORs that haven't been approved/billed/closed
@@ -215,15 +260,24 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     return (
       <div
         key={cor.id}
-        className={`cor-card ${cor.status}`}
-        onClick={() => onViewCOR?.(cor)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onViewCOR?.(cor) } }}
+        className={`cor-card ${cor.status} ${isSelected ? 'selected' : ''}`}
+        onClick={() => selectMode ? toggleCORSelection(cor.id) : onViewCOR?.(cor)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMode ? toggleCORSelection(cor.id) : onViewCOR?.(cor) } }}
         tabIndex={0}
         role="button"
-        aria-label={`View COR ${cor.cor_number}: ${cor.title || 'Untitled'}, ${statusInfo.label}, ${formatCurrency(cor.cor_total || 0)}`}
+        aria-label={`${selectMode ? (isSelected ? 'Deselect' : 'Select') : 'View'} COR ${cor.cor_number}: ${cor.title || 'Untitled'}, ${statusInfo.label}, ${formatCurrency(cor.cor_total || 0)}`}
       >
         <div className="cor-card-header">
           <div className="cor-card-left">
+            {selectMode && (
+              <button
+                className="cor-select-checkbox"
+                onClick={(e) => toggleCORSelection(cor.id, e)}
+                aria-label={isSelected ? 'Deselect' : 'Select'}
+              >
+                {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+              </button>
+            )}
             <span className="cor-number">{cor.cor_number}</span>
             <span
               className="cor-status-badge"
@@ -317,10 +371,31 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
             )}
           </div>
         </div>
-        <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
-          <Plus size={14} /> New COR
-        </button>
+        <div className="cor-header-actions">
+          <button
+            className={`btn btn-secondary btn-small ${selectMode ? 'active' : ''}`}
+            onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+          >
+            {selectMode ? <><X size={14} /> Cancel</> : <><CheckSquare size={14} /> Select</>}
+          </button>
+          <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
+            <Plus size={14} /> New COR
+          </button>
+        </div>
       </div>
+
+      {/* Selection Action Bar */}
+      {selectMode && selectedCORs.size > 0 && (
+        <div className="cor-selection-bar">
+          <span className="selection-count">{selectedCORs.size} selected</span>
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => setShowGroupModal(true)}
+          >
+            <FolderPlus size={14} /> Group Selected
+          </button>
+        </div>
+      )}
 
       {/* Minimal Filter Row */}
       <div className="cor-controls">
@@ -433,6 +508,60 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
           ) : (
             filteredCORs.map(cor => renderCORCard(cor))
           )}
+        </div>
+      )}
+
+      {/* Group Modal */}
+      {showGroupModal && (
+        <div className="modal-overlay" onClick={() => setShowGroupModal(false)}>
+          <div className="modal-content cor-group-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Group {selectedCORs.size} CORs</h3>
+              <button className="close-btn" onClick={() => setShowGroupModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Group Name</label>
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="e.g., Phase 1, Building A, Week 1"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleGroupSelected()
+                    if (e.key === 'Escape') setShowGroupModal(false)
+                  }}
+                />
+              </div>
+              {availableGroups.length > 0 && (
+                <div className="existing-groups">
+                  <label>Or select existing group:</label>
+                  <div className="group-chips">
+                    {availableGroups.map(group => (
+                      <button
+                        key={group}
+                        className="group-chip"
+                        onClick={() => setNewGroupName(group)}
+                      >
+                        {group}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowGroupModal(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleGroupSelected}>
+                Group CORs
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
