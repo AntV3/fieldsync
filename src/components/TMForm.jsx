@@ -350,6 +350,58 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     onShowToast(`Applied hours to ${updatedCount} worker${updatedCount !== 1 ? 's' : ''}`, 'success')
   }
 
+  // Apply preset hours directly to all workers (inline, no modal)
+  const applyInlinePreset = (preset) => {
+    let timeStarted, timeEnded, hours, overtimeHours
+
+    switch (preset) {
+      case '8hr':
+        timeStarted = '07:00'
+        timeEnded = '15:30'
+        hours = '8'
+        overtimeHours = ''
+        break
+      case '10hr':
+        timeStarted = '06:00'
+        timeEnded = '16:30'
+        hours = '8'
+        overtimeHours = '2'
+        break
+      case '4hr':
+        timeStarted = '07:00'
+        timeEnded = '11:00'
+        hours = '4'
+        overtimeHours = ''
+        break
+      default:
+        return
+    }
+
+    // Apply to all workers with names
+    setSupervision(prev => prev.map(s =>
+      s.name.trim() ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
+    ))
+    setOperators(prev => prev.map(o =>
+      o.name.trim() ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
+    ))
+    setLaborers(prev => prev.map(l =>
+      l.name.trim() ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
+    ))
+
+    // Count workers updated
+    const count = [
+      ...supervision.filter(s => s.name.trim()),
+      ...operators.filter(o => o.name.trim()),
+      ...laborers.filter(l => l.name.trim())
+    ].length
+
+    if (count > 0) {
+      onShowToast(t('appliedHours').replace('{count}', count), 'success')
+    } else {
+      onShowToast(lang === 'en' ? 'Add workers first' : 'Agregue trabajadores primero', 'info')
+    }
+  }
+
   const loadTodaysCrew = async () => {
     try {
       const checkin = await db.getCrewCheckin(project.id)
@@ -1127,6 +1179,36 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               >
                 <Clock size={16} />
                 {t('setCrewHours')}
+              </button>
+            </div>
+          </div>
+
+          {/* Inline Time Presets - One-tap hour application */}
+          <div className="tm-inline-presets">
+            <span className="tm-inline-presets-label">
+              {lang === 'en' ? 'Apply to all:' : 'Aplicar a todos:'}
+            </span>
+            <div className="tm-inline-presets-buttons">
+              <button
+                type="button"
+                className="tm-preset-chip"
+                onClick={() => applyInlinePreset('8hr')}
+              >
+                {t('preset8hr')}
+              </button>
+              <button
+                type="button"
+                className="tm-preset-chip"
+                onClick={() => applyInlinePreset('10hr')}
+              >
+                {t('preset10hr')}
+              </button>
+              <button
+                type="button"
+                className="tm-preset-chip"
+                onClick={() => applyInlinePreset('4hr')}
+              >
+                {t('preset4hr')}
               </button>
             </div>
           </div>

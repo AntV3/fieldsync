@@ -2941,6 +2941,56 @@ input[type="number"] {
   transform: none;
 }
 
+/* Inline Time Presets */
+.tm-inline-presets {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.tm-inline-presets-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.tm-inline-presets-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.tm-preset-chip {
+  padding: 0.625rem 1rem;
+  min-width: 70px;
+  border: 2px solid var(--accent-blue);
+  background: transparent;
+  color: var(--accent-blue);
+  border-radius: 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.tm-preset-chip:hover {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.tm-preset-chip:active {
+  transform: scale(0.95);
+  background: var(--accent-blue);
+  color: white;
+}
+
 /* Batch Hours Modal */
 .tm-modal-overlay {
   position: fixed;
