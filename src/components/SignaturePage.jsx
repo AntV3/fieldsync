@@ -689,11 +689,16 @@ export default function SignaturePage({ signatureToken }) {
                                       )}
                                       {worker.name}
                                     </span>
-                                    <span className="worker-hours">
-                                      {worker.hours || 0} hrs
-                                      {parseFloat(worker.overtime_hours) > 0 && (
-                                        <span className="worker-ot"> + {worker.overtime_hours} OT</span>
+                                    <span className="worker-time-hours">
+                                      {worker.time_started && worker.time_ended && (
+                                        <span className="worker-time">{worker.time_started} - {worker.time_ended}</span>
                                       )}
+                                      <span className="worker-hours">
+                                        {worker.hours || 0} hrs
+                                        {parseFloat(worker.overtime_hours) > 0 && (
+                                          <span className="worker-ot"> + {worker.overtime_hours} OT</span>
+                                        )}
+                                      </span>
                                     </span>
                                   </div>
                                 ))}

@@ -548,6 +548,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                                   <tr>
                                     <th>Name</th>
                                     <th>Role</th>
+                                    <th>Time</th>
                                     <th>Reg Hrs</th>
                                     <th>OT Hrs</th>
                                   </tr>
@@ -557,6 +558,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                                     <tr key={idx}>
                                       <td>{worker.name}</td>
                                       <td>{worker.role || '-'}</td>
+                                      <td className="backup-time-range">
+                                        {worker.time_started && worker.time_ended
+                                          ? `${worker.time_started} - ${worker.time_ended}`
+                                          : '-'}
+                                      </td>
                                       <td>{worker.hours || 0}</td>
                                       <td>{worker.overtime_hours || '-'}</td>
                                     </tr>
