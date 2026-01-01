@@ -41,6 +41,50 @@
 
 ---
 
+### T&M Client Signature Workflow (Major Feature)
+**Goal:** Enable field foremen to collect client signatures on T&M tickets before they go to the office.
+
+**Workflow:**
+```
+Field creates T&M → Gets Client Signature → Ticket goes to Office
+```
+
+**Implemented Features:**
+
+1. **Post-Submit Signature Step (Step 4)**
+   - Success screen after T&M submission
+   - Shows summary: worker count, total hours, work date
+   - Two signature options presented
+
+2. **On-Site Signing**
+   - Client signs directly on foreman's phone/tablet
+   - Captures: signature, name, title, company
+   - `TMClientSignature` component with touch-friendly canvas
+   - Saves signature data directly to T&M ticket
+   - Updates ticket status to `client_signed`
+
+3. **Remote Signing via Link**
+   - Uses existing `SignatureLinkGenerator` component
+   - Creates shareable signature request link
+   - Client can sign later on their own device
+   - Supports link expiration options
+
+4. **Database Updates**
+   - Added `saveTMClientSignature()` function
+   - T&M ticket gets `client_signed` status after signature
+   - Signature data stored: `client_signature_data`, `client_signature_name`, etc.
+
+5. **Bilingual Support**
+   - All new UI elements available in English and Spanish
+
+**Files:**
+- `src/components/TMForm.jsx` - Post-submit flow
+- `src/components/TMClientSignature.jsx` - On-site signature capture
+- `src/lib/supabase.js` - Database function
+- `src/index.css` - Styling
+
+---
+
 ## December 30, 2024
 
 ### Field User RLS Policies (Major Fix)
