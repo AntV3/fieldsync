@@ -1,6 +1,74 @@
 # FieldSync Development Log
 
-**Last Updated:** December 31, 2024
+**Last Updated:** January 1, 2025
+
+---
+
+## January 1, 2025
+
+### COR Creation UX Improvements (Major Enhancement)
+**Goal:** Improve COR creation workflow for office staff - faster data entry, better organization, and editable COR numbers.
+
+**Improvements Implemented:**
+
+1. **Editable COR Numbers**
+   - Added inline edit button (pencil icon) next to COR number in detail view
+   - Click to edit, Enter to save, Escape to cancel
+   - Only visible when COR is editable (draft, pending_approval, approved)
+   - Auto-increment still works on creation, but numbers can be adjusted after
+
+2. **Multi-Select COR Grouping**
+   - Added "Select" button in COR list header to enter select mode
+   - Checkboxes appear on each COR card when in select mode
+   - Selection bar shows count and "Group Selected" button
+   - Modal lets you enter a new group name or click existing group to reuse
+   - Bulk update groups multiple CORs at once (no more editing each individually)
+   - Added `bulkUpdateCORGroup()` function to database layer
+
+3. **Quick Selection for Materials & Equipment**
+   - Added quick select panel in COR form Steps 4 (Materials) and 5 (Equipment)
+   - Search bar to filter items from company library
+   - Category tabs (All, Containment, PPE, Disposal for materials)
+   - Grid of clickable items showing name and cost per unit
+   - One tap adds item with default pricing and quantity of 1
+   - "Add Custom" button still available for manual entry of items not in library
+   - Loads from existing `materials_equipment` table
+
+4. **Subcontractors Display (Verified)**
+   - Confirmed subcontractors already display on COR detail with company name, description, source, and amount
+   - Already included in `getCORById` query
+
+**Files Modified:**
+- `src/components/cor/CORDetail.jsx` - Editable COR number with inline edit
+- `src/components/cor/CORList.jsx` - Multi-select mode, checkboxes, group modal
+- `src/components/cor/CORForm.jsx` - Quick select panels for materials/equipment
+- `src/lib/supabase.js` - Added `bulkUpdateCORGroup()` function
+- `src/index.css` - Styles for editable number, selection mode, quick select panel
+
+---
+
+### Dollar Input UX Consistency (Previous Session Carryover)
+**Problem:** Dollar inputs across the project were using number inputs with step="0.01" which caused browser spinner issues and made data entry difficult.
+
+**Solution:** Changed all money inputs to text inputs with `inputMode="decimal"` for better mobile experience and easier data entry:
+- COR labor rates (regular and overtime)
+- COR materials/equipment unit costs
+- AddCostModal amount field
+- MaterialsManager cost_per_unit
+- DumpSiteManager rates
+- Pricing section materials and dump sites
+
+---
+
+### Documentation Reorganization (User-Initiated)
+User moved documentation files to `docs/` folder:
+- `docs/daily log.md` (this file)
+- `docs/PROJECT_CONTEXT.md`
+- `docs/ONBOARDING_ARCHITECTURE.md`
+- `docs/SCALABILITY_DIAGNOSTIC.md`
+- `docs/COR_WORKFLOW_DIAGNOSTIC.md`
+
+Deleted duplicate `project_context.md` (lowercase).
 
 ---
 

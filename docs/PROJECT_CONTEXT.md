@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md
 > Canonical source of truth for FieldSync. Authoritative over ad-hoc instructions.
-> Last updated: 2025-12-27 (Updated with Access Levels, Company Roles, Project Teams)
+> Last updated: 2025-01-01 (Updated with COR UX improvements)
 
 ---
 
@@ -74,7 +74,7 @@ These must work reliably. Regressions here are critical failures.
 2. **Dual progress calculation** — Supports both percentage-weight and SOV dollar-value tracking
 3. **Offline operation** — Field crews can update status without connectivity; syncs when restored
 4. **T&M ticket creation** — Field captures labor, equipment, materials with photo documentation
-5. **Change order workflow** — Draft → Pending → Approved → Billed → Closed with cost breakdown
+5. **Change order workflow** — Draft → Pending → Approved → Billed → Closed with cost breakdown, editable COR numbers, multi-select grouping, quick material/equipment selection
 6. **Daily/injury reporting** — Structured forms with required fields and status tracking
 7. **Project sharing** — Granular permission tokens with expiration for external stakeholders
 8. **Company join approval** — Admin-gated membership with pending/active/removed states
@@ -354,6 +354,9 @@ USING (
 | `src/components/ProjectTeam.jsx` | Project team management - assign members with project roles |
 | `src/components/BrandingSettings.jsx` | Company branding + office code management (admin only) |
 | `src/components/Dashboard.jsx` | Office dashboard with ProjectTeam in Info tab |
+| `src/components/cor/CORForm.jsx` | COR creation with quick select for materials/equipment |
+| `src/components/cor/CORList.jsx` | COR list with multi-select grouping |
+| `src/components/cor/CORDetail.jsx` | COR detail view with editable COR numbers |
 | `src/lib/supabase.js` | Database functions, membership management, project team functions |
 | `database/migration_company_join_approval.sql` | Complete membership approval migration |
 | `database/migration_access_levels.sql` | Access levels + project_users table migration |
@@ -466,7 +469,7 @@ Continue normal flow
 
 ---
 
-*Last significant update: Implemented Access Levels (administrator/member) separated from Company Roles (job titles) and Project Roles (per-project assignments). Added ProjectTeam component, restricted Branding to admins, fixed RLS infinite recursion issues.*
+*Last significant update: COR UX improvements - editable COR numbers, multi-select grouping for bulk organization, quick select for materials/equipment from company library. Previous: Access Levels, Company Roles, Project Roles separation.*
 
 ---
 
