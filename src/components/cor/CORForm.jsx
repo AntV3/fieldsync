@@ -773,13 +773,21 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         </div>
                         <div className="form-group">
                           <label>Unit Cost ($)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={centsToDollars(item.unit_cost)}
-                            onChange={(e) => updateMaterialsItem(index, 'unit_cost', dollarsToCents(e.target.value))}
-                          />
+                          <div className="dollar-input-wrapper">
+                            <span className="dollar-prefix">$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="dollar-input"
+                              value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                const cents = Math.round(parseFloat(val || 0) * 100)
+                                updateMaterialsItem(index, 'unit_cost', cents)
+                              }}
+                              placeholder="0.00"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -888,13 +896,21 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         </div>
                         <div className="form-group">
                           <label>Unit Cost ($)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={centsToDollars(item.unit_cost)}
-                            onChange={(e) => updateEquipmentItem(index, 'unit_cost', dollarsToCents(e.target.value))}
-                          />
+                          <div className="dollar-input-wrapper">
+                            <span className="dollar-prefix">$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="dollar-input"
+                              value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                const cents = Math.round(parseFloat(val || 0) * 100)
+                                updateEquipmentItem(index, 'unit_cost', cents)
+                              }}
+                              placeholder="0.00"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -989,13 +1005,21 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         </div>
                         <div className="form-group">
                           <label>Amount ($)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={centsToDollars(item.amount)}
-                            onChange={(e) => updateSubcontractorsItem(index, 'amount', dollarsToCents(e.target.value))}
-                          />
+                          <div className="dollar-input-wrapper">
+                            <span className="dollar-prefix">$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="dollar-input"
+                              value={item.amount ? (item.amount / 100).toFixed(2) : ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9.]/g, '')
+                                const cents = Math.round(parseFloat(val || 0) * 100)
+                                updateSubcontractorsItem(index, 'amount', cents)
+                              }}
+                              placeholder="0.00"
+                            />
+                          </div>
                         </div>
                       </div>
 

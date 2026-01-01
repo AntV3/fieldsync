@@ -19766,3 +19766,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
+
+/* ============================================
+   Dollar Input Styling (COR Form)
+   ============================================ */
+
+.dollar-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dollar-prefix {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.dollar-input {
+  width: 100%;
+  padding-left: 1.75rem !important;
+  text-align: right;
+}
