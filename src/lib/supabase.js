@@ -1430,6 +1430,29 @@ export const db = {
     return null
   },
 
+  // Save client signature directly to T&M ticket (on-site signing)
+  async saveTMClientSignature(ticketId, signatureData) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .update({
+          client_signature_data: signatureData.signature,
+          client_signature_name: signatureData.signerName,
+          client_signature_title: signatureData.signerTitle,
+          client_signature_company: signatureData.signerCompany,
+          client_signature_date: signatureData.signedAt,
+          client_signature_ip: null, // Not available in on-site signing
+          status: 'client_signed' // Update status to indicate client has signed
+        })
+        .eq('id', ticketId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
   async deleteTMTicket(ticketId) {
     if (isSupabaseConfigured) {
       // Workers and items cascade delete automatically

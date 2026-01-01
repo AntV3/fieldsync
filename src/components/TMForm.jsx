@@ -3,6 +3,7 @@ import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, 
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
+import TMClientSignature from './TMClientSignature'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
@@ -217,6 +218,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   // Post-submit signature state
   const [submittedTicket, setSubmittedTicket] = useState(null)
   const [showSignatureLinkModal, setShowSignatureLinkModal] = useState(false)
+  const [showOnSiteSignature, setShowOnSiteSignature] = useState(false)
+  const [clientSigned, setClientSigned] = useState(false)
   const [cePcoNumber, setCePcoNumber] = useState('')
   const [submittedByName, setSubmittedByName] = useState('') // Foreman's name for certification
 
@@ -1728,46 +1731,51 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 : 'Haga que el cliente firme este ticket T&M para verificar el trabajo realizado.'}
             </p>
 
-            <div className="tm-signature-buttons">
-              {/* On-site signature option */}
-              <button
-                className="tm-signature-option-btn primary"
-                onClick={() => {
-                  // For now, use the link generator - on-site capture will be added
-                  setShowSignatureLinkModal(true)
-                }}
-              >
-                <div className="tm-signature-option-icon">
-                  <PenLine size={24} />
-                </div>
-                <div className="tm-signature-option-text">
-                  <span className="tm-signature-option-title">
-                    {lang === 'en' ? 'Sign Now (On-Site)' : 'Firmar Ahora'}
-                  </span>
-                  <span className="tm-signature-option-desc">
-                    {lang === 'en' ? 'Client signs on this device' : 'Cliente firma en este dispositivo'}
-                  </span>
-                </div>
-              </button>
+            {clientSigned ? (
+              /* Show signed confirmation */
+              <div className="tm-signed-confirmation">
+                <CheckCircle2 size={32} className="tm-signed-icon" />
+                <span>{lang === 'en' ? 'Client signature collected!' : '¡Firma del cliente recopilada!'}</span>
+              </div>
+            ) : (
+              <div className="tm-signature-buttons">
+                {/* On-site signature option */}
+                <button
+                  className="tm-signature-option-btn primary"
+                  onClick={() => setShowOnSiteSignature(true)}
+                >
+                  <div className="tm-signature-option-icon">
+                    <PenLine size={24} />
+                  </div>
+                  <div className="tm-signature-option-text">
+                    <span className="tm-signature-option-title">
+                      {lang === 'en' ? 'Sign Now (On-Site)' : 'Firmar Ahora'}
+                    </span>
+                    <span className="tm-signature-option-desc">
+                      {lang === 'en' ? 'Client signs on this device' : 'Cliente firma en este dispositivo'}
+                    </span>
+                  </div>
+                </button>
 
-              {/* Send link option */}
-              <button
-                className="tm-signature-option-btn"
-                onClick={() => setShowSignatureLinkModal(true)}
-              >
-                <div className="tm-signature-option-icon">
-                  <Send size={24} />
-                </div>
-                <div className="tm-signature-option-text">
-                  <span className="tm-signature-option-title">
-                    {lang === 'en' ? 'Send Signature Link' : 'Enviar Enlace'}
-                  </span>
-                  <span className="tm-signature-option-desc">
-                    {lang === 'en' ? 'Client signs later via link' : 'Cliente firma después vía enlace'}
-                  </span>
-                </div>
-              </button>
-            </div>
+                {/* Send link option */}
+                <button
+                  className="tm-signature-option-btn"
+                  onClick={() => setShowSignatureLinkModal(true)}
+                >
+                  <div className="tm-signature-option-icon">
+                    <Send size={24} />
+                  </div>
+                  <div className="tm-signature-option-text">
+                    <span className="tm-signature-option-title">
+                      {lang === 'en' ? 'Send Signature Link' : 'Enviar Enlace'}
+                    </span>
+                    <span className="tm-signature-option-desc">
+                      {lang === 'en' ? 'Client signs later via link' : 'Cliente firma después vía enlace'}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1781,6 +1789,25 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           projectId={project.id}
           documentTitle={`T&M - ${new Date(workDate).toLocaleDateString()}`}
           onClose={() => setShowSignatureLinkModal(false)}
+          onShowToast={onShowToast}
+        />
+      )}
+
+      {/* On-Site Client Signature Modal */}
+      {showOnSiteSignature && submittedTicket && (
+        <TMClientSignature
+          ticketId={submittedTicket.id}
+          ticketSummary={{
+            workDate: workDate,
+            workerCount: totalWorkers,
+            totalHours: totalRegHours + totalOTHours
+          }}
+          lang={lang}
+          onSave={() => {
+            setShowOnSiteSignature(false)
+            setClientSigned(true)
+          }}
+          onClose={() => setShowOnSiteSignature(false)}
           onShowToast={onShowToast}
         />
       )}

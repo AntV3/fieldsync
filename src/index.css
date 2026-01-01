@@ -3333,6 +3333,261 @@ input[type="number"] {
   color: var(--text-secondary);
 }
 
+/* T&M Client Signature Modal */
+.tm-client-signature-modal {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.tm-sig-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tm-sig-header h2 {
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.tm-sig-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0.25rem 0 0;
+}
+
+.tm-sig-close {
+  padding: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.tm-sig-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.tm-sig-body {
+  padding: 1.25rem;
+}
+
+.tm-sig-summary {
+  display: flex;
+  justify-content: space-around;
+  padding: 0.875rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.tm-sig-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tm-sig-summary-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.tm-sig-summary-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tm-sig-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.tm-sig-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.tm-sig-field label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.375rem;
+}
+
+.tm-sig-field input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.tm-sig-field input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.tm-sig-area {
+  margin-bottom: 1rem;
+}
+
+.tm-sig-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.tm-sig-canvas-container {
+  position: relative;
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.tm-sig-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.tm-sig-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.tm-sig-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.tm-sig-clear:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.tm-sig-clear:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tm-sig-certification {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0.875rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.tm-sig-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.tm-sig-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tm-sig-btn.secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.tm-sig-btn.secondary:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.tm-sig-btn.primary {
+  background: var(--accent-green);
+  color: white;
+}
+
+.tm-sig-btn.primary:hover:not(:disabled) {
+  background: #059669;
+}
+
+.tm-sig-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Signed Confirmation */
+.tm-signed-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  border: 2px solid var(--accent-green);
+  border-radius: 12px;
+  color: var(--accent-green);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.tm-signed-icon {
+  animation: checkPop 0.4s ease-out;
+}
+
 /* Review Step - Notes & Photos Sections */
 .tm-notes-section,
 .tm-photos-section {
