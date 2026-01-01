@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 
@@ -268,6 +268,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       hours: regularHours.toFixed(1),
       overtimeHours: overtimeHours > 0 ? overtimeHours.toFixed(1) : ''
     }
+  }
+
+  // Helper to determine worker completion state for visual indicators
+  const getWorkerState = (worker) => {
+    const hasName = worker.name.trim() !== ''
+    const hasHours = parseFloat(worker.hours) > 0 || parseFloat(worker.overtimeHours) > 0
+    if (!hasName) return 'empty'
+    if (hasHours) return 'complete'
+    return 'incomplete'
   }
 
   // Apply time preset to batch hours
@@ -1254,9 +1263,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           <div className="tm-field">
             <label>{t('supervision')}</label>
             <div className="tm-workers-list">
-              {supervision.map((sup, index) => (
-                <div key={index} className="tm-worker-card-expanded">
+              {supervision.map((sup, index) => {
+                const workerState = getWorkerState(sup)
+                return (
+                <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
                   <div className="tm-worker-row-top">
+                    {workerState === 'complete' && (
+                      <span className="tm-worker-check"><Check size={14} /></span>
+                    )}
                     <div className="tm-role-select">
                       <select
                         value={sup.role}
@@ -1312,7 +1326,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
             <button className="tm-add-btn" onClick={addSupervision}>
               {t('addSupervision')}
@@ -1323,9 +1337,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           <div className="tm-field">
             <label>{t('operators')}</label>
             <div className="tm-workers-list">
-              {operators.map((operator, index) => (
-                <div key={index} className="tm-worker-card-expanded">
+              {operators.map((operator, index) => {
+                const workerState = getWorkerState(operator)
+                return (
+                <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
                   <div className="tm-worker-row-top">
+                    {workerState === 'complete' && (
+                      <span className="tm-worker-check"><Check size={14} /></span>
+                    )}
                     <input
                       type="text"
                       placeholder={t('firstLastName')}
@@ -1372,7 +1391,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
             <button className="tm-add-btn" onClick={addOperator}>
               {t('addOperator')}
@@ -1383,9 +1402,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           <div className="tm-field">
             <label>{t('laborers')}</label>
             <div className="tm-workers-list">
-              {laborers.map((laborer, index) => (
-                <div key={index} className="tm-worker-card-expanded">
+              {laborers.map((laborer, index) => {
+                const workerState = getWorkerState(laborer)
+                return (
+                <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
                   <div className="tm-worker-row-top">
+                    {workerState === 'complete' && (
+                      <span className="tm-worker-check"><Check size={14} /></span>
+                    )}
                     <input
                       type="text"
                       placeholder={t('firstLastName')}
@@ -1432,7 +1456,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
             <button className="tm-add-btn" onClick={addLaborer}>
               {t('addLaborer')}

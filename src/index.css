@@ -3049,6 +3049,56 @@ input[type="number"] {
   font-weight: 500;
 }
 
+/* Worker Visual State Indicators */
+.tm-worker-card-expanded.worker-complete {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+  border-color: var(--accent-green);
+  border-left: 4px solid var(--accent-green);
+}
+
+.tm-worker-card-expanded.worker-incomplete {
+  background: rgba(251, 191, 36, 0.05);
+  border-color: var(--accent-orange);
+  border-left: 4px solid var(--accent-orange);
+}
+
+.tm-worker-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  color: white;
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+  animation: checkPop 0.25s ease-out;
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.tm-worker-card-expanded.worker-complete .tm-worker-input {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tm-worker-card-expanded.worker-incomplete .tm-worker-input::placeholder {
+  color: var(--accent-orange);
+}
+
 /* Batch Hours Modal */
 .tm-modal-overlay {
   position: fixed;
