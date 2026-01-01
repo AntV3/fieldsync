@@ -2787,10 +2787,69 @@ input[type="number"] {
 .tm-big-btn.submit {
   background: var(--accent-green);
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .tm-big-btn.submit:hover {
   background: #059669;
+}
+
+.tm-big-btn.submit.needs-name {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 2px dashed var(--border-color);
+}
+
+.tm-big-btn.submit.needs-name:hover {
+  background: var(--bg-tertiary);
+}
+
+.tm-big-btn.submit.ready {
+  animation: pulseReady 2s ease-in-out infinite;
+}
+
+@keyframes pulseReady {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.5);
+  }
+}
+
+.tm-big-btn.submit.submitting {
+  background: linear-gradient(90deg, var(--accent-blue) 0%, #6366f1 50%, var(--accent-blue) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.tm-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tm-submit-text {
+  font-size: 0.9rem;
 }
 
 .tm-skip-btn {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 
@@ -1687,11 +1687,26 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           </button>
         ) : (
           <button
-            className="tm-big-btn submit"
+            className={`tm-big-btn submit ${submitting ? 'submitting' : ''} ${!submittedByName.trim() ? 'needs-name' : 'ready'}`}
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || !submittedByName.trim()}
           >
-            {submitting ? submitProgress || t('submitting') : `✓ ${t('submitTM')}`}
+            {submitting ? (
+              <>
+                <Loader2 size={20} className="tm-spinner" />
+                <span className="tm-submit-text">{submitProgress || t('submitting')}</span>
+              </>
+            ) : !submittedByName.trim() ? (
+              <>
+                <PenLine size={18} />
+                <span>{lang === 'en' ? 'Enter name to submit' : 'Ingrese nombre'}</span>
+              </>
+            ) : (
+              <>
+                <Check size={20} />
+                <span>{t('submitTM')}</span>
+              </>
+            )}
           </button>
         )}
 
