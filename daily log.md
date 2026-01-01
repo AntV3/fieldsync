@@ -1,6 +1,43 @@
 # FieldSync Development Log
 
-**Last Updated:** December 30, 2024
+**Last Updated:** December 31, 2024
+
+---
+
+## December 31, 2024
+
+### T&M Form UX Acceleration (Phase 2)
+**Goal:** Further reduce clicks and improve visual feedback for field foremen entering T&M tickets.
+
+**Implemented Features:**
+
+1. **Inline Time Presets**
+   - One-tap buttons for 8hr/10hr/4hr day presets
+   - Applies to all named workers instantly
+   - Located above worker sections for easy access
+
+2. **Running Total Banner**
+   - Live display of worker count and total hours
+   - Warning indicator for workers needing hours
+   - Green gradient when workers have valid hours
+
+3. **Visual State Indicators**
+   - Green border + checkmark for workers with complete hours
+   - Orange border for workers with name but missing hours
+   - Animated checkmark pop-in effect
+
+4. **Notes/Photos Moved to Review Step**
+   - Workers step now focused solely on crew data
+   - Description and photos added at review step
+   - Reduces cognitive load during data entry
+
+5. **Enhanced Submit Button**
+   - Three states: needs-name, ready, submitting
+   - Pulsing green glow when ready to submit
+   - Shimmer animation during submission
+   - Spinner with progress text
+
+**Files:** `src/components/TMForm.jsx`, `src/index.css`
 
 ---
 
