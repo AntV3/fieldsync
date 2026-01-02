@@ -362,6 +362,27 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   // Check if title is provided (minimum requirement)
   const canSave = title.trim().length > 0
 
+  // Build database payload (excludes relation fields that aren't columns)
+  const buildPayload = () => ({
+    company_id: company.id,
+    project_id: project.id,
+    title,
+    scope_of_work: scopeOfWork || '',
+    area_id: areaId || null,
+    cor_number: corNumber,
+    group_name: groupName || null,
+    period_start: periodStart || new Date().toISOString().split('T')[0],
+    period_end: periodEnd || new Date().toISOString().split('T')[0],
+    labor_markup_percent: laborMarkupPercent,
+    materials_markup_percent: materialsMarkupPercent,
+    equipment_markup_percent: equipmentMarkupPercent,
+    subcontractors_markup_percent: subcontractorsMarkupPercent,
+    liability_insurance_percent: liabilityInsurancePercent,
+    bond_percent: bondPercent,
+    license_fee_percent: licenseFeePercent,
+    ...totals
+  })
+
   // Save as draft
   const handleSave = async () => {
     if (!canSave) {
@@ -372,10 +393,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     setLoading(true)
     try {
       const corPayload = {
-        company_id: company.id,
-        project_id: project.id,
-        ...corData,
-        ...totals,
+        ...buildPayload(),
         status: 'draft'
       }
 
@@ -417,16 +435,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     setLoading(true)
     try {
       const corPayload = {
-        company_id: company.id,
-        project_id: project.id,
-        ...corData,
-        ...totals,
-        status: 'pending_approval'
+        ...buildPayload(),
+        status: 'draft'
       }
 
       let savedCOR
       if (existingCOR?.id) {
-        savedCOR = await db.updateCOR(existingCOR.id, { ...corPayload, status: 'draft' })
+        savedCOR = await db.updateCOR(existingCOR.id, corPayload)
         await db.saveCORLineItems(existingCOR.id, {
           laborItems,
           materialItems: materialsItems,
@@ -435,7 +450,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         })
         await db.submitCORForApproval(existingCOR.id)
       } else {
-        savedCOR = await db.createCOR({ ...corPayload, status: 'draft' })
+        savedCOR = await db.createCOR(corPayload)
         if (savedCOR?.id) {
           await db.saveCORLineItems(savedCOR.id, {
             laborItems,
