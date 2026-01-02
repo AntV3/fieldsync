@@ -3963,13 +3963,20 @@ export const db = {
   },
 
   // Bulk update COR group name
+  // Requires migration_cor_enhancements.sql to be run for group_name column
   async bulkUpdateCORGroup(corIds, groupName) {
     if (isSupabaseConfigured) {
       const { error } = await supabase
         .from('change_orders')
         .update({ group_name: groupName, updated_at: new Date().toISOString() })
         .in('id', corIds)
-      if (error) throw error
+      if (error) {
+        // Check if the error is due to missing group_name column
+        if (error.message?.includes('group_name') || error.code === 'PGRST204') {
+          throw new Error('COR grouping requires a database migration. Please run database/migration_cor_enhancements.sql in Supabase SQL Editor.')
+        }
+        throw error
+      }
     }
   },
 
@@ -4471,16 +4478,24 @@ export const db = {
 
   async addBulkSubcontractorItems(corId, subItems) {
     if (isSupabaseConfigured && subItems.length > 0) {
-      const items = subItems.map((item, index) => ({
-        change_order_id: corId,
-        company_name: item.company_name || '',
-        description: item.description || '',
-        amount: item.amount || item.total || 0,
-        total: item.total || item.amount || 0,
-        source_type: item.source_type || 'invoice',
-        source_reference: item.source_reference || null,
-        sort_order: item.sort_order ?? index
-      }))
+      // Build items matching the database schema
+      // Note: company_name requires migration_cor_enhancements.sql to be run
+      const items = subItems.map((item, index) => {
+        const baseItem = {
+          change_order_id: corId,
+          description: item.company_name
+            ? `${item.company_name}: ${item.description || 'Services'}`
+            : (item.description || ''),
+          quantity: item.quantity || 1,
+          unit: item.unit || 'lump sum',
+          unit_cost: item.unit_cost || item.total || item.amount || 0,
+          total: item.total || item.amount || 0,
+          source_type: item.source_type || 'invoice',
+          source_reference: item.source_reference || null,
+          sort_order: item.sort_order ?? index
+        }
+        return baseItem
+      })
 
       const { data, error } = await supabase
         .from('change_order_subcontractors')
