@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
-import { LayoutGrid, DollarSign, ClipboardList, MessageSquare, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
 import NotificationSettings from './NotificationSettings'
-import MaterialRequestsList from './MaterialRequestsList'
 import DailyReportsList from './DailyReportsList'
-import ProjectMessages from './ProjectMessages'
 import ManDayCosts from './ManDayCosts'
 import CORList from './cor/CORList'
 import CORForm from './cor/CORForm'
@@ -192,7 +190,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             changeOrderData,
             dailyReports,
             injuryReports,
-            materialRequests,
             laborCosts,
             haulOffCosts,
             customCosts,
@@ -203,7 +200,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             db.getChangeOrderTotals(project.id).catch(() => null),
             db.getDailyReports(project.id, 100).catch(() => []),
             db.getInjuryReports(project.id).catch(() => []),
-            db.getMaterialRequests(project.id).catch(() => []),
             db.calculateManDayCosts(
               project.id,
               company?.id,
@@ -277,8 +273,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             recentDailyReports,
             injuryReportsCount: injuryReports.length,
             lastDailyReport: dailyReports[0]?.report_date || null,
-            pendingMaterialRequests: materialRequests.filter(r => r.status === 'pending').length,
-            totalMaterialRequests: materialRequests.length,
             // SOV/Scheduled Value data
             isValueBased: progressData.isValueBased,
             earnedValue: progressData.earnedValue,
@@ -342,8 +336,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             recentDailyReports: 0,
             injuryReportsCount: 0,
             lastDailyReport: null,
-            pendingMaterialRequests: 0,
-            totalMaterialRequests: 0,
             isValueBased: false,
             earnedValue: 0,
             totalSOVValue: 0,
@@ -973,7 +965,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
       { id: 'financials', label: 'Financials', Icon: DollarSign },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
-      { id: 'activity', label: 'Activity', Icon: MessageSquare },
       { id: 'info', label: 'Info', Icon: Info }
     ]
 
@@ -1090,12 +1081,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               </div>
 
               {/* Action Items - What needs attention */}
-              {(projectData?.pendingTickets > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.changeOrderPending > 0) && (
+              {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0) && (
                 <div className="overview-attention-card">
                   <div className="attention-header">
                     <h3>Needs Attention</h3>
                     <span className="attention-count">
-                      {(projectData?.pendingTickets || 0) + (projectData?.pendingMaterialRequests || 0) + (projectData?.changeOrderPending || 0)} items
+                      {(projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)} items
                     </span>
                   </div>
                   <div className="attention-items">
@@ -1119,18 +1110,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         <div className="attention-item-content">
                           <span className="attention-item-title">{projectData.changeOrderPending} change order{projectData.changeOrderPending !== 1 ? 's' : ''} pending</span>
                           <span className="attention-item-action">Review in Financials</span>
-                        </div>
-                        <span className="attention-item-arrow">→</span>
-                      </div>
-                    )}
-                    {projectData?.pendingMaterialRequests > 0 && (
-                      <div className="attention-item" onClick={() => setActiveProjectTab('activity')}>
-                        <div className="attention-item-icon warning">
-                          <MessageSquare size={16} />
-                        </div>
-                        <div className="attention-item-content">
-                          <span className="attention-item-title">{projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending</span>
-                          <span className="attention-item-action">Review in Activity</span>
                         </div>
                         <span className="attention-item-arrow">→</span>
                       </div>
@@ -1189,14 +1168,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   <div className="quick-stat-content">
                     <span className="quick-stat-value">{projectData?.totalTickets || 0}</span>
                     <span className="quick-stat-label">T&M Tickets</span>
-                  </div>
-                  <span className="quick-stat-arrow">→</span>
-                </div>
-                <div className="quick-stat-card" onClick={() => setActiveProjectTab('activity')}>
-                  <div className="quick-stat-icon"><MessageSquare size={20} /></div>
-                  <div className="quick-stat-content">
-                    <span className="quick-stat-value">{projectData?.totalMaterialRequests || 0}</span>
-                    <span className="quick-stat-label">Material Requests</span>
                   </div>
                   <span className="quick-stat-arrow">→</span>
                 </div>
@@ -1296,53 +1267,39 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 }}
               />
 
-              {/* Extra Work Pipeline */}
-              <div className="financials-pipeline">
-                <div className="pipeline-header">
-                  <h2>Extra Work</h2>
-                  <div className="pipeline-flow">
-                    <span className="pipeline-step">T&M Tickets</span>
-                    <span className="pipeline-arrow">→</span>
-                    <span className="pipeline-step active">Change Orders</span>
-                  </div>
-                </div>
+              {/* Change Order Requests - Primary */}
+              <div className="financials-section cor-section-primary">
+                <CORList
+                  project={selectedProject}
+                  company={company}
+                  areas={areas}
+                  refreshKey={corRefreshKey}
+                  onShowToast={onShowToast}
+                  onCreateCOR={() => {
+                    setEditingCOR(null)
+                    setShowCORForm(true)
+                  }}
+                  onViewCOR={(cor) => {
+                    setViewingCOR(cor)
+                    setShowCORDetail(true)
+                  }}
+                  onEditCOR={(cor) => {
+                    setEditingCOR(cor)
+                    setShowCORForm(true)
+                  }}
+                />
+              </div>
 
-                <div className="pipeline-content">
-                  {/* T&M Work Orders */}
-                  <div className="pipeline-section">
-                    <div className="pipeline-section-header">
-                      <h3>T&M Tickets</h3>
-                      <span className="pipeline-badge">
-                        {projectData?.totalTickets || 0} total
-                        {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
-                      </span>
-                    </div>
-                    <TMList project={selectedProject} company={company} onShowToast={onShowToast} />
-                  </div>
-
-                  {/* Change Order Requests */}
-                  <div className="pipeline-section">
-                    <CORList
-                      project={selectedProject}
-                      company={company}
-                      areas={areas}
-                      refreshKey={corRefreshKey}
-                      onShowToast={onShowToast}
-                      onCreateCOR={() => {
-                        setEditingCOR(null)
-                        setShowCORForm(true)
-                      }}
-                      onViewCOR={(cor) => {
-                        setViewingCOR(cor)
-                        setShowCORDetail(true)
-                      }}
-                      onEditCOR={(cor) => {
-                        setEditingCOR(cor)
-                        setShowCORForm(true)
-                      }}
-                    />
-                  </div>
+              {/* T&M Tickets - Supporting */}
+              <div className="financials-section tm-section">
+                <div className="tm-section-header">
+                  <h3>T&M Tickets</h3>
+                  <span className="tm-badge">
+                    {projectData?.totalTickets || 0} total
+                    {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
+                  </span>
                 </div>
+                <TMList project={selectedProject} company={company} onShowToast={onShowToast} compact />
               </div>
 
               {/* Legacy Cost Breakdown - Now Collapsible */}
@@ -1450,110 +1407,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     project={selectedProject}
                     companyId={company?.id || selectedProject?.company_id}
                     company={company}
-                    onShowToast={onShowToast}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ACTIVITY TAB */}
-          {activeProjectTab === 'activity' && (
-            <div className="pv-tab-panel activity-tab">
-              {/* Hero Metrics */}
-              <div className="activity-hero">
-                <div className="activity-hero-grid">
-                  {/* Pending Requests */}
-                  <div className={`activity-metric ${(projectData?.pendingMaterialRequests || 0) > 0 ? 'warning' : 'success'}`}>
-                    <div className="activity-metric-icon">
-                      {(projectData?.pendingMaterialRequests || 0) > 0 ? '!' : '✓'}
-                    </div>
-                    <div className="activity-metric-content">
-                      <div className="activity-metric-value">{projectData?.pendingMaterialRequests || 0}</div>
-                      <div className="activity-metric-label">Pending</div>
-                    </div>
-                  </div>
-
-                  {/* Total Requests */}
-                  <div className="activity-metric">
-                    <div className="activity-metric-value">{projectData?.totalMaterialRequests || 0}</div>
-                    <div className="activity-metric-label">Total Requests</div>
-                  </div>
-
-                  {/* Fulfillment Rate */}
-                  <div className="activity-metric">
-                    <div className="activity-metric-value">
-                      {projectData?.totalMaterialRequests > 0
-                        ? Math.round(((projectData.totalMaterialRequests - (projectData.pendingMaterialRequests || 0)) / projectData.totalMaterialRequests) * 100)
-                        : 100
-                      }%
-                    </div>
-                    <div className="activity-metric-label">Fulfilled</div>
-                    <div className="activity-metric-bar">
-                      <div
-                        className="activity-metric-fill"
-                        style={{
-                          width: `${projectData?.totalMaterialRequests > 0
-                            ? ((projectData.totalMaterialRequests - (projectData.pendingMaterialRequests || 0)) / projectData.totalMaterialRequests) * 100
-                            : 100
-                          }%`
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Quick Status */}
-                  <div className="activity-metric status">
-                    <div className="activity-metric-status-icon">
-                      <MessageSquare size={20} />
-                    </div>
-                    <div className="activity-metric-label">Messages Active</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Attention Banner - Only if pending */}
-              {(projectData?.pendingMaterialRequests || 0) > 0 && (
-                <div className="activity-attention-banner">
-                  <span className="attention-icon">!</span>
-                  <span className="attention-text">
-                    {projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} awaiting response
-                  </span>
-                </div>
-              )}
-
-              {/* Material Requests Section */}
-              <div className={`activity-section-card ${(projectData?.pendingMaterialRequests || 0) > 0 ? 'has-pending' : ''}`}>
-                <div className="activity-section-header">
-                  <div className="activity-section-title">
-                    <HardHat size={18} />
-                    <h3>Material Requests</h3>
-                  </div>
-                  <div className="activity-section-badges">
-                    {(projectData?.pendingMaterialRequests || 0) > 0 && (
-                      <span className="activity-badge pending">{projectData.pendingMaterialRequests} pending</span>
-                    )}
-                    <span className="activity-badge total">{projectData?.totalMaterialRequests || 0} total</span>
-                  </div>
-                </div>
-                <div className="activity-section-content">
-                  <MaterialRequestsList project={selectedProject} company={company} onShowToast={onShowToast} />
-                </div>
-              </div>
-
-              {/* Messages Section */}
-              <div className="activity-section-card messages">
-                <div className="activity-section-header">
-                  <div className="activity-section-title">
-                    <MessageSquare size={18} />
-                    <h3>Project Messages</h3>
-                  </div>
-                </div>
-                <div className="activity-section-content">
-                  <ProjectMessages
-                    project={selectedProject}
-                    company={company}
-                    userName={company?.name || 'Office'}
                     onShowToast={onShowToast}
                   />
                 </div>

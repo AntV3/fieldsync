@@ -35,7 +35,7 @@ const loadImageAsBase64 = (url) => {
   })
 }
 
-export default function TMList({ project, company, onShowToast }) {
+export default function TMList({ project, company, onShowToast, compact = false }) {
   const { branding } = useBranding()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1188,7 +1188,8 @@ export default function TMList({ project, company, onShowToast }) {
   }
 
   return (
-    <div className="tm-list">
+    <div className={`tm-list ${compact ? 'tm-list-compact' : ''}`}>
+      {!compact && (
       <div className="tm-list-header">
         <div className="tm-list-title">
           <h3>T&M Tickets</h3>
@@ -1267,9 +1268,10 @@ export default function TMList({ project, company, onShowToast }) {
           )}
         </div>
       </div>
+      )}
 
-      {/* Summary Bar */}
-      {filteredTickets.length > 0 && (
+      {/* Summary Bar - hidden in compact mode */}
+      {!compact && filteredTickets.length > 0 && (
         <div className="tm-summary-bar">
           <div className="tm-summary-stat">
             <span className="tm-summary-label">Tickets</span>

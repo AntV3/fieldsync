@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
-import { FileText, MessageSquare, Package, ClipboardList, AlertTriangle, Info, CheckSquare, Zap, HardHat, Truck } from 'lucide-react'
+import { FileText, ClipboardList, AlertTriangle, Info, CheckSquare, Zap, HardHat, Truck } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
-import Messages from './Messages'
-import MaterialRequest from './MaterialRequest'
 import InjuryReportForm from './InjuryReportForm'
 import ThemeToggle from './ThemeToggle'
 import DisposalLoadInput from './DisposalLoadInput'
@@ -20,23 +18,19 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [showCrewCheckin, setShowCrewCheckin] = useState(false)
   const [showDisposalLoads, setShowDisposalLoads] = useState(false)
   const [showDailyReport, setShowDailyReport] = useState(false)
-  const [showMessages, setShowMessages] = useState(false)
-  const [showMaterialRequest, setShowMaterialRequest] = useState(false)
   const [showInjuryReport, setShowInjuryReport] = useState(false)
   const [showProjectInfo, setShowProjectInfo] = useState(false)
-  const [unreadMessages, setUnreadMessages] = useState(0)
   const [activeTab, setActiveTab] = useState('actions')
 
   useEffect(() => {
     loadAreas()
-    loadUnreadCount()
   }, [project.id])
 
   const loadAreas = async () => {
     try {
       const data = await db.getAreas(project.id)
       setAreas(data)
-      
+
       // Start all groups collapsed initially
       const groups = [...new Set(data.map(a => a.group_name || 'General'))]
       const expanded = {}
@@ -48,11 +42,6 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     } finally {
       setLoading(false)
     }
-  }
-
-  const loadUnreadCount = async () => {
-    const count = await db.getUnreadCount(project.id, 'field')
-    setUnreadMessages(count)
   }
 
   const handleStatusUpdate = async (areaId, newStatus) => {
@@ -119,34 +108,6 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         project={project}
         onShowToast={onShowToast}
         onClose={() => setShowDailyReport(false)}
-      />
-    )
-  }
-
-  // Show Messages
-  if (showMessages) {
-    return (
-      <Messages
-        project={project}
-        viewerType="field"
-        viewerName="Field"
-        onShowToast={onShowToast}
-        onClose={() => {
-          setShowMessages(false)
-          loadUnreadCount()
-        }}
-      />
-    )
-  }
-
-  // Show Material Request
-  if (showMaterialRequest) {
-    return (
-      <MaterialRequest
-        project={project}
-        requestedBy="Field"
-        onShowToast={onShowToast}
-        onClose={() => setShowMaterialRequest(false)}
       />
     )
   }
@@ -345,21 +306,6 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           >
             <Truck size={22} />
             Disposal Loads
-          </button>
-          <button
-            className="field-action-btn"
-            onClick={() => setShowMaterialRequest(true)}
-          >
-            <Package size={22} />
-            Materials
-          </button>
-          <button
-            className="field-action-btn"
-            onClick={() => setShowMessages(true)}
-          >
-            <MessageSquare size={22} />
-            Messages
-            {unreadMessages > 0 && <span className="badge">{unreadMessages}</span>}
           </button>
           <button
             className="field-action-btn"

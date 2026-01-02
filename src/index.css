@@ -4476,6 +4476,80 @@ input[type="number"] {
   }
 }
 
+/* T&M List Compact Mode */
+.tm-list-compact {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.tm-list-compact .tm-ticket-card {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.tm-list-compact .tm-ticket-header {
+  padding: 0;
+}
+
+.tm-list-compact .tm-ticket-info {
+  gap: 0.5rem;
+}
+
+.tm-list-compact .tm-ticket-date {
+  font-size: 0.8rem;
+}
+
+.tm-list-compact .tm-ticket-summary {
+  gap: 0.75rem;
+}
+
+.tm-list-compact .tm-ticket-hours,
+.tm-list-compact .tm-ticket-total {
+  font-size: 0.85rem;
+}
+
+.tm-list-compact .tm-empty-state {
+  padding: 1.5rem;
+}
+
+/* Financials Section Styles */
+.financials-section {
+  margin-bottom: 1.5rem;
+}
+
+.cor-section-primary {
+  margin-bottom: 1.5rem;
+}
+
+.tm-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.tm-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.tm-section-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tm-badge {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
 /* =============================================
    AUTH PAGE STYLES
    ============================================= */
@@ -14332,6 +14406,403 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .submit-actions .btn {
     max-width: none;
+  }
+}
+
+/* =====================================================
+   SIMPLIFIED COR FORM STYLES
+   ===================================================== */
+
+.cor-form-simplified {
+  max-width: 900px;
+}
+
+.cor-form-simplified .cor-form-body {
+  padding: 1rem 1.5rem;
+}
+
+.cor-form-required {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.cor-number-field {
+  flex: 0 0 100px;
+}
+
+.cor-number-field input {
+  text-align: center;
+  font-weight: 600;
+}
+
+.flex-grow {
+  flex: 1;
+}
+
+.form-row-compact {
+  gap: 0.5rem;
+}
+
+.form-row-compact .form-group {
+  flex: 1;
+  min-width: 80px;
+}
+
+.form-row-compact label {
+  font-size: 0.75rem;
+}
+
+.form-row-compact input,
+.form-row-compact select {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.cor-import-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.cor-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cor-section {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cor-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.cor-section-header:hover {
+  background: var(--bg-tertiary);
+}
+
+.cor-section-header.expanded {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cor-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cor-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.cor-section-subtotal {
+  font-weight: 600;
+  color: var(--success);
+  font-size: 0.9rem;
+}
+
+.cor-section-content {
+  padding: 0.75rem 1rem;
+  background: var(--bg-primary);
+}
+
+.line-item.compact {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.line-item.compact:last-of-type {
+  border-bottom: none;
+}
+
+.line-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.line-item-row select {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+  min-width: 90px;
+}
+
+.line-item-row input {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.line-item-row .input-small {
+  width: 70px;
+  flex: 0 0 70px;
+}
+
+.line-item-row .input-wide {
+  flex: 1;
+  min-width: 150px;
+}
+
+.line-item-row .input-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.line-item-row .line-item-total {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 80px;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.btn-icon:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--error);
+}
+
+.btn-add {
+  margin-top: 0.5rem;
+  width: 100%;
+  justify-content: center;
+  padding: 0.5rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+}
+
+.btn-add:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-blue);
+}
+
+/* Quick select compact */
+.quick-select-compact {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.quick-select-compact .quick-select-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.quick-select-compact .quick-select-search input {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+  background: var(--bg-primary);
+}
+
+.quick-select-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quick-item {
+  padding: 0.35rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.quick-item:hover {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+/* Markups compact */
+.markups-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.markups-grid-compact,
+.fees-grid-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.markup-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+
+.markup-row > span:first-child {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.markup-input-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.markup-input-compact input {
+  width: 50px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  text-align: right;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.markup-input-compact span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.markup-result {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--success);
+  font-size: 0.9rem;
+}
+
+/* Summary bar */
+.cor-summary-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.cor-summary-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.cor-summary-item span:first-child {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.cor-summary-item span:last-child {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.cor-summary-item.total span:last-child {
+  font-size: 1.25rem;
+  color: var(--success);
+}
+
+/* Footer actions */
+.cor-form-simplified .cor-form-footer {
+  justify-content: space-between;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Responsive simplified form */
+@media (max-width: 640px) {
+  .cor-form-simplified .cor-form-body {
+    padding: 0.75rem;
+  }
+
+  .cor-form-required {
+    padding: 0.75rem;
+  }
+
+  .form-row-compact {
+    flex-wrap: wrap;
+  }
+
+  .form-row-compact .form-group {
+    min-width: 45%;
+  }
+
+  .line-item-row {
+    gap: 0.35rem;
+  }
+
+  .line-item-row .input-small {
+    width: 55px;
+    flex: 0 0 55px;
+  }
+
+  .line-item-row select {
+    min-width: 80px;
+  }
+
+  .cor-summary-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .footer-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .footer-actions .btn {
+    width: 100%;
   }
 }
 
