@@ -699,11 +699,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         <div className="form-group">
                           <label>Reg Hours</label>
                           <input
-                            type="number"
-                            step="0.5"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={item.regular_hours}
-                            onChange={(e) => updateLaborItem(index, 'regular_hours', e.target.value)}
+                            onChange={(e) => updateLaborItem(index, 'regular_hours', e.target.value.replace(/[^0-9.]/g, ''))}
                           />
                         </div>
                         <div className="form-group">
@@ -714,24 +713,23 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                               type="text"
                               inputMode="decimal"
                               className="dollar-input"
-                              value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
+                              value={item.regular_rate ? (item.regular_rate / 100) : ''}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/[^0-9.]/g, '')
                                 const cents = Math.round(parseFloat(val || 0) * 100)
                                 updateLaborItem(index, 'regular_rate', cents)
                               }}
-                              placeholder="0.00"
+                              placeholder="0"
                             />
                           </div>
                         </div>
                         <div className="form-group">
                           <label>OT Hours</label>
                           <input
-                            type="number"
-                            step="0.5"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={item.overtime_hours}
-                            onChange={(e) => updateLaborItem(index, 'overtime_hours', e.target.value)}
+                            onChange={(e) => updateLaborItem(index, 'overtime_hours', e.target.value.replace(/[^0-9.]/g, ''))}
                           />
                         </div>
                         <div className="form-group">
@@ -742,13 +740,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                               type="text"
                               inputMode="decimal"
                               className="dollar-input"
-                              value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
+                              value={item.overtime_rate ? (item.overtime_rate / 100) : ''}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/[^0-9.]/g, '')
                                 const cents = Math.round(parseFloat(val || 0) * 100)
                                 updateLaborItem(index, 'overtime_rate', cents)
                               }}
-                              placeholder="0.00"
+                              placeholder="0"
                             />
                           </div>
                         </div>
@@ -888,11 +886,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         <div className="form-group">
                           <label>Quantity</label>
                           <input
-                            type="number"
-                            step="0.01"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={item.quantity}
-                            onChange={(e) => updateMaterialsItem(index, 'quantity', e.target.value)}
+                            onChange={(e) => updateMaterialsItem(index, 'quantity', e.target.value.replace(/[^0-9.]/g, ''))}
                           />
                         </div>
                         <div className="form-group">
@@ -914,13 +911,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                               type="text"
                               inputMode="decimal"
                               className="dollar-input"
-                              value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
+                              value={item.unit_cost ? (item.unit_cost / 100) : ''}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/[^0-9.]/g, '')
                                 const cents = Math.round(parseFloat(val || 0) * 100)
                                 updateMaterialsItem(index, 'unit_cost', cents)
                               }}
-                              placeholder="0.00"
+                              placeholder="0"
                             />
                           </div>
                         </div>
@@ -1043,11 +1040,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         <div className="form-group">
                           <label>Quantity</label>
                           <input
-                            type="number"
-                            step="0.01"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={item.quantity}
-                            onChange={(e) => updateEquipmentItem(index, 'quantity', e.target.value)}
+                            onChange={(e) => updateEquipmentItem(index, 'quantity', e.target.value.replace(/[^0-9.]/g, ''))}
                           />
                         </div>
                         <div className="form-group">
@@ -1069,13 +1065,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                               type="text"
                               inputMode="decimal"
                               className="dollar-input"
-                              value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
+                              value={item.unit_cost ? (item.unit_cost / 100) : ''}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/[^0-9.]/g, '')
                                 const cents = Math.round(parseFloat(val || 0) * 100)
                                 updateEquipmentItem(index, 'unit_cost', cents)
                               }}
-                              placeholder="0.00"
+                              placeholder="0"
                             />
                           </div>
                         </div>
@@ -1178,13 +1174,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                               type="text"
                               inputMode="decimal"
                               className="dollar-input"
-                              value={item.amount ? (item.amount / 100).toFixed(2) : ''}
+                              value={item.amount ? (item.amount / 100) : ''}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/[^0-9.]/g, '')
                                 const cents = Math.round(parseFloat(val || 0) * 100)
                                 updateSubcontractorsItem(index, 'amount', cents)
                               }}
-                              placeholder="0.00"
+                              placeholder="0"
                             />
                           </div>
                         </div>
@@ -1217,12 +1213,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                     <label>Labor Markup</label>
                     <div className="markup-input">
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="decimal"
                         value={basisPointsToPercent(laborMarkupPercent)}
-                        onChange={(e) => setLaborMarkupPercent(percentToBasisPoints(e.target.value))}
+                        onChange={(e) => setLaborMarkupPercent(percentToBasisPoints(e.target.value.replace(/[^0-9.]/g, '')))}
                       />
                       <span>%</span>
                     </div>
@@ -1235,12 +1229,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                     <label>Materials Markup</label>
                     <div className="markup-input">
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="decimal"
                         value={basisPointsToPercent(materialsMarkupPercent)}
-                        onChange={(e) => setMaterialsMarkupPercent(percentToBasisPoints(e.target.value))}
+                        onChange={(e) => setMaterialsMarkupPercent(percentToBasisPoints(e.target.value.replace(/[^0-9.]/g, '')))}
                       />
                       <span>%</span>
                     </div>
@@ -1253,12 +1245,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                     <label>Equipment Markup</label>
                     <div className="markup-input">
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="decimal"
                         value={basisPointsToPercent(equipmentMarkupPercent)}
-                        onChange={(e) => setEquipmentMarkupPercent(percentToBasisPoints(e.target.value))}
+                        onChange={(e) => setEquipmentMarkupPercent(percentToBasisPoints(e.target.value.replace(/[^0-9.]/g, '')))}
                       />
                       <span>%</span>
                     </div>
@@ -1271,12 +1261,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                     <label>Subcontractors Markup</label>
                     <div className="markup-input">
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="decimal"
                         value={basisPointsToPercent(subcontractorsMarkupPercent)}
-                        onChange={(e) => setSubcontractorsMarkupPercent(percentToBasisPoints(e.target.value))}
+                        onChange={(e) => setSubcontractorsMarkupPercent(percentToBasisPoints(e.target.value.replace(/[^0-9.]/g, '')))}
                       />
                       <span>%</span>
                     </div>
@@ -1294,12 +1282,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                     <label>Liability Insurance</label>
                     <div className="fee-input">
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="decimal"
                         value={basisPointsToPercent(liabilityInsurancePercent)}
-                        onChange={(e) => setLiabilityInsurancePercent(percentToBasisPoints(e.target.value))}
+                        onChange={(e) => setLiabilityInsurancePercent(percentToBasisPoints(e.target.value.replace(/[^0-9.]/g, '')))}
                       />
                       <span>%</span>
                     </div>
@@ -1312,12 +1298,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                     <label>Bond</label>
                     <div className="fee-input">
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="decimal"
                         value={basisPointsToPercent(bondPercent)}
-                        onChange={(e) => setBondPercent(percentToBasisPoints(e.target.value))}
+                        onChange={(e) => setBondPercent(percentToBasisPoints(e.target.value.replace(/[^0-9.]/g, '')))}
                       />
                       <span>%</span>
                     </div>
@@ -1330,12 +1314,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                     <label>City License Fee</label>
                     <div className="fee-input">
                       <input
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        max="100"
+                        type="text"
+                        inputMode="decimal"
                         value={basisPointsToPercent(licenseFeePercent)}
-                        onChange={(e) => setLicenseFeePercent(percentToBasisPoints(e.target.value))}
+                        onChange={(e) => setLicenseFeePercent(percentToBasisPoints(e.target.value.replace(/[^0-9.]/g, '')))}
                       />
                       <span>%</span>
                     </div>

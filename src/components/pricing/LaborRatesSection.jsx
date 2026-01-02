@@ -209,16 +209,16 @@ export default function LaborRatesSection({ company, onShowToast }) {
                         <div className="rate-input-inline">
                           <span>$</span>
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             value={rateData.regular}
-                            onChange={(e) => updateRate(activeWorkType, jobType, role, 'regular', e.target.value)}
-                            placeholder="0.00"
-                            step="0.01"
+                            onChange={(e) => updateRate(activeWorkType, jobType, role, 'regular', e.target.value.replace(/[^0-9.]/g, ''))}
+                            placeholder="0"
                           />
                           <span>/hr</span>
                         </div>
                       ) : (
-                        <span className="rate-value">${(parseFloat(rateData.regular) || 0).toFixed(2)}/hr</span>
+                        <span className="rate-value">${parseFloat(rateData.regular) || 0}/hr</span>
                       )}
                     </div>
                     <div className="rate-cell">
@@ -226,16 +226,16 @@ export default function LaborRatesSection({ company, onShowToast }) {
                         <div className="rate-input-inline">
                           <span>$</span>
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             value={rateData.overtime}
-                            onChange={(e) => updateRate(activeWorkType, jobType, role, 'overtime', e.target.value)}
-                            placeholder="0.00"
-                            step="0.01"
+                            onChange={(e) => updateRate(activeWorkType, jobType, role, 'overtime', e.target.value.replace(/[^0-9.]/g, ''))}
+                            placeholder="0"
                           />
                           <span>/hr</span>
                         </div>
                       ) : (
-                        <span className="rate-value ot">${(parseFloat(rateData.overtime) || 0).toFixed(2)}/hr</span>
+                        <span className="rate-value ot">${parseFloat(rateData.overtime) || 0}/hr</span>
                       )}
                     </div>
                   </div>
