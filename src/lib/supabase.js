@@ -4478,24 +4478,19 @@ export const db = {
 
   async addBulkSubcontractorItems(corId, subItems) {
     if (isSupabaseConfigured && subItems.length > 0) {
-      // Build items matching the database schema
-      // Note: company_name requires migration_cor_enhancements.sql to be run
-      const items = subItems.map((item, index) => {
-        const baseItem = {
-          change_order_id: corId,
-          description: item.company_name
-            ? `${item.company_name}: ${item.description || 'Services'}`
-            : (item.description || ''),
-          quantity: item.quantity || 1,
-          unit: item.unit || 'lump sum',
-          unit_cost: item.unit_cost || item.total || item.amount || 0,
-          total: item.total || item.amount || 0,
-          source_type: item.source_type || 'invoice',
-          source_reference: item.source_reference || null,
-          sort_order: item.sort_order ?? index
-        }
-        return baseItem
-      })
+      // Build items - requires migration_complete_fixes.sql for company_name column
+      const items = subItems.map((item, index) => ({
+        change_order_id: corId,
+        company_name: item.company_name || '',
+        description: item.description || '',
+        quantity: item.quantity || 1,
+        unit: item.unit || 'lump sum',
+        unit_cost: item.unit_cost || item.total || item.amount || 0,
+        total: item.total || item.amount || 0,
+        source_type: item.source_type || 'invoice',
+        source_reference: item.source_reference || null,
+        sort_order: item.sort_order ?? index
+      }))
 
       const { data, error } = await supabase
         .from('change_order_subcontractors')
