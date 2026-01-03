@@ -2161,6 +2161,258 @@ export const db = {
   },
 
   // ============================================
+  // Photo Verification & Reliability
+  // ============================================
+
+  // Verify that a photo URL is accessible (exists in storage)
+  async verifyPhotoAccessible(photoUrl) {
+    if (!isSupabaseConfigured || !photoUrl) return { accessible: false, error: 'Invalid URL' }
+
+    try {
+      // Try a HEAD request to check if the photo exists
+      const response = await fetch(photoUrl, { method: 'HEAD' })
+      return {
+        accessible: response.ok,
+        status: response.status,
+        error: response.ok ? null : `HTTP ${response.status}`
+      }
+    } catch (error) {
+      return {
+        accessible: false,
+        error: error.message || 'Network error'
+      }
+    }
+  },
+
+  // Verify all photos for a ticket and update verification status
+  async verifyTicketPhotos(ticketId) {
+    if (!isSupabaseConfigured) return { verified: false, issues: [] }
+
+    try {
+      // Get ticket with photos
+      const { data: ticket, error: ticketError } = await supabase
+        .from('t_and_m_tickets')
+        .select('photos')
+        .eq('id', ticketId)
+        .single()
+
+      if (ticketError) throw ticketError
+      if (!ticket?.photos || ticket.photos.length === 0) {
+        // No photos - mark as empty
+        await supabase
+          .from('t_and_m_tickets')
+          .update({
+            photos_verified_at: new Date().toISOString(),
+            photos_verification_status: 'empty',
+            photos_issue_count: 0
+          })
+          .eq('id', ticketId)
+
+        return { verified: true, status: 'empty', issues: [] }
+      }
+
+      // Verify each photo
+      const issues = []
+      for (const photoUrl of ticket.photos) {
+        const result = await this.verifyPhotoAccessible(photoUrl)
+        if (!result.accessible) {
+          issues.push({ url: photoUrl, error: result.error })
+        }
+      }
+
+      // Update verification status
+      const status = issues.length === 0 ? 'verified' : 'issues'
+      await supabase
+        .from('t_and_m_tickets')
+        .update({
+          photos_verified_at: new Date().toISOString(),
+          photos_verification_status: status,
+          photos_issue_count: issues.length
+        })
+        .eq('id', ticketId)
+
+      return {
+        verified: issues.length === 0,
+        status,
+        totalPhotos: ticket.photos.length,
+        issues
+      }
+    } catch (error) {
+      console.error('Error verifying ticket photos:', error)
+      return { verified: false, error: error.message, issues: [] }
+    }
+  },
+
+  // Add entry to photo upload queue for reliable upload tracking
+  async queuePhotoUpload(ticketId, tempId, fileName, fileSize) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('photo_upload_queue')
+      .insert({
+        ticket_id: ticketId,
+        temp_id: tempId,
+        file_name: fileName,
+        file_size_bytes: fileSize,
+        status: 'pending'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error queueing photo upload:', error)
+      return null
+    }
+    return data
+  },
+
+  // Confirm a queued photo upload (calls database function)
+  async confirmQueuedUpload(queueId, uploadedUrl, storagePath) {
+    if (!isSupabaseConfigured) return false
+
+    const { data, error } = await supabase.rpc('confirm_photo_upload', {
+      p_queue_id: queueId,
+      p_uploaded_url: uploadedUrl,
+      p_storage_path: storagePath
+    })
+
+    if (error) {
+      console.error('Error confirming photo upload:', error)
+      return false
+    }
+    return data === true
+  },
+
+  // Mark a queued photo upload as failed
+  async markQueuedUploadFailed(queueId, errorMessage) {
+    if (!isSupabaseConfigured) return false
+
+    const { data, error } = await supabase.rpc('mark_photo_upload_failed', {
+      p_queue_id: queueId,
+      p_error: errorMessage
+    })
+
+    if (error) {
+      console.error('Error marking photo upload failed:', error)
+      return false
+    }
+    return data === true
+  },
+
+  // Get pending photo uploads for a ticket
+  async getPendingPhotoUploads(ticketId) {
+    if (!isSupabaseConfigured) return []
+
+    const { data, error } = await supabase.rpc('get_pending_photo_uploads', {
+      p_ticket_id: ticketId
+    })
+
+    if (error) {
+      console.error('Error getting pending photo uploads:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Log photo operation for audit trail
+  async logPhotoOperation(ticketId, operation, details = {}) {
+    if (!isSupabaseConfigured) return
+
+    try {
+      await supabase
+        .from('photo_audit_log')
+        .insert({
+          ticket_id: ticketId,
+          cor_id: details.corId || null,
+          operation,
+          photo_url: details.photoUrl || null,
+          storage_path: details.storagePath || null,
+          details: details.metadata ? details.metadata : null,
+          error_message: details.error || null,
+          triggered_by: details.triggeredBy || 'system'
+        })
+    } catch (error) {
+      // Don't fail the main operation if logging fails
+      console.error('Error logging photo operation:', error)
+    }
+  },
+
+  // ============================================
+  // COR Export Snapshots (Dispute-Ready Exports)
+  // ============================================
+
+  // Save a COR export snapshot for dispute/audit purposes
+  async saveExportSnapshot(corId, snapshot, options = {}) {
+    if (!isSupabaseConfigured) return null
+
+    const {
+      exportType = 'pdf',
+      exportReason = null,
+      clientEmail = null,
+      clientName = null
+    } = options
+
+    try {
+      const { data, error } = await supabase
+        .from('cor_export_snapshots')
+        .insert({
+          cor_id: corId,
+          export_type: exportType,
+          export_reason: exportReason,
+          cor_data: snapshot.cor_data,
+          tickets_data: snapshot.tickets_data,
+          photos_manifest: snapshot.photos_manifest,
+          totals_snapshot: snapshot.totals_snapshot,
+          checksum: snapshot.checksum,
+          client_email: clientEmail,
+          client_name: clientName
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('Error saving export snapshot:', error)
+      return null
+    }
+  },
+
+  // Get export history for a COR
+  async getExportSnapshots(corId) {
+    if (!isSupabaseConfigured) return []
+
+    const { data, error } = await supabase
+      .from('cor_export_snapshots')
+      .select('id, exported_at, export_type, export_reason, client_name, client_email, checksum')
+      .eq('cor_id', corId)
+      .order('exported_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching export snapshots:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Get a specific export snapshot with full data
+  async getExportSnapshot(snapshotId) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('cor_export_snapshots')
+      .select('*')
+      .eq('id', snapshotId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching export snapshot:', error)
+      return null
+    }
+    return data
+  },
+
+  // ============================================
   // Crew Check-In Functions
   // ============================================
 
@@ -4197,18 +4449,22 @@ export const db = {
 
   async addCORMaterialItem(corId, materialItem) {
     if (isSupabaseConfigured) {
-      const total = Math.round(materialItem.quantity * materialItem.unit_cost)
+      const allowedSourceTypes = ['backup_sheet', 'invoice', 'mobilization', 'custom', 'field_ticket', 'rental']
+      const sourceType = allowedSourceTypes.includes(materialItem.source_type) ? materialItem.source_type : 'custom'
+      const unitCost = Math.round(Number(materialItem.unit_cost) || 0)
+      const quantity = Number(materialItem.quantity) || 1
+      const total = Math.round(quantity * unitCost)
 
       const { data, error } = await supabase
         .from('change_order_materials')
         .insert({
           change_order_id: corId,
-          description: materialItem.description,
-          quantity: materialItem.quantity || 1,
+          description: materialItem.description || '',
+          quantity: quantity,
           unit: materialItem.unit || 'each',
-          unit_cost: materialItem.unit_cost || 0,
+          unit_cost: unitCost,
           total: total,
-          source_type: materialItem.source_type || 'custom',
+          source_type: sourceType,
           source_reference: materialItem.source_reference || null,
           source_ticket_id: materialItem.source_ticket_id || null,
           sort_order: materialItem.sort_order || 0
@@ -4264,18 +4520,22 @@ export const db = {
 
   async addCOREquipmentItem(corId, equipmentItem) {
     if (isSupabaseConfigured) {
-      const total = Math.round(equipmentItem.quantity * equipmentItem.unit_cost)
+      const allowedSourceTypes = ['backup_sheet', 'invoice', 'custom', 'field_ticket', 'rental']
+      const sourceType = allowedSourceTypes.includes(equipmentItem.source_type) ? equipmentItem.source_type : 'custom'
+      const unitCost = Math.round(Number(equipmentItem.unit_cost) || 0)
+      const quantity = Number(equipmentItem.quantity) || 1
+      const total = Math.round(quantity * unitCost)
 
       const { data, error } = await supabase
         .from('change_order_equipment')
         .insert({
           change_order_id: corId,
-          description: equipmentItem.description,
-          quantity: equipmentItem.quantity || 1,
+          description: equipmentItem.description || '',
+          quantity: quantity,
           unit: equipmentItem.unit || 'day',
-          unit_cost: equipmentItem.unit_cost || 0,
+          unit_cost: unitCost,
           total: total,
-          source_type: equipmentItem.source_type || 'custom',
+          source_type: sourceType,
           source_reference: equipmentItem.source_reference || null,
           source_ticket_id: equipmentItem.source_ticket_id || null,
           sort_order: equipmentItem.sort_order || 0
@@ -4428,18 +4688,27 @@ export const db = {
 
   async addBulkMaterialItems(corId, materialItems) {
     if (isSupabaseConfigured && materialItems.length > 0) {
-      const items = materialItems.map((item, index) => ({
-        change_order_id: corId,
-        description: item.description,
-        quantity: item.quantity || 1,
-        unit: item.unit || 'each',
-        unit_cost: item.unit_cost || 0,
-        total: Math.round((item.quantity || 1) * (item.unit_cost || 0)),
-        source_type: item.source_type || 'custom',
-        source_reference: item.source_reference || null,
-        source_ticket_id: item.source_ticket_id || null,
-        sort_order: item.sort_order ?? index
-      }))
+      // Allowed source_type values for materials
+      const allowedSourceTypes = ['backup_sheet', 'invoice', 'mobilization', 'custom', 'field_ticket', 'rental']
+
+      const items = materialItems.map((item, index) => {
+        const sourceType = allowedSourceTypes.includes(item.source_type) ? item.source_type : 'custom'
+        const unitCost = Math.round(Number(item.unit_cost) || 0)
+        const quantity = Number(item.quantity) || 1
+
+        return {
+          change_order_id: corId,
+          description: item.description || '',
+          quantity: quantity,
+          unit: item.unit || 'each',
+          unit_cost: unitCost,
+          total: Math.round(quantity * unitCost),
+          source_type: sourceType,
+          source_reference: item.source_reference || null,
+          source_ticket_id: item.source_ticket_id || null,
+          sort_order: item.sort_order ?? index
+        }
+      })
 
       const { data, error } = await supabase
         .from('change_order_materials')
@@ -4453,18 +4722,27 @@ export const db = {
 
   async addBulkEquipmentItems(corId, equipmentItems) {
     if (isSupabaseConfigured && equipmentItems.length > 0) {
-      const items = equipmentItems.map((item, index) => ({
-        change_order_id: corId,
-        description: item.description,
-        quantity: item.quantity || 1,
-        unit: item.unit || 'day',
-        unit_cost: item.unit_cost || 0,
-        total: Math.round((item.quantity || 1) * (item.unit_cost || 0)),
-        source_type: item.source_type || 'custom',
-        source_reference: item.source_reference || null,
-        source_ticket_id: item.source_ticket_id || null,
-        sort_order: item.sort_order ?? index
-      }))
+      // Allowed source_type values for equipment
+      const allowedSourceTypes = ['backup_sheet', 'invoice', 'custom', 'field_ticket', 'rental']
+
+      const items = equipmentItems.map((item, index) => {
+        const sourceType = allowedSourceTypes.includes(item.source_type) ? item.source_type : 'custom'
+        const unitCost = Math.round(Number(item.unit_cost) || 0)
+        const quantity = Number(item.quantity) || 1
+
+        return {
+          change_order_id: corId,
+          description: item.description || '',
+          quantity: quantity,
+          unit: item.unit || 'day',
+          unit_cost: unitCost,
+          total: Math.round(quantity * unitCost),
+          source_type: sourceType,
+          source_reference: item.source_reference || null,
+          source_ticket_id: item.source_ticket_id || null,
+          sort_order: item.sort_order ?? index
+        }
+      })
 
       const { data, error } = await supabase
         .from('change_order_equipment')

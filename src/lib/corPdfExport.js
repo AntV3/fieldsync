@@ -56,15 +56,146 @@ const loadImageAsBase64 = (url) => {
 }
 
 /**
+ * Pre-verify all photos in T&M tickets before export
+ * Creates a manifest of verified photos and tracks failures
+ * @param {Object[]} tmTickets - T&M tickets with photos
+ * @returns {Promise<Object>} Photo manifest with verification status
+ */
+export async function verifyPhotosForExport(tmTickets) {
+  if (!tmTickets || tmTickets.length === 0) {
+    return { totalPhotos: 0, verified: 0, failed: 0, issues: [], manifest: [] }
+  }
+
+  const manifest = []
+  let verified = 0
+  let failed = 0
+  const issues = []
+
+  for (const ticket of tmTickets) {
+    if (!ticket.photos || ticket.photos.length === 0) continue
+
+    for (const photoUrl of ticket.photos) {
+      const entry = {
+        ticketId: ticket.id,
+        workDate: ticket.work_date,
+        url: photoUrl,
+        verified: false,
+        error: null
+      }
+
+      try {
+        // Try to load the image to verify accessibility
+        const imgData = await loadImageAsBase64(photoUrl)
+        if (imgData) {
+          entry.verified = true
+          verified++
+        } else {
+          entry.error = 'Failed to load image'
+          failed++
+          issues.push({
+            ticketId: ticket.id,
+            workDate: ticket.work_date,
+            url: photoUrl,
+            error: 'Failed to load image'
+          })
+        }
+      } catch (err) {
+        entry.error = err.message || 'Unknown error'
+        failed++
+        issues.push({
+          ticketId: ticket.id,
+          workDate: ticket.work_date,
+          url: photoUrl,
+          error: entry.error
+        })
+      }
+
+      manifest.push(entry)
+    }
+  }
+
+  return {
+    totalPhotos: verified + failed,
+    verified,
+    failed,
+    issues,
+    manifest,
+    allVerified: failed === 0,
+    verifiedAt: new Date().toISOString()
+  }
+}
+
+/**
+ * Create a frozen snapshot of COR data at export time for dispute purposes
+ * @param {Object} cor - The COR data object
+ * @param {Object[]} tmTickets - Associated T&M tickets
+ * @param {Object} photoManifest - Photo verification manifest
+ * @param {Object} totals - Calculated totals
+ * @returns {Object} Frozen snapshot ready for database storage
+ */
+export function createExportSnapshot(cor, tmTickets, photoManifest, totals) {
+  // Create a SHA256-like checksum from the data (simplified for client-side)
+  const dataString = JSON.stringify({ cor, tmTickets, photoManifest, totals })
+  let hash = 0
+  for (let i = 0; i < dataString.length; i++) {
+    const char = dataString.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  const checksum = Math.abs(hash).toString(16).padStart(16, '0')
+
+  return {
+    cor_data: {
+      id: cor.id,
+      cor_number: cor.cor_number,
+      title: cor.title,
+      description: cor.description,
+      status: cor.status,
+      created_at: cor.created_at,
+      submitted_at: cor.submitted_at,
+      labor_items: cor.labor_items,
+      material_items: cor.material_items,
+      equipment_items: cor.equipment_items,
+      gc_markup_percent: cor.gc_markup_percent,
+      profit_markup_percent: cor.profit_markup_percent
+    },
+    tickets_data: (tmTickets || []).map(ticket => ({
+      id: ticket.id,
+      work_date: ticket.work_date,
+      ce_pco_number: ticket.ce_pco_number,
+      notes: ticket.notes,
+      status: ticket.status,
+      created_at: ticket.created_at,
+      workers: ticket.t_and_m_workers || [],
+      items: ticket.t_and_m_items || [],
+      photos: ticket.photos || [],
+      client_signature_name: ticket.client_signature_name,
+      client_signature_date: ticket.client_signature_date
+    })),
+    photos_manifest: photoManifest,
+    totals_snapshot: totals,
+    checksum: checksum
+  }
+}
+
+/**
  * Export a Change Order Request to PDF
  * @param {Object} cor - The COR data object
  * @param {Object} project - The project data
  * @param {Object} company - The company data
  * @param {Object} branding - Optional branding settings
  * @param {Object[]} tmTickets - Optional T&M tickets for backup documentation
- * @returns {Promise<void>}
+ * @param {Object} options - Export options (verifyPhotos, createSnapshot)
+ * @returns {Promise<Object>} Export result with optional snapshot and verification data
  */
-export async function exportCORToPDF(cor, project, company, branding = {}, tmTickets = null) {
+export async function exportCORToPDF(cor, project, company, branding = {}, tmTickets = null, options = {}) {
+  const { verifyPhotos = false, createSnapshot = false } = options
+
+  // Photo verification (optional, for dispute-ready exports)
+  let photoManifest = null
+  if (verifyPhotos && tmTickets?.length > 0) {
+    photoManifest = await verifyPhotosForExport(tmTickets)
+  }
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -768,4 +899,19 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
   // Save the PDF
   const fileName = `${cor.cor_number || 'COR'}_${project?.job_number || 'export'}${tmTickets?.length ? '_with_backup' : ''}.pdf`
   doc.save(fileName)
+
+  // Build export result
+  const result = {
+    success: true,
+    fileName,
+    exportedAt: new Date().toISOString(),
+    photoManifest
+  }
+
+  // Create snapshot for dispute-ready export (if requested)
+  if (createSnapshot) {
+    result.snapshot = createExportSnapshot(cor, tmTickets, photoManifest, totals)
+  }
+
+  return result
 }

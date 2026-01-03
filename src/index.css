@@ -3243,6 +3243,124 @@ input[type="number"] {
   color: var(--accent-green);
 }
 
+/* Failed Photos Retry Section */
+.tm-failed-photos-section {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tm-failed-photos-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-red);
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.tm-failed-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tm-failed-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--accent-red);
+}
+
+.tm-failed-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+}
+
+.tm-failed-photo-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.tm-retry-photo-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tm-retry-photo-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.tm-failed-photo-error {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.2rem 0.4rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 0.6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-retry-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tm-retry-all-btn:hover {
+  opacity: 0.9;
+}
+
+/* Photo Upload Success Indicator */
+.tm-photos-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  color: var(--accent-green);
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
 /* Signature Options */
 .tm-signature-options {
   text-align: left;
@@ -3830,6 +3948,62 @@ input[type="number"] {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Photo status indicators */
+.tm-photo-item.photo-compressing,
+.tm-photo-item.photo-uploading {
+  opacity: 0.8;
+}
+
+.tm-photo-item.photo-confirmed {
+  border: 2px solid var(--accent-green);
+}
+
+.tm-photo-item.photo-failed {
+  border: 2px solid var(--accent-red);
+}
+
+.tm-photo-status {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tm-photo-status.compressing,
+.tm-photo-status.uploading {
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+}
+
+.tm-photo-status.confirmed {
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+  padding: 0.25rem;
+}
+
+.tm-photo-status.failed {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  cursor: help;
+}
+
+.tm-photo-status .tm-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .tm-photo-btn {

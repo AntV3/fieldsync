@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2, Send, Link, ExternalLink, CheckCircle2, Search } from 'lucide-react'
+import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2, Send, Link, ExternalLink, CheckCircle2, Search, AlertCircle, RotateCcw } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -700,6 +700,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   // Photo functions - store files temporarily, upload on submit
+  // Photo states: pending → compressing → uploading → confirmed/failed
   const handlePhotoAdd = (e) => {
     const files = Array.from(e.target.files)
     if (files.length === 0) return
@@ -724,18 +725,82 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
       }
 
-      // Create preview URL and store file for upload
+      // Create preview URL and store file with state tracking
       const previewUrl = URL.createObjectURL(file)
+      const tempId = `photo-${Date.now()}-${Math.random().toString(36).substring(7)}`
       setPhotos(prev => [...prev, {
         id: Date.now() + Math.random(),
+        tempId: tempId,
         file: file,
         previewUrl: previewUrl,
-        name: file.name
+        name: file.name,
+        status: 'pending',      // pending | compressing | uploading | confirmed | failed
+        attempts: 0,            // Number of upload attempts
+        error: null,            // Error message if failed
+        uploadedUrl: null       // URL after successful upload
       }])
     })
-    
+
     // Reset input
     e.target.value = ''
+  }
+
+  // Update photo status by id
+  const updatePhotoStatus = (photoId, updates) => {
+    setPhotos(prev => prev.map(p =>
+      p.id === photoId ? { ...p, ...updates } : p
+    ))
+  }
+
+  // Retry a single failed photo upload
+  const retryPhotoUpload = async (photoId, ticketId) => {
+    const photo = photos.find(p => p.id === photoId)
+    if (!photo || photo.status !== 'failed') return
+
+    updatePhotoStatus(photoId, { status: 'compressing', error: null })
+
+    try {
+      // Compress
+      let fileToUpload = photo.file
+      try {
+        fileToUpload = await compressImage(photo.file)
+      } catch (err) {
+        console.warn('Compression failed, using original:', err)
+      }
+
+      updatePhotoStatus(photoId, { status: 'uploading' })
+
+      // Upload
+      const url = await db.uploadPhoto(companyId, project.id, ticketId, fileToUpload)
+
+      updatePhotoStatus(photoId, {
+        status: 'confirmed',
+        uploadedUrl: url,
+        attempts: photo.attempts + 1
+      })
+
+      // Add to ticket photos
+      await db.updateTMTicketPhotos(ticketId, [...photos.filter(p => p.uploadedUrl).map(p => p.uploadedUrl), url])
+
+      onShowToast('Photo uploaded successfully', 'success')
+    } catch (err) {
+      console.error('Retry failed:', err)
+      updatePhotoStatus(photoId, {
+        status: 'failed',
+        error: err.message || 'Upload failed',
+        attempts: photo.attempts + 1
+      })
+      onShowToast('Photo retry failed', 'error')
+    }
+  }
+
+  // Get count of photos by status
+  const getPhotoStatusCounts = () => {
+    const counts = { pending: 0, compressing: 0, uploading: 0, confirmed: 0, failed: 0 }
+    photos.forEach(p => {
+      if (counts[p.status] !== undefined) counts[p.status]++
+    })
+    return counts
   }
 
   const removePhoto = (photoId) => {
@@ -811,48 +876,74 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         created_by_name: submittedByName.trim()
       })
 
-      // Compress and upload photos in PARALLEL for speed
+      // Compress and upload photos with state tracking
       let photoUrls = []
-      if (photos.length > 0) {
-        // Compress photos first
-        setSubmitProgress(`Compressing ${photos.length} photo${photos.length > 1 ? 's' : ''}...`)
+      const pendingPhotos = photos.filter(p => p.status === 'pending')
+      if (pendingPhotos.length > 0) {
+        // Phase 1: Compress all photos
+        setSubmitProgress(`Compressing ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
+
+        // Update status to compressing
+        pendingPhotos.forEach(p => updatePhotoStatus(p.id, { status: 'compressing' }))
 
         const compressedPhotos = await Promise.all(
-          photos.map(async (photo, idx) => {
+          pendingPhotos.map(async (photo) => {
             try {
               const compressed = await compressImage(photo.file)
               return { ...photo, file: compressed }
             } catch (err) {
-              console.warn(`Failed to compress photo ${idx + 1}, using original:`, err)
+              console.warn(`Failed to compress photo ${photo.name}, using original:`, err)
               return photo
             }
           })
         )
 
-        // Upload compressed photos
-        setSubmitProgress(`Uploading ${photos.length} photo${photos.length > 1 ? 's' : ''}...`)
+        // Phase 2: Upload compressed photos with individual status tracking
+        setSubmitProgress(`Uploading ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
+
+        // Update status to uploading
+        pendingPhotos.forEach(p => updatePhotoStatus(p.id, { status: 'uploading' }))
 
         let uploadedCount = 0
-        const uploadPromises = compressedPhotos.map(async (photo, idx) => {
+        let failedCount = 0
+        const uploadPromises = compressedPhotos.map(async (photo) => {
           try {
             const url = await db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
             uploadedCount++
-            setSubmitProgress(`Uploading ${uploadedCount}/${photos.length} photos...`)
-            console.log(`Photo ${idx + 1} uploaded successfully:`, url)
-            return url
+            setSubmitProgress(`Uploading ${uploadedCount}/${pendingPhotos.length} photos...`)
+            console.log(`Photo ${photo.name} uploaded successfully:`, url)
+
+            // Update photo state to confirmed
+            updatePhotoStatus(photo.id, {
+              status: 'confirmed',
+              uploadedUrl: url,
+              attempts: (photo.attempts || 0) + 1
+            })
+
+            return { id: photo.id, url }
           } catch (err) {
-            console.error(`Photo ${idx + 1} upload failed:`, err)
-            onShowToast(`Photo ${idx + 1} failed to upload`, 'error')
-            return null
+            console.error(`Photo ${photo.name} upload failed:`, err)
+            failedCount++
+
+            // Update photo state to failed
+            updatePhotoStatus(photo.id, {
+              status: 'failed',
+              error: err.message || 'Upload failed',
+              attempts: (photo.attempts || 0) + 1
+            })
+
+            return { id: photo.id, url: null, error: err.message }
           }
         })
 
         const results = await Promise.all(uploadPromises)
-        photoUrls = results.filter(url => url !== null)
+        photoUrls = results.filter(r => r.url !== null).map(r => r.url)
 
-        // Notify if some photos failed
-        if (photoUrls.length < photos.length && photoUrls.length > 0) {
-          onShowToast(`${photoUrls.length}/${photos.length} photos uploaded`, 'warning')
+        // Notify based on results
+        if (failedCount > 0 && photoUrls.length > 0) {
+          onShowToast(`${photoUrls.length}/${pendingPhotos.length} photos uploaded. ${failedCount} failed - can retry later.`, 'warning')
+        } else if (failedCount > 0 && photoUrls.length === 0) {
+          onShowToast(`All ${failedCount} photos failed to upload - can retry after submission.`, 'error')
         }
       }
 
@@ -1171,9 +1262,36 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             {photos.length > 0 && (
               <div className="tm-photo-grid">
                 {photos.map(photo => (
-                  <div key={photo.id} className="tm-photo-item">
+                  <div key={photo.id} className={`tm-photo-item ${photo.status ? `photo-${photo.status}` : ''}`}>
                     <img src={photo.previewUrl} alt={photo.name} />
-                    <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
+                    {/* Status overlay */}
+                    {photo.status === 'compressing' && (
+                      <div className="tm-photo-status compressing">
+                        <Loader2 size={20} className="tm-spinner" />
+                        <span>{lang === 'en' ? 'Compressing' : 'Comprimiendo'}</span>
+                      </div>
+                    )}
+                    {photo.status === 'uploading' && (
+                      <div className="tm-photo-status uploading">
+                        <Loader2 size={20} className="tm-spinner" />
+                        <span>{lang === 'en' ? 'Uploading' : 'Subiendo'}</span>
+                      </div>
+                    )}
+                    {photo.status === 'confirmed' && (
+                      <div className="tm-photo-status confirmed">
+                        <Check size={20} />
+                      </div>
+                    )}
+                    {photo.status === 'failed' && (
+                      <div className="tm-photo-status failed" title={photo.error || 'Upload failed'}>
+                        <AlertCircle size={20} />
+                        <span>{lang === 'en' ? 'Failed' : 'Error'}</span>
+                      </div>
+                    )}
+                    {/* Remove button - only for pending/failed */}
+                    {(!photo.status || photo.status === 'pending' || photo.status === 'failed') && (
+                      <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1880,6 +1998,72 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               <span className="tm-success-stat-label">{lang === 'en' ? 'Work Date' : 'Fecha'}</span>
             </div>
           </div>
+
+          {/* Failed Photos Retry Section */}
+          {photos.some(p => p.status === 'failed') && (
+            <div className="tm-failed-photos-section">
+              <div className="tm-failed-photos-header">
+                <AlertCircle size={18} />
+                <span>
+                  {lang === 'en'
+                    ? `${photos.filter(p => p.status === 'failed').length} photo(s) failed to upload`
+                    : `${photos.filter(p => p.status === 'failed').length} foto(s) no se subieron`}
+                </span>
+              </div>
+              <div className="tm-failed-photos-grid">
+                {photos.filter(p => p.status === 'failed').map(photo => (
+                  <div key={photo.id} className="tm-failed-photo-item">
+                    <img src={photo.previewUrl} alt={photo.name} />
+                    <div className="tm-failed-photo-overlay">
+                      <button
+                        className="tm-retry-photo-btn"
+                        onClick={() => retryPhotoUpload(photo.id, submittedTicket.id)}
+                        disabled={photo.status === 'uploading' || photo.status === 'compressing'}
+                      >
+                        {photo.status === 'uploading' || photo.status === 'compressing' ? (
+                          <Loader2 size={16} className="tm-spinner" />
+                        ) : (
+                          <>
+                            <RotateCcw size={16} />
+                            <span>{lang === 'en' ? 'Retry' : 'Reintentar'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {photo.error && (
+                      <div className="tm-failed-photo-error" title={photo.error}>
+                        {photo.error.substring(0, 20)}{photo.error.length > 20 ? '...' : ''}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                className="tm-retry-all-btn"
+                onClick={async () => {
+                  const failedPhotos = photos.filter(p => p.status === 'failed')
+                  for (const photo of failedPhotos) {
+                    await retryPhotoUpload(photo.id, submittedTicket.id)
+                  }
+                }}
+              >
+                <RotateCcw size={16} />
+                {lang === 'en' ? 'Retry All Failed Photos' : 'Reintentar Todas las Fotos'}
+              </button>
+            </div>
+          )}
+
+          {/* Photo Upload Success Indicator */}
+          {photos.length > 0 && photos.every(p => p.status === 'confirmed') && (
+            <div className="tm-photos-success">
+              <Check size={16} />
+              <span>
+                {lang === 'en'
+                  ? `All ${photos.length} photo(s) uploaded successfully`
+                  : `${photos.length} foto(s) subidas exitosamente`}
+              </span>
+            </div>
+          )}
 
           <div className="tm-signature-options">
             <h3>{lang === 'en' ? 'Get Client Signature' : 'Obtener Firma del Cliente'}</h3>
