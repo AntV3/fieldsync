@@ -916,9 +916,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             project.job_type || 'standard'
           )
         } catch (importError) {
-          // Log error but don't fail the whole submission
+          // Log error and mark for retry, but don't fail the whole submission
           console.error('Error importing to COR:', importError)
-          onShowToast('T&M saved, but COR import failed', 'warning')
+          // Mark import as failed for retry tracking
+          try {
+            await db.markImportFailed(ticket.id, selectedCorId, importError?.message || 'Import failed')
+          } catch (markError) {
+            console.error('Error marking import failed:', markError)
+          }
+          onShowToast('T&M saved. COR data sync failed - retry from ticket list.', 'warning')
         }
       }
 

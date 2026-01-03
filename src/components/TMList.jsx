@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -67,6 +67,10 @@ export default function TMList({ project, company, onShowToast, compact = false 
   // Track which tickets are locked (linked to approved COR)
   const [lockedTickets, setLockedTickets] = useState({})
 
+  // Track failed COR imports for retry UI
+  const [failedImports, setFailedImports] = useState({})
+  const [retryingImport, setRetryingImport] = useState(null)
+
   useEffect(() => {
     loadTickets()
 
@@ -89,13 +93,24 @@ export default function TMList({ project, company, onShowToast, compact = false 
       const ticketsWithCOR = data.filter(t => t.assigned_cor_id)
       if (ticketsWithCOR.length > 0) {
         const lockResults = {}
+        const importStatusResults = {}
         await Promise.all(ticketsWithCOR.map(async (ticket) => {
           const result = await db.isTicketEditable(ticket)
           if (!result.editable) {
             lockResults[ticket.id] = result
           }
+          // Check import status for each ticket
+          try {
+            const importStatus = await db.getTicketImportStatus(ticket.id, ticket.assigned_cor_id)
+            if (importStatus?.import_status === 'failed') {
+              importStatusResults[ticket.id] = importStatus
+            }
+          } catch (e) {
+            // Ignore - column may not exist yet
+          }
         }))
         setLockedTickets(lockResults)
+        setFailedImports(importStatusResults)
       }
     } catch (error) {
       console.error('Error loading tickets:', error)
@@ -218,6 +233,36 @@ export default function TMList({ project, company, onShowToast, compact = false 
     } catch (error) {
       console.error('Error updating COR association:', error)
       onShowToast('Error updating COR link', 'error')
+    }
+  }
+
+  // Retry a failed COR import
+  const handleRetryImport = async (ticket, e) => {
+    e?.stopPropagation()
+    if (!ticket.assigned_cor_id) return
+
+    setRetryingImport(ticket.id)
+    try {
+      await db.importTicketDataToCOR(
+        ticket.id,
+        ticket.assigned_cor_id,
+        company.id,
+        project.work_type || 'demolition',
+        project.job_type || 'standard'
+      )
+      onShowToast('COR data import successful!', 'success')
+      // Clear the failed import state for this ticket
+      setFailedImports(prev => {
+        const next = { ...prev }
+        delete next[ticket.id]
+        return next
+      })
+      loadTickets()
+    } catch (error) {
+      console.error('Error retrying import:', error)
+      onShowToast('Import retry failed. Please try again.', 'error')
+    } finally {
+      setRetryingImport(null)
     }
   }
 
@@ -978,6 +1023,8 @@ export default function TMList({ project, company, onShowToast, compact = false 
   const renderTicketCard = (ticket) => {
     const isLocked = !!lockedTickets[ticket.id]
     const lockInfo = lockedTickets[ticket.id]
+    const hasFailedImport = !!failedImports[ticket.id]
+    const isRetrying = retryingImport === ticket.id
 
     return (
     <div key={ticket.id} className={`tm-ticket-card ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}>
@@ -1008,6 +1055,12 @@ export default function TMList({ project, company, onShowToast, compact = false 
           {ticket.photos?.length > 0 && (
             <span className="tm-photo-badge" title={`${ticket.photos.length} photo${ticket.photos.length > 1 ? 's' : ''}`}>
               <Camera size={12} /> {ticket.photos.length}
+            </span>
+          )}
+          {/* Show failed import warning badge */}
+          {hasFailedImport && (
+            <span className="tm-import-failed-badge" title="COR data import failed - retry needed">
+              <AlertTriangle size={12} /> Import Failed
             </span>
           )}
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
@@ -1170,6 +1223,17 @@ export default function TMList({ project, company, onShowToast, compact = false 
                 title={ticket.assigned_cor_id ? 'Change COR link' : 'Link to Change Order'}
               >
                 <Link2 size={14} /> {ticket.assigned_cor_id ? 'COR' : 'Link COR'}
+              </button>
+            )}
+            {/* Retry import button - show when import failed */}
+            {hasFailedImport && !isLocked && (
+              <button
+                className="btn btn-warning btn-small"
+                onClick={(e) => handleRetryImport(ticket, e)}
+                disabled={isRetrying}
+                title="Retry syncing data to COR"
+              >
+                <RefreshCw size={14} className={isRetrying ? 'spin' : ''} /> {isRetrying ? 'Syncing...' : 'Retry Sync'}
               </button>
             )}
             {!isLocked && (

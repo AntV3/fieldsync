@@ -3925,6 +3925,41 @@ input[type="number"] {
   height: 12px;
 }
 
+/* Failed import badge in ticket header */
+.tm-import-failed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+  animation: pulse-warning 2s infinite;
+}
+
+.tm-import-failed-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+@keyframes pulse-warning {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Spin animation for retry button */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Role styles */
 .tm-role-select {
   flex-shrink: 0;

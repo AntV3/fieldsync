@@ -4732,17 +4732,21 @@ export const db = {
         await this.addBulkEquipmentItems(corId, equipmentItems)
       }
 
-      // 6. Mark association as data_imported
+      // 6. Mark association as data_imported and import_status completed
       const { error: updateError } = await supabase
         .from('change_order_ticket_associations')
         .update({
           data_imported: true,
-          imported_at: new Date().toISOString()
+          imported_at: new Date().toISOString(),
+          import_status: 'completed',
+          import_failed_at: null,
+          import_error: null
         })
         .eq('change_order_id', corId)
         .eq('ticket_id', ticketId)
       if (updateError) throw updateError
 
+      observe.activity('cor_import_success', { ticket_id: ticketId, cor_id: corId, labor_count: laborItems.length, material_count: materialItems.length, equipment_count: equipmentItems.length })
       return { laborItems, materialItems, equipmentItems }
     }
     return null
@@ -4771,6 +4775,66 @@ export const db = {
 
       // Re-import fresh data
       return this.importTicketDataToCOR(ticketId, corId, companyId, workType, jobType)
+    }
+    return null
+  },
+
+  // Mark a ticket import as failed (for retry tracking)
+  async markImportFailed(ticketId, corId, errorMessage = 'Import failed') {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_order_ticket_associations')
+        .update({
+          import_status: 'failed',
+          import_failed_at: new Date().toISOString(),
+          import_error: errorMessage
+        })
+        .eq('change_order_id', corId)
+        .eq('ticket_id', ticketId)
+      if (error) {
+        observe.error('database', { message: error.message, operation: 'markImportFailed', extra: { ticketId, corId } })
+        throw error
+      }
+      observe.error('cor_import_failed', { ticket_id: ticketId, cor_id: corId, error: errorMessage })
+    }
+  },
+
+  // Get tickets with failed imports for a project (for retry UI)
+  async getTicketsNeedingImport(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          id,
+          work_date,
+          ce_pco_number,
+          assigned_cor_id,
+          change_order_ticket_associations!inner (
+            change_order_id,
+            import_status,
+            import_failed_at,
+            import_error
+          )
+        `)
+        .eq('project_id', projectId)
+        .eq('change_order_ticket_associations.import_status', 'failed')
+      if (error) throw error
+      return data || []
+    }
+    return []
+  },
+
+  // Get import status for a specific ticket-COR association
+  async getTicketImportStatus(ticketId, corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_order_ticket_associations')
+        .select('import_status, import_failed_at, import_error, data_imported')
+        .eq('ticket_id', ticketId)
+        .eq('change_order_id', corId)
+        .single()
+      if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows
+      return data
     }
     return null
   },
