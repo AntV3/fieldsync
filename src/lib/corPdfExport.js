@@ -19,6 +19,24 @@ const hexToRgb = (hex) => {
   ] : [30, 41, 59]
 }
 
+// Helper to format time (HH:MM or HH:MM:SS to 9:00am format)
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes}${ampm}`
+}
+
+// Format time period for workers
+const formatTimePeriod = (worker) => {
+  if (worker.time_started && worker.time_ended) {
+    return `${formatTime(worker.time_started)} - ${formatTime(worker.time_ended)}`
+  }
+  return '-'
+}
+
 // Load image as base64
 const loadImageAsBase64 = (url) => {
   return new Promise((resolve) => {
@@ -562,14 +580,13 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
 
         autoTable(doc, {
           startY: yPos,
-          head: [['Worker', 'Class', 'Hours', 'Rate', 'OT Hrs', 'OT Rate']],
+          head: [['Worker', 'Time', 'Class', 'Hrs', 'OT']],
           body: ticket.t_and_m_workers.map(w => [
             w.name,
-            w.labor_class || '-',
+            formatTimePeriod(w),
+            w.role || w.labor_class || 'Laborer',
             w.hours?.toString() || '0',
-            w.rate ? `$${w.rate}/hr` : '-',
-            w.overtime_hours?.toString() || '-',
-            w.overtime_rate ? `$${w.overtime_rate}/hr` : '-'
+            w.overtime_hours?.toString() || '-'
           ]),
           margin: { left: margin + 5, right: margin },
           headStyles: { fillColor: [100, 116, 139], textColor: [255, 255, 255], fontSize: 7, cellPadding: 2 },
@@ -673,6 +690,56 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
         }
 
         yPos += photoHeight + 10
+      }
+
+      // Client Signature Verification Block (if ticket was signed)
+      if (ticket.client_signature_data) {
+        if (yPos > pageHeight - 40) {
+          doc.addPage()
+          yPos = margin
+        }
+
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(16, 185, 129) // Green color
+        doc.text('Client Verification', margin + 5, yPos)
+        yPos += 5
+
+        try {
+          // Add signature image
+          doc.addImage(ticket.client_signature_data, 'PNG', margin + 5, yPos, 40, 15)
+
+          // Add signer info next to signature
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(0, 0, 0)
+
+          const signerName = ticket.client_signature_name || 'Client'
+          const signerTitle = ticket.client_signature_title || ''
+          const signerCompany = ticket.client_signature_company || ''
+          const signedDate = ticket.client_signature_date
+            ? formatDate(ticket.client_signature_date)
+            : ''
+
+          doc.text(signerName, margin + 50, yPos + 5)
+          if (signerTitle || signerCompany) {
+            doc.setTextColor(100, 100, 100)
+            doc.text(`${signerTitle}${signerTitle && signerCompany ? ', ' : ''}${signerCompany}`, margin + 50, yPos + 9)
+          }
+          if (signedDate) {
+            doc.setTextColor(100, 100, 100)
+            doc.text(`Verified: ${signedDate}`, margin + 50, yPos + 13)
+          }
+
+          yPos += 20
+        } catch (e) {
+          // If signature image fails, just show text
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(0, 0, 0)
+          doc.text(`Verified by ${ticket.client_signature_name || 'Client'}`, margin + 5, yPos + 5)
+          yPos += 10
+        }
       }
 
       // Ticket divider

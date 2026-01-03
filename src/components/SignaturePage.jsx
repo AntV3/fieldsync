@@ -15,6 +15,16 @@ const formatDate = (dateString) => {
   })
 }
 
+// Helper to format time (HH:MM or HH:MM:SS to 9:00am format)
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes}${ampm}`
+}
+
 // Status badge component
 const StatusBadge = ({ status }) => {
   const statusMap = {
@@ -314,6 +324,82 @@ export default function SignaturePage({ signatureToken }) {
                 </div>
               )}
             </div>
+
+            {/* Full Ticket Details - Workers */}
+            {document.t_and_m_workers?.length > 0 && (
+              <div className="signature-detail-section">
+                <h4><HardHat size={16} /> Workers</h4>
+                <table className="signature-detail-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Time</th>
+                      <th>Reg Hrs</th>
+                      <th>OT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {document.t_and_m_workers.map((w, idx) => (
+                      <tr key={idx}>
+                        <td>{w.name}</td>
+                        <td>{w.role || 'Laborer'}</td>
+                        <td>
+                          {w.time_started && w.time_ended
+                            ? `${formatTime(w.time_started)} - ${formatTime(w.time_ended)}`
+                            : '-'}
+                        </td>
+                        <td>{w.hours || 0}</td>
+                        <td>{w.overtime_hours || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Full Ticket Details - Materials/Equipment */}
+            {document.t_and_m_items?.length > 0 && (
+              <div className="signature-detail-section">
+                <h4><Package size={16} /> Materials & Equipment</h4>
+                <table className="signature-detail-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Qty</th>
+                      <th>Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {document.t_and_m_items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.custom_name || item.materials_equipment?.name || 'Item'}</td>
+                        <td>{item.quantity}</td>
+                        <td>{item.materials_equipment?.unit || 'each'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Full Ticket Details - Photos */}
+            {document.photos?.length > 0 && (
+              <div className="signature-detail-section">
+                <h4><Camera size={16} /> Photos ({document.photos.length})</h4>
+                <div className="signature-photo-grid">
+                  {document.photos.map((photo, idx) => (
+                    <div key={idx} className="signature-photo-thumb">
+                      <img
+                        src={typeof photo === 'string' ? photo : photo.url}
+                        alt={`Photo ${idx + 1}`}
+                        onError={(e) => { e.target.style.display = 'none' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Signature section */}

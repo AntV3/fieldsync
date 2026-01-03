@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -1061,6 +1061,12 @@ export default function TMList({ project, company, onShowToast, compact = false 
           {hasFailedImport && (
             <span className="tm-import-failed-badge" title="COR data import failed - retry needed">
               <AlertTriangle size={12} /> Import Failed
+            </span>
+          )}
+          {/* Show client verified badge */}
+          {ticket.client_signature_data && (
+            <span className="tm-verified-badge" title={`Verified by ${ticket.client_signature_name || 'client'}${ticket.client_signature_date ? ` on ${formatDate(ticket.client_signature_date)}` : ''}`}>
+              <CheckCircle size={12} /> Verified
             </span>
           )}
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
