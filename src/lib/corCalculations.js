@@ -145,9 +145,12 @@ export const calculateCORTotals = (cor) => {
 export const validateCOR = (cor) => {
   const errors = []
 
-  // Only title is required
+  // Required fields: title and description only
   if (!cor.title?.trim()) {
     errors.push('Title is required')
+  }
+  if (!cor.scope_of_work?.trim()) {
+    errors.push('Description is required')
   }
 
   // Date validation (only if both dates provided)
