@@ -17369,6 +17369,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 1rem;
 }
 
+.or-divider {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  grid-column: 1 / -1;
+}
+
 .signature-image {
   max-width: 200px;
   height: 60px;

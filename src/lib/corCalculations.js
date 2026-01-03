@@ -145,43 +145,18 @@ export const calculateCORTotals = (cor) => {
 export const validateCOR = (cor) => {
   const errors = []
 
-  // Required fields
+  // Only title is required
   if (!cor.title?.trim()) {
     errors.push('Title is required')
   }
-  if (!cor.scope_of_work?.trim()) {
-    errors.push('Scope of work is required')
-  }
-  if (!cor.period_start) {
-    errors.push('Start date is required')
-  }
-  if (!cor.period_end) {
-    errors.push('End date is required')
-  }
 
-  // Date validation
+  // Date validation (only if both dates provided)
   if (cor.period_start && cor.period_end) {
     const start = new Date(cor.period_start)
     const end = new Date(cor.period_end)
     if (end < start) {
       errors.push('End date must be after start date')
     }
-  }
-
-  // Line items validation
-  const hasLabor = (cor.change_order_labor || []).length > 0
-  const hasMaterials = (cor.change_order_materials || []).length > 0
-  const hasEquipment = (cor.change_order_equipment || []).length > 0
-  const hasSubcontractors = (cor.change_order_subcontractors || []).length > 0
-
-  if (!hasLabor && !hasMaterials && !hasEquipment && !hasSubcontractors) {
-    errors.push('At least one line item (labor, materials, equipment, or subcontractor) is required')
-  }
-
-  // Totals validation
-  const totals = calculateCORTotals(cor)
-  if (totals.cor_total <= 0) {
-    errors.push('COR total must be greater than zero')
   }
 
   // Markup percentage validation (should be reasonable)

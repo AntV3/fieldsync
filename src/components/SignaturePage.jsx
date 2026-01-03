@@ -259,7 +259,8 @@ export default function SignaturePage({ signatureToken }) {
   }
 
   const { slot1, slot2, availableSlots } = getSignatureStatus()
-  const isFullySigned = availableSlots.length === 0
+  // Only one signature is required - either slot1 OR slot2
+  const isFullySigned = slot1 || slot2
   const isCOR = signatureRequest?.document_type === 'cor'
   const company = document?.projects?.companies
   const project = document?.projects
@@ -404,13 +405,23 @@ export default function SignaturePage({ signatureToken }) {
 
           {/* Signature section */}
           <div className="signature-status-section">
-            <h3>Signatures Required</h3>
-            {renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
-            {renderSignatureSlot(2, slot2, 'Client Authorization', openSignatureModal, submitting)}
+            <h3>Signature</h3>
+            {!isFullySigned ? (
+              <>
+                {renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
+                {!slot1 && <p className="or-divider">— or —</p>}
+                {renderSignatureSlot(2, slot2, 'Client Authorization', openSignatureModal, submitting)}
+              </>
+            ) : (
+              <>
+                {slot1 && renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
+                {slot2 && renderSignatureSlot(2, slot2, 'Client Authorization', openSignatureModal, submitting)}
+              </>
+            )}
             {isFullySigned && (
               <div className="fully-signed-message">
                 <CheckCircle size={24} />
-                <p>This document has been fully signed by all parties.</p>
+                <p>This document has been signed.</p>
               </div>
             )}
           </div>
@@ -883,86 +894,105 @@ export default function SignaturePage({ signatureToken }) {
           </p>
 
           <div className="signature-slots-grid">
-            {/* GC Signature */}
-            <div className={`signature-slot-card ${slot1 ? 'signed' : 'unsigned'}`}>
-              <div className="slot-header">
-                {slot1 ? (
-                  <CheckCircle size={20} className="status-icon signed" />
-                ) : (
-                  <Clock size={20} className="status-icon pending" />
-                )}
-                <span className="slot-label">Signature 1 — GC Authorization</span>
-              </div>
-
-              {slot1 ? (
-                <div className="slot-signed-info">
-                  {slot1.signature_data && (
-                    <img src={slot1.signature_data} alt="Signature" className="signature-image" />
-                  )}
-                  <div className="signer-details">
-                    <span className="signer-name">{slot1.signer_name}</span>
-                    {(slot1.signer_title || slot1.signer_company) && (
-                      <span className="signer-org">
-                        {slot1.signer_title}{slot1.signer_title && slot1.signer_company && ' — '}{slot1.signer_company}
-                      </span>
+            {/* Show signature options if not signed yet */}
+            {!isFullySigned ? (
+              <>
+                {/* GC Signature */}
+                <div className={`signature-slot-card ${slot1 ? 'signed' : 'unsigned'}`}>
+                  <div className="slot-header">
+                    {slot1 ? (
+                      <CheckCircle size={20} className="status-icon signed" />
+                    ) : (
+                      <Clock size={20} className="status-icon pending" />
                     )}
+                    <span className="slot-label">GC Authorization</span>
                   </div>
-                  <span className="signed-date">Signed {formatDate(slot1.signed_at)}</span>
+                  <button
+                    className="btn btn-primary sign-btn"
+                    onClick={() => openSignatureModal(1)}
+                    disabled={submitting}
+                  >
+                    Sign as GC
+                  </button>
                 </div>
-              ) : (
-                <button
-                  className="btn btn-primary sign-btn"
-                  onClick={() => openSignatureModal(1)}
-                  disabled={submitting}
-                >
-                  Sign as GC
-                </button>
-              )}
-            </div>
 
-            {/* Client Signature */}
-            <div className={`signature-slot-card ${slot2 ? 'signed' : 'unsigned'}`}>
-              <div className="slot-header">
-                {slot2 ? (
-                  <CheckCircle size={20} className="status-icon signed" />
-                ) : (
-                  <Clock size={20} className="status-icon pending" />
-                )}
-                <span className="slot-label">Signature 2 — Client Authorization</span>
-              </div>
+                <p className="or-divider">— or —</p>
 
-              {slot2 ? (
-                <div className="slot-signed-info">
-                  {slot2.signature_data && (
-                    <img src={slot2.signature_data} alt="Signature" className="signature-image" />
-                  )}
-                  <div className="signer-details">
-                    <span className="signer-name">{slot2.signer_name}</span>
-                    {(slot2.signer_title || slot2.signer_company) && (
-                      <span className="signer-org">
-                        {slot2.signer_title}{slot2.signer_title && slot2.signer_company && ' — '}{slot2.signer_company}
-                      </span>
+                {/* Client Signature */}
+                <div className={`signature-slot-card ${slot2 ? 'signed' : 'unsigned'}`}>
+                  <div className="slot-header">
+                    {slot2 ? (
+                      <CheckCircle size={20} className="status-icon signed" />
+                    ) : (
+                      <Clock size={20} className="status-icon pending" />
                     )}
+                    <span className="slot-label">Client Authorization</span>
                   </div>
-                  <span className="signed-date">Signed {formatDate(slot2.signed_at)}</span>
+                  <button
+                    className="btn btn-primary sign-btn"
+                    onClick={() => openSignatureModal(2)}
+                    disabled={submitting}
+                  >
+                    Sign as Client
+                  </button>
                 </div>
-              ) : (
-                <button
-                  className="btn btn-primary sign-btn"
-                  onClick={() => openSignatureModal(2)}
-                  disabled={submitting}
-                >
-                  Sign as Client
-                </button>
-              )}
-            </div>
+              </>
+            ) : (
+              <>
+                {/* Show the collected signature */}
+                {slot1 && (
+                  <div className="signature-slot-card signed">
+                    <div className="slot-header">
+                      <CheckCircle size={20} className="status-icon signed" />
+                      <span className="slot-label">GC Authorization</span>
+                    </div>
+                    <div className="slot-signed-info">
+                      {slot1.signature_data && (
+                        <img src={slot1.signature_data} alt="Signature" className="signature-image" />
+                      )}
+                      <div className="signer-details">
+                        <span className="signer-name">{slot1.signer_name}</span>
+                        {(slot1.signer_title || slot1.signer_company) && (
+                          <span className="signer-org">
+                            {slot1.signer_title}{slot1.signer_title && slot1.signer_company && ' — '}{slot1.signer_company}
+                          </span>
+                        )}
+                      </div>
+                      <span className="signed-date">Signed {formatDate(slot1.signed_at)}</span>
+                    </div>
+                  </div>
+                )}
+                {slot2 && (
+                  <div className="signature-slot-card signed">
+                    <div className="slot-header">
+                      <CheckCircle size={20} className="status-icon signed" />
+                      <span className="slot-label">Client Authorization</span>
+                    </div>
+                    <div className="slot-signed-info">
+                      {slot2.signature_data && (
+                        <img src={slot2.signature_data} alt="Signature" className="signature-image" />
+                      )}
+                      <div className="signer-details">
+                        <span className="signer-name">{slot2.signer_name}</span>
+                        {(slot2.signer_title || slot2.signer_company) && (
+                          <span className="signer-org">
+                            {slot2.signer_title}{slot2.signer_title && slot2.signer_company && ' — '}{slot2.signer_company}
+                          </span>
+                        )}
+                      </div>
+                      <span className="signed-date">Signed {formatDate(slot2.signed_at)}</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Fully signed message */}
           {isFullySigned && (
             <div className="fully-signed-message">
               <CheckCircle size={24} />
-              <p>This change order request has been fully signed by all parties.</p>
+              <p>This change order request has been signed.</p>
             </div>
           )}
 
