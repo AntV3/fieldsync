@@ -14,6 +14,7 @@ import CORDetail from './cor/CORDetail'
 import BurnRateCard from './BurnRateCard'
 import CostContributorsCard from './CostContributorsCard'
 import ProfitabilityCard from './ProfitabilityCard'
+import DisposalSummary from './DisposalSummary'
 import AddCostModal from './AddCostModal'
 import ProjectTeam from './ProjectTeam'
 import { FinancialTrendChart } from './charts'
@@ -1294,6 +1295,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   progress={progress}
                 />
 
+                <DisposalSummary
+                  project={selectedProject}
+                  period="week"
+                />
               </div>
 
               {/* Cost Contributors */}

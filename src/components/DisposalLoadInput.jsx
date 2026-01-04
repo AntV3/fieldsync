@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Truck, Plus, Minus, Trash2, Check, X } from 'lucide-react'
+import { Truck, Plus, Minus, Trash2, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 const LOAD_TYPES = [
@@ -9,11 +9,15 @@ const LOAD_TYPES = [
   { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' }
 ]
 
+const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
+
 export default function DisposalLoadInput({ project, user = null, date, onShowToast }) {
   const [loads, setLoads] = useState([])
+  const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [newLoad, setNewLoad] = useState({ type: 'concrete', count: 1 })
 
   // Format date for display
@@ -25,6 +29,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
 
   useEffect(() => {
     loadDisposalData()
+    loadHistory()
   }, [project.id, date])
 
   const loadDisposalData = async () => {
@@ -36,6 +41,35 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       console.error('Error loading disposal loads:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadHistory = async () => {
+    try {
+      const data = await db.getDisposalLoadsHistory(project.id, 14) // Last 14 days
+      // Group by date and filter out today
+      const grouped = (data || [])
+        .filter(load => load.load_date !== date)
+        .reduce((acc, load) => {
+          if (!acc[load.load_date]) {
+            acc[load.load_date] = []
+          }
+          acc[load.load_date].push(load)
+          return acc
+        }, {})
+
+      // Convert to array sorted by date descending
+      const historyArray = Object.entries(grouped)
+        .map(([dateStr, loads]) => ({
+          date: dateStr,
+          loads,
+          totalLoads: loads.reduce((sum, l) => sum + l.load_count, 0)
+        }))
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+
+      setHistory(historyArray)
+    } catch (err) {
+      console.error('Error loading disposal history:', err)
     }
   }
 
@@ -285,6 +319,60 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       {totalLoads > 0 && (
         <div className="disposal-summary">
           <strong>{totalLoads}</strong> total load{totalLoads !== 1 ? 's' : ''} today
+        </div>
+      )}
+
+      {/* History Section */}
+      {history.length > 0 && (
+        <div className="disposal-history-section">
+          <button
+            className="disposal-history-toggle"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <History size={16} />
+            <span>View History ({history.length} days)</span>
+            {showHistory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {showHistory && (
+            <div className="disposal-history-list">
+              {history.map(day => {
+                const formattedDate = new Date(day.date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
+                })
+
+                // Group loads by type for this day
+                const loadsByType = day.loads.reduce((acc, load) => {
+                  if (!acc[load.load_type]) {
+                    acc[load.load_type] = 0
+                  }
+                  acc[load.load_type] += load.load_count
+                  return acc
+                }, {})
+
+                return (
+                  <div key={day.date} className="disposal-history-day">
+                    <div className="disposal-history-header">
+                      <span className="disposal-history-date">{formattedDate}</span>
+                      <span className="disposal-history-total">{day.totalLoads} load{day.totalLoads !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="disposal-history-types">
+                      {Object.entries(loadsByType).map(([type, count]) => {
+                        const typeInfo = getLoadTypeInfo(type)
+                        return (
+                          <span key={type} className="disposal-history-type">
+                            {typeInfo.icon} {count} {typeInfo.label}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

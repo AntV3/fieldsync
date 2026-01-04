@@ -288,17 +288,17 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         <div className="field-actions">
           <button
             className="field-action-btn"
-            onClick={() => setShowTMForm(true)}
-          >
-            <FileText size={22} />
-            T&M Ticket
-          </button>
-          <button
-            className="field-action-btn"
             onClick={() => setShowCrewCheckin(true)}
           >
             <HardHat size={22} />
             Crew Check-in
+          </button>
+          <button
+            className="field-action-btn"
+            onClick={() => setShowTMForm(true)}
+          >
+            <FileText size={22} />
+            T&M Ticket
           </button>
           <button
             className="field-action-btn"

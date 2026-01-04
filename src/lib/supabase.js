@@ -1929,6 +1929,37 @@ export const db = {
     }
   },
 
+  // Get disposal loads history for the last N days
+  async getDisposalLoadsHistory(projectId, days = 14) {
+    if (!isSupabaseConfigured) return []
+
+    const start = performance.now()
+    try {
+      // Calculate date range
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      const { data, error } = await supabase
+        .from('disposal_loads')
+        .select('*')
+        .eq('project_id', projectId)
+        .gte('work_date', startDate.toISOString().split('T')[0])
+        .lte('work_date', endDate.toISOString().split('T')[0])
+        .order('work_date', { ascending: false })
+
+      const duration = Math.round(performance.now() - start)
+      observe.query('getDisposalLoadsHistory', { duration, rows: data?.length, project_id: projectId })
+
+      if (error) throw error
+      // Map work_date to load_date for compatibility
+      return (data || []).map(d => ({ ...d, load_date: d.work_date }))
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'getDisposalLoadsHistory', project_id: projectId })
+      throw error
+    }
+  },
+
   // Add a new disposal load entry
   async addDisposalLoad(projectId, userId, workDate, loadType, loadCount, notes = null) {
     if (!isSupabaseConfigured) return null

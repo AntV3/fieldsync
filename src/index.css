@@ -143,6 +143,344 @@
   box-shadow: 0 8px 24px var(--shadow-color);
 }
 
+/* ============================================
+   Comprehensive Light Mode Fixes
+   ============================================ */
+
+/* Foreman View - ensure all text is readable */
+[data-theme="light"] .foreman-container {
+  background: var(--bg-primary);
+}
+
+[data-theme="light"] .foreman-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-project-name,
+[data-theme="light"] .foreman-progress {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-stat-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-tabs {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-tab {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-tab.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
+[data-theme="light"] .foreman-group-header {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-group-name,
+[data-theme="light"] .foreman-group-progress {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-area-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-area-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-btn.working.active {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  color: white;
+}
+
+[data-theme="light"] .foreman-btn.done.active {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: white;
+}
+
+/* Field Action Buttons */
+[data-theme="light"] .field-action-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .field-action-btn:hover {
+  border-color: var(--accent-blue);
+}
+
+[data-theme="light"] .field-action-btn.danger {
+  border-color: var(--accent-red);
+}
+
+/* T&M Form / Wizard */
+[data-theme="light"] .tm-wizard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .tm-wizard-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .tm-wizard-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-step-content {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-section-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-crew-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-crew-item.selected {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-blue);
+}
+
+/* Disposal Load Input */
+[data-theme="light"] .disposal-load-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .disposal-header {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .disposal-date {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .quick-add-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .disposal-load-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .load-label,
+[data-theme="light"] .load-count {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .load-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Crew Check-in */
+[data-theme="light"] .crew-checkin-container {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .crew-member-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .crew-member-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .crew-member-role {
+  color: var(--text-secondary);
+}
+
+/* Daily Report */
+[data-theme="light"] .daily-report-form {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .daily-report-section {
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .daily-report-section h3 {
+  color: var(--text-primary);
+}
+
+/* Cards and sections - ensure borders visible */
+[data-theme="light"] .card,
+[data-theme="light"] .section-card,
+[data-theme="light"] .info-card {
+  border: 1px solid var(--border-color);
+}
+
+/* Project Info Panel */
+[data-theme="light"] .foreman-project-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-info-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-info-value {
+  color: var(--text-primary);
+}
+
+/* Dashboard Cards */
+[data-theme="light"] .burn-rate-card,
+[data-theme="light"] .profitability-card,
+[data-theme="light"] .cost-contributors-card,
+[data-theme="light"] .disposal-summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .burn-rate-title h3,
+[data-theme="light"] .card-title {
+  color: var(--text-primary);
+}
+
+/* COR Form */
+[data-theme="light"] .cor-form-container {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .cor-section-header {
+  color: var(--text-primary);
+}
+
+/* Modal Content */
+[data-theme="light"] .modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .modal-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .modal-header h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .modal-footer {
+  border-top: 1px solid var(--border-color);
+}
+
+/* Ticket Selector */
+[data-theme="light"] .ticket-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .ticket-item.selected {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-blue);
+}
+
+[data-theme="light"] .ticket-date,
+[data-theme="light"] .ticket-item-desc {
+  color: var(--text-primary);
+}
+
+/* Charts */
+[data-theme="light"] .chart-container,
+[data-theme="light"] .financial-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+/* Back button and headers */
+[data-theme="light"] .back-btn-simple {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-view-header h2 {
+  color: var(--text-primary);
+}
+
+/* Empty states */
+[data-theme="light"] .foreman-empty,
+[data-theme="light"] .empty-state {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-empty-text {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-empty-subtext {
+  color: var(--text-secondary);
+}
+
+/* Ensure all icons inherit proper color */
+[data-theme="light"] .field-action-btn svg,
+[data-theme="light"] .foreman-info-btn svg,
+[data-theme="light"] .back-btn-simple svg {
+  color: inherit;
+}
+
+/* Stats in light mode */
+[data-theme="light"] .foreman-stat-value {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-stat-value.working {
+  color: var(--accent-amber);
+}
+
+[data-theme="light"] .foreman-stat-value.done {
+  color: var(--accent-green);
+}
+
+/* Project list */
+[data-theme="light"] .project-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .project-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .project-info {
+  color: var(--text-secondary);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -20884,6 +21222,83 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 1rem;
 }
 
+/* Disposal History Section */
+.disposal-history-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.disposal-history-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.disposal-history-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.disposal-history-list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.disposal-history-day {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.disposal-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.disposal-history-date {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.disposal-history-total {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.disposal-history-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.disposal-history-type {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
 /* ============================================
    Disposal Summary Card (Office/PM View)
    ============================================ */
@@ -21080,6 +21495,133 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.8rem;
   color: var(--text-muted);
   margin-top: 0.5rem;
+}
+
+/* Disposal Summary - additional styles */
+.disposal-total-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.disposal-total-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.disposal-type-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 110px;
+}
+
+.disposal-type-icon {
+  font-size: 1rem;
+}
+
+.disposal-type-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.disposal-type-stats {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.disposal-type-count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 24px;
+  text-align: right;
+}
+
+.disposal-type-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.disposal-type-bar-fill {
+  height: 100%;
+  background: var(--accent-blue);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.disposal-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.disposal-expand-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.disposal-daily-breakdown {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.disposal-daily-row {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.disposal-daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.disposal-daily-date {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.disposal-daily-total {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.disposal-daily-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.disposal-daily-type {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
 }
 
 /* ============================================
