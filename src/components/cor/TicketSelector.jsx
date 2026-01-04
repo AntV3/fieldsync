@@ -83,14 +83,23 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
 
   // Calculate ticket totals
   const getTicketSummary = (ticket) => {
-    const workerCount = ticket.workers?.length || 0
-    const itemCount = ticket.items?.length || 0
-    const equipmentCount = ticket.materials_equipment?.filter(m => m.type === 'equipment')?.length || 0
+    // Use correct field names from Supabase join
+    const workers = ticket.t_and_m_workers || ticket.workers || []
+    const items = ticket.t_and_m_items || ticket.items || []
 
-    // Calculate labor cost (simplified - would need rate lookup in production)
+    const workerCount = workers.length
+    const itemCount = items.length
+
+    // Count equipment items based on category
+    const equipmentCount = items.filter(item => {
+      const category = (item.materials_equipment?.category || item.category || '').toLowerCase()
+      return category === 'equipment' || category === 'rental'
+    }).length
+
+    // Calculate total labor hours
     let laborHours = 0
-    ticket.workers?.forEach(w => {
-      laborHours += (parseFloat(w.regular_hours) || 0) + (parseFloat(w.overtime_hours) || 0)
+    workers.forEach(w => {
+      laborHours += (parseFloat(w.regular_hours) || parseFloat(w.hours) || 0) + (parseFloat(w.overtime_hours) || 0)
     })
 
     return { workerCount, itemCount, equipmentCount, laborHours }
@@ -111,50 +120,63 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
     const equipmentItems = []
 
     ticketsToImport.forEach(ticket => {
-      // Extract labor from workers
-      ticket.workers?.forEach(worker => {
+      // Extract labor from t_and_m_workers (correct table name from Supabase join)
+      const workers = ticket.t_and_m_workers || ticket.workers || []
+      workers.forEach(worker => {
         laborItems.push({
-          id: `import-${ticket.id}-${worker.id || Date.now()}`,
-          labor_class: worker.role || 'Laborer',
+          id: `import-${ticket.id}-${worker.id || Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          worker_name: worker.name || worker.worker_name || '',
+          labor_class: worker.role || worker.labor_class || 'Laborer',
           wage_type: 'standard',
-          regular_hours: parseFloat(worker.regular_hours) || 0,
+          regular_hours: parseFloat(worker.regular_hours) || parseFloat(worker.hours) || 0,
           overtime_hours: parseFloat(worker.overtime_hours) || 0,
-          regular_rate: 0, // Will need to be set from labor_rates
-          overtime_rate: 0,
+          regular_rate: parseFloat(worker.regular_rate) || 0,
+          overtime_rate: parseFloat(worker.overtime_rate) || 0,
           total: 0,
           source_ticket_id: ticket.id,
-          source_ticket_date: ticket.ticket_date
+          source_ticket_date: ticket.ticket_date || ticket.work_date
         })
       })
 
-      // Extract materials from items
-      ticket.items?.forEach(item => {
-        materialsItems.push({
-          id: `import-${ticket.id}-${item.id || Date.now()}`,
-          description: item.description || item.name,
-          source_type: 'T&M Ticket',
-          source_reference: `T&M ${formatDate(ticket.ticket_date)}`,
-          quantity: parseFloat(item.quantity) || 1,
-          unit: item.unit || 'each',
-          unit_cost: dollarsToCents(item.unit_cost || 0),
-          total: dollarsToCents((item.quantity || 1) * (item.unit_cost || 0)),
-          source_ticket_id: ticket.id
-        })
-      })
+      // Extract materials from t_and_m_items (correct table name from Supabase join)
+      const items = ticket.t_and_m_items || ticket.items || []
+      items.forEach(item => {
+        // Get material info from nested materials_equipment if available
+        const materialInfo = item.materials_equipment || {}
+        const itemDescription = item.description || materialInfo.name || item.name || 'Unnamed item'
+        const itemUnit = item.unit || materialInfo.unit || 'each'
+        const itemCost = parseFloat(item.unit_cost) || parseFloat(materialInfo.cost_per_unit) || 0
+        const itemQty = parseFloat(item.quantity) || 1
 
-      // Extract equipment from materials_equipment
-      ticket.materials_equipment?.filter(m => m.type === 'equipment').forEach(equip => {
-        equipmentItems.push({
-          id: `import-${ticket.id}-${equip.id || Date.now()}`,
-          description: equip.description || equip.name,
-          source_type: 'T&M Ticket',
-          source_reference: `T&M ${formatDate(ticket.ticket_date)}`,
-          quantity: parseFloat(equip.quantity) || 1,
-          unit: equip.unit || 'day',
-          unit_cost: dollarsToCents(equip.unit_cost || equip.cost || 0),
-          total: dollarsToCents((equip.quantity || 1) * (equip.unit_cost || equip.cost || 0)),
-          source_ticket_id: ticket.id
-        })
+        // Determine if this is equipment or material based on category
+        const category = (materialInfo.category || item.category || '').toLowerCase()
+        const isEquipment = category === 'equipment' || category === 'rental'
+
+        if (isEquipment) {
+          equipmentItems.push({
+            id: `import-${ticket.id}-${item.id || Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            description: itemDescription,
+            source_type: 'T&M Ticket',
+            source_reference: `T&M #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
+            quantity: itemQty,
+            unit: itemUnit,
+            unit_cost: dollarsToCents(itemCost),
+            total: dollarsToCents(itemQty * itemCost),
+            source_ticket_id: ticket.id
+          })
+        } else {
+          materialsItems.push({
+            id: `import-${ticket.id}-${item.id || Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            description: itemDescription,
+            source_type: 'T&M Ticket',
+            source_reference: `T&M #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
+            quantity: itemQty,
+            unit: itemUnit,
+            unit_cost: dollarsToCents(itemCost),
+            total: dollarsToCents(itemQty * itemCost),
+            source_ticket_id: ticket.id
+          })
+        }
       })
     })
 

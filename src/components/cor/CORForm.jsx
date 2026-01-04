@@ -22,6 +22,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
   const [showTicketSelector, setShowTicketSelector] = useState(false)
+  const [importedTicketIds, setImportedTicketIds] = useState([]) // Track tickets imported for backup docs
 
   // Expandable sections
   const [expandedSections, setExpandedSections] = useState({
@@ -344,6 +345,11 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   // Import from T&M tickets
   const handleTicketImport = (importData) => {
+    // Store imported ticket IDs for linking after save
+    if (importData.ticketIds?.length > 0) {
+      setImportedTicketIds(prev => [...new Set([...prev, ...importData.ticketIds])])
+    }
+
     if (importData.laborItems?.length > 0) {
       setLaborItems([...laborItems, ...importData.laborItems])
       setExpandedSections(prev => ({ ...prev, labor: true }))
@@ -356,7 +362,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       setEquipmentItems([...equipmentItems, ...importData.equipmentItems])
       setExpandedSections(prev => ({ ...prev, equipment: true }))
     }
-    onShowToast?.(`Imported data from ${importData.ticketIds.length} ticket(s)`, 'success')
+
+    const itemCount = (importData.laborItems?.length || 0) +
+                      (importData.materialsItems?.length || 0) +
+                      (importData.equipmentItems?.length || 0)
+
+    onShowToast?.(`Imported ${itemCount} item(s) from ${importData.ticketIds.length} ticket(s)`, 'success')
   }
 
   // Check if title is provided (minimum requirement)
@@ -411,6 +422,17 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
           equipmentItems,
           subcontractorItems: subcontractorsItems
         })
+
+        // Link imported tickets to this COR as backup documentation
+        if (importedTicketIds.length > 0) {
+          for (const ticketId of importedTicketIds) {
+            try {
+              await db.assignTicketToCOR(ticketId, savedCOR.id)
+            } catch (linkError) {
+              console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
+            }
+          }
+        }
       }
 
       onShowToast?.('COR saved as draft', 'success')
@@ -440,8 +462,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       }
 
       let savedCOR
+      let corIdToUse
       if (existingCOR?.id) {
         savedCOR = await db.updateCOR(existingCOR.id, corPayload)
+        corIdToUse = existingCOR.id
         await db.saveCORLineItems(existingCOR.id, {
           laborItems,
           materialItems: materialsItems,
@@ -452,6 +476,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       } else {
         savedCOR = await db.createCOR(corPayload)
         if (savedCOR?.id) {
+          corIdToUse = savedCOR.id
           await db.saveCORLineItems(savedCOR.id, {
             laborItems,
             materialItems: materialsItems,
@@ -459,6 +484,17 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
             subcontractorItems: subcontractorsItems
           })
           await db.submitCORForApproval(savedCOR.id)
+        }
+      }
+
+      // Link imported tickets to this COR as backup documentation
+      if (corIdToUse && importedTicketIds.length > 0) {
+        for (const ticketId of importedTicketIds) {
+          try {
+            await db.assignTicketToCOR(ticketId, corIdToUse)
+          } catch (linkError) {
+            console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
+          }
         }
       }
 
