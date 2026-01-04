@@ -1,3 +1,23 @@
+// ============================================
+// DEPRECATED: Legacy COR PDF Export
+// ============================================
+//
+// This file is DEPRECATED and maintained only for backward compatibility
+// with SignaturePage.jsx (client-side downloads after signing).
+//
+// For new code, use the snapshot-based export pipeline:
+// - corExportPipeline.js - Orchestrates idempotent, async exports
+// - corPdfGenerator.js - Generates PDFs from frozen snapshots
+//
+// The new system provides:
+// - Idempotent exports (repeat requests return same result)
+// - Snapshot-based generation (deterministic, reproducible)
+// - Async pipeline with state tracking (pending/generating/completed/failed)
+// - Pre-aggregated stats and photo manifests
+//
+// Migration: Replace exportCORToPDF calls with executeExport from corExportPipeline.js
+// ============================================
+
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {

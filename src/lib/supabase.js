@@ -2413,6 +2413,174 @@ export const db = {
   },
 
   // ============================================
+  // COR Export Jobs (Async Pipeline)
+  // ============================================
+
+  // Request a COR export (idempotent - returns existing job if key matches)
+  async requestCORExport(corId, idempotencyKey, options = {}) {
+    if (!isSupabaseConfigured) return null
+
+    try {
+      const user = await supabase.auth.getUser()
+      const { data, error } = await supabase.rpc('request_cor_export', {
+        p_cor_id: corId,
+        p_idempotency_key: idempotencyKey,
+        p_options: options,
+        p_requested_by: user?.data?.user?.id || null
+      })
+
+      if (error) throw error
+      return data?.[0] || null
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'requestCORExport', extra: { corId } })
+      throw error
+    }
+  },
+
+  // Get export job status
+  async getExportJob(jobId) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('cor_export_jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching export job:', error)
+      return null
+    }
+    return data
+  },
+
+  // Get export jobs for a COR
+  async getExportJobs(corId, limit = 10) {
+    if (!isSupabaseConfigured) return []
+
+    const { data, error } = await supabase
+      .from('cor_export_jobs')
+      .select('*')
+      .eq('cor_id', corId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error fetching export jobs:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Update export job status
+  async updateExportJobStatus(jobId, status, details = {}) {
+    if (!isSupabaseConfigured) return null
+
+    try {
+      const { data, error } = await supabase.rpc('update_export_job_status', {
+        p_job_id: jobId,
+        p_status: status,
+        p_snapshot_id: details.snapshotId || null,
+        p_pdf_url: details.pdfUrl || null,
+        p_error: details.error || null,
+        p_error_details: details.errorDetails || null,
+        p_metrics: details.metrics || null
+      })
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'updateExportJobStatus', extra: { jobId, status } })
+      throw error
+    }
+  },
+
+  // Get current valid snapshot for a COR (if exists and not stale)
+  async getCurrentCORSnapshot(corId) {
+    if (!isSupabaseConfigured) return null
+
+    // First check if COR has been modified since last snapshot
+    const { data: cor } = await supabase
+      .from('change_orders')
+      .select('version, last_snapshot_version')
+      .eq('id', corId)
+      .single()
+
+    // If version changed, snapshot is stale
+    if (!cor || cor.version !== cor.last_snapshot_version) {
+      return null
+    }
+
+    // Get current snapshot
+    const { data: snapshot } = await supabase
+      .from('cor_export_snapshots')
+      .select('*')
+      .eq('cor_id', corId)
+      .eq('is_current', true)
+      .single()
+
+    return snapshot || null
+  },
+
+  // Save a new snapshot and mark as current
+  async saveCORSnapshot(snapshot, jobId) {
+    if (!isSupabaseConfigured) return null
+
+    try {
+      // Mark previous snapshots as not current
+      await supabase
+        .from('cor_export_snapshots')
+        .update({ is_current: false })
+        .eq('cor_id', snapshot.corId)
+
+      const user = await supabase.auth.getUser()
+
+      // Insert new snapshot
+      const { data, error } = await supabase
+        .from('cor_export_snapshots')
+        .insert({
+          id: snapshot.snapshotId,
+          cor_id: snapshot.corId,
+          job_id: jobId,
+          cor_version: snapshot.corVersion,
+          cor_data: snapshot.corData,
+          tickets_data: snapshot.ticketsData,
+          photos_manifest: snapshot.photoManifest,
+          totals_snapshot: snapshot.totals,
+          checksum: snapshot.checksum,
+          is_current: true,
+          exported_by: user?.data?.user?.id || null
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Update COR's last snapshot version
+      await supabase
+        .from('change_orders')
+        .update({ last_snapshot_version: snapshot.corVersion })
+        .eq('id', snapshot.corId)
+
+      return data
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'saveCORSnapshot', extra: { corId: snapshot.corId } })
+      throw error
+    }
+  },
+
+  // Update COR aggregated stats (call after ticket changes)
+  async updateCORAggregatedStats(corId) {
+    if (!isSupabaseConfigured) return
+
+    try {
+      await supabase.rpc('update_cor_aggregated_stats', { p_cor_id: corId })
+    } catch (error) {
+      console.error('Error updating COR aggregated stats:', error)
+    }
+  },
+
+  // ============================================
   // Crew Check-In Functions
   // ============================================
 

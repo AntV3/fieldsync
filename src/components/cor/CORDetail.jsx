@@ -10,7 +10,7 @@ import {
   formatDate,
   formatDateRange
 } from '../../lib/corCalculations'
-import { exportCORToPDF } from '../../lib/corPdfExport'
+import { executeExport, ExportStatus } from '../../lib/corExportPipeline'
 import SignatureCapture from './SignatureCapture'
 import SignatureLinkGenerator from '../SignatureLinkGenerator'
 
@@ -202,9 +202,27 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   const handleExportPDF = async () => {
     try {
       onShowToast?.('Generating PDF with backup...', 'info')
-      // Pass associated tickets to include backup documentation in PDF
-      await exportCORToPDF(corData, project, company, {}, associatedTickets)
-      onShowToast?.('PDF downloaded', 'success')
+
+      // Use new snapshot-based export pipeline (idempotent, reliable)
+      const result = await executeExport(corData.id, {
+        cor: corData,
+        tickets: associatedTickets,
+        project,
+        company,
+        branding: {
+          logoUrl: company?.logo_url,
+          primaryColor: company?.branding_color
+        },
+        options: {
+          includeBackup: true
+        }
+      })
+
+      if (result.cached) {
+        onShowToast?.('PDF downloaded (cached)', 'success')
+      } else {
+        onShowToast?.('PDF downloaded', 'success')
+      }
     } catch (error) {
       console.error('Error exporting PDF:', error)
       onShowToast?.('Error generating PDF', 'error')
