@@ -1134,3 +1134,369 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
 
   return result
 }
+
+/**
+ * Export a single T&M ticket to PDF
+ * @param {Object} ticket - T&M ticket data
+ * @param {Object} project - Project data
+ * @param {Object} company - Company data
+ * @param {Object} branding - Company branding (logoUrl, primaryColor)
+ */
+export async function exportTMTicketToPDF(ticket, project, company, branding = {}) {
+  const doc = new jsPDF('p', 'mm', 'letter')
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 20
+  let yPos = margin
+
+  const primaryColor = branding.primaryColor
+    ? hexToRgb(branding.primaryColor)
+    : [30, 58, 95]
+
+  // ============================================
+  // HEADER
+  // ============================================
+
+  // Company info or logo
+  if (branding.logoUrl) {
+    try {
+      const logoData = await loadImageAsBase64(branding.logoUrl)
+      if (logoData) {
+        doc.addImage(logoData, 'PNG', margin, yPos, 40, 15)
+      }
+    } catch (e) {
+      // Fall back to company name
+      if (company?.name) {
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(...primaryColor)
+        doc.text(company.name, margin, yPos + 8)
+      }
+    }
+  } else if (company?.name) {
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...primaryColor)
+    doc.text(company.name, margin, yPos + 8)
+  }
+
+  // T&M Ticket title
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(30, 41, 59)
+  doc.text('T&M TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
+
+  yPos += 25
+
+  // Divider line
+  doc.setDrawColor(...primaryColor)
+  doc.setLineWidth(0.5)
+  doc.line(margin, yPos, pageWidth - margin, yPos)
+  yPos += 10
+
+  // ============================================
+  // TICKET INFO
+  // ============================================
+
+  const hasVerification = !!ticket.client_signature_data
+
+  // Status indicator
+  if (hasVerification) {
+    doc.setFillColor(240, 253, 244)
+    doc.roundedRect(pageWidth - margin - 45, yPos - 5, 45, 12, 2, 2, 'F')
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(16, 185, 129)
+    doc.text('✓ CLIENT VERIFIED', pageWidth - margin - 42, yPos + 3)
+  }
+
+  // Project and date info
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(71, 85, 105)
+  doc.text('Project:', margin, yPos)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(30, 41, 59)
+  doc.text(project?.name || 'N/A', margin + 20, yPos)
+  yPos += 6
+
+  if (project?.job_number) {
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('Job #:', margin, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(30, 41, 59)
+    doc.text(project.job_number, margin + 20, yPos)
+    yPos += 6
+  }
+
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(71, 85, 105)
+  doc.text('Work Date:', margin, yPos)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(30, 41, 59)
+  doc.text(formatDate(ticket.work_date || ticket.ticket_date), margin + 26, yPos)
+
+  if (ticket.ce_pco_number) {
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('CE/PCO:', margin + 70, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(59, 130, 246)
+    doc.text(ticket.ce_pco_number, margin + 88, yPos)
+  }
+
+  yPos += 12
+
+  // Description/Notes
+  if (ticket.notes) {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('DESCRIPTION', margin, yPos)
+    yPos += 6
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(51, 65, 85)
+    const notesLines = doc.splitTextToSize(ticket.notes, pageWidth - (margin * 2))
+    doc.text(notesLines, margin, yPos)
+    yPos += (notesLines.length * 4) + 10
+  }
+
+  // ============================================
+  // LABOR TABLE
+  // ============================================
+
+  if (ticket.t_and_m_workers?.length > 0) {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('LABOR', margin, yPos)
+    yPos += 6
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Worker', 'Time Period', 'Class', 'Reg Hrs', 'OT Hrs']],
+      body: ticket.t_and_m_workers.map(w => [
+        w.name,
+        formatTimePeriod(w),
+        w.role || w.labor_class || 'Laborer',
+        w.hours?.toString() || '0',
+        w.overtime_hours?.toString() || '-'
+      ]),
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8, cellPadding: 3 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      theme: 'grid'
+    })
+
+    yPos = doc.lastAutoTable.finalY + 10
+  }
+
+  // ============================================
+  // MATERIALS/EQUIPMENT
+  // ============================================
+
+  const materials = ticket.t_and_m_items || ticket.materials_equipment?.filter(m => m.type === 'material') || []
+  if (materials.length > 0) {
+    if (yPos > pageHeight - 60) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('MATERIALS / EQUIPMENT', margin, yPos)
+    yPos += 6
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Item', 'Qty', 'Unit']],
+      body: materials.map(item => [
+        item.materials_equipment?.name || item.description || item.name || 'Item',
+        item.quantity?.toString() || '1',
+        item.materials_equipment?.unit || item.unit || 'ea'
+      ]),
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8, cellPadding: 3 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      theme: 'grid'
+    })
+
+    yPos = doc.lastAutoTable.finalY + 10
+  }
+
+  // ============================================
+  // PHOTOS
+  // ============================================
+
+  if (ticket.photos?.length > 0) {
+    if (yPos > pageHeight - 80) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('PHOTO DOCUMENTATION', margin, yPos)
+
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(59, 130, 246)
+    doc.text(`${ticket.photos.length} photo${ticket.photos.length !== 1 ? 's' : ''}`, margin + 50, yPos)
+    yPos += 8
+
+    let xPos = margin
+    const photoWidth = 55
+    const photoHeight = 45
+    const photoGap = 6
+    const photosPerRow = 3
+
+    for (let i = 0; i < ticket.photos.length; i++) {
+      if (i > 0 && i % photosPerRow === 0) {
+        xPos = margin
+        yPos += photoHeight + photoGap + 4
+      }
+
+      if (yPos + photoHeight > pageHeight - 20) {
+        doc.addPage()
+        yPos = margin
+        xPos = margin
+      }
+
+      try {
+        const imgData = await loadImageAsBase64(ticket.photos[i])
+        if (imgData) {
+          doc.setDrawColor(200, 200, 200)
+          doc.setLineWidth(1)
+          doc.rect(xPos - 1, yPos - 1, photoWidth + 2, photoHeight + 2, 'S')
+          doc.setFillColor(230, 230, 230)
+          doc.rect(xPos + 2, yPos + 2, photoWidth, photoHeight, 'F')
+          doc.addImage(imgData, 'JPEG', xPos, yPos, photoWidth, photoHeight)
+        } else {
+          doc.setFillColor(245, 245, 245)
+          doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
+          doc.setDrawColor(200, 200, 200)
+          doc.rect(xPos, yPos, photoWidth, photoHeight, 'S')
+          doc.setFontSize(7)
+          doc.setTextColor(150, 150, 150)
+          doc.text('Photo unavailable', xPos + 8, yPos + photoHeight / 2)
+        }
+      } catch (e) {
+        doc.setFillColor(245, 245, 245)
+        doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
+        doc.setDrawColor(200, 200, 200)
+        doc.rect(xPos, yPos, photoWidth, photoHeight, 'S')
+        doc.setFontSize(7)
+        doc.setTextColor(150, 150, 150)
+        doc.text('Photo unavailable', xPos + 8, yPos + photoHeight / 2)
+      }
+
+      xPos += photoWidth + photoGap
+    }
+
+    yPos += photoHeight + 12
+  }
+
+  // ============================================
+  // CLIENT VERIFICATION
+  // ============================================
+
+  if (ticket.client_signature_data) {
+    if (yPos > pageHeight - 50) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    const verifyBlockHeight = 32
+    const verifyBlockWidth = pageWidth - (margin * 2)
+
+    doc.setFillColor(240, 253, 244)
+    doc.roundedRect(margin, yPos, verifyBlockWidth, verifyBlockHeight, 3, 3, 'F')
+
+    doc.setFillColor(16, 185, 129)
+    doc.rect(margin, yPos, 4, verifyBlockHeight, 'F')
+
+    doc.setDrawColor(187, 247, 208)
+    doc.setLineWidth(0.5)
+    doc.line(margin + 4, yPos, margin + verifyBlockWidth, yPos)
+
+    const sealX = margin + 14
+    const sealY = yPos + verifyBlockHeight / 2
+    doc.setFillColor(16, 185, 129)
+    doc.circle(sealX, sealY, 6, 'F')
+    doc.setFontSize(9)
+    doc.setTextColor(255, 255, 255)
+    doc.text('✓', sealX - 2.5, sealY + 3)
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(16, 185, 129)
+    doc.text('CLIENT VERIFIED', margin + 26, yPos + 10)
+
+    try {
+      const sigWidth = 50
+      const sigHeight = 16
+      doc.addImage(ticket.client_signature_data, 'PNG', margin + 26, yPos + 13, sigWidth, sigHeight)
+
+      const signerName = ticket.client_signature_name || 'Client'
+      const signerTitle = ticket.client_signature_title || ''
+      const signerCompany = ticket.client_signature_company || ''
+      const signedDate = ticket.client_signature_date
+        ? formatDate(ticket.client_signature_date)
+        : ''
+
+      const infoX = margin + 85
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(signerName, infoX, yPos + 12)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(71, 85, 105)
+      if (signerTitle || signerCompany) {
+        doc.text(`${signerTitle}${signerTitle && signerCompany ? ', ' : ''}${signerCompany}`, infoX, yPos + 18)
+      }
+      if (signedDate) {
+        doc.setTextColor(100, 116, 139)
+        doc.text(`Verified: ${signedDate}`, infoX, yPos + 24)
+      }
+    } catch (e) {
+      const signerName = ticket.client_signature_name || 'Client'
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(`Signed by: ${signerName}`, margin + 26, yPos + 20)
+    }
+
+    yPos += verifyBlockHeight + 8
+  }
+
+  // ============================================
+  // FOOTER
+  // ============================================
+
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    const footerY = pageHeight - 10
+    doc.setFontSize(8)
+    doc.setTextColor(150, 150, 150)
+    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+  }
+
+  // Save the PDF
+  const ticketDate = formatDate(ticket.work_date || ticket.ticket_date).replace(/\//g, '-')
+  const fileName = `TM_Ticket_${ticketDate}${ticket.ce_pco_number ? '_' + ticket.ce_pco_number : ''}.pdf`
+  doc.save(fileName)
+
+  return { success: true, fileName }
+}

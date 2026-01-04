@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download, Camera, HardHat, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
-import { exportCORToPDF } from '../lib/corPdfExport'
+import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
 import EnhancedSignatureCapture from './EnhancedSignatureCapture'
 
 // Helper to format date
@@ -231,6 +231,35 @@ export default function SignaturePage({ signatureToken }) {
     }
   }
 
+  // Handle T&M Ticket PDF download
+  const handleDownloadTMTicket = async () => {
+    if (!document || !signatureRequest) return
+
+    try {
+      setDownloading(true)
+
+      const company = document?.projects?.companies
+      const project = document?.projects
+
+      // Get branding from company
+      const branding = {
+        logoUrl: company?.logo_url,
+        primaryColor: company?.branding_color
+      }
+
+      // Export T&M Ticket PDF
+      await exportTMTicketToPDF(document, project, company, branding)
+
+      setSuccessMessage('PDF downloaded successfully!')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      console.error('Download failed:', err)
+      setError('Failed to generate PDF. Please try again.')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   // Render loading state
   if (loading) {
     return (
@@ -290,7 +319,24 @@ export default function SignaturePage({ signatureToken }) {
               <CheckCircle size={48} />
               <h2>Document Signed Successfully</h2>
               <p>This document has been signed and submitted.</p>
-              <p className="close-prompt">You may close this page.</p>
+              <button
+                className="btn btn-primary download-copy-btn"
+                onClick={handleDownloadTMTicket}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download size={18} />
+                    Save a Copy for Your Records
+                  </>
+                )}
+              </button>
+              <p className="close-prompt">You may close this page when done.</p>
             </div>
           </div>
         )}
@@ -474,7 +520,24 @@ export default function SignaturePage({ signatureToken }) {
             <CheckCircle size={48} />
             <h2>Document Signed Successfully</h2>
             <p>This document has been signed and submitted.</p>
-            <p className="close-prompt">You may close this page.</p>
+            <button
+              className="btn btn-primary download-copy-btn"
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              {downloading ? (
+                <>
+                  <span className="btn-spinner"></span>
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <Download size={18} />
+                  Save a Copy for Your Records
+                </>
+              )}
+            </button>
+            <p className="close-prompt">You may close this page when done.</p>
           </div>
         </div>
       )}
