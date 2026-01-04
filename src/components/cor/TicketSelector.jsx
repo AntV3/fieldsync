@@ -132,8 +132,8 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
         materialsItems.push({
           id: `import-${ticket.id}-${item.id || Date.now()}`,
           description: item.description || item.name,
-          source_type: 'backup_sheet',
-          source_reference: `Ticket ${formatDate(ticket.ticket_date)}`,
+          source_type: 'T&M Ticket',
+          source_reference: `T&M ${formatDate(ticket.ticket_date)}`,
           quantity: parseFloat(item.quantity) || 1,
           unit: item.unit || 'each',
           unit_cost: dollarsToCents(item.unit_cost || 0),
@@ -147,8 +147,8 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
         equipmentItems.push({
           id: `import-${ticket.id}-${equip.id || Date.now()}`,
           description: equip.description || equip.name,
-          source_type: 'backup_sheet',
-          source_reference: `Ticket ${formatDate(ticket.ticket_date)}`,
+          source_type: 'T&M Ticket',
+          source_reference: `T&M ${formatDate(ticket.ticket_date)}`,
           quantity: parseFloat(equip.quantity) || 1,
           unit: equip.unit || 'day',
           unit_cost: dollarsToCents(equip.unit_cost || equip.cost || 0),

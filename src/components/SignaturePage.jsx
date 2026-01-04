@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download, Camera, HardHat, ChevronDown, ChevronRight } from 'lucide-react'
+import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download, Camera, HardHat, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
 import { exportCORToPDF } from '../lib/corPdfExport'
@@ -718,147 +718,257 @@ export default function SignaturePage({ signatureToken }) {
           </div>
         )}
 
-        {/* T&M Backup Documentation Section */}
-        {backupTickets.length > 0 && (
-          <div className="cor-section cor-backup-section">
-            <div
-              className="cor-section-header cor-backup-header"
-              onClick={() => setBackupExpanded(!backupExpanded)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="backup-header-left">
-                <FileText size={18} />
-                <h4>Supporting T&M Documentation</h4>
-                <span className="backup-count">{backupTickets.length} ticket{backupTickets.length !== 1 ? 's' : ''}</span>
-              </div>
-              <div className="backup-header-toggle">
-                {backupExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-              </div>
-            </div>
+        {/* T&M Backup Documentation Section - Professional Layout */}
+        {backupTickets.length > 0 && (() => {
+          // Calculate summary statistics
+          const totalLaborHours = backupTickets.reduce((sum, t) =>
+            sum + (t.t_and_m_workers?.reduce((wSum, w) => wSum + (parseFloat(w.hours) || 0), 0) || 0), 0
+          )
+          const totalOTHours = backupTickets.reduce((sum, t) =>
+            sum + (t.t_and_m_workers?.reduce((wSum, w) => wSum + (parseFloat(w.overtime_hours) || 0), 0) || 0), 0
+          )
+          const totalPhotos = backupTickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+          const verifiedCount = backupTickets.filter(t => t.client_signature_data).length
 
-            {backupExpanded && (
-              <div className="backup-tickets-list">
-                {backupTickets.map((ticket, idx) => {
-                  const isExpanded = expandedTickets.has(ticket.id)
-                  const totalHours = ticket.t_and_m_workers?.reduce((sum, w) =>
-                    sum + (parseFloat(w.hours) || 0) + (parseFloat(w.overtime_hours) || 0), 0
-                  ) || 0
-
-                  return (
-                    <div key={ticket.id} className="backup-ticket">
-                      <div
-                        className="backup-ticket-header"
-                        onClick={() => {
-                          const next = new Set(expandedTickets)
-                          if (isExpanded) {
-                            next.delete(ticket.id)
-                          } else {
-                            next.add(ticket.id)
-                          }
-                          setExpandedTickets(next)
-                        }}
-                      >
-                        <div className="backup-ticket-info">
-                          <span className="backup-ticket-date">
-                            {formatDate(ticket.work_date)}
-                          </span>
-                          {ticket.ce_pco_number && (
-                            <span className="backup-ticket-ce">{ticket.ce_pco_number}</span>
-                          )}
-                          <span className="backup-ticket-summary">
-                            {ticket.t_and_m_workers?.length || 0} workers • {totalHours} hrs
-                            {ticket.photos?.length > 0 && ` • ${ticket.photos.length} photos`}
-                          </span>
-                        </div>
-                        <div className="backup-ticket-toggle">
-                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </div>
-                      </div>
-
-                      {isExpanded && (
-                        <div className="backup-ticket-details">
-                          {/* Workers */}
-                          {ticket.t_and_m_workers?.length > 0 && (
-                            <div className="backup-detail-group">
-                              <div className="backup-detail-label">
-                                <HardHat size={14} /> Workers
-                              </div>
-                              <div className="backup-workers-list">
-                                {ticket.t_and_m_workers.map((worker, wIdx) => (
-                                  <div key={wIdx} className="backup-worker">
-                                    <span className="worker-name">
-                                      {worker.role && worker.role !== 'Laborer' && (
-                                        <span className="worker-role">{worker.role}</span>
-                                      )}
-                                      {worker.name}
-                                    </span>
-                                    <span className="worker-time-hours">
-                                      {worker.time_started && worker.time_ended && (
-                                        <span className="worker-time">{worker.time_started} - {worker.time_ended}</span>
-                                      )}
-                                      <span className="worker-hours">
-                                        {worker.hours || 0} hrs
-                                        {parseFloat(worker.overtime_hours) > 0 && (
-                                          <span className="worker-ot"> + {worker.overtime_hours} OT</span>
-                                        )}
-                                      </span>
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Notes */}
-                          {ticket.notes && (
-                            <div className="backup-detail-group">
-                              <div className="backup-detail-label">Description</div>
-                              <p className="backup-notes">{ticket.notes}</p>
-                            </div>
-                          )}
-
-                          {/* Photos */}
-                          {ticket.photos?.length > 0 && (
-                            <div className="backup-detail-group">
-                              <div className="backup-detail-label">
-                                <Camera size={14} /> Photos ({ticket.photos.length})
-                              </div>
-                              <div className="backup-photos-grid">
-                                {ticket.photos.map((photo, pIdx) => (
-                                  <a
-                                    key={pIdx}
-                                    href={photo}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="backup-photo"
-                                  >
-                                    <img
-                                      src={photo}
-                                      alt={`Photo ${pIdx + 1}`}
-                                      onError={(e) => {
-                                        e.target.onerror = null
-                                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiI+PHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iMiIvPjxjaXJjbGUgY3g9IjguNSIgY3k9IjguNSIgcj0iMS41Ii8+PHBvbHlsaW5lIHBvaW50cz0iMjEgMTUgMTYgMTAgNSAyMSIvPjwvc3ZnPg=='
-                                      }}
-                                    />
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
+          return (
+            <div className="cor-section cor-backup-section">
+              {/* Professional Official Header */}
+              <div className="backup-official-header">
+                <div className="backup-official-badge">
+                  <FileText size={16} />
+                  <span>Supporting Documentation</span>
+                </div>
+                <div className="backup-summary-bar">
+                  <div className="backup-stat">
+                    <span className="backup-stat-value">{backupTickets.length}</span>
+                    <span className="backup-stat-label">Tickets</span>
+                  </div>
+                  <div className="backup-stat">
+                    <span className="backup-stat-value">{totalLaborHours.toFixed(1)}</span>
+                    <span className="backup-stat-label">Labor Hrs</span>
+                  </div>
+                  {totalOTHours > 0 && (
+                    <div className="backup-stat">
+                      <span className="backup-stat-value">{totalOTHours.toFixed(1)}</span>
+                      <span className="backup-stat-label">OT Hrs</span>
                     </div>
-                  )
-                })}
+                  )}
+                  <div className="backup-stat">
+                    <span className="backup-stat-value">{totalPhotos}</span>
+                    <span className="backup-stat-label">Photos</span>
+                  </div>
+                  {verifiedCount > 0 && (
+                    <div className="backup-stat verified">
+                      <span className="backup-stat-value">{verifiedCount}</span>
+                      <span className="backup-stat-label">Verified</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
 
-            <div className="backup-note">
-              <AlertCircle size={14} />
-              <span>This documentation supports the work described in this Change Order Request.</span>
+              {/* Collapsible Toggle */}
+              <div
+                className="cor-section-header cor-backup-header"
+                onClick={() => setBackupExpanded(!backupExpanded)}
+                style={{ cursor: 'pointer', marginBottom: backupExpanded ? '1rem' : 0 }}
+              >
+                <div className="backup-header-left">
+                  <span>View All T&M Tickets</span>
+                </div>
+                <div className="backup-header-toggle">
+                  {backupExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                </div>
+              </div>
+
+              {backupExpanded && (
+                <div className="backup-tickets-list" style={{ padding: '0 0.5rem' }}>
+                  {backupTickets.map((ticket) => {
+                    const isExpanded = expandedTickets.has(ticket.id)
+                    const ticketTotalHours = ticket.t_and_m_workers?.reduce((sum, w) =>
+                      sum + (parseFloat(w.hours) || 0), 0
+                    ) || 0
+                    const ticketOTHours = ticket.t_and_m_workers?.reduce((sum, w) =>
+                      sum + (parseFloat(w.overtime_hours) || 0), 0
+                    ) || 0
+                    const hasVerification = !!ticket.client_signature_data
+
+                    return (
+                      <div
+                        key={ticket.id}
+                        className="backup-ticket-pro"
+                        data-verified={hasVerification}
+                        data-status={ticket.status || 'pending'}
+                      >
+                        {/* Professional Ticket Header */}
+                        <div
+                          className="ticket-pro-header"
+                          onClick={() => {
+                            const next = new Set(expandedTickets)
+                            if (isExpanded) {
+                              next.delete(ticket.id)
+                            } else {
+                              next.add(ticket.id)
+                            }
+                            setExpandedTickets(next)
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="ticket-date-badge">
+                            <Calendar size={14} />
+                            <span>{formatDate(ticket.work_date)}</span>
+                          </div>
+                          {ticket.ce_pco_number && (
+                            <span className="ticket-pco-badge">{ticket.ce_pco_number}</span>
+                          )}
+                          {hasVerification && (
+                            <span className="ticket-verified-seal">
+                              <CheckCircle size={12} /> Verified
+                            </span>
+                          )}
+                          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                              {ticket.t_and_m_workers?.length || 0} workers • {ticketTotalHours + ticketOTHours} hrs
+                            </span>
+                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </div>
+                        </div>
+
+                        {/* Ticket Body - Expanded Content */}
+                        {isExpanded && (
+                          <div className="ticket-pro-body">
+                            {/* Description */}
+                            {ticket.notes && (
+                              <div className="ticket-description-box">
+                                <p>{ticket.notes}</p>
+                              </div>
+                            )}
+
+                            {/* Workers Section */}
+                            {ticket.t_and_m_workers?.length > 0 && (
+                              <div className="ticket-section-pro">
+                                <div className="ticket-section-header">
+                                  <HardHat size={14} />
+                                  <span>Labor</span>
+                                  <span className="section-count">{ticketTotalHours + ticketOTHours} hrs total</span>
+                                </div>
+                                <div className="worker-pro-grid">
+                                  {ticket.t_and_m_workers.map((worker, wIdx) => (
+                                    <div key={wIdx} className="worker-pro-row">
+                                      <div>
+                                        <span className="worker-name">{worker.name}</span>
+                                        {worker.role && <span className="worker-role"> • {worker.role}</span>}
+                                      </div>
+                                      <span className="worker-time">
+                                        {worker.time_started && worker.time_ended
+                                          ? `${formatTime(worker.time_started)} - ${formatTime(worker.time_ended)}`
+                                          : '-'}
+                                      </span>
+                                      <span className="worker-hours">{worker.hours || 0} hrs</span>
+                                      <span className="worker-ot">
+                                        {parseFloat(worker.overtime_hours) > 0 ? `+${worker.overtime_hours} OT` : '-'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Materials Section */}
+                            {ticket.t_and_m_items?.length > 0 && (
+                              <div className="ticket-section-pro">
+                                <div className="ticket-section-header">
+                                  <Package size={14} />
+                                  <span>Materials / Equipment</span>
+                                  <span className="section-count">{ticket.t_and_m_items.length} items</span>
+                                </div>
+                                <div className="materials-pro-list">
+                                  {ticket.t_and_m_items.map((item, iIdx) => (
+                                    <div key={iIdx} className="material-pro-row">
+                                      <span className="material-name">
+                                        {item.materials_equipment?.name || item.description || 'Item'}
+                                      </span>
+                                      <span className="material-qty">
+                                        {item.quantity || 1} {item.materials_equipment?.unit || 'ea'}
+                                      </span>
+                                      <span className="material-source">T&M Ticket</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Photos Section */}
+                            {ticket.photos?.length > 0 && (
+                              <div className="ticket-section-pro">
+                                <div className="ticket-section-header">
+                                  <Camera size={14} />
+                                  <span>Photo Evidence</span>
+                                  <span className="section-count">{ticket.photos.length}</span>
+                                </div>
+                                <div className="photo-evidence-grid">
+                                  {ticket.photos.map((photo, pIdx) => (
+                                    <a
+                                      key={pIdx}
+                                      href={photo}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="photo-evidence-item"
+                                    >
+                                      <img
+                                        src={photo}
+                                        alt={`Evidence ${pIdx + 1}`}
+                                        onError={(e) => {
+                                          e.target.onerror = null
+                                          e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiI+PHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iMiIvPjxjaXJjbGUgY3g9IjguNSIgY3k9IjguNSIgcj0iMS41Ii8+PHBvbHlsaW5lIHBvaW50cz0iMjEgMTUgMTYgMTAgNSAyMSIvPjwvc3ZnPg=='
+                                        }}
+                                      />
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Client Verification Footer */}
+                            {hasVerification && (
+                              <div className="ticket-verification-footer">
+                                <div className="verification-seal-icon">
+                                  <CheckCircle size={22} />
+                                </div>
+                                {ticket.client_signature_data && (
+                                  <img
+                                    src={ticket.client_signature_data}
+                                    alt="Client Signature"
+                                    className="verification-signature-img"
+                                  />
+                                )}
+                                <div className="verification-info">
+                                  <span className="signer-name">{ticket.client_signature_name || 'Client'}</span>
+                                  {(ticket.client_signature_title || ticket.client_signature_company) && (
+                                    <span className="signer-title">
+                                      {[ticket.client_signature_title, ticket.client_signature_company].filter(Boolean).join(', ')}
+                                    </span>
+                                  )}
+                                  {ticket.client_signature_date && (
+                                    <span className="verify-date">Verified {formatDate(ticket.client_signature_date)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="backup-note">
+                <AlertCircle size={14} />
+                <span>This documentation supports the work described in this Change Order Request.</span>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Totals Section */}
         <div className="cor-totals-card">

@@ -630,88 +630,248 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
 
   // ============================================
   // T&M BACKUP SECTION (if tickets provided)
+  // Professional Layout with Cover Page
   // ============================================
 
   if (tmTickets && tmTickets.length > 0) {
+    // Calculate summary statistics
+    const totalLaborHours = tmTickets.reduce((sum, t) =>
+      sum + (t.t_and_m_workers?.reduce((wSum, w) => wSum + (parseFloat(w.hours) || 0), 0) || 0), 0
+    )
+    const totalOTHours = tmTickets.reduce((sum, t) =>
+      sum + (t.t_and_m_workers?.reduce((wSum, w) => wSum + (parseFloat(w.overtime_hours) || 0), 0) || 0), 0
+    )
+    const totalPhotos = tmTickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+    const verifiedCount = tmTickets.filter(t => t.client_signature_data).length
+    const dateRange = tmTickets.length > 0 ? {
+      start: tmTickets.reduce((min, t) => !min || t.work_date < min ? t.work_date : min, null),
+      end: tmTickets.reduce((max, t) => !max || t.work_date > max ? t.work_date : max, null)
+    } : null
+
+    // Generate document ID
+    const docId = `FS-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+
     doc.addPage()
     yPos = margin
 
-    // Backup section header
-    doc.setFontSize(16)
+    // ============================================
+    // BACKUP COVER PAGE
+    // ============================================
+
+    // Company Logo/Name at top
+    if (logoBase64) {
+      try {
+        doc.addImage(logoBase64, 'PNG', margin, yPos, 50, 18)
+      } catch (e) {
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(...primaryColor)
+        doc.text(company?.name || 'Company Name', margin, yPos + 10)
+      }
+    } else {
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...primaryColor)
+      doc.text(company?.name || 'Company Name', margin, yPos + 10)
+    }
+    yPos += 35
+
+    // Decorative double line
+    doc.setDrawColor(...primaryColor)
+    doc.setLineWidth(0.8)
+    doc.line(margin, yPos, pageWidth - margin, yPos)
+    doc.setLineWidth(0.3)
+    doc.line(margin, yPos + 3, pageWidth - margin, yPos + 3)
+    yPos += 15
+
+    // Title
+    doc.setFontSize(22)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...primaryColor)
-    doc.text('T&M BACKUP DOCUMENTATION', margin, yPos)
+    doc.setTextColor(30, 41, 59)
+    doc.text('SUPPORTING DOCUMENTATION', pageWidth / 2, yPos, { align: 'center' })
     yPos += 8
 
-    doc.setFontSize(10)
+    doc.setFontSize(12)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(100, 100, 100)
-    doc.text(`${tmTickets.length} T&M ticket${tmTickets.length > 1 ? 's' : ''} associated with this COR`, margin, yPos)
+    doc.setTextColor(100, 116, 139)
+    doc.text('Change Order Request Backup', pageWidth / 2, yPos, { align: 'center' })
+    yPos += 8
+
+    // Decorative double line
+    doc.setDrawColor(...primaryColor)
+    doc.setLineWidth(0.3)
+    doc.line(margin, yPos, pageWidth - margin, yPos)
+    doc.setLineWidth(0.8)
+    doc.line(margin, yPos + 3, pageWidth - margin, yPos + 3)
+    yPos += 20
+
+    // Reference info
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(30, 41, 59)
+    doc.text('COR Reference:', margin, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.text(cor.cor_number || 'N/A', margin + 35, yPos)
+
+    doc.setFont('helvetica', 'bold')
+    doc.text('Project:', pageWidth / 2, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.text(project?.name || 'N/A', pageWidth / 2 + 20, yPos)
+    yPos += 7
+
+    doc.setFont('helvetica', 'bold')
+    doc.text('Job #:', margin, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.text(project?.job_number || 'N/A', margin + 35, yPos)
+    yPos += 20
+
+    // Summary Box
+    doc.setFillColor(248, 250, 252)
+    doc.setDrawColor(203, 213, 225)
+    doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 65, 4, 4, 'FD')
+
+    yPos += 10
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(30, 41, 59)
+    doc.text('DOCUMENTATION SUMMARY', margin + 10, yPos)
+
+    doc.setDrawColor(203, 213, 225)
+    doc.setLineWidth(0.3)
+    doc.line(margin + 10, yPos + 3, margin + 80, yPos + 3)
     yPos += 12
 
-    doc.setDrawColor(...primaryColor)
-    doc.setLineWidth(0.5)
-    doc.line(margin, yPos, pageWidth - margin, yPos)
-    yPos += 10
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(71, 85, 105)
 
-    // Render each ticket
-    for (const ticket of tmTickets) {
-      // Check if we need a new page
-      if (yPos > pageHeight - 100) {
-        doc.addPage()
-        yPos = margin
-      }
+    const summaryCol1 = margin + 15
+    const summaryCol2 = margin + 70
 
-      // Ticket header
-      doc.setFillColor(245, 247, 250)
-      doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 18, 2, 2, 'F')
+    doc.text('T&M Tickets:', summaryCol1, yPos)
+    doc.setFont('helvetica', 'bold')
+    doc.text(String(tmTickets.length), summaryCol2, yPos)
+    doc.setFont('helvetica', 'normal')
+    yPos += 7
 
-      doc.setFontSize(11)
+    doc.text('Total Labor:', summaryCol1, yPos)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${totalLaborHours.toFixed(1)} hrs`, summaryCol2, yPos)
+    doc.setFont('helvetica', 'normal')
+    yPos += 7
+
+    if (totalOTHours > 0) {
+      doc.text('Total OT:', summaryCol1, yPos)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
-      doc.text(`T&M Ticket — ${formatDate(ticket.work_date)}`, margin + 5, yPos + 7)
+      doc.text(`${totalOTHours.toFixed(1)} hrs`, summaryCol2, yPos)
+      doc.setFont('helvetica', 'normal')
+      yPos += 7
+    }
 
+    doc.text('Photo Evidence:', summaryCol1, yPos)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${totalPhotos} photos`, summaryCol2, yPos)
+    doc.setFont('helvetica', 'normal')
+    yPos += 7
+
+    doc.text('Client Verified:', summaryCol1, yPos)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(verifiedCount > 0 ? 16 : 71, verifiedCount > 0 ? 185 : 85, verifiedCount > 0 ? 129 : 105)
+    doc.text(`${verifiedCount} of ${tmTickets.length} tickets`, summaryCol2, yPos)
+    doc.setTextColor(71, 85, 105)
+    doc.setFont('helvetica', 'normal')
+    yPos += 7
+
+    if (dateRange?.start && dateRange?.end) {
+      doc.text('Date Range:', summaryCol1, yPos)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`, summaryCol2, yPos)
+    }
+
+    yPos += 30
+
+    // Footer info
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 116, 139)
+    const genDate = new Date()
+    doc.text(`Generated: ${genDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at ${genDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`, margin, yPos)
+    yPos += 6
+    doc.text(`Document ID: ${docId}`, margin, yPos)
+
+    // ============================================
+    // INDIVIDUAL TICKET PAGES
+    // ============================================
+
+    for (const ticket of tmTickets) {
+      doc.addPage()
+      yPos = margin
+
+      const hasVerification = !!ticket.client_signature_data
+
+      // Ticket Header with colored left border
+      const headerHeight = 22
+      const ticketStatusColor = hasVerification ? [16, 185, 129] : (ticket.status === 'approved' ? [16, 185, 129] : [245, 158, 11])
+
+      // Colored left border
+      doc.setFillColor(...ticketStatusColor)
+      doc.rect(margin, yPos, 4, headerHeight, 'F')
+
+      // Header background
+      doc.setFillColor(248, 250, 252)
+      doc.rect(margin + 4, yPos, pageWidth - (margin * 2) - 4, headerHeight, 'F')
+
+      // Ticket title
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 41, 59)
+      doc.text(`T&M TICKET — ${formatDate(ticket.work_date)}`, margin + 10, yPos + 8)
+
+      // CE/PCO badge
       if (ticket.ce_pco_number) {
         doc.setFontSize(9)
         doc.setFont('helvetica', 'normal')
-        doc.setTextColor(100, 100, 100)
-        doc.text(`CE/PCO: ${ticket.ce_pco_number}`, margin + 5, yPos + 14)
+        doc.setTextColor(59, 130, 246)
+        doc.text(`CE/PCO: ${ticket.ce_pco_number}`, margin + 10, yPos + 16)
       }
 
-      // Status badge
-      const statusColors = {
-        pending: [217, 119, 6],
-        approved: [5, 150, 105],
-        billed: [37, 99, 235]
+      // Verified badge
+      if (hasVerification) {
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(16, 185, 129)
+        doc.text('✓ CLIENT VERIFIED', pageWidth - margin - 35, yPos + 12)
       }
-      const statusColor = statusColors[ticket.status] || [100, 100, 100]
-      doc.setFontSize(8)
-      doc.setTextColor(...statusColor)
-      doc.text(ticket.status?.toUpperCase() || 'PENDING', pageWidth - margin - 30, yPos + 10)
 
-      yPos += 24
+      yPos += headerHeight + 8
 
       // Description/Notes
       if (ticket.notes) {
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(71, 85, 105)
+        doc.text('DESCRIPTION', margin, yPos)
+        yPos += 6
+
         doc.setFontSize(9)
-        doc.setFont('helvetica', 'italic')
-        doc.setTextColor(80, 80, 80)
-        const notesLines = doc.splitTextToSize(ticket.notes, pageWidth - (margin * 2) - 10)
-        doc.text(notesLines, margin + 5, yPos)
-        yPos += (notesLines.length * 4) + 6
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(51, 65, 85)
+        const notesLines = doc.splitTextToSize(ticket.notes, pageWidth - (margin * 2))
+        doc.text(notesLines, margin, yPos)
+        yPos += (notesLines.length * 4) + 10
       }
 
       // Workers table
       if (ticket.t_and_m_workers?.length > 0) {
-        doc.setFontSize(9)
+        doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 0)
-        doc.text('Labor:', margin + 5, yPos)
-        yPos += 4
+        doc.setTextColor(71, 85, 105)
+        doc.text('LABOR', margin, yPos)
+        yPos += 6
 
         autoTable(doc, {
           startY: yPos,
-          head: [['Worker', 'Time', 'Class', 'Hrs', 'OT']],
+          head: [['Worker', 'Time Period', 'Class', 'Reg Hrs', 'OT Hrs']],
           body: ticket.t_and_m_workers.map(w => [
             w.name,
             formatTimePeriod(w),
@@ -719,14 +879,14 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
             w.hours?.toString() || '0',
             w.overtime_hours?.toString() || '-'
           ]),
-          margin: { left: margin + 5, right: margin },
-          headStyles: { fillColor: [100, 116, 139], textColor: [255, 255, 255], fontSize: 7, cellPadding: 2 },
-          bodyStyles: { fontSize: 7, cellPadding: 2 },
-          theme: 'grid',
-          tableWidth: 'auto'
+          margin: { left: margin, right: margin },
+          headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 8, cellPadding: 3 },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          theme: 'grid'
         })
 
-        yPos = doc.lastAutoTable.finalY + 8
+        yPos = doc.lastAutoTable.finalY + 10
       }
 
       // Items table (materials/equipment)
@@ -736,11 +896,17 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
           yPos = margin
         }
 
-        doc.setFontSize(9)
+        doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 0)
-        doc.text('Materials/Equipment:', margin + 5, yPos)
-        yPos += 4
+        doc.setTextColor(71, 85, 105)
+        doc.text('MATERIALS / EQUIPMENT', margin, yPos)
+
+        // Source badge
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(100, 116, 139)
+        doc.text('Source: T&M Ticket', margin + 55, yPos)
+        yPos += 6
 
         autoTable(doc, {
           startY: yPos,
@@ -754,97 +920,142 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
               ? `$${(item.quantity * item.materials_equipment.cost_per_unit).toFixed(2)}`
               : '-'
           ]),
-          margin: { left: margin + 5, right: margin },
-          headStyles: { fillColor: [100, 116, 139], textColor: [255, 255, 255], fontSize: 7, cellPadding: 2 },
-          bodyStyles: { fontSize: 7, cellPadding: 2 },
-          theme: 'grid',
-          tableWidth: 'auto'
+          margin: { left: margin, right: margin },
+          headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 8, cellPadding: 3 },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          theme: 'grid'
         })
 
-        yPos = doc.lastAutoTable.finalY + 8
+        yPos = doc.lastAutoTable.finalY + 10
       }
 
-      // Photos
+      // Photos - Professional Evidence Section
       if (ticket.photos?.length > 0) {
         if (yPos > pageHeight - 80) {
           doc.addPage()
           yPos = margin
         }
 
-        doc.setFontSize(9)
+        doc.setFontSize(10)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 0)
-        doc.text(`Photos (${ticket.photos.length}):`, margin + 5, yPos)
-        yPos += 6
+        doc.setTextColor(71, 85, 105)
+        doc.text('PHOTO DOCUMENTATION', margin, yPos)
 
-        let xPos = margin + 5
-        const photoWidth = 45
-        const photoHeight = 35
+        // Photo count badge
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(59, 130, 246)
+        doc.text(`${ticket.photos.length} photo${ticket.photos.length !== 1 ? 's' : ''}`, margin + 50, yPos)
+        yPos += 8
+
+        let xPos = margin
+        const photoWidth = 55
+        const photoHeight = 45
+        const photoGap = 6
         const photosPerRow = 3
+        const frameWidth = 1
 
         for (let i = 0; i < ticket.photos.length; i++) {
           // Check if we need to wrap to next row
           if (i > 0 && i % photosPerRow === 0) {
-            xPos = margin + 5
-            yPos += photoHeight + 5
+            xPos = margin
+            yPos += photoHeight + photoGap + 4
           }
 
           // Check if we need a new page
           if (yPos + photoHeight > pageHeight - 20) {
             doc.addPage()
             yPos = margin
-            xPos = margin + 5
+            xPos = margin
           }
 
           try {
             const imgData = await loadImageAsBase64(ticket.photos[i])
             if (imgData) {
+              // Draw frame border
+              doc.setDrawColor(200, 200, 200)
+              doc.setLineWidth(frameWidth)
+              doc.rect(xPos - frameWidth, yPos - frameWidth, photoWidth + frameWidth * 2, photoHeight + frameWidth * 2, 'S')
+
+              // Add photo with shadow effect (light gray background offset)
+              doc.setFillColor(230, 230, 230)
+              doc.rect(xPos + 2, yPos + 2, photoWidth, photoHeight, 'F')
+
               doc.addImage(imgData, 'JPEG', xPos, yPos, photoWidth, photoHeight)
             } else {
               // Draw placeholder for failed images
-              doc.setFillColor(240, 240, 240)
+              doc.setFillColor(245, 245, 245)
               doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
+              doc.setDrawColor(200, 200, 200)
+              doc.rect(xPos, yPos, photoWidth, photoHeight, 'S')
               doc.setFontSize(7)
               doc.setTextColor(150, 150, 150)
-              doc.text('Photo unavailable', xPos + 5, yPos + photoHeight / 2)
+              doc.text('Photo unavailable', xPos + 8, yPos + photoHeight / 2)
             }
           } catch (e) {
             // Draw placeholder for failed images
-            doc.setFillColor(240, 240, 240)
+            doc.setFillColor(245, 245, 245)
             doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
+            doc.setDrawColor(200, 200, 200)
+            doc.rect(xPos, yPos, photoWidth, photoHeight, 'S')
             doc.setFontSize(7)
             doc.setTextColor(150, 150, 150)
-            doc.text('Photo unavailable', xPos + 5, yPos + photoHeight / 2)
+            doc.text('Photo unavailable', xPos + 8, yPos + photoHeight / 2)
           }
 
-          xPos += photoWidth + 5
+          xPos += photoWidth + photoGap
         }
 
-        yPos += photoHeight + 10
+        yPos += photoHeight + 12
       }
 
-      // Client Signature Verification Block (if ticket was signed)
+      // Client Signature Verification Block (if ticket was signed) - Professional styling
       if (ticket.client_signature_data) {
-        if (yPos > pageHeight - 40) {
+        if (yPos > pageHeight - 50) {
           doc.addPage()
           yPos = margin
         }
 
+        // Verification block with green background
+        const verifyBlockHeight = 32
+        const verifyBlockWidth = pageWidth - (margin * 2)
+
+        // Light green background
+        doc.setFillColor(240, 253, 244) // Very light green
+        doc.roundedRect(margin, yPos, verifyBlockWidth, verifyBlockHeight, 3, 3, 'F')
+
+        // Green left accent border
+        doc.setFillColor(16, 185, 129)
+        doc.rect(margin, yPos, 4, verifyBlockHeight, 'F')
+
+        // Top border line
+        doc.setDrawColor(187, 247, 208)
+        doc.setLineWidth(0.5)
+        doc.line(margin + 4, yPos, margin + verifyBlockWidth, yPos)
+
+        // Checkmark seal icon (circle)
+        const sealX = margin + 14
+        const sealY = yPos + verifyBlockHeight / 2
+        doc.setFillColor(16, 185, 129)
+        doc.circle(sealX, sealY, 6, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(255, 255, 255)
+        doc.text('✓', sealX - 2.5, sealY + 3)
+
+        // "CLIENT VERIFIED" header
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(16, 185, 129) // Green color
-        doc.text('Client Verification', margin + 5, yPos)
-        yPos += 5
+        doc.setTextColor(16, 185, 129)
+        doc.text('CLIENT VERIFIED', margin + 26, yPos + 10)
 
         try {
           // Add signature image
-          doc.addImage(ticket.client_signature_data, 'PNG', margin + 5, yPos, 40, 15)
+          const sigWidth = 50
+          const sigHeight = 16
+          doc.addImage(ticket.client_signature_data, 'PNG', margin + 26, yPos + 13, sigWidth, sigHeight)
 
-          // Add signer info next to signature
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(8)
-          doc.setTextColor(0, 0, 0)
-
+          // Add signer info to the right of signature
           const signerName = ticket.client_signature_name || 'Client'
           const signerTitle = ticket.client_signature_title || ''
           const signerCompany = ticket.client_signature_company || ''
@@ -852,25 +1063,33 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
             ? formatDate(ticket.client_signature_date)
             : ''
 
-          doc.text(signerName, margin + 50, yPos + 5)
-          if (signerTitle || signerCompany) {
-            doc.setTextColor(100, 100, 100)
-            doc.text(`${signerTitle}${signerTitle && signerCompany ? ', ' : ''}${signerCompany}`, margin + 50, yPos + 9)
-          }
-          if (signedDate) {
-            doc.setTextColor(100, 100, 100)
-            doc.text(`Verified: ${signedDate}`, margin + 50, yPos + 13)
-          }
+          const infoX = margin + 85
 
-          yPos += 20
-        } catch (e) {
-          // If signature image fails, just show text
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(signerName, infoX, yPos + 12)
+
           doc.setFont('helvetica', 'normal')
           doc.setFontSize(8)
-          doc.setTextColor(0, 0, 0)
-          doc.text(`Verified by ${ticket.client_signature_name || 'Client'}`, margin + 5, yPos + 5)
-          yPos += 10
+          doc.setTextColor(71, 85, 105)
+          if (signerTitle || signerCompany) {
+            doc.text(`${signerTitle}${signerTitle && signerCompany ? ', ' : ''}${signerCompany}`, infoX, yPos + 18)
+          }
+          if (signedDate) {
+            doc.setTextColor(100, 116, 139)
+            doc.text(`Verified: ${signedDate}`, infoX, yPos + 24)
+          }
+        } catch (e) {
+          // If signature image fails, show text info
+          const signerName = ticket.client_signature_name || 'Client'
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(`Signed by: ${signerName}`, margin + 26, yPos + 20)
         }
+
+        yPos += verifyBlockHeight + 8
       }
 
       // Ticket divider
