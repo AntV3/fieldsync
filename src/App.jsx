@@ -54,6 +54,35 @@ export default function App() {
     }
   }, [])
 
+  // Listen for auth state changes (handles token refresh and session expiry)
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[Auth] State changed:', event)
+
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          // User signed out - reset state
+          setUser(null)
+          setCompany(null)
+          setUserCompanies([])
+          setView('entry')
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Token was refreshed - no action needed, session is valid
+          console.log('[Auth] Token refreshed successfully')
+        } else if (event === 'SIGNED_IN' && !user) {
+          // User signed in (might be from another tab or session restore)
+          checkAuth()
+        }
+      }
+    )
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [user])
+
   const checkAuth = async () => {
     try {
       // Check if user is logged in
