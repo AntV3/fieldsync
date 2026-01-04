@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X } from 'lucide-react'
+import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 
@@ -285,6 +285,11 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
             >
               {statusInfo.label}
             </span>
+            {(cor.gc_signature_data || cor.client_signature_data) && (
+              <span className="cor-signed-badge" title={`Signed by ${cor.gc_signature_name || cor.client_signature_name || 'Client'}`}>
+                <CheckCircle size={12} /> Signed
+              </span>
+            )}
           </div>
           <div className="cor-card-right">
             <span className="cor-total">{formatCurrency(cor.cor_total || 0)}</span>

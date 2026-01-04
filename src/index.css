@@ -176,6 +176,127 @@ body {
   outline-offset: 2px;
 }
 
+/* ============================================
+   Color Contrast Improvements
+   ============================================ */
+
+/* Ensure form labels are always readable */
+.form-group label,
+.modal-content label,
+.signature-modal label {
+  color: var(--text-primary);
+}
+
+/* Ensure placeholder text has good contrast on all backgrounds */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* Success messages - dark text for readability */
+.success-message,
+.signature-success-banner,
+.fully-signed-message {
+  color: #065f46 !important;
+}
+
+.success-message svg,
+.signature-success-banner svg,
+.fully-signed-message svg {
+  color: #059669 !important;
+}
+
+/* Warning/amber text - ensure dark enough for readability */
+.warning-text,
+.status-badge.pending,
+.status-badge.working {
+  color: #92400e;
+}
+
+/* Status badges - ensure text is dark enough */
+.status-badge {
+  font-weight: 600;
+}
+
+/* Highlighted text on light backgrounds - use dark text */
+.highlight-text,
+.selected-item,
+.active-selection {
+  color: #0f172a;
+}
+
+/* Light theme contrast fixes for labels */
+[data-theme="light"] .form-group label,
+[data-theme="light"] .modal-content label {
+  color: #1e293b;
+}
+
+/* Required field indicator - always visible orange */
+.required-indicator,
+label .required-star,
+.field-required::after {
+  color: #ea580c;
+  font-weight: bold;
+}
+
+/* Required field with orange left bar indicator */
+.input-required,
+.required-field input,
+.required-field textarea,
+.required-field select {
+  border-left: 3px solid #f97316 !important;
+  padding-left: calc(1rem - 3px);
+}
+
+/* Form group with required indicator */
+.form-group.required label::after {
+  content: ' *';
+  color: #f97316;
+  font-weight: 600;
+}
+
+/* Required field empty state - stronger visual cue */
+.input-required:invalid,
+.input-required[data-empty="true"],
+.form-group.required input:placeholder-shown,
+.form-group.required textarea:placeholder-shown {
+  border-left-color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.05);
+}
+
+/* Required field filled state - subtle indicator */
+.input-required:valid:not(:placeholder-shown),
+.form-group.required input:not(:placeholder-shown),
+.form-group.required textarea:not(:placeholder-shown) {
+  border-left-color: rgba(249, 115, 22, 0.4) !important;
+  background: var(--bg-input);
+}
+
+/* Ensure modal text is always readable */
+.modal-content {
+  color: var(--text-primary);
+}
+
+.modal-content h2,
+.modal-content h3,
+.modal-content h4 {
+  color: var(--text-primary);
+}
+
+/* Fix any light text on light backgrounds */
+[data-theme="light"] .text-muted,
+[data-theme="light"] .text-secondary {
+  color: #475569;
+}
+
+/* Ensure input text is always visible */
+input,
+select,
+textarea {
+  color: var(--text-primary);
+}
+
 /* Navigation */
 .nav {
   background: var(--bg-secondary);
@@ -13734,6 +13855,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   letter-spacing: 0.03em;
 }
 
+.cor-signed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.25rem;
+}
+
+.cor-signed-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
 .cor-total {
   font-weight: 700;
   font-size: 1.1rem;
@@ -16187,6 +16326,61 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   justify-content: center;
   gap: 0.5rem;
   font-weight: 500;
+}
+
+/* Signed Overlay - Full screen confirmation after signing */
+.signature-signed-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(16, 185, 129, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.signature-signed-content {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  max-width: 400px;
+  margin: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.signature-signed-content svg {
+  color: #10b981;
+  margin-bottom: 1rem;
+}
+
+.signature-signed-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.75rem 0;
+}
+
+.signature-signed-content p {
+  font-size: 1rem;
+  color: #475569;
+  margin: 0 0 0.5rem 0;
+}
+
+.signature-signed-content .close-prompt {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #10b981;
+  margin-top: 1.5rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Document Card */

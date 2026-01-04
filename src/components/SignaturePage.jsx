@@ -178,10 +178,8 @@ export default function SignaturePage({ signatureToken }) {
 
       setShowSignatureModal(false)
       setActiveSlot(null)
-      setSuccessMessage(`Signature ${activeSlot} has been recorded successfully.`)
-
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(null), 5000)
+      // Show persistent signed confirmation (don't auto-clear)
+      setSuccessMessage('signed')
     } catch (err) {
       console.error('Error submitting signature:', err)
       setError('Failed to submit signature. Please try again.')
@@ -286,10 +284,14 @@ export default function SignaturePage({ signatureToken }) {
           </div>
         </header>
 
-        {successMessage && (
-          <div className="signature-success-banner">
-            <CheckCircle size={18} />
-            {successMessage}
+        {successMessage === 'signed' && (
+          <div className="signature-signed-overlay">
+            <div className="signature-signed-content">
+              <CheckCircle size={48} />
+              <h2>Document Signed Successfully</h2>
+              <p>This document has been signed and submitted.</p>
+              <p className="close-prompt">You may close this page.</p>
+            </div>
           </div>
         )}
 
@@ -465,11 +467,15 @@ export default function SignaturePage({ signatureToken }) {
         </div>
       </header>
 
-      {/* Success message */}
-      {successMessage && (
-        <div className="signature-success-banner">
-          <CheckCircle size={18} />
-          {successMessage}
+      {/* Success message - persistent signed confirmation */}
+      {successMessage === 'signed' && (
+        <div className="signature-signed-overlay">
+          <div className="signature-signed-content">
+            <CheckCircle size={48} />
+            <h2>Document Signed Successfully</h2>
+            <p>This document has been signed and submitted.</p>
+            <p className="close-prompt">You may close this page.</p>
+          </div>
         </div>
       )}
 

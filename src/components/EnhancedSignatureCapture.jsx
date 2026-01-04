@@ -147,8 +147,8 @@ export default function EnhancedSignatureCapture({
 
           {/* Signer info fields */}
           <div className="signature-fields">
-            <div className="form-group">
-              <label htmlFor="signer-name">Print Name *</label>
+            <div className="form-group required">
+              <label htmlFor="signer-name">Print Name</label>
               <input
                 id="signer-name"
                 type="text"
@@ -156,6 +156,7 @@ export default function EnhancedSignatureCapture({
                 onChange={(e) => setSignerName(e.target.value)}
                 placeholder="Enter your full legal name"
                 aria-required="true"
+                className="input-required"
               />
             </div>
 

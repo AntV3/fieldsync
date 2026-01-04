@@ -511,24 +511,26 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                   className="input-small"
                 />
               </div>
-              <div className="form-group flex-grow">
-                <label>Title *</label>
+              <div className="form-group flex-grow required">
+                <label>Title</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., Additional Demolition Work - Building A"
+                  className="input-required"
                 />
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="form-group required">
               <label>Description</label>
               <textarea
                 value={scopeOfWork}
                 onChange={(e) => setScopeOfWork(e.target.value)}
                 rows={2}
-                placeholder="Describe the scope of work (optional)"
+                placeholder="Describe the scope of work"
+                className="input-required"
               />
             </div>
 
