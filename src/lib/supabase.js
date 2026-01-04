@@ -832,19 +832,50 @@ export const db = {
 
     const channel = supabase.channel(`company_activity:${companyId}`)
 
-    // Subscribe to messages from any project
+    // Subscribe to project-level changes
     projectIds.forEach(projectId => {
+      // Messages
       channel.on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onMessage?.(payload)
       )
+
+      // Material requests
       channel.on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'material_requests', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onMaterialRequest?.(payload)
       )
+
+      // T&M Tickets - INSERT and UPDATE
       channel.on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 't_and_m_tickets', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onTMTicket?.(payload)
+      )
+      channel.on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 't_and_m_tickets', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onTMTicket?.(payload)
+      )
+
+      // Crew check-ins - critical for labor tracking
+      channel.on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'crew_checkins', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onCrewCheckin?.(payload)
+      )
+      channel.on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'crew_checkins', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onCrewCheckin?.(payload)
+      )
+
+      // Area progress updates
+      channel.on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'areas', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onAreaUpdate?.(payload)
+      )
+
+      // Change orders (CORs)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onCORChange?.(payload)
       )
     })
 

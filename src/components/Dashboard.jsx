@@ -14,7 +14,6 @@ import CORDetail from './cor/CORDetail'
 import BurnRateCard from './BurnRateCard'
 import CostContributorsCard from './CostContributorsCard'
 import ProfitabilityCard from './ProfitabilityCard'
-import DisposalSummary from './DisposalSummary'
 import AddCostModal from './AddCostModal'
 import ProjectTeam from './ProjectTeam'
 import { FinancialTrendChart } from './charts'
@@ -86,25 +85,37 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [])
 
+  // Initial load
   useEffect(() => {
     if (company?.id) {
       loadProjects()
       loadDumpSites()
+    }
+  }, [company?.id])
 
-      // Subscribe to company-wide activity to refresh metrics in real-time
-      // Uses debounced refresh to coalesce rapid updates from multiple sources
-      const projectIds = projects.map(p => p.id)
-      const subscription = projectIds.length > 0
-        ? db.subscribeToCompanyActivity?.(company.id, projectIds, {
-            onMessage: () => debouncedRefresh(),
-            onMaterialRequest: () => debouncedRefresh(),
-            onTMTicket: () => debouncedRefresh(),
-            onInjuryReport: () => debouncedRefresh()
-          })
-        : null
+  // Real-time subscription - runs after projects are loaded
+  useEffect(() => {
+    if (!company?.id || projects.length === 0) return
 
-      return () => {
-        if (subscription) db.unsubscribe?.(subscription)
+    // Subscribe to company-wide activity to refresh metrics in real-time
+    // Uses debounced refresh to coalesce rapid updates from multiple sources
+    const projectIds = projects.map(p => p.id)
+    const subscription = db.subscribeToCompanyActivity?.(company.id, projectIds, {
+      onMessage: () => debouncedRefresh(),
+      onMaterialRequest: () => debouncedRefresh(),
+      onTMTicket: () => debouncedRefresh(),
+      onCrewCheckin: () => debouncedRefresh(), // Crew check-ins affect labor costs
+      onAreaUpdate: () => debouncedRefresh(), // Area updates affect progress
+      onCORChange: () => debouncedRefresh({ refreshCOR: true }), // COR changes
+      onInjuryReport: () => debouncedRefresh()
+    })
+
+    console.log('[Dashboard] Subscribed to real-time updates for', projectIds.length, 'projects')
+
+    return () => {
+      if (subscription) {
+        console.log('[Dashboard] Unsubscribing from real-time updates')
+        db.unsubscribe?.(subscription)
       }
     }
   }, [company?.id, projects.length, debouncedRefresh])
@@ -237,20 +248,45 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             return sum + (isNaN(amount) ? 0 : amount)
           }, 0)
 
-          // Total costs combining labor, haul-off, and custom
+          // Calculate materials/equipment costs from T&M tickets
+          let materialsEquipmentCost = 0
+          const materialsEquipmentByDate = {}
+          tickets.forEach(ticket => {
+            const ticketDate = ticket.work_date || ticket.ticket_date || ticket.created_at?.split('T')[0]
+            const items = ticket.t_and_m_items || ticket.items || []
+
+            let ticketMaterialsCost = 0
+            items.forEach(item => {
+              const qty = parseFloat(item.quantity) || 1
+              const cost = parseFloat(item.unit_cost) || parseFloat(item.materials_equipment?.cost_per_unit) || 0
+              ticketMaterialsCost += qty * cost
+            })
+
+            if (ticketMaterialsCost > 0 && ticketDate) {
+              materialsEquipmentCost += ticketMaterialsCost
+              if (!materialsEquipmentByDate[ticketDate]) {
+                materialsEquipmentByDate[ticketDate] = { date: ticketDate, cost: 0 }
+              }
+              materialsEquipmentByDate[ticketDate].cost += ticketMaterialsCost
+            }
+          })
+          const materialsEquipmentByDateArray = Object.values(materialsEquipmentByDate)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+
+          // Total costs combining labor, materials/equipment, and custom
           const laborCost = laborCosts?.totalCost || 0
-          const haulOffCost = haulOffCosts?.totalCost || 0
-          const allCostsTotal = laborCost + haulOffCost + customCostTotal
+          const haulOffCost = haulOffCosts?.totalCost || 0 // Keep for backwards compatibility
+          const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal
 
           // Calculate profit and margin
           const currentProfit = billable - allCostsTotal
           const profitMargin = billable > 0 ? (currentProfit / billable) * 100 : 0
 
-          // Burn rate calculations
+          // Burn rate calculations - now using labor + materials/equipment
           const laborDays = laborCosts?.byDate?.length || 0
-          const haulOffDays = haulOffCosts?.daysWithHaulOff || 0
-          const totalBurnDays = Math.max(laborDays, haulOffDays)
-          const totalBurn = laborCost + haulOffCost
+          const materialsDays = materialsEquipmentByDateArray.length
+          const totalBurnDays = Math.max(laborDays, materialsDays)
+          const totalBurn = laborCost + materialsEquipmentCost
           const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
           // Schedule performance insights
@@ -285,10 +321,13 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             laborManDays: laborCosts?.totalManDays || 0,
             laborByDate: laborCosts?.byDate || [],
             dailyBurn,
-            // Haul-off costs
+            // Materials/Equipment costs (from T&M tickets)
+            materialsEquipmentCost,
+            materialsEquipmentByDate: materialsEquipmentByDateArray,
+            // Haul-off costs (kept for backwards compatibility)
             haulOffCost,
             haulOffLoads: haulOffCosts?.totalLoads || 0,
-            haulOffDays,
+            haulOffDays: haulOffCosts?.daysWithHaulOff || 0,
             haulOffByType: haulOffCosts?.byWasteType || {},
             haulOffByDate: haulOffCosts?.byDate || [],
             // Custom costs
@@ -1241,11 +1280,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   totalBurn={projectData?.totalBurn || 0}
                   daysWorked={projectData?.totalBurnDays || 0}
                   laborCost={projectData?.laborCost || 0}
-                  haulOffCost={projectData?.haulOffCost || 0}
+                  materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
                   progress={progress}
                   contractValue={revisedContractValue}
                   laborByDate={projectData?.laborByDate || []}
-                  haulOffByDate={projectData?.haulOffByDate || []}
+                  materialsEquipmentByDate={projectData?.materialsEquipmentByDate || []}
                 />
 
                 <ProfitabilityCard
@@ -1255,10 +1294,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   progress={progress}
                 />
 
-                <DisposalSummary
-                  project={selectedProject}
-                  period="week"
-                />
               </div>
 
               {/* Cost Contributors */}

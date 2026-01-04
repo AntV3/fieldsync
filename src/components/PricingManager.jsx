@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { HardHat, Wrench, Truck } from 'lucide-react'
+import { HardHat, Wrench } from 'lucide-react'
 import LaborRatesSection from './pricing/LaborRatesSection'
 import MaterialsSection from './pricing/MaterialsSection'
-import DumpSitesSection from './pricing/DumpSitesSection'
 
 const PRICING_TABS = [
   { id: 'labor', label: 'Labor Rates', Icon: HardHat },
-  { id: 'materials', label: 'Materials & Equipment', Icon: Wrench },
-  { id: 'disposal', label: 'Disposal & Haul-Off', Icon: Truck }
+  { id: 'materials', label: 'Materials & Equipment', Icon: Wrench }
 ]
 
 export default function PricingManager({ company, onShowToast }) {
@@ -41,9 +39,6 @@ export default function PricingManager({ company, onShowToast }) {
         )}
         {activeTab === 'materials' && (
           <MaterialsSection company={company} onShowToast={onShowToast} />
-        )}
-        {activeTab === 'disposal' && (
-          <DumpSitesSection company={company} onShowToast={onShowToast} />
         )}
       </div>
     </div>

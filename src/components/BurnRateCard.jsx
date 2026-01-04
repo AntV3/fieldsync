@@ -24,11 +24,11 @@ export default function BurnRateCard({
   totalBurn,
   daysWorked,
   laborCost,
-  haulOffCost,
+  materialsEquipmentCost = 0,
   progress,
   contractValue,
   laborByDate = [],
-  haulOffByDate = []
+  materialsEquipmentByDate = []
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -48,23 +48,23 @@ export default function BurnRateCard({
   const burnPerProgress = progress > 0 ? totalBurn / (progress / 100) : 0
   const projectedTotalCost = burnPerProgress
 
-  // Merge labor and haul-off by date for combined view
+  // Merge labor and materials/equipment by date for combined view
   const combinedByDate = []
   const dateMap = {}
 
   laborByDate.forEach(day => {
     if (!dateMap[day.date]) {
-      dateMap[day.date] = { date: day.date, labor: 0, haulOff: 0, total: 0 }
+      dateMap[day.date] = { date: day.date, labor: 0, materialsEquipment: 0, total: 0 }
     }
     dateMap[day.date].labor = day.cost || 0
     dateMap[day.date].total += day.cost || 0
   })
 
-  haulOffByDate.forEach(day => {
+  materialsEquipmentByDate.forEach(day => {
     if (!dateMap[day.date]) {
-      dateMap[day.date] = { date: day.date, labor: 0, haulOff: 0, total: 0 }
+      dateMap[day.date] = { date: day.date, labor: 0, materialsEquipment: 0, total: 0 }
     }
-    dateMap[day.date].haulOff = day.cost || 0
+    dateMap[day.date].materialsEquipment = day.cost || 0
     dateMap[day.date].total += day.cost || 0
   })
 
@@ -113,8 +113,8 @@ export default function BurnRateCard({
         </div>
         <div className="burn-summary-divider"></div>
         <div className="burn-summary-item">
-          <span className="burn-summary-label">Disposal</span>
-          <span className="burn-summary-value">{formatCurrency(haulOffCost)}</span>
+          <span className="burn-summary-label">Materials</span>
+          <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
         </div>
       </div>
 
@@ -142,14 +142,14 @@ export default function BurnRateCard({
           <div className="burn-details-header">
             <span>Date</span>
             <span>Labor</span>
-            <span>Disposal</span>
+            <span>Materials</span>
             <span>Total</span>
           </div>
           {combinedByDate.map(day => (
             <div key={day.date} className="burn-details-row">
               <span className="burn-date">{formatDate(day.date)}</span>
               <span className="burn-labor">{day.labor > 0 ? formatCurrency(day.labor) : '-'}</span>
-              <span className="burn-hauloff">{day.haulOff > 0 ? formatCurrency(day.haulOff) : '-'}</span>
+              <span className="burn-materials">{day.materialsEquipment > 0 ? formatCurrency(day.materialsEquipment) : '-'}</span>
               <span className="burn-total">
                 <span className="burn-bar" style={{ width: `${(day.total / maxDailyCost) * 100}%` }}></span>
                 <span className="burn-amount">{formatCurrency(day.total)}</span>
