@@ -17,6 +17,7 @@ import ProfitabilityCard from './ProfitabilityCard'
 import DisposalSummary from './DisposalSummary'
 import AddCostModal from './AddCostModal'
 import ProjectTeam from './ProjectTeam'
+import { FinancialTrendChart } from './charts'
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -269,6 +270,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             totalTickets: tickets.length,
             pendingTickets,
             approvedTickets: tickets.filter(t => t.status === 'approved').length,
+            tmTickets: tickets, // Full T&M ticket array for charts
             dailyReportsCount: dailyReports.length,
             recentDailyReports,
             injuryReportsCount: injuryReports.length,
@@ -305,6 +307,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             corApprovedValue: corStats?.total_approved_value || 0,
             corBilledValue: corStats?.total_billed_value || 0,
             corTotalCount: corStats?.total_cors || 0,
+            corStats: corStats, // Raw COR stats for charts
             // Schedule performance insights
             scheduleStatus: scheduleInsights.scheduleStatus,
             scheduleVariance: scheduleInsights.scheduleVariance,
@@ -1222,6 +1225,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   </div>
                 </div>
               </div>
+
+              {/* Financial Trend Chart */}
+              <FinancialTrendChart
+                projectData={projectData}
+                project={selectedProject}
+                tmTickets={projectData?.tmTickets || []}
+                corStats={projectData?.corStats}
+              />
 
               {/* Burn Rate & Profitability Row */}
               <div className="financials-analysis-row">

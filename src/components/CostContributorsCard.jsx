@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Plus, HardHat, Truck, Wrench, Package, Users, MoreHorizontal, Trash2 } from 'lucide-react'
+import { CostDonut } from './charts'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -28,7 +29,7 @@ export default function CostContributorsCard({
   onAddCost,
   onDeleteCost
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [showChart, setShowChart] = useState(true)
   const [expandedCategory, setExpandedCategory] = useState(null)
 
   // Build cost breakdown combining auto-tracked and custom costs
@@ -96,11 +97,37 @@ export default function CostContributorsCard({
     setExpandedCategory(expandedCategory === category ? null : category)
   }
 
+  // Handle donut segment click
+  const handleSegmentClick = (segment) => {
+    if (segment.items && segment.items.length > 0) {
+      setShowChart(false)
+      setExpandedCategory(segment.category)
+    }
+  }
+
   return (
     <div className="cost-contributors-card">
       <div className="cost-contributors-header">
-        <h3>Cost Contributors</h3>
-        <span className="cost-total">{formatCurrency(totalCost)}</span>
+        <div className="cost-contributors-title">
+          <h3>Cost Contributors</h3>
+          <span className="cost-total">{formatCurrency(totalCost)}</span>
+        </div>
+        {costBreakdown.length > 0 && (
+          <div className="cost-view-toggle">
+            <button
+              className={showChart ? 'active' : ''}
+              onClick={() => setShowChart(true)}
+            >
+              Chart
+            </button>
+            <button
+              className={!showChart ? 'active' : ''}
+              onClick={() => setShowChart(false)}
+            >
+              List
+            </button>
+          </div>
+        )}
       </div>
 
       {costBreakdown.length === 0 ? (
@@ -108,6 +135,13 @@ export default function CostContributorsCard({
           <p>No costs recorded yet</p>
           <small>Costs will appear as crew checks in and haul-offs are logged</small>
         </div>
+      ) : showChart ? (
+        <CostDonut
+          laborCost={laborCost}
+          haulOffCost={haulOffCost}
+          customCosts={customCosts}
+          onSegmentClick={handleSegmentClick}
+        />
       ) : (
         <div className="cost-breakdown">
           {costBreakdown.map(category => {

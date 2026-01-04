@@ -1,6 +1,25 @@
 # PROJECT_CONTEXT.md
 > Canonical source of truth for FieldSync. Authoritative over ad-hoc instructions.
-> Last updated: 2025-01-01 (Updated with COR UX improvements)
+> Last updated: 2025-01-04 (Scalability & Onboarding Documentation)
+
+---
+
+## Documentation Index
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| **[PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md)** | Canonical source of truth, business rules | All |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | System architecture, data flow, tech decisions | Engineers |
+| **[DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)** | Onboarding, coding conventions, patterns | New engineers |
+| **[CODE_MAP.md](./CODE_MAP.md)** | File reference, component relationships | All engineers |
+| **[daily log.md](./daily%20log.md)** | Development history, feature tracking | All |
+
+### Quick Start for New Engineers
+
+1. Read this file (PROJECT_CONTEXT.md) for business context
+2. Read [ARCHITECTURE.md](./ARCHITECTURE.md) for technical overview
+3. Read [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) for coding patterns
+4. Use [CODE_MAP.md](./CODE_MAP.md) as a reference while coding
 
 ---
 
@@ -346,33 +365,69 @@ USING (
 
 ## 11. Key Files Reference
 
+> For complete file reference, see [CODE_MAP.md](./CODE_MAP.md)
+
+### Core Application
+
 | File | Purpose |
 |------|---------|
-| `src/App.jsx` | Main routing, auth state, company context, admin detection via `access_level` |
-| `src/components/AppEntry.jsx` | Company join flow (code entry, account creation) |
-| `src/components/MembershipManager.jsx` | Admin UI for approving members with access level + company role |
-| `src/components/ProjectTeam.jsx` | Project team management - assign members with project roles |
-| `src/components/BrandingSettings.jsx` | Company branding + office code management (admin only) |
-| `src/components/Dashboard.jsx` | Office dashboard with ProjectTeam in Info tab |
-| `src/components/cor/CORForm.jsx` | COR creation with quick select for materials/equipment |
+| `src/App.jsx` | Main routing, auth state, company context |
+| `src/components/Dashboard.jsx` | Office dashboard (1,965 lines - needs refactor) |
+| `src/components/ForemanView.jsx` | Field crew interface |
+| `src/components/TMForm.jsx` | T&M ticket creation (2,353 lines - needs split) |
+| `src/components/SignaturePage.jsx` | Public signature collection |
+
+### COR (Change Order Request)
+
+| File | Purpose |
+|------|---------|
+| `src/components/cor/CORForm.jsx` | COR creation with quick select |
+| `src/components/cor/CORDetail.jsx` | COR detail view, uses export pipeline |
 | `src/components/cor/CORList.jsx` | COR list with multi-select grouping |
-| `src/components/cor/CORDetail.jsx` | COR detail view with editable COR numbers |
-| `src/lib/supabase.js` | Database functions, membership management, project team functions |
-| `database/migration_company_join_approval.sql` | Complete membership approval migration |
-| `database/migration_access_levels.sql` | Access levels + project_users table migration |
+
+### Libraries
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `src/lib/supabase.js` | Database facade (5,926 lines - needs split) | Active |
+| `src/lib/corExportPipeline.js` | COR export orchestration | Active |
+| `src/lib/corPdfGenerator.js` | PDF generation from snapshots | **Preferred** |
+| `src/lib/corPdfExport.js` | Legacy PDF generation | **Deprecated** |
+| `src/lib/AuthContext.jsx` | Auth context provider | **Not used** |
+
+### Admin
+
+| File | Purpose |
+|------|---------|
+| `src/components/MembershipManager.jsx` | Approve/manage team members |
+| `src/components/ProjectTeam.jsx` | Project team assignments |
+| `src/components/BrandingSettings.jsx` | Company branding settings |
 
 ---
 
-## 12. Known Risks & Open Questions
+## 12. Known Risks & Technical Debt
+
+### Technical Debt (Prioritized)
+
+| Item | Lines | Priority | Suggested Action |
+|------|-------|----------|------------------|
+| `supabase.js` | 5,926 | **High** | Split by domain (projects, areas, tickets, cors, users) |
+| `TMForm.jsx` | 2,353 | **High** | Split into step components (TMWorkInfoStep, TMCrewStep, etc.) |
+| `Dashboard.jsx` | 1,965 | **Medium** | Extract tab content to separate components |
+| `TMList.jsx` | 1,543 | **Medium** | Extract table/filter logic |
+| `SignaturePage.jsx` | 1,265 | **Medium** | Split COR vs T&M handling |
+| `CORForm.jsx` | 1,056 | **Medium** | Split into step components |
+| `AuthContext.jsx` | 456 | **Low** | Either integrate or delete |
+| Signature components | 4 files | **Low** | Consolidate to single reusable component |
 
 ### Risks
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
+| Large files slow new engineer onboarding | High | Documentation created; refactor per debt table above |
 | Service worker serves stale JS causing React errors | High | Version bump on every build; documented in deployment process |
-| Supabase free tier limits real-time connections | Medium | Monitor usage; upgrade path exists |
-| 1700+ line Dashboard.jsx is a maintenance burden | Medium | Accepted tech debt; refactor when adding major features |
 | No automated tests | High | Manual QA currently; test infrastructure is future work |
+| Supabase free tier limits real-time connections | Medium | Monitor usage; upgrade path exists |
 | Office code leakage grants pending access | Low | Admin approval required; codes can be regenerated |
 
 ### Open Questions
@@ -403,6 +458,8 @@ USING (
 | `migration_company_join_approval.sql` | Complete approval layer with RPC functions |
 | `migration_legacy_user_repair.sql` | **Fixes legacy users** missing membership records |
 | `migration_access_levels.sql` | **Access levels + project teams** - separates security from visibility |
+| `migration_photo_reliability.sql` | Photo reliability + export snapshots |
+| `migration_cor_export_pipeline.sql` | **Industrial-grade COR export** - idempotent async exports with state machine |
 
 ---
 
@@ -469,11 +526,100 @@ Continue normal flow
 
 ---
 
-*Last significant update: COR UX improvements - editable COR numbers, multi-select grouping for bulk organization, quick select for materials/equipment from company library. Previous: Access Levels, Company Roles, Project Roles separation.*
+*Last significant update: Industrial-grade COR Export Pipeline with idempotency, snapshots, and async state machine. Previous: COR UX improvements, Access Levels separation.*
 
 ---
 
-## 15. Access Levels Architecture
+## 15. COR Export Pipeline Architecture
+
+### Design Principles
+
+1. **Idempotency** - Repeat requests with same key return same result
+2. **Deterministic** - Same COR version always produces identical output
+3. **Async by Default** - Heavy operations don't block UI
+4. **Fail Loudly** - Failures are detectable and recoverable
+5. **Snapshot-Based** - Never query live data during PDF generation
+
+### Pipeline Flow
+
+```
+User clicks Export
+      ↓
+Request Export (idempotency check)
+      ↓ (if new request)
+Create Snapshot (freeze COR data)
+      ↓
+Generate PDF (from snapshot only)
+      ↓
+Update Job Status (completed/failed)
+      ↓
+Return PDF URL
+```
+
+### Database Schema
+
+```
+cor_export_jobs (state machine)
+├── id, cor_id, snapshot_id
+├── idempotency_key (unique)
+├── status: pending → generating → completed | failed
+├── options (JSONB)
+├── retry_count, max_retries, last_error
+├── pdf_url, pdf_size_bytes, generation_time_ms
+└── metrics: photo_count, ticket_count, page_count
+
+change_orders (enhanced)
+├── version (auto-increments on changes)
+├── last_snapshot_version
+└── Pre-aggregated stats:
+    ├── total_labor_hours
+    ├── total_overtime_hours
+    ├── ticket_count
+    ├── photo_count
+    └── verified_ticket_count
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/corExportPipeline.js` | Orchestrator - `executeExport()`, `requestExport()`, `createSnapshot()` |
+| `src/lib/corPdfGenerator.js` | PDF generation from snapshots only - never queries live data |
+| `src/lib/corPdfExport.js` | **DEPRECATED** - Legacy export, kept for SignaturePage backward compatibility |
+| `database/migration_cor_export_pipeline.sql` | Complete migration with triggers, functions, RLS |
+
+### RPC Functions
+
+| Function | Purpose |
+|----------|---------|
+| `request_cor_export(cor_id, key, options, user)` | Idempotent job creation - returns existing or creates new |
+| `update_export_job_status(job_id, status, ...)` | Update job with metrics/errors |
+| `update_cor_aggregated_stats(cor_id)` | Recalculate pre-aggregated statistics |
+
+### Version Tracking
+
+```
+COR changes → version++ (via trigger)
+      ↓
+Export requested
+      ↓
+version != last_snapshot_version?
+      ↓ Yes                    ↓ No
+Create new snapshot     Return cached result
+      ↓
+Update last_snapshot_version
+```
+
+### Error Recovery
+
+- Failed jobs increment `retry_count`
+- Jobs can be retried up to `max_retries`
+- `last_error` and `error_details` preserved for debugging
+- UI can show export history with status
+
+---
+
+## 16. Access Levels Architecture
 
 ### Design Principles
 

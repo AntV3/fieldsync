@@ -1,0 +1,340 @@
+// ============================================
+// Chart Data Transformations
+// ============================================
+// Utilities to transform Dashboard.jsx data into
+// chart-friendly formats for Recharts.
+// ============================================
+
+import { chartColors, costCategories } from '../components/charts/chartConfig'
+
+/**
+ * Build cumulative time-series for the Financial Trend Chart
+ * Merges labor, disposal, T&M, and COR data by date
+ *
+ * @param {Object} projectData - Computed project data from Dashboard
+ * @param {Object} project - Selected project
+ * @param {Array} tmTickets - T&M tickets for the project
+ * @param {Object} corStats - COR statistics
+ * @returns {Array} Chart-ready data points
+ */
+export function buildFinancialTimeSeries(projectData, project, tmTickets = [], corStats = null) {
+  const contractValue = project?.contract_value || 0
+  const laborByDate = projectData?.laborByDate || []
+  const haulOffByDate = projectData?.haulOffByDate || []
+  const customCosts = projectData?.customCosts || []
+
+  // Collect all unique dates from all sources
+  const dateSet = new Set()
+
+  laborByDate.forEach(d => dateSet.add(d.date))
+  haulOffByDate.forEach(d => dateSet.add(d.date))
+  customCosts.forEach(c => {
+    if (c.cost_date) dateSet.add(c.cost_date)
+  })
+
+  // Add T&M ticket dates
+  tmTickets.forEach(t => {
+    if (t.work_date) dateSet.add(t.work_date)
+    if (t.created_at) dateSet.add(t.created_at.split('T')[0])
+  })
+
+  // Sort dates chronologically
+  const sortedDates = [...dateSet].sort((a, b) => new Date(a) - new Date(b))
+
+  if (sortedDates.length === 0) {
+    return []
+  }
+
+  // Build cumulative data
+  let cumulativeCost = 0
+  let cumulativeTMValue = 0
+  let cumulativeCORValue = 0
+
+  // Pre-calculate T&M values by date
+  const tmByDate = {}
+  tmTickets.forEach(ticket => {
+    const date = ticket.work_date || ticket.created_at?.split('T')[0]
+    if (!date) return
+
+    // Calculate ticket value (labor + materials + equipment)
+    let ticketValue = 0
+
+    // Labor value
+    if (ticket.workers && Array.isArray(ticket.workers)) {
+      ticket.workers.forEach(w => {
+        const regHours = parseFloat(w.regular_hours) || 0
+        const otHours = parseFloat(w.overtime_hours) || 0
+        const regRate = parseFloat(w.regular_rate) || 50
+        const otRate = parseFloat(w.overtime_rate) || 75
+        ticketValue += (regHours * regRate) + (otHours * otRate)
+      })
+    }
+
+    // Materials and equipment
+    if (ticket.items && Array.isArray(ticket.items)) {
+      ticket.items.forEach(item => {
+        ticketValue += (parseFloat(item.quantity) || 1) * (parseFloat(item.unit_cost) || 0)
+      })
+    }
+
+    if (!tmByDate[date]) {
+      tmByDate[date] = 0
+    }
+    tmByDate[date] += ticketValue
+  })
+
+  // Pre-calculate custom costs by date
+  const customByDate = {}
+  customCosts.forEach(cost => {
+    const date = cost.cost_date
+    if (!date) return
+    if (!customByDate[date]) {
+      customByDate[date] = 0
+    }
+    customByDate[date] += parseFloat(cost.amount) || 0
+  })
+
+  // Build the time series
+  const timeSeries = sortedDates.map((date, index) => {
+    // Find labor cost for this date
+    const laborDay = laborByDate.find(d => d.date === date)
+    const laborCost = laborDay?.cost || 0
+
+    // Find haul-off cost for this date
+    const haulOffDay = haulOffByDate.find(d => d.date === date)
+    const haulOffCost = haulOffDay?.cost || 0
+
+    // Custom costs for this date
+    const customCost = customByDate[date] || 0
+
+    // Accumulate costs
+    cumulativeCost += laborCost + haulOffCost + customCost
+
+    // Accumulate T&M value
+    const tmDayValue = tmByDate[date] || 0
+    cumulativeTMValue += tmDayValue
+
+    // Calculate earned revenue based on progress
+    // This is simplified - uses cumulative approach
+    // In reality, would need area completion dates
+    const progressFraction = (index + 1) / sortedDates.length
+    const estimatedRevenue = Math.min(
+      contractValue * progressFraction * (projectData?.progress || 0) / 100,
+      projectData?.billable || 0
+    )
+
+    return {
+      date,
+      contract: contractValue,
+      revenue: Math.round(estimatedRevenue),
+      costs: Math.round(cumulativeCost),
+      tmValue: Math.round(cumulativeTMValue),
+      corValue: Math.round(corStats?.total_approved_value || 0),
+      profit: Math.round(estimatedRevenue - cumulativeCost),
+      // Daily values for tooltips
+      dailyLabor: Math.round(laborCost),
+      dailyHaulOff: Math.round(haulOffCost),
+      dailyCustom: Math.round(customCost),
+      dailyTM: Math.round(tmDayValue),
+    }
+  })
+
+  return timeSeries
+}
+
+/**
+ * Filter time series by date range
+ *
+ * @param {Array} data - Full time series data
+ * @param {number|null} days - Number of days to include (null = all)
+ * @returns {Array} Filtered data
+ */
+export function filterByTimeRange(data, days) {
+  if (!days || !data.length) return data
+
+  const now = new Date()
+  const cutoff = new Date()
+  cutoff.setDate(now.getDate() - days)
+
+  return data.filter(d => new Date(d.date) >= cutoff)
+}
+
+/**
+ * Build cost distribution data for donut chart
+ *
+ * @param {number} laborCost - Total labor cost
+ * @param {number} haulOffCost - Total disposal cost
+ * @param {Array} customCosts - Array of custom cost entries
+ * @returns {Array} Chart-ready segments
+ */
+export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCosts = []) {
+  const segments = []
+
+  // Add labor if present
+  if (laborCost > 0) {
+    segments.push({
+      name: 'Labor',
+      value: laborCost,
+      color: chartColors.labor,
+      category: 'labor',
+    })
+  }
+
+  // Add disposal if present
+  if (haulOffCost > 0) {
+    segments.push({
+      name: 'Disposal',
+      value: haulOffCost,
+      color: chartColors.disposal,
+      category: 'disposal',
+    })
+  }
+
+  // Group custom costs by category
+  const grouped = {}
+  customCosts.forEach(cost => {
+    const cat = cost.category || 'other'
+    if (!grouped[cat]) {
+      grouped[cat] = {
+        items: [],
+        total: 0,
+      }
+    }
+    grouped[cat].items.push(cost)
+    grouped[cat].total += parseFloat(cost.amount) || 0
+  })
+
+  // Add grouped custom costs
+  Object.entries(grouped).forEach(([category, data]) => {
+    if (data.total > 0) {
+      const catConfig = costCategories[category] || costCategories.other
+      segments.push({
+        name: catConfig.label,
+        value: data.total,
+        color: catConfig.color,
+        category,
+        items: data.items,
+      })
+    }
+  })
+
+  // Calculate percentages
+  const total = segments.reduce((sum, s) => sum + s.value, 0)
+  segments.forEach(s => {
+    s.percentage = total > 0 ? Math.round((s.value / total) * 100) : 0
+  })
+
+  // Sort by value descending
+  segments.sort((a, b) => b.value - a.value)
+
+  return segments
+}
+
+/**
+ * Build COR funnel data
+ *
+ * @param {Object} corStats - COR statistics from database
+ * @returns {Array} Funnel stages
+ */
+export function buildCORFunnel(corStats) {
+  if (!corStats) return []
+
+  return [
+    {
+      stage: 'Draft',
+      count: corStats.draft_count || 0,
+      value: 0, // Draft CORs typically don't have values yet
+      color: chartColors.other,
+    },
+    {
+      stage: 'Pending',
+      count: corStats.pending_count || 0,
+      value: corStats.total_pending_value || 0,
+      color: chartColors.costs,
+    },
+    {
+      stage: 'Approved',
+      count: corStats.approved_count || 0,
+      value: corStats.total_approved_value || 0,
+      color: chartColors.revenue,
+    },
+    {
+      stage: 'Billed',
+      count: corStats.billed_count || 0,
+      value: corStats.total_billed_value || 0,
+      color: chartColors.profit,
+    },
+  ]
+}
+
+/**
+ * Build daily burn data for sparkline
+ *
+ * @param {Array} laborByDate - Daily labor costs
+ * @param {Array} haulOffByDate - Daily haul-off costs
+ * @param {number} limit - Max number of days to include
+ * @returns {Array} Sparkline data points
+ */
+export function buildBurnSparkline(laborByDate = [], haulOffByDate = [], limit = 14) {
+  // Merge and sort by date
+  const dateMap = {}
+
+  laborByDate.forEach(d => {
+    if (!dateMap[d.date]) {
+      dateMap[d.date] = { date: d.date, labor: 0, haulOff: 0 }
+    }
+    dateMap[d.date].labor = d.cost || 0
+  })
+
+  haulOffByDate.forEach(d => {
+    if (!dateMap[d.date]) {
+      dateMap[d.date] = { date: d.date, labor: 0, haulOff: 0 }
+    }
+    dateMap[d.date].haulOff = d.cost || 0
+  })
+
+  // Convert to array and sort
+  const data = Object.values(dateMap)
+    .map(d => ({
+      date: d.date,
+      total: d.labor + d.haulOff,
+      labor: d.labor,
+      haulOff: d.haulOff,
+    }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  // Return last N days
+  return data.slice(-limit)
+}
+
+/**
+ * Calculate trend direction from time series
+ *
+ * @param {Array} data - Time series data
+ * @param {string} key - Data key to analyze
+ * @returns {Object} Trend info { direction, percentage }
+ */
+export function calculateTrend(data, key) {
+  if (!data || data.length < 2) {
+    return { direction: 'flat', percentage: 0 }
+  }
+
+  const recent = data.slice(-7)
+  if (recent.length < 2) {
+    return { direction: 'flat', percentage: 0 }
+  }
+
+  const first = recent[0][key] || 0
+  const last = recent[recent.length - 1][key] || 0
+
+  if (first === 0) {
+    return { direction: last > 0 ? 'up' : 'flat', percentage: 0 }
+  }
+
+  const change = ((last - first) / first) * 100
+
+  return {
+    direction: change > 5 ? 'up' : change < -5 ? 'down' : 'flat',
+    percentage: Math.abs(Math.round(change)),
+  }
+}

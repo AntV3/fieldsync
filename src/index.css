@@ -18280,6 +18280,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.cost-contributors-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .cost-contributors-header h3 {
@@ -18292,6 +18299,35 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.cost-view-toggle {
+  display: flex;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.cost-view-toggle button {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.cost-view-toggle button:hover {
+  color: var(--text-primary);
+}
+
+.cost-view-toggle button.active {
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .cost-empty {
@@ -21407,4 +21443,407 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .dollar-input-wrapper.compact .dollar-input {
   padding-left: 1.25rem !important;
+}
+
+/* ============================================
+   Financial Chart Components
+   ============================================ */
+
+/* Financial Trend Chart Container */
+.financial-trend-chart {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  animation: chartFadeIn 0.4s ease;
+}
+
+.financial-trend-chart.empty {
+  padding: 2rem;
+}
+
+.chart-empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.chart-empty-state p {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.chart-empty-state span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Chart Header */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chart-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-trend-indicators {
+  display: flex;
+  gap: 1rem;
+}
+
+.trend-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.trend-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.trend-icon.up {
+  color: #10b981;
+}
+
+.trend-icon.down {
+  color: #ef4444;
+}
+
+.trend-icon.flat {
+  color: var(--text-muted);
+}
+
+.trend-pct {
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+/* Time Range Selector */
+.time-range-selector {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 0.25rem;
+}
+
+.time-range-selector button {
+  padding: 0.4rem 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-range-selector button:hover {
+  color: var(--text-primary);
+}
+
+.time-range-selector button.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Chart Container */
+.chart-container {
+  margin: 0 -0.5rem;
+}
+
+/* Quick Stats Row */
+.chart-quick-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+.quick-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.quick-stat .stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.quick-stat .stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Chart Tooltip */
+.chart-tooltip {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  min-width: 180px;
+}
+
+.chart-tooltip-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.chart-tooltip-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chart-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.chart-tooltip-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.chart-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-tooltip-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-tooltip-daily {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.chart-tooltip-daily-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.chart-tooltip-daily-row {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0.15rem 0;
+}
+
+.chart-tooltip-hint {
+  margin-top: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+/* Recharts overrides */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-legend-wrapper {
+  padding-bottom: 0.5rem !important;
+}
+
+.recharts-legend-item {
+  cursor: pointer;
+}
+
+.recharts-legend-item-text {
+  color: var(--text-secondary) !important;
+}
+
+/* Chart Animations */
+@keyframes chartFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Cost Donut Chart
+   ============================================ */
+.cost-donut {
+  animation: chartFadeIn 0.5s ease-out;
+}
+
+.cost-donut.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.donut-chart-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Center label for total */
+.donut-center-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  margin-top: -28px; /* Offset for legend space */
+}
+
+.donut-center-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.donut-center-text {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Custom legend */
+.donut-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+  padding: 0 0.5rem;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8125rem;
+}
+
+.donut-legend-item:hover,
+.donut-legend-item.active {
+  background: var(--hover-bg);
+}
+
+.donut-legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-legend-name {
+  color: var(--text-secondary);
+}
+
+.donut-legend-value {
+  font-weight: 500;
+  color: var(--text-color);
+  margin-left: auto;
+}
+
+/* Donut tooltip additions */
+.donut-tooltip {
+  min-width: 160px;
+}
+
+.donut-tooltip-pct {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.donut-tooltip-items {
+  margin-top: 0.5rem;
+}
+
+.donut-tooltip-items-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .time-range-selector {
+    justify-content: center;
+  }
+
+  .chart-quick-stats {
+    gap: 1rem;
+  }
+
+  .quick-stat {
+    flex: 1;
+    min-width: calc(50% - 0.5rem);
+  }
+
+  .chart-trend-indicators {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
 }

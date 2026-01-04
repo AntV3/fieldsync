@@ -21,7 +21,7 @@ export default function DumpSitesSection({ company, onShowToast }) {
   const debounceTimers = useRef({}) // Debounce timers for rate changes
 
   useEffect(() => {
-    if (company?.id) {
+    if (company?.id) {2
       loadDumpSites()
     }
   }, [company?.id])

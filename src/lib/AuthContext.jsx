@@ -1,3 +1,19 @@
+// ============================================
+// WARNING: THIS CONTEXT IS NOT CURRENTLY USED
+// ============================================
+// This AuthContext was created but never wired into App.jsx.
+// Authentication state is currently managed directly in App.jsx
+// using useState hooks and the auth object from supabase.js.
+//
+// Before using this context:
+// 1. Wrap App.jsx with <AuthProvider>
+// 2. Replace useState auth logic in App.jsx with useAuth()
+// 3. Update all components that receive auth props
+//
+// Current status: NOT ACTIVE - Do not import/use without
+// first completing the above integration steps.
+// ============================================
+
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase, db } from './supabase'
 

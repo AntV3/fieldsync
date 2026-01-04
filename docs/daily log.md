@@ -1,6 +1,164 @@
 # FieldSync Development Log
 
-**Last Updated:** January 1, 2025
+**Last Updated:** January 4, 2025
+
+---
+
+## January 4, 2025
+
+### Industrial-Grade COR Export Pipeline (Major Architecture)
+**Goal:** Transform COR PDF export from synchronous, fragile operation to an industrial-grade async pipeline with idempotency, snapshots, and failure recovery.
+
+**Core Principles Implemented:**
+1. **Idempotency** - Repeat export requests return same result via unique keys
+2. **Deterministic Exports** - Same COR state = same output (snapshot-based)
+3. **Async by Default** - Heavy operations don't block UI
+4. **Fail Loudly** - Failures are detectable and recoverable
+5. **Separation of Concerns** - Creation, aggregation, export decoupled
+
+**New Database Schema:**
+
+1. **`cor_export_jobs` table** - State machine for export tracking
+   - States: `pending → generating → completed | failed`
+   - Idempotency keys prevent duplicate exports
+   - Retry support with error tracking
+   - Metrics: photo count, ticket count, page count, generation time
+
+2. **`change_orders` new columns:**
+   - `version` - Auto-increments on meaningful changes
+   - `last_snapshot_version` - Tracks when snapshot was taken
+   - Pre-aggregated stats: `total_labor_hours`, `total_overtime_hours`, `ticket_count`, `photo_count`, `verified_ticket_count`
+
+3. **Triggers:**
+   - `trg_cor_version_increment` - Auto-increment version on COR changes
+   - `trg_update_cor_stats` - Update aggregated stats on ticket/labor changes
+
+4. **RPC Functions:**
+   - `request_cor_export(cor_id, idempotency_key, options, requested_by)` - Idempotent export request
+   - `update_export_job_status(job_id, status, ...)` - Update job with metrics/errors
+   - `update_cor_aggregated_stats(cor_id)` - Recalculate pre-aggregated stats
+
+**New Files Created:**
+
+1. **`src/lib/corExportPipeline.js`** - Main orchestrator
+   - `executeExport()` - Full pipeline: request job → create snapshot → generate PDF → update status
+   - `requestExport()` - Idempotent job creation
+   - `createSnapshot()` - Freeze COR data for deterministic export
+   - Generates unique idempotency keys per COR version
+
+2. **`src/lib/corPdfGenerator.js`** - PDF generation from snapshots
+   - `generatePDFFromSnapshot()` - Never queries live data
+   - `generateTicketPDFFromData()` - For individual T&M exports
+   - Works only with frozen snapshot data
+
+3. **`database/migration_cor_export_pipeline.sql`** - Complete migration
+   - All tables, triggers, functions, RLS policies
+   - Fully documented with comments
+
+**Files Modified:**
+
+1. **`src/lib/supabase.js`** - Added new database operations:
+   - `requestCORExport()`, `getExportJob()`, `getExportJobs()`
+   - `updateExportJobStatus()`, `getCurrentCORSnapshot()`, `saveCORSnapshot()`
+   - `updateCORAggregatedStats()`
+
+2. **`src/components/cor/CORDetail.jsx`** - Uses new pipeline:
+   - Import `executeExport` from new pipeline
+   - Shows "cached" indicator for instant re-downloads
+   - Better error handling
+
+3. **`src/lib/corPdfExport.js`** - Marked DEPRECATED
+   - Added deprecation header
+   - Still used by SignaturePage.jsx for backward compatibility
+   - All new code should use corExportPipeline.js + corPdfGenerator.js
+
+**Architecture Benefits:**
+- Re-exporting same COR returns cached result instantly
+- Snapshots ensure exports are reproducible
+- Failed exports can be retried without data corruption
+- Pre-aggregated stats make export summary instant
+- Version tracking detects stale snapshots
+
+---
+
+### Client PDF Download After Signing
+**Goal:** Allow clients to download a PDF copy of the COR/T&M ticket after signing for their records.
+
+**Implementation:**
+- Added download button to success overlay after signing (both COR and T&M)
+- Created `exportTMTicketToPDF()` function for individual T&M ticket export
+- Button appears in the "Signature Recorded Successfully!" overlay
+- Uses legacy export functions for backward compatibility with SignaturePage
+
+**Files Modified:**
+- `src/components/SignaturePage.jsx` - Download buttons in success overlays
+- `src/lib/corPdfExport.js` - Added `exportTMTicketToPDF()` function
+- `src/index.css` - `.download-copy-btn` styling
+
+---
+
+### Scalability & Onboarding Documentation (Major)
+**Goal:** Ensure new engineering team members can easily navigate the codebase and understand the architecture.
+
+**Codebase Analysis Performed:**
+- 40+ components totaling ~15,000 lines
+- 12 library files totaling ~10,000 lines
+- Identified 8 files over 1,000 lines needing refactor
+- Found duplicate functionality (4 signature components)
+- Found unused code (AuthContext.jsx not wired up)
+
+**Documentation Created:**
+
+1. **`docs/ARCHITECTURE.md`** - Complete system architecture
+   - System overview with diagrams
+   - Tech stack details
+   - Application views and routing
+   - Data flow patterns
+   - Database layer with RLS
+   - Real-time subscription patterns
+   - Offline architecture
+   - Authentication & authorization
+   - PDF export pipeline
+   - Key architectural decisions
+
+2. **`docs/DEVELOPER_GUIDE.md`** - Onboarding guide
+   - Getting started instructions
+   - Project structure overview
+   - Coding conventions (naming, structure, CSS)
+   - Common patterns (data loading, forms, modals, toasts)
+   - Do's and Don'ts
+   - How-to guides for common tasks
+   - Debugging tips
+   - Known gotchas
+
+3. **`docs/CODE_MAP.md`** - Complete file reference
+   - File-by-file purpose and status
+   - Component relationships and dependencies
+   - Database method index
+   - File size analysis with refactor priorities
+   - Quick lookup tables
+
+**Dead Code Cleanup:**
+- Added deprecation notice to `src/lib/AuthContext.jsx` (not wired up)
+- Added `README.md` to `src/archived/` explaining deprecated components
+- Updated `corPdfExport.js` deprecation header (previous session)
+
+**PROJECT_CONTEXT.md Updates:**
+- Added Documentation Index with links to all docs
+- Added Quick Start section for new engineers
+- Updated Key Files Reference with status indicators
+- Added Technical Debt section with prioritized refactor list
+- Updated Risks section
+
+**Files Created:**
+- `docs/ARCHITECTURE.md` (~500 lines)
+- `docs/DEVELOPER_GUIDE.md` (~600 lines)
+- `docs/CODE_MAP.md` (~500 lines)
+- `src/archived/README.md`
+
+**Files Modified:**
+- `docs/PROJECT_CONTEXT.md` - Documentation index, tech debt, key files
+- `src/lib/AuthContext.jsx` - Deprecation notice
 
 ---
 
