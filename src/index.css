@@ -350,8 +350,18 @@ textarea {
 }
 
 .theme-toggle-compact {
-  padding: 0.5rem;
-  border-radius: 8px;
+  padding: 0.6rem;
+  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+}
+
+/* Make theme toggle stand out more in foreman header */
+.foreman-header-actions .theme-toggle-compact {
+  background: var(--bg-elevated);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
 }
 
 .theme-toggle svg {
@@ -1726,6 +1736,7 @@ input[type="number"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-primary);
 }
 
 /* Foreman Project Info Panel */
@@ -6684,6 +6695,7 @@ input[type="number"] {
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
+  color: var(--text-primary);
 }
 
 .tm-crew-item:hover:not(:disabled) {
