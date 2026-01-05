@@ -10,14 +10,16 @@ import { chartColors, costCategories } from '../components/charts/chartConfig'
 /**
  * Build cumulative time-series for the Financial Trend Chart
  * Merges labor, disposal, materials/equipment, T&M, and COR data by date
+ * Uses actual area completion dates for revenue tracking
  *
  * @param {Object} projectData - Computed project data from Dashboard
  * @param {Object} project - Selected project
  * @param {Array} tmTickets - T&M tickets for the project
  * @param {Object} corStats - COR statistics
+ * @param {Array} areas - Project areas with completion dates
  * @returns {Array} Chart-ready data points
  */
-export function buildFinancialTimeSeries(projectData, project, tmTickets = [], corStats = null) {
+export function buildFinancialTimeSeries(projectData, project, tmTickets = [], corStats = null, areas = []) {
   const contractValue = project?.contract_value || 0
   const laborByDate = projectData?.laborByDate || []
   const haulOffByDate = projectData?.haulOffByDate || []
@@ -41,12 +43,41 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     if (t.created_at) dateSet.add(t.created_at.split('T')[0])
   })
 
+  // Add area completion dates (for revenue tracking)
+  areas.forEach(area => {
+    if (area.status === 'done' && area.updated_at) {
+      dateSet.add(area.updated_at.split('T')[0])
+    }
+  })
+
   // Sort dates chronologically
   const sortedDates = [...dateSet].sort((a, b) => new Date(a) - new Date(b))
 
   if (sortedDates.length === 0) {
     return []
   }
+
+  // Build revenue by date based on completed areas
+  // Each completed area contributes its weight/value to revenue on its completion date
+  const revenueByDate = {}
+  const totalWeight = areas.reduce((sum, a) => sum + (parseFloat(a.weight) || 0), 0)
+
+  areas.forEach(area => {
+    if (area.status === 'done' && area.updated_at) {
+      const completionDate = area.updated_at.split('T')[0]
+      const areaWeight = parseFloat(area.weight) || 0
+      // Calculate area's contribution to revenue
+      // If scheduled_value exists (SOV), use that; otherwise calculate from weight
+      const areaValue = area.scheduled_value
+        ? parseFloat(area.scheduled_value)
+        : (totalWeight > 0 ? (areaWeight / totalWeight) * contractValue : 0)
+
+      if (!revenueByDate[completionDate]) {
+        revenueByDate[completionDate] = 0
+      }
+      revenueByDate[completionDate] += areaValue
+    }
+  })
 
   // Build cumulative data
   let cumulativeCost = 0
@@ -114,8 +145,11 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     }
   })
 
+  // Track cumulative revenue based on actual area completions
+  let cumulativeRevenue = 0
+
   // Build the time series
-  const timeSeries = sortedDates.map((date, index) => {
+  const timeSeries = sortedDates.map((date) => {
     // Find labor cost for this date
     const laborDay = laborByDate.find(d => d.date === date)
     const laborCost = laborDay?.cost || 0
@@ -138,24 +172,29 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     const tmDayValue = tmByDate[date] || 0
     cumulativeTMValue += tmDayValue
 
-    // Calculate earned revenue based on progress
-    // Uses cumulative approach - distributes revenue proportionally across work days
-    const progressFraction = (index + 1) / sortedDates.length
-    const estimatedRevenue = Math.min(
-      contractValue * progressFraction * (projectData?.progress || 0) / 100,
-      projectData?.billable || 0
-    )
+    // Accumulate revenue based on actual area completions
+    // Revenue increases only when areas are marked complete
+    const dailyRevenue = revenueByDate[date] || 0
+    cumulativeRevenue += dailyRevenue
+
+    // If we have area completion data, use actual revenue
+    // Otherwise fall back to billable (for projects without detailed tracking)
+    const hasAreaData = Object.keys(revenueByDate).length > 0
+    const revenue = hasAreaData
+      ? cumulativeRevenue
+      : (projectData?.billable || 0) // Fall back to current billable for projects without area dates
 
     return {
       date,
       contract: contractValue,
-      revenue: Math.round(estimatedRevenue),
+      revenue: Math.round(revenue),
       costs: Math.round(cumulativeCost),
       tmValue: Math.round(cumulativeTMValue),
       corValue: Math.round(corStats?.total_approved_value || 0),
-      profit: Math.round(estimatedRevenue - cumulativeCost),
+      profit: Math.round(revenue - cumulativeCost),
       // Daily values for tooltips
       dailyLabor: Math.round(laborCost),
+      dailyRevenue: Math.round(dailyRevenue),
       dailyMaterials: Math.round(materialsEquipmentCost),
       dailyHaulOff: Math.round(haulOffCost),
       dailyCustom: Math.round(customCost),

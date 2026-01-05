@@ -25,23 +25,25 @@ import ChartTooltip from './ChartTooltip'
 /**
  * Financial Trend Chart
  * Multi-line area chart showing contract, revenue, costs, T&M, and COR values over time
+ * Uses actual area completion dates for revenue tracking
  */
 export default function FinancialTrendChart({
   projectData,
   project,
   tmTickets = [],
   corStats = null,
+  areas = [],
   onDrillDown,
 }) {
   const [timeRange, setTimeRange] = useState('30d')
   const [hoveredLine, setHoveredLine] = useState(null)
 
-  // Build the time series data
+  // Build the time series data using actual area completions for revenue
   const chartData = useMemo(() => {
-    const allData = buildFinancialTimeSeries(projectData, project, tmTickets, corStats)
+    const allData = buildFinancialTimeSeries(projectData, project, tmTickets, corStats, areas)
     const selectedRange = timeRanges.find(r => r.id === timeRange)
     return filterByTimeRange(allData, selectedRange?.days)
-  }, [projectData, project, tmTickets, corStats, timeRange])
+  }, [projectData, project, tmTickets, corStats, areas, timeRange])
 
   // Calculate trend indicators
   const costsTrend = useMemo(() => calculateTrend(chartData, 'costs'), [chartData])
