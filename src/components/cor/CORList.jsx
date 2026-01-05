@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
+import { CardSkeleton, CountBadge } from '../ui'
 
 export default function CORList({ project, company, areas, refreshKey, onShowToast, onCreateCOR, onViewCOR, onEditCOR }) {
   const [cors, setCORs] = useState([])
@@ -260,7 +261,7 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     return (
       <div
         key={cor.id}
-        className={`cor-card ${cor.status} ${isSelected ? 'selected' : ''}`}
+        className={`cor-card hover-lift animate-fade-in-up ${cor.status} ${isSelected ? 'selected' : ''}`}
         onClick={() => selectMode ? toggleCORSelection(cor.id) : onViewCOR?.(cor)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMode ? toggleCORSelection(cor.id) : onViewCOR?.(cor) } }}
         tabIndex={0}
@@ -357,7 +358,15 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
   }
 
   if (loading) {
-    return <div className="loading">Loading change order requests...</div>
+    return (
+      <div className="cor-list">
+        <div className="cor-loading-skeletons">
+          {[1, 2, 3].map(i => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -488,10 +497,10 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
           </button>
         </div>
       ) : (
-        <div className="cor-cards">
+        <div className="cor-cards stagger-children">
           {viewMode === 'all' && corsByMonth ? (
             corsByMonth.map(([monthKey, monthData]) => (
-              <div key={monthKey} className="cor-month-group">
+              <div key={monthKey} className="cor-month-group animate-fade-in">
                 <button
                   className="cor-month-header"
                   onClick={() => toggleMonthExpand(monthKey)}
@@ -499,12 +508,12 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
                   <div className="cor-month-left">
                     {expandedMonths.has(monthKey) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     <span>{monthData.label}</span>
-                    <span className="cor-month-count">{monthData.cors.length}</span>
+                    <CountBadge count={monthData.cors.length} size="small" />
                   </div>
                   <span className="cor-month-total">{formatCurrency(monthData.totalAmount)}</span>
                 </button>
                 {expandedMonths.has(monthKey) && (
-                  <div className="cor-month-items">
+                  <div className="cor-month-items stagger-children">
                     {monthData.cors.map(cor => renderCORCard(cor))}
                   </div>
                 )}

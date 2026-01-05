@@ -106,20 +106,51 @@ That's it. Under 15 seconds to update.
 fieldsync/
 ├── src/
 │   ├── components/
-│   │   ├── Dashboard.jsx   # Office view
-│   │   ├── Field.jsx       # Field crew view
-│   │   ├── Setup.jsx       # New project form
-│   │   └── Toast.jsx       # Notifications
+│   │   ├── Dashboard.jsx      # Office view with financials
+│   │   ├── Field.jsx          # Field crew view
+│   │   ├── Setup.jsx          # New project form
+│   │   ├── HeroMetrics.jsx    # Financial metrics display
+│   │   ├── FinancialsNav.jsx  # Financials tab navigation
+│   │   ├── TMList.jsx         # T&M ticket management
+│   │   ├── cor/               # Change Order Request components
+│   │   │   ├── CORList.jsx
+│   │   │   ├── CORForm.jsx
+│   │   │   └── CORDetail.jsx
+│   │   └── ui/                # Reusable UI components
+│   │       ├── Skeleton.jsx   # Loading skeletons
+│   │       ├── MicroVis.jsx   # Micro-visualizations
+│   │       └── index.js       # Component exports
 │   ├── lib/
-│   │   ├── supabase.js     # Database client
-│   │   └── utils.js        # Helper functions
-│   ├── App.jsx             # Main app
-│   ├── main.jsx            # Entry point
-│   └── index.css           # Styles
+│   │   ├── supabase.js        # Database client
+│   │   └── utils.js           # Helper functions
+│   ├── App.jsx                # Main app
+│   ├── main.jsx               # Entry point
+│   └── index.css              # Styles
 ├── database/
-│   └── schema.sql          # Database setup
+│   └── schema.sql             # Database setup
 └── index.html
 ```
+
+## UI Component Library
+
+The app includes a set of reusable UI components in `src/components/ui/`:
+
+### Skeleton Components
+Loading placeholders for improved perceived performance:
+- `Skeleton` - Base skeleton element
+- `MetricSkeleton` - For metric cards
+- `CardSkeleton` - For content cards
+- `TicketSkeleton` - For T&M tickets
+- `HeroMetricsSkeleton` - For hero metrics section
+
+### Micro-Visualizations
+Small, glanceable data displays:
+- `CountBadge` - Numeric badges with optional icons
+- `MiniProgress` - Compact progress bars
+- `TrendIndicator` - Up/down trend arrows with percentages
+- `StatusDot` - Color-coded status indicators
+- `Sparkline` - Mini trend charts
+- `CircularProgress` - Radial progress indicators
 
 ## License
 

@@ -3,6 +3,7 @@ import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar,
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
+import { TicketSkeleton, CountBadge } from './ui'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -1012,7 +1013,15 @@ export default function TMList({ project, company, onShowToast, compact = false 
   const totalTicketsCount = filter === 'all' ? tickets.length : tickets.filter(t => t.status === filter).length
 
   if (loading) {
-    return <div className="loading">Loading T&M tickets...</div>
+    return (
+      <div className={`tm-list ${compact ? 'tm-list-compact' : ''}`}>
+        <div className="tm-loading-skeletons">
+          {[1, 2, 3].map(i => (
+            <TicketSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   // Check if all filtered tickets are selected
@@ -1027,7 +1036,7 @@ export default function TMList({ project, company, onShowToast, compact = false 
     const isRetrying = retryingImport === ticket.id
 
     return (
-    <div key={ticket.id} className={`tm-ticket-card ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}>
+    <div key={ticket.id} className={`tm-ticket-card hover-lift animate-fade-in-up ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}>
       <div
         className="tm-ticket-header"
         onClick={() => setExpandedTicket(expandedTicket === ticket.id ? null : ticket.id)}
@@ -1053,9 +1062,12 @@ export default function TMList({ project, company, onShowToast, compact = false 
           )}
           {/* Show photo count badge */}
           {ticket.photos?.length > 0 && (
-            <span className="tm-photo-badge" title={`${ticket.photos.length} photo${ticket.photos.length > 1 ? 's' : ''}`}>
-              <Camera size={12} /> {ticket.photos.length}
-            </span>
+            <CountBadge
+              count={ticket.photos.length}
+              icon={Camera}
+              size="small"
+              variant="default"
+            />
           )}
           {/* Show failed import warning badge */}
           {hasFailedImport && (
@@ -1368,7 +1380,7 @@ export default function TMList({ project, company, onShowToast, compact = false 
           )}
         </div>
       ) : (
-        <div className="tm-tickets">
+        <div className="tm-tickets stagger-children">
           {/* Select All Row */}
           <div className="tm-select-all-row">
             <label className="tm-checkbox-label" onClick={toggleSelectAll}>
@@ -1385,7 +1397,7 @@ export default function TMList({ project, company, onShowToast, compact = false 
           {/* Render tickets - with month grouping in 'all' mode */}
           {viewMode === 'all' && ticketsByMonth ? (
             ticketsByMonth.map(([monthKey, monthData]) => (
-              <div key={monthKey} className="month-group">
+              <div key={monthKey} className="month-group animate-fade-in">
                 <div
                   className="month-header"
                   onClick={() => toggleMonthExpand(monthKey)}
@@ -1397,7 +1409,7 @@ export default function TMList({ project, company, onShowToast, compact = false 
                       <ChevronRight size={18} />
                     )}
                     <span className="month-label">{monthData.label}</span>
-                    <span className="month-count">{monthData.tickets.length} tickets</span>
+                    <CountBadge count={monthData.tickets.length} label="tickets" size="small" />
                   </div>
                   <div className="month-header-right">
                     <span className="month-stat">{monthData.hours.toFixed(1)} hrs</span>
@@ -1405,7 +1417,7 @@ export default function TMList({ project, company, onShowToast, compact = false 
                   </div>
                 </div>
                 {expandedMonths.has(monthKey) && (
-                  <div className="month-tickets">
+                  <div className="month-tickets stagger-children">
                     {monthData.tickets.map(ticket => renderTicketCard(ticket))}
                   </div>
                 )}

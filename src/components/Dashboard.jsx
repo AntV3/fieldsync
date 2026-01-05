@@ -17,7 +17,10 @@ import ProfitabilityCard from './ProfitabilityCard'
 import DisposalSummary from './DisposalSummary'
 import AddCostModal from './AddCostModal'
 import ProjectTeam from './ProjectTeam'
+import HeroMetrics from './HeroMetrics'
+import FinancialsNav from './FinancialsNav'
 import { FinancialTrendChart } from './charts'
+import { TicketSkeleton, ChartSkeleton } from './ui'
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -31,6 +34,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showShareModal, setShowShareModal] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
+  const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors'
   const [dumpSites, setDumpSites] = useState([])
   const [showCORForm, setShowCORForm] = useState(false)
   const [editingCOR, setEditingCOR] = useState(null)
@@ -1221,149 +1225,144 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           {/* FINANCIALS TAB */}
           {activeProjectTab === 'financials' && (
             <div className="pv-tab-panel financials-tab">
-              {/* Key Metrics - Hero Section */}
-              <div className="financials-hero">
-                <div className="financials-hero-grid">
-                  {/* Contract Value */}
-                  <div className="fin-metric">
-                    <div className="fin-metric-label">Contract</div>
-                    <div className="fin-metric-value">{formatCurrency(revisedContractValue)}</div>
-                    {hasChangeOrders && (
-                      <div className="fin-metric-detail green">+{formatCurrency(changeOrderValue)} COs</div>
-                    )}
-                  </div>
+              {/* Key Metrics - Hero Section (Always visible) */}
+              <HeroMetrics
+                contractValue={selectedProject?.contract_value || 0}
+                earnedRevenue={billable}
+                totalCosts={projectData?.allCostsTotal || 0}
+                profit={projectData?.currentProfit || 0}
+                progress={progress}
+                corApprovedValue={changeOrderValue}
+                loading={!projectData}
+              />
 
-                  {/* Revenue Earned */}
-                  <div className="fin-metric">
-                    <div className="fin-metric-label">Earned</div>
-                    <div className="fin-metric-value">{formatCurrency(billable)}</div>
-                    <div className="fin-metric-bar">
-                      <div className="fin-metric-fill" style={{ width: `${percentBilled}%` }}></div>
-                    </div>
-                  </div>
+              {/* Split Layout with Navigation */}
+              <div className="financials-layout">
+                {/* Sidebar Navigation */}
+                <div className="financials-sidebar">
+                  <FinancialsNav
+                    activeSection={financialsSection}
+                    onSectionChange={setFinancialsSection}
+                    stats={{
+                      corCount: projectData?.corStats?.total || 0,
+                      ticketCount: projectData?.totalTickets || 0,
+                      pendingCount: (projectData?.corStats?.pending || 0) + (projectData?.pendingTickets || 0)
+                    }}
+                  />
+                </div>
 
-                  {/* Total Costs */}
-                  <div className="fin-metric">
-                    <div className="fin-metric-label">Costs</div>
-                    <div className="fin-metric-value">{formatCurrency(projectData?.allCostsTotal || 0)}</div>
-                    {billable > 0 && (
-                      <div className={`fin-metric-detail ${((projectData?.allCostsTotal || 0) / billable) > 0.6 ? 'warning' : ''}`}>
-                        {Math.round(((projectData?.allCostsTotal || 0) / billable) * 100)}% of revenue
+                {/* Main Content Area */}
+                <div className="financials-main">
+                  {/* OVERVIEW SECTION */}
+                  {financialsSection === 'overview' && (
+                    <div className="financials-overview animate-fade-in">
+                      {/* Financial Trend Chart */}
+                      <FinancialTrendChart
+                        projectData={projectData}
+                        project={selectedProject}
+                        tmTickets={projectData?.tmTickets || []}
+                        corStats={projectData?.corStats}
+                      />
+
+                      {/* Burn Rate & Profitability Row */}
+                      <div className="financials-analysis-row stagger-children">
+                        <BurnRateCard
+                          dailyBurn={projectData?.dailyBurn || 0}
+                          totalBurn={projectData?.totalBurn || 0}
+                          daysWorked={projectData?.totalBurnDays || 0}
+                          laborCost={projectData?.laborCost || 0}
+                          materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                          progress={progress}
+                          contractValue={revisedContractValue}
+                          laborByDate={projectData?.laborByDate || []}
+                          materialsEquipmentByDate={projectData?.materialsEquipmentByDate || []}
+                        />
+
+                        <ProfitabilityCard
+                          revenue={billable}
+                          totalCosts={projectData?.allCostsTotal || 0}
+                          contractValue={revisedContractValue}
+                          progress={progress}
+                        />
+
+                        <DisposalSummary
+                          project={selectedProject}
+                          period="week"
+                        />
                       </div>
-                    )}
-                  </div>
 
-                  {/* Profit */}
-                  <div className="fin-metric">
-                    <div className="fin-metric-label">Profit</div>
-                    <div className={`fin-metric-value ${(projectData?.currentProfit || 0) < 0 ? 'negative' : 'positive'}`}>
-                      {formatCurrency(projectData?.currentProfit || 0)}
+                      {/* Cost Contributors */}
+                      <CostContributorsCard
+                        laborCost={projectData?.laborCost || 0}
+                        haulOffCost={projectData?.haulOffCost || 0}
+                        customCosts={projectData?.customCosts || []}
+                        onAddCost={() => setShowAddCostModal(true)}
+                        onDeleteCost={async (costId) => {
+                          try {
+                            await db.deleteProjectCost(costId)
+                            loadProjects()
+                            onShowToast('Cost deleted', 'success')
+                          } catch (err) {
+                            onShowToast('Error deleting cost', 'error')
+                          }
+                        }}
+                      />
+
+                      {/* Labor Details - Collapsible */}
+                      <details className="financials-details">
+                        <summary className="financials-details-summary">
+                          <HardHat size={16} />
+                          <span>Labor Details</span>
+                          <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
+                        </summary>
+                        <div className="financials-details-content">
+                          <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+                        </div>
+                      </details>
                     </div>
-                    <div className={`fin-metric-detail ${(projectData?.profitMargin || 0) < 20 ? 'warning' : ''}`}>
-                      {Math.round(projectData?.profitMargin || 0)}% margin
+                  )}
+
+                  {/* CORS & TICKETS SECTION */}
+                  {financialsSection === 'cors' && (
+                    <div className="financials-cors animate-fade-in">
+                      {/* Change Order Requests */}
+                      <div className="financials-section cor-section-primary">
+                        <CORList
+                          project={selectedProject}
+                          company={company}
+                          areas={areas}
+                          refreshKey={corRefreshKey}
+                          onShowToast={onShowToast}
+                          onCreateCOR={() => {
+                            setEditingCOR(null)
+                            setShowCORForm(true)
+                          }}
+                          onViewCOR={(cor) => {
+                            setViewingCOR(cor)
+                            setShowCORDetail(true)
+                          }}
+                          onEditCOR={(cor) => {
+                            setEditingCOR(cor)
+                            setShowCORForm(true)
+                          }}
+                        />
+                      </div>
+
+                      {/* T&M Tickets */}
+                      <div className="financials-section tm-section">
+                        <div className="tm-section-header">
+                          <h3>T&M Tickets</h3>
+                          <span className="tm-badge">
+                            {projectData?.totalTickets || 0} total
+                            {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
+                          </span>
+                        </div>
+                        <TMList project={selectedProject} company={company} onShowToast={onShowToast} compact />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
-
-              {/* Financial Trend Chart */}
-              <FinancialTrendChart
-                projectData={projectData}
-                project={selectedProject}
-                tmTickets={projectData?.tmTickets || []}
-                corStats={projectData?.corStats}
-              />
-
-              {/* Burn Rate & Profitability Row */}
-              <div className="financials-analysis-row">
-                <BurnRateCard
-                  dailyBurn={projectData?.dailyBurn || 0}
-                  totalBurn={projectData?.totalBurn || 0}
-                  daysWorked={projectData?.totalBurnDays || 0}
-                  laborCost={projectData?.laborCost || 0}
-                  materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
-                  progress={progress}
-                  contractValue={revisedContractValue}
-                  laborByDate={projectData?.laborByDate || []}
-                  materialsEquipmentByDate={projectData?.materialsEquipmentByDate || []}
-                />
-
-                <ProfitabilityCard
-                  revenue={billable}
-                  totalCosts={projectData?.allCostsTotal || 0}
-                  contractValue={revisedContractValue}
-                  progress={progress}
-                />
-
-                <DisposalSummary
-                  project={selectedProject}
-                  period="week"
-                />
-              </div>
-
-              {/* Cost Contributors */}
-              <CostContributorsCard
-                laborCost={projectData?.laborCost || 0}
-                haulOffCost={projectData?.haulOffCost || 0}
-                customCosts={projectData?.customCosts || []}
-                onAddCost={() => setShowAddCostModal(true)}
-                onDeleteCost={async (costId) => {
-                  try {
-                    await db.deleteProjectCost(costId)
-                    loadProjects()
-                    onShowToast('Cost deleted', 'success')
-                  } catch (err) {
-                    onShowToast('Error deleting cost', 'error')
-                  }
-                }}
-              />
-
-              {/* Change Order Requests - Primary */}
-              <div className="financials-section cor-section-primary">
-                <CORList
-                  project={selectedProject}
-                  company={company}
-                  areas={areas}
-                  refreshKey={corRefreshKey}
-                  onShowToast={onShowToast}
-                  onCreateCOR={() => {
-                    setEditingCOR(null)
-                    setShowCORForm(true)
-                  }}
-                  onViewCOR={(cor) => {
-                    setViewingCOR(cor)
-                    setShowCORDetail(true)
-                  }}
-                  onEditCOR={(cor) => {
-                    setEditingCOR(cor)
-                    setShowCORForm(true)
-                  }}
-                />
-              </div>
-
-              {/* T&M Tickets - Supporting */}
-              <div className="financials-section tm-section">
-                <div className="tm-section-header">
-                  <h3>T&M Tickets</h3>
-                  <span className="tm-badge">
-                    {projectData?.totalTickets || 0} total
-                    {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
-                  </span>
-                </div>
-                <TMList project={selectedProject} company={company} onShowToast={onShowToast} compact />
-              </div>
-
-              {/* Legacy Cost Breakdown - Now Collapsible */}
-              <details className="financials-details">
-                <summary className="financials-details-summary">
-                  <HardHat size={16} />
-                  <span>Labor Details</span>
-                  <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
-                </summary>
-                <div className="financials-details-content">
-                  <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
-                </div>
-              </details>
             </div>
           )}
 
