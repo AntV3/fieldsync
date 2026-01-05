@@ -9,7 +9,7 @@ import { chartColors, costCategories } from '../components/charts/chartConfig'
 
 /**
  * Build cumulative time-series for the Financial Trend Chart
- * Merges labor, disposal, T&M, and COR data by date
+ * Merges labor, disposal, materials/equipment, T&M, and COR data by date
  *
  * @param {Object} projectData - Computed project data from Dashboard
  * @param {Object} project - Selected project
@@ -21,6 +21,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   const contractValue = project?.contract_value || 0
   const laborByDate = projectData?.laborByDate || []
   const haulOffByDate = projectData?.haulOffByDate || []
+  const materialsEquipmentByDate = projectData?.materialsEquipmentByDate || []
   const customCosts = projectData?.customCosts || []
 
   // Collect all unique dates from all sources
@@ -28,6 +29,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
 
   laborByDate.forEach(d => dateSet.add(d.date))
   haulOffByDate.forEach(d => dateSet.add(d.date))
+  materialsEquipmentByDate.forEach(d => dateSet.add(d.date))
   customCosts.forEach(c => {
     if (c.cost_date) dateSet.add(c.cost_date)
   })
@@ -35,6 +37,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   // Add T&M ticket dates
   tmTickets.forEach(t => {
     if (t.work_date) dateSet.add(t.work_date)
+    if (t.ticket_date) dateSet.add(t.ticket_date)
     if (t.created_at) dateSet.add(t.created_at.split('T')[0])
   })
 
@@ -51,29 +54,38 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   let cumulativeCORValue = 0
 
   // Pre-calculate T&M values by date
+  // Use the actual property names from the database: t_and_m_workers, t_and_m_items
   const tmByDate = {}
   tmTickets.forEach(ticket => {
-    const date = ticket.work_date || ticket.created_at?.split('T')[0]
+    const date = ticket.work_date || ticket.ticket_date || ticket.created_at?.split('T')[0]
     if (!date) return
 
     // Calculate ticket value (labor + materials + equipment)
     let ticketValue = 0
 
-    // Labor value
-    if (ticket.workers && Array.isArray(ticket.workers)) {
-      ticket.workers.forEach(w => {
-        const regHours = parseFloat(w.regular_hours) || 0
+    // Labor value - handles both property name variations
+    const workers = ticket.t_and_m_workers || ticket.workers || []
+    if (Array.isArray(workers)) {
+      workers.forEach(w => {
+        // Handle both naming conventions: hours/regular_hours, overtime_hours
+        const regHours = parseFloat(w.hours) || parseFloat(w.regular_hours) || 0
         const otHours = parseFloat(w.overtime_hours) || 0
-        const regRate = parseFloat(w.regular_rate) || 50
-        const otRate = parseFloat(w.overtime_rate) || 75
+        // Use rates if available, otherwise default billing rates
+        const regRate = parseFloat(w.regular_rate) || parseFloat(w.rate) || 65
+        const otRate = parseFloat(w.overtime_rate) || regRate * 1.5
         ticketValue += (regHours * regRate) + (otHours * otRate)
       })
     }
 
-    // Materials and equipment
-    if (ticket.items && Array.isArray(ticket.items)) {
-      ticket.items.forEach(item => {
-        ticketValue += (parseFloat(item.quantity) || 1) * (parseFloat(item.unit_cost) || 0)
+    // Materials and equipment - handles both property name variations
+    const items = ticket.t_and_m_items || ticket.items || []
+    if (Array.isArray(items)) {
+      items.forEach(item => {
+        const qty = parseFloat(item.quantity) || 1
+        // Handle different cost property locations
+        const unitCost = parseFloat(item.unit_cost) ||
+                         parseFloat(item.materials_equipment?.cost_per_unit) || 0
+        ticketValue += qty * unitCost
       })
     }
 
@@ -94,6 +106,14 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     customByDate[date] += parseFloat(cost.amount) || 0
   })
 
+  // Pre-calculate materials/equipment costs by date (for quick lookup)
+  const materialsEquipmentByDateMap = {}
+  materialsEquipmentByDate.forEach(d => {
+    if (d.date) {
+      materialsEquipmentByDateMap[d.date] = d.cost || 0
+    }
+  })
+
   // Build the time series
   const timeSeries = sortedDates.map((date, index) => {
     // Find labor cost for this date
@@ -104,19 +124,22 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     const haulOffDay = haulOffByDate.find(d => d.date === date)
     const haulOffCost = haulOffDay?.cost || 0
 
+    // Materials/equipment cost for this date (from T&M tickets)
+    const materialsEquipmentCost = materialsEquipmentByDateMap[date] || 0
+
     // Custom costs for this date
     const customCost = customByDate[date] || 0
 
-    // Accumulate costs
-    cumulativeCost += laborCost + haulOffCost + customCost
+    // Accumulate all costs (labor + materials/equipment + disposal + custom)
+    const dailyTotalCost = laborCost + materialsEquipmentCost + haulOffCost + customCost
+    cumulativeCost += dailyTotalCost
 
-    // Accumulate T&M value
+    // Accumulate T&M billing value (what we charge client)
     const tmDayValue = tmByDate[date] || 0
     cumulativeTMValue += tmDayValue
 
     // Calculate earned revenue based on progress
-    // This is simplified - uses cumulative approach
-    // In reality, would need area completion dates
+    // Uses cumulative approach - distributes revenue proportionally across work days
     const progressFraction = (index + 1) / sortedDates.length
     const estimatedRevenue = Math.min(
       contractValue * progressFraction * (projectData?.progress || 0) / 100,
@@ -133,9 +156,11 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       profit: Math.round(estimatedRevenue - cumulativeCost),
       // Daily values for tooltips
       dailyLabor: Math.round(laborCost),
+      dailyMaterials: Math.round(materialsEquipmentCost),
       dailyHaulOff: Math.round(haulOffCost),
       dailyCustom: Math.round(customCost),
       dailyTM: Math.round(tmDayValue),
+      dailyTotal: Math.round(dailyTotalCost),
     }
   })
 
