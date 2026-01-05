@@ -15411,6 +15411,68 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0.5rem;
 }
 
+/* See All Buttons (COR & T&M) */
+.cor-see-all-btn,
+.tm-see-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  margin-top: 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--primary-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cor-see-all-btn:hover,
+.tm-see-all-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--primary-color);
+}
+
+.cor-see-all-btn svg,
+.tm-see-all-btn svg {
+  transition: transform 0.2s ease;
+}
+
+.cor-see-all-btn:hover svg,
+.tm-see-all-btn:hover svg {
+  transform: translateX(4px);
+}
+
+/* Back to summary button */
+.section-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.section-back-btn:hover {
+  opacity: 0.8;
+}
+
+/* Preview mode styling */
+.cor-list-preview .cor-cards,
+.tm-list-preview .tm-tickets {
+  max-height: none;
+}
+
 /* Month groups (shared with other lists) */
 .month-cors {
   display: flex;

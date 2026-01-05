@@ -36,7 +36,15 @@ const loadImageAsBase64 = (url) => {
   })
 }
 
-export default function TMList({ project, company, onShowToast, compact = false }) {
+export default function TMList({
+  project,
+  company,
+  onShowToast,
+  compact = false,
+  // Preview mode props
+  previewMode = false,   // When true, shows current month tickets with "See All" button
+  onViewAll              // Callback when "See All" is clicked
+}) {
   const { branding } = useBranding()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -44,7 +52,7 @@ export default function TMList({ project, company, onShowToast, compact = false 
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
 
-  // View mode state
+  // View mode state - in preview mode, we filter to current month
   const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
@@ -954,8 +962,18 @@ export default function TMList({ project, company, onShowToast, compact = false 
       })
     }
 
-    // In recent mode, show only last 7 days
-    if (viewMode === 'recent') {
+    // In preview mode, show only current month's tickets
+    if (previewMode) {
+      const now = new Date()
+      const currentMonth = now.getMonth()
+      const currentYear = now.getFullYear()
+      filtered = filtered.filter(t => {
+        const ticketDate = new Date(t.work_date)
+        return ticketDate.getMonth() === currentMonth && ticketDate.getFullYear() === currentYear
+      })
+    }
+    // In recent mode (not preview), show only last 7 days
+    else if (viewMode === 'recent') {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       sevenDaysAgo.setHours(0, 0, 0, 0)
@@ -966,7 +984,7 @@ export default function TMList({ project, company, onShowToast, compact = false 
     }
 
     return filtered
-  }, [tickets, filter, viewMode, dateFilter])
+  }, [tickets, filter, viewMode, dateFilter, previewMode])
 
   // Group tickets by month for 'all' view
   const ticketsByMonth = useMemo(() => {
@@ -1428,6 +1446,14 @@ export default function TMList({ project, company, onShowToast, compact = false 
             filteredTickets.map(ticket => renderTicketCard(ticket))
           )}
         </div>
+      )}
+
+      {/* See All Footer - only in preview mode */}
+      {previewMode && tickets.length > 0 && (
+        <button className="tm-see-all-btn" onClick={onViewAll}>
+          See all {tickets.length} T&M tickets
+          <ChevronRight size={16} />
+        </button>
       )}
 
       {/* Change Order Approval Modal */}

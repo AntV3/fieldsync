@@ -35,6 +35,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
   const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors'
+  const [corViewMode, setCORViewMode] = useState('preview') // 'preview' | 'full'
+  const [tmViewMode, setTMViewMode] = useState('preview') // 'preview' | 'full'
   const [dumpSites, setDumpSites] = useState([])
   const [showCORForm, setShowCORForm] = useState(false)
   const [editingCOR, setEditingCOR] = useState(null)
@@ -1328,12 +1330,23 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     <div className="financials-cors animate-fade-in">
                       {/* Change Order Requests */}
                       <div className="financials-section cor-section-primary">
+                        {corViewMode === 'full' && (
+                          <button
+                            className="section-back-btn"
+                            onClick={() => setCORViewMode('preview')}
+                          >
+                            ← Back to summary
+                          </button>
+                        )}
                         <CORList
                           project={selectedProject}
                           company={company}
                           areas={areas}
                           refreshKey={corRefreshKey}
                           onShowToast={onShowToast}
+                          previewMode={corViewMode === 'preview'}
+                          previewLimit={5}
+                          onViewAll={() => setCORViewMode('full')}
                           onCreateCOR={() => {
                             setEditingCOR(null)
                             setShowCORForm(true)
@@ -1351,14 +1364,31 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
                       {/* T&M Tickets */}
                       <div className="financials-section tm-section">
-                        <div className="tm-section-header">
-                          <h3>T&M Tickets</h3>
-                          <span className="tm-badge">
-                            {projectData?.totalTickets || 0} total
-                            {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
-                          </span>
-                        </div>
-                        <TMList project={selectedProject} company={company} onShowToast={onShowToast} compact />
+                        {tmViewMode === 'full' && (
+                          <button
+                            className="section-back-btn"
+                            onClick={() => setTMViewMode('preview')}
+                          >
+                            ← Back to summary
+                          </button>
+                        )}
+                        {tmViewMode === 'preview' && (
+                          <div className="tm-section-header">
+                            <h3>T&M Tickets</h3>
+                            <span className="tm-badge">
+                              {new Date().toLocaleDateString('en-US', { month: 'long' })}
+                              {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
+                            </span>
+                          </div>
+                        )}
+                        <TMList
+                          project={selectedProject}
+                          company={company}
+                          onShowToast={onShowToast}
+                          compact={tmViewMode === 'preview'}
+                          previewMode={tmViewMode === 'preview'}
+                          onViewAll={() => setTMViewMode('full')}
+                        />
                       </div>
                     </div>
                   )}

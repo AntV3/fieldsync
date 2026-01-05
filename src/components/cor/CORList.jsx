@@ -4,7 +4,20 @@ import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 import { CardSkeleton, CountBadge } from '../ui'
 
-export default function CORList({ project, company, areas, refreshKey, onShowToast, onCreateCOR, onViewCOR, onEditCOR }) {
+export default function CORList({
+  project,
+  company,
+  areas,
+  refreshKey,
+  onShowToast,
+  onCreateCOR,
+  onViewCOR,
+  onEditCOR,
+  // Preview mode props
+  previewMode = false,  // When true, shows limited items with "See All" button
+  previewLimit = 5,     // Number of items to show in preview mode
+  onViewAll             // Callback when "See All" is clicked
+}) {
   const [cors, setCORs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -16,8 +29,8 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
   const [showGroupModal, setShowGroupModal] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
 
-  // View mode state
-  const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
+  // View mode state - default to 'all' in preview mode so we can limit by count
+  const [viewMode, setViewMode] = useState(previewMode ? 'all' : 'recent') // 'recent' | 'all'
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
@@ -174,8 +187,8 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
       })
     }
 
-    // In recent mode, show only last 7 days
-    if (viewMode === 'recent') {
+    // In recent mode (not preview mode), show only last 7 days
+    if (viewMode === 'recent' && !previewMode) {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       sevenDaysAgo.setHours(0, 0, 0, 0)
@@ -188,8 +201,13 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
     // Sort by created_at descending
     filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
+    // In preview mode, limit to previewLimit items
+    if (previewMode) {
+      filtered = filtered.slice(0, previewLimit)
+    }
+
     return filtered
-  }, [cors, filter, areaFilter, groupFilter, viewMode, dateFilter])
+  }, [cors, filter, areaFilter, groupFilter, viewMode, dateFilter, previewMode, previewLimit])
 
   // Group CORs by month for 'all' view
   const corsByMonth = useMemo(() => {
@@ -370,7 +388,7 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
   }
 
   return (
-    <div className="cor-list">
+    <div className={`cor-list ${previewMode ? 'cor-list-preview' : ''}`}>
       {/* Clean Header */}
       <div className="cor-list-header">
         <div className="cor-list-info">
@@ -386,15 +404,27 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
           </div>
         </div>
         <div className="cor-header-actions">
-          <button
-            className={`btn btn-secondary btn-small ${selectMode ? 'active' : ''}`}
-            onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
-          >
-            {selectMode ? <><X size={14} /> Cancel</> : <><CheckSquare size={14} /> Select</>}
-          </button>
-          <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
-            <Plus size={14} /> New COR
-          </button>
+          {previewMode ? (
+            // In preview mode, show "See All" button and New COR button
+            <>
+              <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
+                <Plus size={14} /> New COR
+              </button>
+            </>
+          ) : (
+            // Full mode shows select and new buttons
+            <>
+              <button
+                className={`btn btn-secondary btn-small ${selectMode ? 'active' : ''}`}
+                onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+              >
+                {selectMode ? <><X size={14} /> Cancel</> : <><CheckSquare size={14} /> Select</>}
+              </button>
+              <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
+                <Plus size={14} /> New COR
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -411,61 +441,63 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
         </div>
       )}
 
-      {/* Minimal Filter Row */}
-      <div className="cor-controls">
-        <div className="cor-filter-pills" role="tablist">
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'draft', label: 'Draft' },
-            { id: 'pending_approval', label: 'Pending' },
-            { id: 'approved', label: 'Approved' }
-          ].map(status => (
-            <button
-              key={status.id}
-              role="tab"
-              aria-selected={filter === status.id}
-              className={`cor-pill ${filter === status.id ? 'active' : ''}`}
-              onClick={() => setFilter(status.id)}
-            >
-              {status.label}
-              {counts[status.id] > 0 && <span className="cor-pill-count">{counts[status.id]}</span>}
-            </button>
-          ))}
-        </div>
-
-        {/* Group Filter */}
-        {availableGroups.length > 0 && (
-          <select
-            className="cor-group-filter"
-            value={groupFilter}
-            onChange={(e) => setGroupFilter(e.target.value)}
-          >
-            <option value="all">All Groups</option>
-            {availableGroups.map(group => (
-              <option key={group} value={group}>{group}</option>
+      {/* Minimal Filter Row - hidden in preview mode */}
+      {!previewMode && (
+        <div className="cor-controls">
+          <div className="cor-filter-pills" role="tablist">
+            {[
+              { id: 'all', label: 'All' },
+              { id: 'draft', label: 'Draft' },
+              { id: 'pending_approval', label: 'Pending' },
+              { id: 'approved', label: 'Approved' }
+            ].map(status => (
+              <button
+                key={status.id}
+                role="tab"
+                aria-selected={filter === status.id}
+                className={`cor-pill ${filter === status.id ? 'active' : ''}`}
+                onClick={() => setFilter(status.id)}
+              >
+                {status.label}
+                {counts[status.id] > 0 && <span className="cor-pill-count">{counts[status.id]}</span>}
+              </button>
             ))}
-          </select>
-        )}
+          </div>
 
-        {/* View Toggle */}
-        <div className="cor-view-toggle">
-          <button
-            className={`cor-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
-            onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
-          >
-            Recent
-          </button>
-          <button
-            className={`cor-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
-            onClick={() => setViewMode('all')}
-          >
-            All
-          </button>
+          {/* Group Filter */}
+          {availableGroups.length > 0 && (
+            <select
+              className="cor-group-filter"
+              value={groupFilter}
+              onChange={(e) => setGroupFilter(e.target.value)}
+            >
+              <option value="all">All Groups</option>
+              {availableGroups.map(group => (
+                <option key={group} value={group}>{group}</option>
+              ))}
+            </select>
+          )}
+
+          {/* View Toggle */}
+          <div className="cor-view-toggle">
+            <button
+              className={`cor-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
+              onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
+            >
+              Recent
+            </button>
+            <button
+              className={`cor-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+              onClick={() => setViewMode('all')}
+            >
+              All
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Date Filter - Only in All mode */}
-      {viewMode === 'all' && (
+      {/* Date Filter - Only in All mode and not preview mode */}
+      {viewMode === 'all' && !previewMode && (
         <div className="cor-date-filter">
           <Calendar size={14} />
           <input
@@ -523,6 +555,14 @@ export default function CORList({ project, company, areas, refreshKey, onShowToa
             filteredCORs.map(cor => renderCORCard(cor))
           )}
         </div>
+      )}
+
+      {/* See All Footer - only in preview mode when there are more items */}
+      {previewMode && cors.length > previewLimit && (
+        <button className="cor-see-all-btn" onClick={onViewAll}>
+          See all {cors.length} change orders
+          <ChevronRight size={16} />
+        </button>
       )}
 
       {/* Group Modal */}
