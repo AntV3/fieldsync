@@ -285,6 +285,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [lang, setLang] = useState('en')
   const t = (key) => TRANSLATIONS[lang][key] || key
 
+  // Dynamic labor classes state (for companies with custom setup)
+  const [laborCategories, setLaborCategories] = useState([])
+  const [laborClasses, setLaborClasses] = useState([])
+  const [dynamicWorkers, setDynamicWorkers] = useState({}) // { classId: [workers] }
+  const [loadingLaborClasses, setLoadingLaborClasses] = useState(true)
+
+  // Check if company has custom labor classes
+  const hasCustomLaborClasses = laborClasses.length > 0
+
   // Calculate hours from time range (auto-split into regular + OT)
   const calculateHoursFromTimeRange = (startTime, endTime) => {
     if (!startTime || !endTime) return null
@@ -349,6 +358,37 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     loadTodaysCrew()
     loadAssignableCORs()
   }, [project.id])
+
+  // Load custom labor classes for the company
+  useEffect(() => {
+    const loadLaborClasses = async () => {
+      if (!companyId) {
+        setLoadingLaborClasses(false)
+        return
+      }
+
+      try {
+        const data = await db.getLaborClassesWithCategories(companyId)
+        setLaborCategories(data.categories || [])
+        setLaborClasses(data.classes || [])
+
+        // Initialize dynamic workers state with one empty worker per class
+        if (data.classes && data.classes.length > 0) {
+          const initial = {}
+          data.classes.forEach(lc => {
+            initial[lc.id] = [{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }]
+          })
+          setDynamicWorkers(initial)
+        }
+      } catch (err) {
+        console.error('Error loading labor classes:', err)
+      } finally {
+        setLoadingLaborClasses(false)
+      }
+    }
+
+    loadLaborClasses()
+  }, [companyId])
 
   // Load all CORs that can receive T&M tickets
   const loadAssignableCORs = async () => {
@@ -641,6 +681,77 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     }
   }
 
+  // Dynamic worker functions (for custom labor classes)
+  const addDynamicWorker = (classId) => {
+    setDynamicWorkers(prev => ({
+      ...prev,
+      [classId]: [...(prev[classId] || []), { name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }]
+    }))
+  }
+
+  const updateDynamicWorker = (classId, index, field, value) => {
+    setDynamicWorkers(prev => ({
+      ...prev,
+      [classId]: (prev[classId] || []).map((w, i) => {
+        if (i !== index) return w
+
+        const updated = { ...w, [field]: value }
+
+        // Auto-calculate hours when time changes
+        if (field === 'timeStarted' || field === 'timeEnded') {
+          const startTime = field === 'timeStarted' ? value : w.timeStarted
+          const endTime = field === 'timeEnded' ? value : w.timeEnded
+          const calculated = calculateHoursFromTimeRange(startTime, endTime)
+          if (calculated) {
+            updated.hours = calculated.hours
+            updated.overtimeHours = calculated.overtimeHours
+          }
+        }
+
+        return updated
+      })
+    }))
+  }
+
+  const removeDynamicWorker = (classId, index) => {
+    setDynamicWorkers(prev => {
+      const workers = prev[classId] || []
+      if (workers.length > 1) {
+        return {
+          ...prev,
+          [classId]: workers.filter((_, i) => i !== index)
+        }
+      } else {
+        return {
+          ...prev,
+          [classId]: [{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }]
+        }
+      }
+    })
+  }
+
+  // Get all valid dynamic workers for submission
+  const getValidDynamicWorkers = () => {
+    const allWorkers = []
+    Object.entries(dynamicWorkers).forEach(([classId, workers]) => {
+      const laborClass = laborClasses.find(lc => lc.id === classId)
+      workers.forEach(w => {
+        if (w.name.trim() && (parseFloat(w.hours) > 0 || parseFloat(w.overtimeHours) > 0)) {
+          allWorkers.push({
+            name: w.name.trim(),
+            hours: parseFloat(w.hours) || 0,
+            overtime_hours: parseFloat(w.overtimeHours) || 0,
+            time_started: w.timeStarted || null,
+            time_ended: w.timeEnded || null,
+            role: laborClass?.name || 'Worker',
+            labor_class_id: classId
+          })
+        }
+      })
+    })
+    return allWorkers
+  }
+
   // Item functions
   const selectItem = (item) => {
     // Check if already added
@@ -819,10 +930,16 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     }
     if (step === 2) {
       // At least one worker with name and hours (regular or OT)
-      const hasSupervision = supervision.some(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
-      const hasOperators = operators.some(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
-      const hasLaborers = laborers.some(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
-      return hasSupervision || hasOperators || hasLaborers
+      if (hasCustomLaborClasses) {
+        // Check dynamic workers
+        return getValidDynamicWorkers().length > 0
+      } else {
+        // Check hardcoded workers (fallback)
+        const hasSupervision = supervision.some(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+        const hasOperators = operators.some(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
+        const hasLaborers = laborers.some(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
+        return hasSupervision || hasOperators || hasLaborers
+      }
     }
     return true
   }
@@ -852,13 +969,52 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       return
     }
 
-    const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
-    const validOperators = operators.filter(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
-    const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
+    // Get workers based on whether company uses custom labor classes
+    let allWorkersForSubmit = []
 
-    if (validSupervision.length === 0 && validOperators.length === 0 && validLaborers.length === 0) {
-      onShowToast('Add at least one worker', 'error')
-      return
+    if (hasCustomLaborClasses) {
+      allWorkersForSubmit = getValidDynamicWorkers()
+      if (allWorkersForSubmit.length === 0) {
+        onShowToast('Add at least one worker', 'error')
+        return
+      }
+    } else {
+      const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+      const validOperators = operators.filter(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
+      const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
+
+      if (validSupervision.length === 0 && validOperators.length === 0 && validLaborers.length === 0) {
+        onShowToast('Add at least one worker', 'error')
+        return
+      }
+
+      // Build workers array from hardcoded sections
+      allWorkersForSubmit = [
+        ...validSupervision.map(s => ({
+          name: s.name.trim(),
+          hours: parseFloat(s.hours) || 0,
+          overtime_hours: parseFloat(s.overtimeHours) || 0,
+          time_started: s.timeStarted || null,
+          time_ended: s.timeEnded || null,
+          role: s.role
+        })),
+        ...validOperators.map(o => ({
+          name: o.name.trim(),
+          hours: parseFloat(o.hours) || 0,
+          overtime_hours: parseFloat(o.overtimeHours) || 0,
+          time_started: o.timeStarted || null,
+          time_ended: o.timeEnded || null,
+          role: 'Operator'
+        })),
+        ...validLaborers.map(l => ({
+          name: l.name.trim(),
+          hours: parseFloat(l.hours) || 0,
+          overtime_hours: parseFloat(l.overtimeHours) || 0,
+          time_started: l.timeStarted || null,
+          time_ended: l.timeEnded || null,
+          role: 'Laborer'
+        }))
+      ]
     }
 
     setSubmitting(true)
@@ -953,36 +1109,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         await db.updateTMTicketPhotos(ticket.id, photoUrls)
       }
 
-      // Combine supervision, operators, and laborers for workers table
-      const allWorkers = [
-        ...validSupervision.map(s => ({
-          name: s.name.trim(),
-          hours: parseFloat(s.hours) || 0,
-          overtime_hours: parseFloat(s.overtimeHours) || 0,
-          time_started: s.timeStarted || null,
-          time_ended: s.timeEnded || null,
-          role: s.role
-        })),
-        ...validOperators.map(o => ({
-          name: o.name.trim(),
-          hours: parseFloat(o.hours) || 0,
-          overtime_hours: parseFloat(o.overtimeHours) || 0,
-          time_started: o.timeStarted || null,
-          time_ended: o.timeEnded || null,
-          role: 'Operator'
-        })),
-        ...validLaborers.map(l => ({
-          name: l.name.trim(),
-          hours: parseFloat(l.hours) || 0,
-          overtime_hours: parseFloat(l.overtimeHours) || 0,
-          time_started: l.timeStarted || null,
-          time_ended: l.timeEnded || null,
-          role: 'Laborer'
-        }))
-      ]
-
       setSubmitProgress('Saving workers...')
-      await db.addTMWorkers(ticket.id, allWorkers)
+      await db.addTMWorkers(ticket.id, allWorkersForSubmit)
 
       if (items.length > 0) {
         setSubmitProgress('Saving materials...')
@@ -1038,20 +1166,34 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   // Get total workers and hours for summary
+  // Handles both dynamic labor classes and hardcoded fallback
   const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
   const validOperators = operators.filter(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
   const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
-  const totalWorkers = validSupervision.length + validOperators.length + validLaborers.length
-  const totalRegHours = [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
-  const totalOTHours = [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.overtimeHours || 0), 0)
+
+  // Dynamic workers summary (when company has custom classes)
+  const validDynamicWorkersList = getValidDynamicWorkers()
+
+  // Use dynamic workers if available, otherwise use hardcoded
+  const totalWorkers = hasCustomLaborClasses
+    ? validDynamicWorkersList.length
+    : validSupervision.length + validOperators.length + validLaborers.length
+  const totalRegHours = hasCustomLaborClasses
+    ? validDynamicWorkersList.reduce((sum, w) => sum + (w.hours || 0), 0)
+    : [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
+  const totalOTHours = hasCustomLaborClasses
+    ? validDynamicWorkersList.reduce((sum, w) => sum + (w.overtime_hours || 0), 0)
+    : [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.overtimeHours || 0), 0)
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
 
   // Workers with names (for running total - shows who needs hours)
-  const namedWorkers = [
-    ...supervision.filter(s => s.name.trim()),
-    ...operators.filter(o => o.name.trim()),
-    ...laborers.filter(l => l.name.trim())
-  ]
+  const namedWorkers = hasCustomLaborClasses
+    ? Object.values(dynamicWorkers).flat().filter(w => w.name.trim())
+    : [
+        ...supervision.filter(s => s.name.trim()),
+        ...operators.filter(o => o.name.trim()),
+        ...laborers.filter(l => l.name.trim())
+      ]
   const workersWithHours = totalWorkers
   const workersNeedingHours = namedWorkers.length - workersWithHours
 
@@ -1514,209 +1656,370 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           </div>
 
-          {/* Supervision Section */}
-          <div className="tm-field">
-            <label>{t('supervision')}</label>
-            <div className="tm-workers-list">
-              {supervision.map((sup, index) => {
-                const workerState = getWorkerState(sup)
+          {/* Dynamic Labor Classes (when company has custom classes) */}
+          {hasCustomLaborClasses && !loadingLaborClasses && (
+            <>
+              {laborCategories.map(category => {
+                const categoryClasses = laborClasses.filter(lc => lc.category_id === category.id)
+                if (categoryClasses.length === 0) return null
                 return (
-                <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
-                  <div className="tm-worker-row-top">
-                    {workerState === 'complete' && (
-                      <span className="tm-worker-check"><Check size={14} /></span>
-                    )}
-                    <div className="tm-role-select">
-                      <select
-                        value={sup.role}
-                        onChange={(e) => updateSupervision(index, 'role', e.target.value)}
-                      >
-                        <option value="Foreman">{t('foreman')}</option>
-                        <option value="Superintendent">{t('superintendent')}</option>
-                      </select>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder={t('firstLastName')}
-                      value={sup.name}
-                      onChange={(e) => updateSupervision(index, 'name', e.target.value)}
-                      className="tm-worker-input"
-                    />
-                    <button className="tm-remove" onClick={() => removeSupervision(index)}>×</button>
+                  <div key={category.id} className="tm-labor-category-section">
+                    <div className="tm-category-header">{category.name}</div>
+                    {categoryClasses.map(laborClass => (
+                      <div key={laborClass.id} className="tm-field">
+                        <label>{laborClass.name}</label>
+                        <div className="tm-workers-list">
+                          {(dynamicWorkers[laborClass.id] || []).map((worker, index) => {
+                            const workerState = getWorkerState(worker)
+                            return (
+                              <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
+                                <div className="tm-worker-row-top">
+                                  {workerState === 'complete' && (
+                                    <span className="tm-worker-check"><Check size={14} /></span>
+                                  )}
+                                  <input
+                                    type="text"
+                                    placeholder={t('firstLastName')}
+                                    value={worker.name}
+                                    onChange={(e) => updateDynamicWorker(laborClass.id, index, 'name', e.target.value)}
+                                    className="tm-worker-input"
+                                  />
+                                  <button className="tm-remove" onClick={() => removeDynamicWorker(laborClass.id, index)}>×</button>
+                                </div>
+                                <div className="tm-worker-row-bottom">
+                                  <div className="tm-time-group">
+                                    <label>{t('start')}</label>
+                                    <input
+                                      type="time"
+                                      value={worker.timeStarted}
+                                      onChange={(e) => updateDynamicWorker(laborClass.id, index, 'timeStarted', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="tm-time-group">
+                                    <label>{t('end')}</label>
+                                    <input
+                                      type="time"
+                                      value={worker.timeEnded}
+                                      onChange={(e) => updateDynamicWorker(laborClass.id, index, 'timeEnded', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="tm-time-group">
+                                    <label>{t('regHrs')}</label>
+                                    <input
+                                      type="number"
+                                      placeholder="0"
+                                      value={worker.hours}
+                                      onChange={(e) => updateDynamicWorker(laborClass.id, index, 'hours', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="tm-time-group">
+                                    <label>{t('otHrs')}</label>
+                                    <input
+                                      type="number"
+                                      placeholder="0"
+                                      value={worker.overtimeHours}
+                                      onChange={(e) => updateDynamicWorker(laborClass.id, index, 'overtimeHours', e.target.value)}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <button className="tm-add-btn" onClick={() => addDynamicWorker(laborClass.id)}>
+                          + {lang === 'en' ? 'Add' : 'Agregar'} {laborClass.name}
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  <div className="tm-worker-row-bottom">
-                    <div className="tm-time-group">
-                      <label>{t('start')}</label>
-                      <input
-                        type="time"
-                        value={sup.timeStarted}
-                        onChange={(e) => updateSupervision(index, 'timeStarted', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('end')}</label>
-                      <input
-                        type="time"
-                        value={sup.timeEnded}
-                        onChange={(e) => updateSupervision(index, 'timeEnded', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('regHrs')}</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={sup.hours}
-                        onChange={(e) => updateSupervision(index, 'hours', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('otHrs')}</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={sup.overtimeHours}
-                        onChange={(e) => updateSupervision(index, 'overtimeHours', e.target.value)}
-                      />
-                    </div>
+                )
+              })}
+              {/* Classes without category */}
+              {laborClasses.filter(lc => !lc.category_id).map(laborClass => (
+                <div key={laborClass.id} className="tm-field">
+                  <label>{laborClass.name}</label>
+                  <div className="tm-workers-list">
+                    {(dynamicWorkers[laborClass.id] || []).map((worker, index) => {
+                      const workerState = getWorkerState(worker)
+                      return (
+                        <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
+                          <div className="tm-worker-row-top">
+                            {workerState === 'complete' && (
+                              <span className="tm-worker-check"><Check size={14} /></span>
+                            )}
+                            <input
+                              type="text"
+                              placeholder={t('firstLastName')}
+                              value={worker.name}
+                              onChange={(e) => updateDynamicWorker(laborClass.id, index, 'name', e.target.value)}
+                              className="tm-worker-input"
+                            />
+                            <button className="tm-remove" onClick={() => removeDynamicWorker(laborClass.id, index)}>×</button>
+                          </div>
+                          <div className="tm-worker-row-bottom">
+                            <div className="tm-time-group">
+                              <label>{t('start')}</label>
+                              <input
+                                type="time"
+                                value={worker.timeStarted}
+                                onChange={(e) => updateDynamicWorker(laborClass.id, index, 'timeStarted', e.target.value)}
+                              />
+                            </div>
+                            <div className="tm-time-group">
+                              <label>{t('end')}</label>
+                              <input
+                                type="time"
+                                value={worker.timeEnded}
+                                onChange={(e) => updateDynamicWorker(laborClass.id, index, 'timeEnded', e.target.value)}
+                              />
+                            </div>
+                            <div className="tm-time-group">
+                              <label>{t('regHrs')}</label>
+                              <input
+                                type="number"
+                                placeholder="0"
+                                value={worker.hours}
+                                onChange={(e) => updateDynamicWorker(laborClass.id, index, 'hours', e.target.value)}
+                              />
+                            </div>
+                            <div className="tm-time-group">
+                              <label>{t('otHrs')}</label>
+                              <input
+                                type="number"
+                                placeholder="0"
+                                value={worker.overtimeHours}
+                                onChange={(e) => updateDynamicWorker(laborClass.id, index, 'overtimeHours', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
+                  <button className="tm-add-btn" onClick={() => addDynamicWorker(laborClass.id)}>
+                    + {lang === 'en' ? 'Add' : 'Agregar'} {laborClass.name}
+                  </button>
                 </div>
-              )})}
-            </div>
-            <button className="tm-add-btn" onClick={addSupervision}>
-              {t('addSupervision')}
-            </button>
-          </div>
+              ))}
+            </>
+          )}
 
-          {/* Operators Section */}
-          <div className="tm-field">
-            <label>{t('operators')}</label>
-            <div className="tm-workers-list">
-              {operators.map((operator, index) => {
-                const workerState = getWorkerState(operator)
-                return (
-                <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
-                  <div className="tm-worker-row-top">
-                    {workerState === 'complete' && (
-                      <span className="tm-worker-check"><Check size={14} /></span>
-                    )}
-                    <input
-                      type="text"
-                      placeholder={t('firstLastName')}
-                      value={operator.name}
-                      onChange={(e) => updateOperator(index, 'name', e.target.value)}
-                      className="tm-worker-input"
-                    />
-                    <button className="tm-remove" onClick={() => removeOperator(index)}>×</button>
-                  </div>
-                  <div className="tm-worker-row-bottom">
-                    <div className="tm-time-group">
-                      <label>{t('start')}</label>
-                      <input
-                        type="time"
-                        value={operator.timeStarted}
-                        onChange={(e) => updateOperator(index, 'timeStarted', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('end')}</label>
-                      <input
-                        type="time"
-                        value={operator.timeEnded}
-                        onChange={(e) => updateOperator(index, 'timeEnded', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('regHrs')}</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={operator.hours}
-                        onChange={(e) => updateOperator(index, 'hours', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('otHrs')}</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={operator.overtimeHours}
-                        onChange={(e) => updateOperator(index, 'overtimeHours', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )})}
+          {/* Loading indicator for labor classes */}
+          {loadingLaborClasses && (
+            <div className="tm-loading-labor-classes">
+              <Loader2 size={20} className="tm-spinner" />
+              <span>{lang === 'en' ? 'Loading labor classes...' : 'Cargando clases de trabajo...'}</span>
             </div>
-            <button className="tm-add-btn" onClick={addOperator}>
-              {t('addOperator')}
-            </button>
-          </div>
+          )}
 
-          {/* Laborers Section */}
-          <div className="tm-field">
-            <label>{t('laborers')}</label>
-            <div className="tm-workers-list">
-              {laborers.map((laborer, index) => {
-                const workerState = getWorkerState(laborer)
-                return (
-                <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
-                  <div className="tm-worker-row-top">
-                    {workerState === 'complete' && (
-                      <span className="tm-worker-check"><Check size={14} /></span>
-                    )}
-                    <input
-                      type="text"
-                      placeholder={t('firstLastName')}
-                      value={laborer.name}
-                      onChange={(e) => updateLaborer(index, 'name', e.target.value)}
-                      className="tm-worker-input"
-                    />
-                    <button className="tm-remove" onClick={() => removeLaborer(index)}>×</button>
-                  </div>
-                  <div className="tm-worker-row-bottom">
-                    <div className="tm-time-group">
-                      <label>{t('start')}</label>
-                      <input
-                        type="time"
-                        value={laborer.timeStarted}
-                        onChange={(e) => updateLaborer(index, 'timeStarted', e.target.value)}
-                      />
+          {/* Hardcoded Worker Sections (fallback when no custom classes) */}
+          {!hasCustomLaborClasses && !loadingLaborClasses && (
+            <>
+              {/* Supervision Section */}
+              <div className="tm-field">
+                <label>{t('supervision')}</label>
+                <div className="tm-workers-list">
+                  {supervision.map((sup, index) => {
+                    const workerState = getWorkerState(sup)
+                    return (
+                    <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
+                      <div className="tm-worker-row-top">
+                        {workerState === 'complete' && (
+                          <span className="tm-worker-check"><Check size={14} /></span>
+                        )}
+                        <div className="tm-role-select">
+                          <select
+                            value={sup.role}
+                            onChange={(e) => updateSupervision(index, 'role', e.target.value)}
+                          >
+                            <option value="Foreman">{t('foreman')}</option>
+                            <option value="Superintendent">{t('superintendent')}</option>
+                          </select>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder={t('firstLastName')}
+                          value={sup.name}
+                          onChange={(e) => updateSupervision(index, 'name', e.target.value)}
+                          className="tm-worker-input"
+                        />
+                        <button className="tm-remove" onClick={() => removeSupervision(index)}>×</button>
+                      </div>
+                      <div className="tm-worker-row-bottom">
+                        <div className="tm-time-group">
+                          <label>{t('start')}</label>
+                          <input
+                            type="time"
+                            value={sup.timeStarted}
+                            onChange={(e) => updateSupervision(index, 'timeStarted', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('end')}</label>
+                          <input
+                            type="time"
+                            value={sup.timeEnded}
+                            onChange={(e) => updateSupervision(index, 'timeEnded', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('regHrs')}</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={sup.hours}
+                            onChange={(e) => updateSupervision(index, 'hours', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('otHrs')}</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={sup.overtimeHours}
+                            onChange={(e) => updateSupervision(index, 'overtimeHours', e.target.value)}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="tm-time-group">
-                      <label>{t('end')}</label>
-                      <input
-                        type="time"
-                        value={laborer.timeEnded}
-                        onChange={(e) => updateLaborer(index, 'timeEnded', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('regHrs')}</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={laborer.hours}
-                        onChange={(e) => updateLaborer(index, 'hours', e.target.value)}
-                      />
-                    </div>
-                    <div className="tm-time-group">
-                      <label>{t('otHrs')}</label>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={laborer.overtimeHours}
-                        onChange={(e) => updateLaborer(index, 'overtimeHours', e.target.value)}
-                      />
-                    </div>
-                  </div>
+                  )})}
                 </div>
-              )})}
-            </div>
-            <button className="tm-add-btn" onClick={addLaborer}>
-              {t('addLaborer')}
-            </button>
-          </div>
+                <button className="tm-add-btn" onClick={addSupervision}>
+                  {t('addSupervision')}
+                </button>
+              </div>
+
+              {/* Operators Section */}
+              <div className="tm-field">
+                <label>{t('operators')}</label>
+                <div className="tm-workers-list">
+                  {operators.map((operator, index) => {
+                    const workerState = getWorkerState(operator)
+                    return (
+                    <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
+                      <div className="tm-worker-row-top">
+                        {workerState === 'complete' && (
+                          <span className="tm-worker-check"><Check size={14} /></span>
+                        )}
+                        <input
+                          type="text"
+                          placeholder={t('firstLastName')}
+                          value={operator.name}
+                          onChange={(e) => updateOperator(index, 'name', e.target.value)}
+                          className="tm-worker-input"
+                        />
+                        <button className="tm-remove" onClick={() => removeOperator(index)}>×</button>
+                      </div>
+                      <div className="tm-worker-row-bottom">
+                        <div className="tm-time-group">
+                          <label>{t('start')}</label>
+                          <input
+                            type="time"
+                            value={operator.timeStarted}
+                            onChange={(e) => updateOperator(index, 'timeStarted', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('end')}</label>
+                          <input
+                            type="time"
+                            value={operator.timeEnded}
+                            onChange={(e) => updateOperator(index, 'timeEnded', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('regHrs')}</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={operator.hours}
+                            onChange={(e) => updateOperator(index, 'hours', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('otHrs')}</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={operator.overtimeHours}
+                            onChange={(e) => updateOperator(index, 'overtimeHours', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )})}
+                </div>
+                <button className="tm-add-btn" onClick={addOperator}>
+                  {t('addOperator')}
+                </button>
+              </div>
+
+              {/* Laborers Section */}
+              <div className="tm-field">
+                <label>{t('laborers')}</label>
+                <div className="tm-workers-list">
+                  {laborers.map((laborer, index) => {
+                    const workerState = getWorkerState(laborer)
+                    return (
+                    <div key={index} className={`tm-worker-card-expanded ${workerState !== 'empty' ? `worker-${workerState}` : ''}`}>
+                      <div className="tm-worker-row-top">
+                        {workerState === 'complete' && (
+                          <span className="tm-worker-check"><Check size={14} /></span>
+                        )}
+                        <input
+                          type="text"
+                          placeholder={t('firstLastName')}
+                          value={laborer.name}
+                          onChange={(e) => updateLaborer(index, 'name', e.target.value)}
+                          className="tm-worker-input"
+                        />
+                        <button className="tm-remove" onClick={() => removeLaborer(index)}>×</button>
+                      </div>
+                      <div className="tm-worker-row-bottom">
+                        <div className="tm-time-group">
+                          <label>{t('start')}</label>
+                          <input
+                            type="time"
+                            value={laborer.timeStarted}
+                            onChange={(e) => updateLaborer(index, 'timeStarted', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('end')}</label>
+                          <input
+                            type="time"
+                            value={laborer.timeEnded}
+                            onChange={(e) => updateLaborer(index, 'timeEnded', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('regHrs')}</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={laborer.hours}
+                            onChange={(e) => updateLaborer(index, 'hours', e.target.value)}
+                          />
+                        </div>
+                        <div className="tm-time-group">
+                          <label>{t('otHrs')}</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={laborer.overtimeHours}
+                            onChange={(e) => updateLaborer(index, 'overtimeHours', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )})}
+                </div>
+                <button className="tm-add-btn" onClick={addLaborer}>
+                  {t('addLaborer')}
+                </button>
+              </div>
+            </>
+          )}
 
         </div>
       )}
@@ -1865,7 +2168,33 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           )}
 
-          {validSupervision.length > 0 && (
+          {/* Dynamic Workers Review (when company has custom classes) */}
+          {hasCustomLaborClasses && validDynamicWorkersList.length > 0 && (
+            <div className="tm-review-section">
+              <div className="tm-review-header">
+                <span><HardHat size={16} className="inline-icon" /> {lang === 'en' ? 'Workers' : 'Trabajadores'}</span>
+                <span>{totalRegHours + totalOTHours} hrs</span>
+              </div>
+              <div className="tm-review-list">
+                {validDynamicWorkersList.map((w, i) => (
+                  <div key={i} className="tm-review-row-detailed">
+                    <div className="tm-review-worker-name">
+                      <span className="tm-role-badge">{w.role}</span> {w.name}
+                    </div>
+                    <div className="tm-review-worker-details">
+                      {w.time_started && w.time_ended && (
+                        <span className="tm-review-time">{w.time_started} - {w.time_ended}</span>
+                      )}
+                      <span className="tm-review-hours">{w.hours || 0} reg{w.overtime_hours > 0 ? ` + ${w.overtime_hours} OT` : ''}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hardcoded Workers Review (fallback when no custom classes) */}
+          {!hasCustomLaborClasses && validSupervision.length > 0 && (
             <div className="tm-review-section">
               <div className="tm-review-header">
                 <span><UserCheck size={16} className="inline-icon" /> Supervision</span>
@@ -1889,7 +2218,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           )}
 
-          {validOperators.length > 0 && (
+          {!hasCustomLaborClasses && validOperators.length > 0 && (
             <div className="tm-review-section">
               <div className="tm-review-header">
                 <span>🚜 Operators</span>
@@ -1911,7 +2240,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </div>
           )}
 
-          {validLaborers.length > 0 && (
+          {!hasCustomLaborClasses && validLaborers.length > 0 && (
             <div className="tm-review-section">
               <div className="tm-review-header">
                 <span><HardHat size={16} className="inline-icon" /> Laborers</span>

@@ -1,6 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Link, Copy, Check, Clock, ExternalLink, AlertCircle, Trash2 } from 'lucide-react'
 import { db } from '../lib/supabase'
+
+// Hook to lock body scroll when modal is open
+function useBodyScrollLock() {
+  useEffect(() => {
+    const scrollY = window.scrollY
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+}
 
 // Helper to format date
 const formatDate = (dateString) => {
@@ -28,7 +47,10 @@ export default function SignatureLinkGenerator({
   const [existingRequests, setExistingRequests] = useState([])
   const [newLink, setNewLink] = useState(null)
   const [copied, setCopied] = useState(false)
-  const [expiresIn, setExpiresIn] = useState('never') // 'never', '7d', '30d', '90d'
+  const expiresIn = '7' // Always 7 days - clients have 7 days to sign
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock()
 
   // Load existing signature requests for this document
   useEffect(() => {
@@ -157,18 +179,9 @@ export default function SignatureLinkGenerator({
             </p>
 
             <div className="link-options">
-              <div className="form-group">
-                <label>Link Expiration</label>
-                <select
-                  value={expiresIn}
-                  onChange={(e) => setExpiresIn(e.target.value)}
-                  disabled={generating}
-                >
-                  <option value="never">Never expires</option>
-                  <option value="7">7 days</option>
-                  <option value="30">30 days</option>
-                  <option value="90">90 days</option>
-                </select>
+              <div className="link-expiration-info">
+                <Clock size={14} />
+                <span>Link expires in 7 days</span>
               </div>
 
               <button

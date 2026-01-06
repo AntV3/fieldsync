@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { X, Check, RotateCcw, Pen, Shield } from 'lucide-react'
 
 export default function EnhancedSignatureCapture({
@@ -21,6 +21,30 @@ export default function EnhancedSignatureCapture({
 
   const slotLabel = slot === 1 ? 'GC Authorization' : 'Client Authorization'
   const docTypeLabel = documentType === 'cor' ? 'Change Order Request' : 'T&M Work Order'
+
+  // Lock body scroll when modal is open (prevents background scrolling on mobile)
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow
+    const originalPosition = document.body.style.position
+    const originalTop = document.body.style.top
+    const scrollY = window.scrollY
+
+    // Lock the body
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+
+    return () => {
+      // Restore original styles
+      document.body.style.overflow = originalOverflow
+      document.body.style.position = originalPosition
+      document.body.style.top = originalTop
+      document.body.style.width = ''
+      // Restore scroll position
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
 
   // Get canvas context
   const getContext = () => {
