@@ -175,13 +175,16 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     }
   }
 
-  const getRateForClass = (laborClass, wageType = 'standard') => {
+  const getRateForClass = (laborClass, wageType = null) => {
+    // Use project's job_type if wageType not explicitly provided
+    const effectiveWageType = wageType || project?.job_type || 'standard'
+
     // First try to get rate from new labor_class_rates system
     const classData = laborClasses.find(lc => lc.name === laborClass)
     if (classData) {
       const classWithRates = laborClassRates.find(lcr => lcr.id === classData.id)
       if (classWithRates?.labor_class_rates) {
-        const rateEntry = classWithRates.labor_class_rates.find(r => r.job_type === wageType)
+        const rateEntry = classWithRates.labor_class_rates.find(r => r.job_type === effectiveWageType)
         if (rateEntry) {
           return {
             regular_rate: rateEntry.regular_rate,
@@ -248,11 +251,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const addLaborItem = () => {
     // Use first labor class from database, or fallback to hardcoded
     const defaultClass = laborClasses[0]?.name || LABOR_CLASSES[0]
-    const rate = getRateForClass(defaultClass, 'standard')
+    const projectWageType = project?.job_type || 'standard'
+    const rate = getRateForClass(defaultClass)
     setLaborItems([...laborItems, {
       id: `temp-${Date.now()}`,
       labor_class: defaultClass,
-      wage_type: 'standard',
+      wage_type: projectWageType, // Set from project, not user-selectable
       regular_hours: 0,
       overtime_hours: 0,
       regular_rate: rate ? Math.round((parseFloat(rate.regular_rate) || 0) * 100) : 0,
@@ -266,11 +270,9 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     const newItems = [...laborItems]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    // Update rates when class or wage type changes
-    if (field === 'labor_class' || field === 'wage_type') {
-      const laborClass = field === 'labor_class' ? value : newItems[index].labor_class
-      const wageType = field === 'wage_type' ? value : newItems[index].wage_type
-      const rate = getRateForClass(laborClass, wageType)
+    // Update rates when class changes (wage type comes from project)
+    if (field === 'labor_class') {
+      const rate = getRateForClass(value)
       if (rate) {
         newItems[index].regular_rate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
         newItems[index].overtime_rate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
@@ -673,14 +675,6 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         >
                           {(laborClasses.length > 0 ? laborClasses : LABOR_CLASSES.map(lc => ({ name: lc }))).map(lc => (
                             <option key={lc.name} value={lc.name}>{lc.name}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={item.wage_type}
-                          onChange={(e) => updateLaborItem(index, 'wage_type', e.target.value)}
-                        >
-                          {WAGE_TYPES.map(wt => (
-                            <option key={wt.value} value={wt.value}>{wt.label}</option>
                           ))}
                         </select>
                         <input

@@ -63,6 +63,32 @@
 
 **Commit:** `8ee3988` - Fix labor rates, categories, and classes system
 
+**Follow-Up Fix:** Wage Type Selection at Project Level
+
+**Additional Change:** Removed wage_type dropdown from COR labor line items
+- Wage type (Standard vs Prevailing/PLA) is now set at PROJECT CREATION, not per line item
+- When creating a project, user chooses "Standard" or "PLA" → stored in `project.job_type`
+- COR forms automatically use the project's wage type for all labor items
+- Removed confusing per-item wage type dropdown
+- `getRateForClass()` now uses `project.job_type` to fetch correct rates
+- Labor items still store `wage_type` field, but it's set from project, not user-selectable
+
+**Files Modified:**
+- `src/components/cor/CORForm.jsx`:
+  - Line 178-200: Updated `getRateForClass()` to use `project.job_type` as default
+  - Line 254: Set `projectWageType` from `project.job_type`
+  - Line 259: Store project's wage type in labor item
+  - Line 269-291: Removed wage_type from update logic
+  - Line 672-687: Removed wage_type dropdown from UI
+
+**How It Works Now:**
+1. **Project Creation** → Choose "Standard" or "PLA" (stored as `project.job_type`)
+2. **Pricing Tab** → Each class has 2 rates: Standard Rate & Prevailing Wage
+3. **COR Forms** → Automatically uses project's wage type
+4. **Labor Items** → Only select class, rates auto-fill based on project setting
+
+**Commit:** `cbbd347` - Clean up SQL migration - remove excessive comments, add verification queries
+
 ---
 
 ## January 8, 2025 (Earlier)
