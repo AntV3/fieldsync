@@ -1927,7 +1927,7 @@ export const db = {
 
     if (error || !ticket) return null
 
-    // Group workers by role
+    // Group workers by role (legacy)
     const workers = ticket.t_and_m_workers || []
     const supervision = workers
       .filter(w => ['Foreman', 'General Foreman', 'Superintendent'].includes(w.role))
@@ -1960,11 +1960,29 @@ export const db = {
         timeEnded: w.time_ended || ''
       }))
 
+    // Group workers by labor_class_id (new system)
+    const dynamicWorkers = {}
+    workers
+      .filter(w => w.labor_class_id) // Only workers with labor_class_id
+      .forEach(w => {
+        if (!dynamicWorkers[w.labor_class_id]) {
+          dynamicWorkers[w.labor_class_id] = []
+        }
+        dynamicWorkers[w.labor_class_id].push({
+          name: w.name,
+          hours: w.hours?.toString() || '',
+          overtimeHours: w.overtime_hours?.toString() || '',
+          timeStarted: w.time_started || '',
+          timeEnded: w.time_ended || ''
+        })
+      })
+
     return {
       workDate: ticket.work_date,
       supervision: supervision.length > 0 ? supervision : null,
       operators: operators.length > 0 ? operators : null,
       laborers: laborers.length > 0 ? laborers : null,
+      dynamicWorkers: Object.keys(dynamicWorkers).length > 0 ? dynamicWorkers : null,
       totalWorkers: workers.length
     }
   },

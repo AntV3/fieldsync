@@ -143,6 +143,33 @@ All labor automatically uses PLA rates because project.job_type = "pla"
 4. Uses correct rate (Standard or PLA) based on project setting
 5. Burn rate and financial tabs now show live updates with correct class names and costs
 
+**Follow-Up Fix:** T&M Form Crew Quick Actions Not Working with New Labor Classes
+
+**Problem:** When foreman used quick actions like "Set Crew Hours", "8hr/10hr/4hr presets", or "Same as Yesterday", the hours were only applied to legacy worker sections (Supervision/Operators/Laborers), not to workers added with new custom labor classes in the dynamic sections.
+
+**Solution:**
+- Updated `applyBatchHours()` in `src/components/TMForm.jsx` (lines 414-458)
+  - Now applies hours to `dynamicWorkers` state in addition to legacy sections
+  - Counts workers from both systems for accurate toast messages
+- Updated `applyInlinePreset()` in `src/components/TMForm.jsx` (lines 460-527)
+  - Applies 8hr/10hr/4hr presets to all workers including dynamic sections
+  - Counts both legacy and dynamic workers
+- Updated `getPreviousTicketCrew()` in `src/lib/supabase.js` (lines 1911-1988)
+  - Now returns `dynamicWorkers` object grouped by `labor_class_id`
+  - Maintains backward compatibility with legacy role-based grouping
+- Updated `loadPreviousCrew()` in `src/components/TMForm.jsx` (lines 591-625)
+  - Loads and applies `dynamicWorkers` from previous tickets
+  - Restores both legacy and new labor class workers
+
+**How It Works Now:**
+1. Foreman adds workers from "Today's Crew" → Workers populate in their labor class sections
+2. Click "Set Crew Hours" or time preset → Hours apply to ALL workers across all sections
+3. Click "Same as Yesterday" → Loads previous ticket's crew including custom labor classes
+4. All quick actions are solid and work consistently across legacy and new systems
+
+**Commits:**
+- `2c22645` - Fix burn rate and financial tab to use new labor class rates
+
 ---
 
 ## January 8, 2025 (Earlier)

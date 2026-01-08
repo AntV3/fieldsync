@@ -430,12 +430,27 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       l.name.trim() ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
     ))
 
-    // Count how many workers were updated
-    const updatedCount = [
+    // Apply to dynamic workers (custom labor classes)
+    const updatedDynamic = {}
+    Object.keys(dynamicWorkers).forEach(classId => {
+      updatedDynamic[classId] = dynamicWorkers[classId].map(w =>
+        w.name.trim() ? { ...w, timeStarted, timeEnded, hours, overtimeHours } : w
+      )
+    })
+    setDynamicWorkers(updatedDynamic)
+
+    // Count how many workers were updated (including dynamic)
+    const legacyCount = [
       ...supervision.filter(s => s.name.trim()),
       ...operators.filter(o => o.name.trim()),
       ...laborers.filter(l => l.name.trim())
     ].length
+
+    const dynamicCount = Object.values(dynamicWorkers).reduce((sum, workers) => {
+      return sum + workers.filter(w => w.name.trim()).length
+    }, 0)
+
+    const updatedCount = legacyCount + dynamicCount
 
     setShowBatchHoursModal(false)
     setBatchHours({ timeStarted: '', timeEnded: '', hours: '', overtimeHours: '' })
@@ -469,7 +484,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
     }
 
-    // Apply to all workers with names
+    // Apply to all workers with names (legacy sections)
     setSupervision(prev => prev.map(s =>
       s.name.trim() ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
     ))
@@ -480,12 +495,29 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       l.name.trim() ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
     ))
 
-    // Count workers updated
-    const count = [
+    // Apply to dynamic workers (custom labor classes)
+    setDynamicWorkers(prev => {
+      const updated = {}
+      Object.keys(prev).forEach(classId => {
+        updated[classId] = prev[classId].map(w =>
+          w.name.trim() ? { ...w, timeStarted, timeEnded, hours, overtimeHours } : w
+        )
+      })
+      return updated
+    })
+
+    // Count workers updated (including dynamic)
+    const legacyCount = [
       ...supervision.filter(s => s.name.trim()),
       ...operators.filter(o => o.name.trim()),
       ...laborers.filter(l => l.name.trim())
     ].length
+
+    const dynamicCount = Object.values(dynamicWorkers).reduce((sum, workers) => {
+      return sum + workers.filter(w => w.name.trim()).length
+    }, 0)
+
+    const count = legacyCount + dynamicCount
 
     if (count > 0) {
       onShowToast(t('appliedHours').replace('{count}', count), 'success')
@@ -566,7 +598,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
       }
 
-      // Apply previous crew data
+      // Apply previous crew data (legacy sections)
       if (previousCrew.supervision) {
         setSupervision(previousCrew.supervision)
       }
@@ -575,6 +607,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       }
       if (previousCrew.laborers) {
         setLaborers(previousCrew.laborers)
+      }
+
+      // Apply previous crew data (dynamic workers - new labor classes)
+      if (previousCrew.dynamicWorkers) {
+        setDynamicWorkers(previousCrew.dynamicWorkers)
       }
 
       const dateStr = new Date(previousCrew.workDate).toLocaleDateString()
