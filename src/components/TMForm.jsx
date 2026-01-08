@@ -1498,10 +1498,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               {showCrewPicker && (
                 <div className="tm-crew-list">
                   {todaysCrew.map((worker, index) => {
-                    const isAdded =
+                    // Check if already added (in legacy or dynamic sections)
+                    const inLegacy =
                       supervision.some(s => s.name.toLowerCase() === worker.name.toLowerCase()) ||
                       operators.some(o => o.name.toLowerCase() === worker.name.toLowerCase()) ||
                       laborers.some(l => l.name.toLowerCase() === worker.name.toLowerCase())
+                    const inDynamic = Object.values(dynamicWorkers).some(workers =>
+                      workers.some(w => w.name.toLowerCase() === worker.name.toLowerCase())
+                    )
+                    const isAdded = inLegacy || inDynamic
 
                     return (
                       <button
@@ -1510,48 +1515,73 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                         onClick={() => {
                           if (isAdded) return
 
-                          if (worker.role === 'Foreman' || worker.role === 'Supervisor') {
-                            // Add to supervision
-                            const emptySupIndex = supervision.findIndex(s => !s.name.trim())
-                            if (emptySupIndex >= 0) {
-                              updateSupervision(emptySupIndex, 'name', worker.name)
+                          // If worker has labor_class_id and we have custom classes, add to dynamic section
+                          if (worker.labor_class_id && hasCustomLaborClasses && dynamicWorkers[worker.labor_class_id]) {
+                            const classWorkers = dynamicWorkers[worker.labor_class_id] || []
+                            const emptyIndex = classWorkers.findIndex(w => !w.name.trim())
+                            if (emptyIndex >= 0) {
+                              // Update existing empty slot
+                              const updated = [...classWorkers]
+                              updated[emptyIndex] = { ...updated[emptyIndex], name: worker.name }
+                              setDynamicWorkers({ ...dynamicWorkers, [worker.labor_class_id]: updated })
                             } else {
-                              setSupervision([...supervision, {
-                                name: worker.name,
-                                hours: '',
-                                overtimeHours: '',
-                                timeStarted: '',
-                                timeEnded: '',
-                                role: worker.role === 'Supervisor' ? 'Superintendent' : 'Foreman'
-                              }])
-                            }
-                          } else if (worker.role === 'Operator') {
-                            // Add to operators
-                            const emptyOpIndex = operators.findIndex(o => !o.name.trim())
-                            if (emptyOpIndex >= 0) {
-                              updateOperator(emptyOpIndex, 'name', worker.name)
-                            } else {
-                              setOperators([...operators, {
-                                name: worker.name,
-                                hours: '',
-                                overtimeHours: '',
-                                timeStarted: '',
-                                timeEnded: ''
-                              }])
+                              // Add new worker
+                              setDynamicWorkers({
+                                ...dynamicWorkers,
+                                [worker.labor_class_id]: [...classWorkers, {
+                                  name: worker.name,
+                                  hours: '',
+                                  overtimeHours: '',
+                                  timeStarted: '',
+                                  timeEnded: ''
+                                }]
+                              })
                             }
                           } else {
-                            // Add to laborers
-                            const emptyLabIndex = laborers.findIndex(l => !l.name.trim())
-                            if (emptyLabIndex >= 0) {
-                              updateLaborer(emptyLabIndex, 'name', worker.name)
+                            // Fall back to legacy sections based on role name
+                            const role = (worker.role || '').toLowerCase()
+
+                            if (role.includes('foreman') || role.includes('supervisor') || role.includes('superintendent')) {
+                              const emptySupIndex = supervision.findIndex(s => !s.name.trim())
+                              if (emptySupIndex >= 0) {
+                                updateSupervision(emptySupIndex, 'name', worker.name)
+                                updateSupervision(emptySupIndex, 'role', role.includes('superintendent') ? 'Superintendent' : 'Foreman')
+                              } else {
+                                setSupervision([...supervision, {
+                                  name: worker.name,
+                                  hours: '',
+                                  overtimeHours: '',
+                                  timeStarted: '',
+                                  timeEnded: '',
+                                  role: role.includes('superintendent') ? 'Superintendent' : 'Foreman'
+                                }])
+                              }
+                            } else if (role.includes('operator')) {
+                              const emptyOpIndex = operators.findIndex(o => !o.name.trim())
+                              if (emptyOpIndex >= 0) {
+                                updateOperator(emptyOpIndex, 'name', worker.name)
+                              } else {
+                                setOperators([...operators, {
+                                  name: worker.name,
+                                  hours: '',
+                                  overtimeHours: '',
+                                  timeStarted: '',
+                                  timeEnded: ''
+                                }])
+                              }
                             } else {
-                              setLaborers([...laborers, {
-                                name: worker.name,
-                                hours: '',
-                                overtimeHours: '',
-                                timeStarted: '',
-                                timeEnded: ''
-                              }])
+                              const emptyLabIndex = laborers.findIndex(l => !l.name.trim())
+                              if (emptyLabIndex >= 0) {
+                                updateLaborer(emptyLabIndex, 'name', worker.name)
+                              } else {
+                                setLaborers([...laborers, {
+                                  name: worker.name,
+                                  hours: '',
+                                  overtimeHours: '',
+                                  timeStarted: '',
+                                  timeEnded: ''
+                                }])
+                              }
                             }
                           }
                           onShowToast(`Added ${worker.name}`, 'success')

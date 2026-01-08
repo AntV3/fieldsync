@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { db } from '../../lib/supabase'
 import { ChevronDown, ChevronRight, Plus, Edit2, Trash2, DollarSign, X, Check, AlertCircle } from 'lucide-react'
 
-const WORK_TYPES = ['demolition', 'abatement']
-const JOB_TYPES = ['standard', 'pla']
+// Simplified rate types - scalable for any company type
+const RATE_TYPES = [
+  { id: 'standard', label: 'Standard Rate' },
+  { id: 'prevailing', label: 'Prevailing Wage' }
+]
 
 export default function LaborRatesSection({ company, onShowToast }) {
   const [categories, setCategories] = useState([])
@@ -190,21 +193,20 @@ export default function LaborRatesSection({ company, onShowToast }) {
   const openRatesModal = async (laborClass) => {
     setSelectedClassForRates(laborClass)
 
-    // Initialize rates structure
+    // Initialize simplified rates structure
     const rates = {}
-    WORK_TYPES.forEach(wt => {
-      rates[wt] = {}
-      JOB_TYPES.forEach(jt => {
-        rates[wt][jt] = { regular_rate: '', overtime_rate: '' }
-      })
+    RATE_TYPES.forEach(rt => {
+      rates[rt.id] = { regular_rate: '', overtime_rate: '' }
     })
 
     // Load existing rates
     try {
       const existingRates = await db.getLaborClassRates(laborClass.id)
       existingRates.forEach(r => {
-        if (rates[r.work_type] && rates[r.work_type][r.job_type]) {
-          rates[r.work_type][r.job_type] = {
+        // Map old structure to new: use job_type as rate type
+        const rateType = r.job_type === 'pla' ? 'prevailing' : r.job_type
+        if (rates[rateType]) {
+          rates[rateType] = {
             regular_rate: r.regular_rate || '',
             overtime_rate: r.overtime_rate || ''
           }
@@ -218,15 +220,12 @@ export default function LaborRatesSection({ company, onShowToast }) {
     setShowRatesModal(true)
   }
 
-  const updateClassRate = (workType, jobType, field, value) => {
+  const updateClassRate = (rateType, field, value) => {
     setClassRates(prev => ({
       ...prev,
-      [workType]: {
-        ...prev[workType],
-        [jobType]: {
-          ...prev[workType][jobType],
-          [field]: value.replace(/[^0-9.]/g, '')
-        }
+      [rateType]: {
+        ...prev[rateType],
+        [field]: value.replace(/[^0-9.]/g, '')
       }
     }))
   }
@@ -236,18 +235,12 @@ export default function LaborRatesSection({ company, onShowToast }) {
 
     setSaving(true)
     try {
-      const ratesToSave = []
-      WORK_TYPES.forEach(workType => {
-        JOB_TYPES.forEach(jobType => {
-          const rateData = classRates[workType]?.[jobType]
-          ratesToSave.push({
-            work_type: workType,
-            job_type: jobType,
-            regular_rate: parseFloat(rateData?.regular_rate) || 0,
-            overtime_rate: parseFloat(rateData?.overtime_rate) || 0
-          })
-        })
-      })
+      const ratesToSave = RATE_TYPES.map(rt => ({
+        work_type: 'labor',  // Generic work type for scalability
+        job_type: rt.id,
+        regular_rate: parseFloat(classRates[rt.id]?.regular_rate) || 0,
+        overtime_rate: parseFloat(classRates[rt.id]?.overtime_rate) || 0
+      }))
 
       await db.saveLaborClassRates(selectedClassForRates.id, ratesToSave)
       onShowToast?.('Rates saved', 'success')
@@ -264,9 +257,6 @@ export default function LaborRatesSection({ company, onShowToast }) {
   // ==========================================
   // Render
   // ==========================================
-
-  const formatWorkType = (type) => type.charAt(0).toUpperCase() + type.slice(1)
-  const formatJobType = (type) => type === 'pla' ? 'PLA (Prevailing Wage)' : 'Standard'
 
   if (loading) {
     return <div className="loading">Loading labor setup...</div>
@@ -508,7 +498,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
         </div>
       )}
 
-      {/* Rates Modal */}
+      {/* Rates Modal - Simplified for scalability */}
       {showRatesModal && selectedClassForRates && (
         <div className="modal-overlay" onClick={() => setShowRatesModal(false)}>
           <div className="modal-content labor-modal rates-modal" onClick={e => e.stopPropagation()}>
@@ -519,51 +509,46 @@ export default function LaborRatesSection({ company, onShowToast }) {
               </button>
             </div>
             <div className="modal-body">
-              {WORK_TYPES.map(workType => (
-                <div key={workType} className="rates-work-type-section">
-                  <h3 className="work-type-label">{formatWorkType(workType)}</h3>
-                  <div className="rates-grid">
-                    {JOB_TYPES.map(jobType => {
-                      const rateData = classRates[workType]?.[jobType] || {}
-                      return (
-                        <div key={jobType} className="rate-row">
-                          <span className="job-type-label">{formatJobType(jobType)}</span>
-                          <div className="rate-inputs">
-                            <div className="rate-input-group">
-                              <label>Regular</label>
-                              <div className="rate-input-inline">
-                                <span>$</span>
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={rateData.regular_rate || ''}
-                                  onChange={e => updateClassRate(workType, jobType, 'regular_rate', e.target.value)}
-                                  placeholder="0"
-                                />
-                                <span>/hr</span>
-                              </div>
-                            </div>
-                            <div className="rate-input-group">
-                              <label>Overtime</label>
-                              <div className="rate-input-inline">
-                                <span>$</span>
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={rateData.overtime_rate || ''}
-                                  onChange={e => updateClassRate(workType, jobType, 'overtime_rate', e.target.value)}
-                                  placeholder="0"
-                                />
-                                <span>/hr</span>
-                              </div>
-                            </div>
+              <div className="rates-simple-grid">
+                {RATE_TYPES.map(rateType => {
+                  const rateData = classRates[rateType.id] || {}
+                  return (
+                    <div key={rateType.id} className="rate-row-simple">
+                      <span className="rate-type-label">{rateType.label}</span>
+                      <div className="rate-inputs">
+                        <div className="rate-input-group">
+                          <label>Regular</label>
+                          <div className="rate-input-inline">
+                            <span>$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={rateData.regular_rate || ''}
+                              onChange={e => updateClassRate(rateType.id, 'regular_rate', e.target.value)}
+                              placeholder="0.00"
+                            />
+                            <span>/hr</span>
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
+                        <div className="rate-input-group">
+                          <label>Overtime</label>
+                          <div className="rate-input-inline">
+                            <span>$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={rateData.overtime_rate || ''}
+                              onChange={e => updateClassRate(rateType.id, 'overtime_rate', e.target.value)}
+                              placeholder="0.00"
+                            />
+                            <span>/hr</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowRatesModal(false)}>

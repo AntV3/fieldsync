@@ -1,6 +1,119 @@
 # FieldSync Development Log
 
-**Last Updated:** January 4, 2025
+**Last Updated:** January 7, 2025
+
+---
+
+## January 7, 2025
+
+### Open Issues Resolution
+
+#### 1. Field User Photo Upload Fix (Storage RLS)
+**Problem:** Field users (foremen) authenticate via PIN using the `anon` role, but storage bucket RLS policies only allowed `authenticated` role to upload photos. Foremen could not upload photos.
+
+**Solution:** Created new migration `database/migration_field_photo_uploads.sql` adding `anon` role policies:
+- INSERT policy with project validation
+- UPDATE policy with project validation
+- DELETE policy with project validation
+
+**Files Created:**
+- `database/migration_field_photo_uploads.sql`
+
+#### 2. Real-time Subscriptions - Verified Working
+**Finding:** Investigated all 11 real-time subscriptions across the codebase. All have proper cleanup, Dashboard uses 150ms debouncing, no memory leaks detected. No changes needed.
+
+#### 3. Offline Support Enhancement (Major)
+**Problem:** Only `UPDATE_AREA_STATUS` was using offline queuing. Other field operations would fail offline.
+
+**Solution:** Extended offline queuing to cover all field operations:
+
+**IndexedDB Updates (`src/lib/offlineManager.js`):**
+- Bumped DB_VERSION to 2
+- Added new stores: `TM_TICKETS`, `DAILY_REPORTS`, `MESSAGES`
+- Added caching functions: `cacheTMTicket`, `getCachedTMTickets`, `cacheDailyReport`, `getCachedDailyReport`, `cacheMessage`, `getCachedMessages`
+- Added `generateTempId()` for offline-created records
+
+**Database Functions Updated (`src/lib/supabase.js`):**
+- `createTMTicket()` - Now queues offline with temp ID, syncs when online
+- `saveCrewCheckin()` - Now queues offline, caches locally
+- `saveDailyReport()` - Now caches locally when offline
+- `submitDailyReport()` - Now queues offline submission
+- `sendMessage()` - Now queues offline with optimistic UI
+- `createMaterialRequest()` - Now queues offline
+
+**Pattern Used:**
+1. Check `getConnectionStatus()` before network call
+2. If offline → cache locally + queue action with temp ID
+3. If network error → same as offline
+4. If success → update cache with server response
+
+---
+
+### T&M Crew Picker Bug Fix
+**Problem:** The "Select from Today's Crew" picker was using case-sensitive role matching. If crew check-in stored roles as `'foreman'` (lowercase), they wouldn't match `'Foreman'` and workers would incorrectly be added to Laborers instead of Supervision.
+
+**Fix:** Changed role matching to case-insensitive using `.toLowerCase()` and `.includes()`:
+- `role.includes('foreman')` instead of `role === 'Foreman'`
+- `role.includes('supervisor')` or `role.includes('superintendent')` → Supervision
+- `role.includes('operator')` → Operators
+- All others → Laborers
+
+**Files Modified:**
+- `src/components/TMForm.jsx` (lines 1574-1620): Fixed crew picker role matching
+
+---
+
+### Labor Classes Routing (Office → Field)
+**Problem:** Labor classes/categories set up in Pricing tab were not available to field users. CrewCheckin.jsx used hardcoded roles (Foreman, Laborer, Supervisor, Operator) instead of loading from database.
+
+**Solution:** Connected labor classes data flow from office to field:
+
+**1. CrewCheckin.jsx - Now loads labor classes from database:**
+- Added `companyId` prop
+- Loads labor classes via `getLaborClassesWithCategories(companyId)`
+- Shows classes grouped by category in dropdown (no rates shown - just names)
+- Stores `labor_class_id` with each worker
+- Falls back to default roles if no custom classes configured
+
+**2. ForemanView.jsx - Passes companyId to CrewCheckin:**
+- Added `companyId={companyId}` prop to CrewCheckin component
+
+**3. TMForm.jsx - Crew picker respects labor_class_id:**
+- If worker has `labor_class_id`, adds to dynamic labor class section
+- Otherwise falls back to legacy supervision/operators/laborers sections
+- Checks both legacy and dynamic sections when detecting duplicates
+
+**Data Flow:**
+```
+Office: Pricing Tab → labor_categories / labor_classes tables
+                                    ↓
+Field: CrewCheckin loads classes → Shows dropdown (names only, no rates)
+                                    ↓
+       Worker saved with labor_class_id
+                                    ↓
+       TMForm: "Select from Today's Crew" → Adds to correct labor class section
+                                    ↓
+       Ticket saved with labor_class_id → Rates applied server-side
+```
+
+**Security:** Field users only see class names, never rates. Rates are stored in `labor_class_rates` table and applied during billing calculations.
+
+---
+
+### Simplified Labor Rates UI (Scalability)
+**Problem:** The rates modal was specific to demolition/abatement with 4 rate combinations (demolition+standard, demolition+pla, abatement+standard, abatement+pla). This doesn't scale for other company types.
+
+**Solution:** Simplified to just 2 rate types:
+- **Standard Rate** (Regular + OT)
+- **Prevailing Wage** (Regular + OT)
+
+**Files Modified:**
+- `src/components/pricing/LaborRatesSection.jsx`:
+  - Replaced `WORK_TYPES` and `JOB_TYPES` with single `RATE_TYPES` array
+  - Simplified `openRatesModal`, `updateClassRate`, `saveClassRates` functions
+  - Simplified rates modal UI
+
+**Database Compatibility:** Uses `work_type: 'labor'` and `job_type: 'standard'|'prevailing'` to maintain compatibility with existing `labor_class_rates` table structure.
 
 ---
 
@@ -602,9 +715,13 @@ Field creates T&M → Gets Client Signature → Ticket goes to Office
 
 ## Known Issues / TODO
 
-1. **Photo uploads from field** - May need storage bucket RLS policies
-2. **Real-time subscriptions** - Some components may not update live
-3. **Offline support** - Service worker caches assets but not data
+1. ~~**Photo uploads from field**~~ - ✅ FIXED (Jan 7, 2025) - Added `anon` role storage policies
+2. ~~**Real-time subscriptions**~~ - ✅ VERIFIED WORKING (Jan 7, 2025) - All 11 subscriptions have proper cleanup
+3. ~~**Offline support**~~ - ✅ ENHANCED (Jan 7, 2025) - Full offline queuing for T&M, crew check-ins, daily reports, messages, material requests
+
+**Remaining:**
+- Photo uploads may need testing in production to verify storage policies work correctly
+- Consider adding automated tests for offline sync scenarios
 
 ---
 

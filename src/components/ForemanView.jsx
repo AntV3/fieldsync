@@ -141,6 +141,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </div>
         <CrewCheckin
           project={project}
+          companyId={companyId}
           onShowToast={onShowToast}
         />
       </div>

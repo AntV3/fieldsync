@@ -4,13 +4,16 @@
  */
 
 const DB_NAME = 'fieldsync-offline'
-const DB_VERSION = 1
+const DB_VERSION = 2  // Bumped to add T&M tickets, daily reports, messages stores
 
 // Store names
 const STORES = {
   PROJECTS: 'projects',
   AREAS: 'areas',
   CREW_CHECKINS: 'crew_checkins',
+  TM_TICKETS: 'tm_tickets',
+  DAILY_REPORTS: 'daily_reports',
+  MESSAGES: 'messages',
   PENDING_ACTIONS: 'pending_actions',
   CACHED_DATA: 'cached_data'
 }
@@ -57,6 +60,24 @@ export const initOfflineDB = () => {
       if (!database.objectStoreNames.contains(STORES.CREW_CHECKINS)) {
         const checkinStore = database.createObjectStore(STORES.CREW_CHECKINS, { keyPath: 'id' })
         checkinStore.createIndex('project_id', 'project_id', { unique: false })
+      }
+
+      // T&M tickets store (for offline creation)
+      if (!database.objectStoreNames.contains(STORES.TM_TICKETS)) {
+        const ticketStore = database.createObjectStore(STORES.TM_TICKETS, { keyPath: 'id' })
+        ticketStore.createIndex('project_id', 'project_id', { unique: false })
+      }
+
+      // Daily reports store
+      if (!database.objectStoreNames.contains(STORES.DAILY_REPORTS)) {
+        const reportStore = database.createObjectStore(STORES.DAILY_REPORTS, { keyPath: 'id' })
+        reportStore.createIndex('project_id', 'project_id', { unique: false })
+      }
+
+      // Messages store
+      if (!database.objectStoreNames.contains(STORES.MESSAGES)) {
+        const messageStore = database.createObjectStore(STORES.MESSAGES, { keyPath: 'id' })
+        messageStore.createIndex('project_id', 'project_id', { unique: false })
       }
 
       // Pending actions queue - for offline submissions
@@ -288,6 +309,54 @@ export const getCachedCrewCheckin = async (projectId) => {
   // Return the most recent one for today
   const today = new Date().toISOString().split('T')[0]
   return checkins.find(c => c.check_in_date === today) || null
+}
+
+// ============================================
+// T&M Ticket Caching
+// ============================================
+
+// Cache a T&M ticket (for optimistic UI during offline creation)
+export const cacheTMTicket = async (ticket) => {
+  return saveToStore(STORES.TM_TICKETS, ticket)
+}
+
+// Get cached T&M tickets for a project
+export const getCachedTMTickets = async (projectId) => {
+  return getByIndex(STORES.TM_TICKETS, 'project_id', projectId)
+}
+
+// Generate a temporary ID for offline-created tickets
+export const generateTempId = () => {
+  return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+}
+
+// ============================================
+// Daily Report Caching
+// ============================================
+
+// Cache a daily report
+export const cacheDailyReport = async (report) => {
+  return saveToStore(STORES.DAILY_REPORTS, report)
+}
+
+// Get cached daily report for project/date
+export const getCachedDailyReport = async (projectId, date) => {
+  const reports = await getByIndex(STORES.DAILY_REPORTS, 'project_id', projectId)
+  return reports.find(r => r.report_date === date) || null
+}
+
+// ============================================
+// Message Caching
+// ============================================
+
+// Cache a message (for optimistic UI)
+export const cacheMessage = async (message) => {
+  return saveToStore(STORES.MESSAGES, message)
+}
+
+// Get cached messages for a project
+export const getCachedMessages = async (projectId) => {
+  return getByIndex(STORES.MESSAGES, 'project_id', projectId)
 }
 
 // ============================================

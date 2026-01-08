@@ -10,6 +10,13 @@ import {
   updateCachedAreaStatus,
   cacheCrewCheckin,
   getCachedCrewCheckin,
+  cacheTMTicket,
+  getCachedTMTickets,
+  generateTempId,
+  cacheDailyReport,
+  getCachedDailyReport,
+  cacheMessage,
+  getCachedMessages,
   addPendingAction,
   getPendingActionCount,
   syncPendingActions,
@@ -1479,6 +1486,31 @@ export const db = {
 
   async createTMTicket(ticket) {
     if (isSupabaseConfigured) {
+      // If offline, cache ticket and queue action
+      if (!getConnectionStatus()) {
+        console.log('Offline: queuing T&M ticket creation')
+        const tempTicket = {
+          id: generateTempId(),
+          project_id: ticket.project_id,
+          work_date: ticket.work_date,
+          ce_pco_number: ticket.ce_pco_number || null,
+          assigned_cor_id: ticket.assigned_cor_id || null,
+          notes: ticket.notes,
+          photos: ticket.photos || [],
+          status: 'pending_sync',
+          created_by_name: ticket.created_by_name || 'Field User',
+          created_at: new Date().toISOString(),
+          _offline: true
+        }
+        await cacheTMTicket(tempTicket)
+        await addPendingAction(ACTION_TYPES.CREATE_TM_TICKET, {
+          ticket: tempTicket,
+          workers: ticket._workers || [],
+          items: ticket._items || []
+        })
+        return tempTicket
+      }
+
       const { data, error } = await supabase
         .from('t_and_m_tickets')
         .insert({
@@ -1493,7 +1525,27 @@ export const db = {
         })
         .select()
         .single()
-      if (error) throw error
+
+      if (error) {
+        // If network error, queue for later
+        if (error.message?.includes('fetch') || error.message?.includes('network')) {
+          console.log('Network error: queuing T&M ticket creation')
+          const tempTicket = {
+            id: generateTempId(),
+            ...ticket,
+            status: 'pending_sync',
+            _offline: true
+          }
+          await cacheTMTicket(tempTicket)
+          await addPendingAction(ACTION_TYPES.CREATE_TM_TICKET, {
+            ticket: tempTicket,
+            workers: ticket._workers || [],
+            items: ticket._items || []
+          })
+          return tempTicket
+        }
+        throw error
+      }
       return data
     }
     return null
@@ -2893,9 +2945,30 @@ export const db = {
   // Create or update crew check-in
   async saveCrewCheckin(projectId, workers, createdBy = null, date = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const checkDate = date || new Date().toISOString().split('T')[0]
-    
+
+    // If offline, cache and queue action
+    if (!getConnectionStatus()) {
+      console.log('Offline: queuing crew check-in')
+      const checkin = {
+        id: generateTempId(),
+        project_id: projectId,
+        check_in_date: checkDate,
+        workers: workers,
+        created_by: createdBy,
+        updated_at: new Date().toISOString(),
+        _offline: true
+      }
+      await cacheCrewCheckin(checkin)
+      await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
+        projectId,
+        workers,
+        checkInDate: checkDate
+      })
+      return checkin
+    }
+
     const { data, error } = await supabase
       .from('crew_checkins')
       .upsert({
@@ -2909,10 +2982,33 @@ export const db = {
       })
       .select()
       .single()
-    
+
     if (error) {
+      // If network error, queue for later
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        console.log('Network error: queuing crew check-in')
+        const checkin = {
+          id: generateTempId(),
+          project_id: projectId,
+          check_in_date: checkDate,
+          workers: workers,
+          _offline: true
+        }
+        await cacheCrewCheckin(checkin)
+        await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
+          projectId,
+          workers,
+          checkInDate: checkDate
+        })
+        return checkin
+      }
       console.error('Error saving crew checkin:', error)
       throw error
+    }
+
+    // Update cache with server response
+    if (data) {
+      cacheCrewCheckin(data).catch(err => console.error('Failed to cache checkin:', err))
     }
     return data
   },
@@ -3117,9 +3213,25 @@ export const db = {
   // Save/update daily report
   async saveDailyReport(projectId, reportData, date = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const reportDate = date || new Date().toISOString().split('T')[0]
-    
+
+    // If offline, cache and queue action
+    if (!getConnectionStatus()) {
+      console.log('Offline: caching daily report')
+      const report = {
+        id: generateTempId(),
+        project_id: projectId,
+        report_date: reportDate,
+        ...reportData,
+        updated_at: new Date().toISOString(),
+        _offline: true
+      }
+      await cacheDailyReport(report)
+      // Note: saveDailyReport alone doesn't queue - submitDailyReport handles the full flow
+      return report
+    }
+
     const { data, error } = await supabase
       .from('daily_reports')
       .upsert({
@@ -3132,10 +3244,28 @@ export const db = {
       })
       .select()
       .single()
-    
+
     if (error) {
+      // If network error, cache locally
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        console.log('Network error: caching daily report locally')
+        const report = {
+          id: generateTempId(),
+          project_id: projectId,
+          report_date: reportDate,
+          ...reportData,
+          _offline: true
+        }
+        await cacheDailyReport(report)
+        return report
+      }
       console.error('Error saving daily report:', error)
       throw error
+    }
+
+    // Update cache with server response
+    if (data) {
+      cacheDailyReport(data).catch(err => console.error('Failed to cache report:', err))
     }
     return data
   },
@@ -3143,12 +3273,36 @@ export const db = {
   // Submit daily report
   async submitDailyReport(projectId, submittedBy, date = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const reportDate = date || new Date().toISOString().split('T')[0]
-    
+
+    // If offline, queue the submission
+    if (!getConnectionStatus()) {
+      console.log('Offline: queuing daily report submission')
+      // Try to get cached report data
+      const cachedReport = await getCachedDailyReport(projectId, reportDate)
+      const report = {
+        id: generateTempId(),
+        project_id: projectId,
+        report_date: reportDate,
+        ...(cachedReport || {}),
+        status: 'pending_sync',
+        submitted_by: submittedBy,
+        submitted_at: new Date().toISOString(),
+        _offline: true
+      }
+      await cacheDailyReport(report)
+      await addPendingAction(ACTION_TYPES.SUBMIT_DAILY_REPORT, {
+        projectId,
+        reportData: cachedReport || {},
+        submittedBy
+      })
+      return report
+    }
+
     // First compile latest data
     const compiled = await this.compileDailyReport(projectId, reportDate)
-    
+
     const { data, error } = await supabase
       .from('daily_reports')
       .upsert({
@@ -3164,10 +3318,35 @@ export const db = {
       })
       .select()
       .single()
-    
+
     if (error) {
+      // If network error, queue for later
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        console.log('Network error: queuing daily report submission')
+        const report = {
+          id: generateTempId(),
+          project_id: projectId,
+          report_date: reportDate,
+          ...compiled,
+          status: 'pending_sync',
+          submitted_by: submittedBy,
+          _offline: true
+        }
+        await cacheDailyReport(report)
+        await addPendingAction(ACTION_TYPES.SUBMIT_DAILY_REPORT, {
+          projectId,
+          reportData: compiled,
+          submittedBy
+        })
+        return report
+      }
       console.error('Error submitting daily report:', error)
       throw error
+    }
+
+    // Update cache
+    if (data) {
+      cacheDailyReport(data).catch(err => console.error('Failed to cache report:', err))
     }
     return data
   },
@@ -3197,7 +3376,33 @@ export const db = {
   // Send a message
   async sendMessage(projectId, message, senderType, senderName, senderUserId = null, photoUrl = null, messageType = 'general', parentId = null) {
     if (!isSupabaseConfigured) return null
-    
+
+    // If offline, cache and queue message
+    if (!getConnectionStatus()) {
+      console.log('Offline: queuing message')
+      const msg = {
+        id: generateTempId(),
+        project_id: projectId,
+        sender_type: senderType,
+        sender_name: senderName,
+        sender_user_id: senderUserId,
+        message: message,
+        photo_url: photoUrl,
+        message_type: messageType,
+        parent_message_id: parentId,
+        created_at: new Date().toISOString(),
+        _offline: true
+      }
+      await cacheMessage(msg)
+      await addPendingAction(ACTION_TYPES.SEND_MESSAGE, {
+        projectId,
+        senderType,
+        senderName,
+        content: message
+      })
+      return msg
+    }
+
     const { data, error } = await supabase
       .from('messages')
       .insert({
@@ -3212,8 +3417,29 @@ export const db = {
       })
       .select()
       .single()
-    
+
     if (error) {
+      // If network error, queue for later
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        console.log('Network error: queuing message')
+        const msg = {
+          id: generateTempId(),
+          project_id: projectId,
+          sender_type: senderType,
+          sender_name: senderName,
+          message: message,
+          created_at: new Date().toISOString(),
+          _offline: true
+        }
+        await cacheMessage(msg)
+        await addPendingAction(ACTION_TYPES.SEND_MESSAGE, {
+          projectId,
+          senderType,
+          senderName,
+          content: message
+        })
+        return msg
+      }
       console.error('Error sending message:', error)
       throw error
     }
@@ -3284,7 +3510,33 @@ export const db = {
   // Create material request
   async createMaterialRequest(projectId, items, requestedBy, neededBy = null, priority = 'normal', notes = null) {
     if (!isSupabaseConfigured) return null
-    
+
+    // If offline, queue the request
+    if (!getConnectionStatus()) {
+      console.log('Offline: queuing material request')
+      const request = {
+        id: generateTempId(),
+        project_id: projectId,
+        items: items,
+        requested_by: requestedBy,
+        needed_by: neededBy,
+        priority: priority,
+        notes: notes,
+        status: 'pending_sync',
+        created_at: new Date().toISOString(),
+        _offline: true
+      }
+      await addPendingAction(ACTION_TYPES.CREATE_MATERIAL_REQUEST, {
+        projectId,
+        items,
+        requestedBy,
+        neededBy,
+        priority,
+        notes
+      })
+      return request
+    }
+
     const { data, error } = await supabase
       .from('material_requests')
       .insert({
@@ -3297,8 +3549,29 @@ export const db = {
       })
       .select()
       .single()
-    
+
     if (error) {
+      // If network error, queue for later
+      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        console.log('Network error: queuing material request')
+        const request = {
+          id: generateTempId(),
+          project_id: projectId,
+          items: items,
+          requested_by: requestedBy,
+          status: 'pending_sync',
+          _offline: true
+        }
+        await addPendingAction(ACTION_TYPES.CREATE_MATERIAL_REQUEST, {
+          projectId,
+          items,
+          requestedBy,
+          neededBy,
+          priority,
+          notes
+        })
+        return request
+      }
       console.error('Error creating material request:', error)
       throw error
     }
