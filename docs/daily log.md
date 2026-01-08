@@ -82,12 +82,45 @@
   - Line 672-687: Removed wage_type dropdown from UI
 
 **How It Works Now:**
-1. **Project Creation** → Choose "Standard" or "PLA" (stored as `project.job_type`)
-2. **Pricing Tab** → Each class has 2 rates: Standard Rate & Prevailing Wage
-3. **COR Forms** → Automatically uses project's wage type
-4. **Labor Items** → Only select class, rates auto-fill based on project setting
+1. **Project Creation** (Setup.jsx) → User selects:
+   - Work Type: Demolition or Abatement (describes the work)
+   - Job Type: Standard or PLA (determines which rates to use)
+   - Job Type is stored as `project.job_type`
+2. **Pricing Tab** → Each labor class has 2 rates configured:
+   - Standard Rate (regular + OT)
+   - Prevailing Wage (regular + OT) - used for PLA projects
+3. **COR Forms** → Automatically uses project's job_type:
+   - CORForm reads `project.job_type` (either "standard" or "pla")
+   - `getRateForClass()` uses this to fetch correct rates
+   - All labor on the project uses the same rate type
+4. **Labor Items** → User only selects labor class:
+   - Choose class: "Demolition Worker", "Foreman", etc.
+   - Rates auto-populate based on class + project's job_type
+   - No per-item rate selection - locked to project setting
 
-**Commit:** `cbbd347` - Clean up SQL migration - remove excessive comments, add verification queries
+**Complete Workflow Example:**
+```
+Project: "Hospital Renovation"
+├─ Work Type: Demolition
+├─ Job Type: PLA ← Set once at project creation
+│
+COR #1:
+├─ Labor: Foreman → Uses PLA rates ($60/hr)
+├─ Labor: Demolition Worker → Uses PLA rates ($55/hr)
+└─ Labor: Laborer → Uses PLA rates ($50/hr)
+
+COR #2:
+├─ Labor: Foreman → Uses PLA rates ($60/hr)
+└─ Labor: Operator → Uses PLA rates ($65/hr)
+
+All labor automatically uses PLA rates because project.job_type = "pla"
+```
+
+**Commits:**
+- `8ee3988` - Fix labor rates, categories, and classes system
+- `e941f76` - Update daily log with labor rates system fixes
+- `cbbd347` - Clean up SQL migration - remove excessive comments, add verification queries
+- `9c90103` - Remove wage type selection from COR line items - use project-level setting
 
 ---
 
