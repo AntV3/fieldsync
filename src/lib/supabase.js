@@ -98,9 +98,17 @@ const sanitizeText = (text) => {
   return text.replace(/\0/g, '').trim()
 }
 
+const DEFAULT_LOCAL_DATA = { projects: [], areas: [], users: [], assignments: [] }
+
 const getLocalData = () => {
-  const data = localStorage.getItem(STORAGE_KEY)
-  return data ? JSON.parse(data) : { projects: [], areas: [], users: [], assignments: [] }
+  try {
+    const data = localStorage.getItem(STORAGE_KEY)
+    return data ? JSON.parse(data) : DEFAULT_LOCAL_DATA
+  } catch {
+    // Corrupted localStorage data - reset to defaults
+    localStorage.removeItem(STORAGE_KEY)
+    return DEFAULT_LOCAL_DATA
+  }
 }
 
 const setLocalData = (data) => {
@@ -108,8 +116,14 @@ const setLocalData = (data) => {
 }
 
 const getLocalUser = () => {
-  const user = localStorage.getItem(USER_KEY)
-  return user ? JSON.parse(user) : null
+  try {
+    const user = localStorage.getItem(USER_KEY)
+    return user ? JSON.parse(user) : null
+  } catch {
+    // Corrupted user data - clear it
+    localStorage.removeItem(USER_KEY)
+    return null
+  }
 }
 
 const setLocalUser = (user) => {
