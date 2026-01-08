@@ -1,6 +1,67 @@
 # FieldSync Development Log
 
-**Last Updated:** January 7, 2025
+**Last Updated:** January 8, 2025
+
+---
+
+## January 8, 2025
+
+### Security Hardening & Code Cleanup (Major)
+
+#### 1. Cryptographically Secure Random Generation
+**Problem:** Multiple files used `Math.random()` for generating PINs, codes, tokens, and IDs. `Math.random()` is not cryptographically secure and could be predictable.
+
+**Solution:** Replaced all `Math.random()` with `crypto.getRandomValues()`:
+
+| File | Usage | Fix |
+|------|-------|-----|
+| `src/components/Setup.jsx` | PIN generation | Secure 4-digit PIN |
+| `src/components/BrandingSettings.jsx` | Office code generation | Secure 6-char code |
+| `src/lib/supabase.js` | Share tokens, file upload IDs | Secure random strings |
+| `src/components/cor/TicketSelector.jsx` | Import IDs | Secure ID suffix |
+| `src/components/TMForm.jsx` | Temp photo IDs | Secure ID generation |
+| `src/lib/corPdfExport.js` | Document ID | Secure random suffix |
+| `src/lib/offlineManager.js` | Temp ticket IDs | Secure ID generation |
+
+#### 2. Dead Code Removal (~11,000 lines)
+**Files Deleted:**
+- `src/cli/` folder (~8,000 lines) - AI multi-agent system never used by web app
+- `src/archived/` folder (~2,600 lines) - Old unused components
+- `src/lib/AuthContext.jsx` (472 lines) - Never wired into App.jsx
+
+**Dependencies Removed:**
+- `uuid` package (unused after CLI removal)
+- CLI npm scripts (`cli`, `cli:plan`, `cli:review`, `cli:test`, `cli:help`)
+
+#### 3. AuthContext.jsx Replacement
+**Problem:** `ShareModal.jsx` and `InjuryReportForm.jsx` imported `useAuth()` from `AuthContext.jsx`, but the AuthProvider was never wrapped around the app. This caused `user` to be undefined.
+
+**Solution:**
+- Modified `ShareModal.jsx` to accept `user` as a prop
+- Modified `InjuryReportForm.jsx` to accept `user` as a prop
+- Updated `Dashboard.jsx` to pass `user` to ShareModal and InjuryReportsList
+- Updated `InjuryReportsList.jsx` to accept and pass `user` prop
+- Deleted `AuthContext.jsx`
+
+#### 4. Console.log Cleanup
+**Removed:** 40+ `console.log` statements across 7 files:
+- `src/lib/offlineManager.js` - 6 removed
+- `src/lib/supabase.js` - 23 removed
+- `src/App.jsx` - 6 removed
+- `src/components/Dashboard.jsx` - 3 removed
+- `src/components/TMForm.jsx` - 1 removed
+- `src/lib/imageUtils.js` - 1 removed
+
+**Kept:** 3 `console.log` in `src/lib/observability.js` - controlled by `import.meta.env.DEV` flag (only runs in development)
+
+#### 5. Field Naming Consistency
+**Verified:** `t_and_m_workers` and `t_and_m_items` naming is consistent across codebase.
+
+**Fixed:** `TicketSelector.jsx` lines 336 and 350 were missing fallback patterns. Added `ticket.t_and_m_workers || ticket.workers` fallback for backward compatibility.
+
+**Commits:**
+- `f133eb8` - Remove unused CLI folder and archived components
+- `6565618` - Security hardening and code cleanup
 
 ---
 

@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md
 > Canonical source of truth for FieldSync. Authoritative over ad-hoc instructions.
-> Last updated: 2025-01-04 (Scalability & Onboarding Documentation)
+> Last updated: 2025-01-08 (Security Hardening & Code Cleanup)
 
 ---
 
@@ -389,11 +389,12 @@ USING (
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `src/lib/supabase.js` | Database facade (5,926 lines - needs split) | Active |
+| `src/lib/supabase.js` | Database facade (~6,800 lines - needs split) | Active |
 | `src/lib/corExportPipeline.js` | COR export orchestration | Active |
 | `src/lib/corPdfGenerator.js` | PDF generation from snapshots | **Preferred** |
 | `src/lib/corPdfExport.js` | Legacy PDF generation | **Deprecated** |
-| `src/lib/AuthContext.jsx` | Auth context provider | **Not used** |
+| `src/lib/offlineManager.js` | IndexedDB offline queue & caching | Active |
+| `src/lib/observability.js` | Dev-only query/storage metrics | Active |
 
 ### Admin
 
@@ -411,14 +412,20 @@ USING (
 
 | Item | Lines | Priority | Suggested Action |
 |------|-------|----------|------------------|
-| `supabase.js` | 5,926 | **High** | Split by domain (projects, areas, tickets, cors, users) |
-| `TMForm.jsx` | 2,353 | **High** | Split into step components (TMWorkInfoStep, TMCrewStep, etc.) |
-| `Dashboard.jsx` | 1,965 | **Medium** | Extract tab content to separate components |
-| `TMList.jsx` | 1,543 | **Medium** | Extract table/filter logic |
-| `SignaturePage.jsx` | 1,265 | **Medium** | Split COR vs T&M handling |
-| `CORForm.jsx` | 1,056 | **Medium** | Split into step components |
-| `AuthContext.jsx` | 456 | **Low** | Either integrate or delete |
+| `supabase.js` | ~6,800 | **High** | Split by domain (projects, areas, tickets, cors, users) |
+| `TMForm.jsx` | ~2,400 | **High** | Split into step components (TMWorkInfoStep, TMCrewStep, etc.) |
+| `Dashboard.jsx` | ~1,700 | **Medium** | Extract tab content to separate components |
+| `TMList.jsx` | ~1,500 | **Medium** | Extract table/filter logic |
+| `SignaturePage.jsx` | ~1,300 | **Medium** | Split COR vs T&M handling |
+| `CORForm.jsx` | ~1,100 | **Medium** | Split into step components |
 | Signature components | 4 files | **Low** | Consolidate to single reusable component |
+
+**Recently Cleaned Up (Jan 8, 2025):**
+- ✅ Deleted `src/lib/AuthContext.jsx` (472 lines) - was never wired into App.jsx
+- ✅ Deleted `src/cli/` folder (~8,000 lines) - AI agent system not used by web app
+- ✅ Deleted `src/archived/` folder (~2,600 lines) - old unused components
+- ✅ Replaced all `Math.random()` with `crypto.getRandomValues()` for security
+- ✅ Removed 40+ console.log statements (kept DEV-only observability logs)
 
 ### Risks
 
@@ -526,7 +533,7 @@ Continue normal flow
 
 ---
 
-*Last significant update: Industrial-grade COR Export Pipeline with idempotency, snapshots, and async state machine. Previous: COR UX improvements, Access Levels separation.*
+*Last significant update: Security hardening (crypto.getRandomValues), dead code cleanup (~11,000 lines removed), console.log cleanup. Previous: Industrial-grade COR Export Pipeline with idempotency, snapshots, and async state machine.*
 
 ---
 
