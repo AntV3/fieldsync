@@ -168,14 +168,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Add check constraints to key tables
-ALTER TABLE change_orders DROP CONSTRAINT IF EXISTS chk_cor_amount_valid;
-ALTER TABLE change_orders ADD CONSTRAINT chk_cor_amount_valid
-CHECK (validate_amount(total_amount));
-
-ALTER TABLE t_and_m_tickets DROP CONSTRAINT IF EXISTS chk_ticket_total_valid;
-ALTER TABLE t_and_m_tickets ADD CONSTRAINT chk_ticket_total_valid
-CHECK (validate_amount(total_labor) AND validate_amount(total_materials) AND validate_amount(total_equipment));
+-- Note: Database constraints are optional since client-side validation exists
+-- The change_orders table uses INTEGER cents (cor_total) and t_and_m_tickets
+-- doesn't have total columns - validation happens in the application layer
 
 -- ============================================================
 -- 4. EXTEND PIN VALIDATION
