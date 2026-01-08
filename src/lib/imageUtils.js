@@ -60,10 +60,6 @@ export async function compressImage(file, maxWidth = 1920, quality = 0.8) {
               lastModified: Date.now()
             })
 
-            // Log compression results
-            const savings = ((1 - blob.size / file.size) * 100).toFixed(1)
-            console.log(`Image compressed: ${file.name} - ${(file.size / 1024).toFixed(0)}KB → ${(blob.size / 1024).toFixed(0)}KB (${savings}% smaller)`)
-
             resolve(compressedFile)
           } else {
             // Fallback to original if compression fails

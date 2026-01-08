@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
 import Toast from './Toast'
 
-export default function InjuryReportForm({ project, companyId, onClose, onReportCreated }) {
-  const { user } = useAuth()
+export default function InjuryReportForm({ project, companyId, user, onClose, onReportCreated }) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(null)
   const [step, setStep] = useState(1) // Multi-step form: 1=Incident, 2=Employee, 3=Supervisor, 4=Witnesses, 5=Medical

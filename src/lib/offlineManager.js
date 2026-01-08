@@ -37,7 +37,6 @@ export const initOfflineDB = () => {
 
     request.onsuccess = () => {
       db = request.result
-      console.log('Offline database initialized')
       resolve(db)
     }
 
@@ -215,7 +214,6 @@ export const addPendingAction = async (type, payload, metadata = {}) => {
     const store = getStore(STORES.PENDING_ACTIONS, 'readwrite')
     const request = store.add(action)
     request.onsuccess = () => {
-      console.log(`Queued offline action: ${type}`)
       resolve(request.result)
     }
     request.onerror = () => reject(request.error)
@@ -327,7 +325,10 @@ export const getCachedTMTickets = async (projectId) => {
 
 // Generate a temporary ID for offline-created tickets
 export const generateTempId = () => {
-  return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const array = new Uint8Array(6)
+  crypto.getRandomValues(array)
+  const randomPart = Array.from(array, b => b.toString(36)).join('')
+  return `temp_${Date.now()}_${randomPart}`
 }
 
 // ============================================
@@ -384,12 +385,10 @@ const notifyConnectionChange = (online) => {
 // Set up connection listeners
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    console.log('Connection restored')
     notifyConnectionChange(true)
   })
 
   window.addEventListener('offline', () => {
-    console.log('Connection lost')
     notifyConnectionChange(false)
   })
 }
@@ -409,14 +408,12 @@ export const syncPendingActions = async (db) => {
 
   try {
     const actions = await getPendingActions()
-    console.log(`Syncing ${actions.length} pending actions...`)
 
     for (const action of actions) {
       try {
         await processAction(action, db)
         await removePendingAction(action.id)
         results.synced++
-        console.log(`Synced action: ${action.type}`)
       } catch (error) {
         console.error(`Failed to sync action ${action.type}:`, error)
         results.failed++

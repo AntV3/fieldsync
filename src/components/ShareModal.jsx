@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
 import Toast from './Toast'
 
-function ShareModal({ project, onClose, onShareCreated }) {
-  const { user } = useAuth()
+function ShareModal({ project, user, onClose, onShareCreated }) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(null)
   const [existingShares, setExistingShares] = useState([])

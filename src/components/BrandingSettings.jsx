@@ -46,8 +46,11 @@ export default function BrandingSettings({ company, onShowToast }) {
 
     setRegeneratingCode(true)
     try {
-      // Generate new 6-character code
-      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+      // Generate new 6-character code using crypto for security
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+      const array = new Uint8Array(6)
+      crypto.getRandomValues(array)
+      const newCode = Array.from(array, b => chars[b % chars.length]).join('')
 
       const { error } = await supabase
         .from('companies')
@@ -58,8 +61,7 @@ export default function BrandingSettings({ company, onShowToast }) {
 
       setOfficeCode(newCode)
       onShowToast?.('Office code regenerated', 'success')
-    } catch (err) {
-      console.error('Error regenerating code:', err)
+    } catch {
       onShowToast?.('Error regenerating code', 'error')
     } finally {
       setRegeneratingCode(false)

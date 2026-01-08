@@ -3,6 +3,13 @@ import { X, Check, Search, FileText, Users, Package, Truck, ChevronDown, Chevron
 import { db } from '../../lib/supabase'
 import { formatCurrency, dollarsToCents } from '../../lib/corCalculations'
 
+// Generate secure random ID suffix
+const generateRandomId = () => {
+  const array = new Uint8Array(6)
+  crypto.getRandomValues(array)
+  return Array.from(array, b => b.toString(36)).join('')
+}
+
 export default function TicketSelector({ projectId, corId, onImport, onClose, onShowToast }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -124,7 +131,7 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
       const workers = ticket.t_and_m_workers || ticket.workers || []
       workers.forEach(worker => {
         laborItems.push({
-          id: `import-${ticket.id}-${worker.id || Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `import-${ticket.id}-${worker.id || Date.now()}-${generateRandomId()}`,
           worker_name: worker.name || worker.worker_name || '',
           labor_class: worker.role || worker.labor_class || 'Laborer',
           wage_type: 'standard',
@@ -155,7 +162,7 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
 
         if (isEquipment) {
           equipmentItems.push({
-            id: `import-${ticket.id}-${item.id || Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `import-${ticket.id}-${item.id || Date.now()}-${generateRandomId()}`,
             description: itemDescription,
             source_type: 'T&M Ticket',
             source_reference: `T&M #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
@@ -167,7 +174,7 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
           })
         } else {
           materialsItems.push({
-            id: `import-${ticket.id}-${item.id || Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `import-${ticket.id}-${item.id || Date.now()}-${generateRandomId()}`,
             description: itemDescription,
             source_type: 'T&M Ticket',
             source_reference: `T&M #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
@@ -333,11 +340,11 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
 
                     {isExpanded && (
                       <div className="ticket-item-details">
-                        {ticket.workers?.length > 0 && (
+                        {(ticket.t_and_m_workers || ticket.workers)?.length > 0 && (
                           <div className="ticket-detail-section">
                             <h5>Workers</h5>
                             <ul>
-                              {ticket.workers.map((w, i) => (
+                              {(ticket.t_and_m_workers || ticket.workers).map((w, i) => (
                                 <li key={i}>
                                   {w.name || w.role} - {w.regular_hours || 0} reg hrs
                                   {w.overtime_hours > 0 && `, ${w.overtime_hours} OT hrs`}
@@ -347,11 +354,11 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
                           </div>
                         )}
 
-                        {ticket.items?.length > 0 && (
+                        {(ticket.t_and_m_items || ticket.items)?.length > 0 && (
                           <div className="ticket-detail-section">
                             <h5>Materials</h5>
                             <ul>
-                              {ticket.items.map((item, i) => (
+                              {(ticket.t_and_m_items || ticket.items).map((item, i) => (
                                 <li key={i}>
                                   {item.description || item.name} - {item.quantity} {item.unit}
                                 </li>

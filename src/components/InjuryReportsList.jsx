@@ -34,7 +34,7 @@ const loadImageAsBase64 = (url) => {
   })
 }
 
-export default function InjuryReportsList({ project, companyId, company, onShowToast }) {
+export default function InjuryReportsList({ project, companyId, company, user, onShowToast }) {
   const { branding } = useBranding()
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)
@@ -798,6 +798,7 @@ export default function InjuryReportsList({ project, companyId, company, onShowT
           <InjuryReportForm
             project={project}
             companyId={companyId}
+            user={user}
             onClose={() => setShowForm(false)}
             onReportCreated={handleReportCreated}
           />

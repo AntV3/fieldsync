@@ -282,7 +282,6 @@ export const db = {
     if (isSupabaseConfigured) {
       // If offline, return cached data
       if (!getConnectionStatus()) {
-        console.log('Offline: returning cached projects')
         const cached = await getCachedProjects(companyId)
         if (includeArchived) return cached
         return cached.filter(p => p.status !== 'archived')
@@ -310,7 +309,6 @@ export const db = {
         if (error) {
           observe.error('database', { message: error.message, operation: 'getProjects', company_id: companyId })
           // On error, try cache
-          console.log('Error fetching projects, trying cache:', error.message)
           const cached = await getCachedProjects(companyId)
           if (cached.length > 0) return cached
           throw error
@@ -423,7 +421,6 @@ export const db = {
       } catch (error) {
         observe.error('database', { message: error.message, operation: 'getProjectsWithSummary', company_id: companyId })
         // Fall back to regular getProjects on error
-        console.log('Summary query failed, falling back to basic query:', error.message)
         return this.getProjects(companyId)
       }
     }
@@ -608,7 +605,6 @@ export const db = {
 
   async createProject(project) {
     if (isSupabaseConfigured) {
-      console.log('Creating project with data:', project)
       const { data, error } = await supabase
         .from('projects')
         .insert({
@@ -825,7 +821,6 @@ export const db = {
     if (isSupabaseConfigured) {
       // If offline, return cached data
       if (!getConnectionStatus()) {
-        console.log('Offline: returning cached areas')
         return getCachedAreas(projectId)
       }
 
@@ -837,7 +832,6 @@ export const db = {
 
       if (error) {
         // On error, try cache
-        console.log('Error fetching areas, trying cache:', error.message)
         const cached = await getCachedAreas(projectId)
         if (cached.length > 0) return cached
         throw error
@@ -880,7 +874,6 @@ export const db = {
     if (isSupabaseConfigured) {
       // If offline, update cache and queue action
       if (!getConnectionStatus()) {
-        console.log('Offline: queuing area status update')
         const area = await updateCachedAreaStatus(id, status)
         await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
         return area
@@ -896,7 +889,6 @@ export const db = {
       if (error) {
         // If network error, queue for later
         if (error.message?.includes('fetch') || error.message?.includes('network')) {
-          console.log('Network error: queuing area status update')
           const area = await updateCachedAreaStatus(id, status)
           await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
           return area
@@ -1819,7 +1811,6 @@ export const db = {
     if (isSupabaseConfigured) {
       // If offline, cache ticket and queue action
       if (!getConnectionStatus()) {
-        console.log('Offline: queuing T&M ticket creation')
         const tempTicket = {
           id: generateTempId(),
           project_id: ticket.project_id,
@@ -1860,7 +1851,6 @@ export const db = {
       if (error) {
         // If network error, queue for later
         if (error.message?.includes('fetch') || error.message?.includes('network')) {
-          console.log('Network error: queuing T&M ticket creation')
           const tempTicket = {
             id: generateTempId(),
             ...ticket,
@@ -2465,7 +2455,6 @@ export const db = {
         return false
       }
 
-      console.log('Legacy user repaired via RPC:', data)
       return data === true
     } catch (error) {
       console.error('Error repairing legacy user:', error)
@@ -2734,9 +2723,11 @@ export const db = {
     const start = performance.now()
     const fileSize = file.size || 0
 
-    // Create unique filename
+    // Create unique filename with secure random ID
     const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(7)
+    const array = new Uint8Array(6)
+    crypto.getRandomValues(array)
+    const randomId = Array.from(array, b => b.toString(36)).join('')
     const extension = file.name?.split('.').pop() || 'jpg'
     const fileName = `${timestamp}-${randomId}.${extension}`
 
@@ -2786,9 +2777,11 @@ export const db = {
     const base64Response = await fetch(base64Data)
     const blob = await base64Response.blob()
 
-    // Create unique filename
+    // Create unique filename with secure random ID
     const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(7)
+    const array = new Uint8Array(6)
+    crypto.getRandomValues(array)
+    const randomId = Array.from(array, b => b.toString(36)).join('')
     const extension = fileName.split('.').pop() || 'jpg'
     const newFileName = `${timestamp}-${randomId}.${extension}`
     
@@ -3281,7 +3274,6 @@ export const db = {
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
-      console.log('Offline: queuing crew check-in')
       const checkin = {
         id: generateTempId(),
         project_id: projectId,
@@ -3317,7 +3309,6 @@ export const db = {
     if (error) {
       // If network error, queue for later
       if (error.message?.includes('fetch') || error.message?.includes('network')) {
-        console.log('Network error: queuing crew check-in')
         const checkin = {
           id: generateTempId(),
           project_id: projectId,
@@ -3549,7 +3540,6 @@ export const db = {
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
-      console.log('Offline: caching daily report')
       const report = {
         id: generateTempId(),
         project_id: projectId,
@@ -3579,7 +3569,6 @@ export const db = {
     if (error) {
       // If network error, cache locally
       if (error.message?.includes('fetch') || error.message?.includes('network')) {
-        console.log('Network error: caching daily report locally')
         const report = {
           id: generateTempId(),
           project_id: projectId,
@@ -3609,7 +3598,6 @@ export const db = {
 
     // If offline, queue the submission
     if (!getConnectionStatus()) {
-      console.log('Offline: queuing daily report submission')
       // Try to get cached report data
       const cachedReport = await getCachedDailyReport(projectId, reportDate)
       const report = {
@@ -3653,7 +3641,6 @@ export const db = {
     if (error) {
       // If network error, queue for later
       if (error.message?.includes('fetch') || error.message?.includes('network')) {
-        console.log('Network error: queuing daily report submission')
         const report = {
           id: generateTempId(),
           project_id: projectId,
@@ -3710,7 +3697,6 @@ export const db = {
 
     // If offline, cache and queue message
     if (!getConnectionStatus()) {
-      console.log('Offline: queuing message')
       const msg = {
         id: generateTempId(),
         project_id: projectId,
@@ -3752,7 +3738,6 @@ export const db = {
     if (error) {
       // If network error, queue for later
       if (error.message?.includes('fetch') || error.message?.includes('network')) {
-        console.log('Network error: queuing message')
         const msg = {
           id: generateTempId(),
           project_id: projectId,
@@ -3844,7 +3829,6 @@ export const db = {
 
     // If offline, queue the request
     if (!getConnectionStatus()) {
-      console.log('Offline: queuing material request')
       const request = {
         id: generateTempId(),
         project_id: projectId,
@@ -3884,7 +3868,6 @@ export const db = {
     if (error) {
       // If network error, queue for later
       if (error.message?.includes('fetch') || error.message?.includes('network')) {
-        console.log('Network error: queuing material request')
         const request = {
           id: generateTempId(),
           project_id: projectId,
@@ -3984,14 +3967,12 @@ export const db = {
   // Project Shares (Read-only Portal)
   // ============================================
 
-  // Generate a unique share token
+  // Generate a unique share token using crypto for security
   generateShareToken() {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let token = ''
-    for (let i = 0; i < 12; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return token
+    const array = new Uint8Array(12)
+    crypto.getRandomValues(array)
+    return Array.from(array, b => chars[b % chars.length]).join('')
   },
 
   // Create a new project share
@@ -6800,15 +6781,8 @@ export {
 // Sync pending actions when coming back online
 onConnectionChange(async (online) => {
   if (online && isSupabaseConfigured) {
-    console.log('Back online - syncing pending actions...')
     try {
-      const results = await syncPendingActions(db)
-      if (results.synced > 0) {
-        console.log(`Synced ${results.synced} pending actions`)
-      }
-      if (results.failed > 0) {
-        console.warn(`Failed to sync ${results.failed} actions`)
-      }
+      await syncPendingActions(db)
     } catch (err) {
       console.error('Error syncing pending actions:', err)
     }

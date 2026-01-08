@@ -57,7 +57,10 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   }
 
   const generateRandomPin = () => {
-    const randomPin = Math.floor(1000 + Math.random() * 9000).toString()
+    // Use crypto for secure random PIN generation
+    const array = new Uint32Array(1)
+    crypto.getRandomValues(array)
+    const randomPin = (1000 + (array[0] % 9000)).toString()
     setPin(randomPin)
   }
 

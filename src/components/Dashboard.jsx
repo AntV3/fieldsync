@@ -117,11 +117,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       onInjuryReport: () => debouncedRefresh()
     })
 
-    console.log('[Dashboard] Subscribed to real-time updates for', projectIds.length, 'projects')
-
     return () => {
       if (subscription) {
-        console.log('[Dashboard] Unsubscribing from real-time updates')
         db.unsubscribe?.(subscription)
       }
     }
@@ -758,7 +755,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const checkAutoArchive = async () => {
       for (const project of projectsData) {
         if (shouldAutoArchive(project, 30)) {
-          console.log(`Auto-archiving completed project: ${project.name}`)
           try {
             await db.archiveProject(project.id)
             onShowToast(`Project "${project.name}" has been auto-archived after 30 days of completion`, 'info')
@@ -1490,6 +1486,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     project={selectedProject}
                     companyId={company?.id || selectedProject?.company_id}
                     company={company}
+                    user={user}
                     onShowToast={onShowToast}
                   />
                 </div>
@@ -1688,6 +1685,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         {showShareModal && (
           <ShareModal
             project={selectedProject}
+            user={user}
             onClose={() => setShowShareModal(false)}
             onShareCreated={(share) => {
               onShowToast('Share link created successfully!', 'success')

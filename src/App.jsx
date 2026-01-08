@@ -60,8 +60,6 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[Auth] State changed:', event)
-
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           // User signed out - reset state
           setUser(null)
@@ -70,7 +68,6 @@ export default function App() {
           setView('entry')
         } else if (event === 'TOKEN_REFRESHED') {
           // Token was refreshed - no action needed, session is valid
-          console.log('[Auth] Token refreshed successfully')
         } else if (event === 'SIGNED_IN' && !user) {
           // User signed in (might be from another tab or session restore)
           checkAuth()
@@ -108,7 +105,6 @@ export default function App() {
         // If no active companies, check if this is a legacy user
         if (companies.length === 0 && userData.company_id) {
           // Legacy user detected - attempt repair
-          console.log('Legacy user detected, attempting repair...')
           const repaired = await db.repairLegacyUser(
             user.id,
             userData.company_id,
@@ -118,7 +114,6 @@ export default function App() {
           if (repaired) {
             // Retry fetching companies after repair
             companies = await db.getUserCompanies(user.id)
-            console.log('Legacy user repaired, companies:', companies.length)
           }
         }
 
@@ -207,7 +202,6 @@ export default function App() {
         // If no active companies, check if this is a legacy user
         if (companies.length === 0 && userData.company_id) {
           // Legacy user detected - attempt repair
-          console.log('Legacy user detected on login, attempting repair...')
           const repaired = await db.repairLegacyUser(
             data.user.id,
             userData.company_id,
@@ -217,7 +211,6 @@ export default function App() {
           if (repaired) {
             // Retry fetching companies after repair
             companies = await db.getUserCompanies(data.user.id)
-            console.log('Legacy user repaired on login, companies:', companies.length)
           }
         }
 

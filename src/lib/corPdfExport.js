@@ -668,8 +668,11 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       end: tmTickets.reduce((max, t) => !max || t.work_date > max ? t.work_date : max, null)
     } : null
 
-    // Generate document ID
-    const docId = `FS-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+    // Generate document ID with secure random suffix
+    const docIdArray = new Uint8Array(3)
+    crypto.getRandomValues(docIdArray)
+    const docIdSuffix = Array.from(docIdArray, b => b.toString(36)).join('').toUpperCase().substring(0, 4)
+    const docId = `FS-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${docIdSuffix}`
 
     doc.addPage()
     yPos = margin

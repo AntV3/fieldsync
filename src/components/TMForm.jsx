@@ -5,6 +5,13 @@ import { compressImage } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
 import TMClientSignature from './TMClientSignature'
 
+// Generate secure random ID
+const generateRandomId = () => {
+  const array = new Uint8Array(6)
+  crypto.getRandomValues(array)
+  return Array.from(array, b => b.toString(36)).join('')
+}
+
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
 // Translations for English and Spanish
@@ -848,9 +855,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
       // Create preview URL and store file with state tracking
       const previewUrl = URL.createObjectURL(file)
-      const tempId = `photo-${Date.now()}-${Math.random().toString(36).substring(7)}`
+      const tempId = `photo-${Date.now()}-${generateRandomId()}`
       setPhotos(prev => [...prev, {
-        id: Date.now() + Math.random(),
+        id: `${Date.now()}-${generateRandomId()}`,
         tempId: tempId,
         file: file,
         previewUrl: previewUrl,
@@ -1077,7 +1084,6 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             const url = await db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
             uploadedCount++
             setSubmitProgress(`Uploading ${uploadedCount}/${pendingPhotos.length} photos...`)
-            console.log(`Photo ${photo.name} uploaded successfully:`, url)
 
             // Update photo state to confirmed
             updatePhotoStatus(photo.id, {
