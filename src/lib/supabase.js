@@ -44,6 +44,60 @@ export const supabase = isSupabaseConfigured
 const STORAGE_KEY = 'fieldsync_data'
 const USER_KEY = 'fieldsync_user'
 
+// ============================================
+// Security Helpers
+// ============================================
+
+// Get or create a device ID for rate limiting
+const getDeviceId = () => {
+  const key = 'fieldsync_device_id'
+  let deviceId = localStorage.getItem(key)
+  if (!deviceId) {
+    deviceId = crypto.randomUUID()
+    localStorage.setItem(key, deviceId)
+  }
+  return deviceId
+}
+
+// Simple retry with exponential backoff
+const withRetry = async (fn, maxRetries = 3, baseDelay = 1000) => {
+  let lastError
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+      // Don't retry on auth errors or validation errors
+      if (error.code === 'PGRST301' || error.code === '42501' || error.code === '23514') {
+        throw error
+      }
+      // Wait with exponential backoff
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, i)))
+      }
+    }
+  }
+  throw lastError
+}
+
+// Input validation helpers
+const validateAmount = (amount) => {
+  if (amount === null || amount === undefined) return true
+  const num = parseFloat(amount)
+  return !isNaN(num) && num >= 0 && num < 10000000
+}
+
+const validateTextLength = (text, maxLength = 10000) => {
+  if (!text) return true
+  return text.length <= maxLength
+}
+
+const sanitizeText = (text) => {
+  if (!text) return text
+  // Remove null bytes and trim
+  return text.replace(/\0/g, '').trim()
+}
+
 const getLocalData = () => {
   const data = localStorage.getItem(STORAGE_KEY)
   return data ? JSON.parse(data) : { projects: [], areas: [], users: [], assignments: [] }
@@ -265,6 +319,103 @@ export const db = {
     }
   },
 
+  // Get projects with pagination for scalability (use for large project lists)
+  async getProjectsPaginated(companyId, { page = 0, limit = 25, status = 'active' } = {}) {
+    if (isSupabaseConfigured) {
+      const start = performance.now()
+      try {
+        let query = supabase
+          .from('projects')
+          .select('*', { count: 'exact' })
+          .eq('company_id', companyId)
+          .order('created_at', { ascending: false })
+          .range(page * limit, (page + 1) * limit - 1)
+
+        if (status !== 'all') {
+          query = query.eq('status', status)
+        }
+
+        const { data, error, count } = await query
+        const duration = Math.round(performance.now() - start)
+        observe.query('getProjectsPaginated', { duration, rows: data?.length, page, company_id: companyId })
+
+        if (error) throw error
+
+        return {
+          projects: data || [],
+          totalCount: count || 0,
+          hasMore: (page + 1) * limit < (count || 0),
+          page,
+          limit
+        }
+      } catch (error) {
+        observe.error('database', { message: error.message, operation: 'getProjectsPaginated', company_id: companyId })
+        throw error
+      }
+    }
+    // Demo mode fallback
+    const projects = getLocalData().projects.filter(p =>
+      p.company_id === companyId && (status === 'all' || p.status === status)
+    )
+    const start = page * limit
+    return {
+      projects: projects.slice(start, start + limit),
+      totalCount: projects.length,
+      hasMore: start + limit < projects.length,
+      page,
+      limit
+    }
+  },
+
+  // Get projects with lightweight summary counts (optimized for dashboard)
+  // This reduces the number of queries from 9 per project to a single batch query
+  async getProjectsWithSummary(companyId) {
+    if (isSupabaseConfigured) {
+      const start = performance.now()
+      try {
+        // Fetch projects with embedded counts using Supabase's aggregate functions
+        const { data, error } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            areas:areas(count),
+            tickets:t_and_m_tickets(count),
+            pending_tickets:t_and_m_tickets(count),
+            daily_reports:daily_reports(count)
+          `)
+          .eq('company_id', companyId)
+          .eq('status', 'active')
+          .eq('pending_tickets.status', 'pending')
+          .order('created_at', { ascending: false })
+
+        const duration = Math.round(performance.now() - start)
+        observe.query('getProjectsWithSummary', { duration, rows: data?.length, company_id: companyId })
+
+        if (error) throw error
+
+        // Transform the response to extract counts
+        return (data || []).map(project => ({
+          ...project,
+          areaCount: project.areas?.[0]?.count || 0,
+          ticketCount: project.tickets?.[0]?.count || 0,
+          pendingTicketCount: project.pending_tickets?.[0]?.count || 0,
+          reportCount: project.daily_reports?.[0]?.count || 0,
+          // Remove the raw relation data
+          areas: undefined,
+          tickets: undefined,
+          pending_tickets: undefined,
+          daily_reports: undefined
+        }))
+      } catch (error) {
+        observe.error('database', { message: error.message, operation: 'getProjectsWithSummary', company_id: companyId })
+        // Fall back to regular getProjects on error
+        console.log('Summary query failed, falling back to basic query:', error.message)
+        return this.getProjects(companyId)
+      }
+    }
+    return getLocalData().projects.filter(p => p.company_id === companyId && p.status === 'active')
+  },
+
   async getArchivedProjects(companyId) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
@@ -472,6 +623,7 @@ export const db = {
   },
 
   // Get project by PIN (for foreman access) - only active projects
+  // Note: For production, use getProjectByPinSecure which includes rate limiting
   async getProjectByPin(pin) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
@@ -502,11 +654,72 @@ export const db = {
       return data
     } else {
       const localData = getLocalData()
-      return localData.projects.find(p => 
-        p.pin === pin && 
-        p.company_id === companyId && 
+      return localData.projects.find(p =>
+        p.pin === pin &&
+        p.company_id === companyId &&
         p.status === 'active'
       ) || null
+    }
+  },
+
+  // Secure PIN lookup with rate limiting (use this for production)
+  async getProjectByPinSecure(pin, companyCode) {
+    if (isSupabaseConfigured) {
+      const deviceId = getDeviceId()
+
+      const { data, error } = await supabase
+        .rpc('get_project_by_pin_secure', {
+          p_pin: pin,
+          p_company_code: companyCode,
+          p_ip_address: null, // IP is not available client-side
+          p_device_id: deviceId
+        })
+
+      if (error) {
+        console.error('PIN lookup error:', error)
+        return { success: false, rateLimited: false, project: null }
+      }
+
+      if (!data || data.length === 0) {
+        return { success: false, rateLimited: false, project: null }
+      }
+
+      const result = data[0]
+
+      // Check if rate limited
+      if (!result.allowed) {
+        return { success: false, rateLimited: true, project: null }
+      }
+
+      // Check if project found
+      if (!result.id) {
+        return { success: false, rateLimited: false, project: null }
+      }
+
+      return {
+        success: true,
+        rateLimited: false,
+        project: {
+          id: result.id,
+          name: result.name,
+          company_id: result.company_id,
+          status: result.status,
+          job_number: result.job_number,
+          address: result.address,
+          general_contractor: result.general_contractor,
+          client_contact: result.client_contact,
+          client_phone: result.client_phone
+        }
+      }
+    } else {
+      // Demo mode - no rate limiting
+      const localData = getLocalData()
+      const project = localData.projects.find(p => p.pin === pin && p.status === 'active')
+      return {
+        success: !!project,
+        rateLimited: false,
+        project: project || null
+      }
     }
   },
 
@@ -1220,7 +1433,7 @@ export const db = {
     return []
   },
 
-  // Get labor classes with categories in one call
+  // Get labor classes with categories in one call (office use - includes all data)
   async getLaborClassesWithCategories(companyId) {
     if (isSupabaseConfigured) {
       const [categoriesResult, classesResult] = await Promise.all([
@@ -1246,6 +1459,61 @@ export const db = {
       return {
         categories: categoriesResult.data || [],
         classes: classesResult.data || []
+      }
+    }
+    return { categories: [], classes: [] }
+  },
+
+  // Get labor classes for field users (NO RATES - names and categories only)
+  // Use this for CrewCheckin and TMForm to prevent rate exposure
+  async getLaborClassesForField(companyId) {
+    if (isSupabaseConfigured) {
+      // Use the secure RPC function that only returns non-sensitive fields
+      const { data, error } = await supabase
+        .rpc('get_labor_classes_for_field', { p_company_id: companyId })
+
+      if (error) {
+        console.error('Error loading field labor classes:', error)
+        // Fallback to direct query if RPC not available (pre-migration)
+        const [categoriesResult, classesResult] = await Promise.all([
+          supabase
+            .from('labor_categories')
+            .select('id, name')
+            .eq('company_id', companyId)
+            .eq('active', true)
+            .order('name'),
+          supabase
+            .from('labor_classes')
+            .select('id, name, category_id')
+            .eq('company_id', companyId)
+            .eq('active', true)
+            .order('name')
+        ])
+
+        return {
+          categories: categoriesResult.data || [],
+          classes: classesResult.data || []
+        }
+      }
+
+      // Transform RPC result into categories + classes format
+      const categoriesMap = new Map()
+      const classes = []
+
+      for (const row of (data || [])) {
+        if (row.category_id && row.category_name && !categoriesMap.has(row.category_id)) {
+          categoriesMap.set(row.category_id, { id: row.category_id, name: row.category_name })
+        }
+        classes.push({
+          id: row.id,
+          name: row.name,
+          category_id: row.category_id
+        })
+      }
+
+      return {
+        categories: Array.from(categoriesMap.values()),
+        classes
       }
     }
     return { categories: [], classes: [] }
@@ -1398,6 +1666,55 @@ export const db = {
       }
     }
     return []
+  },
+
+  // Get T&M tickets with pagination for scalability
+  async getTMTicketsPaginated(projectId, { page = 0, limit = 25, status = null } = {}) {
+    if (isSupabaseConfigured) {
+      const start = performance.now()
+      try {
+        let query = supabase
+          .from('t_and_m_tickets')
+          .select(`
+            *,
+            t_and_m_workers (*),
+            t_and_m_items (
+              *,
+              materials_equipment (name, unit, cost_per_unit, category)
+            )
+          `, { count: 'exact' })
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+          .range(page * limit, (page + 1) * limit - 1)
+
+        if (status) {
+          query = query.eq('status', status)
+        }
+
+        const { data, error, count } = await query
+
+        const duration = Math.round(performance.now() - start)
+        observe.query('getTMTicketsPaginated', { duration, rows: data?.length, page, project_id: projectId })
+
+        if (error) throw error
+
+        return {
+          tickets: data || [],
+          totalCount: count || 0,
+          hasMore: (page + 1) * limit < (count || 0),
+          page,
+          limit
+        }
+      } catch (error) {
+        observe.error('database', {
+          message: error.message,
+          operation: 'getTMTicketsPaginated',
+          project_id: projectId
+        })
+        throw error
+      }
+    }
+    return { tickets: [], totalCount: 0, hasMore: false, page: 0, limit: 25 }
   },
 
   // Get change order totals for a project

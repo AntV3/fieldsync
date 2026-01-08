@@ -28,7 +28,8 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
 
   const loadLaborClasses = async () => {
     try {
-      const data = await db.getLaborClassesWithCategories(companyId)
+      // Use field-safe function that doesn't expose labor rates
+      const data = await db.getLaborClassesForField(companyId)
       setLaborCategories(data.categories || [])
       setLaborClasses(data.classes || [])
 

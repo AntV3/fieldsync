@@ -368,7 +368,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       }
 
       try {
-        const data = await db.getLaborClassesWithCategories(companyId)
+        // Use field-safe function that doesn't expose labor rates
+        const data = await db.getLaborClassesForField(companyId)
         setLaborCategories(data.categories || [])
         setLaborClasses(data.classes || [])
 
@@ -830,9 +831,18 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       onShowToast(`Only ${filesToAdd.length} photo(s) added (${maxPhotos} max)`, 'error')
     }
 
+    // File size limit: 10MB per image
+    const MAX_FILE_SIZE = 10 * 1024 * 1024
+
     filesToAdd.forEach(file => {
       if (!file.type.startsWith('image/')) {
         onShowToast('Please select an image file', 'error')
+        return
+      }
+
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        onShowToast(`Photo too large: ${file.name} (max 10MB)`, 'error')
         return
       }
 
