@@ -21,6 +21,8 @@ import TicketSelector from './TicketSelector'
 export default function CORForm({ project, company, areas, existingCOR, onClose, onSaved, onShowToast }) {
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
+  const [laborClasses, setLaborClasses] = useState([]) // Labor classes from database
+  const [laborClassRates, setLaborClassRates] = useState([]) // All rates for all classes
   const [showTicketSelector, setShowTicketSelector] = useState(false)
   const [importedTicketIds, setImportedTicketIds] = useState([]) // Track tickets imported for backup docs
 
@@ -85,9 +87,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     existingCOR?.license_fee_percent ?? DEFAULT_PERCENTAGES.license_fee
   )
 
-  // Load labor rates and company materials on mount
+  // Load labor rates, classes, and company materials on mount
   useEffect(() => {
     loadLaborRates()
+    loadLaborClasses()
     loadCompanyMaterials()
     if (!existingCOR) {
       generateCORNumber()
@@ -161,7 +164,34 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     }
   }
 
-  const getRateForClass = (laborClass) => {
+  const loadLaborClasses = async () => {
+    try {
+      const classes = await db.getLaborClasses?.(company?.id)
+      const allRates = await db.getAllLaborClassRates?.(company?.id)
+      setLaborClasses(classes || [])
+      setLaborClassRates(allRates || [])
+    } catch (error) {
+      console.error('Error loading labor classes:', error)
+    }
+  }
+
+  const getRateForClass = (laborClass, wageType = 'standard') => {
+    // First try to get rate from new labor_class_rates system
+    const classData = laborClasses.find(lc => lc.name === laborClass)
+    if (classData) {
+      const classWithRates = laborClassRates.find(lcr => lcr.id === classData.id)
+      if (classWithRates?.labor_class_rates) {
+        const rateEntry = classWithRates.labor_class_rates.find(r => r.job_type === wageType)
+        if (rateEntry) {
+          return {
+            regular_rate: rateEntry.regular_rate,
+            overtime_rate: rateEntry.overtime_rate
+          }
+        }
+      }
+    }
+
+    // Fallback to legacy labor_rates table
     const classLower = laborClass?.toLowerCase() || ''
     return laborRates.find(r => r.role?.toLowerCase() === classLower) || null
   }
@@ -216,8 +246,9 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   // Labor item management
   const addLaborItem = () => {
-    const defaultClass = LABOR_CLASSES[0]
-    const rate = getRateForClass(defaultClass)
+    // Use first labor class from database, or fallback to hardcoded
+    const defaultClass = laborClasses[0]?.name || LABOR_CLASSES[0]
+    const rate = getRateForClass(defaultClass, 'standard')
     setLaborItems([...laborItems, {
       id: `temp-${Date.now()}`,
       labor_class: defaultClass,
@@ -235,8 +266,11 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     const newItems = [...laborItems]
     newItems[index] = { ...newItems[index], [field]: value }
 
-    if (field === 'labor_class') {
-      const rate = getRateForClass(value)
+    // Update rates when class or wage type changes
+    if (field === 'labor_class' || field === 'wage_type') {
+      const laborClass = field === 'labor_class' ? value : newItems[index].labor_class
+      const wageType = field === 'wage_type' ? value : newItems[index].wage_type
+      const rate = getRateForClass(laborClass, wageType)
       if (rate) {
         newItems[index].regular_rate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
         newItems[index].overtime_rate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
@@ -637,8 +671,8 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.labor_class}
                           onChange={(e) => updateLaborItem(index, 'labor_class', e.target.value)}
                         >
-                          {LABOR_CLASSES.map(lc => (
-                            <option key={lc} value={lc}>{lc}</option>
+                          {(laborClasses.length > 0 ? laborClasses : LABOR_CLASSES.map(lc => ({ name: lc }))).map(lc => (
+                            <option key={lc.name} value={lc.name}>{lc.name}</option>
                           ))}
                         </select>
                         <select

@@ -1409,12 +1409,12 @@ export const db = {
     return null
   },
 
-  // Delete (soft) a labor category
+  // Delete a labor category (hard delete - allows name reuse)
   async deleteLaborCategory(id) {
     if (isSupabaseConfigured) {
       const { error } = await supabase
         .from('labor_categories')
-        .update({ active: false })
+        .delete()
         .eq('id', id)
       if (error) throw error
     }
@@ -1559,12 +1559,13 @@ export const db = {
     return null
   },
 
-  // Delete (soft) a labor class
+  // Delete a labor class (hard delete - allows name reuse)
+  // CASCADE DELETE will automatically remove all associated rates
   async deleteLaborClass(id) {
     if (isSupabaseConfigured) {
       const { error } = await supabase
         .from('labor_classes')
-        .update({ active: false })
+        .delete()
         .eq('id', id)
       if (error) throw error
     }

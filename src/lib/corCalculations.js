@@ -253,7 +253,10 @@ export const DEFAULT_PERCENTAGES = {
   license_fee: 10 // 0.10% (approximation of 0.101%)
 }
 
-// Labor classes for dropdown
+// NOTE: Labor classes are now loaded dynamically from the database
+// Use db.getLaborClasses(companyId) or db.getLaborClassesWithCategories(companyId)
+// instead of this hardcoded array
+// Kept for backward compatibility with old code only
 export const LABOR_CLASSES = [
   'Foreman',
   'Superintendent',
@@ -261,10 +264,10 @@ export const LABOR_CLASSES = [
   'Laborer'
 ]
 
-// Wage types for dropdown
+// Wage types for dropdown - Standard and Prevailing Wage only
+// Each labor class should have only 2 rate types configured
 export const WAGE_TYPES = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'pla', label: 'PLA (Project Labor Agreement)' },
+  { value: 'standard', label: 'Standard Rate' },
   { value: 'prevailing', label: 'Prevailing Wage' }
 ]
 
