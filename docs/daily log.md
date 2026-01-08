@@ -6,6 +6,67 @@
 
 ## January 8, 2025
 
+### Labor Rates, Categories, and Classes System - Critical Fixes
+
+**Problem:** Multiple issues with labor rates system:
+1. Deleting a category would soft-delete (set `active=false`), preventing name reuse - unique constraint would fail
+2. COR forms used hardcoded labor classes instead of loading from database
+3. Too many wage type options (Standard, PLA, Prevailing) - confusing and not scalable
+4. "Demolition" and "Abatement" sub-rates shouldn't exist - these should be labor class names
+5. Rates should be applied based on pricing setup, not manually selected during project creation
+
+**Solution Implemented:**
+
+**1. Hard Delete for Categories & Classes**
+- Changed `deleteLaborCategory()` and `deleteLaborClass()` to use `.delete()` instead of soft delete
+- Now when you delete a category/class, the name becomes immediately available for reuse
+- CASCADE DELETE automatically cleans up associated rates when class is deleted
+- Created migration to clean up existing soft-deleted records
+
+**2. Simplified to 2 Rate Types**
+- Removed PLA as separate wage type option
+- Now only: **Standard Rate** and **Prevailing Wage**
+- Each labor class limited to exactly 2 rate configurations
+- Prevailing Wage can be used for PLA projects
+
+**3. Dynamic Labor Classes from Database**
+- CORForm now loads labor classes via `db.getLaborClasses(companyId)`
+- Classes created in Pricing tab automatically appear in COR forms
+- No more hardcoded "Foreman, Superintendent, Operator, Laborer"
+- Create any classes you need: "Demolition Worker", "Abatement Worker", "Foreman", etc.
+
+**4. Auto-Apply Rates Based on Pricing**
+- When selecting labor class + wage type in COR form, rates auto-populate from `labor_class_rates` table
+- Uses `getRateForClass(laborClass, wageType)` to fetch correct rates
+- Fallback to legacy `labor_rates` table for backward compatibility
+- Rates update automatically when changing class or wage type dropdown
+
+**Files Modified:**
+- `src/lib/supabase.js` (lines 1412-1420, 1562-1572): Changed to hard delete
+- `src/lib/corCalculations.js` (lines 256-272): Removed PLA, added deprecation notes
+- `src/components/cor/CORForm.jsx`:
+  - Added `laborClasses` and `laborClassRates` state (lines 24-25)
+  - Load classes on mount (lines 91-93, 167-176)
+  - Enhanced `getRateForClass()` to query database rates (lines 178-197)
+  - Update rates when class or wage type changes (lines 265-289)
+  - Populate dropdown from database classes (lines 674-676)
+
+**Files Created:**
+- `database/migration_labor_cleanup.sql`: Clean up soft-deleted records
+
+**How It Works Now:**
+1. Pricing Tab → Create categories and classes
+2. Set Rates → Each class gets 2 rate types (Standard, Prevailing)
+3. COR Forms → Classes auto-populate from database
+4. Select class + wage type → Rates auto-fill from pricing
+5. Delete freely → Names immediately available for reuse
+
+**Commit:** `8ee3988` - Fix labor rates, categories, and classes system
+
+---
+
+## January 8, 2025 (Earlier)
+
 ### Security Hardening & Code Cleanup (Major)
 
 #### 1. Cryptographically Secure Random Generation
