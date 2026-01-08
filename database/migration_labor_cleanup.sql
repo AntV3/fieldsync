@@ -1,53 +1,39 @@
--- Migration: Labor Categories and Classes - Cleanup and Hard Delete
+-- =====================================================
+-- Migration: Labor Categories and Classes - Cleanup
 -- Date: 2026-01-08
--- Purpose: Clean up soft-deleted records and transition to hard deletes
-
--- =====================================================
--- CONTEXT
--- =====================================================
--- Previous implementation used soft deletes (active=false)
--- This prevented reusing category/class names after deletion
--- Changed to hard deletes to allow name reuse
--- Database schema already has CASCADE DELETE configured
-
--- =====================================================
--- 1. Clean up existing soft-deleted records
+-- Purpose: Clean up soft-deleted records, transition to hard deletes
 -- =====================================================
 
--- Delete soft-deleted labor class rates (via cascade from classes)
--- These will be removed automatically when we delete the classes
-
--- Delete soft-deleted labor classes
+-- Clean up soft-deleted labor classes (CASCADE will remove rates)
 DELETE FROM labor_classes WHERE active = false;
 
--- Delete soft-deleted labor categories
+-- Clean up soft-deleted labor categories
 DELETE FROM labor_categories WHERE active = false;
 
 -- =====================================================
--- 2. Remove active column (no longer needed)
--- =====================================================
--- Note: We're keeping the active column for now for backward compatibility
--- and in case filtering is needed in the future
--- Just documenting that it's no longer used for soft deletes
-
--- =====================================================
--- 3. Verify CASCADE DELETE is configured correctly
+-- VERIFICATION - Check results
 -- =====================================================
 
--- labor_categories has ON DELETE CASCADE from companies (already configured)
--- labor_classes has ON DELETE SET NULL from labor_categories (allows orphaned classes)
--- labor_classes has ON DELETE CASCADE from companies (already configured)
--- labor_class_rates has ON DELETE CASCADE from labor_classes (already configured)
--- t_and_m_workers.labor_class_id has ON DELETE SET NULL (preserves historical data)
+-- Should return 0 rows if cleanup was successful
+SELECT 'Remaining soft-deleted categories:' as check_type, COUNT(*) as count
+FROM labor_categories WHERE active = false
+UNION ALL
+SELECT 'Remaining soft-deleted classes:' as check_type, COUNT(*) as count
+FROM labor_classes WHERE active = false;
 
--- =====================================================
--- VERIFICATION QUERIES
--- =====================================================
-
--- Check for any remaining soft-deleted records
--- SELECT company_id, name, active FROM labor_categories WHERE active = false;
--- SELECT company_id, name, active FROM labor_classes WHERE active = false;
-
--- Verify unique constraints still work
--- SELECT company_id, name, COUNT(*) FROM labor_categories GROUP BY company_id, name HAVING COUNT(*) > 1;
--- SELECT company_id, name, COUNT(*) FROM labor_classes GROUP BY company_id, name HAVING COUNT(*) > 1;
+-- Check for any duplicate names (should return 0 rows)
+SELECT 'Duplicate category names:' as check_type, COUNT(*) as count
+FROM (
+  SELECT company_id, name, COUNT(*) as cnt
+  FROM labor_categories
+  GROUP BY company_id, name
+  HAVING COUNT(*) > 1
+) duplicates
+UNION ALL
+SELECT 'Duplicate class names:' as check_type, COUNT(*) as count
+FROM (
+  SELECT company_id, name, COUNT(*) as cnt
+  FROM labor_classes
+  GROUP BY company_id, name
+  HAVING COUNT(*) > 1
+) duplicates;
