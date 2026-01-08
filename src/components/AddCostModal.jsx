@@ -73,7 +73,7 @@ export default function AddCostModal({ onClose, onSave, saving = false }) {
           <div className="modal-body">
             {/* Category Selection */}
             <div className="form-group">
-              <label>Category *</label>
+              <label>Category</label>
               <div className="category-grid">
                 {categories.map(cat => {
                   const Icon = cat.Icon
@@ -95,7 +95,7 @@ export default function AddCostModal({ onClose, onSave, saving = false }) {
 
             {/* Description */}
             <div className="form-group">
-              <label htmlFor="cost-description">Description *</label>
+              <label htmlFor="cost-description">Description</label>
               <input
                 id="cost-description"
                 type="text"
@@ -112,7 +112,7 @@ export default function AddCostModal({ onClose, onSave, saving = false }) {
             {/* Amount and Date Row */}
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="cost-amount">Amount *</label>
+                <label htmlFor="cost-amount">Amount</label>
                 <div className="input-with-prefix">
                   <span className="input-prefix">$</span>
                   <input
@@ -134,7 +134,7 @@ export default function AddCostModal({ onClose, onSave, saving = false }) {
               </div>
 
               <div className="form-group">
-                <label htmlFor="cost-date">Date *</label>
+                <label htmlFor="cost-date">Date</label>
                 <input
                   id="cost-date"
                   type="date"

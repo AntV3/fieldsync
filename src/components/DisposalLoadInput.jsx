@@ -328,6 +328,8 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
           <button
             className="disposal-history-toggle"
             onClick={() => setShowHistory(!showHistory)}
+            aria-expanded={showHistory}
+            aria-label={`${showHistory ? 'Hide' : 'Show'} disposal history for ${history.length} days`}
           >
             <History size={16} />
             <span>View History ({history.length} days)</span>

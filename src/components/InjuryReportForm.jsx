@@ -208,12 +208,12 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
           </div>
 
           {/* Progress Indicator */}
-          <div className="progress-steps">
-            <div className={`step ${step >= 1 ? 'active' : ''}`}>1. Incident</div>
-            <div className={`step ${step >= 2 ? 'active' : ''}`}>2. Employee</div>
-            <div className={`step ${step >= 3 ? 'active' : ''}`}>3. Supervisor</div>
-            <div className={`step ${step >= 4 ? 'active' : ''}`}>4. Witnesses</div>
-            <div className={`step ${step >= 5 ? 'active' : ''}`}>5. Medical & Safety</div>
+          <div className="progress-steps" role="navigation" aria-label="Form progress">
+            <div className={`step ${step >= 1 ? 'active' : ''}`} aria-label="Step 1: Incident Details" aria-current={step === 1 ? 'step' : undefined}>1. Incident</div>
+            <div className={`step ${step >= 2 ? 'active' : ''}`} aria-label="Step 2: Employee Information" aria-current={step === 2 ? 'step' : undefined}>2. Employee</div>
+            <div className={`step ${step >= 3 ? 'active' : ''}`} aria-label="Step 3: Supervisor Information" aria-current={step === 3 ? 'step' : undefined}>3. Supervisor</div>
+            <div className={`step ${step >= 4 ? 'active' : ''}`} aria-label="Step 4: Witness Testimonies" aria-current={step === 4 ? 'step' : undefined}>4. Witnesses</div>
+            <div className={`step ${step >= 5 ? 'active' : ''}`} aria-label="Step 5: Medical Treatment and Safety" aria-current={step === 5 ? 'step' : undefined}>5. Medical & Safety</div>
           </div>
 
           <div className="modal-body">
@@ -224,7 +224,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Date of Incident *</label>
+                    <label>Date of Incident</label>
                     <input
                       type="date"
                       value={incidentDate}
@@ -233,7 +233,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     />
                   </div>
                   <div className="form-group">
-                    <label>Time of Incident *</label>
+                    <label>Time of Incident</label>
                     <input
                       type="time"
                       value={incidentTime}
@@ -243,7 +243,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 </div>
 
                 <div className="form-group">
-                  <label>Location on Site *</label>
+                  <label>Location on Site</label>
                   <input
                     type="text"
                     value={incidentLocation}
@@ -253,7 +253,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 </div>
 
                 <div className="form-group">
-                  <label>Incident Description *</label>
+                  <label>Incident Description</label>
                   <textarea
                     value={incidentDescription}
                     onChange={(e) => setIncidentDescription(e.target.value)}
@@ -264,7 +264,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Injury Type *</label>
+                    <label>Injury Type</label>
                     <select value={injuryType} onChange={(e) => setInjuryType(e.target.value)}>
                       <option value="minor">Minor Injury</option>
                       <option value="serious">Serious Injury</option>
@@ -273,7 +273,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Body Part Affected</label>
+                    <label>Body Part Affected <span className="optional-text">(Optional)</span></label>
                     <input
                       type="text"
                       value={bodyPartAffected}
@@ -291,7 +291,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 <h3>Injured Employee Information</h3>
 
                 <div className="form-group">
-                  <label>Full Name *</label>
+                  <label>Full Name</label>
                   <input
                     type="text"
                     value={employeeName}
@@ -302,7 +302,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Phone Number</label>
+                    <label>Phone Number <span className="optional-text">(Optional)</span></label>
                     <input
                       type="tel"
                       value={employeePhone}
@@ -311,7 +311,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     />
                   </div>
                   <div className="form-group">
-                    <label>Email Address</label>
+                    <label>Email Address <span className="optional-text">(Optional)</span></label>
                     <input
                       type="email"
                       value={employeeEmail}
@@ -322,7 +322,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 </div>
 
                 <div className="form-group">
-                  <label>Home Address</label>
+                  <label>Home Address <span className="optional-text">(Optional)</span></label>
                   <input
                     type="text"
                     value={employeeAddress}
@@ -333,7 +333,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Job Title *</label>
+                    <label>Job Title</label>
                     <input
                       type="text"
                       value={employeeJobTitle}
@@ -342,7 +342,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     />
                   </div>
                   <div className="form-group">
-                    <label>Hire Date</label>
+                    <label>Hire Date <span className="optional-text">(Optional)</span></label>
                     <input
                       type="date"
                       value={employeeHireDate}
@@ -359,7 +359,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 <h3>Foreman/Supervisor Making Report</h3>
 
                 <div className="form-group">
-                  <label>Your Name *</label>
+                  <label>Your Name</label>
                   <input
                     type="text"
                     value={reportedByName}
@@ -370,7 +370,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Your Title *</label>
+                    <label>Your Title</label>
                     <input
                       type="text"
                       value={reportedByTitle}
@@ -379,7 +379,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     />
                   </div>
                   <div className="form-group">
-                    <label>Your Phone Number</label>
+                    <label>Your Phone Number <span className="optional-text">(Optional)</span></label>
                     <input
                       type="tel"
                       value={reportedByPhone}
@@ -390,7 +390,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 </div>
 
                 <div className="form-group">
-                  <label>Your Email Address</label>
+                  <label>Your Email Address <span className="optional-text">(Optional)</span></label>
                   <input
                     type="email"
                     value={reportedByEmail}
@@ -431,7 +431,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 <div className="add-witness-form">
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Witness Name</label>
+                      <label>Witness Name <span className="optional-text">(Optional)</span></label>
                       <input
                         type="text"
                         value={witnessName}
@@ -440,7 +440,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                       />
                     </div>
                     <div className="form-group">
-                      <label>Phone Number</label>
+                      <label>Phone Number <span className="optional-text">(Optional)</span></label>
                       <input
                         type="tel"
                         value={witnessPhone}
@@ -451,7 +451,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                   </div>
 
                   <div className="form-group">
-                    <label>Email Address</label>
+                    <label>Email Address <span className="optional-text">(Optional)</span></label>
                     <input
                       type="email"
                       value={witnessEmail}
@@ -461,7 +461,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                   </div>
 
                   <div className="form-group">
-                    <label>Witness Testimony</label>
+                    <label>Witness Testimony <span className="optional-text">(Optional)</span></label>
                     <textarea
                       value={witnessTestimony}
                       onChange={(e) => setWitnessTestimony(e.target.value)}
@@ -496,7 +496,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 {medicalTreatmentRequired && (
                   <>
                     <div className="form-group">
-                      <label>Medical Facility Name</label>
+                      <label>Medical Facility Name <span className="optional-text">(Optional)</span></label>
                       <input
                         type="text"
                         value={medicalFacilityName}
@@ -506,7 +506,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     </div>
 
                     <div className="form-group">
-                      <label>Medical Facility Address</label>
+                      <label>Medical Facility Address <span className="optional-text">(Optional)</span></label>
                       <input
                         type="text"
                         value={medicalFacilityAddress}
@@ -529,7 +529,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 )}
 
                 <div className="form-group">
-                  <label>Immediate Actions Taken</label>
+                  <label>Immediate Actions Taken <span className="optional-text">(Optional)</span></label>
                   <textarea
                     value={immediateActionsTaken}
                     onChange={(e) => setImmediateActionsTaken(e.target.value)}
@@ -539,7 +539,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                 </div>
 
                 <div className="form-group">
-                  <label>Corrective Actions Planned</label>
+                  <label>Corrective Actions Planned <span className="optional-text">(Optional)</span></label>
                   <textarea
                     value={correctiveActionsPlanned}
                     onChange={(e) => setCorrectiveActionsPlanned(e.target.value)}
@@ -550,7 +550,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Safety Equipment Used</label>
+                    <label>Safety Equipment Used <span className="optional-text">(Optional)</span></label>
                     <input
                       type="text"
                       value={safetyEquipmentUsed}
@@ -559,7 +559,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     />
                   </div>
                   <div className="form-group">
-                    <label>Safety Equipment Failed</label>
+                    <label>Safety Equipment Failed <span className="optional-text">(Optional)</span></label>
                     <input
                       type="text"
                       value={safetyEquipmentFailed}
@@ -571,7 +571,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Days Away From Work</label>
+                    <label>Days Away From Work <span className="optional-text">(Optional)</span></label>
                     <input
                       type="number"
                       min="0"
@@ -580,7 +580,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     />
                   </div>
                   <div className="form-group">
-                    <label>Restricted Work Days</label>
+                    <label>Restricted Work Days <span className="optional-text">(Optional)</span></label>
                     <input
                       type="number"
                       min="0"
@@ -653,6 +653,10 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
           overflow-y: auto;
         }
 
+        .modal-header h2 {
+          font-weight: 700;
+        }
+
         .progress-steps {
           display: flex;
           justify-content: space-between;
@@ -680,6 +684,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
           margin-bottom: 1.5rem;
           color: var(--text-primary);
           font-size: 1.25rem;
+          font-weight: 700;
         }
 
         .form-row {
@@ -697,6 +702,12 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
           margin-bottom: 0.5rem;
           font-weight: 500;
           color: var(--text-secondary);
+        }
+
+        .optional-text {
+          font-weight: 400;
+          color: var(--text-muted);
+          font-size: 0.875rem;
         }
 
         .form-group input,
