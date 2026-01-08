@@ -662,8 +662,8 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                                 <tbody>
                                   {ticket.t_and_m_items.map((item, idx) => (
                                     <tr key={idx}>
-                                      <td>{item.materials_equipment?.name || item.custom_name || 'Item'}</td>
-                                      <td>{item.materials_equipment?.category || item.custom_category || '-'}</td>
+                                      <td>{item.custom_name || item.materials_equipment?.name || 'Unnamed Item'}</td>
+                                      <td>{item.custom_category || item.materials_equipment?.category || '-'}</td>
                                       <td>{item.quantity}</td>
                                     </tr>
                                   ))}

@@ -143,7 +143,8 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
       items.forEach(item => {
         // Get material info from nested materials_equipment if available
         const materialInfo = item.materials_equipment || {}
-        const itemDescription = item.description || materialInfo.name || item.name || 'Unnamed item'
+        // Priority: custom_name (user override) > library name > fallback
+        const itemDescription = item.custom_name || materialInfo.name || item.description || item.name || 'Unnamed item'
         const itemUnit = item.unit || materialInfo.unit || 'each'
         const itemCost = parseFloat(item.unit_cost) || parseFloat(materialInfo.cost_per_unit) || 0
         const itemQty = parseFloat(item.quantity) || 1

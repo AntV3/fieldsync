@@ -666,7 +666,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
           startY: yPos,
           head: [['Item', 'Qty', 'Unit']],
           body: ticket.t_and_m_items.map(item => [
-            item.materials_equipment?.name || item.description || 'Item',
+            item.custom_name || item.materials_equipment?.name || item.description || 'Unnamed Item',
             item.quantity?.toString() || '1',
             item.materials_equipment?.unit || item.unit || 'ea'
           ]),
