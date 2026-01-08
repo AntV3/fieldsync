@@ -2251,42 +2251,40 @@ input[type="number"] {
 /* Project List - Grid Layout */
 .project-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.875rem;
 }
 
 .project-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1.25rem;
+  border-radius: 10px;
+  padding: 0.875rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .project-card:hover {
   border-color: var(--accent-blue);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .project-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .project-card-name {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
 }
 
 .project-card-value {
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.8rem;
 }
 
 .mini-progress-bar {
@@ -8794,84 +8792,84 @@ input[type="number"] {
 .business-overview {
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
 }
 
 .bo-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.75rem;
+  margin-bottom: 1rem;
 }
 
 .bo-title {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
 }
 
 .bo-project-count {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   background: var(--bg-elevated);
-  padding: 0.5rem 1rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 20px;
   font-weight: 500;
 }
 
 /* Financial Progress Section */
 .bo-financial {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1rem;
 }
 
 .bo-progress-bar {
-  height: 10px;
+  height: 6px;
   background: var(--progress-bg);
-  border-radius: 5px;
+  border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .bo-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue) 0%, var(--accent-green) 100%);
-  border-radius: 5px;
+  border-radius: 3px;
   transition: width 0.5s ease;
 }
 
 .bo-financial-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1.25rem;
-  align-items: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .bo-metric {
   text-align: center;
-  padding: 1rem;
-  background: var(--bg-elevated);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
+  padding: 0.5rem 0.75rem;
+  flex: 1;
+  min-width: 100px;
 }
 
 .bo-metric.primary {
   flex: 1;
-  min-width: 140px;
+  min-width: 100px;
 }
 
 .bo-metric.highlight {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(16, 185, 129, 0.15);
 }
 
 .bo-metric-value {
   display: block;
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
@@ -8879,17 +8877,16 @@ input[type="number"] {
 
 .bo-metric.highlight .bo-metric-value {
   color: var(--accent-green);
-  font-size: 1.5rem;
+  font-size: 1.1rem;
 }
 
 .bo-metric-label {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-top: 0.5rem;
-  font-weight: 500;
+  margin-top: 0.2rem;
 }
 
 .bo-metric-separator {
@@ -8898,32 +8895,30 @@ input[type="number"] {
 
 /* Project Health Section */
 .bo-health {
-  padding-top: 1.5rem;
-  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
   border-top: 1px solid var(--border-color);
 }
 
 .bo-health-title {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 1rem;
-  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
 .bo-health-pills {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .bo-pill {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  gap: 0.3rem;
+  padding: 0.35rem 0.6rem;
   border-radius: 20px;
   font-size: 0.85rem;
 }
@@ -9437,7 +9432,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Enhanced Project Card - Compact */
 .project-card.enhanced {
-  padding: 1.25rem;
+  padding: 0.875rem;
 }
 
 .project-card.enhanced.at-risk {
@@ -9445,24 +9440,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .project-stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin: 1rem 0;
-  padding: 0.75rem 0;
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  padding: 0.4rem 0;
   border-top: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
 }
 
 .project-stat {
   text-align: center;
-  padding: 0.25rem;
+  flex: 1;
 }
 
 .project-stat .stat-value {
   display: block;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -9472,25 +9466,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .project-stat .stat-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: var(--text-muted);
-  margin-top: 0.35rem;
+  margin-top: 0.15rem;
   text-transform: uppercase;
-  font-weight: 500;
 }
 
 .project-badges {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
   flex-wrap: wrap;
 }
 
 .project-badges .badge {
-  padding: 0.35rem 0.65rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 500;
 }
 
 .project-badges .badge.pending {
@@ -9866,7 +9859,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .hero-metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
 
 @media (max-width: 1024px) {
@@ -9877,41 +9870,41 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 @media (max-width: 480px) {
   .hero-metrics {
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 }
 
 .hero-metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1.25rem;
+  border-radius: 10px;
+  padding: 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.4rem;
 }
 
 .hero-metric-header {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .hero-metric-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: currentColor;
   background: rgba(var(--icon-bg-rgb, 59, 130, 246), 0.12);
 }
 
 .hero-metric-label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -9919,12 +9912,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .hero-metric-value-row {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
 }
 
 .hero-metric-value {
-  font-size: 1.75rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
@@ -9932,7 +9925,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 @media (max-width: 480px) {
   .hero-metric-value {
-    font-size: 1.35rem;
+    font-size: 1.1rem;
   }
 }
 
@@ -9949,20 +9942,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .hero-metric-sublabel {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
 .hero-metric-progress {
-  margin-top: 0.25rem;
+  margin-top: 0.15rem;
 }
 
 .hero-metric-progress-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
-  margin-top: 0.25rem;
+  margin-top: 0.15rem;
 }
 
 /* Financials Tab Split Layout */
@@ -19835,9 +19828,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Financials Analysis Row - Side by side layout */
 .financials-analysis-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 1rem;
 }
 
 @media (max-width: 900px) {
@@ -19852,26 +19845,26 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .burn-rate-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1.75rem;
+  border-radius: 10px;
+  padding: 1rem;
 }
 
 .burn-rate-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .burn-rate-title {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .burn-rate-title h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
@@ -19905,40 +19898,40 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .burn-rate-hero {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.875rem;
 }
 
 .burn-rate-main {
   display: flex;
   align-items: baseline;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .burn-rate-value {
-  font-size: 2.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .burn-rate-unit {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
 .burn-rate-context {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-top: 0.25rem;
+  margin-top: 0.15rem;
 }
 
 .burn-rate-summary {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  padding: 0.75rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
-  margin-bottom: 1rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
 }
 
 .burn-summary-item {
@@ -20074,6 +20067,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 
+/* ============================================
+   Cost & Disposal Side-by-Side Row
+   ============================================ */
+.cost-disposal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .cost-disposal-row {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ============================================
    Cost Contributors Card
@@ -20081,33 +20089,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .cost-contributors-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 0;
 }
 
 .cost-contributors-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.25rem;
-  gap: 1rem;
+  margin-bottom: 0.75rem;
+  gap: 0.75rem;
 }
 
 .cost-contributors-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .cost-contributors-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
 .cost-total {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -20143,36 +20151,37 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .cost-empty {
   text-align: center;
-  padding: 2rem;
+  padding: 1.25rem;
   color: var(--text-secondary);
 }
 
 .cost-empty p {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.35rem;
   font-weight: 500;
+  font-size: 0.85rem;
 }
 
 .cost-empty small {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .cost-breakdown {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .cost-category {
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .cost-category-row {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
   cursor: default;
 }
 
@@ -20206,8 +20215,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .cost-category-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  gap: 0.4rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -20339,8 +20348,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .profitability-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1.75rem;
+  border-radius: 10px;
+  padding: 1rem;
 }
 
 .profitability-card.healthy {
@@ -20362,12 +20371,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.875rem;
 }
 
 .profitability-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
@@ -20399,14 +20408,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .profitability-metrics {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
 }
 
 .profit-metric {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .profit-metric-header {
@@ -20416,12 +20425,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .profit-metric-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 
 .profit-metric-value {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -20457,17 +20466,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .profitability-summary {
   background: var(--bg-tertiary);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .profit-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.35rem 0;
-  font-size: 0.9rem;
+  padding: 0.25rem 0;
+  font-size: 0.8rem;
 }
 
 .profit-row:not(:last-child) {
@@ -22766,7 +22775,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .disposal-summary-card {
   background: var(--bg-card);
-  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
   padding: 1rem;
 }
 
@@ -22774,50 +22784,52 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .disposal-summary-card .header-left {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   font-weight: 600;
+  font-size: 0.9rem;
   color: var(--text-primary);
 }
 
 .disposal-summary-card .period-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: 10px;
   color: var(--text-secondary);
 }
 
 .disposal-summary-card .card-loading {
-  padding: 2rem;
+  padding: 1.25rem;
   text-align: center;
   color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 /* Total Count */
 .disposal-total {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
 }
 
 .total-number {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
 }
 
 .total-label {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 
@@ -22825,29 +22837,29 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .disposal-breakdown {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .disposal-type-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .type-info {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  min-width: 110px;
+  gap: 0.35rem;
+  min-width: 100px;
 }
 
 .type-icon {
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 .type-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 

@@ -1287,29 +1287,31 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           contractValue={revisedContractValue}
                           progress={progress}
                         />
+                      </div>
+
+                      {/* Cost Contributors & Disposal Summary Side-by-Side */}
+                      <div className="cost-disposal-row">
+                        <CostContributorsCard
+                          laborCost={projectData?.laborCost || 0}
+                          haulOffCost={projectData?.haulOffCost || 0}
+                          customCosts={projectData?.customCosts || []}
+                          onAddCost={() => setShowAddCostModal(true)}
+                          onDeleteCost={async (costId) => {
+                            try {
+                              await db.deleteProjectCost(costId)
+                              loadProjects()
+                              onShowToast('Cost deleted', 'success')
+                            } catch (err) {
+                              onShowToast('Error deleting cost', 'error')
+                            }
+                          }}
+                        />
 
                         <DisposalSummary
                           project={selectedProject}
                           period="week"
                         />
                       </div>
-
-                      {/* Cost Contributors */}
-                      <CostContributorsCard
-                        laborCost={projectData?.laborCost || 0}
-                        haulOffCost={projectData?.haulOffCost || 0}
-                        customCosts={projectData?.customCosts || []}
-                        onAddCost={() => setShowAddCostModal(true)}
-                        onDeleteCost={async (costId) => {
-                          try {
-                            await db.deleteProjectCost(costId)
-                            loadProjects()
-                            onShowToast('Cost deleted', 'success')
-                          } catch (err) {
-                            onShowToast('Error deleting cost', 'error')
-                          }
-                        }}
-                      />
 
                       {/* Labor Details - Collapsible */}
                       <details className="financials-details">
