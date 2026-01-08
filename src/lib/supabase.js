@@ -3410,19 +3410,34 @@ export const db = {
     // Get crew check-in history
     const crewHistory = await this.getCrewCheckinHistory(projectId, 365)
 
-    // Get labor rates for this work/job type
-    const laborRates = await this.getLaborRates(companyId, workType, jobType)
+    // Get all labor classes with rates for this company
+    const laborClassesWithRates = await this.getAllLaborClassRates(companyId)
 
-    // Build rates lookup: { role: regularRate }
-    const ratesLookup = {}
-    laborRates.forEach(rate => {
-      ratesLookup[rate.role.toLowerCase()] = parseFloat(rate.regular_rate) || 0
+    // Get legacy labor rates for backward compatibility
+    const legacyLaborRates = await this.getLaborRates(companyId, workType, jobType)
+
+    // Build rates lookup by labor_class_id: { classId: { name, rate } }
+    const classRatesLookup = {}
+    laborClassesWithRates.forEach(laborClass => {
+      const rateEntry = laborClass.labor_class_rates?.find(r => r.job_type === jobType)
+      if (rateEntry) {
+        classRatesLookup[laborClass.id] = {
+          name: laborClass.name,
+          rate: parseFloat(rateEntry.regular_rate) || 0
+        }
+      }
+    })
+
+    // Build legacy rates lookup: { role: regularRate }
+    const legacyRatesLookup = {}
+    legacyLaborRates.forEach(rate => {
+      legacyRatesLookup[rate.role.toLowerCase()] = parseFloat(rate.regular_rate) || 0
     })
 
     // Calculate costs
     let totalCost = 0
     let totalManDays = 0
-    const byRole = {}
+    const byClass = {} // Changed from byRole to byClass
     const byDate = []
 
     crewHistory.forEach(checkin => {
@@ -3431,22 +3446,34 @@ export const db = {
       const dayBreakdown = {}
 
       workers.forEach(worker => {
-        const role = (worker.role || 'laborer').toLowerCase()
-        const rate = ratesLookup[role] || 0
+        let className = 'Unknown'
+        let rate = 0
 
-        if (!dayBreakdown[role]) {
-          dayBreakdown[role] = { count: 0, cost: 0 }
+        // Try new labor class system first
+        if (worker.labor_class_id && classRatesLookup[worker.labor_class_id]) {
+          className = classRatesLookup[worker.labor_class_id].name
+          rate = classRatesLookup[worker.labor_class_id].rate
         }
-        dayBreakdown[role].count++
-        dayBreakdown[role].cost += rate
+        // Fall back to legacy role-based system
+        else if (worker.role) {
+          const role = worker.role.toLowerCase()
+          className = worker.role // Use original role as display name
+          rate = legacyRatesLookup[role] || 0
+        }
+
+        if (!dayBreakdown[className]) {
+          dayBreakdown[className] = { count: 0, cost: 0 }
+        }
+        dayBreakdown[className].count++
+        dayBreakdown[className].cost += rate
         dayCost += rate
 
-        // Track by role totals
-        if (!byRole[role]) {
-          byRole[role] = { count: 0, cost: 0, rate }
+        // Track by class totals
+        if (!byClass[className]) {
+          byClass[className] = { count: 0, cost: 0, rate }
         }
-        byRole[role].count++
-        byRole[role].cost += rate
+        byClass[className].count++
+        byClass[className].cost += rate
       })
 
       totalCost += dayCost
@@ -3463,7 +3490,7 @@ export const db = {
     return {
       totalCost,
       totalManDays,
-      byRole,
+      byRole: byClass, // Keep 'byRole' for backward compatibility with ManDayCosts component
       byDate,
       daysWorked: crewHistory.length
     }

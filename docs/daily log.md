@@ -121,6 +121,27 @@ All labor automatically uses PLA rates because project.job_type = "pla"
 - `e941f76` - Update daily log with labor rates system fixes
 - `cbbd347` - Clean up SQL migration - remove excessive comments, add verification queries
 - `9c90103` - Remove wage type selection from COR line items - use project-level setting
+- `de8541e` - Update daily log - clarify project-level job_type workflow
+
+**Follow-Up Fix:** Burn Rate & Financial Tab Not Showing New Labor Classes
+
+**Problem:** When adding workers with new labor classes in crew check-in, the burn rate and financial tabs weren't updating to show the correct costs. The `calculateManDayCosts` function was still using the old `labor_rates` table and `worker.role` field instead of the new `labor_class_rates` and `worker.labor_class_id`.
+
+**Solution:**
+- Updated `calculateManDayCosts()` in `src/lib/supabase.js` (lines 3407-3497)
+- Now queries `getAllLaborClassRates()` to get all labor classes with their rates
+- Builds lookup by `labor_class_id` using project's `job_type` to select correct rate
+- Checks worker's `labor_class_id` first (new system)
+- Falls back to `worker.role` for legacy crew check-ins
+- Displays actual labor class names (e.g., "Demolition Worker") instead of roles
+- Maintains backward compatibility with old crew check-in data
+
+**How It Works:**
+1. Crew check-in stores `labor_class_id` on each worker
+2. `calculateManDayCosts()` fetches all labor classes and their rates for the company
+3. For each worker, looks up rate by `labor_class_id` + project's `job_type`
+4. Uses correct rate (Standard or PLA) based on project setting
+5. Burn rate and financial tabs now show live updates with correct class names and costs
 
 ---
 
