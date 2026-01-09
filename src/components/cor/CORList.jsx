@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle, List, Table, FileSpreadsheet } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
@@ -69,6 +69,21 @@ export default function CORList({
   const [selectMode, setSelectMode] = useState(false)
   const [showGroupModal, setShowGroupModal] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef(null)
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false)
+      }
+    }
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showExportMenu])
 
   // Display mode state - 'list' (card view) or 'log' (table view for client presentation)
   const [displayMode, setDisplayMode] = useState('list') // 'list' | 'log'
@@ -795,23 +810,27 @@ export default function CORList({
         </div>
         <div className="cor-header-actions">
           {/* Export buttons - always visible */}
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={exportToExcel}
-            title="Export to Excel"
-            disabled={cors.length === 0}
-          >
-            <FileSpreadsheet size={14} /> Excel
-          </button>
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={exportToPDF}
-            title="Export to PDF"
-            disabled={cors.length === 0}
-          >
-            <FileText size={14} /> PDF
-          </button>
-          {/* Display Mode Toggle - always visible for office users to access Log view */}
+          {/* Export Dropdown */}
+          <div className="cor-export-dropdown" ref={exportMenuRef}>
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={cors.length === 0}
+            >
+              <Download size={14} /> Export <ChevronDown size={12} />
+            </button>
+            {showExportMenu && (
+              <div className="cor-export-menu">
+                <button onClick={() => { exportToPDF(); setShowExportMenu(false); }}>
+                  <FileText size={14} /> Export as PDF
+                </button>
+                <button onClick={() => { exportToExcel(); setShowExportMenu(false); }}>
+                  <FileSpreadsheet size={14} /> Export as Excel
+                </button>
+              </div>
+            )}
+          </div>
+          {/* Display Mode Toggle - Log button is prominent for business use */}
           <div className="cor-display-toggle">
             <button
               className={`cor-display-btn ${displayMode === 'list' ? 'active' : ''}`}
@@ -822,12 +841,12 @@ export default function CORList({
               <span>List</span>
             </button>
             <button
-              className={`cor-display-btn ${displayMode === 'log' ? 'active' : ''}`}
+              className={`cor-display-btn log-btn ${displayMode === 'log' ? 'active' : ''}`}
               onClick={() => handleDisplayModeChange('log')}
-              title="Log View (editable)"
+              title="COR Log - Edit & Export for Clients"
             >
               <Table size={14} />
-              <span>Log</span>
+              <span>COR Log</span>
             </button>
           </div>
           {previewMode ? (
