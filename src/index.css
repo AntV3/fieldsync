@@ -15794,6 +15794,422 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding: 0.75rem 0 0.75rem 1rem;
 }
 
+/* =====================================================
+   COR DISPLAY MODE TOGGLE
+   ===================================================== */
+
+.cor-display-toggle {
+  display: flex;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.cor-display-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cor-display-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+
+.cor-display-btn.active {
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* =====================================================
+   COR LOG - Professional Client Presentation Table
+   ===================================================== */
+
+.cor-log {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.cor-log-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: var(--text-muted);
+}
+
+.cor-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.25rem;
+}
+
+.cor-log-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cor-log-title h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cor-log-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.cor-log-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cor-log-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.cor-log-empty p {
+  margin: 0;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cor-log-empty span {
+  font-size: 0.85rem;
+}
+
+/* COR Log Table */
+.cor-log-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.cor-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  min-width: 900px;
+}
+
+.cor-log-table thead {
+  background: var(--bg-tertiary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.cor-log-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.cor-log-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.cor-log-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cor-log-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Column widths */
+.cor-log-table .col-log-num {
+  width: 60px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cor-log-table .col-date-sent {
+  width: 110px;
+}
+
+.cor-log-table .col-ce-num {
+  width: 90px;
+}
+
+.cor-log-table .col-description {
+  min-width: 200px;
+}
+
+.cor-log-table .col-amount {
+  width: 100px;
+  text-align: right;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-weight: 500;
+}
+
+.cor-log-table .col-status {
+  width: 90px;
+  text-align: center;
+}
+
+.cor-log-table .col-comments {
+  min-width: 150px;
+}
+
+.cor-log-table .col-actions {
+  width: 70px;
+  text-align: center;
+}
+
+/* COR Log Row Styles */
+.cor-log-row {
+  transition: background 0.15s ease;
+}
+
+.cor-log-row.editing {
+  background: var(--bg-elevated);
+}
+
+.cor-log-row td.editable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+  position: relative;
+}
+
+.cor-log-row td.editable:hover {
+  background: var(--bg-hover);
+}
+
+.cor-log-row td.editable:hover::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed var(--border-color);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Description cell with title and COR number */
+.cor-log-title {
+  display: block;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.cor-log-number {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Status badges */
+.cor-log-status {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.cor-log-status.draft {
+  background: var(--status-draft-bg, #374151);
+  color: var(--status-draft-text, #9ca3af);
+}
+
+.cor-log-status.pending {
+  background: var(--status-pending-bg, #78350f);
+  color: var(--status-pending-text, #fbbf24);
+}
+
+.cor-log-status.approved {
+  background: var(--status-approved-bg, #064e3b);
+  color: var(--status-approved-text, #34d399);
+}
+
+.cor-log-status.rejected {
+  background: var(--status-rejected-bg, #7f1d1d);
+  color: var(--status-rejected-text, #f87171);
+}
+
+.cor-log-status.billed {
+  background: var(--status-billed-bg, #1e3a5f);
+  color: var(--status-billed-text, #60a5fa);
+}
+
+.cor-log-status.closed {
+  background: var(--status-closed-bg, #374151);
+  color: var(--status-closed-text, #9ca3af);
+}
+
+/* Placeholder text for empty editable fields */
+.cor-log-row .placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+/* Edit mode inputs */
+.cor-log-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.cor-log-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.cor-log-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.cor-log-textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Edit action buttons */
+.cor-log-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.cor-log-edit-actions .btn-icon {
+  padding: 0.35rem;
+}
+
+.cor-log-edit-actions .btn-success {
+  color: #34d399;
+}
+
+.cor-log-edit-actions .btn-success:hover {
+  background: rgba(52, 211, 153, 0.1);
+}
+
+/* Summary row */
+.cor-log-summary-row {
+  background: var(--bg-tertiary);
+  font-weight: 500;
+}
+
+.cor-log-summary-row td {
+  border-bottom: none;
+  border-top: 2px solid var(--border-color);
+}
+
+.cor-log-summary-row .summary-label {
+  color: var(--text-secondary);
+}
+
+.cor-log-summary-row .summary-breakdown {
+  margin-left: 0.5rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.cor-log-summary-row .summary-total {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.cor-log-summary-row .summary-breakdown-amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.cor-log-summary-row .summary-breakdown-amounts .approved {
+  color: #34d399;
+}
+
+.cor-log-summary-row .summary-breakdown-amounts .pending {
+  color: #fbbf24;
+}
+
+/* COR Log Responsive */
+@media (max-width: 768px) {
+  .cor-log-table-wrapper {
+    margin: 0 -1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .cor-log-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .cor-log-actions {
+    justify-content: flex-end;
+  }
+
+  .cor-display-toggle {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .cor-display-btn span {
+    display: none;
+  }
+}
+
 /* COR Responsive */
 @media (max-width: 640px) {
   .cor-list-header {

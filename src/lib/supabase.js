@@ -6625,6 +6625,85 @@ export const db = {
   },
 
   // ============================================
+  // COR Log Functions
+  // ============================================
+
+  // Get COR Log entries with joined COR data for a project
+  async getCORLog(projectId) {
+    if (isSupabaseConfigured) {
+      // Use the RPC function for efficient server-side join
+      const { data, error } = await supabase.rpc('get_cor_log', {
+        p_project_id: projectId
+      })
+
+      if (error) {
+        console.error('Error fetching COR log:', error)
+        throw error
+      }
+
+      // Transform to match expected format
+      return (data || []).map(row => ({
+        id: row.id,
+        logNumber: row.log_number,
+        dateSentToClient: row.date_sent_to_client,
+        ceNumber: row.ce_number,
+        comments: row.comments,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        changeOrder: {
+          id: row.cor_id,
+          corNumber: row.cor_number,
+          title: row.cor_title,
+          corTotal: row.cor_total,
+          status: row.cor_status,
+          createdAt: row.cor_created_at,
+          approvedAt: row.cor_approved_at,
+          approvedBy: row.cor_approved_by
+        }
+      }))
+    }
+    return []
+  },
+
+  // Update user-editable COR Log entry fields
+  async updateCORLogEntry(entryId, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.rpc('update_cor_log_entry', {
+        p_entry_id: entryId,
+        p_date_sent_to_client: updates.dateSentToClient || null,
+        p_ce_number: updates.ceNumber || null,
+        p_comments: updates.comments || null
+      })
+
+      if (error) {
+        console.error('Error updating COR log entry:', error)
+        throw error
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update COR log entry')
+      }
+
+      return data.entry
+    }
+    return null
+  },
+
+  // Subscribe to COR log changes for a project
+  subscribeToCORLog(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`cor-log:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'cor_log_entries', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // ============================================
   // Signature Workflow Functions
   // ============================================
 

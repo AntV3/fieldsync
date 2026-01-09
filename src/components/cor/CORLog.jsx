@@ -1,0 +1,350 @@
+import { useState, useEffect, useMemo } from 'react'
+import { FileSpreadsheet, Download, FileText, Loader2, RefreshCw } from 'lucide-react'
+import { db } from '../../lib/supabase'
+import { formatCurrency } from '../../lib/corCalculations'
+import CORLogRow from './CORLogRow'
+
+// Status display mapping for client presentation
+const STATUS_DISPLAY = {
+  draft: { label: 'Draft', className: 'draft' },
+  pending_approval: { label: 'Pending', className: 'pending' },
+  approved: { label: 'Approved', className: 'approved' },
+  rejected: { label: 'Rejected', className: 'rejected' },
+  billed: { label: 'Billed', className: 'billed' },
+  closed: { label: 'Closed', className: 'closed' }
+}
+
+export default function CORLog({ project, company, onShowToast }) {
+  const [logEntries, setLogEntries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState(null)
+  const [savingId, setSavingId] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    loadCORLog()
+
+    // Subscribe to COR log changes
+    const subscription = db.subscribeToCORLog?.(project.id, () => {
+      loadCORLog()
+    })
+
+    return () => {
+      if (subscription) db.unsubscribe?.(subscription)
+    }
+  }, [project.id])
+
+  const loadCORLog = async () => {
+    try {
+      const data = await db.getCORLog(project.id)
+      setLogEntries(data || [])
+    } catch (error) {
+      console.error('Error loading COR log:', error)
+      onShowToast?.('Error loading COR log', 'error')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    loadCORLog()
+  }
+
+  const handleSave = async (entryId, updates) => {
+    setSavingId(entryId)
+    try {
+      await db.updateCORLogEntry(entryId, updates)
+      // Update local state
+      setLogEntries(prev => prev.map(entry =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              dateSentToClient: updates.dateSentToClient,
+              ceNumber: updates.ceNumber,
+              comments: updates.comments
+            }
+          : entry
+      ))
+      setEditingId(null)
+      onShowToast?.('Log entry updated', 'success')
+    } catch (error) {
+      console.error('Error updating log entry:', error)
+      onShowToast?.('Error updating log entry', 'error')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  // Calculate summary statistics
+  const summary = useMemo(() => {
+    const approved = logEntries.filter(e => e.changeOrder.status === 'approved')
+    const pending = logEntries.filter(e => ['draft', 'pending_approval'].includes(e.changeOrder.status))
+    const rejected = logEntries.filter(e => e.changeOrder.status === 'rejected')
+
+    return {
+      totalCORs: logEntries.length,
+      approvedCount: approved.length,
+      pendingCount: pending.length,
+      rejectedCount: rejected.length,
+      approvedTotal: approved.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
+      pendingTotal: pending.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
+      grandTotal: logEntries.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0)
+    }
+  }, [logEntries])
+
+  // Export to PDF
+  const exportToPDF = async () => {
+    try {
+      // Dynamic import for jspdf
+      const { default: jsPDF } = await import('jspdf')
+      await import('jspdf-autotable')
+
+      const doc = new jsPDF('landscape')
+      const pageWidth = doc.internal.pageSize.width
+
+      // Header
+      doc.setFontSize(18)
+      doc.setFont(undefined, 'bold')
+      doc.text('CHANGE ORDER LOG', pageWidth / 2, 20, { align: 'center' })
+
+      doc.setFontSize(12)
+      doc.setFont(undefined, 'normal')
+      doc.text(`Project: ${project.name}`, pageWidth / 2, 28, { align: 'center' })
+      doc.text(`As of: ${new Date().toLocaleDateString()}`, pageWidth / 2, 35, { align: 'center' })
+
+      // Company info if available
+      if (company?.name) {
+        doc.setFontSize(10)
+        doc.text(company.name, 14, 20)
+      }
+
+      // Table data
+      const tableData = logEntries.map(entry => [
+        entry.logNumber,
+        entry.dateSentToClient ? new Date(entry.dateSentToClient).toLocaleDateString() : '-',
+        entry.ceNumber || '-',
+        entry.changeOrder.title || 'Untitled',
+        formatCurrency(entry.changeOrder.corTotal || 0),
+        STATUS_DISPLAY[entry.changeOrder.status]?.label || entry.changeOrder.status,
+        entry.comments || ''
+      ])
+
+      // Generate table
+      doc.autoTable({
+        startY: 45,
+        head: [['Log #', 'Date Sent', 'CE #', 'Description', 'Amount', 'Status', 'Comments']],
+        body: tableData,
+        styles: {
+          fontSize: 9,
+          cellPadding: 3
+        },
+        headStyles: {
+          fillColor: [51, 51, 51],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 'auto' },
+          4: { cellWidth: 25, halign: 'right' },
+          5: { cellWidth: 22, halign: 'center' },
+          6: { cellWidth: 45 }
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        }
+      })
+
+      // Summary section
+      const finalY = doc.lastAutoTable.finalY + 10
+      doc.setFontSize(10)
+      doc.setFont(undefined, 'bold')
+      doc.text('SUMMARY', 14, finalY)
+
+      doc.setFont(undefined, 'normal')
+      doc.text(`Total CORs: ${summary.totalCORs}`, 14, finalY + 7)
+      doc.text(`Approved: ${summary.approvedCount} (${formatCurrency(summary.approvedTotal)})`, 14, finalY + 14)
+      doc.text(`Pending: ${summary.pendingCount} (${formatCurrency(summary.pendingTotal)})`, 14, finalY + 21)
+      doc.text(`Total Value: ${formatCurrency(summary.grandTotal)}`, 14, finalY + 28)
+
+      // Save
+      const fileName = `COR_Log_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.pdf`
+      doc.save(fileName)
+
+      onShowToast?.('PDF exported successfully', 'success')
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+      onShowToast?.('Error exporting PDF', 'error')
+    }
+  }
+
+  // Export to Excel
+  const exportToExcel = async () => {
+    try {
+      // Dynamic import for xlsx
+      const XLSX = await import('xlsx')
+
+      // Prepare data
+      const data = logEntries.map(entry => ({
+        'Log #': entry.logNumber,
+        'COR Number': entry.changeOrder.corNumber,
+        'Date Sent to Client': entry.dateSentToClient || '',
+        'CE Number': entry.ceNumber || '',
+        'Description': entry.changeOrder.title || 'Untitled',
+        'Amount': entry.changeOrder.corTotal || 0,
+        'Status': STATUS_DISPLAY[entry.changeOrder.status]?.label || entry.changeOrder.status,
+        'Created Date': entry.changeOrder.createdAt ? new Date(entry.changeOrder.createdAt).toLocaleDateString() : '',
+        'Approved Date': entry.changeOrder.approvedAt ? new Date(entry.changeOrder.approvedAt).toLocaleDateString() : '',
+        'Approved By': entry.changeOrder.approvedBy || '',
+        'Comments': entry.comments || ''
+      }))
+
+      // Add summary row
+      data.push({})
+      data.push({
+        'Log #': 'SUMMARY',
+        'Description': `Total CORs: ${summary.totalCORs}`,
+        'Amount': summary.grandTotal,
+        'Status': `Approved: ${summary.approvedCount}, Pending: ${summary.pendingCount}`
+      })
+
+      // Create workbook
+      const ws = XLSX.utils.json_to_sheet(data)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'COR Log')
+
+      // Format amount column
+      const amountCol = 5 // 0-indexed, 'Amount' column
+      const range = XLSX.utils.decode_range(ws['!ref'])
+      for (let row = range.s.r + 1; row <= range.e.r; row++) {
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: amountCol })
+        if (ws[cellRef] && typeof ws[cellRef].v === 'number') {
+          ws[cellRef].z = '$#,##0.00'
+        }
+      }
+
+      // Column widths
+      ws['!cols'] = [
+        { wch: 8 },   // Log #
+        { wch: 12 },  // COR Number
+        { wch: 15 },  // Date Sent
+        { wch: 12 },  // CE Number
+        { wch: 40 },  // Description
+        { wch: 12 },  // Amount
+        { wch: 12 },  // Status
+        { wch: 12 },  // Created Date
+        { wch: 12 },  // Approved Date
+        { wch: 20 },  // Approved By
+        { wch: 30 }   // Comments
+      ]
+
+      // Save
+      const fileName = `COR_Log_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      onShowToast?.('Excel exported successfully', 'success')
+    } catch (error) {
+      console.error('Error exporting Excel:', error)
+      onShowToast?.('Error exporting Excel', 'error')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="cor-log cor-log-loading">
+        <Loader2 size={24} className="spin" />
+        <span>Loading COR Log...</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="cor-log">
+      {/* Header */}
+      <div className="cor-log-header">
+        <div className="cor-log-title">
+          <FileSpreadsheet size={20} />
+          <h3>Change Order Log</h3>
+          <span className="cor-log-count">{logEntries.length} entries</span>
+        </div>
+        <div className="cor-log-actions">
+          <button
+            className="btn btn-icon btn-ghost"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
+          </button>
+          <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
+            <FileSpreadsheet size={14} /> Excel
+          </button>
+          <button className="btn btn-secondary btn-small" onClick={exportToPDF}>
+            <FileText size={14} /> PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      {logEntries.length === 0 ? (
+        <div className="cor-log-empty">
+          <FileSpreadsheet size={32} />
+          <p>No change orders in log</p>
+          <span>CORs will appear here as they are created</span>
+        </div>
+      ) : (
+        <div className="cor-log-table-wrapper">
+          <table className="cor-log-table">
+            <thead>
+              <tr>
+                <th className="col-log-num">Log #</th>
+                <th className="col-date-sent">Date Sent</th>
+                <th className="col-ce-num">CE #</th>
+                <th className="col-description">Description</th>
+                <th className="col-amount">Amount</th>
+                <th className="col-status">Status</th>
+                <th className="col-comments">Comments</th>
+                <th className="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logEntries.map(entry => (
+                <CORLogRow
+                  key={entry.id}
+                  entry={entry}
+                  isEditing={editingId === entry.id}
+                  isSaving={savingId === entry.id}
+                  onEdit={() => setEditingId(entry.id)}
+                  onSave={(updates) => handleSave(entry.id, updates)}
+                  onCancel={() => setEditingId(null)}
+                  statusDisplay={STATUS_DISPLAY}
+                />
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="cor-log-summary-row">
+                <td colSpan={4} className="summary-label">
+                  <strong>Summary:</strong> {summary.totalCORs} CORs
+                  <span className="summary-breakdown">
+                    ({summary.approvedCount} approved, {summary.pendingCount} pending)
+                  </span>
+                </td>
+                <td className="col-amount summary-total">
+                  <strong>{formatCurrency(summary.grandTotal)}</strong>
+                </td>
+                <td colSpan={3} className="summary-breakdown-amounts">
+                  <span className="approved">Approved: {formatCurrency(summary.approvedTotal)}</span>
+                  <span className="pending">Pending: {formatCurrency(summary.pendingTotal)}</span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -61,6 +61,43 @@
 
 ---
 
+### COR Log Feature (New Feature)
+
+#### Overview
+Professional Change Order Log for client presentation. Tracks all CORs with user-editable fields for client communication tracking.
+
+#### Features
+- **List/Log View Toggle:** Switch between card view and table view in COR section
+- **Professional Table Layout:** Sequential log numbers, status badges, amounts
+- **Inline Editing:** Click to edit Date Sent, CE Number, Comments
+- **PDF Export:** Professional client-facing document with company branding
+- **Excel Export:** Full data export with all fields and summary
+- **Auto Log Numbers:** Sequential per project, auto-created on COR creation
+- **Backfill Support:** Existing CORs automatically get log entries
+
+#### Database Schema
+```sql
+cor_log_entries (
+  id, change_order_id, project_id, company_id,
+  log_number,           -- Auto-generated sequential per project
+  date_sent_to_client,  -- User editable
+  ce_number,            -- User editable (client reference)
+  comments              -- User editable
+)
+```
+
+#### Files Created
+- `database/migration_cor_log.sql` - Table, trigger, RLS, RPC functions
+- `src/components/cor/CORLog.jsx` - Main log component with exports
+- `src/components/cor/CORLogRow.jsx` - Inline editable row component
+
+#### Files Modified
+- `src/lib/supabase.js` - Added `getCORLog()`, `updateCORLogEntry()`, `subscribeToCORLog()`
+- `src/components/cor/CORList.jsx` - Added display mode toggle (List/Log)
+- `src/index.css` - COR Log styling (~400 lines)
+
+---
+
 ### Security Hardening & Code Cleanup
 
 #### 1. Cryptographically Secure Random Generation
