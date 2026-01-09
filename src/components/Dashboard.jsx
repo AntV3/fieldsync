@@ -36,6 +36,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
   const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors'
   const [corViewMode, setCORViewMode] = useState('preview') // 'preview' | 'full'
+  const [corDisplayMode, setCORDisplayMode] = useState('list') // 'list' | 'log' - for layout expansion
   const [tmViewMode, setTMViewMode] = useState('preview') // 'preview' | 'full'
   const [dumpSites, setDumpSites] = useState([])
   const [showCORForm, setShowCORForm] = useState(false)
@@ -1238,20 +1239,22 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 loading={!projectData}
               />
 
-              {/* Split Layout with Navigation */}
-              <div className="financials-layout">
-                {/* Sidebar Navigation */}
-                <div className="financials-sidebar">
-                  <FinancialsNav
-                    activeSection={financialsSection}
-                    onSectionChange={setFinancialsSection}
-                    stats={{
-                      corCount: projectData?.corStats?.total || 0,
-                      ticketCount: projectData?.totalTickets || 0,
-                      pendingCount: (projectData?.corStats?.pending || 0) + (projectData?.pendingTickets || 0)
-                    }}
-                  />
-                </div>
+              {/* Split Layout with Navigation - expands when COR Log is active */}
+              <div className={`financials-layout ${corDisplayMode === 'log' && financialsSection === 'cors' ? 'log-expanded' : ''}`}>
+                {/* Sidebar Navigation - hidden when log view is expanded */}
+                {!(corDisplayMode === 'log' && financialsSection === 'cors') && (
+                  <div className="financials-sidebar">
+                    <FinancialsNav
+                      activeSection={financialsSection}
+                      onSectionChange={setFinancialsSection}
+                      stats={{
+                        corCount: projectData?.corStats?.total || 0,
+                        ticketCount: projectData?.totalTickets || 0,
+                        pendingCount: (projectData?.corStats?.pending || 0) + (projectData?.pendingTickets || 0)
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Main Content Area */}
                 <div className="financials-main">
@@ -1349,6 +1352,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           previewMode={corViewMode === 'preview'}
                           previewLimit={5}
                           onViewAll={() => setCORViewMode('full')}
+                          onDisplayModeChange={setCORDisplayMode}
                           onCreateCOR={() => {
                             setEditingCOR(null)
                             setShowCORForm(true)
@@ -1364,34 +1368,36 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         />
                       </div>
 
-                      {/* T&M Tickets */}
-                      <div className="financials-section tm-section">
-                        {tmViewMode === 'full' && (
-                          <button
-                            className="section-back-btn"
-                            onClick={() => setTMViewMode('preview')}
-                          >
-                            ← Back to summary
-                          </button>
-                        )}
-                        {tmViewMode === 'preview' && (
-                          <div className="tm-section-header">
-                            <h3>T&M Tickets</h3>
-                            <span className="tm-badge">
-                              {new Date().toLocaleDateString('en-US', { month: 'long' })}
-                              {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
-                            </span>
-                          </div>
-                        )}
-                        <TMList
-                          project={selectedProject}
-                          company={company}
-                          onShowToast={onShowToast}
-                          compact={tmViewMode === 'preview'}
-                          previewMode={tmViewMode === 'preview'}
-                          onViewAll={() => setTMViewMode('full')}
-                        />
-                      </div>
+                      {/* T&M Tickets - hidden when COR Log is expanded */}
+                      {corDisplayMode !== 'log' && (
+                        <div className="financials-section tm-section">
+                          {tmViewMode === 'full' && (
+                            <button
+                              className="section-back-btn"
+                              onClick={() => setTMViewMode('preview')}
+                            >
+                              ← Back to summary
+                            </button>
+                          )}
+                          {tmViewMode === 'preview' && (
+                            <div className="tm-section-header">
+                              <h3>T&M Tickets</h3>
+                              <span className="tm-badge">
+                                {new Date().toLocaleDateString('en-US', { month: 'long' })}
+                                {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
+                              </span>
+                            </div>
+                          )}
+                          <TMList
+                            project={selectedProject}
+                            company={company}
+                            onShowToast={onShowToast}
+                            compact={tmViewMode === 'preview'}
+                            previewMode={tmViewMode === 'preview'}
+                            onViewAll={() => setTMViewMode('full')}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

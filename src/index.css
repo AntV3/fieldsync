@@ -9964,6 +9964,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 1rem;
 }
 
+/* Expanded layout when COR Log is active */
+.financials-layout.log-expanded {
+  display: block;
+}
+
+.financials-layout.log-expanded .financials-main {
+  max-width: 100%;
+}
+
 .financials-sidebar {
   width: 220px;
   flex-shrink: 0;

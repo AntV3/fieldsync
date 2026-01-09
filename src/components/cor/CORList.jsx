@@ -55,7 +55,8 @@ export default function CORList({
   // Preview mode props
   previewMode = false,  // When true, shows limited items with "See All" button
   previewLimit = 5,     // Number of items to show in preview mode
-  onViewAll             // Callback when "See All" is clicked
+  onViewAll,            // Callback when "See All" is clicked
+  onDisplayModeChange   // Callback when display mode changes (for parent layout adjustments)
 }) {
   const { branding } = useBranding()
   const [cors, setCORs] = useState([])
@@ -71,6 +72,12 @@ export default function CORList({
 
   // Display mode state - 'list' (card view) or 'log' (table view for client presentation)
   const [displayMode, setDisplayMode] = useState('list') // 'list' | 'log'
+
+  // Notify parent when display mode changes
+  const handleDisplayModeChange = (mode) => {
+    setDisplayMode(mode)
+    onDisplayModeChange?.(mode)
+  }
 
   // View mode state - default to 'all' in preview mode so we can limit by count
   const [viewMode, setViewMode] = useState(previewMode ? 'all' : 'recent') // 'recent' | 'all'
@@ -808,7 +815,7 @@ export default function CORList({
           <div className="cor-display-toggle">
             <button
               className={`cor-display-btn ${displayMode === 'list' ? 'active' : ''}`}
-              onClick={() => setDisplayMode('list')}
+              onClick={() => handleDisplayModeChange('list')}
               title="List View"
             >
               <List size={14} />
@@ -816,7 +823,7 @@ export default function CORList({
             </button>
             <button
               className={`cor-display-btn ${displayMode === 'log' ? 'active' : ''}`}
-              onClick={() => setDisplayMode('log')}
+              onClick={() => handleDisplayModeChange('log')}
               title="Log View (editable)"
             >
               <Table size={14} />
