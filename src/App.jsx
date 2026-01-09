@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { isSupabaseConfigured, auth, supabase, db } from './lib/supabase'
+import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { ThemeProvider } from './lib/ThemeContext'
 import AppEntry from './components/AppEntry'
@@ -291,7 +291,9 @@ export default function App() {
     }
   }
 
-  const handleExitForeman = () => {
+  const handleExitForeman = async () => {
+    // Clear the field session token
+    await clearFieldSession()
     setForemanProject(null)
     setView('entry')
   }

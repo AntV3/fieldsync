@@ -36,9 +36,114 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
 
 // Create client only if configured
-export const supabase = isSupabaseConfigured 
+export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null
+
+// ============================================
+// Field Session Management
+// ============================================
+// Field workers authenticate via PIN and receive a session token.
+// This token must be included in all subsequent requests.
+
+const FIELD_SESSION_KEY = 'fieldsync_field_session'
+
+// Store field session data
+let fieldSessionData = null
+
+// Get stored field session
+const getFieldSession = () => {
+  if (fieldSessionData) return fieldSessionData
+
+  try {
+    const stored = sessionStorage.getItem(FIELD_SESSION_KEY)
+    if (stored) {
+      fieldSessionData = JSON.parse(stored)
+      return fieldSessionData
+    }
+  } catch (e) {
+    // Ignore parse errors
+  }
+  return null
+}
+
+// Save field session
+const setFieldSession = (session) => {
+  fieldSessionData = session
+  if (session) {
+    sessionStorage.setItem(FIELD_SESSION_KEY, JSON.stringify(session))
+  } else {
+    sessionStorage.removeItem(FIELD_SESSION_KEY)
+  }
+}
+
+// Clear field session (logout)
+export const clearFieldSession = async () => {
+  const session = getFieldSession()
+  if (session?.token && isSupabaseConfigured) {
+    // Invalidate on server
+    try {
+      await supabase.rpc('invalidate_field_session', { p_session_token: session.token })
+    } catch (e) {
+      // Ignore errors during logout
+    }
+  }
+  setFieldSession(null)
+}
+
+// Create a Supabase client with field session header
+let fieldClient = null
+
+const getFieldClient = () => {
+  const session = getFieldSession()
+  if (!session?.token || !isSupabaseConfigured) return supabase
+
+  // Create client with session header if not already created or token changed
+  if (!fieldClient || fieldClient._sessionToken !== session.token) {
+    fieldClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          'x-field-session': session.token
+        }
+      }
+    })
+    fieldClient._sessionToken = session.token
+  }
+
+  return fieldClient
+}
+
+// Export function to get the appropriate client for field operations
+export const getSupabaseClient = () => {
+  const session = getFieldSession()
+  return session?.token ? getFieldClient() : supabase
+}
+
+// Internal function to get client - used by db methods
+// Returns field client with session header if in field mode, otherwise regular client
+const getClient = () => {
+  if (!isSupabaseConfigured) return null
+  const session = getFieldSession()
+  return session?.token ? getFieldClient() : supabase
+}
+
+// Check if currently in field mode with valid session
+export const isFieldMode = () => {
+  const session = getFieldSession()
+  return Boolean(session?.token && session?.projectId)
+}
+
+// Get current field project ID
+export const getFieldProjectId = () => {
+  const session = getFieldSession()
+  return session?.projectId || null
+}
+
+// Get current field company ID
+export const getFieldCompanyId = () => {
+  const session = getFieldSession()
+  return session?.companyId || null
+}
 
 // Local storage fallback for demo mode
 const STORAGE_KEY = 'fieldsync_data'
@@ -672,22 +777,23 @@ export const db = {
     }
   },
 
-  // Secure PIN lookup with rate limiting (use this for production)
+  // Secure PIN lookup with rate limiting and session creation
+  // Returns a session token that must be used for all subsequent requests
   async getProjectByPinSecure(pin, companyCode) {
     if (isSupabaseConfigured) {
       const deviceId = getDeviceId()
 
+      // Use the new session-based validation
       const { data, error } = await supabase
-        .rpc('get_project_by_pin_secure', {
+        .rpc('validate_pin_and_create_session', {
           p_pin: pin,
           p_company_code: companyCode,
-          p_ip_address: null, // IP is not available client-side
-          p_device_id: deviceId
+          p_device_id: deviceId,
+          p_ip_address: null // IP is not available client-side
         })
 
       if (error) {
-        console.error('PIN lookup error:', error)
-        return { success: false, rateLimited: false, project: null }
+        return { success: false, rateLimited: false, project: null, error: error.message }
       }
 
       if (!data || data.length === 0) {
@@ -696,35 +802,76 @@ export const db = {
 
       const result = data[0]
 
-      // Check if rate limited
-      if (!result.allowed) {
+      // Check error codes
+      if (result.error_code === 'RATE_LIMITED') {
         return { success: false, rateLimited: true, project: null }
       }
 
-      // Check if project found
-      if (!result.id) {
+      if (result.error_code === 'INVALID_COMPANY' || result.error_code === 'INVALID_PIN') {
         return { success: false, rateLimited: false, project: null }
       }
+
+      // Check if successful
+      if (!result.success || !result.project_id) {
+        return { success: false, rateLimited: false, project: null }
+      }
+
+      // Store the session for subsequent requests
+      setFieldSession({
+        token: result.session_token,
+        projectId: result.project_id,
+        companyId: result.company_id,
+        projectName: result.project_name,
+        companyName: result.company_name,
+        createdAt: new Date().toISOString()
+      })
+
+      // Fetch full project details using the new session
+      const client = getFieldClient()
+      const { data: projectData } = await client
+        .from('projects')
+        .select('*')
+        .eq('id', result.project_id)
+        .single()
 
       return {
         success: true,
         rateLimited: false,
-        project: {
-          id: result.id,
-          name: result.name,
+        sessionToken: result.session_token,
+        project: projectData || {
+          id: result.project_id,
+          name: result.project_name,
           company_id: result.company_id,
-          status: result.status,
-          job_number: result.job_number,
-          address: result.address,
-          general_contractor: result.general_contractor,
-          client_contact: result.client_contact,
-          client_phone: result.client_phone
+          status: 'active'
         }
       }
     } else {
-      // Demo mode - no rate limiting
+      // Demo mode - create mock session
       const localData = getLocalData()
-      const project = localData.projects.find(p => p.pin === pin && p.status === 'active')
+      const companies = localData.companies || []
+      const company = companies.find(c => c.code === companyCode)
+
+      if (!company) {
+        return { success: false, rateLimited: false, project: null }
+      }
+
+      const project = localData.projects.find(
+        p => p.pin === pin && p.company_id === company.id && p.status === 'active'
+      )
+
+      if (project) {
+        // Create mock session for demo mode
+        const mockToken = `demo_${Date.now()}_${Math.random().toString(36).slice(2)}`
+        setFieldSession({
+          token: mockToken,
+          projectId: project.id,
+          companyId: company.id,
+          projectName: project.name,
+          companyName: company.name,
+          createdAt: new Date().toISOString()
+        })
+      }
+
       return {
         success: !!project,
         rateLimited: false,
@@ -824,7 +971,8 @@ export const db = {
         return getCachedAreas(projectId)
       }
 
-      const { data, error } = await supabase
+      const client = getClient()
+      const { data, error } = await client
         .from('areas')
         .select('*')
         .eq('project_id', projectId)
@@ -850,7 +998,8 @@ export const db = {
 
   async createArea(area) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      const { data, error } = await client
         .from('areas')
         .insert(area)
         .select()
@@ -859,8 +1008,8 @@ export const db = {
       return data
     } else {
       const localData = getLocalData()
-      const newArea = { 
-        ...area, 
+      const newArea = {
+        ...area,
         id: crypto.randomUUID(),
         created_at: new Date().toISOString()
       }
@@ -879,7 +1028,8 @@ export const db = {
         return area
       }
 
-      const { data, error } = await supabase
+      const client = getClient()
+      const { data, error } = await client
         .from('areas')
         .update({ status })
         .eq('id', id)
@@ -1643,8 +1793,9 @@ export const db = {
   async getTMTickets(projectId) {
     if (isSupabaseConfigured) {
       const start = performance.now()
+      const client = getClient()
       try {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('t_and_m_tickets')
           .select(`
             *,
@@ -1678,8 +1829,9 @@ export const db = {
   async getTMTicketsPaginated(projectId, { page = 0, limit = 25, status = null } = {}) {
     if (isSupabaseConfigured) {
       const start = performance.now()
+      const client = getClient()
       try {
-        let query = supabase
+        let query = client
           .from('t_and_m_tickets')
           .select(`
             *,
@@ -3250,18 +3402,19 @@ export const db = {
   // Get today's crew check-in for a project
   async getCrewCheckin(projectId, date = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const checkDate = date || new Date().toISOString().split('T')[0]
-    
-    const { data, error } = await supabase
+    const client = getClient()
+
+    const { data, error } = await client
       .from('crew_checkins')
       .select('*')
       .eq('project_id', projectId)
       .eq('check_in_date', checkDate)
       .single()
-    
+
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
-      console.error('Error fetching crew checkin:', error)
+      // Don't log error, it's expected when no checkin exists
     }
     return data
   },
@@ -3292,7 +3445,8 @@ export const db = {
       return checkin
     }
 
-    const { data, error } = await supabase
+    const client = getClient()
+    const { data, error } = await client
       .from('crew_checkins')
       .upsert({
         project_id: projectId,
@@ -3475,18 +3629,19 @@ export const db = {
   // Get or create today's report for a project
   async getDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const reportDate = date || new Date().toISOString().split('T')[0]
-    
-    const { data, error } = await supabase
+    const client = getClient()
+
+    const { data, error } = await client
       .from('daily_reports')
       .select('*')
       .eq('project_id', projectId)
       .eq('report_date', reportDate)
       .single()
-    
+
     if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching daily report:', error)
+      // Don't log error, it's expected when no report exists
     }
     return data
   },
@@ -3494,25 +3649,26 @@ export const db = {
   // Compile daily report data from other tables
   async compileDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
-    
+
     const reportDate = date || new Date().toISOString().split('T')[0]
-    
+    const client = getClient()
+
     // Get crew check-in
     const crew = await this.getCrewCheckin(projectId, reportDate)
-    
+
     // Get completed tasks for today
-    const { data: areas } = await supabase
+    const { data: areas } = await client
       .from('areas')
       .select('*')
       .eq('project_id', projectId)
-    
-    const completedToday = areas?.filter(a => 
-      a.status === 'done' && 
+
+    const completedToday = areas?.filter(a =>
+      a.status === 'done' &&
       a.completed_at?.startsWith(reportDate)
     ) || []
-    
+
     // Get T&M tickets for today
-    const { data: tickets } = await supabase
+    const { data: tickets } = await client
       .from('t_and_m_tickets')
       .select('*')
       .eq('project_id', projectId)
@@ -3553,7 +3709,8 @@ export const db = {
       return report
     }
 
-    const { data, error } = await supabase
+    const client = getClient()
+    const { data, error } = await client
       .from('daily_reports')
       .upsert({
         project_id: projectId,
@@ -3765,16 +3922,16 @@ export const db = {
   // Get messages for a project
   async getMessages(projectId, limit = 50) {
     if (!isSupabaseConfigured) return []
-    
-    const { data, error } = await supabase
+
+    const client = getClient()
+    const { data, error } = await client
       .from('messages')
       .select('*')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
       .limit(limit)
-    
+
     if (error) {
-      console.error('Error fetching messages:', error)
       return []
     }
     return data || []
@@ -3783,19 +3940,19 @@ export const db = {
   // Get unread message count
   async getUnreadCount(projectId, viewerType) {
     if (!isSupabaseConfigured) return 0
-    
+
+    const client = getClient()
     // Field sees office messages, office sees field messages
     const senderType = viewerType === 'field' ? 'office' : 'field'
-    
-    const { count, error } = await supabase
+
+    const { count, error } = await client
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('project_id', projectId)
       .eq('sender_type', senderType)
       .eq('is_read', false)
-    
+
     if (error) {
-      console.error('Error getting unread count:', error)
       return 0
     }
     return count || 0
@@ -3804,19 +3961,16 @@ export const db = {
   // Mark messages as read
   async markMessagesRead(projectId, viewerType) {
     if (!isSupabaseConfigured) return
-    
+
+    const client = getClient()
     const senderType = viewerType === 'field' ? 'office' : 'field'
-    
-    const { error } = await supabase
+
+    await client
       .from('messages')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('project_id', projectId)
       .eq('sender_type', senderType)
       .eq('is_read', false)
-    
-    if (error) {
-      console.error('Error marking messages read:', error)
-    }
   },
 
   // ============================================

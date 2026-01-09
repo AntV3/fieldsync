@@ -53,15 +53,23 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     }
   }
 
-  // Submit PIN
+  // Submit PIN - uses secure session-based validation
   const submitPin = async (pinToSubmit) => {
     if (pinToSubmit.length !== 4) return
 
     setLoading(true)
     try {
-      const project = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
-      if (project) {
-        onForemanAccess(project)
+      // Use secure PIN validation which creates a session token
+      const result = await db.getProjectByPinSecure(pinToSubmit, company.code)
+
+      if (result.rateLimited) {
+        onShowToast('Too many attempts. Please wait 15 minutes.', 'error')
+        setPin('')
+        return
+      }
+
+      if (result.success && result.project) {
+        onForemanAccess(result.project)
       } else {
         onShowToast('Invalid PIN', 'error')
         setPin('')
