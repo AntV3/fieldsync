@@ -77,6 +77,13 @@
 
 **Commit:** `d3c700b` - Add COR log export for client presentation
 
+**Update:** Made export button visible in Financial tab's preview mode for easy access without cluttering the UI. The "Export Log" button now appears directly in the Financial tab → CORs & Tickets section, allowing users to export the COR log without needing to expand to full view.
+
+**Files Modified (additional):**
+- `src/components/cor/CORList.jsx` - Made export button visible in preview mode for Financial tab
+
+**Commit:** Pending
+
 ---
 
 ### Labor Class Category Selection - Text Readability Fix

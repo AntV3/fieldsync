@@ -421,8 +421,109 @@ export default function CORList({
         </div>
         <div className="cor-header-actions">
           {previewMode ? (
-            // In preview mode, show "See All" button and New COR button
+            // In preview mode, show Export Log and New COR button
             <>
+              <div className="cor-export-dropdown" style={{ position: 'relative' }}>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  title="Export COR Log"
+                >
+                  <FileDown size={14} /> Export Log
+                </button>
+                {showExportMenu && (
+                  <div
+                    className="dropdown-menu"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      background: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      minWidth: '200px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        exportCORLog(cors, project, company, { startDate: dateFilter.start, endDate: dateFilter.end })
+                        setShowExportMenu(false)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      <FileText size={14} />
+                      Print/PDF
+                    </button>
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        downloadCORLogHTML(cors, project, company, { startDate: dateFilter.start, endDate: dateFilter.end })
+                        setShowExportMenu(false)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      <Download size={14} />
+                      Download HTML
+                    </button>
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        exportCORLogCSV(cors, project)
+                        setShowExportMenu(false)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textAlign: 'left',
+                        borderTop: '1px solid #e5e7eb'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      <FileDown size={14} />
+                      Export CSV
+                    </button>
+                  </div>
+                )}
+              </div>
               <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
                 <Plus size={14} /> New COR
               </button>
