@@ -1,6 +1,81 @@
 # FieldSync Development Log
 
-**Last Updated:** January 8, 2025
+**Last Updated:** January 9, 2026
+
+---
+
+## January 9, 2026
+
+### COR Log Export for Client Presentation
+
+**Goal:** Create a professional, client-presentable COR log that shows all change orders organized by status to help track which CORs need client action, which are billed, and which are completed.
+
+**Implementation:**
+
+**1. Created COR Log Export Utility** (`src/lib/corLogExport.js`)
+- Generates professional HTML report with styled output
+- Groups CORs into client-relevant categories:
+  - **Awaiting Client Response** - CORs pending client approval (status: `pending_approval`)
+  - **Billed** - CORs that have been approved and billed (status: `billed`)
+  - **Completed/Processed** - CORs that are fully closed (status: `closed`)
+  - **In Progress** - CORs being prepared or approved but not yet billed (status: `draft`, `approved`)
+- Summary cards showing count and total amount for each category
+- Table view with COR number, title, period, creation date, and amount
+- Supports date range filtering
+- Optional inclusion of rejected CORs
+
+**2. Export Formats:**
+- **Print/PDF** - Opens formatted HTML in new window for printing or saving as PDF
+- **Download HTML** - Downloads standalone HTML file with embedded styles
+- **Export CSV** - Downloads spreadsheet-compatible CSV file with all COR data
+
+**3. Integrated Export UI** (`src/components/cor/CORList.jsx`)
+- Added "Export Log" dropdown button with 3 export options
+- Dropdown menu with Print/PDF, Download HTML, and Export CSV
+- Respects current date filters when exporting
+- Click-outside handler to close dropdown
+- Clean icon-based interface using FileDown/FileText icons
+
+**4. Professional Report Design:**
+- Company branding header
+- Report metadata (date, total CORs, date range)
+- Color-coded sections for easy scanning:
+  - Yellow/amber for awaiting client
+  - Blue for billed
+  - Green for completed
+  - Purple for in progress
+- Section totals and grand total
+- Print-optimized styles with page break controls
+- Mobile-responsive layout
+
+**Use Cases:**
+1. **Client Meetings** - Print or PDF the log to present to clients showing what needs their attention
+2. **Billing Review** - Track which CORs have been billed vs. still pending
+3. **Project Status** - Quick overview of all change order activity
+4. **Record Keeping** - Export CSV for spreadsheet analysis or archival
+
+**Files Created:**
+- `src/lib/corLogExport.js` - Complete export utility with HTML generation and formatting
+
+**Files Modified:**
+- `src/components/cor/CORList.jsx`:
+  - Lines 2: Added FileDown icon import
+  - Lines 6: Imported export functions
+  - Lines 37: Added showExportMenu state
+  - Lines 57-69: Added click-outside handler for dropdown
+  - Lines 419-531: Added Export Log dropdown button with 3 export options
+
+**How It Works:**
+1. Navigate to COR list in office view
+2. Optionally set date filters to narrow scope
+3. Click "Export Log" button
+4. Choose export format:
+   - Print/PDF → Opens formatted report in new window
+   - Download HTML → Saves standalone HTML file
+   - Export CSV → Downloads spreadsheet
+5. Present to clients or save for records
+
+**Commit:** Will be committed with push
 
 ---
 

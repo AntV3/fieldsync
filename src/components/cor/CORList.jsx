@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle } from 'lucide-react'
+import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle, FileDown } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 import { CardSkeleton, CountBadge } from '../ui'
+import { exportCORLog, downloadCORLogHTML, exportCORLogCSV } from '../../lib/corLogExport'
 
 export default function CORList({
   project,
@@ -33,6 +34,7 @@ export default function CORList({
   const [viewMode, setViewMode] = useState(previewMode ? 'all' : 'recent') // 'recent' | 'all'
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
+  const [showExportMenu, setShowExportMenu] = useState(false)
 
   // Stats state
   const [stats, setStats] = useState(null)
@@ -51,6 +53,20 @@ export default function CORList({
       if (subscription) db.unsubscribe?.(subscription)
     }
   }, [project.id, refreshKey])
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    if (!showExportMenu) return
+
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.cor-export-dropdown')) {
+        setShowExportMenu(false)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showExportMenu])
 
   const loadCORs = async () => {
     try {
@@ -412,8 +428,109 @@ export default function CORList({
               </button>
             </>
           ) : (
-            // Full mode shows select and new buttons
+            // Full mode shows select, export and new buttons
             <>
+              <div className="cor-export-dropdown" style={{ position: 'relative' }}>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  title="Export COR Log"
+                >
+                  <FileDown size={14} /> Export Log
+                </button>
+                {showExportMenu && (
+                  <div
+                    className="dropdown-menu"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      background: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      minWidth: '200px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        exportCORLog(cors, project, company, { startDate: dateFilter.start, endDate: dateFilter.end })
+                        setShowExportMenu(false)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      <FileText size={14} />
+                      Print/PDF
+                    </button>
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        downloadCORLogHTML(cors, project, company, { startDate: dateFilter.start, endDate: dateFilter.end })
+                        setShowExportMenu(false)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      <Download size={14} />
+                      Download HTML
+                    </button>
+                    <button
+                      className="dropdown-item"
+                      onClick={() => {
+                        exportCORLogCSV(cors, project)
+                        setShowExportMenu(false)
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textAlign: 'left',
+                        borderTop: '1px solid #e5e7eb'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      <FileDown size={14} />
+                      Export CSV
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 className={`btn btn-secondary btn-small ${selectMode ? 'active' : ''}`}
                 onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
