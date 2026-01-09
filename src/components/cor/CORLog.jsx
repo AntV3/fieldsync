@@ -99,7 +99,7 @@ export default function CORLog({ project, company, onShowToast }) {
     try {
       // Dynamic import for jspdf
       const { default: jsPDF } = await import('jspdf')
-      await import('jspdf-autotable')
+      const { default: autoTable } = await import('jspdf-autotable')
 
       const doc = new jsPDF('landscape')
       const pageWidth = doc.internal.pageSize.width
@@ -132,7 +132,7 @@ export default function CORLog({ project, company, onShowToast }) {
       ])
 
       // Generate table
-      doc.autoTable({
+      autoTable(doc, {
         startY: 45,
         head: [['Log #', 'Date Sent', 'CE #', 'Description', 'Amount', 'Status', 'Comments']],
         body: tableData,
@@ -160,7 +160,7 @@ export default function CORLog({ project, company, onShowToast }) {
       })
 
       // Summary section
-      const finalY = doc.lastAutoTable.finalY + 10
+      const finalY = (doc.lastAutoTable?.finalY || 100) + 10
       doc.setFontSize(10)
       doc.setFont(undefined, 'bold')
       doc.text('SUMMARY', 14, finalY)

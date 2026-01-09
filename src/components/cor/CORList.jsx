@@ -135,7 +135,7 @@ export default function CORList({
   const exportToPDF = async () => {
     try {
       const { default: jsPDF } = await import('jspdf')
-      await import('jspdf-autotable')
+      const { default: autoTable } = await import('jspdf-autotable')
 
       const doc = new jsPDF('landscape')
       const pageWidth = doc.internal.pageSize.width
@@ -164,7 +164,7 @@ export default function CORList({
         cor.created_at ? new Date(cor.created_at).toLocaleDateString() : ''
       ])
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: 45,
         head: [['#', 'COR #', 'Description', 'Amount', 'Status', 'Created']],
         body: tableData,
@@ -183,7 +183,7 @@ export default function CORList({
       // Summary
       const approved = cors.filter(c => c.status === 'approved')
       const pending = cors.filter(c => ['draft', 'pending_approval'].includes(c.status))
-      const finalY = doc.lastAutoTable.finalY + 10
+      const finalY = (doc.lastAutoTable?.finalY || 100) + 10
       doc.setFontSize(10)
       doc.setFont(undefined, 'bold')
       doc.text('SUMMARY', 14, finalY)
@@ -548,27 +548,25 @@ export default function CORList({
           >
             <FileText size={14} /> PDF
           </button>
-          {/* Display Mode Toggle - hidden in preview mode */}
-          {!previewMode && (
-            <div className="cor-display-toggle">
-              <button
-                className={`cor-display-btn ${displayMode === 'list' ? 'active' : ''}`}
-                onClick={() => setDisplayMode('list')}
-                title="List View"
-              >
-                <List size={14} />
-                <span>List</span>
-              </button>
-              <button
-                className={`cor-display-btn ${displayMode === 'log' ? 'active' : ''}`}
-                onClick={() => setDisplayMode('log')}
-                title="Log View"
-              >
-                <Table size={14} />
-                <span>Log</span>
-              </button>
-            </div>
-          )}
+          {/* Display Mode Toggle - always visible for office users to access Log view */}
+          <div className="cor-display-toggle">
+            <button
+              className={`cor-display-btn ${displayMode === 'list' ? 'active' : ''}`}
+              onClick={() => setDisplayMode('list')}
+              title="List View"
+            >
+              <List size={14} />
+              <span>List</span>
+            </button>
+            <button
+              className={`cor-display-btn ${displayMode === 'log' ? 'active' : ''}`}
+              onClick={() => setDisplayMode('log')}
+              title="Log View (editable)"
+            >
+              <Table size={14} />
+              <span>Log</span>
+            </button>
+          </div>
           {previewMode ? (
             // In preview mode, show "See All" button and New COR button
             <>
@@ -595,8 +593,8 @@ export default function CORList({
         </div>
       </div>
 
-      {/* Log View - renders CORLog component */}
-      {displayMode === 'log' && !previewMode ? (
+      {/* Log View - renders CORLog component (editable by office users) */}
+      {displayMode === 'log' ? (
         <CORLog project={project} company={company} onShowToast={onShowToast} />
       ) : (
         <>
