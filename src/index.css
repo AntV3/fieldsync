@@ -1399,6 +1399,12 @@ textarea {
   color: var(--text-primary);
 }
 
+/* Ensure select dropdowns have readable text on white background */
+select option {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
 /* Navigation */
 .nav {
   background: var(--bg-secondary);

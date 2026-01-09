@@ -75,6 +75,30 @@
    - Export CSV → Downloads spreadsheet
 5. Present to clients or save for records
 
+**Commit:** `d3c700b` - Add COR log export for client presentation
+
+---
+
+### Labor Class Category Selection - Text Readability Fix
+
+**Problem:** When creating or editing a labor class in the Pricing section, the category dropdown (select element) had white text on white background, making it unreadable.
+
+**Solution:** Added explicit CSS styling for `select option` elements to ensure they always have black text (#1a1a1a) on white background (#ffffff), regardless of theme mode.
+
+**Files Modified:**
+- `src/index.css` (lines 1402-1406): Added explicit select option styling for readability
+
+**Fix:**
+```css
+/* Ensure select dropdowns have readable text on white background */
+select option {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+```
+
+This ensures that all dropdown options in select elements across the application have proper contrast and are easily readable.
+
 **Commit:** Will be committed with push
 
 ---
