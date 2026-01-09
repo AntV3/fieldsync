@@ -6636,10 +6636,30 @@ export const db = {
   // Get COR Log entries with joined COR data for a project
   async getCORLog(projectId) {
     if (isSupabaseConfigured) {
-      // Use the RPC function for efficient server-side join
-      const { data, error } = await supabase.rpc('get_cor_log', {
-        p_project_id: projectId
-      })
+      // Direct query with join to avoid RPC type issues
+      const { data, error } = await supabase
+        .from('cor_log_entries')
+        .select(`
+          id,
+          log_number,
+          date_sent_to_client,
+          ce_number,
+          comments,
+          created_at,
+          updated_at,
+          change_order:change_orders (
+            id,
+            cor_number,
+            title,
+            cor_total,
+            status,
+            created_at,
+            approved_at,
+            approved_by
+          )
+        `)
+        .eq('project_id', projectId)
+        .order('log_number', { ascending: true })
 
       if (error) {
         console.error('Error fetching COR log:', error)
@@ -6656,14 +6676,14 @@ export const db = {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         changeOrder: {
-          id: row.cor_id,
-          corNumber: row.cor_number,
-          title: row.cor_title,
-          corTotal: row.cor_total,
-          status: row.cor_status,
-          createdAt: row.cor_created_at,
-          approvedAt: row.cor_approved_at,
-          approvedBy: row.cor_approved_by
+          id: row.change_order?.id,
+          corNumber: row.change_order?.cor_number,
+          title: row.change_order?.title,
+          corTotal: row.change_order?.cor_total,
+          status: row.change_order?.status,
+          createdAt: row.change_order?.created_at,
+          approvedAt: row.change_order?.approved_at,
+          approvedBy: row.change_order?.approved_by
         }
       }))
     }
@@ -6673,23 +6693,34 @@ export const db = {
   // Update user-editable COR Log entry fields
   async updateCORLogEntry(entryId, updates) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.rpc('update_cor_log_entry', {
-        p_entry_id: entryId,
-        p_date_sent_to_client: updates.dateSentToClient || null,
-        p_ce_number: updates.ceNumber || null,
-        p_comments: updates.comments || null
-      })
+      const updateData = {
+        updated_at: new Date().toISOString()
+      }
+
+      // Only include fields that are provided
+      if (updates.dateSentToClient !== undefined) {
+        updateData.date_sent_to_client = updates.dateSentToClient || null
+      }
+      if (updates.ceNumber !== undefined) {
+        updateData.ce_number = updates.ceNumber || null
+      }
+      if (updates.comments !== undefined) {
+        updateData.comments = updates.comments || null
+      }
+
+      const { data, error } = await supabase
+        .from('cor_log_entries')
+        .update(updateData)
+        .eq('id', entryId)
+        .select()
+        .single()
 
       if (error) {
         console.error('Error updating COR log entry:', error)
         throw error
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to update COR log entry')
-      }
-
-      return data.entry
+      return data
     }
     return null
   },
