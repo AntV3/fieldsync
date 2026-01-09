@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle, CheckCircle, FileSpreadsheet } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle, CheckCircle, FileSpreadsheet, BarChart3, List } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
 import { TicketSkeleton, CountBadge } from './ui'
+import TMDashboard from './tm/TMDashboard'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -61,6 +62,7 @@ export default function TMList({
 
   // View mode state - in preview mode, we filter to current month
   const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
+  const [displayMode, setDisplayMode] = useState('list') // 'list' | 'dashboard'
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
@@ -1343,18 +1345,39 @@ export default function TMList({
       <div className="tm-list-header">
         <div className="tm-list-title">
           <h3>T&M Tickets</h3>
-          <div className="tm-export-buttons">
-            {!compact && someSelected && (
-              <button className="btn btn-ghost btn-small" onClick={clearSelection}>
-                Clear ({selectedTickets.size})
-              </button>
+          <div className="tm-header-controls">
+            {/* Display Mode Toggle */}
+            {!compact && (
+              <div className="tm-display-toggle">
+                <button
+                  className={`tm-display-btn ${displayMode === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => setDisplayMode('dashboard')}
+                  title="Dashboard View"
+                >
+                  <BarChart3 size={16} /> Dashboard
+                </button>
+                <button
+                  className={`tm-display-btn ${displayMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setDisplayMode('list')}
+                  title="List View"
+                >
+                  <List size={16} /> List
+                </button>
+              </div>
             )}
-            <button className="btn btn-secondary btn-small" onClick={exportToExcel} disabled={tickets.length === 0}>
-              <FileSpreadsheet size={14} /> Excel {!compact && someSelected ? `(${selectedTickets.size})` : ''}
-            </button>
-            <button className="btn btn-secondary btn-small" onClick={exportToPDF} disabled={tickets.length === 0}>
-              <FileText size={14} /> PDF {!compact && someSelected ? `(${selectedTickets.size})` : ''}
-            </button>
+            <div className="tm-export-buttons">
+              {!compact && someSelected && (
+                <button className="btn btn-ghost btn-small" onClick={clearSelection}>
+                  Clear ({selectedTickets.size})
+                </button>
+              )}
+              <button className="btn btn-secondary btn-small" onClick={exportToExcel} disabled={tickets.length === 0}>
+                <FileSpreadsheet size={14} /> Excel {!compact && someSelected ? `(${selectedTickets.size})` : ''}
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={exportToPDF} disabled={tickets.length === 0}>
+                <FileText size={14} /> PDF {!compact && someSelected ? `(${selectedTickets.size})` : ''}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1423,25 +1446,33 @@ export default function TMList({
       </div>
       )}
 
-      {/* Summary Bar - hidden in compact mode */}
-      {!compact && filteredTickets.length > 0 && (
-        <div className="tm-summary-bar">
-          <div className="tm-summary-stat">
-            <span className="tm-summary-label">Tickets</span>
-            <span className="tm-summary-value">{filteredTickets.length}</span>
-          </div>
-          <div className="tm-summary-stat">
-            <span className="tm-summary-label">Total Hours</span>
-            <span className="tm-summary-value">{totalHours.toFixed(1)}</span>
-          </div>
-          <div className="tm-summary-stat">
-            <span className="tm-summary-label">Materials Cost</span>
-            <span className="tm-summary-value">${totalCost.toFixed(2)}</span>
-          </div>
-        </div>
+      {/* Dashboard View */}
+      {!compact && displayMode === 'dashboard' && (
+        <TMDashboard tickets={tickets} />
       )}
 
-      {filteredTickets.length === 0 ? (
+      {/* List View Content */}
+      {displayMode === 'list' && (
+        <>
+          {/* Summary Bar - hidden in compact mode */}
+          {!compact && filteredTickets.length > 0 && (
+            <div className="tm-summary-bar">
+              <div className="tm-summary-stat">
+                <span className="tm-summary-label">Tickets</span>
+                <span className="tm-summary-value">{filteredTickets.length}</span>
+              </div>
+              <div className="tm-summary-stat">
+                <span className="tm-summary-label">Total Hours</span>
+                <span className="tm-summary-value">{totalHours.toFixed(1)}</span>
+              </div>
+              <div className="tm-summary-stat">
+                <span className="tm-summary-label">Materials Cost</span>
+                <span className="tm-summary-value">${totalCost.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
+          {filteredTickets.length === 0 ? (
         <div className="tm-empty-state">
           <p>No {filter === 'all' ? '' : filter} T&M tickets{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
           {viewMode === 'recent' && totalTicketsCount > 0 && (
@@ -1498,28 +1529,30 @@ export default function TMList({
             // Recent view - simple list
             filteredTickets.map(ticket => renderTicketCard(ticket))
           )}
-        </div>
-      )}
+          </div>
+          )}
 
-      {/* Load More Button - for pagination */}
-      {!previewMode && hasMore && !loading && tickets.length > 0 && (
-        <div className="tm-load-more">
-          <button
-            className="btn btn-secondary"
-            onClick={loadMore}
-            disabled={loadingMore}
-          >
-            {loadingMore ? 'Loading...' : `Load More (${tickets.length} of ${totalCount})`}
-          </button>
-        </div>
-      )}
+          {/* Load More Button - for pagination */}
+          {!previewMode && hasMore && !loading && tickets.length > 0 && (
+            <div className="tm-load-more">
+              <button
+                className="btn btn-secondary"
+                onClick={loadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading...' : `Load More (${tickets.length} of ${totalCount})`}
+              </button>
+            </div>
+          )}
 
-      {/* See All Footer - only in preview mode */}
-      {previewMode && tickets.length > 0 && (
-        <button className="tm-see-all-btn" onClick={onViewAll}>
-          See all {totalCount || tickets.length} T&M tickets
-          <ChevronRight size={16} />
-        </button>
+          {/* See All Footer - only in preview mode */}
+          {previewMode && tickets.length > 0 && (
+            <button className="tm-see-all-btn" onClick={onViewAll}>
+              See all {totalCount || tickets.length} T&M tickets
+              <ChevronRight size={16} />
+            </button>
+          )}
+        </>
       )}
 
       {/* Change Order Approval Modal */}
