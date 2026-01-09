@@ -6,7 +6,62 @@
 
 ## January 8, 2025
 
-### Security Hardening & Code Cleanup (Major)
+### Security & Scalability Hardening (Major)
+
+#### Today's 3 Highest-Impact Fixes
+
+##### Fix #1: Field Session Security (Critical Security Vulnerability)
+**Problem:** RLS policies used `auth.uid() IS NULL` which allowed ANY anonymous request to access field data without validation.
+
+**Solution:** Implemented session-based field access:
+- Created `field_sessions` table for secure session tracking
+- Created `validate_pin_and_create_session()` RPC function
+- Created `can_access_project()` helper for RLS policies
+- Updated all field-accessible table policies to validate sessions
+- Field workers now receive a session token after PIN validation
+- All subsequent requests include session header (`x-field-session`)
+
+**Files:**
+- `database/migration_field_sessions.sql` - Complete migration
+- `src/lib/supabase.js` - Session management functions
+- `src/components/AppEntry.jsx` - Use secure PIN validation
+- `src/App.jsx` - Clear session on foreman exit
+
+##### Fix #2: Dashboard Query Optimization
+**Problem:** Dashboard executed 9 queries per project (9N pattern). 50 projects = 450+ queries.
+
+**Solution:** Created server-side aggregation:
+- Created `get_project_dashboard_summary()` RPC function
+- Returns all project metrics in a single database call
+- Added composite indexes for aggregation performance
+- Falls back to existing method if RPC not deployed
+
+**Files:**
+- `database/migration_dashboard_optimization.sql` - RPC function and indexes
+- `src/lib/supabase.js` - Added `getProjectDashboardSummary()`
+- `src/components/Dashboard.jsx` - Use optimized query
+
+##### Fix #3: T&M Ticket Pagination
+**Problem:** TMList loaded ALL tickets without limits. Could crash browser with 5000+ tickets.
+
+**Solution:** Implemented cursor-based pagination:
+- Use `getTMTicketsPaginated()` - 25 tickets per page
+- Added "Load More" button with progress indicator
+- Reset pagination on filter/project change
+- Real-time updates refresh first page only
+
+**Files:**
+- `src/components/TMList.jsx` - Pagination logic
+- `src/index.css` - Load more button styling
+
+**Commits:**
+- `4b37883` - Fix #1: Implement session-based field security
+- `1f34bab` - Fix #2: Dashboard query optimization
+- `ab4f180` - Fix #3: Implement T&M ticket pagination
+
+---
+
+### Security Hardening & Code Cleanup
 
 #### 1. Cryptographically Secure Random Generation
 **Problem:** Multiple files used `Math.random()` for generating PINs, codes, tokens, and IDs. `Math.random()` is not cryptographically secure and could be predictable.
