@@ -563,6 +563,11 @@ export const db = {
           created_at: p.created_at,
           start_date: p.start_date,
           end_date: p.end_date,
+          // Financial fields
+          contract_value: Number(p.contract_value) || 0,
+          work_type: p.work_type || 'demolition',
+          job_type: p.job_type || 'standard',
+          general_contractor: p.general_contractor || '',
           // Metrics
           areaCount: Number(p.total_areas) || 0,
           completedAreas: Number(p.completed_areas) || 0,

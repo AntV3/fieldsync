@@ -22,6 +22,12 @@ RETURNS TABLE (
   project_address TEXT,
   project_pin TEXT,
 
+  -- Financial fields (essential for dashboard)
+  contract_value NUMERIC,
+  work_type TEXT,
+  job_type TEXT,
+  general_contractor TEXT,
+
   -- Area metrics
   total_areas BIGINT,
   completed_areas BIGINT,
@@ -64,6 +70,12 @@ AS $$
     p.job_number AS project_number,
     p.address AS project_address,
     p.pin AS project_pin,
+
+    -- Financial fields
+    COALESCE(p.contract_value, 0) AS contract_value,
+    COALESCE(p.work_type, 'demolition') AS work_type,
+    COALESCE(p.job_type, 'standard') AS job_type,
+    COALESCE(p.general_contractor, '') AS general_contractor,
 
     -- Areas aggregation
     COALESCE(a.total, 0) AS total_areas,
@@ -130,12 +142,12 @@ AS $$
     WHERE project_id = p.id
   ) t ON TRUE
 
-  -- Crew/Labor aggregation
+  -- Crew/Labor aggregation (workers is JSONB array)
   LEFT JOIN LATERAL (
     SELECT
-      SUM(total_hours) AS total_hours,
-      SUM(CASE WHEN check_in_date = CURRENT_DATE THEN total_hours ELSE 0 END) AS today_hours,
-      SUM(CASE WHEN check_in_date = CURRENT_DATE THEN worker_count ELSE 0 END) AS today_workers,
+      SUM(jsonb_array_length(COALESCE(workers, '[]'::jsonb))) AS total_hours,
+      SUM(CASE WHEN check_in_date = CURRENT_DATE THEN jsonb_array_length(COALESCE(workers, '[]'::jsonb)) ELSE 0 END) AS today_hours,
+      SUM(CASE WHEN check_in_date = CURRENT_DATE THEN jsonb_array_length(COALESCE(workers, '[]'::jsonb)) ELSE 0 END) AS today_workers,
       MAX(check_in_date) AS last_checkin
     FROM crew_checkins
     WHERE project_id = p.id
@@ -165,7 +177,7 @@ AS $$
     SELECT COUNT(*) AS today_count
     FROM disposal_loads
     WHERE project_id = p.id
-      AND load_date = CURRENT_DATE
+      AND work_date = CURRENT_DATE
   ) disp ON TRUE
 
   WHERE p.company_id = p_company_id
