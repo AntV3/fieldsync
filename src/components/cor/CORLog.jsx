@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileSpreadsheet, Download, FileText, Loader2, RefreshCw } from 'lucide-react'
+import { FileSpreadsheet, Download, FileText, Loader2, RefreshCw, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import CORLogRow from './CORLogRow'
@@ -12,6 +12,13 @@ const STATUS_DISPLAY = {
   rejected: { label: 'Rejected', className: 'rejected' },
   billed: { label: 'Billed', className: 'billed' },
   closed: { label: 'Closed', className: 'closed' }
+}
+
+// Status categories for grouping
+const STATUS_CATEGORIES = {
+  pending: ['draft', 'pending_approval'],
+  approved: ['approved', 'billed'],
+  void: ['rejected', 'closed']
 }
 
 export default function CORLog({ project, company, onShowToast }) {
@@ -88,22 +95,30 @@ export default function CORLog({ project, company, onShowToast }) {
     }
   }
 
+  // Group entries by status category
+  const groupedEntries = useMemo(() => {
+    const pending = logEntries.filter(e => STATUS_CATEGORIES.pending.includes(e.changeOrder.status))
+    const approved = logEntries.filter(e => STATUS_CATEGORIES.approved.includes(e.changeOrder.status))
+    const voided = logEntries.filter(e => STATUS_CATEGORIES.void.includes(e.changeOrder.status))
+
+    return { pending, approved, voided }
+  }, [logEntries])
+
   // Calculate summary statistics
   const summary = useMemo(() => {
-    const approved = logEntries.filter(e => e.changeOrder.status === 'approved')
-    const pending = logEntries.filter(e => ['draft', 'pending_approval'].includes(e.changeOrder.status))
-    const rejected = logEntries.filter(e => e.changeOrder.status === 'rejected')
+    const { pending, approved, voided } = groupedEntries
 
     return {
       totalCORs: logEntries.length,
       approvedCount: approved.length,
       pendingCount: pending.length,
-      rejectedCount: rejected.length,
+      voidCount: voided.length,
       approvedTotal: approved.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
       pendingTotal: pending.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
+      voidTotal: voided.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
       grandTotal: logEntries.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0)
     }
-  }, [logEntries])
+  }, [logEntries, groupedEntries])
 
   // Export to PDF
   const exportToPDF = async () => {
@@ -273,8 +288,42 @@ export default function CORLog({ project, company, onShowToast }) {
     )
   }
 
+  // Helper to render a section table
+  const renderSectionTable = (entries, showHeader = true) => (
+    <table className="cor-log-table">
+      {showHeader && (
+        <thead>
+          <tr>
+            <th className="col-log-num">Log #</th>
+            <th className="col-date-sent">Date Sent</th>
+            <th className="col-ce-num">CE #</th>
+            <th className="col-description">Description</th>
+            <th className="col-amount">Amount</th>
+            <th className="col-status">Status</th>
+            <th className="col-comments">Comments</th>
+            <th className="col-actions">Actions</th>
+          </tr>
+        </thead>
+      )}
+      <tbody>
+        {entries.map(entry => (
+          <CORLogRow
+            key={entry.id}
+            entry={entry}
+            isEditing={editingId === entry.id}
+            isSaving={savingId === entry.id}
+            onEdit={() => setEditingId(entry.id)}
+            onSave={(updates) => handleSave(entry.id, updates, entry.changeOrder.id)}
+            onCancel={() => setEditingId(null)}
+            statusDisplay={STATUS_DISPLAY}
+          />
+        ))}
+      </tbody>
+    </table>
+  )
+
   return (
-    <div className="cor-log">
+    <div className="cor-log cor-log-expanded">
       {/* Header */}
       <div className="cor-log-header">
         <div className="cor-log-title">
@@ -300,7 +349,43 @@ export default function CORLog({ project, company, onShowToast }) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Summary Cards */}
+      <div className="cor-log-summary-cards">
+        <div className="summary-card pending">
+          <Clock size={18} />
+          <div className="summary-card-content">
+            <span className="summary-card-label">Pending</span>
+            <span className="summary-card-count">{summary.pendingCount} CORs</span>
+            <span className="summary-card-amount">{formatCurrency(summary.pendingTotal)}</span>
+          </div>
+        </div>
+        <div className="summary-card approved">
+          <CheckCircle size={18} />
+          <div className="summary-card-content">
+            <span className="summary-card-label">Approved</span>
+            <span className="summary-card-count">{summary.approvedCount} CORs</span>
+            <span className="summary-card-amount">{formatCurrency(summary.approvedTotal)}</span>
+          </div>
+        </div>
+        <div className="summary-card void">
+          <XCircle size={18} />
+          <div className="summary-card-content">
+            <span className="summary-card-label">Void</span>
+            <span className="summary-card-count">{summary.voidCount} CORs</span>
+            <span className="summary-card-amount">{formatCurrency(summary.voidTotal)}</span>
+          </div>
+        </div>
+        <div className="summary-card total">
+          <FileSpreadsheet size={18} />
+          <div className="summary-card-content">
+            <span className="summary-card-label">Total</span>
+            <span className="summary-card-count">{summary.totalCORs} CORs</span>
+            <span className="summary-card-amount">{formatCurrency(summary.grandTotal)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
       {logEntries.length === 0 ? (
         <div className="cor-log-empty">
           <FileSpreadsheet size={32} />
@@ -308,52 +393,51 @@ export default function CORLog({ project, company, onShowToast }) {
           <span>CORs will appear here as they are created</span>
         </div>
       ) : (
-        <div className="cor-log-table-wrapper">
-          <table className="cor-log-table">
-            <thead>
-              <tr>
-                <th className="col-log-num">Log #</th>
-                <th className="col-date-sent">Date Sent</th>
-                <th className="col-ce-num">CE #</th>
-                <th className="col-description">Description</th>
-                <th className="col-amount">Amount</th>
-                <th className="col-status">Status</th>
-                <th className="col-comments">Comments</th>
-                <th className="col-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logEntries.map(entry => (
-                <CORLogRow
-                  key={entry.id}
-                  entry={entry}
-                  isEditing={editingId === entry.id}
-                  isSaving={savingId === entry.id}
-                  onEdit={() => setEditingId(entry.id)}
-                  onSave={(updates) => handleSave(entry.id, updates, entry.changeOrder.id)}
-                  onCancel={() => setEditingId(null)}
-                  statusDisplay={STATUS_DISPLAY}
-                />
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="cor-log-summary-row">
-                <td colSpan={4} className="summary-label">
-                  <strong>Summary:</strong> {summary.totalCORs} CORs
-                  <span className="summary-breakdown">
-                    ({summary.approvedCount} approved, {summary.pendingCount} pending)
-                  </span>
-                </td>
-                <td className="col-amount summary-total">
-                  <strong>{formatCurrency(summary.grandTotal)}</strong>
-                </td>
-                <td colSpan={3} className="summary-breakdown-amounts">
-                  <span className="approved">Approved: {formatCurrency(summary.approvedTotal)}</span>
-                  <span className="pending">Pending: {formatCurrency(summary.pendingTotal)}</span>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+        <div className="cor-log-sections">
+          {/* Pending Section */}
+          {groupedEntries.pending.length > 0 && (
+            <div className="cor-log-section pending">
+              <div className="cor-log-section-header">
+                <Clock size={16} />
+                <h4>Pending Change Orders</h4>
+                <span className="section-count">{groupedEntries.pending.length}</span>
+                <span className="section-total">{formatCurrency(summary.pendingTotal)}</span>
+              </div>
+              <div className="cor-log-table-wrapper">
+                {renderSectionTable(groupedEntries.pending)}
+              </div>
+            </div>
+          )}
+
+          {/* Approved Section */}
+          {groupedEntries.approved.length > 0 && (
+            <div className="cor-log-section approved">
+              <div className="cor-log-section-header">
+                <CheckCircle size={16} />
+                <h4>Approved Change Orders</h4>
+                <span className="section-count">{groupedEntries.approved.length}</span>
+                <span className="section-total">{formatCurrency(summary.approvedTotal)}</span>
+              </div>
+              <div className="cor-log-table-wrapper">
+                {renderSectionTable(groupedEntries.approved)}
+              </div>
+            </div>
+          )}
+
+          {/* Void Section */}
+          {groupedEntries.voided.length > 0 && (
+            <div className="cor-log-section void">
+              <div className="cor-log-section-header">
+                <XCircle size={16} />
+                <h4>Void Change Orders</h4>
+                <span className="section-count">{groupedEntries.voided.length}</span>
+                <span className="section-total">{formatCurrency(summary.voidTotal)}</span>
+              </div>
+              <div className="cor-log-table-wrapper">
+                {renderSectionTable(groupedEntries.voided)}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
