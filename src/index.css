@@ -16120,6 +16120,44 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
+/* Status select dropdown */
+.cor-log-status-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cor-log-select {
+  appearance: none;
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 130px;
+}
+
+.cor-log-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.cor-log-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cor-log-status-select .select-icon {
+  position: absolute;
+  right: 0.5rem;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
 /* Edit action buttons */
 .cor-log-edit-actions {
   display: flex;

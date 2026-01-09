@@ -52,10 +52,17 @@ export default function CORLog({ project, company, onShowToast }) {
     loadCORLog()
   }
 
-  const handleSave = async (entryId, updates) => {
+  const handleSave = async (entryId, updates, changeOrderId) => {
     setSavingId(entryId)
     try {
+      // Update log entry fields
       await db.updateCORLogEntry(entryId, updates)
+
+      // If status changed, update the change order status too
+      if (updates.status) {
+        await db.updateChangeOrderStatus(changeOrderId, updates.status)
+      }
+
       // Update local state
       setLogEntries(prev => prev.map(entry =>
         entry.id === entryId
@@ -63,7 +70,11 @@ export default function CORLog({ project, company, onShowToast }) {
               ...entry,
               dateSentToClient: updates.dateSentToClient,
               ceNumber: updates.ceNumber,
-              comments: updates.comments
+              comments: updates.comments,
+              changeOrder: {
+                ...entry.changeOrder,
+                status: updates.status || entry.changeOrder.status
+              }
             }
           : entry
       ))
@@ -319,7 +330,7 @@ export default function CORLog({ project, company, onShowToast }) {
                   isEditing={editingId === entry.id}
                   isSaving={savingId === entry.id}
                   onEdit={() => setEditingId(entry.id)}
-                  onSave={(updates) => handleSave(entry.id, updates)}
+                  onSave={(updates) => handleSave(entry.id, updates, entry.changeOrder.id)}
                   onCancel={() => setEditingId(null)}
                   statusDisplay={STATUS_DISPLAY}
                 />

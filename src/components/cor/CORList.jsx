@@ -3,16 +3,44 @@ import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edi
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 import { CardSkeleton, CountBadge } from '../ui'
+import { useBranding } from '../../lib/BrandingContext'
 import CORLog from './CORLog'
 
 // Status display mapping for exports
 const STATUS_DISPLAY = {
-  draft: 'Draft',
-  pending_approval: 'Pending',
-  approved: 'Approved',
-  rejected: 'Rejected',
-  billed: 'Billed',
-  closed: 'Closed'
+  draft: { label: 'Draft', color: [107, 114, 128], bgColor: [243, 244, 246] },
+  pending_approval: { label: 'Pending Approval', color: [217, 119, 6], bgColor: [254, 243, 199] },
+  approved: { label: 'Approved', color: [5, 150, 105], bgColor: [209, 250, 229] },
+  rejected: { label: 'Rejected', color: [220, 38, 38], bgColor: [254, 226, 226] },
+  billed: { label: 'Billed', color: [37, 99, 235], bgColor: [219, 234, 254] },
+  closed: { label: 'Closed', color: [75, 85, 99], bgColor: [229, 231, 235] }
+}
+
+// Helper to convert hex to RGB
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? [
+    parseInt(result[1], 16),
+    parseInt(result[2], 16),
+    parseInt(result[3], 16)
+  ] : [59, 130, 246]
+}
+
+// Helper to load image as base64
+const loadImageAsBase64 = (url) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      canvas.getContext('2d').drawImage(img, 0, 0)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
 }
 
 export default function CORList({
@@ -29,6 +57,7 @@ export default function CORList({
   previewLimit = 5,     // Number of items to show in preview mode
   onViewAll             // Callback when "See All" is clicked
 }) {
+  const { branding } = useBranding()
   const [cors, setCORs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -87,113 +116,340 @@ export default function CORList({
     }
   }
 
-  // Export CORs to Excel
+  // Professional Excel Export
   const exportToExcel = async () => {
+    if (cors.length === 0) {
+      onShowToast?.('No CORs to export', 'error')
+      return
+    }
+
+    onShowToast?.('Generating Excel report...', 'info')
+
     try {
       const XLSX = await import('xlsx')
 
-      const data = cors.map((cor, index) => ({
-        '#': index + 1,
-        'COR Number': cor.cor_number || '',
-        'Title': cor.title || 'Untitled',
-        'Amount': (cor.cor_total || 0) / 100,
-        'Status': STATUS_DISPLAY[cor.status] || cor.status,
-        'Created': cor.created_at ? new Date(cor.created_at).toLocaleDateString() : '',
-        'Approved Date': cor.approved_at ? new Date(cor.approved_at).toLocaleDateString() : '',
-        'Approved By': cor.approved_by_name || ''
-      }))
-
-      // Add summary
+      // Calculate statistics
       const approved = cors.filter(c => c.status === 'approved')
       const pending = cors.filter(c => ['draft', 'pending_approval'].includes(c.status))
-      data.push({})
-      data.push({
-        '#': 'SUMMARY',
-        'Title': `Total: ${cors.length} CORs`,
-        'Amount': cors.reduce((sum, c) => sum + (c.cor_total || 0), 0) / 100,
-        'Status': `Approved: ${approved.length}, Pending: ${pending.length}`
-      })
+      const rejected = cors.filter(c => c.status === 'rejected')
+      const billed = cors.filter(c => c.status === 'billed')
+      const totalValue = cors.reduce((sum, c) => sum + (c.cor_total || 0), 0) / 100
+      const approvedValue = approved.reduce((sum, c) => sum + (c.cor_total || 0), 0) / 100
+      const pendingValue = pending.reduce((sum, c) => sum + (c.cor_total || 0), 0) / 100
 
-      const ws = XLSX.utils.json_to_sheet(data)
-      ws['!cols'] = [
-        { wch: 5 }, { wch: 12 }, { wch: 40 }, { wch: 12 },
-        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 20 }
+      // Create workbook
+      const wb = XLSX.utils.book_new()
+
+      // === SUMMARY SHEET ===
+      const summaryData = [
+        ['CHANGE ORDER REQUEST SUMMARY'],
+        [],
+        ['Company:', company?.name || ''],
+        ['Project:', project.name],
+        ['Job Number:', project.job_number || 'N/A'],
+        ['Report Date:', new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })],
+        [],
+        ['FINANCIAL OVERVIEW'],
+        [],
+        ['Category', 'Count', 'Value'],
+        ['Total CORs', cors.length, totalValue],
+        ['Approved', approved.length, approvedValue],
+        ['Pending Approval', pending.length, pendingValue],
+        ['Rejected', rejected.length, rejected.reduce((s, c) => s + (c.cor_total || 0), 0) / 100],
+        ['Billed', billed.length, billed.reduce((s, c) => s + (c.cor_total || 0), 0) / 100],
+        [],
+        ['CONTRACT IMPACT'],
+        [],
+        ['Original Contract Value:', project.contract_value || 0],
+        ['Total Approved CORs:', approvedValue],
+        ['Revised Contract Value:', (project.contract_value || 0) + approvedValue],
+        ['Pending COR Value:', pendingValue],
+        ['Potential Total:', (project.contract_value || 0) + approvedValue + pendingValue]
       ]
 
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'CORs')
-      XLSX.writeFile(wb, `CORs_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.xlsx`)
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+      wsSummary['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 18 }]
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
 
-      onShowToast?.('Excel exported', 'success')
+      // === DETAIL SHEET ===
+      const detailHeaders = [
+        'COR #', 'Title', 'Description', 'Amount', 'Status',
+        'Created Date', 'Submitted Date', 'Approved Date', 'Approved By',
+        'Work Period Start', 'Work Period End', 'Area'
+      ]
+
+      const detailData = cors.map(cor => [
+        cor.cor_number || '',
+        cor.title || 'Untitled',
+        cor.scope_of_work || '',
+        (cor.cor_total || 0) / 100,
+        STATUS_DISPLAY[cor.status]?.label || cor.status,
+        cor.created_at ? new Date(cor.created_at).toLocaleDateString() : '',
+        cor.submitted_at ? new Date(cor.submitted_at).toLocaleDateString() : '',
+        cor.approved_at ? new Date(cor.approved_at).toLocaleDateString() : '',
+        cor.approved_by_name || '',
+        cor.period_start ? new Date(cor.period_start).toLocaleDateString() : '',
+        cor.period_end ? new Date(cor.period_end).toLocaleDateString() : '',
+        cor.area?.name || ''
+      ])
+
+      const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailData])
+      wsDetail['!cols'] = [
+        { wch: 10 }, { wch: 30 }, { wch: 40 }, { wch: 14 }, { wch: 16 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 18 },
+        { wch: 12 }, { wch: 12 }, { wch: 15 }
+      ]
+
+      // Format currency column
+      for (let i = 1; i <= detailData.length; i++) {
+        const cellRef = XLSX.utils.encode_cell({ r: i, c: 3 })
+        if (wsDetail[cellRef]) wsDetail[cellRef].z = '$#,##0.00'
+      }
+
+      XLSX.utils.book_append_sheet(wb, wsDetail, 'COR Details')
+
+      // === STATUS BREAKDOWN SHEET ===
+      const statusSheets = [
+        { name: 'Approved CORs', data: approved, status: 'approved' },
+        { name: 'Pending CORs', data: pending, status: 'pending' }
+      ]
+
+      statusSheets.forEach(({ name, data }) => {
+        if (data.length > 0) {
+          const sheetData = [
+            ['COR #', 'Title', 'Amount', 'Date'],
+            ...data.map(cor => [
+              cor.cor_number || '',
+              cor.title || 'Untitled',
+              (cor.cor_total || 0) / 100,
+              cor.created_at ? new Date(cor.created_at).toLocaleDateString() : ''
+            ]),
+            [],
+            ['TOTAL', '', data.reduce((s, c) => s + (c.cor_total || 0), 0) / 100, '']
+          ]
+          const ws = XLSX.utils.aoa_to_sheet(sheetData)
+          ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 14 }, { wch: 12 }]
+          XLSX.utils.book_append_sheet(wb, ws, name)
+        }
+      })
+
+      // Save file
+      const fileName = `COR_Report_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.xlsx`
+      XLSX.writeFile(wb, fileName)
+
+      onShowToast?.('Excel report exported successfully', 'success')
     } catch (error) {
       console.error('Export error:', error)
       onShowToast?.('Export failed', 'error')
     }
   }
 
-  // Export CORs to PDF
+  // Professional PDF Export with Branding
   const exportToPDF = async () => {
+    if (cors.length === 0) {
+      onShowToast?.('No CORs to export', 'error')
+      return
+    }
+
+    onShowToast?.('Generating PDF report...', 'info')
+
     try {
       const { default: jsPDF } = await import('jspdf')
       const { default: autoTable } = await import('jspdf-autotable')
 
       const doc = new jsPDF('landscape')
       const pageWidth = doc.internal.pageSize.width
+      const pageHeight = doc.internal.pageSize.height
+      const margin = 15
 
-      // Header
-      doc.setFontSize(18)
-      doc.setFont(undefined, 'bold')
-      doc.text('CHANGE ORDER REQUESTS', pageWidth / 2, 20, { align: 'center' })
-      doc.setFontSize(12)
-      doc.setFont(undefined, 'normal')
-      doc.text(`Project: ${project.name}`, pageWidth / 2, 28, { align: 'center' })
-      doc.text(`As of: ${new Date().toLocaleDateString()}`, pageWidth / 2, 35, { align: 'center' })
+      // Get brand colors
+      const primaryColor = hexToRgb(branding?.primary_color || '#3B82F6')
+      const secondaryColor = hexToRgb(branding?.secondary_color || '#1E40AF')
 
-      if (company?.name) {
-        doc.setFontSize(10)
-        doc.text(company.name, 14, 20)
+      // === HEADER WITH BRANDING ===
+      // Primary color header bar
+      doc.setFillColor(...primaryColor)
+      doc.rect(0, 0, pageWidth, 40, 'F')
+
+      // Secondary color accent stripe
+      doc.setFillColor(...secondaryColor)
+      doc.rect(0, 38, pageWidth, 3, 'F')
+
+      // Company logo if available
+      let logoOffset = margin
+      if (branding?.logo_url) {
+        try {
+          const logoBase64 = await loadImageAsBase64(branding.logo_url)
+          if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', margin, 6, 28, 28)
+            logoOffset = margin + 35
+          }
+        } catch (e) {
+          console.error('Logo load error:', e)
+        }
       }
 
-      // Table
-      const tableData = cors.map((cor, i) => [
-        i + 1,
-        cor.cor_number || '',
-        cor.title || 'Untitled',
-        formatCurrency(cor.cor_total || 0),
-        STATUS_DISPLAY[cor.status] || cor.status,
-        cor.created_at ? new Date(cor.created_at).toLocaleDateString() : ''
-      ])
+      // Company name and document title
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(20)
+      doc.setFont('helvetica', 'bold')
+      doc.text(company?.name || 'Company', logoOffset, 18)
 
-      autoTable(doc, {
-        startY: 45,
-        head: [['#', 'COR #', 'Description', 'Amount', 'Status', 'Created']],
-        body: tableData,
-        styles: { fontSize: 9, cellPadding: 3 },
-        headStyles: { fillColor: [51, 51, 51], textColor: 255, fontStyle: 'bold' },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 'auto' },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 22, halign: 'center' },
-          5: { cellWidth: 25 }
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'normal')
+      doc.text('CHANGE ORDER REQUEST REPORT', logoOffset, 28)
+
+      // Right side - date and job info
+      doc.setFontSize(9)
+      doc.text(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), pageWidth - margin, 15, { align: 'right' })
+      if (project.job_number) {
+        doc.text(`Job #: ${project.job_number}`, pageWidth - margin, 23, { align: 'right' })
+      }
+      doc.text(`${cors.length} Change Orders`, pageWidth - margin, 31, { align: 'right' })
+
+      // === PROJECT INFO BOX ===
+      let yPos = 50
+
+      doc.setFillColor(248, 250, 252)
+      doc.setDrawColor(...primaryColor)
+      doc.setLineWidth(0.5)
+      doc.roundedRect(margin, yPos, pageWidth - margin * 2, 25, 3, 3, 'FD')
+
+      doc.setTextColor(...primaryColor)
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.text(project.name, margin + 8, yPos + 10)
+
+      doc.setTextColor(100, 116, 139)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      if (project.address) {
+        doc.text(project.address, margin + 8, yPos + 18)
+      }
+
+      // === FINANCIAL SUMMARY BOXES ===
+      yPos += 35
+
+      const approved = cors.filter(c => c.status === 'approved')
+      const pending = cors.filter(c => ['draft', 'pending_approval'].includes(c.status))
+      const totalValue = cors.reduce((sum, c) => sum + (c.cor_total || 0), 0)
+      const approvedValue = approved.reduce((sum, c) => sum + (c.cor_total || 0), 0)
+      const pendingValue = pending.reduce((sum, c) => sum + (c.cor_total || 0), 0)
+
+      const boxWidth = (pageWidth - margin * 2 - 30) / 4
+      const summaryBoxes = [
+        { label: 'Total CORs', value: cors.length.toString(), subValue: formatCurrency(totalValue) },
+        { label: 'Approved', value: approved.length.toString(), subValue: formatCurrency(approvedValue), color: [5, 150, 105] },
+        { label: 'Pending', value: pending.length.toString(), subValue: formatCurrency(pendingValue), color: [217, 119, 6] },
+        { label: 'Revised Contract', value: formatCurrency((project.contract_value || 0) * 100 + approvedValue), subValue: `+${formatCurrency(approvedValue)} from original`, color: primaryColor }
+      ]
+
+      summaryBoxes.forEach((box, i) => {
+        const boxX = margin + (i * (boxWidth + 10))
+        const boxColor = box.color || primaryColor
+        const lightColor = boxColor.map(c => Math.min(255, c + 200))
+
+        doc.setFillColor(...lightColor)
+        doc.setDrawColor(...boxColor)
+        doc.roundedRect(boxX, yPos, boxWidth, 32, 2, 2, 'FD')
+
+        doc.setTextColor(...boxColor)
+        doc.setFontSize(18)
+        doc.setFont('helvetica', 'bold')
+        doc.text(box.value, boxX + boxWidth / 2, yPos + 14, { align: 'center' })
+
+        doc.setTextColor(100, 116, 139)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        doc.text(box.label, boxX + boxWidth / 2, yPos + 22, { align: 'center' })
+
+        if (box.subValue) {
+          doc.setFontSize(7)
+          doc.text(box.subValue, boxX + boxWidth / 2, yPos + 28, { align: 'center' })
         }
       })
 
-      // Summary
-      const approved = cors.filter(c => c.status === 'approved')
-      const pending = cors.filter(c => ['draft', 'pending_approval'].includes(c.status))
-      const finalY = (doc.lastAutoTable?.finalY || 100) + 10
-      doc.setFontSize(10)
-      doc.setFont(undefined, 'bold')
-      doc.text('SUMMARY', 14, finalY)
-      doc.setFont(undefined, 'normal')
-      doc.text(`Total CORs: ${cors.length}`, 14, finalY + 7)
-      doc.text(`Approved: ${approved.length} (${formatCurrency(approved.reduce((s, c) => s + (c.cor_total || 0), 0))})`, 14, finalY + 14)
-      doc.text(`Pending: ${pending.length} (${formatCurrency(pending.reduce((s, c) => s + (c.cor_total || 0), 0))})`, 14, finalY + 21)
+      // === COR TABLE ===
+      yPos += 42
 
-      doc.save(`CORs_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.pdf`)
-      onShowToast?.('PDF exported', 'success')
+      doc.setTextColor(...primaryColor)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text('CHANGE ORDER DETAILS', margin, yPos)
+      yPos += 5
+
+      const tableData = cors.map((cor, i) => {
+        const status = STATUS_DISPLAY[cor.status] || { label: cor.status, color: [107, 114, 128] }
+        return [
+          (i + 1).toString(),
+          cor.cor_number || '-',
+          cor.title || 'Untitled',
+          formatCurrency(cor.cor_total || 0),
+          status.label,
+          cor.created_at ? new Date(cor.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }) : '-'
+        ]
+      })
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'COR #', 'Description', 'Amount', 'Status', 'Date']],
+        body: tableData,
+        theme: 'grid',
+        styles: {
+          fontSize: 9,
+          cellPadding: 4,
+          lineColor: [226, 232, 240],
+          lineWidth: 0.1
+        },
+        headStyles: {
+          fillColor: primaryColor,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' },
+          1: { cellWidth: 25, halign: 'center' },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
+          4: { cellWidth: 28, halign: 'center' },
+          5: { cellWidth: 28, halign: 'center' }
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        didParseCell: (data) => {
+          // Color-code status column
+          if (data.column.index === 4 && data.section === 'body') {
+            const statusKey = Object.keys(STATUS_DISPLAY).find(
+              key => STATUS_DISPLAY[key].label === data.cell.raw
+            )
+            if (statusKey) {
+              data.cell.styles.textColor = STATUS_DISPLAY[statusKey].color
+              data.cell.styles.fontStyle = 'bold'
+            }
+          }
+        }
+      })
+
+      // === FOOTER ===
+      const footerY = pageHeight - 12
+      doc.setDrawColor(226, 232, 240)
+      doc.setLineWidth(0.5)
+      doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+
+      doc.setTextColor(148, 163, 184)
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Generated on ${new Date().toLocaleString()}`, margin, footerY)
+      doc.text(`${company?.name || 'FieldSync'} • Confidential`, pageWidth / 2, footerY, { align: 'center' })
+      doc.text('Page 1 of 1', pageWidth - margin, footerY, { align: 'right' })
+
+      // Save
+      const fileName = `COR_Report_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.pdf`
+      doc.save(fileName)
+
+      onShowToast?.('PDF report exported successfully', 'success')
     } catch (error) {
       console.error('Export error:', error)
       onShowToast?.('Export failed', 'error')

@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
-import { Edit3, Check, X, Loader2 } from 'lucide-react'
+import { Edit3, Check, X, Loader2, ChevronDown } from 'lucide-react'
 import { formatCurrency } from '../../lib/corCalculations'
+
+// Available status options for editing
+const STATUS_OPTIONS = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'pending_approval', label: 'Pending Approval' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'billed', label: 'Billed' },
+  { value: 'closed', label: 'Closed' }
+]
 
 export default function CORLogRow({
   entry,
@@ -14,7 +24,8 @@ export default function CORLogRow({
   const [editValues, setEditValues] = useState({
     dateSentToClient: entry.dateSentToClient || '',
     ceNumber: entry.ceNumber || '',
-    comments: entry.comments || ''
+    comments: entry.comments || '',
+    status: entry.changeOrder?.status || 'draft'
   })
 
   const dateSentRef = useRef(null)
@@ -31,7 +42,8 @@ export default function CORLogRow({
     setEditValues({
       dateSentToClient: entry.dateSentToClient || '',
       ceNumber: entry.ceNumber || '',
-      comments: entry.comments || ''
+      comments: entry.comments || '',
+      status: entry.changeOrder?.status || 'draft'
     })
   }, [entry])
 
@@ -52,7 +64,8 @@ export default function CORLogRow({
     setEditValues({
       dateSentToClient: entry.dateSentToClient || '',
       ceNumber: entry.ceNumber || '',
-      comments: entry.comments || ''
+      comments: entry.comments || '',
+      status: entry.changeOrder?.status || 'draft'
     })
     onCancel()
   }
@@ -117,7 +130,19 @@ export default function CORLogRow({
         </td>
         <td className="col-amount">{formatCurrency(entry.changeOrder.corTotal || 0)}</td>
         <td className="col-status">
-          <span className={`cor-log-status ${status.className}`}>{status.label}</span>
+          <div className="cor-log-status-select">
+            <select
+              value={editValues.status}
+              onChange={(e) => setEditValues(prev => ({ ...prev, status: e.target.value }))}
+              disabled={isSaving}
+              className="cor-log-select"
+            >
+              {STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="select-icon" />
+          </div>
         </td>
         <td className="col-comments">
           <textarea
@@ -170,7 +195,7 @@ export default function CORLogRow({
         <span className="cor-log-number">{entry.changeOrder.corNumber}</span>
       </td>
       <td className="col-amount">{formatCurrency(entry.changeOrder.corTotal || 0)}</td>
-      <td className="col-status">
+      <td className="col-status editable" onClick={onEdit}>
         <span className={`cor-log-status ${status.className}`}>{status.label}</span>
       </td>
       <td className="col-comments editable" onClick={onEdit}>

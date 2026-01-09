@@ -6694,6 +6694,29 @@ export const db = {
     return null
   },
 
+  // Update change order status
+  async updateChangeOrderStatus(changeOrderId, status) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('change_orders')
+        .update({
+          status: status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', changeOrderId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating change order status:', error)
+        throw error
+      }
+
+      return data
+    }
+    return null
+  },
+
   // Subscribe to COR log changes for a project
   subscribeToCORLog(projectId, callback) {
     if (isSupabaseConfigured) {
