@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle, CheckCircle, FileSpreadsheet } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -1339,24 +1339,27 @@ export default function TMList({
 
   return (
     <div className={`tm-list ${compact ? 'tm-list-compact' : ''}`}>
-      {!compact && (
+      {/* Header with export buttons - always visible */}
       <div className="tm-list-header">
         <div className="tm-list-title">
           <h3>T&M Tickets</h3>
           <div className="tm-export-buttons">
-            {someSelected && (
+            {!compact && someSelected && (
               <button className="btn btn-ghost btn-small" onClick={clearSelection}>
                 Clear ({selectedTickets.size})
               </button>
             )}
-            <button className="btn btn-secondary btn-small" onClick={exportToExcel}>
-              Excel {someSelected ? `(${selectedTickets.size})` : ''}
+            <button className="btn btn-secondary btn-small" onClick={exportToExcel} disabled={tickets.length === 0}>
+              <FileSpreadsheet size={14} /> Excel {!compact && someSelected ? `(${selectedTickets.size})` : ''}
             </button>
-            <button className="btn btn-primary btn-small" onClick={exportToPDF}>
-              PDF {someSelected ? `(${selectedTickets.size})` : ''}
+            <button className="btn btn-secondary btn-small" onClick={exportToPDF} disabled={tickets.length === 0}>
+              <FileText size={14} /> PDF {!compact && someSelected ? `(${selectedTickets.size})` : ''}
             </button>
           </div>
         </div>
+      </div>
+      {!compact && (
+      <div className="tm-list-filters">
 
         <div className="tm-filter-tabs">
           {['all', 'pending', 'approved', 'billed', 'rejected'].map(status => (

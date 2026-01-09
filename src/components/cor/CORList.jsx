@@ -1,9 +1,19 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle, List, Table } from 'lucide-react'
+import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle, List, Table, FileSpreadsheet } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 import { CardSkeleton, CountBadge } from '../ui'
 import CORLog from './CORLog'
+
+// Status display mapping for exports
+const STATUS_DISPLAY = {
+  draft: 'Draft',
+  pending_approval: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  billed: 'Billed',
+  closed: 'Closed'
+}
 
 export default function CORList({
   project,
@@ -74,6 +84,119 @@ export default function CORList({
       setStats(data)
     } catch (error) {
       console.error('Error loading COR stats:', error)
+    }
+  }
+
+  // Export CORs to Excel
+  const exportToExcel = async () => {
+    try {
+      const XLSX = await import('xlsx')
+
+      const data = cors.map((cor, index) => ({
+        '#': index + 1,
+        'COR Number': cor.cor_number || '',
+        'Title': cor.title || 'Untitled',
+        'Amount': (cor.cor_total || 0) / 100,
+        'Status': STATUS_DISPLAY[cor.status] || cor.status,
+        'Created': cor.created_at ? new Date(cor.created_at).toLocaleDateString() : '',
+        'Approved Date': cor.approved_at ? new Date(cor.approved_at).toLocaleDateString() : '',
+        'Approved By': cor.approved_by_name || ''
+      }))
+
+      // Add summary
+      const approved = cors.filter(c => c.status === 'approved')
+      const pending = cors.filter(c => ['draft', 'pending_approval'].includes(c.status))
+      data.push({})
+      data.push({
+        '#': 'SUMMARY',
+        'Title': `Total: ${cors.length} CORs`,
+        'Amount': cors.reduce((sum, c) => sum + (c.cor_total || 0), 0) / 100,
+        'Status': `Approved: ${approved.length}, Pending: ${pending.length}`
+      })
+
+      const ws = XLSX.utils.json_to_sheet(data)
+      ws['!cols'] = [
+        { wch: 5 }, { wch: 12 }, { wch: 40 }, { wch: 12 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 20 }
+      ]
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'CORs')
+      XLSX.writeFile(wb, `CORs_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.xlsx`)
+
+      onShowToast?.('Excel exported', 'success')
+    } catch (error) {
+      console.error('Export error:', error)
+      onShowToast?.('Export failed', 'error')
+    }
+  }
+
+  // Export CORs to PDF
+  const exportToPDF = async () => {
+    try {
+      const { default: jsPDF } = await import('jspdf')
+      await import('jspdf-autotable')
+
+      const doc = new jsPDF('landscape')
+      const pageWidth = doc.internal.pageSize.width
+
+      // Header
+      doc.setFontSize(18)
+      doc.setFont(undefined, 'bold')
+      doc.text('CHANGE ORDER REQUESTS', pageWidth / 2, 20, { align: 'center' })
+      doc.setFontSize(12)
+      doc.setFont(undefined, 'normal')
+      doc.text(`Project: ${project.name}`, pageWidth / 2, 28, { align: 'center' })
+      doc.text(`As of: ${new Date().toLocaleDateString()}`, pageWidth / 2, 35, { align: 'center' })
+
+      if (company?.name) {
+        doc.setFontSize(10)
+        doc.text(company.name, 14, 20)
+      }
+
+      // Table
+      const tableData = cors.map((cor, i) => [
+        i + 1,
+        cor.cor_number || '',
+        cor.title || 'Untitled',
+        formatCurrency(cor.cor_total || 0),
+        STATUS_DISPLAY[cor.status] || cor.status,
+        cor.created_at ? new Date(cor.created_at).toLocaleDateString() : ''
+      ])
+
+      doc.autoTable({
+        startY: 45,
+        head: [['#', 'COR #', 'Description', 'Amount', 'Status', 'Created']],
+        body: tableData,
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [51, 51, 51], textColor: 255, fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 25, halign: 'right' },
+          4: { cellWidth: 22, halign: 'center' },
+          5: { cellWidth: 25 }
+        }
+      })
+
+      // Summary
+      const approved = cors.filter(c => c.status === 'approved')
+      const pending = cors.filter(c => ['draft', 'pending_approval'].includes(c.status))
+      const finalY = doc.lastAutoTable.finalY + 10
+      doc.setFontSize(10)
+      doc.setFont(undefined, 'bold')
+      doc.text('SUMMARY', 14, finalY)
+      doc.setFont(undefined, 'normal')
+      doc.text(`Total CORs: ${cors.length}`, 14, finalY + 7)
+      doc.text(`Approved: ${approved.length} (${formatCurrency(approved.reduce((s, c) => s + (c.cor_total || 0), 0))})`, 14, finalY + 14)
+      doc.text(`Pending: ${pending.length} (${formatCurrency(pending.reduce((s, c) => s + (c.cor_total || 0), 0))})`, 14, finalY + 21)
+
+      doc.save(`CORs_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.pdf`)
+      onShowToast?.('PDF exported', 'success')
+    } catch (error) {
+      console.error('Export error:', error)
+      onShowToast?.('Export failed', 'error')
     }
   }
 
@@ -408,6 +531,23 @@ export default function CORList({
           </div>
         </div>
         <div className="cor-header-actions">
+          {/* Export buttons - always visible */}
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={exportToExcel}
+            title="Export to Excel"
+            disabled={cors.length === 0}
+          >
+            <FileSpreadsheet size={14} /> Excel
+          </button>
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={exportToPDF}
+            title="Export to PDF"
+            disabled={cors.length === 0}
+          >
+            <FileText size={14} /> PDF
+          </button>
           {/* Display Mode Toggle - hidden in preview mode */}
           {!previewMode && (
             <div className="cor-display-toggle">
