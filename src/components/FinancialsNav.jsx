@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { BarChart3, FileText, Receipt, Clock, ChevronRight } from 'lucide-react'
+import { BarChart3, FileText, Receipt, ClipboardList, ChevronRight } from 'lucide-react'
 import { CountBadge } from './ui'
 
 /**
@@ -16,21 +16,28 @@ const NAV_ITEMS = [
   },
   {
     id: 'cors',
-    label: 'CORs & Tickets',
+    label: 'Change Orders',
     icon: FileText,
-    description: 'Change orders & T&M'
+    description: 'CORs & client log'
+  },
+  {
+    id: 'tickets',
+    label: 'T&M Tickets',
+    icon: ClipboardList,
+    description: 'Time & materials'
   }
 ]
 
 export default memo(function FinancialsNav({
   activeSection = 'overview',
   onSectionChange,
-  stats = {} // { corCount, ticketCount, pendingCount, photoCount }
+  stats = {} // { corCount, ticketCount, pendingCount, corPending, ticketPending }
 }) {
   const {
     corCount = 0,
     ticketCount = 0,
-    pendingCount = 0
+    corPending = 0,
+    ticketPending = 0
   } = stats
 
   return (
@@ -41,17 +48,22 @@ export default memo(function FinancialsNav({
 
         // Determine badge for this item
         let badge = null
-        if (item.id === 'cors') {
-          const totalItems = corCount + ticketCount
-          if (totalItems > 0) {
-            badge = (
-              <CountBadge
-                count={totalItems}
-                size="small"
-                variant={pendingCount > 0 ? 'warning' : 'default'}
-              />
-            )
-          }
+        if (item.id === 'cors' && corCount > 0) {
+          badge = (
+            <CountBadge
+              count={corCount}
+              size="small"
+              variant={corPending > 0 ? 'warning' : 'default'}
+            />
+          )
+        } else if (item.id === 'tickets' && ticketCount > 0) {
+          badge = (
+            <CountBadge
+              count={ticketCount}
+              size="small"
+              variant={ticketPending > 0 ? 'warning' : 'default'}
+            />
+          )
         }
 
         return (
@@ -73,26 +85,6 @@ export default memo(function FinancialsNav({
           </button>
         )
       })}
-
-      {/* Quick Stats Summary */}
-      {(corCount > 0 || ticketCount > 0) && (
-        <div className="financials-nav-summary">
-          <div className="nav-summary-row">
-            <Receipt size={14} />
-            <span>{corCount} CORs</span>
-          </div>
-          <div className="nav-summary-row">
-            <Clock size={14} />
-            <span>{ticketCount} Tickets</span>
-          </div>
-          {pendingCount > 0 && (
-            <div className="nav-summary-row pending">
-              <span className="pending-dot" />
-              <span>{pendingCount} pending approval</span>
-            </div>
-          )}
-        </div>
-      )}
     </nav>
   )
 })

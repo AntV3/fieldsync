@@ -1250,7 +1250,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                       stats={{
                         corCount: projectData?.corStats?.total || 0,
                         ticketCount: projectData?.totalTickets || 0,
-                        pendingCount: (projectData?.corStats?.pending || 0) + (projectData?.pendingTickets || 0)
+                        corPending: projectData?.corStats?.pending || 0,
+                        ticketPending: projectData?.pendingTickets || 0
                       }}
                     />
                   </div>
@@ -1330,12 +1331,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     </div>
                   )}
 
-                  {/* CORS & TICKETS SECTION */}
+                  {/* CHANGE ORDERS SECTION */}
                   {financialsSection === 'cors' && (
                     <div className="financials-cors animate-fade-in">
-                      {/* Change Order Requests */}
                       <div className="financials-section cor-section-primary">
-                        {corViewMode === 'full' && (
+                        {corViewMode === 'full' && corDisplayMode !== 'log' && (
                           <button
                             className="section-back-btn"
                             onClick={() => setCORViewMode('preview')}
@@ -1349,7 +1349,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           areas={areas}
                           refreshKey={corRefreshKey}
                           onShowToast={onShowToast}
-                          previewMode={corViewMode === 'preview'}
+                          previewMode={corViewMode === 'preview' && corDisplayMode !== 'log'}
                           previewLimit={5}
                           onViewAll={() => setCORViewMode('full')}
                           onDisplayModeChange={setCORDisplayMode}
@@ -1367,37 +1367,30 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           }}
                         />
                       </div>
+                    </div>
+                  )}
 
-                      {/* T&M Tickets - hidden when COR Log is expanded */}
-                      {corDisplayMode !== 'log' && (
-                        <div className="financials-section tm-section">
-                          {tmViewMode === 'full' && (
-                            <button
-                              className="section-back-btn"
-                              onClick={() => setTMViewMode('preview')}
-                            >
-                              ← Back to summary
-                            </button>
-                          )}
-                          {tmViewMode === 'preview' && (
-                            <div className="tm-section-header">
-                              <h3>T&M Tickets</h3>
-                              <span className="tm-badge">
-                                {new Date().toLocaleDateString('en-US', { month: 'long' })}
-                                {projectData?.pendingTickets > 0 && ` · ${projectData.pendingTickets} pending`}
-                              </span>
-                            </div>
-                          )}
-                          <TMList
-                            project={selectedProject}
-                            company={company}
-                            onShowToast={onShowToast}
-                            compact={tmViewMode === 'preview'}
-                            previewMode={tmViewMode === 'preview'}
-                            onViewAll={() => setTMViewMode('full')}
-                          />
-                        </div>
-                      )}
+                  {/* T&M TICKETS SECTION */}
+                  {financialsSection === 'tickets' && (
+                    <div className="financials-tickets animate-fade-in">
+                      <div className="financials-section tm-section">
+                        {tmViewMode === 'full' && (
+                          <button
+                            className="section-back-btn"
+                            onClick={() => setTMViewMode('preview')}
+                          >
+                            ← Back to summary
+                          </button>
+                        )}
+                        <TMList
+                          project={selectedProject}
+                          company={company}
+                          onShowToast={onShowToast}
+                          compact={tmViewMode === 'preview'}
+                          previewMode={tmViewMode === 'preview'}
+                          onViewAll={() => setTMViewMode('full')}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
