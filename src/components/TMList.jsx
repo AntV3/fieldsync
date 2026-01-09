@@ -48,9 +48,16 @@ export default function TMList({
   const { branding } = useBranding()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [filter, setFilter] = useState('all')
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
+
+  // Pagination state
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
+  const TICKETS_PER_PAGE = 25
 
   // View mode state - in preview mode, we filter to current month
   const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
@@ -81,11 +88,16 @@ export default function TMList({
   const [retryingImport, setRetryingImport] = useState(null)
 
   useEffect(() => {
-    loadTickets()
+    // Reset pagination when project changes
+    setTickets([])
+    setPage(0)
+    setHasMore(true)
+    loadTickets(0, true)
 
     // Subscribe to real-time updates for T&M tickets
     const subscription = db.subscribeToTMTickets?.(project.id, () => {
-      loadTickets()
+      // On real-time update, refresh the first page
+      loadTickets(0, true)
     })
 
     return () => {
@@ -93,20 +105,41 @@ export default function TMList({
     }
   }, [project.id])
 
-  const loadTickets = async () => {
+  // Load tickets with pagination
+  const loadTickets = async (pageNum = 0, reset = false) => {
     try {
-      const data = await db.getTMTickets(project.id)
-      setTickets(data)
+      if (reset) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
+
+      // Use paginated query for scalability
+      const result = await db.getTMTicketsPaginated(project.id, {
+        page: pageNum,
+        limit: TICKETS_PER_PAGE,
+        status: filter !== 'all' ? filter : null
+      })
+
+      if (reset) {
+        setTickets(result.tickets)
+      } else {
+        setTickets(prev => [...prev, ...result.tickets])
+      }
+
+      setPage(pageNum)
+      setHasMore(result.hasMore)
+      setTotalCount(result.totalCount)
 
       // Check editability for tickets with COR assignments
-      const ticketsWithCOR = data.filter(t => t.assigned_cor_id)
+      const ticketsWithCOR = result.tickets.filter(t => t.assigned_cor_id)
       if (ticketsWithCOR.length > 0) {
         const lockResults = {}
         const importStatusResults = {}
         await Promise.all(ticketsWithCOR.map(async (ticket) => {
-          const result = await db.isTicketEditable(ticket)
-          if (!result.editable) {
-            lockResults[ticket.id] = result
+          const editResult = await db.isTicketEditable(ticket)
+          if (!editResult.editable) {
+            lockResults[ticket.id] = editResult
           }
           // Check import status for each ticket
           try {
@@ -118,16 +151,33 @@ export default function TMList({
             // Ignore - column may not exist yet
           }
         }))
-        setLockedTickets(lockResults)
-        setFailedImports(importStatusResults)
+        setLockedTickets(prev => reset ? lockResults : { ...prev, ...lockResults })
+        setFailedImports(prev => reset ? importStatusResults : { ...prev, ...importStatusResults })
       }
     } catch (error) {
-      console.error('Error loading tickets:', error)
       onShowToast('Error loading T&M tickets', 'error')
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
+
+  // Load more tickets (next page)
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      loadTickets(page + 1, false)
+    }
+  }
+
+  // Reload tickets when filter changes
+  useEffect(() => {
+    if (project?.id) {
+      setTickets([])
+      setPage(0)
+      setHasMore(true)
+      loadTickets(0, true)
+    }
+  }, [filter])
 
   const updateStatus = async (ticketId, newStatus) => {
     // Check if ticket is locked due to approved COR
@@ -1448,10 +1498,23 @@ export default function TMList({
         </div>
       )}
 
+      {/* Load More Button - for pagination */}
+      {!previewMode && hasMore && !loading && tickets.length > 0 && (
+        <div className="tm-load-more">
+          <button
+            className="btn btn-secondary"
+            onClick={loadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading...' : `Load More (${tickets.length} of ${totalCount})`}
+          </button>
+        </div>
+      )}
+
       {/* See All Footer - only in preview mode */}
       {previewMode && tickets.length > 0 && (
         <button className="tm-see-all-btn" onClick={onViewAll}>
-          See all {tickets.length} T&M tickets
+          See all {totalCount || tickets.length} T&M tickets
           <ChevronRight size={16} />
         </button>
       )}
