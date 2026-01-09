@@ -191,15 +191,19 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   const loadProjects = async () => {
     try {
-      // Filter projects by current company
-      const data = await db.getProjects(company?.id)
+      // Use optimized single-query dashboard summary when available
+      // This replaces 9N queries with a single database call
+      const data = await db.getProjectDashboardSummary(company?.id)
       setProjects(data)
 
       // Load enhanced data for executive summary
       // Each project is wrapped in try/catch so one failure doesn't break the entire dashboard
+      // Note: Some data is already included in the summary, reducing queries needed
       const enhanced = await Promise.all(data.map(async (project) => {
         try {
-          // Fetch all project data in parallel for better performance
+          // Fetch additional project data in parallel
+          // Areas and tickets are loaded for detailed calculations (billable, burn rate)
+          // The summary already has counts - we need full data for SOV/value calculations
           const [
             projectAreas,
             tickets,

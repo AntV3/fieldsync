@@ -532,6 +532,65 @@ export const db = {
     return getLocalData().projects.filter(p => p.company_id === companyId && p.status === 'active')
   },
 
+  // Get comprehensive project dashboard summary using server-side aggregation
+  // This is the most optimized query - single RPC call returns all project metrics
+  async getProjectDashboardSummary(companyId) {
+    if (isSupabaseConfigured) {
+      const start = performance.now()
+      try {
+        const { data, error } = await supabase
+          .rpc('get_project_dashboard_summary', { p_company_id: companyId })
+
+        const duration = Math.round(performance.now() - start)
+        observe.query('getProjectDashboardSummary', { duration, rows: data?.length, company_id: companyId })
+
+        if (error) {
+          // Fall back to getProjectsWithSummary if RPC doesn't exist yet
+          if (error.message?.includes('function') || error.code === '42883') {
+            return this.getProjectsWithSummary(companyId)
+          }
+          throw error
+        }
+
+        // Transform the snake_case response to camelCase for consistency
+        return (data || []).map(p => ({
+          id: p.project_id,
+          name: p.project_name,
+          status: p.project_status,
+          job_number: p.project_number,
+          address: p.project_address,
+          pin: p.project_pin,
+          created_at: p.created_at,
+          start_date: p.start_date,
+          end_date: p.end_date,
+          // Metrics
+          areaCount: Number(p.total_areas) || 0,
+          completedAreas: Number(p.completed_areas) || 0,
+          inProgressAreas: Number(p.in_progress_areas) || 0,
+          pendingAreas: Number(p.pending_areas) || 0,
+          ticketCount: Number(p.total_tickets) || 0,
+          pendingTicketCount: Number(p.pending_tickets) || 0,
+          submittedTicketCount: Number(p.submitted_tickets) || 0,
+          approvedTicketCount: Number(p.approved_tickets) || 0,
+          totalLaborHours: Number(p.total_labor_hours) || 0,
+          todayLaborHours: Number(p.today_labor_hours) || 0,
+          todayWorkerCount: Number(p.today_worker_count) || 0,
+          lastActivityAt: p.last_activity_at,
+          dailyReportsThisWeek: Number(p.daily_reports_this_week) || 0,
+          corCount: Number(p.cor_count) || 0,
+          pendingCorCount: Number(p.pending_cor_count) || 0,
+          disposalLoadsToday: Number(p.disposal_loads_today) || 0
+        }))
+      } catch (error) {
+        observe.error('database', { message: error.message, operation: 'getProjectDashboardSummary', company_id: companyId })
+        // Fall back to getProjectsWithSummary on error
+        return this.getProjectsWithSummary(companyId)
+      }
+    }
+    // Demo mode - basic project list
+    return getLocalData().projects.filter(p => p.company_id === companyId && p.status === 'active')
+  },
+
   async getArchivedProjects(companyId) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
