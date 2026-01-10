@@ -7114,6 +7114,313 @@ export const db = {
       byCategory,
       itemCount: costs.length
     }
+  },
+
+  // ============================================
+  // Invoices
+  // ============================================
+
+  // Get next invoice number for a company
+  async getNextInvoiceNumber(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.rpc('get_next_invoice_number', {
+        p_company_id: companyId
+      })
+      if (error) {
+        console.error('Error getting next invoice number:', error)
+        // Fallback: generate locally
+        return this._generateLocalInvoiceNumber(companyId)
+      }
+      return data
+    }
+    return this._generateLocalInvoiceNumber(companyId)
+  },
+
+  async _generateLocalInvoiceNumber(companyId) {
+    const invoices = await this.getCompanyInvoices(companyId)
+    const maxNum = invoices.reduce((max, inv) => {
+      const match = inv.invoice_number?.match(/^INV-(\d+)$/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        return num > max ? num : max
+      }
+      return max
+    }, 0)
+    return `INV-${String(maxNum + 1).padStart(4, '0')}`
+  },
+
+  // Get billable items for a project (approved CORs and T&M not yet billed)
+  async getBillableItems(projectId) {
+    if (isSupabaseConfigured) {
+      // Get approved CORs that haven't been billed
+      const { data: cors, error: corsError } = await supabase
+        .from('change_orders')
+        .select('id, cor_number, title, cor_total, status, approved_at')
+        .eq('project_id', projectId)
+        .eq('status', 'approved')
+        .order('cor_number', { ascending: true })
+
+      if (corsError) {
+        console.error('Error fetching billable CORs:', corsError)
+      }
+
+      // Get approved T&M tickets with client signature that haven't been billed
+      const { data: tickets, error: ticketsError } = await supabase
+        .from('t_and_m_tickets')
+        .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date')
+        .eq('project_id', projectId)
+        .eq('status', 'approved')
+        .not('client_signature_data', 'is', null)
+        .order('work_date', { ascending: true })
+
+      if (ticketsError) {
+        console.error('Error fetching billable T&M tickets:', ticketsError)
+      }
+
+      return {
+        cors: cors || [],
+        tickets: tickets || []
+      }
+    }
+    // Demo mode
+    return { cors: [], tickets: [] }
+  },
+
+  // Get all invoices for a project
+  async getProjectInvoices(projectId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          invoice_items (*)
+        `)
+        .eq('project_id', projectId)
+        .order('invoice_date', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching project invoices:', error)
+        throw error
+      }
+      return data || []
+    }
+    // Demo mode
+    const localData = getLocalData()
+    return (localData.invoices || []).filter(i => i.project_id === projectId)
+  },
+
+  // Get all invoices for a company
+  async getCompanyInvoices(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('invoice_date', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching company invoices:', error)
+        throw error
+      }
+      return data || []
+    }
+    // Demo mode
+    const localData = getLocalData()
+    return (localData.invoices || []).filter(i => i.company_id === companyId)
+  },
+
+  // Create a new invoice with line items
+  async createInvoice(invoice, items) {
+    if (isSupabaseConfigured) {
+      // Start by creating the invoice
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          project_id: invoice.project_id,
+          company_id: invoice.company_id,
+          invoice_number: invoice.invoice_number,
+          invoice_date: invoice.invoice_date,
+          due_date: invoice.due_date,
+          status: invoice.status || 'draft',
+          retention_percent: invoice.retention_percent || 0,
+          bill_to_name: invoice.bill_to_name,
+          bill_to_address: invoice.bill_to_address,
+          bill_to_contact: invoice.bill_to_contact,
+          notes: invoice.notes,
+          terms: invoice.terms || 'Net 30',
+          created_by: invoice.created_by
+        })
+        .select()
+        .single()
+
+      if (invoiceError) {
+        console.error('Error creating invoice:', invoiceError)
+        throw invoiceError
+      }
+
+      // Now add line items
+      if (items && items.length > 0) {
+        const itemsToInsert = items.map((item, index) => ({
+          invoice_id: invoiceData.id,
+          item_type: item.item_type,
+          reference_id: item.reference_id,
+          reference_number: item.reference_number,
+          description: item.description,
+          amount: item.amount,
+          sort_order: index
+        }))
+
+        const { error: itemsError } = await supabase
+          .from('invoice_items')
+          .insert(itemsToInsert)
+
+        if (itemsError) {
+          console.error('Error creating invoice items:', itemsError)
+          // Delete the invoice if items failed
+          await supabase.from('invoices').delete().eq('id', invoiceData.id)
+          throw itemsError
+        }
+      }
+
+      // Fetch the complete invoice with items
+      return this.getInvoice(invoiceData.id)
+    }
+    // Demo mode
+    const localData = getLocalData()
+    if (!localData.invoices) localData.invoices = []
+    const newInvoice = {
+      ...invoice,
+      id: generateTempId(),
+      created_at: new Date().toISOString(),
+      invoice_items: items || []
+    }
+    localData.invoices.push(newInvoice)
+    setLocalData(localData)
+    return newInvoice
+  },
+
+  // Get a single invoice by ID
+  async getInvoice(invoiceId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          invoice_items (*)
+        `)
+        .eq('id', invoiceId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching invoice:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    return (localData.invoices || []).find(i => i.id === invoiceId)
+  },
+
+  // Update invoice
+  async updateInvoice(invoiceId, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('invoices')
+        .update(updates)
+        .eq('id', invoiceId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating invoice:', error)
+        throw error
+      }
+      return data
+    }
+    // Demo mode
+    const localData = getLocalData()
+    const index = (localData.invoices || []).findIndex(i => i.id === invoiceId)
+    if (index >= 0) {
+      localData.invoices[index] = { ...localData.invoices[index], ...updates }
+      setLocalData(localData)
+      return localData.invoices[index]
+    }
+    return null
+  },
+
+  // Mark invoice as sent
+  async markInvoiceSent(invoiceId) {
+    return this.updateInvoice(invoiceId, {
+      status: 'sent',
+      sent_at: new Date().toISOString()
+    })
+  },
+
+  // Record payment on invoice
+  async recordInvoicePayment(invoiceId, paymentAmount) {
+    const invoice = await this.getInvoice(invoiceId)
+    if (!invoice) throw new Error('Invoice not found')
+
+    const newAmountPaid = (invoice.amount_paid || 0) + paymentAmount
+    const isPaidInFull = newAmountPaid >= invoice.total
+
+    return this.updateInvoice(invoiceId, {
+      amount_paid: newAmountPaid,
+      status: isPaidInFull ? 'paid' : 'partial',
+      paid_at: isPaidInFull ? new Date().toISOString() : null
+    })
+  },
+
+  // Delete invoice (only draft invoices)
+  async deleteInvoice(invoiceId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', invoiceId)
+        .eq('status', 'draft') // RLS also enforces this
+
+      if (error) {
+        console.error('Error deleting invoice:', error)
+        throw error
+      }
+      return true
+    }
+    // Demo mode
+    const localData = getLocalData()
+    localData.invoices = (localData.invoices || []).filter(i => i.id !== invoiceId)
+    setLocalData(localData)
+    return true
+  },
+
+  // Mark CORs and T&M tickets as billed after creating invoice
+  async markItemsBilled(corIds = [], tmIds = []) {
+    if (isSupabaseConfigured) {
+      // Update CORs to 'billed' status
+      if (corIds.length > 0) {
+        const { error: corsError } = await supabase
+          .from('change_orders')
+          .update({ status: 'billed' })
+          .in('id', corIds)
+
+        if (corsError) {
+          console.error('Error marking CORs as billed:', corsError)
+        }
+      }
+
+      // Update T&M tickets to 'billed' status
+      if (tmIds.length > 0) {
+        const { error: tmError } = await supabase
+          .from('t_and_m_tickets')
+          .update({ status: 'billed' })
+          .in('id', tmIds)
+
+        if (tmError) {
+          console.error('Error marking T&M tickets as billed:', tmError)
+        }
+      }
+    }
   }
 }
 

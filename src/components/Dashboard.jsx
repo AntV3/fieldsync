@@ -11,6 +11,7 @@ import ManDayCosts from './ManDayCosts'
 import CORList from './cor/CORList'
 import CORForm from './cor/CORForm'
 import CORDetail from './cor/CORDetail'
+import BillingCenter from './billing/BillingCenter'
 import BurnRateCard from './BurnRateCard'
 import CostContributorsCard from './CostContributorsCard'
 import ProfitabilityCard from './ProfitabilityCard'
@@ -1396,6 +1397,18 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           onViewAll={() => setTMViewMode('full')}
                         />
                       </div>
+                    </div>
+                  )}
+
+                  {/* BILLING SECTION */}
+                  {financialsSection === 'billing' && (
+                    <div className="financials-billing animate-fade-in">
+                      <BillingCenter
+                        project={selectedProject}
+                        company={company}
+                        user={user}
+                        onShowToast={onShowToast}
+                      />
                     </div>
                   )}
                 </div>

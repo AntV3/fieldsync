@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { BarChart3, FileText, ClipboardList, ChevronRight, ChevronLeft, PanelLeftOpen } from 'lucide-react'
+import { BarChart3, FileText, ClipboardList, Receipt, ChevronRight, ChevronLeft, PanelLeftOpen } from 'lucide-react'
 import { CountBadge } from './ui'
 
 /**
@@ -36,6 +36,14 @@ const NAV_ITEMS = [
     icon: ClipboardList,
     description: 'Field data',
     step: 2
+  },
+  {
+    id: 'billing',
+    label: 'Billing',
+    shortLabel: 'Billing',
+    icon: Receipt,
+    description: 'Invoices & billing',
+    step: 3
   }
 ]
 
@@ -50,7 +58,9 @@ export default memo(function FinancialsNav({
     corCount = 0,
     ticketCount = 0,
     corPending = 0,
-    ticketPending = 0
+    ticketPending = 0,
+    billableCount = 0,
+    invoiceCount = 0
   } = stats
 
   // Get badge config for each section
@@ -67,6 +77,13 @@ export default memo(function FinancialsNav({
         count: ticketCount,
         variant: ticketPending > 0 ? 'warning' : 'default',
         pending: ticketPending
+      }
+    }
+    if (itemId === 'billing' && billableCount > 0) {
+      return {
+        count: billableCount,
+        variant: 'success', // Green to indicate money ready to collect
+        pending: billableCount
       }
     }
     return null
