@@ -12,6 +12,8 @@ import CORList from './cor/CORList'
 import CORForm from './cor/CORForm'
 import CORDetail from './cor/CORDetail'
 import BillingCenter from './billing/BillingCenter'
+import ProgressBillingCard from './billing/ProgressBillingCard'
+import DrawRequestModal from './billing/DrawRequestModal'
 import ProjectEquipmentCard from './equipment/ProjectEquipmentCard'
 import EquipmentModal from './equipment/EquipmentModal'
 import BurnRateCard from './BurnRateCard'
@@ -53,6 +55,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showEquipmentModal, setShowEquipmentModal] = useState(false)
   const [editingEquipment, setEditingEquipment] = useState(null)
   const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0)
+  const [showDrawRequestModal, setShowDrawRequestModal] = useState(false)
+  const [editingDrawRequest, setEditingDrawRequest] = useState(null)
+  const [drawRequestRefreshKey, setDrawRequestRefreshKey] = useState(0)
 
   // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
   // When multiple real-time events fire rapidly, this coalesces them into a single refresh
@@ -1343,6 +1348,23 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         onShowToast={onShowToast}
                       />
 
+                      {/* Progress Billing / Draw Requests */}
+                      <ProgressBillingCard
+                        key={drawRequestRefreshKey}
+                        project={selectedProject}
+                        areas={areas}
+                        corStats={projectData?.corStats}
+                        onCreateDraw={() => {
+                          setEditingDrawRequest(null)
+                          setShowDrawRequestModal(true)
+                        }}
+                        onViewDraw={(drawRequest) => {
+                          setEditingDrawRequest(drawRequest)
+                          setShowDrawRequestModal(true)
+                        }}
+                        onShowToast={onShowToast}
+                      />
+
                       {/* Labor Details - Collapsible */}
                       <details className="financials-details">
                         <summary className="financials-details-summary">
@@ -1828,6 +1850,27 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             onClose={() => {
               setShowEquipmentModal(false)
               setEditingEquipment(null)
+            }}
+          />
+        )}
+
+        {/* Draw Request Modal */}
+        {showDrawRequestModal && (
+          <DrawRequestModal
+            project={selectedProject}
+            company={company}
+            areas={areas}
+            corStats={projectsData.find(p => p.id === selectedProject?.id)?.corStats}
+            editDrawRequest={editingDrawRequest}
+            onSave={() => {
+              setShowDrawRequestModal(false)
+              setEditingDrawRequest(null)
+              setDrawRequestRefreshKey(prev => prev + 1)
+              onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success')
+            }}
+            onClose={() => {
+              setShowDrawRequestModal(false)
+              setEditingDrawRequest(null)
             }}
           />
         )}

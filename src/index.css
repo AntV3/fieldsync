@@ -27557,3 +27557,485 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     flex-direction: column;
   }
 }
+
+/* ============================================
+   PROGRESS BILLING / DRAW REQUESTS STYLES
+   ============================================ */
+
+/* Progress Billing Card */
+.progress-billing-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.progress-billing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.progress-billing-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-billing-title h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.progress-billing-title svg {
+  color: var(--accent-blue);
+}
+
+/* Contract Summary */
+.progress-billing-contract {
+  background: var(--bg-hover);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.contract-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.contract-row.co {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.contract-row.revised {
+  border-top: 1px solid var(--border-color);
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+.contract-label {
+  color: var(--text-secondary);
+}
+
+.contract-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.contract-value.positive {
+  color: var(--accent-green);
+}
+
+/* Billing Progress */
+.progress-billing-status {
+  margin-bottom: 1rem;
+}
+
+.billing-progress-bar {
+  height: 8px;
+  background: var(--bg-hover);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.billing-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.billing-stats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.billing-stat {
+  flex: 1;
+}
+
+.billing-stat-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.billing-stat-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.billing-stat.retention .billing-stat-value {
+  color: var(--accent-amber);
+}
+
+.billing-stat.remaining .billing-stat-value {
+  color: var(--text-secondary);
+}
+
+/* Draw Requests List */
+.progress-billing-loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.progress-billing-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.progress-billing-empty p {
+  margin-bottom: 1rem;
+}
+
+.progress-billing-draws {
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.draws-header {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.draws-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.draw-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-hover);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.draw-item:hover {
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.draw-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.draw-number {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.draw-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.draw-item-amount {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.draw-item-arrow {
+  color: var(--text-muted);
+}
+
+.view-all-draws {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+/* Draw Request Modal */
+.draw-request-modal {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.draw-request-modal .modal-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.draw-request-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: var(--text-secondary);
+}
+
+.draw-request-header-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 120px;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Draw Contract Summary */
+.draw-contract-summary {
+  display: flex;
+  gap: 2rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-hover);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+
+.draw-contract-summary .contract-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.draw-contract-summary .contract-item span:first-child {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.draw-contract-summary .contract-item span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.draw-contract-summary .contract-item.total span:last-child {
+  color: var(--accent-blue);
+}
+
+.draw-contract-summary .positive {
+  color: var(--accent-green) !important;
+}
+
+/* Schedule of Values Table */
+.sov-table-container {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.sov-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.sov-table th {
+  background: var(--bg-hover);
+  padding: 0.6rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.sov-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.sov-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.sov-table tbody tr.complete {
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.sov-table tfoot tr {
+  background: var(--bg-hover);
+  font-weight: 600;
+}
+
+.sov-col-num {
+  width: 40px;
+  text-align: center !important;
+}
+
+.sov-col-desc {
+  min-width: 150px;
+}
+
+.sov-col-scheduled,
+.sov-col-amount {
+  text-align: right !important;
+  width: 100px;
+}
+
+.sov-col-prev,
+.sov-col-current,
+.sov-col-total {
+  text-align: center !important;
+  width: 70px;
+}
+
+.sov-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sov-percent-input {
+  width: 50px;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-align: center;
+  background: var(--bg-card);
+}
+
+.sov-percent-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.sov-input-suffix {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.complete-indicator {
+  color: var(--text-muted);
+}
+
+.sov-col-total .complete {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+/* Draw Summary */
+.draw-summary {
+  background: var(--bg-hover);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.draw-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0;
+  font-size: 0.85rem;
+}
+
+.draw-summary-row span:first-child {
+  color: var(--text-secondary);
+}
+
+.draw-summary-row span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.draw-summary-row.current span:last-child {
+  color: var(--accent-blue);
+}
+
+.draw-summary-row.retention span:last-child {
+  color: var(--accent-amber);
+}
+
+.draw-summary-row.total {
+  font-size: 1rem;
+  padding: 0.5rem 0;
+}
+
+.draw-summary-row.total span:last-child {
+  color: var(--accent-green);
+  font-size: 1.1rem;
+}
+
+.draw-summary-row.balance span:last-child {
+  color: var(--text-secondary);
+}
+
+.draw-summary-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0.5rem 0;
+}
+
+/* Input with suffix */
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.input-with-suffix .form-input {
+  flex: 1;
+}
+
+.input-with-suffix .input-suffix {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Responsive Progress Billing */
+@media (max-width: 768px) {
+  .billing-stats {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .draw-request-header-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .draw-request-header-fields .form-group:last-child {
+    grid-column: span 2;
+  }
+
+  .draw-contract-summary {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .sov-table {
+    font-size: 0.7rem;
+  }
+
+  .sov-percent-input {
+    width: 40px;
+  }
+}
