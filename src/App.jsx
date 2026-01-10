@@ -1,22 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { ThemeProvider } from './lib/ThemeContext'
 import AppEntry from './components/AppEntry'
-import ForemanView from './components/ForemanView'
-import Dashboard from './components/Dashboard'
-import Setup from './components/Setup'
-import BrandingSettings from './components/BrandingSettings'
-import PricingManager from './components/PricingManager'
-import PublicView from './components/PublicView'
-import SignaturePage from './components/SignaturePage'
-import MembershipManager from './components/MembershipManager'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
 import NotificationCenter from './components/NotificationCenter'
 import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
+
+// Lazy load large components for code splitting
+const ForemanView = lazy(() => import('./components/ForemanView'))
+const Dashboard = lazy(() => import('./components/Dashboard'))
+const Setup = lazy(() => import('./components/Setup'))
+const BrandingSettings = lazy(() => import('./components/BrandingSettings'))
+const PricingManager = lazy(() => import('./components/PricingManager'))
+const PublicView = lazy(() => import('./components/PublicView'))
+const SignaturePage = lazy(() => import('./components/SignaturePage'))
+const MembershipManager = lazy(() => import('./components/MembershipManager'))
+
+// Loading fallback component
+function PageLoader() {
+  return (
+    <div className="page-loader">
+      <Logo className="loading-logo" />
+      <div className="spinner"></div>
+    </div>
+  )
+}
 
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature', 'pending'
@@ -405,7 +417,9 @@ export default function App() {
       <ThemeProvider>
         <BrandingProvider>
           <ErrorBoundary>
-            <PublicView shareToken={shareToken} />
+            <Suspense fallback={<PageLoader />}>
+              <PublicView shareToken={shareToken} />
+            </Suspense>
           </ErrorBoundary>
           {toast && (
             <Toast
@@ -425,7 +439,9 @@ export default function App() {
       <ThemeProvider>
         <BrandingProvider>
           <ErrorBoundary>
-            <SignaturePage signatureToken={signatureToken} />
+            <Suspense fallback={<PageLoader />}>
+              <SignaturePage signatureToken={signatureToken} />
+            </Suspense>
           </ErrorBoundary>
           {toast && (
             <Toast
@@ -478,12 +494,14 @@ export default function App() {
       <ThemeProvider>
         <BrandingProvider companyId={foremanProject.company_id}>
           <ErrorBoundary>
-            <ForemanView
-              project={foremanProject}
-              companyId={foremanProject.company_id}
-              onShowToast={showToast}
-              onExit={handleExitForeman}
-            />
+            <Suspense fallback={<PageLoader />}>
+              <ForemanView
+                project={foremanProject}
+                companyId={foremanProject.company_id}
+                onShowToast={showToast}
+                onExit={handleExitForeman}
+              />
+            </Suspense>
           </ErrorBoundary>
           <OfflineIndicator />
           {toast && (
@@ -611,45 +629,47 @@ export default function App() {
 
         {/* Main Content */}
         <ErrorBoundary>
-          <div className="container" key={company?.id}>
-            {activeTab === 'dashboard' && (
-              <Dashboard
-                company={company}
-                user={user}
-                isAdmin={isAdmin}
-                onShowToast={showToast}
-                navigateToProjectId={navigateToProjectId}
-                onProjectNavigated={handleProjectNavigated}
-              />
-            )}
-            {activeTab === 'setup' && (
-              <Setup
-                company={company}
-                user={user}
-                onProjectCreated={handleProjectCreated}
-                onShowToast={showToast}
-              />
-            )}
-            {activeTab === 'pricing' && (
-              <PricingManager
-                company={company}
-                onShowToast={showToast}
-              />
-            )}
-            {activeTab === 'branding' && (
-              <BrandingSettings
-                company={company}
-                onShowToast={showToast}
-              />
-            )}
-            {activeTab === 'team' && isAdmin && (
-              <MembershipManager
-                company={company}
-                user={user}
-                onShowToast={showToast}
-              />
-            )}
-          </div>
+          <Suspense fallback={<PageLoader />}>
+            <div className="container" key={company?.id}>
+              {activeTab === 'dashboard' && (
+                <Dashboard
+                  company={company}
+                  user={user}
+                  isAdmin={isAdmin}
+                  onShowToast={showToast}
+                  navigateToProjectId={navigateToProjectId}
+                  onProjectNavigated={handleProjectNavigated}
+                />
+              )}
+              {activeTab === 'setup' && (
+                <Setup
+                  company={company}
+                  user={user}
+                  onProjectCreated={handleProjectCreated}
+                  onShowToast={showToast}
+                />
+              )}
+              {activeTab === 'pricing' && (
+                <PricingManager
+                  company={company}
+                  onShowToast={showToast}
+                />
+              )}
+              {activeTab === 'branding' && (
+                <BrandingSettings
+                  company={company}
+                  onShowToast={showToast}
+                />
+              )}
+              {activeTab === 'team' && isAdmin && (
+                <MembershipManager
+                  company={company}
+                  user={user}
+                  onShowToast={showToast}
+                />
+              )}
+            </div>
+          </Suspense>
         </ErrorBoundary>
 
         {/* Offline Indicator */}

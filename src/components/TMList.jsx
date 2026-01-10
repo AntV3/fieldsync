@@ -1,41 +1,15 @@
-import { useState, useEffect, useMemo } from 'react'
-import { HardHat, FileText, Wrench, Camera, ChevronDown, ChevronRight, Calendar, Link, Lock, Link2, X, RefreshCw, AlertTriangle, CheckCircle, FileSpreadsheet, BarChart3, List } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
+import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
 import { TicketSkeleton, CountBadge } from './ui'
 import TMDashboard from './tm/TMDashboard'
+import TMTicketCard from './tm/TMTicketCard'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-
-// Helper to convert hex color to RGB array for jsPDF
-const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16)
-  ] : [30, 41, 59] // Default dark slate
-}
-
-// Helper to load image as base64 for PDF
-const loadImageAsBase64 = (url) => {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
-      resolve(canvas.toDataURL('image/png'))
-    }
-    img.onerror = () => resolve(null)
-    img.src = url
-  })
-}
 
 export default function TMList({
   project,
@@ -181,7 +155,7 @@ export default function TMList({
     }
   }, [filter])
 
-  const updateStatus = async (ticketId, newStatus) => {
+  const updateStatus = useCallback(async (ticketId, newStatus) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticketId]) {
       onShowToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
@@ -190,7 +164,7 @@ export default function TMList({
 
     try {
       await db.updateTMTicketStatus(ticketId, newStatus)
-      setTickets(tickets.map(t =>
+      setTickets(prev => prev.map(t =>
         t.id === ticketId ? { ...t, status: newStatus } : t
       ))
       onShowToast(`Ticket ${newStatus}`, 'success')
@@ -198,10 +172,10 @@ export default function TMList({
       console.error('Error updating status:', error)
       onShowToast('Error updating status', 'error')
     }
-  }
+  }, [lockedTickets, onShowToast])
 
   // Handle approval - approve directly (CE/PCO is informational only)
-  const handleApprove = (ticket) => {
+  const handleApprove = useCallback((ticket) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticket.id]) {
       onShowToast(lockedTickets[ticket.id].reason || 'This ticket is locked (COR approved)', 'error')
@@ -209,7 +183,7 @@ export default function TMList({
     }
 
     updateStatus(ticket.id, 'approved')
-  }
+  }, [lockedTickets, onShowToast, updateStatus])
 
   // Confirm approval with change order value
   const confirmChangeOrderApproval = async () => {
@@ -233,7 +207,7 @@ export default function TMList({
     }
   }
 
-  const deleteTicket = async (ticketId) => {
+  const deleteTicket = useCallback(async (ticketId) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticketId]) {
       onShowToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
@@ -243,16 +217,16 @@ export default function TMList({
     if (!confirm('Delete this T&M ticket?')) return
     try {
       await db.deleteTMTicket(ticketId)
-      setTickets(tickets.filter(t => t.id !== ticketId))
+      setTickets(prev => prev.filter(t => t.id !== ticketId))
       onShowToast('Ticket deleted', 'success')
     } catch (error) {
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
     }
-  }
+  }, [lockedTickets, onShowToast])
 
   // Open COR association modal
-  const openCorAssignModal = async (ticket) => {
+  const openCorAssignModal = useCallback(async (ticket) => {
     setPendingCorAssignTicket(ticket)
     setSelectedCorForAssign(ticket.assigned_cor_id || '')
     setShowCorAssignModal(true)
@@ -268,7 +242,7 @@ export default function TMList({
     } finally {
       setLoadingCors(false)
     }
-  }
+  }, [project.id, onShowToast])
 
   // Associate ticket with selected COR
   const handleAssignToCor = async () => {
@@ -298,7 +272,7 @@ export default function TMList({
   }
 
   // Retry a failed COR import
-  const handleRetryImport = async (ticket, e) => {
+  const handleRetryImport = useCallback(async (ticket, e) => {
     e?.stopPropagation()
     if (!ticket.assigned_cor_id) return
 
@@ -325,7 +299,7 @@ export default function TMList({
     } finally {
       setRetryingImport(null)
     }
-  }
+  }, [company.id, project.work_type, project.job_type, onShowToast])
 
   const calculateTicketTotal = (ticket) => {
     let total = 0
@@ -357,8 +331,8 @@ export default function TMList({
   }
 
   // Selection helpers
-  const toggleTicketSelection = (ticketId, e) => {
-    e.stopPropagation()
+  const toggleTicketSelection = useCallback((ticketId, e) => {
+    e?.stopPropagation()
     setSelectedTickets(prev => {
       const next = new Set(prev)
       if (next.has(ticketId)) {
@@ -368,7 +342,7 @@ export default function TMList({
       }
       return next
     })
-  }
+  }, [])
 
   const toggleSelectAll = () => {
     const currentFiltered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
@@ -1098,246 +1072,40 @@ export default function TMList({
   const allFilteredSelected = filteredTickets.length > 0 && filteredTickets.every(t => selectedTickets.has(t.id))
   const someSelected = selectedTickets.size > 0
 
-  // Helper function to render a single ticket card
-  const renderTicketCard = (ticket) => {
-    const isLocked = !!lockedTickets[ticket.id]
-    const lockInfo = lockedTickets[ticket.id]
-    const hasFailedImport = !!failedImports[ticket.id]
-    const isRetrying = retryingImport === ticket.id
+  // Memoized handlers for TMTicketCard
+  const handleToggleExpand = useCallback((ticketId) => {
+    setExpandedTicket(prev => prev === ticketId ? null : ticketId)
+  }, [])
 
-    return (
-    <div key={ticket.id} className={`tm-ticket-card hover-lift animate-fade-in-up ${ticket.status} ${selectedTickets.has(ticket.id) ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}>
-      <div
-        className="tm-ticket-header"
-        onClick={() => setExpandedTicket(expandedTicket === ticket.id ? null : ticket.id)}
-      >
-        <input
-          type="checkbox"
-          checked={selectedTickets.has(ticket.id)}
-          onChange={(e) => toggleTicketSelection(ticket.id, e)}
-          onClick={(e) => e.stopPropagation()}
-          className="tm-checkbox"
-        />
-        <div className="tm-ticket-info">
-          <span className="tm-ticket-date">{formatDate(ticket.work_date)}</span>
-          {ticket.ce_pco_number && (
-            <span className="tm-ce-badge">{ticket.ce_pco_number}</span>
-          )}
-          {/* Show COR link badge if assigned to a COR */}
-          {ticket.assigned_cor_id && lockInfo?.lockedBy && (
-            <span className={`tm-cor-badge ${isLocked ? 'locked' : ''}`} title={lockInfo.reason}>
-              {isLocked && <Lock size={10} />}
-              {lockInfo.lockedBy.cor_number}
-            </span>
-          )}
-          {/* Show photo count badge */}
-          {ticket.photos?.length > 0 && (
-            <CountBadge
-              count={ticket.photos.length}
-              icon={Camera}
-              size="small"
-              variant="default"
-            />
-          )}
-          {/* Show failed import warning badge */}
-          {hasFailedImport && (
-            <span className="tm-import-failed-badge" title="COR data import failed - retry needed">
-              <AlertTriangle size={12} /> Import Failed
-            </span>
-          )}
-          {/* Show client verified badge */}
-          {ticket.client_signature_data && (
-            <span className="tm-verified-badge" title={`Verified by ${ticket.client_signature_name || 'client'}${ticket.client_signature_date ? ` on ${formatDate(ticket.client_signature_date)}` : ''}`}>
-              <CheckCircle size={12} /> Verified
-            </span>
-          )}
-          <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
-        </div>
-        <div className="tm-ticket-summary">
-          <span className="tm-ticket-hours">{calculateTotalHours(ticket)} hrs</span>
-          <span className="tm-ticket-total">${calculateTicketTotal(ticket).toFixed(2)}</span>
-          <span className="tm-expand-arrow">{expandedTicket === ticket.id ? '▼' : '▶'}</span>
-        </div>
-      </div>
+  const handleShowSignatureLink = useCallback((ticket) => {
+    setSignatureLinkTicket(ticket)
+    setShowSignatureLink(true)
+  }, [])
 
-      {expandedTicket === ticket.id && (
-        <div className="tm-ticket-details">
-          {ticket.t_and_m_workers?.length > 0 && (
-            <div className="tm-detail-section">
-              <h4><HardHat size={16} className="inline-icon" /> Workers</h4>
-              <div className="tm-detail-list">
-                {ticket.t_and_m_workers.map(worker => (
-                  <div key={worker.id} className="tm-detail-row">
-                    <span>
-                      {worker.role && worker.role !== 'Laborer' && (
-                        <span className="tm-role-badge">{worker.role}</span>
-                      )}
-                      {worker.name}
-                    </span>
-                    <span>
-                      {worker.hours} hrs
-                      {parseFloat(worker.overtime_hours) > 0 && (
-                        <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {ticket.t_and_m_items?.length > 0 && (
-            <div className="tm-detail-section">
-              <h4><Wrench size={16} className="inline-icon" /> Materials & Equipment</h4>
-              <div className="tm-detail-list">
-                {ticket.t_and_m_items.map(item => (
-                  <div key={item.id} className="tm-detail-row">
-                    <span>
-                      {item.custom_name ? (
-                        <><span className="tm-custom-badge">Custom</span> {item.custom_name}</>
-                      ) : (
-                        item.materials_equipment?.name
-                      )}
-                    </span>
-                    <span className="tm-detail-qty">
-                      {item.quantity} {item.materials_equipment?.unit || 'each'}
-                      {item.materials_equipment?.cost_per_unit > 0 && (
-                        <span className="tm-item-cost">
-                          ${(item.quantity * item.materials_equipment.cost_per_unit).toFixed(2)}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {ticket.notes && (
-            <div className="tm-detail-section">
-              <h4><FileText size={16} className="inline-icon" /> Description</h4>
-              <p className="tm-notes-text">{ticket.notes}</p>
-            </div>
-          )}
-
-          {ticket.photos && ticket.photos.length > 0 && (
-            <div className="tm-detail-section">
-              <h4><Camera size={16} className="inline-icon" /> Photos ({ticket.photos.length})</h4>
-              <div className="tm-photos-grid">
-                {ticket.photos.map((photo, idx) => (
-                  <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">
-                    <img
-                      src={photo}
-                      alt={`Photo ${idx + 1}`}
-                      onError={(e) => {
-                        e.target.onerror = null
-                        e.target.classList.add('photo-error')
-                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSIzIiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSIyIiByeT0iMiIvPjxjaXJjbGUgY3g9IjguNSIgY3k9IjguNSIgcj0iMS41Ii8+PHBvbHlsaW5lIHBvaW50cz0iMjEgMTUgMTYgMTAgNSAyMSIvPjwvc3ZnPg=='
-                        console.error('Failed to load photo:', photo)
-                      }}
-                    />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Show change order value if approved with CE/PCO */}
-          {ticket.ce_pco_number && ticket.change_order_value > 0 && (
-            <div className="tm-change-order-value">
-              <span className="tm-co-label">Change Order Value:</span>
-              <span className="tm-co-amount">${ticket.change_order_value.toLocaleString()}</span>
-            </div>
-          )}
-
-          {/* Lock notice if ticket is locked */}
-          {isLocked && (
-            <div className="tm-lock-notice">
-              <Lock size={14} />
-              <span>{lockInfo?.reason || 'This ticket is locked (COR approved)'}</span>
-            </div>
-          )}
-
-          <div className="tm-ticket-actions">
-            {ticket.status === 'pending' && !isLocked && (
-              <>
-                <button
-                  className="btn btn-success btn-small"
-                  onClick={(e) => { e.stopPropagation(); handleApprove(ticket); }}
-                >
-                  Approve
-                </button>
-                <button
-                  className="btn btn-warning btn-small"
-                  onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'rejected'); }}
-                >
-                  Reject
-                </button>
-              </>
-            )}
-            {ticket.status === 'approved' && !isLocked && (
-              <>
-                <button
-                  className="btn btn-primary btn-small"
-                  onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'billed'); }}
-                >
-                  Mark Billed
-                </button>
-                <button
-                  className="btn btn-secondary btn-small"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSignatureLinkTicket(ticket)
-                    setShowSignatureLink(true)
-                  }}
-                >
-                  <Link size={14} /> Signature Link
-                </button>
-              </>
-            )}
-            {ticket.status === 'rejected' && !isLocked && (
-              <button
-                className="btn btn-secondary btn-small"
-                onClick={(e) => { e.stopPropagation(); updateStatus(ticket.id, 'pending'); }}
-              >
-                Restore
-              </button>
-            )}
-            {/* Link to COR button - show for any ticket not locked */}
-            {!isLocked && (
-              <button
-                className={`btn btn-small ${ticket.assigned_cor_id ? 'btn-ghost' : 'btn-secondary'}`}
-                onClick={(e) => { e.stopPropagation(); openCorAssignModal(ticket); }}
-                title={ticket.assigned_cor_id ? 'Change COR link' : 'Link to Change Order'}
-              >
-                <Link2 size={14} /> {ticket.assigned_cor_id ? 'COR' : 'Link COR'}
-              </button>
-            )}
-            {/* Retry import button - show when import failed */}
-            {hasFailedImport && !isLocked && (
-              <button
-                className="btn btn-warning btn-small"
-                onClick={(e) => handleRetryImport(ticket, e)}
-                disabled={isRetrying}
-                title="Retry syncing data to COR"
-              >
-                <RefreshCw size={14} className={isRetrying ? 'spin' : ''} /> {isRetrying ? 'Syncing...' : 'Retry Sync'}
-              </button>
-            )}
-            {!isLocked && (
-              <button
-                className="btn btn-danger btn-small"
-                onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }}
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+  // Helper function to render a single ticket card using memoized component
+  const renderTicketCard = (ticket) => (
+    <TMTicketCard
+      key={ticket.id}
+      ticket={ticket}
+      isExpanded={expandedTicket === ticket.id}
+      isSelected={selectedTickets.has(ticket.id)}
+      isLocked={!!lockedTickets[ticket.id]}
+      lockInfo={lockedTickets[ticket.id]}
+      hasFailedImport={!!failedImports[ticket.id]}
+      isRetrying={retryingImport === ticket.id}
+      onToggleExpand={handleToggleExpand}
+      onToggleSelect={toggleTicketSelection}
+      onApprove={handleApprove}
+      onUpdateStatus={updateStatus}
+      onDelete={deleteTicket}
+      onOpenCorAssign={openCorAssignModal}
+      onRetryImport={handleRetryImport}
+      onShowSignatureLink={handleShowSignatureLink}
+      formatDate={formatDate}
+      calculateTotalHours={calculateTotalHours}
+      calculateTicketTotal={calculateTicketTotal}
+    />
   )
-  }
 
   return (
     <div className={`tm-list ${compact ? 'tm-list-compact' : ''}`}>

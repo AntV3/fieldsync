@@ -17,19 +17,11 @@ import {
   formatDate,
   formatDateRange
 } from './corCalculations'
+import { hexToRgb, loadImageAsBase64 } from './imageUtils'
 
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
-
-const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16)
-  ] : [30, 41, 59]
-}
 
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
@@ -45,39 +37,6 @@ const formatTimePeriod = (worker) => {
     return `${formatTime(worker.time_started)} - ${formatTime(worker.time_ended)}`
   }
   return '-'
-}
-
-// Load image as base64 with timeout and error handling
-const loadImageAsBase64 = (url, timeout = 5000) => {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-
-    const timeoutId = setTimeout(() => {
-      resolve(null)
-    }, timeout)
-
-    img.onload = () => {
-      clearTimeout(timeoutId)
-      try {
-        const canvas = document.createElement('canvas')
-        canvas.width = img.width
-        canvas.height = img.height
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0)
-        resolve(canvas.toDataURL('image/png'))
-      } catch (e) {
-        resolve(null)
-      }
-    }
-
-    img.onerror = () => {
-      clearTimeout(timeoutId)
-      resolve(null)
-    }
-
-    img.src = url
-  })
 }
 
 // ============================================

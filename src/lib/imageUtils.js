@@ -1,6 +1,68 @@
 /**
- * Image utilities for compression and optimization
+ * Image utilities for compression, optimization, and PDF generation
  */
+
+/**
+ * Convert hex color to RGB array for PDF generation
+ * @param {string} hex - Hex color string (with or without #)
+ * @returns {number[]} RGB array [r, g, b]
+ */
+export const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+      ]
+    : [59, 130, 246] // Default to primary blue
+}
+
+/**
+ * Load an image URL and convert to base64 for PDF embedding
+ * @param {string} url - Image URL to load
+ * @param {number} timeout - Timeout in milliseconds (default 5000)
+ * @returns {Promise<string|null>} Base64 data URL or null on failure
+ */
+export const loadImageAsBase64 = (url, timeout = 5000) => {
+  return new Promise((resolve) => {
+    if (!url) {
+      resolve(null)
+      return
+    }
+
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+
+    // Set timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      img.src = ''
+      resolve(null)
+    }, timeout)
+
+    img.onload = () => {
+      clearTimeout(timeoutId)
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        resolve(canvas.toDataURL('image/png'))
+      } catch (e) {
+        // Canvas tainted or other error
+        resolve(null)
+      }
+    }
+
+    img.onerror = () => {
+      clearTimeout(timeoutId)
+      resolve(null)
+    }
+
+    img.src = url
+  })
+}
 
 /**
  * Compress an image file for faster uploads

@@ -28,16 +28,7 @@ import {
   formatDate,
   formatDateRange
 } from './corCalculations'
-
-// Helper to convert hex color to RGB array
-const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16)
-  ] : [30, 41, 59]
-}
+import { hexToRgb, loadImageAsBase64 } from './imageUtils'
 
 // Helper to format time (HH:MM or HH:MM:SS to 9:00am format)
 const formatTime = (timeStr) => {
@@ -55,24 +46,6 @@ const formatTimePeriod = (worker) => {
     return `${formatTime(worker.time_started)} - ${formatTime(worker.time_ended)}`
   }
   return '-'
-}
-
-// Load image as base64
-const loadImageAsBase64 = (url) => {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
-      resolve(canvas.toDataURL('image/png'))
-    }
-    img.onerror = () => resolve(null)
-    img.src = url
-  })
 }
 
 /**

@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, Eye, Edit3, Trash2, Send, CheckSquare, Square, FolderPlus, X, CheckCircle, List, Table, FileSpreadsheet } from 'lucide-react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
+import { hexToRgb, loadImageAsBase64 } from '../../lib/imageUtils'
 import { CardSkeleton, CountBadge } from '../ui'
 import { useBranding } from '../../lib/BrandingContext'
 import CORLog from './CORLog'
+import CORCard from './CORCard'
 
 // Status display mapping for exports
 const STATUS_DISPLAY = {
@@ -14,33 +16,6 @@ const STATUS_DISPLAY = {
   rejected: { label: 'Rejected', color: [220, 38, 38], bgColor: [254, 226, 226] },
   billed: { label: 'Billed', color: [37, 99, 235], bgColor: [219, 234, 254] },
   closed: { label: 'Closed', color: [75, 85, 99], bgColor: [229, 231, 235] }
-}
-
-// Helper to convert hex to RGB
-const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16)
-  ] : [59, 130, 246]
-}
-
-// Helper to load image as base64
-const loadImageAsBase64 = (url) => {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      canvas.getContext('2d').drawImage(img, 0, 0)
-      resolve(canvas.toDataURL('image/png'))
-    }
-    img.onerror = () => resolve(null)
-    img.src = url
-  })
 }
 
 export default function CORList({
@@ -478,22 +453,22 @@ export default function CORList({
     }
   }
 
-  const handleDelete = async (corId, e) => {
+  const handleDelete = useCallback(async (corId, e) => {
     e?.stopPropagation()
     if (!confirm('Are you sure you want to delete this COR? This action cannot be undone.')) return
 
     try {
       await db.deleteCOR(corId)
-      setCORs(cors.filter(c => c.id !== corId))
+      setCORs(prev => prev.filter(c => c.id !== corId))
       onShowToast?.('COR deleted', 'success')
       loadStats()
     } catch (error) {
       console.error('Error deleting COR:', error)
       onShowToast?.('Error deleting COR', 'error')
     }
-  }
+  }, [onShowToast])
 
-  const handleSubmitForApproval = async (corId, e) => {
+  const handleSubmitForApproval = useCallback(async (corId, e) => {
     e?.stopPropagation()
     try {
       await db.submitCORForApproval(corId)
@@ -504,10 +479,10 @@ export default function CORList({
       console.error('Error submitting COR:', error?.message || error)
       onShowToast?.(error?.message || 'Error submitting COR', 'error')
     }
-  }
+  }, [onShowToast])
 
   // Toggle COR selection
-  const toggleCORSelection = (corId, e) => {
+  const toggleCORSelection = useCallback((corId, e) => {
     e?.stopPropagation()
     setSelectedCORs(prev => {
       const next = new Set(prev)
@@ -518,7 +493,7 @@ export default function CORList({
       }
       return next
     })
-  }
+  }, [])
 
   // Exit select mode
   const exitSelectMode = () => {
@@ -665,120 +640,21 @@ export default function CORList({
 
   const totalCORsCount = filter === 'all' ? cors.length : cors.filter(c => c.status === filter).length
 
-  const getAreaName = (areaId) => {
-    const area = areas?.find(a => a.id === areaId)
-    return area?.name || 'No Area'
-  }
-
-  // Render COR card
-  const renderCORCard = (cor) => {
-    const statusInfo = getStatusInfo(cor.status)
-    const isExpanded = expandedCOR === cor.id
-    const isSelected = selectedCORs.has(cor.id)
-    // Allow editing before billed (draft, pending_approval, approved)
-    const canEdit = ['draft', 'pending_approval', 'approved'].includes(cor.status)
-    // Allow deleting CORs that haven't been approved/billed/closed
-    const canDelete = ['draft', 'pending_approval', 'rejected'].includes(cor.status)
-    const canSubmit = cor.status === 'draft'
-
-    return (
-      <div
-        key={cor.id}
-        className={`cor-card hover-lift animate-fade-in-up ${cor.status} ${isSelected ? 'selected' : ''}`}
-        onClick={() => selectMode ? toggleCORSelection(cor.id) : onViewCOR?.(cor)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMode ? toggleCORSelection(cor.id) : onViewCOR?.(cor) } }}
-        tabIndex={0}
-        role="button"
-        aria-label={`${selectMode ? (isSelected ? 'Deselect' : 'Select') : 'View'} COR ${cor.cor_number}: ${cor.title || 'Untitled'}, ${statusInfo.label}, ${formatCurrency(cor.cor_total || 0)}`}
-      >
-        <div className="cor-card-header">
-          <div className="cor-card-left">
-            {selectMode && (
-              <button
-                className="cor-select-checkbox"
-                onClick={(e) => toggleCORSelection(cor.id, e)}
-                aria-label={isSelected ? 'Deselect' : 'Select'}
-              >
-                {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
-              </button>
-            )}
-            <span className="cor-number">{cor.cor_number}</span>
-            <span
-              className="cor-status-badge"
-              style={{ backgroundColor: statusInfo.bgColor, color: statusInfo.color }}
-            >
-              {statusInfo.label}
-            </span>
-            {(cor.gc_signature_data || cor.client_signature_data) && (
-              <span className="cor-signed-badge" title={`Signed by ${cor.gc_signature_name || cor.client_signature_name || 'Client'}`}>
-                <CheckCircle size={12} /> Signed
-              </span>
-            )}
-          </div>
-          <div className="cor-card-right">
-            <span className="cor-total">{formatCurrency(cor.cor_total || 0)}</span>
-          </div>
-        </div>
-
-        <div className="cor-card-body">
-          <h4 className="cor-title">{cor.title || 'Untitled COR'}</h4>
-          <div className="cor-meta">
-            {cor.group_name && (
-              <span className="cor-group-badge">{cor.group_name}</span>
-            )}
-            {cor.area_id && (
-              <span className="cor-area">{getAreaName(cor.area_id)}</span>
-            )}
-            <span className="cor-period">{formatDateRange(cor.period_start, cor.period_end)}</span>
-          </div>
-        </div>
-
-        <div className="cor-card-footer">
-          <span className="cor-created">{formatDate(cor.created_at)}</span>
-          <div className="cor-actions" onClick={e => e.stopPropagation()}>
-            {canSubmit && (
-              <button
-                className="cor-action-btn submit"
-                onClick={(e) => handleSubmitForApproval(cor.id, e)}
-                title="Submit for Approval"
-                aria-label={`Submit COR ${cor.cor_number} for approval`}
-              >
-                <Send size={14} aria-hidden="true" />
-              </button>
-            )}
-            {canEdit && (
-              <button
-                className="cor-action-btn edit"
-                onClick={(e) => { e.stopPropagation(); onEditCOR?.(cor) }}
-                title="Edit"
-                aria-label={`Edit COR ${cor.cor_number}`}
-              >
-                <Edit3 size={14} aria-hidden="true" />
-              </button>
-            )}
-            <button
-              className="cor-action-btn view"
-              onClick={(e) => { e.stopPropagation(); onViewCOR?.(cor) }}
-              title="View Details"
-              aria-label={`View COR ${cor.cor_number} details`}
-            >
-              <Eye size={14} aria-hidden="true" />
-            </button>
-            {canDelete && (
-              <button
-                className="cor-action-btn delete"
-                onClick={(e) => handleDelete(cor.id, e)}
-                title="Delete"
-                aria-label={`Delete COR ${cor.cor_number}`}
-              >
-                <Trash2 size={14} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Render COR card using memoized component
+  const renderCORCard = (cor) => (
+    <CORCard
+      key={cor.id}
+      cor={cor}
+      isSelected={selectedCORs.has(cor.id)}
+      selectMode={selectMode}
+      areas={areas}
+      onToggleSelect={toggleCORSelection}
+      onView={onViewCOR}
+      onEdit={onEditCOR}
+      onDelete={handleDelete}
+      onSubmitForApproval={handleSubmitForApproval}
+    />
+  )
 
   if (loading) {
     return (

@@ -1,38 +1,12 @@
-import { useState, useEffect, useMemo } from 'react'
-import { ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { ChevronDown, ChevronRight, Calendar, AlertTriangle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
+import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
+import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import Toast from './Toast'
 import jsPDF from 'jspdf'
-
-// Helper to convert hex color to RGB array for jsPDF
-const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16)
-  ] : [30, 41, 59]
-}
-
-// Helper to load image as base64 for PDF
-const loadImageAsBase64 = (url) => {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
-      resolve(canvas.toDataURL('image/png'))
-    }
-    img.onerror = () => resolve(null)
-    img.src = url
-  })
-}
 
 export default function InjuryReportsList({ project, companyId, company, user, onShowToast }) {
   const { branding } = useBranding()
@@ -40,6 +14,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
   const [selectedReport, setSelectedReport] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [toast, setToast] = useState(null)
 
   // View mode state
@@ -63,20 +38,22 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     }
   }, [project?.id, companyId])
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const data = project
         ? await db.getInjuryReports(project.id)
         : await db.getCompanyInjuryReports(companyId)
       setReports(data)
-    } catch (error) {
-      console.error('Error loading injury reports:', error)
+    } catch (err) {
+      console.error('Error loading injury reports:', err)
+      setError(err)
       setToast({ type: 'error', message: 'Failed to load injury reports' })
     } finally {
       setLoading(false)
     }
-  }
+  }, [project?.id, companyId])
 
   const handleReportCreated = () => {
     loadReports()
@@ -354,6 +331,19 @@ export default function InjuryReportsList({ project, companyId, company, user, o
       <div className="loading-container">
         <div className="spinner"></div>
         <p>Loading injury reports...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="injury-reports-section card">
+        <ErrorState
+          title="Unable to load reports"
+          message="There was a problem loading injury reports. Please try again."
+          error={error}
+          onRetry={loadReports}
+        />
       </div>
     )
   }
