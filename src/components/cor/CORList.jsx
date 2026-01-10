@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet } from 'lucide-react'
+import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 import { hexToRgb, loadImageAsBase64 } from '../../lib/imageUtils'
@@ -751,10 +751,28 @@ export default function CORList({
         </div>
       </div>
 
-      {/* Log View - renders CORLog component (editable by office users) */}
-      {displayMode === 'log' ? (
-        <CORLog project={project} company={company} onShowToast={onShowToast} />
-      ) : (
+      {/* Log View - renders CORLog in a full-screen modal for better editing */}
+      {displayMode === 'log' && (
+        <div className="cor-log-modal-overlay" onClick={() => handleDisplayModeChange('list')}>
+          <div className="cor-log-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cor-log-modal-header">
+              <h2>Change Order Log</h2>
+              <button
+                className="cor-log-modal-close"
+                onClick={() => handleDisplayModeChange('list')}
+                title="Close"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="cor-log-modal-content">
+              <CORLog project={project} company={company} onShowToast={onShowToast} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {displayMode === 'list' && (
         <>
           {/* Selection Action Bar */}
           {selectMode && selectedCORs.size > 0 && (
