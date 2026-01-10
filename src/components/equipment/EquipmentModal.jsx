@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { X, Truck, DollarSign, Calendar, Save, ChevronDown } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 
@@ -20,7 +20,7 @@ export default memo(function EquipmentModal({
   onClose
 }) {
   const [catalogEquipment, setCatalogEquipment] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true) // Start true since we load on mount
   const [saving, setSaving] = useState(false)
 
   // Form state
@@ -35,11 +35,26 @@ export default memo(function EquipmentModal({
   const isEditMode = !!editItem
 
   // Load equipment catalog
-  useEffect(() => {
-    if (company?.id) {
-      loadCatalog()
+  const loadCatalog = useCallback(async () => {
+    if (!company?.id) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      const data = await equipmentOps.getCompanyEquipment(company.id)
+      setCatalogEquipment(data || [])
+    } catch (error) {
+      console.error('Error loading equipment catalog:', error)
+    } finally {
+      setLoading(false)
     }
   }, [company?.id])
+
+  useEffect(() => {
+    loadCatalog()
+  }, [loadCatalog])
 
   // Populate form for edit mode
   useEffect(() => {
@@ -53,18 +68,6 @@ export default memo(function EquipmentModal({
       setUseCustom(!editItem.equipment_id)
     }
   }, [editItem])
-
-  const loadCatalog = async () => {
-    try {
-      setLoading(true)
-      const data = await equipmentOps.getCompanyEquipment(company.id)
-      setCatalogEquipment(data || [])
-    } catch (error) {
-      console.error('Error loading equipment catalog:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleEquipmentSelect = (e) => {
     const equipmentId = e.target.value
@@ -91,8 +94,8 @@ export default memo(function EquipmentModal({
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Validation
-    const name = useCustom ? customName.trim() : customName.trim()
+    // Validation - get name from customName (used for both catalog and custom entries)
+    const name = customName.trim()
     if (!name) {
       alert('Please enter equipment name')
       return

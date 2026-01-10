@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { Truck, Plus, Edit2, Trash2, Check, X, DollarSign, Building2, Package } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 
@@ -15,7 +15,7 @@ export default memo(function EquipmentCatalog({
   company,
   onShowToast
 }) {
-  const [equipment, setEquipment] = useState([])
+  const [catalogEquipment, setCatalogEquipment] = useState([])
   const [loading, setLoading] = useState(true)
   const [showInactive, setShowInactive] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -31,24 +31,25 @@ export default memo(function EquipmentCatalog({
     is_owned: false
   })
 
-  useEffect(() => {
-    if (company?.id) {
-      loadEquipment()
-    }
-  }, [company?.id, showInactive])
+  // Memoized load function to avoid stale closures
+  const loadEquipment = useCallback(async () => {
+    if (!company?.id) return
 
-  const loadEquipment = async () => {
     try {
       setLoading(true)
       const data = await equipmentOps.getCompanyEquipment(company.id, !showInactive)
-      setEquipment(data || [])
+      setCatalogEquipment(data || [])
     } catch (error) {
       console.error('Error loading equipment:', error)
       onShowToast?.('Failed to load equipment', 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [company?.id, showInactive, onShowToast])
+
+  useEffect(() => {
+    loadEquipment()
+  }, [loadEquipment])
 
   const resetForm = () => {
     setFormData({
@@ -281,7 +282,7 @@ export default memo(function EquipmentCatalog({
           )}
 
           {/* Equipment list */}
-          {equipment.length === 0 && !isAdding ? (
+          {catalogEquipment.length === 0 && !isAdding ? (
             <div className="equipment-catalog-empty">
               <Package size={32} />
               <p>No equipment in catalog yet</p>
@@ -291,7 +292,7 @@ export default memo(function EquipmentCatalog({
               </button>
             </div>
           ) : (
-            equipment.map(item => (
+            catalogEquipment.map(item => (
               <div
                 key={item.id}
                 className={`equipment-catalog-row ${!item.is_active ? 'inactive' : ''} ${editingId === item.id ? 'editing' : ''}`}

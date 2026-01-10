@@ -1,7 +1,16 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { Truck, Plus, Calendar, DollarSign, RotateCcw, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+
+// Helper function - defined outside component to avoid recreation
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  })
+}
 
 /**
  * ProjectEquipmentCard - Equipment tracking card for Financials Overview
@@ -15,23 +24,19 @@ export default memo(function ProjectEquipmentCard({
   onEditEquipment,
   onShowToast
 }) {
-  const [equipment, setEquipment] = useState([])
+  const [projectEquipment, setProjectEquipment] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(true)
   const [totalCost, setTotalCost] = useState(0)
 
-  // Load project equipment
-  useEffect(() => {
-    if (project?.id) {
-      loadEquipment()
-    }
-  }, [project?.id])
+  // Memoized load function to avoid stale closures
+  const loadEquipment = useCallback(async () => {
+    if (!project?.id) return
 
-  const loadEquipment = async () => {
     try {
       setLoading(true)
       const data = await equipmentOps.getProjectEquipment(project.id)
-      setEquipment(data || [])
+      setProjectEquipment(data || [])
 
       // Calculate total cost
       const cost = equipmentOps.calculateProjectEquipmentCost(data || [])
@@ -42,9 +47,14 @@ export default memo(function ProjectEquipmentCard({
     } finally {
       setLoading(false)
     }
-  }
+  }, [project?.id, onShowToast])
 
-  const handleMarkReturned = async (equipmentItem) => {
+  // Load project equipment when project changes
+  useEffect(() => {
+    loadEquipment()
+  }, [loadEquipment])
+
+  const handleMarkReturned = useCallback(async (equipmentItem) => {
     try {
       await equipmentOps.markEquipmentReturned(equipmentItem.id)
       onShowToast?.(`${equipmentItem.equipment_name} marked as returned`, 'success')
@@ -53,9 +63,9 @@ export default memo(function ProjectEquipmentCard({
       console.error('Error marking equipment returned:', error)
       onShowToast?.('Failed to update equipment', 'error')
     }
-  }
+  }, [loadEquipment, onShowToast])
 
-  const handleDelete = async (equipmentItem) => {
+  const handleDelete = useCallback(async (equipmentItem) => {
     if (!confirm(`Remove ${equipmentItem.equipment_name} from this project?`)) {
       return
     }
@@ -68,19 +78,18 @@ export default memo(function ProjectEquipmentCard({
       console.error('Error removing equipment:', error)
       onShowToast?.('Failed to remove equipment', 'error')
     }
-  }
+  }, [loadEquipment, onShowToast])
 
-  // Separate active (on-site) and returned equipment
-  const activeEquipment = equipment.filter(e => !e.end_date)
-  const returnedEquipment = equipment.filter(e => e.end_date)
+  // Memoize derived state to avoid recalculating on every render
+  const activeEquipment = useMemo(
+    () => projectEquipment.filter(e => !e.end_date),
+    [projectEquipment]
+  )
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return ''
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    })
-  }
+  const returnedEquipment = useMemo(
+    () => projectEquipment.filter(e => e.end_date),
+    [projectEquipment]
+  )
 
   return (
     <div className="project-equipment-card">
@@ -88,7 +97,7 @@ export default memo(function ProjectEquipmentCard({
         <div className="project-equipment-title">
           <Truck size={18} />
           <h3>Equipment on Site</h3>
-          {equipment.length > 0 && (
+          {projectEquipment.length > 0 && (
             <span className="equipment-count">{activeEquipment.length} active</span>
           )}
         </div>
@@ -101,7 +110,7 @@ export default memo(function ProjectEquipmentCard({
             <Plus size={14} />
             <span>Add</span>
           </button>
-          {equipment.length > 0 && (
+          {projectEquipment.length > 0 && (
             <button
               className="btn btn-sm btn-ghost"
               onClick={() => setExpanded(!expanded)}
@@ -116,7 +125,7 @@ export default memo(function ProjectEquipmentCard({
         <div className="equipment-loading">
           <div className="loading-spinner small" />
         </div>
-      ) : equipment.length === 0 ? (
+      ) : projectEquipment.length === 0 ? (
         <div className="equipment-empty">
           <p>No equipment tracked on this project</p>
           <button
