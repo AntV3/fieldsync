@@ -138,50 +138,78 @@ export default function CORLog({ project, company, onShowToast }) {
       doc.setFontSize(12)
       doc.setFont(undefined, 'normal')
       doc.text(`Project: ${project.name}`, pageWidth / 2, 28, { align: 'center' })
-      doc.text(`As of: ${new Date().toLocaleDateString()}`, pageWidth / 2, 35, { align: 'center' })
+      if (project.job_number) {
+        doc.text(`Job #${project.job_number}`, pageWidth / 2, 35, { align: 'center' })
+      }
+      doc.setFontSize(10)
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 42, { align: 'center' })
 
       // Company info if available
       if (company?.name) {
-        doc.setFontSize(10)
+        doc.setFontSize(11)
+        doc.setFont(undefined, 'bold')
         doc.text(company.name, 14, 20)
+        doc.setFont(undefined, 'normal')
+        if (company.phone) {
+          doc.setFontSize(9)
+          doc.text(company.phone, 14, 25)
+        }
       }
 
-      // Table data
+      // Table data - include all editable columns
       const tableData = logEntries.map(entry => [
         entry.logNumber,
+        entry.changeOrder.corNumber || '-',
         entry.dateSentToClient ? new Date(entry.dateSentToClient).toLocaleDateString() : '-',
         entry.ceNumber || '-',
         entry.changeOrder.title || 'Untitled',
         formatCurrency(entry.changeOrder.corTotal || 0),
         STATUS_DISPLAY[entry.changeOrder.status]?.label || entry.changeOrder.status,
-        entry.comments || ''
+        entry.comments || '-'
       ])
 
-      // Generate table
+      // Generate table with all columns
       autoTable(doc, {
-        startY: 45,
-        head: [['Log #', 'Date Sent', 'CE #', 'Description', 'Amount', 'Status', 'Comments']],
+        startY: 50,
+        head: [['Log #', 'COR #', 'Date Sent', 'CE #', 'Description', 'Amount', 'Status', 'Comments']],
         body: tableData,
         styles: {
-          fontSize: 9,
-          cellPadding: 3
+          fontSize: 8,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          valign: 'top'
         },
         headStyles: {
           fillColor: [51, 51, 51],
           textColor: 255,
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          fontSize: 8
         },
         columnStyles: {
-          0: { cellWidth: 15, halign: 'center' },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 20 },
-          3: { cellWidth: 'auto' },
-          4: { cellWidth: 25, halign: 'right' },
-          5: { cellWidth: 22, halign: 'center' },
-          6: { cellWidth: 45 }
+          0: { cellWidth: 12, halign: 'center' },  // Log #
+          1: { cellWidth: 18 },                     // COR #
+          2: { cellWidth: 22 },                     // Date Sent
+          3: { cellWidth: 18 },                     // CE #
+          4: { cellWidth: 55 },                     // Description
+          5: { cellWidth: 22, halign: 'right' },    // Amount
+          6: { cellWidth: 18, halign: 'center' },   // Status
+          7: { cellWidth: 'auto', minCellWidth: 50 } // Comments - flexible width
         },
         alternateRowStyles: {
-          fillColor: [245, 245, 245]
+          fillColor: [248, 248, 248]
+        },
+        didParseCell: (data) => {
+          // Style status cells based on value
+          if (data.column.index === 6 && data.section === 'body') {
+            const status = data.cell.raw?.toLowerCase()
+            if (status === 'approved' || status === 'billed') {
+              data.cell.styles.textColor = [5, 150, 105]
+            } else if (status === 'pending' || status === 'pending approval') {
+              data.cell.styles.textColor = [217, 119, 6]
+            } else if (status === 'rejected' || status === 'void') {
+              data.cell.styles.textColor = [220, 38, 38]
+            }
+          }
         }
       })
 
@@ -192,13 +220,20 @@ export default function CORLog({ project, company, onShowToast }) {
       doc.text('SUMMARY', 14, finalY)
 
       doc.setFont(undefined, 'normal')
-      doc.text(`Total CORs: ${summary.totalCORs}`, 14, finalY + 7)
-      doc.text(`Approved: ${summary.approvedCount} (${formatCurrency(summary.approvedTotal)})`, 14, finalY + 14)
-      doc.text(`Pending: ${summary.pendingCount} (${formatCurrency(summary.pendingTotal)})`, 14, finalY + 21)
-      doc.text(`Total Value: ${formatCurrency(summary.grandTotal)}`, 14, finalY + 28)
+      doc.setFontSize(9)
+      const col1X = 14
+      const col2X = 100
+      doc.text(`Total CORs: ${summary.totalCORs}`, col1X, finalY + 7)
+      doc.text(`Approved: ${summary.approvedCount} (${formatCurrency(summary.approvedTotal)})`, col1X, finalY + 14)
+      doc.text(`Pending: ${summary.pendingCount} (${formatCurrency(summary.pendingTotal)})`, col2X, finalY + 7)
+      doc.text(`Void: ${summary.voidCount} (${formatCurrency(summary.voidTotal)})`, col2X, finalY + 14)
+
+      doc.setFont(undefined, 'bold')
+      doc.setFontSize(10)
+      doc.text(`Total Value: ${formatCurrency(summary.grandTotal)}`, col1X, finalY + 24)
 
       // Save
-      const fileName = `COR_Log_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.pdf`
+      const fileName = `COR_Log_${project.job_number || project.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
       doc.save(fileName)
 
       onShowToast?.('PDF exported successfully', 'success')
