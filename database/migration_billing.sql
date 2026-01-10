@@ -181,27 +181,33 @@ ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view invoices for their company" ON invoices;
 CREATE POLICY "Users can view invoices for their company" ON invoices
   FOR SELECT USING (
-    company_id IN (
-      SELECT company_id FROM company_memberships
-      WHERE user_id = auth.uid() AND status = 'active'
+    EXISTS (
+      SELECT 1 FROM user_companies uc
+      WHERE uc.user_id = auth.uid()
+      AND uc.company_id = invoices.company_id
+      AND uc.status = 'active'
     )
   );
 
 DROP POLICY IF EXISTS "Users can create invoices for their company" ON invoices;
 CREATE POLICY "Users can create invoices for their company" ON invoices
   FOR INSERT WITH CHECK (
-    company_id IN (
-      SELECT company_id FROM company_memberships
-      WHERE user_id = auth.uid() AND status = 'active'
+    EXISTS (
+      SELECT 1 FROM user_companies uc
+      WHERE uc.user_id = auth.uid()
+      AND uc.company_id = invoices.company_id
+      AND uc.status = 'active'
     )
   );
 
 DROP POLICY IF EXISTS "Users can update invoices for their company" ON invoices;
 CREATE POLICY "Users can update invoices for their company" ON invoices
   FOR UPDATE USING (
-    company_id IN (
-      SELECT company_id FROM company_memberships
-      WHERE user_id = auth.uid() AND status = 'active'
+    EXISTS (
+      SELECT 1 FROM user_companies uc
+      WHERE uc.user_id = auth.uid()
+      AND uc.company_id = invoices.company_id
+      AND uc.status = 'active'
     )
   );
 
@@ -209,21 +215,24 @@ DROP POLICY IF EXISTS "Users can delete draft invoices for their company" ON inv
 CREATE POLICY "Users can delete draft invoices for their company" ON invoices
   FOR DELETE USING (
     status = 'draft' AND
-    company_id IN (
-      SELECT company_id FROM company_memberships
-      WHERE user_id = auth.uid() AND status = 'active'
+    EXISTS (
+      SELECT 1 FROM user_companies uc
+      WHERE uc.user_id = auth.uid()
+      AND uc.company_id = invoices.company_id
+      AND uc.status = 'active'
     )
   );
 
--- Invoice items policies (inherit from parent invoice)
+-- Invoice items policies
 DROP POLICY IF EXISTS "Users can manage invoice items" ON invoice_items;
 CREATE POLICY "Users can manage invoice items" ON invoice_items
   FOR ALL USING (
-    invoice_id IN (
-      SELECT id FROM invoices WHERE company_id IN (
-        SELECT company_id FROM company_memberships
-        WHERE user_id = auth.uid() AND status = 'active'
-      )
+    EXISTS (
+      SELECT 1 FROM invoices i
+      JOIN user_companies uc ON uc.company_id = i.company_id
+      WHERE i.id = invoice_items.invoice_id
+      AND uc.user_id = auth.uid()
+      AND uc.status = 'active'
     )
   );
 

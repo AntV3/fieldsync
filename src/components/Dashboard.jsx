@@ -12,6 +12,8 @@ import CORList from './cor/CORList'
 import CORForm from './cor/CORForm'
 import CORDetail from './cor/CORDetail'
 import BillingCenter from './billing/BillingCenter'
+import ProjectEquipmentCard from './equipment/ProjectEquipmentCard'
+import EquipmentModal from './equipment/EquipmentModal'
 import BurnRateCard from './BurnRateCard'
 import CostContributorsCard from './CostContributorsCard'
 import ProfitabilityCard from './ProfitabilityCard'
@@ -48,6 +50,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [corRefreshKey, setCORRefreshKey] = useState(0)
   const [showAddCostModal, setShowAddCostModal] = useState(false)
   const [savingCost, setSavingCost] = useState(false)
+  const [showEquipmentModal, setShowEquipmentModal] = useState(false)
+  const [editingEquipment, setEditingEquipment] = useState(null)
+  const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0)
 
   // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
   // When multiple real-time events fire rapidly, this coalesces them into a single refresh
@@ -1323,6 +1328,21 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         />
                       </div>
 
+                      {/* Equipment Tracking */}
+                      <ProjectEquipmentCard
+                        key={equipmentRefreshKey}
+                        project={selectedProject}
+                        onAddEquipment={() => {
+                          setEditingEquipment(null)
+                          setShowEquipmentModal(true)
+                        }}
+                        onEditEquipment={(item) => {
+                          setEditingEquipment(item)
+                          setShowEquipmentModal(true)
+                        }}
+                        onShowToast={onShowToast}
+                      />
+
                       {/* Labor Details - Collapsible */}
                       <details className="financials-details">
                         <summary className="financials-details-summary">
@@ -1788,6 +1808,26 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               } finally {
                 setSavingCost(false)
               }
+            }}
+          />
+        )}
+
+        {/* Equipment Modal */}
+        {showEquipmentModal && (
+          <EquipmentModal
+            project={selectedProject}
+            company={company}
+            user={user}
+            editItem={editingEquipment}
+            onSave={() => {
+              setShowEquipmentModal(false)
+              setEditingEquipment(null)
+              setEquipmentRefreshKey(prev => prev + 1)
+              onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success')
+            }}
+            onClose={() => {
+              setShowEquipmentModal(false)
+              setEditingEquipment(null)
             }}
           />
         )}
