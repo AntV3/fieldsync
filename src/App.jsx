@@ -5,7 +5,6 @@ import { ThemeProvider } from './lib/ThemeContext'
 import AppEntry from './components/AppEntry'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
-import NotificationCenter from './components/NotificationCenter'
 import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
@@ -353,21 +352,6 @@ export default function App() {
     }
   }
 
-  // Handle notification click - navigate to relevant project
-  const handleNotificationClick = (notification) => {
-    if (notification.type === 'view_all') {
-      setActiveTab('dashboard')
-      setNavigateToProjectId(null)
-      return
-    }
-
-    // Navigate to dashboard and open the specific project
-    setActiveTab('dashboard')
-    if (notification.projectId) {
-      setNavigateToProjectId(notification.projectId)
-    }
-  }
-
   // Clear navigation after project is opened
   const handleProjectNavigated = () => {
     setNavigateToProjectId(null)
@@ -580,15 +564,6 @@ export default function App() {
             <div className="nav-user">
               {/* Theme Toggle */}
               <ThemeToggle compact />
-
-              {/* Notification Center */}
-              <NotificationCenter
-                company={company}
-                projects={projects}
-                userId={user?.id}
-                onNotificationClick={handleNotificationClick}
-                onShowToast={showToast}
-              />
 
               {/* Company Switcher */}
               {userCompanies.length > 1 && (

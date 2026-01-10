@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   {
     id: 'overview',
     label: 'Overview',
+    shortLabel: 'Overview',
     icon: BarChart3,
     description: 'Metrics & trends',
     step: null
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   {
     id: 'cors',
     label: 'Change Orders',
+    shortLabel: 'CORs',
     icon: FileText,
     description: 'CORs & approvals',
     step: 1
@@ -30,6 +32,7 @@ const NAV_ITEMS = [
   {
     id: 'tickets',
     label: 'T&M Tickets',
+    shortLabel: 'Tickets',
     icon: ClipboardList,
     description: 'Field data',
     step: 2
@@ -103,23 +106,28 @@ export default memo(function FinancialsNav({
                 className={`financials-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => onSectionChange?.(item.id)}
                 aria-current={isActive ? 'page' : undefined}
-                title={collapsed ? `${item.label}${badge ? ` (${badge.count})` : ''}` : undefined}
+                title={`${item.label}${badge ? ` (${badge.count})` : ''}`}
               >
-                {/* Step indicator for workflow items */}
+                {/* Step indicator for workflow items - only in expanded mode */}
                 {item.step && !collapsed && (
                   <span className="financials-nav-step">{item.step}</span>
                 )}
 
-                {/* Icon */}
+                {/* Icon with optional badge dot */}
                 <div className="financials-nav-icon">
-                  <Icon size={20} />
-                  {/* Badge dot in collapsed mode */}
-                  {collapsed && badge && badge.pending > 0 && (
+                  <Icon size={collapsed ? 22 : 20} />
+                  {/* Badge dot for pending items */}
+                  {badge && badge.pending > 0 && (
                     <span className="financials-nav-dot" />
                   )}
                 </div>
 
-                {/* Content - hidden when collapsed */}
+                {/* Collapsed mode: show short label below icon */}
+                {collapsed && (
+                  <span className="financials-nav-short-label">{item.shortLabel}</span>
+                )}
+
+                {/* Expanded mode: show full content */}
                 {!collapsed && (
                   <>
                     <div className="financials-nav-content">
@@ -153,11 +161,16 @@ export default memo(function FinancialsNav({
         })}
       </div>
 
-      {/* Expand hint when collapsed */}
+      {/* Toggle label when collapsed */}
       {collapsed && (
-        <div className="financials-nav-hint">
-          <span>Menu</span>
-        </div>
+        <button
+          className="financials-nav-expand-btn"
+          onClick={onToggleCollapse}
+          aria-label="Expand sidebar"
+        >
+          <ChevronRight size={14} />
+          <span>Expand</span>
+        </button>
       )}
     </nav>
   )

@@ -9739,6 +9739,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.85rem;
 }
 
+/* Tab Badge for pending items */
+.pv-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.375rem;
+  margin-left: 0.25rem;
+  background: #f59e0b;
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 9px;
+  line-height: 1;
+}
+
+.pv-tab.active .pv-tab-badge {
+  background: var(--accent-blue);
+}
+
 /* Tab Content Area */
 .pv-tab-content {
   flex: 1;
@@ -25457,6 +25478,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .financials-nav.collapsed {
   padding: 0.5rem;
   align-items: center;
+  width: 76px;
 }
 
 /* Collapse Toggle Button */
@@ -25478,9 +25500,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .financials-nav.collapsed .financials-nav-toggle {
-  width: 44px;
-  height: 44px;
-  padding: 0;
+  width: 100%;
+  height: auto;
+  padding: 0.5rem;
   justify-content: center;
 }
 
@@ -25536,11 +25558,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .financials-nav.collapsed .financials-nav-item {
-  width: 44px;
-  height: 44px;
-  padding: 0;
+  width: 100%;
+  height: auto;
+  padding: 0.625rem 0.5rem;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
   border-radius: 10px;
+}
+
+/* Short label shown in collapsed mode */
+.financials-nav-short-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.financials-nav-item.active .financials-nav-short-label {
+  color: white;
 }
 
 .financials-nav-item:hover {
@@ -25671,6 +25709,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
+}
+
+/* Expand button in collapsed mode */
+.financials-nav-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.financials-nav-expand-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 /* ========== Unified Section Toolbar ========== */

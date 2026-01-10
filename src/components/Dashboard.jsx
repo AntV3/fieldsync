@@ -1011,10 +1011,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       : 0
     const hasChangeOrders = changeOrderValue > 0
 
-    // Tab definitions
+    // Tab definitions with pending badges
+    const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)
     const tabs = [
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
-      { id: 'financials', label: 'Financials', Icon: DollarSign },
+      { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
       { id: 'info', label: 'Info', Icon: Info }
     ]
@@ -1071,11 +1072,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                className={`pv-tab ${activeProjectTab === tab.id ? 'active' : ''}`}
+                className={`pv-tab ${activeProjectTab === tab.id ? 'active' : ''} ${tab.badge > 0 ? 'has-badge' : ''}`}
                 onClick={() => setActiveProjectTab(tab.id)}
               >
                 <tab.Icon size={16} className="pv-tab-icon" />
                 <span className="pv-tab-label">{tab.label}</span>
+                {tab.badge > 0 && (
+                  <span className="pv-tab-badge">{tab.badge}</span>
+                )}
               </button>
             ))}
           </div>
