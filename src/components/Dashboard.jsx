@@ -34,7 +34,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showShareModal, setShowShareModal] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
-  const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors'
+  const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors' | 'tickets'
+  const [financialsSidebarCollapsed, setFinancialsSidebarCollapsed] = useState(true) // Start collapsed for more real estate
   const [corViewMode, setCORViewMode] = useState('preview') // 'preview' | 'full'
   const [corDisplayMode, setCORDisplayMode] = useState('list') // 'list' | 'log' - for layout expansion
   const [tmViewMode, setTMViewMode] = useState('preview') // 'preview' | 'full'
@@ -1239,23 +1240,23 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 loading={!projectData}
               />
 
-              {/* Split Layout with Navigation - expands when COR Log is active */}
-              <div className={`financials-layout ${corDisplayMode === 'log' && financialsSection === 'cors' ? 'log-expanded' : ''}`}>
-                {/* Sidebar Navigation - hidden when log view is expanded */}
-                {!(corDisplayMode === 'log' && financialsSection === 'cors') && (
-                  <div className="financials-sidebar">
-                    <FinancialsNav
-                      activeSection={financialsSection}
-                      onSectionChange={setFinancialsSection}
-                      stats={{
-                        corCount: projectData?.corStats?.total || 0,
-                        ticketCount: projectData?.totalTickets || 0,
-                        corPending: projectData?.corStats?.pending || 0,
-                        ticketPending: projectData?.pendingTickets || 0
-                      }}
-                    />
-                  </div>
-                )}
+              {/* Split Layout with Collapsible Navigation */}
+              <div className={`financials-layout ${financialsSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+                {/* Sidebar Navigation - Always visible, collapsible */}
+                <div className={`financials-sidebar ${financialsSidebarCollapsed ? 'collapsed' : ''}`}>
+                  <FinancialsNav
+                    activeSection={financialsSection}
+                    onSectionChange={setFinancialsSection}
+                    collapsed={financialsSidebarCollapsed}
+                    onToggleCollapse={() => setFinancialsSidebarCollapsed(!financialsSidebarCollapsed)}
+                    stats={{
+                      corCount: projectData?.corStats?.total || 0,
+                      ticketCount: projectData?.totalTickets || 0,
+                      corPending: projectData?.corStats?.pending || 0,
+                      ticketPending: projectData?.pendingTickets || 0
+                    }}
+                  />
+                </div>
 
                 {/* Main Content Area */}
                 <div className="financials-main">
