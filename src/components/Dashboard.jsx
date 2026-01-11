@@ -843,6 +843,20 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setShowCORForm(true)
   }, [])
 
+  const handleAddCost = useCallback(() => {
+    setShowAddCostModal(true)
+  }, [])
+
+  const handleDeleteCost = useCallback(async (costId) => {
+    try {
+      await db.deleteProjectCost(costId)
+      loadProjects()
+      onShowToast('Cost deleted', 'success')
+    } catch (err) {
+      onShowToast('Error deleting cost', 'error')
+    }
+  }, [onShowToast])
+
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
@@ -1371,16 +1385,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           laborCost={projectData?.laborCost || 0}
                           haulOffCost={projectData?.haulOffCost || 0}
                           customCosts={projectData?.customCosts || []}
-                          onAddCost={() => setShowAddCostModal(true)}
-                          onDeleteCost={async (costId) => {
-                            try {
-                              await db.deleteProjectCost(costId)
-                              loadProjects()
-                              onShowToast('Cost deleted', 'success')
-                            } catch (err) {
-                              onShowToast('Error deleting cost', 'error')
-                            }
-                          }}
+                          onAddCost={handleAddCost}
+                          onDeleteCost={handleDeleteCost}
                         />
 
                         <DisposalSummary
