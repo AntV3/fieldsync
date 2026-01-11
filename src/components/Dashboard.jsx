@@ -812,6 +812,37 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setTMViewMode('full')
   }, [])
 
+  const handleToggleFinancialsSidebar = useCallback(() => {
+    setFinancialsSidebarCollapsed(prev => !prev)
+  }, [])
+
+  const handleViewAllCORs = useCallback(() => {
+    setCORViewMode('full')
+  }, [])
+
+  const handleBackToTMPreview = useCallback(() => {
+    setTMViewMode('preview')
+  }, [])
+
+  const handleBackToCORPreview = useCallback(() => {
+    setCORViewMode('preview')
+  }, [])
+
+  const handleCreateCOR = useCallback(() => {
+    setEditingCOR(null)
+    setShowCORForm(true)
+  }, [])
+
+  const handleViewCOR = useCallback((cor) => {
+    setViewingCOR(cor)
+    setShowCORDetail(true)
+  }, [])
+
+  const handleEditCOR = useCallback((cor) => {
+    setEditingCOR(cor)
+    setShowCORForm(true)
+  }, [])
+
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
@@ -1288,7 +1319,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     activeSection={financialsSection}
                     onSectionChange={setFinancialsSection}
                     collapsed={financialsSidebarCollapsed}
-                    onToggleCollapse={() => setFinancialsSidebarCollapsed(!financialsSidebarCollapsed)}
+                    onToggleCollapse={handleToggleFinancialsSidebar}
                     stats={{
                       corCount: projectData?.corStats?.total || 0,
                       ticketCount: projectData?.totalTickets || 0,
@@ -1399,7 +1430,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         {corViewMode === 'full' && corDisplayMode !== 'log' && (
                           <button
                             className="section-back-btn"
-                            onClick={() => setCORViewMode('preview')}
+                            onClick={handleBackToCORPreview}
                           >
                             ← Back to summary
                           </button>
@@ -1412,20 +1443,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           onShowToast={onShowToast}
                           previewMode={corViewMode === 'preview' && corDisplayMode !== 'log'}
                           previewLimit={5}
-                          onViewAll={() => setCORViewMode('full')}
+                          onViewAll={handleViewAllCORs}
                           onDisplayModeChange={setCORDisplayMode}
-                          onCreateCOR={() => {
-                            setEditingCOR(null)
-                            setShowCORForm(true)
-                          }}
-                          onViewCOR={(cor) => {
-                            setViewingCOR(cor)
-                            setShowCORDetail(true)
-                          }}
-                          onEditCOR={(cor) => {
-                            setEditingCOR(cor)
-                            setShowCORForm(true)
-                          }}
+                          onCreateCOR={handleCreateCOR}
+                          onViewCOR={handleViewCOR}
+                          onEditCOR={handleEditCOR}
                         />
                       </div>
                     </div>
@@ -1438,7 +1460,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         {tmViewMode === 'full' && (
                           <button
                             className="section-back-btn"
-                            onClick={() => setTMViewMode('preview')}
+                            onClick={handleBackToTMPreview}
                           >
                             ← Back to summary
                           </button>
