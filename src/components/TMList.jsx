@@ -344,6 +344,16 @@ export default function TMList({
     })
   }, [])
 
+  // Memoized handlers for TMTicketCard - must be before any early returns
+  const handleToggleExpand = useCallback((ticketId) => {
+    setExpandedTicket(prev => prev === ticketId ? null : ticketId)
+  }, [])
+
+  const handleShowSignatureLink = useCallback((ticket) => {
+    setSignatureLinkTicket(ticket)
+    setShowSignatureLink(true)
+  }, [])
+
   const toggleSelectAll = () => {
     const currentFiltered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
     const allSelected = currentFiltered.every(t => selectedTickets.has(t.id))
@@ -1071,16 +1081,6 @@ export default function TMList({
   // Check if all filtered tickets are selected
   const allFilteredSelected = filteredTickets.length > 0 && filteredTickets.every(t => selectedTickets.has(t.id))
   const someSelected = selectedTickets.size > 0
-
-  // Memoized handlers for TMTicketCard
-  const handleToggleExpand = useCallback((ticketId) => {
-    setExpandedTicket(prev => prev === ticketId ? null : ticketId)
-  }, [])
-
-  const handleShowSignatureLink = useCallback((ticket) => {
-    setSignatureLinkTicket(ticket)
-    setShowSignatureLink(true)
-  }, [])
 
   // Helper function to render a single ticket card using memoized component
   const renderTicketCard = (ticket) => (
