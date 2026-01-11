@@ -787,6 +787,27 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, []) // Only run on mount
 
+  // Memoized callbacks for child components to prevent unnecessary re-renders
+  const handleAddEquipment = useCallback(() => {
+    setEditingEquipment(null)
+    setShowEquipmentModal(true)
+  }, [])
+
+  const handleEditEquipment = useCallback((item) => {
+    setEditingEquipment(item)
+    setShowEquipmentModal(true)
+  }, [])
+
+  const handleCreateDraw = useCallback(() => {
+    setEditingDrawRequest(null)
+    setShowDrawRequestModal(true)
+  }, [])
+
+  const handleViewDraw = useCallback((drawRequest) => {
+    setEditingDrawRequest(drawRequest)
+    setShowDrawRequestModal(true)
+  }, [])
+
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
@@ -1337,14 +1358,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                       <ProjectEquipmentCard
                         key={equipmentRefreshKey}
                         project={selectedProject}
-                        onAddEquipment={() => {
-                          setEditingEquipment(null)
-                          setShowEquipmentModal(true)
-                        }}
-                        onEditEquipment={(item) => {
-                          setEditingEquipment(item)
-                          setShowEquipmentModal(true)
-                        }}
+                        onAddEquipment={handleAddEquipment}
+                        onEditEquipment={handleEditEquipment}
                         onShowToast={onShowToast}
                       />
 
@@ -1354,14 +1369,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         project={selectedProject}
                         areas={areas}
                         corStats={projectData?.corStats}
-                        onCreateDraw={() => {
-                          setEditingDrawRequest(null)
-                          setShowDrawRequestModal(true)
-                        }}
-                        onViewDraw={(drawRequest) => {
-                          setEditingDrawRequest(drawRequest)
-                          setShowDrawRequestModal(true)
-                        }}
+                        onCreateDraw={handleCreateDraw}
+                        onViewDraw={handleViewDraw}
                         onShowToast={onShowToast}
                       />
 

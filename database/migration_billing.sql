@@ -2,6 +2,19 @@
 -- Adds invoice generation capability for approved CORs and T&M tickets
 
 -- ============================================
+-- FIX: Drop FK constraint on created_by if it exists (too strict)
+-- ============================================
+DO $$
+BEGIN
+  -- Drop the FK constraint if it exists
+  ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_created_by_fkey;
+EXCEPTION
+  WHEN undefined_table THEN
+    -- Table doesn't exist yet, will be created below
+    NULL;
+END $$;
+
+-- ============================================
 -- INVOICES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS invoices (
@@ -36,7 +49,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   -- Tracking
   sent_at TIMESTAMPTZ,
   paid_at TIMESTAMPTZ,
-  created_by UUID REFERENCES auth.users(id),
+  created_by UUID, -- User who created (no FK constraint - user validation via RLS)
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
