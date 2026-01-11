@@ -299,7 +299,7 @@ export default function TMList({
     } finally {
       setRetryingImport(null)
     }
-  }, [company.id, project.work_type, project.job_type, loadTickets]) // onShowToast is stable
+  }, [company.id, project.work_type, project.job_type]) // onShowToast and loadTickets are stable
 
   const calculateTicketTotal = (ticket) => {
     let total = 0

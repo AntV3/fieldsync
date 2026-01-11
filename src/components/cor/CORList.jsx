@@ -77,6 +77,28 @@ export default function CORList({
   // Stats state
   const [stats, setStats] = useState(null)
 
+  // Define load functions before useEffect that uses them
+  const loadCORs = useCallback(async () => {
+    try {
+      const data = await db.getCORs(project.id)
+      setCORs(data || [])
+    } catch (error) {
+      console.error('Error loading CORs:', error)
+      onShowToast?.('Error loading change order requests', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }, [project.id]) // onShowToast is stable
+
+  const loadStats = useCallback(async () => {
+    try {
+      const data = await db.getCORStats?.(project.id)
+      setStats(data)
+    } catch (error) {
+      console.error('Error loading COR stats:', error)
+    }
+  }, [project.id])
+
   useEffect(() => {
     loadCORs()
     loadStats()
@@ -90,28 +112,7 @@ export default function CORList({
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
-  }, [project.id, refreshKey])
-
-  const loadCORs = async () => {
-    try {
-      const data = await db.getCORs(project.id)
-      setCORs(data || [])
-    } catch (error) {
-      console.error('Error loading CORs:', error)
-      onShowToast?.('Error loading change order requests', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadStats = async () => {
-    try {
-      const data = await db.getCORStats?.(project.id)
-      setStats(data)
-    } catch (error) {
-      console.error('Error loading COR stats:', error)
-    }
-  }
+  }, [project.id, refreshKey, loadCORs, loadStats])
 
   // Professional Excel Export
   const exportToExcel = async () => {
