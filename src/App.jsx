@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { ThemeProvider } from './lib/ThemeContext'
@@ -309,9 +309,9 @@ export default function App() {
     setView('entry')
   }
 
-  const showToast = (message, type = '') => {
+  const showToast = useCallback((message, type = '') => {
     setToast({ message, type })
-  }
+  }, [])
 
   const handleProjectCreated = () => {
     setActiveTab('dashboard')

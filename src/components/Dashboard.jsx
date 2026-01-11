@@ -808,6 +808,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setShowDrawRequestModal(true)
   }, [])
 
+  const handleViewAllTickets = useCallback(() => {
+    setTMViewMode('full')
+  }, [])
+
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
@@ -1445,7 +1449,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           onShowToast={onShowToast}
                           compact={tmViewMode === 'preview'}
                           previewMode={tmViewMode === 'preview'}
-                          onViewAll={() => setTMViewMode('full')}
+                          onViewAll={handleViewAllTickets}
                         />
                       </div>
                     </div>
