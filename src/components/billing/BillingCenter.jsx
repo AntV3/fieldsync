@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Receipt, Plus, Check, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { Receipt, Plus, Check, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, Clock, AlertCircle, Eye, X } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { downloadInvoicePDF } from '../../lib/invoicePdfGenerator'
 import InvoiceModal from './InvoiceModal'
 
 // Status display configuration
@@ -20,6 +21,10 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   const [selectedItems, setSelectedItems] = useState({ cors: new Set(), tickets: new Set() })
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [editingInvoice, setEditingInvoice] = useState(null)
+  const [activeDropdown, setActiveDropdown] = useState(null)
+  const [viewingInvoice, setViewingInvoice] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const dropdownRef = useRef(null)
 
   // Load billable items and invoices
   useEffect(() => {
@@ -42,6 +47,94 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       setLoading(false)
     }
   }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveDropdown(null)
+      }
+    }
+
+    if (activeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [activeDropdown])
+
+  // Toggle dropdown for an invoice
+  const toggleDropdown = useCallback((invoiceId, e) => {
+    e.stopPropagation()
+    setActiveDropdown(prev => prev === invoiceId ? null : invoiceId)
+  }, [])
+
+  // View invoice details
+  const handleViewInvoice = useCallback(async (invoice) => {
+    setActiveDropdown(null)
+    try {
+      // Fetch full invoice with items
+      const fullInvoice = await db.getInvoice(invoice.id)
+      setViewingInvoice(fullInvoice)
+    } catch (error) {
+      console.error('Error fetching invoice:', error)
+      onShowToast?.('Error loading invoice details', 'error')
+    }
+  }, [onShowToast])
+
+  // Download invoice PDF
+  const handleDownloadPDF = useCallback(async (invoice) => {
+    setActiveDropdown(null)
+    setActionLoading(true)
+    try {
+      // Fetch full invoice with items if not already loaded
+      const fullInvoice = await db.getInvoice(invoice.id)
+      const fileName = await downloadInvoicePDF(fullInvoice, project, company)
+      onShowToast?.(`Downloaded ${fileName}`, 'success')
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      onShowToast?.('Error generating PDF', 'error')
+    } finally {
+      setActionLoading(false)
+    }
+  }, [project, company, onShowToast])
+
+  // Mark invoice as sent
+  const handleMarkSent = useCallback(async (invoice) => {
+    setActiveDropdown(null)
+    if (invoice.status !== 'draft') {
+      onShowToast?.('Only draft invoices can be marked as sent', 'error')
+      return
+    }
+    try {
+      await db.markInvoiceSent(invoice.id)
+      await loadData()
+      onShowToast?.(`Invoice ${invoice.invoice_number} marked as sent`, 'success')
+    } catch (error) {
+      console.error('Error updating invoice:', error)
+      onShowToast?.('Error updating invoice', 'error')
+    }
+  }, [onShowToast])
+
+  // Mark invoice as paid
+  const handleMarkPaid = useCallback(async (invoice) => {
+    setActiveDropdown(null)
+    if (invoice.status === 'paid') {
+      onShowToast?.('Invoice is already marked as paid', 'error')
+      return
+    }
+    try {
+      await db.updateInvoice(invoice.id, {
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        amount_paid: invoice.total
+      })
+      await loadData()
+      onShowToast?.(`Invoice ${invoice.invoice_number} marked as paid`, 'success')
+    } catch (error) {
+      console.error('Error updating invoice:', error)
+      onShowToast?.('Error updating invoice', 'error')
+    }
+  }, [onShowToast])
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -291,6 +384,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
           <div className="invoice-list">
             {invoices.map(invoice => {
               const StatusIcon = STATUS_CONFIG[invoice.status]?.icon || FileText
+              const isDropdownOpen = activeDropdown === invoice.id
               return (
                 <div key={invoice.id} className="invoice-row">
                   <div className="invoice-info">
@@ -304,12 +398,52 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
                     <StatusIcon size={14} />
                     {STATUS_CONFIG[invoice.status]?.label || invoice.status}
                   </span>
-                  <button
-                    className="btn btn-icon btn-ghost"
-                    title="Invoice options"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
+                  <div className="invoice-actions-container" ref={isDropdownOpen ? dropdownRef : null}>
+                    <button
+                      className="btn btn-icon btn-ghost"
+                      title="Invoice options"
+                      onClick={(e) => toggleDropdown(invoice.id, e)}
+                      disabled={actionLoading}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {isDropdownOpen && (
+                      <div className="invoice-dropdown">
+                        <button
+                          className="dropdown-item"
+                          onClick={() => handleViewInvoice(invoice)}
+                        >
+                          <Eye size={14} />
+                          View Details
+                        </button>
+                        <button
+                          className="dropdown-item"
+                          onClick={() => handleDownloadPDF(invoice)}
+                        >
+                          <Download size={14} />
+                          Download PDF
+                        </button>
+                        {invoice.status === 'draft' && (
+                          <button
+                            className="dropdown-item"
+                            onClick={() => handleMarkSent(invoice)}
+                          >
+                            <Send size={14} />
+                            Mark as Sent
+                          </button>
+                        )}
+                        {invoice.status !== 'paid' && invoice.status !== 'void' && (
+                          <button
+                            className="dropdown-item success"
+                            onClick={() => handleMarkPaid(invoice)}
+                          >
+                            <CheckCircle size={14} />
+                            Mark as Paid
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -327,6 +461,118 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
           onClose={() => setShowInvoiceModal(false)}
           onSuccess={handleInvoiceCreated}
         />
+      )}
+
+      {/* Invoice Detail View Modal */}
+      {viewingInvoice && (
+        <div className="modal-overlay" onClick={() => setViewingInvoice(null)}>
+          <div className="modal invoice-detail-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Invoice {viewingInvoice.invoice_number}</h2>
+              <button className="btn btn-icon btn-ghost" onClick={() => setViewingInvoice(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="invoice-detail-header">
+                <div className="invoice-detail-info">
+                  <div className="detail-row">
+                    <span className="detail-label">Date:</span>
+                    <span className="detail-value">{formatDate(viewingInvoice.invoice_date)}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Due:</span>
+                    <span className="detail-value">{viewingInvoice.due_date ? formatDate(viewingInvoice.due_date) : 'Upon Receipt'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Status:</span>
+                    <span className={`invoice-status ${STATUS_CONFIG[viewingInvoice.status]?.className || ''}`}>
+                      {STATUS_CONFIG[viewingInvoice.status]?.label || viewingInvoice.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="invoice-detail-billto">
+                  <span className="detail-label">Bill To:</span>
+                  <div className="billto-content">
+                    {viewingInvoice.bill_to_name && <p>{viewingInvoice.bill_to_name}</p>}
+                    {viewingInvoice.bill_to_address && <p>{viewingInvoice.bill_to_address}</p>}
+                    {viewingInvoice.bill_to_contact && <p>{viewingInvoice.bill_to_contact}</p>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="invoice-detail-items">
+                <h3>Line Items</h3>
+                <table className="invoice-items-table">
+                  <thead>
+                    <tr>
+                      <th>Reference</th>
+                      <th>Description</th>
+                      <th className="text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(viewingInvoice.invoice_items || []).map((item, idx) => (
+                      <tr key={item.id || idx}>
+                        <td>{item.reference_number || '-'}</td>
+                        <td>{item.description}</td>
+                        <td className="text-right">{formatCurrency(item.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="invoice-detail-totals">
+                <div className="total-row">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(viewingInvoice.subtotal)}</span>
+                </div>
+                {viewingInvoice.retention_percent > 0 && (
+                  <div className="total-row retention">
+                    <span>Retention ({viewingInvoice.retention_percent / 100}%)</span>
+                    <span>-{formatCurrency(viewingInvoice.retention_amount)}</span>
+                  </div>
+                )}
+                <div className="total-row grand-total">
+                  <span>Total Due</span>
+                  <span>{formatCurrency(viewingInvoice.total)}</span>
+                </div>
+                {viewingInvoice.amount_paid > 0 && (
+                  <div className="total-row paid">
+                    <span>Amount Paid</span>
+                    <span>{formatCurrency(viewingInvoice.amount_paid)}</span>
+                  </div>
+                )}
+              </div>
+
+              {viewingInvoice.notes && (
+                <div className="invoice-detail-notes">
+                  <span className="detail-label">Notes:</span>
+                  <p>{viewingInvoice.notes}</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setViewingInvoice(null)}
+              >
+                Close
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  handleDownloadPDF(viewingInvoice)
+                  setViewingInvoice(null)
+                }}
+              >
+                <Download size={16} />
+                Download PDF
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
