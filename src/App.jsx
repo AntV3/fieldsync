@@ -353,9 +353,9 @@ export default function App() {
   }
 
   // Clear navigation after project is opened
-  const handleProjectNavigated = () => {
+  const handleProjectNavigated = useCallback(() => {
     setNavigateToProjectId(null)
-  }
+  }, [])
 
   // Loading screen
   if (loading) {

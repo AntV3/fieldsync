@@ -113,14 +113,21 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [company?.id])
 
+  // Track project IDs for subscription stability (avoids re-subscribing on every projects array change)
+  const projectIdsRef = useRef([])
+  const projectIdsKey = projects.map(p => p.id).sort().join(',')
+
   // Real-time subscription - runs after projects are loaded
   useEffect(() => {
     if (!company?.id || projects.length === 0) return
 
+    // Only update ref if project IDs actually changed
+    const currentIds = projects.map(p => p.id).sort()
+    projectIdsRef.current = currentIds
+
     // Subscribe to company-wide activity to refresh metrics in real-time
     // Uses debounced refresh to coalesce rapid updates from multiple sources
-    const projectIds = projects.map(p => p.id)
-    const subscription = db.subscribeToCompanyActivity?.(company.id, projectIds, {
+    const subscription = db.subscribeToCompanyActivity?.(company.id, currentIds, {
       onMessage: () => debouncedRefresh(),
       onMaterialRequest: () => debouncedRefresh(),
       onTMTicket: () => debouncedRefresh(),
@@ -135,7 +142,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         db.unsubscribe?.(subscription)
       }
     }
-  }, [company?.id, projects.length, debouncedRefresh])
+  }, [company?.id, projectIdsKey, debouncedRefresh])
 
   const loadDumpSites = async () => {
     try {
@@ -851,11 +858,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     try {
       await db.deleteProjectCost(costId)
       loadProjects()
-      onShowToast('Cost deleted', 'success')
+      onShowToast?.('Cost deleted', 'success')
     } catch (err) {
-      onShowToast('Error deleting cost', 'error')
+      onShowToast?.('Error deleting cost', 'error')
     }
-  }, [onShowToast])
+  }, []) // onShowToast is stable (memoized in App.jsx)
 
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
