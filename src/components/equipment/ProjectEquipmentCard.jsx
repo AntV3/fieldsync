@@ -47,7 +47,7 @@ export default memo(function ProjectEquipmentCard({
     } finally {
       setLoading(false)
     }
-  }, [project?.id, onShowToast])
+  }, [project?.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Load project equipment when project changes
   useEffect(() => {
@@ -63,7 +63,7 @@ export default memo(function ProjectEquipmentCard({
       console.error('Error marking equipment returned:', error)
       onShowToast?.('Failed to update equipment', 'error')
     }
-  }, [loadEquipment, onShowToast])
+  }, [loadEquipment]) // onShowToast is stable
 
   const handleDelete = useCallback(async (equipmentItem) => {
     if (!confirm(`Remove ${equipmentItem.equipment_name} from this project?`)) {
@@ -78,7 +78,7 @@ export default memo(function ProjectEquipmentCard({
       console.error('Error removing equipment:', error)
       onShowToast?.('Failed to remove equipment', 'error')
     }
-  }, [loadEquipment, onShowToast])
+  }, [loadEquipment]) // onShowToast is stable
 
   // Memoize derived state to avoid recalculating on every render
   const activeEquipment = useMemo(

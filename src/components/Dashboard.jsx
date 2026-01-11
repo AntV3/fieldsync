@@ -154,15 +154,18 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   }
 
   // Handle navigation from notifications
+  // Use a ref to prevent re-running this effect when projects data refreshes
+  const lastNavigatedIdRef = useRef(null)
   useEffect(() => {
-    if (navigateToProjectId && projects.length > 0) {
+    if (navigateToProjectId && navigateToProjectId !== lastNavigatedIdRef.current && projects.length > 0) {
       const project = projects.find(p => p.id === navigateToProjectId)
       if (project) {
+        lastNavigatedIdRef.current = navigateToProjectId
         setSelectedProject(project)
         onProjectNavigated?.() // Clear the navigation request
       }
     }
-  }, [navigateToProjectId, projects])
+  }, [navigateToProjectId, projects, onProjectNavigated])
 
   useEffect(() => {
     if (selectedProject) {
@@ -864,6 +867,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, []) // onShowToast is stable (memoized in App.jsx)
 
+  // Memoize stats for FinancialsNav to prevent re-renders from inline object creation
+  const financialsNavStats = useMemo(() => ({
+    corCount: projectData?.corStats?.total || 0,
+    ticketCount: projectData?.totalTickets || 0,
+    corPending: projectData?.corStats?.pending || 0,
+    ticketPending: projectData?.pendingTickets || 0
+  }), [projectData?.corStats?.total, projectData?.totalTickets, projectData?.corStats?.pending, projectData?.pendingTickets])
+
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
@@ -1341,12 +1352,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     onSectionChange={setFinancialsSection}
                     collapsed={financialsSidebarCollapsed}
                     onToggleCollapse={handleToggleFinancialsSidebar}
-                    stats={{
-                      corCount: projectData?.corStats?.total || 0,
-                      ticketCount: projectData?.totalTickets || 0,
-                      corPending: projectData?.corStats?.pending || 0,
-                      ticketPending: projectData?.pendingTickets || 0
-                    }}
+                    stats={financialsNavStats}
                   />
                 </div>
 

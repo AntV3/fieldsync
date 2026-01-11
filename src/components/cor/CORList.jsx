@@ -466,7 +466,7 @@ export default function CORList({
       console.error('Error deleting COR:', error)
       onShowToast?.('Error deleting COR', 'error')
     }
-  }, [onShowToast])
+  }, [loadStats]) // onShowToast is stable (memoized in App.jsx)
 
   const handleSubmitForApproval = useCallback(async (corId, e) => {
     e?.stopPropagation()
@@ -479,7 +479,7 @@ export default function CORList({
       console.error('Error submitting COR:', error?.message || error)
       onShowToast?.(error?.message || 'Error submitting COR', 'error')
     }
-  }, [onShowToast])
+  }, [loadCORs, loadStats]) // onShowToast is stable (memoized in App.jsx)
 
   // Toggle COR selection
   const toggleCORSelection = useCallback((corId, e) => {

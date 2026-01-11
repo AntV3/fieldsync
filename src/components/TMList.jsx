@@ -172,7 +172,7 @@ export default function TMList({
       console.error('Error updating status:', error)
       onShowToast('Error updating status', 'error')
     }
-  }, [lockedTickets, onShowToast])
+  }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
 
   // Handle approval - approve directly (CE/PCO is informational only)
   const handleApprove = useCallback((ticket) => {
@@ -183,7 +183,7 @@ export default function TMList({
     }
 
     updateStatus(ticket.id, 'approved')
-  }, [lockedTickets, onShowToast, updateStatus])
+  }, [lockedTickets, updateStatus]) // onShowToast is stable
 
   // Confirm approval with change order value
   const confirmChangeOrderApproval = async () => {
@@ -223,7 +223,7 @@ export default function TMList({
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
     }
-  }, [lockedTickets, onShowToast])
+  }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
 
   // Open COR association modal
   const openCorAssignModal = useCallback(async (ticket) => {
@@ -242,7 +242,7 @@ export default function TMList({
     } finally {
       setLoadingCors(false)
     }
-  }, [project.id, onShowToast])
+  }, [project.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Associate ticket with selected COR
   const handleAssignToCor = async () => {
@@ -299,7 +299,7 @@ export default function TMList({
     } finally {
       setRetryingImport(null)
     }
-  }, [company.id, project.work_type, project.job_type, onShowToast])
+  }, [company.id, project.work_type, project.job_type, loadTickets]) // onShowToast is stable
 
   const calculateTicketTotal = (ticket) => {
     let total = 0

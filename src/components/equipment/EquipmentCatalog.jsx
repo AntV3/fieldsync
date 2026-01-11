@@ -45,7 +45,7 @@ export default memo(function EquipmentCatalog({
     } finally {
       setLoading(false)
     }
-  }, [company?.id, showInactive, onShowToast])
+  }, [company?.id, showInactive]) // onShowToast is stable (memoized in App.jsx)
 
   useEffect(() => {
     loadEquipment()

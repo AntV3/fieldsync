@@ -79,7 +79,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       console.error('Error fetching invoice:', error)
       onShowToast?.('Error loading invoice details', 'error')
     }
-  }, [onShowToast])
+  }, []) // onShowToast is stable (memoized in App.jsx)
 
   // Download invoice PDF
   const handleDownloadPDF = useCallback(async (invoice) => {
@@ -96,7 +96,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
     } finally {
       setActionLoading(false)
     }
-  }, [project, company, onShowToast])
+  }, [project, company]) // onShowToast is stable
 
   // Mark invoice as sent
   const handleMarkSent = useCallback(async (invoice) => {
@@ -113,7 +113,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       console.error('Error updating invoice:', error)
       onShowToast?.('Error updating invoice', 'error')
     }
-  }, [onShowToast])
+  }, []) // onShowToast is stable
 
   // Mark invoice as paid
   const handleMarkPaid = useCallback(async (invoice) => {
@@ -134,7 +134,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       console.error('Error updating invoice:', error)
       onShowToast?.('Error updating invoice', 'error')
     }
-  }, [onShowToast])
+  }, []) // onShowToast is stable
 
   // Calculate totals
   const totals = useMemo(() => {

@@ -50,7 +50,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     } finally {
       setLoading(false)
     }
-  }, [project.id, onShowToast])
+  }, [project.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Filter reports based on view mode and date filter
   const filteredReports = useMemo(() => {
