@@ -398,10 +398,30 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
                     <StatusIcon size={14} />
                     {STATUS_CONFIG[invoice.status]?.label || invoice.status}
                   </span>
+                  <div className="invoice-actions">
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      title="View invoice details"
+                      onClick={() => handleViewInvoice(invoice)}
+                      disabled={actionLoading}
+                    >
+                      <Eye size={14} />
+                      View
+                    </button>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      title="Download PDF"
+                      onClick={() => handleDownloadPDF(invoice)}
+                      disabled={actionLoading}
+                    >
+                      <Download size={14} />
+                      PDF
+                    </button>
+                  </div>
                   <div className="invoice-actions-container" ref={isDropdownOpen ? dropdownRef : null}>
                     <button
                       className="btn btn-icon btn-ghost"
-                      title="Invoice options"
+                      title="More options"
                       onClick={(e) => toggleDropdown(invoice.id, e)}
                       disabled={actionLoading}
                     >

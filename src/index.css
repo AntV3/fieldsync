@@ -415,6 +415,71 @@
   color: var(--text-primary);
 }
 
+/* Ticket Status Badges - Light Mode ADA Compliant (4.5:1 contrast) */
+[data-theme="light"] .ticket-status.pending,
+[data-theme="light"] .tm-ticket-status.pending {
+  background: #fef3c7;
+  color: #92400e; /* Dark amber - 4.5:1+ contrast on light yellow */
+}
+
+[data-theme="light"] .ticket-status.approved,
+[data-theme="light"] .tm-ticket-status.approved {
+  background: #d1fae5;
+  color: #065f46; /* Dark green - 4.5:1+ contrast on light green */
+}
+
+[data-theme="light"] .ticket-status.billed,
+[data-theme="light"] .tm-ticket-status.billed {
+  background: #dbeafe;
+  color: #1e40af; /* Dark blue - 4.5:1+ contrast on light blue */
+}
+
+[data-theme="light"] .ticket-status.rejected,
+[data-theme="light"] .tm-ticket-status.rejected {
+  background: #fee2e2;
+  color: #991b1b; /* Dark red - 4.5:1+ contrast on light red */
+}
+
+/* Ticket summary and secondary text - ensure readability */
+[data-theme="light"] .tm-ticket-summary,
+[data-theme="light"] .tm-ticket-hours,
+[data-theme="light"] .ticket-item-summary {
+  color: #374151; /* Gray-700 for better contrast */
+}
+
+/* Ticket PCO badge - ensure visibility */
+[data-theme="light"] .ticket-pco,
+[data-theme="light"] .tm-ticket-pco {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+/* Invoice status badges - Light Mode ADA Compliant */
+[data-theme="light"] .invoice-status.status-draft {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+[data-theme="light"] .invoice-status.status-sent {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+[data-theme="light"] .invoice-status.status-partial {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-theme="light"] .invoice-status.status-paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-theme="light"] .invoice-status.status-void {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 /* Charts */
 [data-theme="light"] .chart-container,
 [data-theme="light"] .financial-chart-card {
@@ -26862,6 +26927,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .invoice-status.status-void {
   background: color-mix(in srgb, var(--error-color) 15%, transparent);
   color: var(--error-color);
+}
+
+/* Invoice Action Buttons (visible) */
+.invoice-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.invoice-actions .btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* Invoice Actions Dropdown */
