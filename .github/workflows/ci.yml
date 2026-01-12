@@ -1,0 +1,57 @@
+# ============================================
+# CI Pipeline - Runs on every push and PR
+# ============================================
+# This workflow ensures code quality before merging to main.
+# It runs tests and builds the app to catch errors early.
+
+name: CI
+
+on:
+  # Run on pushes to main and develop branches
+  push:
+    branches: [main, develop]
+
+  # Run on all pull requests to main and develop
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ----------------------------------------
+  # Test and Build Job
+  # ----------------------------------------
+  test-and-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Get the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run tests
+      - name: Run tests
+        run: npm test
+
+      # Step 5: Build the app (catches build errors)
+      - name: Build application
+        run: npm run build
+        env:
+          # Use empty values for build (no real Supabase needed for build)
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-key
+
+  # ----------------------------------------
+  # Summary comment on PR
+  # ----------------------------------------
+  # This is optional but helpful - adds a comment showing results
