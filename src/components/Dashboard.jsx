@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
+import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
+import { SmartAlerts } from './dashboard/SmartAlerts'
+import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
+import { TrendIndicator } from './dashboard/TrendIndicator'
+import { ProjectHealthBadge } from './dashboard/AccessibleStatusBadge'
 import TMList from './TMList'
 import ShareModal from './ShareModal'
 import InjuryReportsList from './InjuryReportsList'
@@ -776,6 +781,82 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       hasAnyLaborData: overLabor + underLabor + onTrackLabor > 0
     }
   }, [projectsData])
+
+  // Calculate risk scores and smart alerts for all projects
+  const riskAnalysis = useMemo(() => {
+    const projectRisks = projectsData.map(p => {
+      // Map project data to risk calculation format
+      const riskInput = {
+        id: p.id,
+        name: p.name,
+        totalCosts: p.totalCosts || 0,
+        earnedRevenue: p.billable || 0,
+        actualProgress: p.progress || 0,
+        expectedProgress: p.expectedProgress || p.progress, // Use actual if no planned
+        pendingCORValue: p.corPendingValue || 0,
+        contractValue: p.revisedContractValue || p.contract_value || 0,
+        lastReportDate: p.lastDailyReport,
+        recentInjuryCount: p.recentInjuryCount || 0,
+        startDate: p.start_date
+      }
+
+      const riskResult = calculateRiskScore(riskInput)
+      const alerts = generateSmartAlerts(riskResult, { ...riskInput, name: p.name })
+      const projections = calculateProjections(riskInput)
+
+      // Add project name to each alert
+      const alertsWithProject = alerts.map(a => ({
+        ...a,
+        projectName: p.name,
+        projectId: p.id
+      }))
+
+      return {
+        projectId: p.id,
+        projectName: p.name,
+        riskScore: riskResult.score,
+        riskStatus: riskResult.status,
+        riskLabel: riskResult.label,
+        factors: riskResult.factors,
+        alerts: alertsWithProject,
+        projections
+      }
+    })
+
+    // Aggregate all alerts across projects, sorted by priority
+    const allAlerts = projectRisks
+      .flatMap(p => p.alerts)
+      .sort((a, b) => {
+        const priority = { critical: 0, warning: 1, info: 2 }
+        return priority[a.type] - priority[b.type]
+      })
+
+    return {
+      projectRisks,
+      allAlerts,
+      criticalCount: allAlerts.filter(a => a.type === 'critical').length,
+      warningCount: allAlerts.filter(a => a.type === 'warning').length
+    }
+  }, [projectsData])
+
+  // Handler for alert actions
+  const handleAlertAction = useCallback(({ target, projectId, alert }) => {
+    const project = projects.find(p => p.id === projectId)
+    if (project) {
+      setSelectedProject(project)
+      // Navigate to appropriate tab based on action target
+      if (target === 'financials') {
+        setActiveProjectTab('financials')
+      } else if (target === 'reports') {
+        setActiveProjectTab('reports')
+      } else if (target === 'cors') {
+        setActiveProjectTab('financials')
+        setFinancialsSection('cors')
+      } else {
+        setActiveProjectTab('overview')
+      }
+    }
+  }, [projects])
 
   // Auto-archive projects that have been complete for 30+ days
   useEffect(() => {
@@ -2079,6 +2160,45 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         )}
       </div>
 
+      {/* Smart Alerts - Actionable insights requiring attention */}
+      {riskAnalysis.allAlerts.length > 0 && (
+        <div className="smart-alerts-section" style={{ marginBottom: 'var(--space-lg, 1.5rem)' }}>
+          <div className="smart-alerts-header" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 'var(--space-sm, 0.5rem)'
+          }}>
+            <h3 style={{
+              fontSize: 'var(--font-size-md, 1rem)',
+              fontWeight: 'var(--font-weight-semibold, 600)',
+              color: 'var(--text-primary)',
+              margin: 0
+            }}>
+              Needs Attention
+              {riskAnalysis.criticalCount > 0 && (
+                <span style={{
+                  marginLeft: '0.5rem',
+                  padding: '2px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: '9999px',
+                  background: 'var(--status-danger-bg, #7f1d1d)',
+                  color: 'var(--status-danger, #dc2626)'
+                }}>
+                  {riskAnalysis.criticalCount} critical
+                </span>
+              )}
+            </h3>
+          </div>
+          <SmartAlerts
+            alerts={riskAnalysis.allAlerts}
+            onAction={handleAlertAction}
+            maxVisible={3}
+          />
+        </div>
+      )}
+
       {/* Projects Header */}
       <div className="dashboard-header">
         <h2>Projects</h2>
@@ -2087,13 +2207,18 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
       {/* Project Grid */}
       <div className="project-list">
-        {projectsData.map(project => (
-          <EnhancedProjectCard
-            key={project.id}
-            project={project}
-            onClick={() => handleSelectProject(project)}
-          />
-        ))}
+        {projectsData.map(project => {
+          const projectRisk = riskAnalysis.projectRisks.find(r => r.projectId === project.id)
+          return (
+            <EnhancedProjectCard
+              key={project.id}
+              project={project}
+              riskScore={projectRisk?.riskScore}
+              riskStatus={projectRisk?.riskStatus}
+              onClick={() => handleSelectProject(project)}
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -2133,18 +2258,49 @@ function ProjectCard({ project, onClick }) {
 }
 
 // Enhanced Project Card with more details
-function EnhancedProjectCard({ project, onClick }) {
+function EnhancedProjectCard({ project, riskScore, riskStatus, onClick }) {
   const status = getOverallStatus(project.areas || [])
   const statusLabel = getOverallStatusLabel(project.areas || [])
   const profit = project.contract_value - project.billable
   const isAtRisk = project.billable > project.contract_value * 0.9 && project.progress < 90
 
+  // Risk badge colors
+  const riskColors = {
+    healthy: { bg: 'var(--status-success-bg, #064e3b)', color: 'var(--status-success, #059669)' },
+    warning: { bg: 'var(--status-warning-bg, #78350f)', color: 'var(--status-warning, #d97706)' },
+    critical: { bg: 'var(--status-danger-bg, #7f1d1d)', color: 'var(--status-danger, #dc2626)' }
+  }
+  const riskStyle = riskColors[riskStatus] || riskColors.healthy
+
   return (
     <div className={`project-card enhanced ${isAtRisk ? 'at-risk' : ''}`} onClick={onClick}>
       <div className="project-card-header">
-        <div>
-          <div className="project-card-name">{project.name}</div>
-          <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Risk Score Badge */}
+          {typeof riskScore === 'number' && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                background: riskStyle.bg,
+                color: riskStyle.color
+              }}
+              title={`Risk Score: ${riskScore}`}
+              aria-label={`Risk score ${riskScore}, ${riskStatus}`}
+            >
+              {riskScore}
+            </span>
+          )}
+          <div>
+            <div className="project-card-name">{project.name}</div>
+            <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
+          </div>
         </div>
         <span className={`status-badge ${status}`}>{statusLabel}</span>
       </div>
