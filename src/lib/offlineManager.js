@@ -364,7 +364,8 @@ export const getCachedMessages = async (projectId) => {
 // Connection Status
 // ============================================
 
-let isOnline = navigator.onLine
+// Guard for SSR/test environments where navigator is undefined
+let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
 const listeners = new Set()
 
 // Subscribe to connection changes

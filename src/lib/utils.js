@@ -13,7 +13,7 @@ export function calculateProgress(areas) {
   let progress = 0
   areas.forEach(area => {
     if (area.status === 'done') {
-      progress += area.weight
+      progress += (area.weight || 0)
     }
   })
   return Math.round(progress)
