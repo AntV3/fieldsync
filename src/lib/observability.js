@@ -14,7 +14,7 @@
  *   observe.error('database', { message: 'Connection failed', company_id: 'uuid' })
  */
 
-import { supabase } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabase'
 
 // Configuration
 const CONFIG = {
@@ -24,8 +24,8 @@ const CONFIG = {
   // Enable console logging in development
   enableConsole: import.meta.env.DEV,
 
-  // Enable Supabase logging (production)
-  enableSupabase: true,
+  // Enable Supabase logging only when configured (production)
+  enableSupabase: isSupabaseConfigured,
 
   // Batch size for sending metrics (future optimization)
   batchSize: 10,
@@ -169,6 +169,9 @@ export const observe = {
  * Send event to Supabase
  */
 async function logToSupabase(type, event) {
+  // Guard: Don't attempt to log if Supabase isn't configured
+  if (!supabase) return
+
   try {
     if (type === 'error') {
       await supabase.rpc('log_error', {

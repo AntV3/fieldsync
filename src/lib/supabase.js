@@ -32,8 +32,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 // Check if Supabase is configured
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
-// Initialize offline database
-initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
+// Initialize offline database (guard for SSR/test environments)
+if (typeof window !== 'undefined') {
+  initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
+}
 
 // Create client only if configured
 export const supabase = isSupabaseConfigured
@@ -286,7 +288,10 @@ export const auth = {
       if (error) throw error
       return data
     } else {
-      // Demo mode - find local user
+      // Demo mode - find local user (password check skipped intentionally)
+      if (import.meta.env.DEV) {
+        console.warn('[auth] Demo mode: password validation is skipped. Do not use demo mode in production.')
+      }
       const localData = getLocalData()
       const user = localData.users.find(u => u.email === email)
       if (!user) throw new Error('User not found')

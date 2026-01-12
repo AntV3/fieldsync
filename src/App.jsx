@@ -93,6 +93,12 @@ export default function App() {
 
   const checkAuth = async () => {
     try {
+      // Guard: If Supabase isn't configured, skip auth check
+      if (!isSupabaseConfigured) {
+        setLoading(false)
+        return
+      }
+
       // Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {

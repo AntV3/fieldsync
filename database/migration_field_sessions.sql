@@ -251,6 +251,7 @@ GRANT EXECUTE ON FUNCTION can_access_project(UUID) TO authenticated;
 DROP POLICY IF EXISTS "Field users can view areas" ON areas;
 DROP POLICY IF EXISTS "Field users can update areas" ON areas;
 DROP POLICY IF EXISTS "Secure field access to areas" ON areas;
+DROP POLICY IF EXISTS "Secure field update areas" ON areas;
 
 CREATE POLICY "Secure field access to areas"
 ON areas FOR SELECT
@@ -269,6 +270,9 @@ WITH CHECK (can_access_project(project_id));
 DROP POLICY IF EXISTS "Field users can view tickets" ON t_and_m_tickets;
 DROP POLICY IF EXISTS "Field users can create tickets" ON t_and_m_tickets;
 DROP POLICY IF EXISTS "Field users can update tickets" ON t_and_m_tickets;
+DROP POLICY IF EXISTS "Secure field view tickets" ON t_and_m_tickets;
+DROP POLICY IF EXISTS "Secure field create tickets" ON t_and_m_tickets;
+DROP POLICY IF EXISTS "Secure field update tickets" ON t_and_m_tickets;
 
 CREATE POLICY "Secure field view tickets"
 ON t_and_m_tickets FOR SELECT
@@ -289,6 +293,8 @@ WITH CHECK (can_access_project(project_id));
 
 DROP POLICY IF EXISTS "Field users can view workers" ON t_and_m_workers;
 DROP POLICY IF EXISTS "Field users can create workers" ON t_and_m_workers;
+DROP POLICY IF EXISTS "Secure field view workers" ON t_and_m_workers;
+DROP POLICY IF EXISTS "Secure field create workers" ON t_and_m_workers;
 
 CREATE POLICY "Secure field view workers"
 ON t_and_m_workers FOR SELECT
@@ -316,6 +322,8 @@ WITH CHECK (
 
 DROP POLICY IF EXISTS "Field users can view items" ON t_and_m_items;
 DROP POLICY IF EXISTS "Field users can create items" ON t_and_m_items;
+DROP POLICY IF EXISTS "Secure field view items" ON t_and_m_items;
+DROP POLICY IF EXISTS "Secure field create items" ON t_and_m_items;
 
 CREATE POLICY "Secure field view items"
 ON t_and_m_items FOR SELECT
@@ -344,6 +352,9 @@ WITH CHECK (
 DROP POLICY IF EXISTS "Field users can view crew checkins" ON crew_checkins;
 DROP POLICY IF EXISTS "Field users can create crew checkins" ON crew_checkins;
 DROP POLICY IF EXISTS "Field users can update crew checkins" ON crew_checkins;
+DROP POLICY IF EXISTS "Secure field view crew checkins" ON crew_checkins;
+DROP POLICY IF EXISTS "Secure field create crew checkins" ON crew_checkins;
+DROP POLICY IF EXISTS "Secure field update crew checkins" ON crew_checkins;
 
 CREATE POLICY "Secure field view crew checkins"
 ON crew_checkins FOR SELECT
@@ -364,6 +375,8 @@ WITH CHECK (can_access_project(project_id));
 
 DROP POLICY IF EXISTS "Field users can view daily reports" ON daily_reports;
 DROP POLICY IF EXISTS "Field users can create daily reports" ON daily_reports;
+DROP POLICY IF EXISTS "Secure field view daily reports" ON daily_reports;
+DROP POLICY IF EXISTS "Secure field create daily reports" ON daily_reports;
 
 CREATE POLICY "Secure field view daily reports"
 ON daily_reports FOR SELECT
@@ -380,6 +393,9 @@ WITH CHECK (can_access_project(project_id));
 DROP POLICY IF EXISTS "Field users can view messages" ON messages;
 DROP POLICY IF EXISTS "Field users can send messages" ON messages;
 DROP POLICY IF EXISTS "Field users can update messages" ON messages;
+DROP POLICY IF EXISTS "Secure field view messages" ON messages;
+DROP POLICY IF EXISTS "Secure field create messages" ON messages;
+DROP POLICY IF EXISTS "Secure field update messages" ON messages;
 
 CREATE POLICY "Secure field view messages"
 ON messages FOR SELECT
@@ -402,6 +418,10 @@ DROP POLICY IF EXISTS "Field users can view disposal loads" ON disposal_loads;
 DROP POLICY IF EXISTS "Field users can create disposal loads" ON disposal_loads;
 DROP POLICY IF EXISTS "Field users can update disposal loads" ON disposal_loads;
 DROP POLICY IF EXISTS "Field users can delete disposal loads" ON disposal_loads;
+DROP POLICY IF EXISTS "Secure field view disposal loads" ON disposal_loads;
+DROP POLICY IF EXISTS "Secure field create disposal loads" ON disposal_loads;
+DROP POLICY IF EXISTS "Secure field update disposal loads" ON disposal_loads;
+DROP POLICY IF EXISTS "Secure field delete disposal loads" ON disposal_loads;
 
 CREATE POLICY "Secure field view disposal loads"
 ON disposal_loads FOR SELECT
@@ -426,6 +446,8 @@ USING (can_access_project(project_id));
 
 DROP POLICY IF EXISTS "Field users can view injury reports" ON injury_reports;
 DROP POLICY IF EXISTS "Field users can create injury reports" ON injury_reports;
+DROP POLICY IF EXISTS "Secure field view injury reports" ON injury_reports;
+DROP POLICY IF EXISTS "Secure field create injury reports" ON injury_reports;
 
 CREATE POLICY "Secure field view injury reports"
 ON injury_reports FOR SELECT
@@ -441,6 +463,8 @@ WITH CHECK (can_access_project(project_id));
 
 DROP POLICY IF EXISTS "Field users can view material requests" ON material_requests;
 DROP POLICY IF EXISTS "Field users can create material requests" ON material_requests;
+DROP POLICY IF EXISTS "Secure field view material requests" ON material_requests;
+DROP POLICY IF EXISTS "Secure field create material requests" ON material_requests;
 
 CREATE POLICY "Secure field view material requests"
 ON material_requests FOR SELECT
@@ -455,6 +479,7 @@ WITH CHECK (can_access_project(project_id));
 -- ============================================================
 
 DROP POLICY IF EXISTS "Field users can view projects" ON projects;
+DROP POLICY IF EXISTS "Secure field view projects" ON projects;
 
 CREATE POLICY "Secure field view projects"
 ON projects FOR SELECT
@@ -465,6 +490,7 @@ USING (can_access_project(id));
 -- ============================================================
 
 DROP POLICY IF EXISTS "Field users can view companies" ON companies;
+DROP POLICY IF EXISTS "Secure field view companies" ON companies;
 
 CREATE POLICY "Secure field view companies"
 ON companies FOR SELECT
@@ -482,6 +508,7 @@ USING (
 -- ============================================================
 
 DROP POLICY IF EXISTS "Field users can view CORs by project" ON change_orders;
+DROP POLICY IF EXISTS "Secure field view CORs" ON change_orders;
 
 CREATE POLICY "Secure field view CORs"
 ON change_orders FOR SELECT
@@ -493,6 +520,8 @@ USING (can_access_project(project_id));
 
 DROP POLICY IF EXISTS "Field users can view ticket associations" ON change_order_ticket_associations;
 DROP POLICY IF EXISTS "Field users can create ticket associations" ON change_order_ticket_associations;
+DROP POLICY IF EXISTS "Secure field view ticket associations" ON change_order_ticket_associations;
+DROP POLICY IF EXISTS "Secure field create ticket associations" ON change_order_ticket_associations;
 
 CREATE POLICY "Secure field view ticket associations"
 ON change_order_ticket_associations FOR SELECT
@@ -521,6 +550,8 @@ WITH CHECK (
 -- Labor
 DROP POLICY IF EXISTS "Field users can view labor items" ON change_order_labor;
 DROP POLICY IF EXISTS "Field users can insert labor items" ON change_order_labor;
+DROP POLICY IF EXISTS "Secure field view labor items" ON change_order_labor;
+DROP POLICY IF EXISTS "Secure field insert labor items" ON change_order_labor;
 
 CREATE POLICY "Secure field view labor items"
 ON change_order_labor FOR SELECT
@@ -545,6 +576,8 @@ WITH CHECK (
 -- Materials
 DROP POLICY IF EXISTS "Field users can view material items" ON change_order_materials;
 DROP POLICY IF EXISTS "Field users can insert material items" ON change_order_materials;
+DROP POLICY IF EXISTS "Secure field view material items" ON change_order_materials;
+DROP POLICY IF EXISTS "Secure field insert material items" ON change_order_materials;
 
 CREATE POLICY "Secure field view material items"
 ON change_order_materials FOR SELECT
@@ -569,6 +602,8 @@ WITH CHECK (
 -- Equipment
 DROP POLICY IF EXISTS "Field users can view equipment items" ON change_order_equipment;
 DROP POLICY IF EXISTS "Field users can insert equipment items" ON change_order_equipment;
+DROP POLICY IF EXISTS "Secure field view equipment items" ON change_order_equipment;
+DROP POLICY IF EXISTS "Secure field insert equipment items" ON change_order_equipment;
 
 CREATE POLICY "Secure field view equipment items"
 ON change_order_equipment FOR SELECT
@@ -595,6 +630,7 @@ WITH CHECK (
 -- ============================================================
 
 DROP POLICY IF EXISTS "Field users can view dump sites" ON dump_sites;
+DROP POLICY IF EXISTS "Secure field view dump sites" ON dump_sites;
 
 CREATE POLICY "Secure field view dump sites"
 ON dump_sites FOR SELECT
@@ -614,6 +650,7 @@ USING (
 -- Keep existing policies for authenticated users
 -- Add secure field access
 DROP POLICY IF EXISTS "Field can view labor classes" ON labor_classes;
+DROP POLICY IF EXISTS "Secure field view labor classes" ON labor_classes;
 
 CREATE POLICY "Secure field view labor classes"
 ON labor_classes FOR SELECT
@@ -631,6 +668,7 @@ USING (
 -- ============================================================
 
 DROP POLICY IF EXISTS "Field users can view company branding" ON company_branding;
+DROP POLICY IF EXISTS "Secure field view company branding" ON company_branding;
 
 CREATE POLICY "Secure field view company branding"
 ON company_branding FOR SELECT
@@ -655,6 +693,7 @@ USING (
 -- ============================================================
 
 DROP POLICY IF EXISTS "Field users can view materials equipment" ON materials_equipment;
+DROP POLICY IF EXISTS "Secure field view materials equipment" ON materials_equipment;
 
 CREATE POLICY "Secure field view materials equipment"
 ON materials_equipment FOR SELECT
