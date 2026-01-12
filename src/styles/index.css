@@ -1,0 +1,42 @@
+/* ============================================
+   FieldSync Modular CSS Entry Point
+   ============================================
+
+   This file imports all modular CSS.
+   Import this file in main.jsx AFTER the legacy
+   index.css to allow new styles to override.
+
+   Once migration is complete, remove the legacy
+   index.css import entirely.
+   ============================================ */
+
+/* Base - Import first */
+@import './base/variables.css';
+
+/* Utilities */
+@import './utilities/accessibility.css';
+
+/* Components */
+@import './components/skeleton.css';
+
+/* Features */
+@import './features/animations.css';
+@import './features/dashboard.css';
+
+/*
+   TODO: As we extract more from legacy index.css,
+   add imports here:
+
+   @import './base/reset.css';
+   @import './base/typography.css';
+   @import './components/buttons.css';
+   @import './components/cards.css';
+   @import './components/forms.css';
+   @import './components/modals.css';
+   @import './components/tables.css';
+   @import './features/foreman.css';
+   @import './features/cor.css';
+   @import './features/tm.css';
+   @import './themes/light.css';
+   @import './themes/dark.css';
+*/

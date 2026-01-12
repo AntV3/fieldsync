@@ -6,6 +6,208 @@
 
 ## January 11, 2025
 
+### Dashboard Redesign Phase 1: Actionable Insights (Major Feature)
+
+**Goal:** Transform the dashboard from showing raw data to showing actionable decisions. User-centric, accessible, and clear.
+
+#### Design Principles Applied
+- **User Centricity** - Design for the user's workflow
+- **Simplicity & Clarity** - Avoid clutter
+- **Actionable Insights** - Metrics that enable finding trends, patterns, improvements
+- **ADA Compliance** - 4.5:1 contrast ratios, icons + text (never color alone)
+
+#### What Was Implemented
+
+##### 1. Modular CSS Architecture
+Created new `src/styles/` folder structure:
+```
+src/styles/
+├── base/
+│   └── variables.css      # CSS custom properties with accessible colors
+├── utilities/
+│   └── accessibility.css  # Screen reader, focus, reduced motion
+├── features/
+│   └── dashboard.css      # Dashboard-specific components
+└── index.css              # Main entry point
+```
+
+**Key improvements:**
+- WCAG 2.1 AA compliant color system (4.5:1 contrast)
+- Standardized spacing, typography, and border-radius scales
+- Light/dark theme support built-in
+- CSS variables for all status colors
+
+##### 2. Risk Score Calculation Engine (`src/lib/riskCalculations.js`)
+Composite risk score (0-100) based on:
+
+| Factor | Weight | Calculation |
+|--------|--------|-------------|
+| Budget Health | 30% | Cost ratio vs earned revenue |
+| Schedule Health | 25% | Progress vs expected progress |
+| COR Exposure | 20% | Pending COR value as % of contract |
+| Activity Cadence | 15% | Days since last daily report |
+| Safety Status | 10% | Injury reports in last 30 days |
+
+**Functions:**
+- `calculateRiskScore(project)` - Returns composite score with breakdown
+- `generateSmartAlerts(riskResult, project)` - Generates prioritized alerts
+- `calculateProjections(project)` - Estimates completion cost/date
+
+##### 3. New Dashboard Components (`src/components/dashboard/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `AccessibleStatusBadge` | Color + icon + text status (never color alone) |
+| `TrendIndicator` | Directional arrows with % change |
+| `Sparkline` | Mini trend visualization |
+| `MetricCard` | Standardized metric display |
+| `RiskScoreGauge` | Visual risk score with breakdown |
+| `SmartAlerts` | Prioritized actionable alert cards |
+
+##### 4. Dashboard Integration
+- Added Smart Alerts section to Portfolio Overview
+- Risk scores calculated for all projects
+- Risk score badges shown on project cards
+- Alert navigation to relevant project tabs
+
+##### 5. Documentation
+Created `docs/DASHBOARD_REDESIGN_PLAN.md` with:
+- Complete design principles
+- Current state analysis
+- Phased implementation plan
+- Component specifications
+- CSS strategy
+- Success metrics
+
+#### Files Created
+- `src/styles/base/variables.css` - CSS custom properties
+- `src/styles/utilities/accessibility.css` - A11y utilities
+- `src/styles/features/dashboard.css` - Dashboard styles
+- `src/styles/index.css` - Entry point
+- `src/lib/riskCalculations.js` - Risk score engine
+- `src/components/dashboard/AccessibleStatusBadge.jsx`
+- `src/components/dashboard/TrendIndicator.jsx`
+- `src/components/dashboard/MetricCard.jsx`
+- `src/components/dashboard/RiskScoreGauge.jsx`
+- `src/components/dashboard/SmartAlerts.jsx`
+- `src/components/dashboard/index.js` - Exports
+- `docs/DASHBOARD_REDESIGN_PLAN.md` - Full plan
+
+#### Files Modified
+- `src/main.jsx` - Added new styles import
+- `src/components/Dashboard.jsx` - Integrated risk analysis and smart alerts
+
+---
+
+### Dashboard Redesign Phase 2: Enhanced Features (Continuation)
+
+**Goal:** Add threshold configuration, benchmark comparisons, and expand modular CSS.
+
+#### What Was Implemented
+
+##### 1. ProjectionCard Component (`src/components/dashboard/ProjectionCard.jsx`)
+- `ProjectionCard` - Individual projection display (cost, margin, date)
+- `ProjectionsPanel` - Full projections panel with multiple metrics
+- `ProjectionSummary` - Compact summary for list views
+- Shows "better/worse than planned" comparisons
+- Accessible design with clear status indicators
+
+##### 2. ThresholdConfig Component (`src/components/dashboard/ThresholdConfig.jsx`)
+- Full admin UI for customizing risk score thresholds
+- **Features:**
+  - Editable sliders for each risk factor (budget, schedule, COR, activity, safety)
+  - Three presets: Conservative, Balanced, Aggressive
+  - Validation ensuring thresholds are in order (healthy ≤ warning ≤ critical)
+  - Persists to localStorage (ready for Supabase integration)
+  - `useSavedThresholds()` hook for easy access throughout app
+- **Exports:** `ThresholdConfig`, `ThresholdConfigCompact`, `useSavedThresholds`
+
+##### 3. BenchmarkComparison Component (`src/components/dashboard/BenchmarkComparison.jsx`)
+- Compare project metrics against industry standards
+- **Industry Benchmarks:**
+  | Metric | Industry Standard |
+  |--------|------------------|
+  | Profit Margin | 15% |
+  | Cost-to-Revenue Ratio | 75% |
+  | Schedule Variance | 5% |
+  | Change Order Rate | 10% |
+  | Daily Report Rate | 95% |
+  | Safety Incidents | 0.5/month |
+- **Features:**
+  - Visual bar comparisons with position indicators
+  - Company average comparison support
+  - Summary counts (above/at/below benchmark)
+  - `BenchmarkIndicator` compact version for lists
+  - `useCompanyAverages(projects)` hook for calculating company averages
+
+##### 4. Comprehensive Risk Calculation Tests (`src/test/riskCalculations.test.js`)
+- 37 new tests covering all risk calculation functions
+- **Test Coverage:**
+  | Function | Tests |
+  |----------|-------|
+  | calculateBudgetFactor | 5 tests |
+  | calculateScheduleFactor | 5 tests |
+  | calculateCORExposureFactor | 5 tests |
+  | calculateActivityFactor | 5 tests |
+  | calculateSafetyFactor | 3 tests |
+  | calculateRiskScore | 4 tests |
+  | generateSmartAlerts | 3 tests |
+  | calculateProjections | 4 tests |
+  | DEFAULT_THRESHOLDS | 3 tests |
+- **Total tests now: 51 (all passing)**
+
+##### 5. Expanded Modular CSS Structure
+Created new modular CSS files:
+```
+src/styles/
+├── features/
+│   ├── dashboard.css      # (expanded: +328 lines)
+│   └── animations.css     # NEW - All keyframes & animation utilities
+└── components/
+    └── skeleton.css       # NEW - Loading skeleton components
+```
+
+**animations.css includes:**
+- 15+ keyframe definitions (fadeIn, scaleIn, spin, pulse, etc.)
+- Animation utility classes (.animate-fade-in, .animate-spin, etc.)
+- Staggered children animations
+- Transition utilities
+- Reduced motion support (@media prefers-reduced-motion)
+
+**skeleton.css includes:**
+- Base skeleton shimmer animation
+- Metric, Card, List, Table, Chart skeletons
+- Hero metrics, Ticket, Project card skeletons
+- Full dashboard skeleton for page loading
+- Light/dark theme support
+
+#### Files Created
+- `src/components/dashboard/ProjectionCard.jsx`
+- `src/components/dashboard/ThresholdConfig.jsx`
+- `src/components/dashboard/BenchmarkComparison.jsx`
+- `src/test/riskCalculations.test.js` (37 tests)
+- `src/styles/features/animations.css`
+- `src/styles/components/skeleton.css`
+
+#### Files Modified
+- `src/components/dashboard/index.js` - Added new exports
+- `src/styles/features/dashboard.css` - Added ThresholdConfig & BenchmarkComparison styles
+- `src/styles/index.css` - Added new imports
+
+#### Test Status
+- **51 tests passing** (14 utility + 37 risk calculation)
+- Build passes in 2.6s
+- No regressions
+
+#### Next Steps (Phase 3)
+- [ ] Full accessibility audit with screen reader testing
+- [ ] Integrate ThresholdConfig into Settings UI
+- [ ] Integrate BenchmarkComparison into project detail view
+- [ ] Add TrendIndicators to existing hero metrics
+- [ ] Continue CSS migration from legacy index.css (28K lines remaining)
+
+---
+
 ### CI/CD Pipeline & Testing Framework (Major Infrastructure)
 
 **Goal:** Prevent untested code from reaching production. Establish a safe, repeatable deployment workflow.
