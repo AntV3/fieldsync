@@ -2529,6 +2529,201 @@ export const db = {
   },
 
   // ============================================
+  // Company Onboarding & Invites
+  // ============================================
+
+  // Generate a unique 6-character company code
+  generateCompanyCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Exclude confusing chars: 0, O, I, 1
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return code
+  },
+
+  // Generate a secure invite token
+  generateInviteToken() {
+    return crypto.randomUUID()
+  },
+
+  // Create a new company
+  async createCompany({ name, industry = null, timezone = 'America/Los_Angeles', ownerUserId }) {
+    if (isSupabaseConfigured) {
+      // Generate unique company code
+      let code = this.generateCompanyCode()
+      let attempts = 0
+      const maxAttempts = 10
+
+      // Keep trying until we get a unique code
+      while (attempts < maxAttempts) {
+        const existing = await this.getCompanyByCode(code)
+        if (!existing) break
+        code = this.generateCompanyCode()
+        attempts++
+      }
+
+      if (attempts >= maxAttempts) {
+        throw new Error('Failed to generate unique company code')
+      }
+
+      const { data, error } = await supabase
+        .from('companies')
+        .insert({
+          name,
+          code,
+          industry,
+          timezone,
+          owner_user_id: ownerUserId,
+          subscription_tier: 'trial'
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Create initial owner membership (auto-active, no approval needed)
+  async createInitialMembership(userId, companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('user_companies')
+        .insert({
+          user_id: userId,
+          company_id: companyId,
+          status: 'active',
+          access_level: 'administrator',
+          company_role: 'owner',
+          approved_at: new Date().toISOString(),
+          approved_by: userId
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Create an invite for a team member
+  async createInvite({ companyId, email, role = 'field', accessLevel = 'field', invitedBy }) {
+    if (isSupabaseConfigured) {
+      const token = this.generateInviteToken()
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+
+      const { data, error } = await supabase
+        .from('company_invites')
+        .insert({
+          company_id: companyId,
+          email: email.toLowerCase().trim(),
+          role,
+          access_level: accessLevel,
+          token,
+          invited_by: invitedBy,
+          expires_at: expiresAt.toISOString()
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Get invite details by token (public info only)
+  async getInviteByToken(token) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .rpc('get_invite_by_token', { invite_token: token })
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Accept an invite token (atomically creates membership)
+  async acceptInviteToken(token, userId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .rpc('accept_invite_token', {
+          invite_token: token,
+          accepting_user_id: userId
+        })
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Get all invites for a company (admin view)
+  async getCompanyInvites(companyId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('company_invites')
+        .select('*')
+        .eq('company_id', companyId)
+        .is('accepted_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    }
+    return []
+  },
+
+  // Delete/revoke an invite
+  async deleteInvite(inviteId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('company_invites')
+        .delete()
+        .eq('id', inviteId)
+
+      if (error) throw error
+    }
+  },
+
+  // Update company subscription tier
+  async updateCompanySubscription(companyId, tier) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('companies')
+        .update({ subscription_tier: tier })
+        .eq('id', companyId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Update company details (for onboarding)
+  async updateCompany(companyId, updates) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('companies')
+        .update(updates)
+        .eq('id', companyId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // ============================================
   // Project Team Management
   // ============================================
 
