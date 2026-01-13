@@ -18,8 +18,6 @@ const PricingManager = lazy(() => import('./components/PricingManager'))
 const PublicView = lazy(() => import('./components/PublicView'))
 const SignaturePage = lazy(() => import('./components/SignaturePage'))
 const MembershipManager = lazy(() => import('./components/MembershipManager'))
-const OnboardingWizard = lazy(() => import('./components/OnboardingWizard'))
-const JoinInvite = lazy(() => import('./components/JoinInvite'))
 
 // Loading fallback component
 function PageLoader() {
@@ -32,8 +30,7 @@ function PageLoader() {
 }
 
 export default function App() {
-  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature', 'pending', 'onboarding', 'joinInvite'
-  const [joinInviteToken, setJoinInviteToken] = useState(null)
+  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature', 'pending'
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
   const [userCompanies, setUserCompanies] = useState([]) // All companies user can access
@@ -55,8 +52,6 @@ export default function App() {
     const shareMatch = path.match(/^\/view\/([a-zA-Z0-9_-]+)$/)
     const signatureMatch = path.match(/^\/sign\/([a-zA-Z0-9_-]+)$/)
 
-    const joinInviteMatch = path.match(/^\/join\/([a-zA-Z0-9_-]+)$/)
-
     if (shareMatch) {
       setShareToken(shareMatch[1])
       setView('public')
@@ -64,10 +59,6 @@ export default function App() {
     } else if (signatureMatch) {
       setSignatureToken(signatureMatch[1])
       setView('signature')
-      setLoading(false)
-    } else if (joinInviteMatch) {
-      setJoinInviteToken(joinInviteMatch[1])
-      setView('joinInvite')
       setLoading(false)
     } else {
       checkAuth()
@@ -150,12 +141,11 @@ export default function App() {
           const pendingCount = await db.getUserPendingMemberships(user.id)
           if (pendingCount > 0) {
             setView('pending')
-            setLoading(false)
             return
           }
-          // No active or pending - show onboarding to create/join company
-          setView('onboarding')
-          setLoading(false)
+          // No active or pending - show entry screen
+          showToast('No company access. Join a company to continue.', 'error')
+          await auth.signOut()
           return
         }
 
@@ -269,8 +259,7 @@ export default function App() {
           if (pendingCount > 0) {
             setView('pending')
           } else {
-            // No companies - show onboarding to create/join company
-            setView('onboarding')
+            showToast('No company access. Please contact admin.', 'error')
           }
         }
       } else {
@@ -374,53 +363,6 @@ export default function App() {
     setNavigateToProjectId(null)
   }, [])
 
-  // Handle onboarding completion (company created)
-  const handleOnboardingComplete = async (newCompany) => {
-    try {
-      setCompany(newCompany)
-      localStorage.setItem('selectedCompanyId', newCompany.id)
-      // Refresh user companies list
-      if (user?.id) {
-        const companies = await db.getUserCompanies(user.id)
-        setUserCompanies(companies)
-      }
-      setView('office')
-      showToast(`Welcome to ${newCompany.name}!`, 'success')
-    } catch (error) {
-      console.error('Error completing onboarding:', error)
-      showToast('Error completing setup', 'error')
-    }
-  }
-
-  // Handle join invite completion
-  const handleJoinComplete = async (companyData) => {
-    try {
-      // Fetch full company data
-      const fullCompany = await db.getCompany(companyData.company_id)
-      if (fullCompany) {
-        setCompany(fullCompany)
-        localStorage.setItem('selectedCompanyId', fullCompany.id)
-        // Refresh user companies list
-        if (user?.id) {
-          const companies = await db.getUserCompanies(user.id)
-          setUserCompanies(companies)
-        }
-        setView('office')
-        showToast(`Welcome to ${fullCompany.name}!`, 'success')
-      }
-      // Clear the URL
-      window.history.replaceState({}, '', '/')
-    } catch (error) {
-      console.error('Error completing join:', error)
-      showToast('Error joining company', 'error')
-    }
-  }
-
-  // Handle navigation to onboarding from entry
-  const handleCreateCompany = () => {
-    setView('onboarding')
-  }
-
   // Loading screen
   if (loading) {
     return (
@@ -445,7 +387,6 @@ export default function App() {
             onForemanAccess={handleForemanAccess}
             onOfficeLogin={handleOfficeLogin}
             onShowToast={showToast}
-            onCreateCompany={handleCreateCompany}
           />
         </ErrorBoundary>
         {toast && (
@@ -524,60 +465,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </ErrorBoundary>
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToast(null)}
-            />
-          )}
-        </BrandingProvider>
-      </ThemeProvider>
-    )
-  }
-
-  // Onboarding View (Create new company)
-  if (view === 'onboarding') {
-    return (
-      <ThemeProvider>
-        <BrandingProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <OnboardingWizard
-                user={user}
-                onComplete={handleOnboardingComplete}
-                onShowToast={showToast}
-                onBack={() => setView('entry')}
-              />
-            </Suspense>
-          </ErrorBoundary>
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToast(null)}
-            />
-          )}
-        </BrandingProvider>
-      </ThemeProvider>
-    )
-  }
-
-  // Join Invite View (Accept invite link)
-  if (view === 'joinInvite' && joinInviteToken) {
-    return (
-      <ThemeProvider>
-        <BrandingProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <JoinInvite
-                token={joinInviteToken}
-                user={user}
-                onComplete={handleJoinComplete}
-                onShowToast={showToast}
-              />
-            </Suspense>
           </ErrorBoundary>
           {toast && (
             <Toast
