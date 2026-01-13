@@ -4515,6 +4515,231 @@ input[type="number"] {
   color: var(--accent-orange);
 }
 
+/* ============================================
+   T&M Form UX Improvements
+   ============================================ */
+
+/* Sticky Crew Summary Pill - Floating summary on step 2 */
+.tm-crew-summary-pill {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: -1rem -1rem 1rem -1rem;
+}
+
+.tm-crew-summary-pill .pill-stat {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tm-crew-summary-pill .pill-warning {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-orange);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Collapsible Worker Rows */
+.tm-worker-row-collapsible {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.tm-worker-row-collapsible.worker-complete {
+  border-color: var(--accent-green);
+  border-left: 4px solid var(--accent-green);
+}
+
+.tm-worker-row-collapsible.worker-incomplete {
+  border-color: var(--accent-orange);
+  border-left: 4px solid var(--accent-orange);
+}
+
+.tm-worker-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.tm-worker-compact .tm-worker-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-worker-compact .tm-hours-compact {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tm-worker-compact .tm-hours-compact input {
+  width: 48px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.tm-worker-compact .expand-btn {
+  min-width: 70px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tm-worker-compact .expand-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tm-worker-expanded-section {
+  padding: 0.75rem;
+  padding-top: 0;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.tm-worker-expanded-section .tm-time-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tm-worker-expanded-section .tm-time-field {
+  flex: 1;
+}
+
+.tm-worker-expanded-section .tm-time-field label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.tm-worker-expanded-section .tm-time-field input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+/* Validation Summary in Footer */
+.tm-validation-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid var(--accent-orange);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--accent-orange);
+}
+
+.tm-validation-summary svg {
+  flex-shrink: 0;
+}
+
+/* Review Section Edit Buttons */
+.tm-review-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.tm-review-section-header h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tm-edit-link {
+  padding: 0.35rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--accent-blue);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tm-edit-link:hover {
+  background: var(--accent-blue);
+  color: white;
+}
+
+/* Mobile Touch Targets & iOS Zoom Prevention */
+.tm-wizard input,
+.tm-wizard select,
+.tm-wizard textarea {
+  font-size: 16px; /* Prevents iOS zoom on focus */
+}
+
+.tm-wizard button {
+  min-height: 44px;
+}
+
+.tm-wizard .tm-worker-row-collapsible input {
+  min-height: 44px;
+  padding: 0.75rem;
+}
+
+.tm-remove {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+/* Evidence Step Styling */
+.tm-evidence-section {
+  margin-bottom: 1.5rem;
+}
+
+.tm-evidence-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
 /* Success Step (Step 4) */
 .tm-success-step {
   text-align: center;
