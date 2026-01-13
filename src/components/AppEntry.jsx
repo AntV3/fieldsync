@@ -3,7 +3,7 @@ import { HardHat, Briefcase } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
 
-export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast, onCreateCompany }) {
+export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join'
   
   // Foreman state
@@ -323,7 +323,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast, 
               <span className="entry-mode-desc">Enter project PIN</span>
             </button>
             
-            <button
+            <button 
               className="entry-mode-btn office"
               onClick={() => setMode('office')}
             >
@@ -332,18 +332,6 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast, 
               <span className="entry-mode-desc">Sign in to dashboard</span>
             </button>
           </div>
-
-          {onCreateCompany && (
-            <div className="entry-create-company">
-              <span className="entry-divider-text">or</span>
-              <button
-                className="entry-create-btn"
-                onClick={onCreateCompany}
-              >
-                Create a New Company
-              </button>
-            </div>
-          )}
         </div>
       </div>
     )
