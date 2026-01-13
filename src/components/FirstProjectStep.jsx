@@ -1,7 +1,5 @@
-import { useState, lazy, Suspense } from 'react'
-
-// Lazy load Setup since it's a large component
-const Setup = lazy(() => import('./Setup'))
+import { useState } from 'react'
+import Setup from './Setup'
 
 export default function FirstProjectStep({ company, user, onComplete, onSkip, onShowToast }) {
   const [showSetup, setShowSetup] = useState(false)
@@ -28,14 +26,12 @@ export default function FirstProjectStep({ company, user, onComplete, onSkip, on
             Skip for now
           </button>
         </div>
-        <Suspense fallback={<div className="loading-spinner">Loading...</div>}>
-          <Setup
-            company={company}
-            user={user}
-            onProjectCreated={handleProjectCreated}
-            onShowToast={onShowToast}
-          />
-        </Suspense>
+        <Setup
+          company={company}
+          user={user}
+          onProjectCreated={handleProjectCreated}
+          onShowToast={onShowToast}
+        />
       </div>
     )
   }
