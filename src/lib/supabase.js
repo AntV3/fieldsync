@@ -22,25 +22,17 @@ import {
   syncPendingActions,
   ACTION_TYPES
 } from './offlineManager'
+// Import supabase client from separate file to avoid circular dependency with observability
+import { supabase, isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from './supabaseClient'
 import { observe } from './observability'
 
-// For demo purposes, we'll use a mock mode that falls back to localStorage
-// In production, you would set these environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-
-// Check if Supabase is configured
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
+// Re-export for other modules
+export { supabase, isSupabaseConfigured }
 
 // Initialize offline database (guard for SSR/test environments)
 if (typeof window !== 'undefined') {
   initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
 }
-
-// Create client only if configured
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
 
 // ============================================
 // Field Session Management

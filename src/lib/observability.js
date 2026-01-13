@@ -14,7 +14,7 @@
  *   observe.error('database', { message: 'Connection failed', company_id: 'uuid' })
  */
 
-import { supabase, isSupabaseConfigured } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabaseClient'
 
 // Configuration
 const CONFIG = {
