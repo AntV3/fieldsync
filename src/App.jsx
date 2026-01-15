@@ -42,6 +42,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
@@ -570,6 +571,34 @@ export default function App() {
             <div className="nav-user">
               {/* Theme Toggle */}
               <ThemeToggle compact />
+
+              {/* Mobile Menu */}
+              <div className="mobile-menu">
+                <button
+                  className="mobile-menu-btn"
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  aria-label="User menu"
+                >
+                  ⋮
+                </button>
+                {showMobileMenu && (
+                  <div className="mobile-menu-dropdown">
+                    <div className="mobile-menu-info">
+                      <div className="mobile-menu-user">{user?.name || user?.email}</div>
+                      {company && <div className="mobile-menu-company">{company.name}</div>}
+                    </div>
+                    <button
+                      className="mobile-menu-logout"
+                      onClick={() => {
+                        setShowMobileMenu(false)
+                        handleLogout()
+                      }}
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Company Switcher */}
               {userCompanies.length > 1 && (
