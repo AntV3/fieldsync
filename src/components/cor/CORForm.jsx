@@ -905,6 +905,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           placeholder="Company"
                           value={item.company_name}
                           onChange={(e) => updateSubcontractorsItem(index, 'company_name', e.target.value)}
+                          className="input-wide"
                         />
                         <input
                           type="text"
