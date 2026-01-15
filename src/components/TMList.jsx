@@ -36,7 +36,7 @@ export default function TMList({
 
   // View mode state - in preview mode, we filter to current month
   const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
-  const [displayMode, setDisplayMode] = useState('list') // 'list' | 'dashboard'
+  const [displayMode, setDisplayMode] = useState('dashboard') // 'list' | 'dashboard'
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
@@ -80,6 +80,13 @@ export default function TMList({
       if (subscription) db.unsubscribe?.(subscription)
     }
   }, [project.id])
+
+  // Reset to dashboard view when switching to full mode
+  useEffect(() => {
+    if (!compact) {
+      setDisplayMode('dashboard')
+    }
+  }, [compact])
 
   // Load tickets with pagination
   const loadTickets = async (pageNum = 0, reset = false) => {
