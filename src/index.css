@@ -2728,6 +2728,79 @@ input[type="number"] {
   color: white;
 }
 
+/* Mobile Menu - Hidden on desktop, shown on mobile */
+.mobile-menu {
+  display: none;
+  position: relative;
+}
+
+.mobile-menu-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-blue);
+}
+
+.mobile-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.mobile-menu-info {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-menu-user {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.mobile-menu-company {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.mobile-menu-logout {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--accent-red);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.mobile-menu-logout:hover {
+  background: var(--bg-hover);
+}
+
 /* ============================================
    Foreman View
    ============================================ */
@@ -3330,6 +3403,11 @@ input[type="number"] {
   .nav-logout,
   .company-switcher {
     display: none;
+  }
+
+  /* Show mobile menu only on mobile */
+  .mobile-menu {
+    display: block;
   }
 
   .notification-center {
