@@ -293,8 +293,9 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Description', 'Source', 'Qty', 'Unit', 'Unit Cost', 'Total']],
+      head: [['Company Name', 'Description', 'Source', 'Qty', 'Unit', 'Unit Cost', 'Total']],
       body: cor.change_order_subcontractors.map(item => [
+        item.company_name || '-',
         item.description,
         item.source_reference || item.source_type || '-',
         item.quantity?.toString() || '1',
@@ -303,7 +304,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         formatCurrency(item.total)
       ]),
       foot: [[
-        { content: 'Subcontractors Subtotal', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: 'Subcontractors Subtotal', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold' } },
         { content: formatCurrency(cor.subcontractors_subtotal), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
