@@ -26442,7 +26442,60 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
+/* Mobile Menu Toggle Button (only visible on mobile) */
+.financials-mobile-menu-toggle {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .financials-mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  }
+
+  .financials-mobile-menu-toggle:hover {
+    background: var(--primary-color-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+  }
+
+  .financials-mobile-menu-toggle:active {
+    transform: translateY(0);
+  }
+
+  /* Overlay/Backdrop for mobile sidebar */
+  .financials-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   .financials-layout {
     grid-template-columns: 1fr;
   }
@@ -26451,19 +26504,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     grid-template-columns: 1fr;
   }
 
+  /* Mobile sidebar - hidden by default, slides in when .mobile-open */
   .financials-sidebar {
     position: fixed;
     top: 0;
     left: 0;
+    width: 280px;
+    max-width: 85vw;
     height: 100vh;
     z-index: 200;
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--bg-primary);
   }
 
-  .financials-sidebar:not(.collapsed) {
+  /* Show sidebar when mobile-open class is added */
+  .financials-sidebar.mobile-open {
     transform: translateX(0);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
   }
 
   .financials-nav {
