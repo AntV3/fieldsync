@@ -83,7 +83,20 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         }, 400)
       } else {
         setPinState('error')
-        onShowToast('Invalid PIN', 'error')
+        // Show more specific error message based on error type
+        let errorMessage = 'Invalid PIN'
+        if (result.errorType === 'invalid_company') {
+          errorMessage = 'Company not found'
+        } else if (result.errorType === 'invalid_pin') {
+          errorMessage = 'Invalid PIN'
+        } else if (result.errorType === 'rpc_error') {
+          errorMessage = `Error: ${result.error || 'Unable to validate PIN'}`
+        } else if (result.errorType === 'no_data') {
+          errorMessage = 'No response from server'
+        } else if (result.errorType === 'validation_failed') {
+          errorMessage = 'Validation failed'
+        }
+        onShowToast(errorMessage, 'error')
         setTimeout(() => {
           setPin('')
           setPinState('')
