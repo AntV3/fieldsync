@@ -42,6 +42,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
@@ -528,7 +529,7 @@ export default function App() {
         <nav className="nav">
           <div className="nav-content">
             <Logo />
-            <div className="nav-tabs">
+            <div className="nav-tabs nav-tabs-desktop">
               <button
                 className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
@@ -567,7 +568,7 @@ export default function App() {
                 </button>
               )}
             </div>
-            <div className="nav-user">
+            <div className="nav-user nav-user-desktop">
               {/* Theme Toggle */}
               <ThemeToggle compact />
 
@@ -605,8 +606,137 @@ export default function App() {
                 Sign Out
               </button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="mobile-menu-btn"
+              onClick={() => setShowMobileMenu(true)}
+              aria-label="Open menu"
+            >
+              <span className="hamburger-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </button>
           </div>
         </nav>
+
+        {/* Mobile Drawer */}
+        {showMobileMenu && (
+          <div className="mobile-drawer-overlay" onClick={() => setShowMobileMenu(false)}>
+            <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
+              <div className="mobile-drawer-header">
+                <Logo />
+                <button
+                  className="mobile-drawer-close"
+                  onClick={() => setShowMobileMenu(false)}
+                  aria-label="Close menu"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* User Info */}
+              <div className="mobile-drawer-user">
+                <div className="mobile-user-avatar">
+                  {(user?.name || user?.email || 'U')[0].toUpperCase()}
+                </div>
+                <div className="mobile-user-info">
+                  <span className="mobile-user-name">{user?.name || user?.email}</span>
+                  <span className="mobile-user-company">{company?.name}</span>
+                </div>
+              </div>
+
+              {/* Company Switcher (if multiple companies) */}
+              {userCompanies.length > 1 && (
+                <div className="mobile-drawer-section">
+                  <div className="mobile-section-title">Switch Company</div>
+                  <div className="mobile-company-list">
+                    {userCompanies.map(c => (
+                      <button
+                        key={c.id}
+                        className={`mobile-company-option ${c.id === company?.id ? 'active' : ''}`}
+                        onClick={() => {
+                          handleSwitchCompany(c.id)
+                          setShowMobileMenu(false)
+                        }}
+                      >
+                        <span className="mobile-company-name">{c.name}</span>
+                        {c.id === company?.id && <span className="mobile-company-check">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Links */}
+              <div className="mobile-drawer-section">
+                <div className="mobile-section-title">Navigation</div>
+                <div className="mobile-nav-list">
+                  <button
+                    className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('dashboard'); setShowMobileMenu(false) }}
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    className={`mobile-nav-item ${activeTab === 'setup' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('setup'); setShowMobileMenu(false) }}
+                  >
+                    + New Project
+                  </button>
+                  <button
+                    className={`mobile-nav-item ${activeTab === 'pricing' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('pricing'); setShowMobileMenu(false) }}
+                  >
+                    Pricing
+                  </button>
+                  {isAdmin && (
+                    <button
+                      className={`mobile-nav-item ${activeTab === 'branding' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('branding'); setShowMobileMenu(false) }}
+                    >
+                      Branding
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button
+                      className={`mobile-nav-item ${activeTab === 'team' ? 'active' : ''}`}
+                      onClick={() => { setActiveTab('team'); setShowMobileMenu(false) }}
+                    >
+                      Team
+                      {pendingRequestCount > 0 && (
+                        <span className="mobile-nav-badge">{pendingRequestCount}</span>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Theme Toggle */}
+              <div className="mobile-drawer-section">
+                <div className="mobile-section-title">Appearance</div>
+                <div className="mobile-theme-toggle">
+                  <ThemeToggle />
+                </div>
+              </div>
+
+              {/* Sign Out */}
+              <div className="mobile-drawer-footer">
+                <button
+                  className="mobile-logout-btn"
+                  onClick={() => {
+                    handleLogout()
+                    setShowMobileMenu(false)
+                  }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <ErrorBoundary>

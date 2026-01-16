@@ -12,11 +12,19 @@
 
 /* Base - Import first */
 @import './base/variables.css';
+@import './base/reset.css';
+@import './base/typography.css';
 
 /* Utilities */
 @import './utilities/accessibility.css';
 
 /* Components */
+@import './components/badges.css';
+@import './components/buttons.css';
+@import './components/cards.css';
+@import './components/forms.css';
+@import './components/mobile-nav.css';
+@import './components/modals.css';
 @import './components/skeleton.css';
 
 /* Features */
@@ -24,15 +32,8 @@
 @import './features/dashboard.css';
 
 /*
-   TODO: As we extract more from legacy index.css,
-   add imports here:
+   TODO: Continue extracting from legacy index.css:
 
-   @import './base/reset.css';
-   @import './base/typography.css';
-   @import './components/buttons.css';
-   @import './components/cards.css';
-   @import './components/forms.css';
-   @import './components/modals.css';
    @import './components/tables.css';
    @import './features/foreman.css';
    @import './features/cor.css';

@@ -1,0 +1,270 @@
+/* ============================================
+   Badge and Status Indicator Styles
+   ============================================
+
+   Status dots, badges, and indicator components.
+   Uses design tokens from variables.css.
+   ============================================ */
+
+/* ============================================
+   Status Dots
+   ============================================ */
+
+.status-dot-container {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Size variants */
+.status-dot-small .status-dot,
+.status-dot.small {
+  width: 6px;
+  height: 6px;
+}
+
+.status-dot-large .status-dot,
+.status-dot.large {
+  width: 10px;
+  height: 10px;
+}
+
+/* Color variants */
+.status-dot-default {
+  background: var(--text-muted);
+}
+
+.status-dot-success,
+.status-dot.done {
+  background: var(--accent-green);
+}
+
+.status-dot-warning,
+.status-dot.working {
+  background: var(--accent-amber);
+}
+
+.status-dot-danger {
+  background: var(--accent-red);
+}
+
+.status-dot-info,
+.status-dot.pending {
+  background: var(--accent-blue);
+}
+
+.status-dot-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* Pulse animation */
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.status-dot-pulse {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   Status Badges (pill-style)
+   ============================================ */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.status-badge.not-started,
+.status-badge.not_started {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.status-badge.pending,
+.status-badge.working {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-badge.done,
+.status-badge.approved,
+.status-badge.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-badge.billed {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-badge.rejected,
+.status-badge.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================
+   Status Indicators (with background)
+   ============================================ */
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-xs);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.status-indicator-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.status-indicator-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+}
+
+.status-indicator-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+.status-indicator-info {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+
+.status-indicator-pending {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   Status Icons
+   ============================================ */
+
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.status-icon.done,
+.status-icon.signed {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.status-icon.working {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+}
+
+.status-icon.pending {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+
+/* ============================================
+   Badge Animation
+   ============================================ */
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.badge-new {
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   Metric Delta (positive/negative indicators)
+   ============================================ */
+
+.metric-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.metric-delta.positive {
+  color: var(--accent-green);
+}
+
+.metric-delta.negative {
+  color: var(--accent-red);
+}
+
+/* ============================================
+   Quick Stats (inline stat display)
+   ============================================ */
+
+.quick-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.quick-stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.quick-stat-item:not(:last-child)::after {
+  content: '\u2022';
+  margin-left: var(--space-sm);
+  opacity: 0.5;
+}
+
+.quick-stat-value {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.quick-stat-label {
+  opacity: 0.8;
+}
