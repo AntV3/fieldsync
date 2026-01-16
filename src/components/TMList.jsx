@@ -36,7 +36,11 @@ export default function TMList({
 
   // View mode state - in preview mode, we filter to current month
   const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
-  const [displayMode, setDisplayMode] = useState('dashboard') // 'list' | 'dashboard'
+  const [displayMode, setDisplayMode] = useState(() => {
+    // Load user preference from localStorage, default to 'dashboard'
+    const saved = localStorage.getItem('fieldsync-tm-default-view')
+    return saved === 'list' || saved === 'dashboard' ? saved : 'dashboard'
+  })
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
@@ -81,10 +85,19 @@ export default function TMList({
     }
   }, [project.id])
 
-  // Reset to dashboard view when switching to full mode
+  // Save user preference when displayMode changes
   useEffect(() => {
     if (!compact) {
-      setDisplayMode('dashboard')
+      localStorage.setItem('fieldsync-tm-default-view', displayMode)
+    }
+  }, [displayMode, compact])
+
+  // Reset to preferred view when switching to full mode
+  useEffect(() => {
+    if (!compact) {
+      const saved = localStorage.getItem('fieldsync-tm-default-view')
+      const preferredView = saved === 'list' || saved === 'dashboard' ? saved : 'dashboard'
+      setDisplayMode(preferredView)
     }
   }, [compact])
 
