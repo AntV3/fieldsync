@@ -25886,6 +25886,11 @@ END MIGRATED */
   color: var(--text-color);
 }
 
+/* Mobile header - hidden on desktop */
+.financials-nav-mobile-header {
+  display: none;
+}
+
 /* Navigation Items Container */
 .financials-nav-items {
   display: flex;
@@ -26458,28 +26463,33 @@ END MIGRATED */
   .financials-mobile-menu-toggle {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    padding: 0.875rem 1.25rem;
     background: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 50px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    margin-bottom: 1rem;
+    z-index: 150;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35), 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .financials-mobile-menu-toggle:hover {
     background: var(--primary-color-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4), 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   .financials-mobile-menu-toggle:active {
     transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   }
 
   /* Overlay/Backdrop for mobile sidebar */
@@ -26534,6 +26544,54 @@ END MIGRATED */
   .financials-nav {
     border-radius: 0;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Hide desktop collapse toggle on mobile */
+  .financials-nav-toggle {
+    display: none;
+  }
+
+  /* Mobile header with close button */
+  .financials-nav-mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+  }
+
+  .financials-nav-mobile-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .financials-nav-mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .financials-nav-mobile-close:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  .financials-nav-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
   }
 
   .section-toolbar {

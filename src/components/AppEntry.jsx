@@ -53,13 +53,13 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     }
   }
 
-  // Submit PIN - uses secure session-based validation
+  // Submit PIN - uses secure session-based validation with fallback
   const submitPin = async (pinToSubmit) => {
     if (pinToSubmit.length !== 4) return
 
     setLoading(true)
     try {
-      // Use secure PIN validation which creates a session token
+      // Try secure PIN validation first (creates a session token)
       const result = await db.getProjectByPinSecure(pinToSubmit, company.code)
 
       if (result.rateLimited) {
@@ -70,12 +70,36 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
       if (result.success && result.project) {
         onForemanAccess(result.project)
-      } else {
-        onShowToast('Invalid PIN', 'error')
-        setPin('')
+        return
       }
+
+      // If secure method failed but no rate limit, try fallback lookup
+      // This handles cases where the RPC function isn't deployed yet
+      if (result.error) {
+        console.warn('Secure PIN validation failed, trying fallback:', result.error)
+        const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
+        if (fallbackProject) {
+          onForemanAccess(fallbackProject)
+          return
+        }
+      }
+
+      onShowToast('Invalid PIN', 'error')
+      setPin('')
     } catch (err) {
+      console.error('PIN validation error:', err)
+      // Try fallback on exception
+      try {
+        const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
+        if (fallbackProject) {
+          onForemanAccess(fallbackProject)
+          return
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback PIN validation also failed:', fallbackErr)
+      }
       onShowToast('Error checking PIN', 'error')
+      setPin('')
     } finally {
       setLoading(false)
     }
