@@ -764,6 +764,8 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
           <div className="pin-input-row">
             <input
               type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="e.g., 2847"
               value={pin}
               onChange={(e) => handlePinChange(e.target.value)}
