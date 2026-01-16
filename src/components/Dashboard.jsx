@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu } from 'lucide-react'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
@@ -46,6 +46,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
   const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors' | 'tickets'
   const [financialsSidebarCollapsed, setFinancialsSidebarCollapsed] = useState(true) // Start collapsed for more real estate
+  const [financialsSidebarMobileOpen, setFinancialsSidebarMobileOpen] = useState(false) // For mobile sidebar overlay
   const [corViewMode, setCORViewMode] = useState('preview') // 'preview' | 'full'
   const [corDisplayMode, setCORDisplayMode] = useState('list') // 'list' | 'log' - for layout expansion
   const [tmViewMode, setTMViewMode] = useState('preview') // 'preview' | 'full'
@@ -148,6 +149,19 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       }
     }
   }, [company?.id, projectIdsKey, debouncedRefresh])
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (financialsSidebarMobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [financialsSidebarMobileOpen])
 
   const loadDumpSites = async () => {
     try {
@@ -914,6 +928,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setFinancialsSidebarCollapsed(prev => !prev)
   }, [])
 
+  const handleToggleMobileSidebar = useCallback(() => {
+    setFinancialsSidebarMobileOpen(prev => !prev)
+  }, [])
+
+  const handleCloseMobileSidebar = useCallback(() => {
+    setFinancialsSidebarMobileOpen(false)
+  }, [])
+
   const handleViewAllCORs = useCallback(() => {
     setCORViewMode('full')
   }, [])
@@ -1433,11 +1455,34 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
               {/* Split Layout with Collapsible Navigation */}
               <div className={`financials-layout ${financialsSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+                {/* Mobile Menu Toggle Button */}
+                <button
+                  className="financials-mobile-menu-toggle"
+                  onClick={handleToggleMobileSidebar}
+                  aria-label="Open navigation menu"
+                  title="Open navigation menu"
+                >
+                  <Menu size={20} />
+                  <span>Menu</span>
+                </button>
+
+                {/* Mobile Overlay/Backdrop */}
+                {financialsSidebarMobileOpen && (
+                  <div
+                    className="financials-sidebar-overlay"
+                    onClick={handleCloseMobileSidebar}
+                    aria-hidden="true"
+                  />
+                )}
+
                 {/* Sidebar Navigation - Always visible, collapsible */}
-                <div className={`financials-sidebar ${financialsSidebarCollapsed ? 'collapsed' : ''}`}>
+                <div className={`financials-sidebar ${financialsSidebarCollapsed ? 'collapsed' : ''} ${financialsSidebarMobileOpen ? 'mobile-open' : ''}`}>
                   <FinancialsNav
                     activeSection={financialsSection}
-                    onSectionChange={setFinancialsSection}
+                    onSectionChange={(section) => {
+                      setFinancialsSection(section)
+                      setFinancialsSidebarMobileOpen(false) // Close mobile sidebar when section changes
+                    }}
                     collapsed={financialsSidebarCollapsed}
                     onToggleCollapse={handleToggleFinancialsSidebar}
                     stats={financialsNavStats}

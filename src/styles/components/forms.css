@@ -1,0 +1,341 @@
+/* ============================================
+   Form Styles
+   ============================================
+
+   Form inputs, labels, validation, and layout.
+   Uses design tokens from variables.css.
+   ============================================ */
+
+/* Base Form Group */
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+/* Labels */
+label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+/* Base Input Styles */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Disabled state */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--bg-tertiary, var(--bg-secondary));
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Date Input */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: var(--calendar-icon-filter, none);
+}
+
+/* Number Input - Remove Spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Form Hint */
+.form-hint {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* Required Field Indicator */
+.form-group.required label::after {
+  content: ' *';
+  color: var(--accent-amber);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Required Field - Orange Left Bar */
+.input-required,
+.required-field input,
+.required-field textarea,
+.required-field select {
+  border-left: 3px solid var(--accent-amber) !important;
+  padding-left: calc(var(--space-md) - 3px);
+}
+
+/* Required field empty state */
+.input-required:invalid,
+.input-required[data-empty="true"],
+.form-group.required input:placeholder-shown,
+.form-group.required textarea:placeholder-shown {
+  border-left-color: var(--accent-amber) !important;
+  background: rgba(249, 115, 22, 0.05);
+}
+
+/* Required field filled state */
+.input-required:valid:not(:placeholder-shown),
+.form-group.required input:not(:placeholder-shown),
+.form-group.required textarea:not(:placeholder-shown) {
+  border-left-color: rgba(249, 115, 22, 0.4) !important;
+  background: var(--bg-input, var(--bg-elevated));
+}
+
+/* Form Row Layout */
+.form-row {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.form-row-2,
+.form-row.two-col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.form-row.three-col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.form-row.four-col {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Compact Form Row */
+.form-row-compact {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.form-row-compact .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-row-compact label {
+  font-size: var(--font-size-xs);
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+/* ============================================
+   Validated Form Field Components
+   ============================================ */
+
+.form-field {
+  margin-bottom: var(--space-md);
+}
+
+.form-field-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.form-field-required {
+  color: var(--accent-red);
+  margin-left: 0.125rem;
+}
+
+.form-field-input {
+  position: relative;
+}
+
+.form-field-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--accent-red);
+}
+
+.form-field-hint {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* Validated Inputs */
+.validated-input,
+.validated-select,
+.validated-textarea {
+  width: 100%;
+  padding: var(--space-sm) var(--space-sm);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.validated-input:focus,
+.validated-select:focus,
+.validated-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, var(--accent-blue));
+  box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(59, 130, 246, 0.1));
+}
+
+/* Error state */
+.form-field.has-error .validated-input,
+.form-field.has-error .validated-select,
+.form-field.has-error .validated-textarea,
+.validated-input.has-error,
+.validated-select.has-error,
+.validated-textarea.has-error {
+  border-color: var(--accent-red);
+}
+
+.validated-input.has-error:focus,
+.validated-select.has-error:focus,
+.validated-textarea.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Inline error below input */
+.input-error-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  font-size: 0.7rem;
+  color: var(--accent-red);
+}
+
+/* ============================================
+   Input with Prefix/Suffix
+   ============================================ */
+
+.input-with-prefix,
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.input-with-prefix:focus-within,
+.input-with-suffix:focus-within {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-prefix,
+.input-suffix {
+  padding: 0 var(--space-sm);
+  background: var(--bg-tertiary, var(--bg-secondary));
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+  height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix {
+  border-right: 1px solid var(--border-color);
+}
+
+.input-suffix {
+  border-left: 1px solid var(--border-color);
+}
+
+.input-with-prefix input,
+.input-with-suffix input {
+  flex: 1;
+  border: none;
+  padding: var(--space-sm);
+  font-size: var(--font-size-md);
+}
+
+.input-with-prefix input:focus,
+.input-with-suffix input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Select styling */
+.form-select {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 5.5L8 9l3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .form-row-2,
+  .form-row.two-col,
+  .form-row.three-col,
+  .form-row.four-col {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row-compact {
+    flex-direction: column;
+  }
+}

@@ -650,41 +650,45 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           ))}
                         </select>
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="Reg hrs"
                           value={item.regular_hours || ''}
-                          onChange={(e) => updateLaborItem(index, 'regular_hours', e.target.value.replace(/[^0-9.]/g, ''))}
+                          onChange={(e) => updateLaborItem(index, 'regular_hours', e.target.value)}
                           className="input-small"
                         />
                         <span className="input-label">@</span>
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="$/hr"
-                          value={item.regular_rate ? (item.regular_rate / 100) : ''}
+                          value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, '')
+                            const val = e.target.value
                             updateLaborItem(index, 'regular_rate', Math.round(parseFloat(val || 0) * 100))
                           }}
                           className="input-small"
                         />
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="OT hrs"
                           value={item.overtime_hours || ''}
-                          onChange={(e) => updateLaborItem(index, 'overtime_hours', e.target.value.replace(/[^0-9.]/g, ''))}
+                          onChange={(e) => updateLaborItem(index, 'overtime_hours', e.target.value)}
                           className="input-small"
                         />
                         <span className="input-label">@</span>
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="$/hr"
-                          value={item.overtime_rate ? (item.overtime_rate / 100) : ''}
+                          value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, '')
+                            const val = e.target.value
                             updateLaborItem(index, 'overtime_rate', Math.round(parseFloat(val || 0) * 100))
                           }}
                           className="input-small"
@@ -750,11 +754,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           className="input-wide"
                         />
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="Qty"
                           value={item.quantity || ''}
-                          onChange={(e) => updateMaterialsItem(index, 'quantity', e.target.value.replace(/[^0-9.]/g, ''))}
+                          onChange={(e) => updateMaterialsItem(index, 'quantity', e.target.value)}
                           className="input-small"
                         />
                         <select
@@ -767,12 +772,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         </select>
                         <span className="input-label">@</span>
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="$/unit"
-                          value={item.unit_cost ? (item.unit_cost / 100) : ''}
+                          value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, '')
+                            const val = e.target.value
                             updateMaterialsItem(index, 'unit_cost', Math.round(parseFloat(val || 0) * 100))
                           }}
                           className="input-small"
@@ -838,11 +844,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           className="input-wide"
                         />
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="Qty"
                           value={item.quantity || ''}
-                          onChange={(e) => updateEquipmentItem(index, 'quantity', e.target.value.replace(/[^0-9.]/g, ''))}
+                          onChange={(e) => updateEquipmentItem(index, 'quantity', e.target.value)}
                           className="input-small"
                         />
                         <select
@@ -855,12 +862,13 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         </select>
                         <span className="input-label">@</span>
                         <input
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="$/unit"
-                          value={item.unit_cost ? (item.unit_cost / 100) : ''}
+                          value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, '')
+                            const val = e.target.value
                             updateEquipmentItem(index, 'unit_cost', Math.round(parseFloat(val || 0) * 100))
                           }}
                           className="input-small"
@@ -897,6 +905,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           placeholder="Company"
                           value={item.company_name}
                           onChange={(e) => updateSubcontractorsItem(index, 'company_name', e.target.value)}
+                          className="input-wide"
                         />
                         <input
                           type="text"
@@ -907,11 +916,19 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         />
                         <input
                           type="text"
-                          inputMode="decimal"
+                          placeholder="Invoice #"
+                          value={item.source_reference || ''}
+                          onChange={(e) => updateSubcontractorsItem(index, 'source_reference', e.target.value)}
+                          className="input-small"
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="Amount"
-                          value={item.amount ? (item.amount / 100) : ''}
+                          value={item.amount ? (item.amount / 100).toFixed(2) : ''}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, '')
+                            const val = e.target.value
                             updateSubcontractorsItem(index, 'amount', Math.round(parseFloat(val || 0) * 100))
                           }}
                           className="input-small"

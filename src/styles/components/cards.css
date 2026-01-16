@@ -1,0 +1,174 @@
+/* ============================================
+   Card Styles
+   ============================================
+
+   Base card component and variants using design tokens.
+   ============================================ */
+
+/* Base Card */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  animation: fadeIn 0.3s ease;
+}
+
+/* Section Card (similar to card but smaller padding) */
+.section-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+}
+
+/* Info Card */
+.info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+/* Project Card */
+.project-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.project-card:hover {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-md);
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-xs);
+}
+
+.project-card-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.project-card-value {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+/* Enhanced Project Card */
+.project-card.enhanced {
+  padding: var(--space-sm);
+}
+
+.project-card.enhanced.at-risk {
+  border-left: 3px solid var(--accent-red);
+}
+
+/* Project Stats Row (inside project cards) */
+.project-stats-row {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--space-xs) 0;
+  padding: var(--space-xs) 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.project-stat {
+  text-align: center;
+  flex: 1;
+}
+
+.project-stat .stat-value {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.project-stat .stat-value.negative {
+  color: var(--accent-red);
+}
+
+.project-stat .stat-label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+}
+
+/* Mini Progress Bar (used in project cards) */
+.mini-progress-bar {
+  height: 6px;
+  background: var(--progress-bg, var(--bg-elevated));
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-top: var(--space-xs);
+}
+
+.mini-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: var(--radius-sm);
+}
+
+/* Dashboard Analytics Cards */
+.burn-rate-card,
+.profitability-card,
+.cost-contributors-card,
+.disposal-summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+}
+
+/* Card Skeleton (loading state) */
+.card-skeleton {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  animation: pulse 2s infinite;
+}
+
+/* Card Title */
+.card-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+}
+
+/* Card Header with actions */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+/* Card Footer */
+.card-footer {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .project-card-header {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+}
