@@ -853,29 +853,44 @@ export const db = {
           p_ip_address: null // IP is not available client-side
         })
 
+      console.log('[PIN Validation] RPC Response:', { data, error, pin, companyCode })
+
       if (error) {
-        return { success: false, rateLimited: false, project: null, error: error.message }
+        console.error('[PIN Validation] RPC Error:', error)
+        return { success: false, rateLimited: false, project: null, error: error.message, errorType: 'rpc_error' }
       }
 
       if (!data || data.length === 0) {
-        return { success: false, rateLimited: false, project: null }
+        console.warn('[PIN Validation] No data returned from RPC')
+        return { success: false, rateLimited: false, project: null, errorType: 'no_data' }
       }
 
       const result = data[0]
+      console.log('[PIN Validation] Result:', result)
 
       // Check error codes
       if (result.error_code === 'RATE_LIMITED') {
-        return { success: false, rateLimited: true, project: null }
+        console.warn('[PIN Validation] Rate limited')
+        return { success: false, rateLimited: true, project: null, errorType: 'rate_limited' }
       }
 
-      if (result.error_code === 'INVALID_COMPANY' || result.error_code === 'INVALID_PIN') {
-        return { success: false, rateLimited: false, project: null }
+      if (result.error_code === 'INVALID_COMPANY') {
+        console.warn('[PIN Validation] Invalid company code:', companyCode)
+        return { success: false, rateLimited: false, project: null, errorType: 'invalid_company' }
+      }
+
+      if (result.error_code === 'INVALID_PIN') {
+        console.warn('[PIN Validation] Invalid PIN for company:', companyCode)
+        return { success: false, rateLimited: false, project: null, errorType: 'invalid_pin' }
       }
 
       // Check if successful
       if (!result.success || !result.project_id) {
-        return { success: false, rateLimited: false, project: null }
+        console.warn('[PIN Validation] Validation failed:', result)
+        return { success: false, rateLimited: false, project: null, errorType: 'validation_failed' }
       }
+
+      console.log('[PIN Validation] Success! Creating session for project:', result.project_id)
 
       // Store the session for subsequent requests
       setFieldSession({
@@ -889,11 +904,17 @@ export const db = {
 
       // Fetch full project details using the new session
       const client = getFieldClient()
-      const { data: projectData } = await client
+      const { data: projectData, error: projectError } = await client
         .from('projects')
         .select('*')
         .eq('id', result.project_id)
         .single()
+
+      if (projectError) {
+        console.error('[PIN Validation] Error fetching project details:', projectError)
+      }
+
+      console.log('[PIN Validation] Project data fetched:', projectData)
 
       return {
         success: true,

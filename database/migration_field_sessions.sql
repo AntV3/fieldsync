@@ -145,7 +145,13 @@ DECLARE
   found_project RECORD;
   found_company RECORD;
   new_session_token TEXT;
+  clean_pin TEXT;
+  clean_company_code TEXT;
 BEGIN
+  -- Clean input: trim whitespace and normalize
+  clean_pin := TRIM(p_pin);
+  clean_company_code := UPPER(TRIM(p_company_code));
+
   -- Check rate limit first
   is_rate_limited := NOT check_rate_limit(p_ip_address, p_device_id, 15, 5);
 
@@ -157,10 +163,10 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Find company by code
+  -- Find company by code (case-insensitive)
   SELECT * INTO found_company
   FROM companies c
-  WHERE c.code = p_company_code;
+  WHERE UPPER(c.code) = clean_company_code;
 
   IF found_company IS NULL THEN
     PERFORM log_auth_attempt(p_ip_address, p_device_id, FALSE, 'pin_invalid_company');
@@ -170,10 +176,10 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Find project by PIN within company
+  -- Find project by PIN within company (trim whitespace from both sides)
   SELECT * INTO found_project
   FROM projects p
-  WHERE p.pin = p_pin
+  WHERE TRIM(p.pin) = clean_pin
     AND p.company_id = found_company.id
     AND p.status = 'active';
 
