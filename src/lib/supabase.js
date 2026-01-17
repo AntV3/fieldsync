@@ -985,17 +985,22 @@ export const db = {
     }
   },
 
-  // Update project
-  async updateProject(id, updates) {
+  // Update project - requires companyId for cross-tenant security
+  async updateProject(id, updates, companyId = null) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('projects')
         .update(updates)
         .eq('id', id)
-        .select()
-        .single()
+
+      // Add company_id check if provided (prevents cross-tenant access)
+      if (companyId) {
+        query = query.eq('company_id', companyId)
+      }
+
+      const { data, error } = await query.select().single()
       if (error) {
-        console.error('Error updating project:', error)
+        console.error('Error updating project')
         throw error
       }
       return data
@@ -1010,12 +1015,20 @@ export const db = {
     }
   },
 
-  async deleteProject(id) {
+  // Delete project - requires companyId for cross-tenant security
+  async deleteProject(id, companyId = null) {
     if (isSupabaseConfigured) {
-      const { error } = await supabase
+      let query = supabase
         .from('projects')
         .delete()
         .eq('id', id)
+
+      // Add company_id check if provided (prevents cross-tenant access)
+      if (companyId) {
+        query = query.eq('company_id', companyId)
+      }
+
+      const { error } = await query
       if (error) throw error
     } else {
       const localData = getLocalData()
@@ -1081,7 +1094,8 @@ export const db = {
     }
   },
 
-  async updateAreaStatus(id, status) {
+  // Update area status - projectId optional for cross-tenant security
+  async updateAreaStatus(id, status, projectId = null) {
     if (isSupabaseConfigured) {
       // If offline, update cache and queue action
       if (!getConnectionStatus()) {
@@ -1091,12 +1105,17 @@ export const db = {
       }
 
       const client = getClient()
-      const { data, error } = await client
+      let query = client
         .from('areas')
         .update({ status })
         .eq('id', id)
-        .select()
-        .single()
+
+      // Add project_id check if provided (prevents cross-tenant access)
+      if (projectId) {
+        query = query.eq('project_id', projectId)
+      }
+
+      const { data, error } = await query.select().single()
 
       if (error) {
         // If network error, queue for later
@@ -1110,9 +1129,7 @@ export const db = {
 
       // Update cache with server response
       if (data) {
-        updateCachedAreaStatus(id, status).catch(err =>
-          console.error('Failed to update cached area:', err)
-        )
+        updateCachedAreaStatus(id, status).catch(() => {})
       }
 
       return data
@@ -1128,15 +1145,20 @@ export const db = {
     }
   },
 
-  // Update area (name, weight, sort_order)
-  async updateArea(id, updates) {
+  // Update area (name, weight, sort_order) - projectId optional for security
+  async updateArea(id, updates, projectId = null) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('areas')
         .update(updates)
         .eq('id', id)
-        .select()
-        .single()
+
+      // Add project_id check if provided (prevents cross-tenant access)
+      if (projectId) {
+        query = query.eq('project_id', projectId)
+      }
+
+      const { data, error } = await query.select().single()
       if (error) throw error
       return data
     } else {
@@ -1151,13 +1173,20 @@ export const db = {
     }
   },
 
-  // Delete area
-  async deleteArea(id) {
+  // Delete area - projectId optional for cross-tenant security
+  async deleteArea(id, projectId = null) {
     if (isSupabaseConfigured) {
-      const { error } = await supabase
+      let query = supabase
         .from('areas')
         .delete()
         .eq('id', id)
+
+      // Add project_id check if provided (prevents cross-tenant access)
+      if (projectId) {
+        query = query.eq('project_id', projectId)
+      }
+
+      const { error } = await query
       if (error) throw error
     } else {
       const localData = getLocalData()

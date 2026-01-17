@@ -598,7 +598,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setSaving(true)
 
     try {
-      // Update project
+      // Update project - include company.id for cross-tenant security
       await db.updateProject(selectedProject.id, {
         name: editData.name.trim(),
         job_number: editData.job_number?.trim() || null,
@@ -611,7 +611,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         job_type: editData.job_type || 'standard',
         pin: editData.pin || null,
         default_dump_site_id: editData.default_dump_site_id || null
-      })
+      }, company?.id)
 
       // Handle areas
       const existingAreaIds = areas.map(a => a.id)
