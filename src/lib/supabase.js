@@ -2077,6 +2077,9 @@ export const db = {
       }
 
       const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
       const { data, error } = await client
         .from('t_and_m_tickets')
         .insert({
@@ -2128,6 +2131,9 @@ export const db = {
         role: w.role || 'Laborer'
       }))
       const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
       const { error } = await client
         .from('t_and_m_workers')
         .insert(workersData)
@@ -2145,6 +2151,9 @@ export const db = {
         quantity: item.quantity
       }))
       const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
       const { error } = await client
         .from('t_and_m_items')
         .insert(itemsData)
@@ -2319,6 +2328,9 @@ export const db = {
   async updateTMTicketPhotos(ticketId, photos) {
     if (isSupabaseConfigured) {
       const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({ photos })
@@ -2335,6 +2347,9 @@ export const db = {
   async saveTMClientSignature(ticketId, signatureData) {
     if (isSupabaseConfigured) {
       const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
@@ -2993,6 +3008,11 @@ export const db = {
   async uploadPhoto(companyId, projectId, ticketId, file) {
     if (!isSupabaseConfigured) return null
 
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
     const start = performance.now()
     const fileSize = file.size || 0
 
@@ -3008,7 +3028,7 @@ export const db = {
     const filePath = `${companyId}/${projectId}/${ticketId}/${fileName}`
 
     try {
-      const { data, error } = await supabase.storage
+      const { data, error } = await client.storage
         .from('tm-photos')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -3027,7 +3047,7 @@ export const db = {
       if (error) throw error
 
       // Get public URL
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = client.storage
         .from('tm-photos')
         .getPublicUrl(filePath)
 
@@ -3046,6 +3066,11 @@ export const db = {
   async uploadPhotoBase64(companyId, projectId, ticketId, base64Data, fileName = 'photo.jpg') {
     if (!isSupabaseConfigured) return null
 
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
     // Convert base64 to blob
     const base64Response = await fetch(base64Data)
     const blob = await base64Response.blob()
@@ -3057,11 +3082,11 @@ export const db = {
     const randomId = Array.from(array, b => b.toString(36)).join('')
     const extension = fileName.split('.').pop() || 'jpg'
     const newFileName = `${timestamp}-${randomId}.${extension}`
-    
+
     // Path: company/project/ticket/filename
     const filePath = `${companyId}/${projectId}/${ticketId}/${newFileName}`
 
-    const { data, error } = await supabase.storage
+    const { data, error } = await client.storage
       .from('tm-photos')
       .upload(filePath, blob, {
         cacheControl: '3600',
@@ -3072,7 +3097,7 @@ export const db = {
     if (error) throw error
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = client.storage
       .from('tm-photos')
       .getPublicUrl(filePath)
 

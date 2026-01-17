@@ -1186,6 +1186,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         created_by_name: submittedByName.trim()
       })
 
+      // Verify ticket was created successfully
+      if (!ticket || !ticket.id) {
+        throw new Error('Failed to create ticket - no ticket ID returned')
+      }
+
       // Compress and upload photos with state tracking
       let photoUrls = []
       const pendingPhotos = photos.filter(p => p.status === 'pending')
