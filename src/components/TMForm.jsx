@@ -981,6 +981,39 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     return true
   }
 
+  // Get total workers and hours for summary
+  // Handles both dynamic labor classes and hardcoded fallback
+  // IMPORTANT: These must be declared before getValidationWarnings which uses workersNeedingHours
+  const validSupervision = supervision.filter(s => s && s.name && s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+  const validOperators = operators.filter(o => o && o.name && o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
+  const validLaborers = laborers.filter(l => l && l.name && l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
+
+  // Dynamic workers summary (when company has custom classes)
+  const validDynamicWorkersList = getValidDynamicWorkers()
+
+  // Use dynamic workers if available, otherwise use hardcoded
+  const totalWorkers = hasCustomLaborClasses
+    ? validDynamicWorkersList.length
+    : validSupervision.length + validOperators.length + validLaborers.length
+  const totalRegHours = hasCustomLaborClasses
+    ? validDynamicWorkersList.reduce((sum, w) => sum + (w.hours || 0), 0)
+    : [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
+  const totalOTHours = hasCustomLaborClasses
+    ? validDynamicWorkersList.reduce((sum, w) => sum + (w.overtime_hours || 0), 0)
+    : [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.overtimeHours || 0), 0)
+  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
+
+  // Workers with names (for running total - shows who needs hours)
+  const namedWorkers = hasCustomLaborClasses
+    ? Object.values(dynamicWorkers || {}).flat().filter(w => w && w.name && w.name.trim())
+    : [
+        ...supervision.filter(s => s && s.name && s.name.trim()),
+        ...operators.filter(o => o && o.name && o.name.trim()),
+        ...laborers.filter(l => l && l.name && l.name.trim())
+      ]
+  const workersWithHours = totalWorkers
+  const workersNeedingHours = namedWorkers.length - workersWithHours
+
   // Get validation warnings for current step (non-blocking, informational)
   const getValidationWarnings = () => {
     const warnings = []
@@ -1231,39 +1264,6 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       setSubmitProgress('')
     }
   }
-
-  // Get total workers and hours for summary
-  // Handles both dynamic labor classes and hardcoded fallback
-  // Added null safety checks to prevent TDZ errors during render
-  const validSupervision = supervision.filter(s => s && s.name && s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
-  const validOperators = operators.filter(o => o && o.name && o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
-  const validLaborers = laborers.filter(l => l && l.name && l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
-
-  // Dynamic workers summary (when company has custom classes)
-  const validDynamicWorkersList = getValidDynamicWorkers()
-
-  // Use dynamic workers if available, otherwise use hardcoded
-  const totalWorkers = hasCustomLaborClasses
-    ? validDynamicWorkersList.length
-    : validSupervision.length + validOperators.length + validLaborers.length
-  const totalRegHours = hasCustomLaborClasses
-    ? validDynamicWorkersList.reduce((sum, w) => sum + (w.hours || 0), 0)
-    : [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.hours || 0), 0)
-  const totalOTHours = hasCustomLaborClasses
-    ? validDynamicWorkersList.reduce((sum, w) => sum + (w.overtime_hours || 0), 0)
-    : [...validSupervision, ...validOperators, ...validLaborers].reduce((sum, w) => sum + parseFloat(w.overtimeHours || 0), 0)
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
-
-  // Workers with names (for running total - shows who needs hours)
-  const namedWorkers = hasCustomLaborClasses
-    ? Object.values(dynamicWorkers || {}).flat().filter(w => w && w.name && w.name.trim())
-    : [
-        ...supervision.filter(s => s && s.name && s.name.trim()),
-        ...operators.filter(o => o && o.name && o.name.trim()),
-        ...laborers.filter(l => l && l.name && l.name.trim())
-      ]
-  const workersWithHours = totalWorkers
-  const workersNeedingHours = namedWorkers.length - workersWithHours
 
   // STEP 2: Item Selection View
   if (step === 3 && (selectedCategory || showCustomForm)) {
