@@ -116,71 +116,16 @@ CREATE POLICY "Office can view all projects" ON projects
     )
   );
 
--- Foremen can only see assigned projects
-CREATE POLICY "Foremen can view assigned projects" ON projects
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM project_assignments 
-      WHERE project_id = projects.id AND user_id = auth.uid()
-    )
-  );
-
--- Only office/admin can create/update/delete projects
-CREATE POLICY "Office can manage projects" ON projects
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role IN ('office', 'admin')
-    )
-  );
-
 -- ============================================
--- Update Area Policies
+-- RLS POLICIES - MOVED TO MIGRATIONS
 -- ============================================
-
--- Drop old permissive policy
-DROP POLICY IF EXISTS "Allow all operations on areas" ON areas;
-
--- Everyone can view areas for projects they have access to
-CREATE POLICY "Users can view areas" ON areas
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM projects p
-      LEFT JOIN project_assignments pa ON pa.project_id = p.id
-      LEFT JOIN profiles pr ON pr.id = auth.uid()
-      WHERE p.id = areas.project_id
-      AND (pr.role IN ('office', 'admin') OR pa.user_id = auth.uid())
-    )
-  );
-
--- Everyone with project access can update area status
-CREATE POLICY "Users can update area status" ON areas
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM projects p
-      LEFT JOIN project_assignments pa ON pa.project_id = p.id
-      LEFT JOIN profiles pr ON pr.id = auth.uid()
-      WHERE p.id = areas.project_id
-      AND (pr.role IN ('office', 'admin') OR pa.user_id = auth.uid())
-    )
-  );
-
--- Only office/admin can create/delete areas
-CREATE POLICY "Office can manage areas" ON areas
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role IN ('office', 'admin')
-    )
-  );
-
-CREATE POLICY "Office can delete areas" ON areas
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role IN ('office', 'admin')
-    )
-  );
+-- NOTE: RLS policies for projects, areas, and companies have been
+-- moved to supabase/migrations/20250116_fix_ambiguous_project_id_v2.sql
+-- to fix ambiguous column references.
+--
+-- DO NOT recreate policies here as they will conflict with migration policies.
+-- All policies are now managed through migrations for better version control.
+-- ============================================
 
 -- ============================================
 -- Activity Log (for tracking who did what)

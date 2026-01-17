@@ -11,6 +11,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const [company, setCompany] = useState(null)
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pinState, setPinState] = useState('') // '', 'error', 'success'
 
   // Office state
   const [email, setEmail] = useState('')
@@ -58,13 +59,19 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     if (pinToSubmit.length !== 4) return
 
     setLoading(true)
+    setPinState('')
+
     try {
       // Try secure PIN validation first (creates a session token)
       const result = await db.getProjectByPinSecure(pinToSubmit, company.code)
 
       if (result.rateLimited) {
+        setPinState('error')
         onShowToast('Too many attempts. Please wait 15 minutes.', 'error')
-        setPin('')
+        setTimeout(() => {
+          setPin('')
+          setPinState('')
+        }, 800)
         return
       }
 
@@ -107,23 +114,29 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
   // Number pad handler
   const handleNumberPad = (num) => {
-    if (pin.length < 4) {
+    if (pin.length < 4 && !loading) {
       const newPin = pin + num
       setPin(newPin)
+      setPinState('') // Reset any error state
       if (newPin.length === 4) {
-        setTimeout(() => submitPin(newPin), 200)
+        // Optimized timing - submit immediately after slight visual feedback
+        setTimeout(() => submitPin(newPin), 150)
       }
     }
   }
 
   const handleBackspace = () => {
-    setPin(prev => prev.slice(0, -1))
+    if (!loading) {
+      setPin(prev => prev.slice(0, -1))
+      setPinState('') // Reset any error state
+    }
   }
 
   // Reset to company code entry
   const handleBackToCompany = () => {
     setCompany(null)
     setPin('')
+    setPinState('')
   }
 
   // Handle office login
@@ -413,9 +426,12 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           <p className="entry-subtitle">Enter project PIN</p>
 
           {/* PIN Display */}
-          <div className="pin-display">
+          <div className={`pin-display ${pinState === 'error' ? 'shake' : ''}`}>
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className={`pin-dot ${pin.length > i ? 'filled' : ''}`}>
+              <div
+                key={i}
+                className={`pin-dot ${pin.length > i ? 'filled' : ''} ${pinState}`}
+              >
                 {pin.length > i ? '•' : ''}
               </div>
             ))}

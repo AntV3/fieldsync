@@ -231,6 +231,13 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [selectedProject, debouncedRefresh])
 
+  // When navigating to tickets section, switch to full mode to show dashboard
+  useEffect(() => {
+    if (financialsSection === 'tickets') {
+      setTMViewMode('full')
+    }
+  }, [financialsSection])
+
   const loadProjects = async () => {
     try {
       // Use optimized single-query dashboard summary when available
