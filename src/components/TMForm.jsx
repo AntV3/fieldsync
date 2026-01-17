@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { HardHat, FileText, Wrench, PenLine, Camera, UserCheck, Zap, RefreshCw, Clock, Copy, Globe, Check, Loader2, Send, Link, ExternalLink, CheckCircle2, Search, AlertCircle, RotateCcw } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
-import SignatureLinkGenerator from './SignatureLinkGenerator'
-import TMClientSignature from './TMClientSignature'
+
+// Lazy load signature components - only used in final step
+const SignatureLinkGenerator = lazy(() => import('./SignatureLinkGenerator'))
+const TMClientSignature = lazy(() => import('./TMClientSignature'))
 
 // Generate secure random ID
 const generateRandomId = () => {
@@ -2574,34 +2576,38 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
       {/* Signature Link Generator Modal */}
       {showSignatureLinkModal && submittedTicket && (
-        <SignatureLinkGenerator
-          documentType="tm_ticket"
-          documentId={submittedTicket.id}
-          companyId={companyId}
-          projectId={project.id}
-          documentTitle={`T&M - ${new Date(workDate).toLocaleDateString()}`}
-          onClose={() => setShowSignatureLinkModal(false)}
-          onShowToast={onShowToast}
-        />
+        <Suspense fallback={<div className="loading">Loading...</div>}>
+          <SignatureLinkGenerator
+            documentType="tm_ticket"
+            documentId={submittedTicket.id}
+            companyId={companyId}
+            projectId={project.id}
+            documentTitle={`T&M - ${new Date(workDate).toLocaleDateString()}`}
+            onClose={() => setShowSignatureLinkModal(false)}
+            onShowToast={onShowToast}
+          />
+        </Suspense>
       )}
 
       {/* On-Site Client Signature Modal */}
       {showOnSiteSignature && submittedTicket && (
-        <TMClientSignature
-          ticketId={submittedTicket.id}
-          ticketSummary={{
-            workDate: workDate,
-            workerCount: totalWorkers,
-            totalHours: totalRegHours + totalOTHours
-          }}
-          lang={lang}
-          onSave={() => {
-            setShowOnSiteSignature(false)
-            setClientSigned(true)
-          }}
-          onClose={() => setShowOnSiteSignature(false)}
-          onShowToast={onShowToast}
-        />
+        <Suspense fallback={<div className="loading">Loading...</div>}>
+          <TMClientSignature
+            ticketId={submittedTicket.id}
+            ticketSummary={{
+              workDate: workDate,
+              workerCount: totalWorkers,
+              totalHours: totalRegHours + totalOTHours
+            }}
+            lang={lang}
+            onSave={() => {
+              setShowOnSiteSignature(false)
+              setClientSigned(true)
+            }}
+            onClose={() => setShowOnSiteSignature(false)}
+            onShowToast={onShowToast}
+          />
+        </Suspense>
       )}
 
       {/* Footer */}
