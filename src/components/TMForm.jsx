@@ -753,11 +753,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Get all valid dynamic workers for submission
   const getValidDynamicWorkers = () => {
+    if (!dynamicWorkers || typeof dynamicWorkers !== 'object') {
+      return []
+    }
     const allWorkers = []
     Object.entries(dynamicWorkers).forEach(([classId, workers]) => {
+      if (!Array.isArray(workers)) return
       const laborClass = laborClasses.find(lc => lc.id === classId)
       workers.forEach(w => {
-        if (w.name.trim() && (parseFloat(w.hours) > 0 || parseFloat(w.overtimeHours) > 0)) {
+        if (w && w.name && w.name.trim() && (parseFloat(w.hours) > 0 || parseFloat(w.overtimeHours) > 0)) {
           allWorkers.push({
             name: w.name.trim(),
             hours: parseFloat(w.hours) || 0,
@@ -1248,11 +1252,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Workers with names (for running total - shows who needs hours)
   const namedWorkers = hasCustomLaborClasses
-    ? Object.values(dynamicWorkers).flat().filter(w => w.name.trim())
+    ? Object.values(dynamicWorkers || {}).flat().filter(w => w && w.name && w.name.trim())
     : [
-        ...supervision.filter(s => s.name.trim()),
-        ...operators.filter(o => o.name.trim()),
-        ...laborers.filter(l => l.name.trim())
+        ...supervision.filter(s => s && s.name && s.name.trim()),
+        ...operators.filter(o => o && o.name && o.name.trim()),
+        ...laborers.filter(l => l && l.name && l.name.trim())
       ]
   const workersWithHours = totalWorkers
   const workersNeedingHours = namedWorkers.length - workersWithHours
