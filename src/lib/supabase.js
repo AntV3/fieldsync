@@ -2151,7 +2151,7 @@ export const db = {
       .lt('work_date', beforeDate)
       .order('work_date', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle() // Use maybeSingle to return null instead of 406 when no previous tickets
 
     if (error || !ticket) return null
 
@@ -3490,10 +3490,10 @@ export const db = {
       .select('*')
       .eq('project_id', projectId)
       .eq('check_in_date', checkDate)
-      .single()
+      .maybeSingle() // Use maybeSingle to return null instead of 406 when no rows
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
-      // Don't log error, it's expected when no checkin exists
+    if (error) {
+      console.error('Error fetching crew checkin:', error)
     }
     return data
   },
@@ -3717,10 +3717,10 @@ export const db = {
       .select('*')
       .eq('project_id', projectId)
       .eq('report_date', reportDate)
-      .single()
+      .maybeSingle() // Use maybeSingle to return null instead of 406 when no report exists
 
-    if (error && error.code !== 'PGRST116') {
-      // Don't log error, it's expected when no report exists
+    if (error) {
+      console.error('Error fetching daily report:', error)
     }
     return data
   },
