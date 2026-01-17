@@ -1532,7 +1532,9 @@ export const db = {
 
   async getMaterialsEquipmentByCategory(companyId, category) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
         .from('materials_equipment')
         .select('*')
         .eq('company_id', companyId)
@@ -1547,7 +1549,9 @@ export const db = {
 
   async getAllMaterialsEquipment(companyId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
         .from('materials_equipment')
         .select('*')
         .eq('company_id', companyId)
@@ -1715,21 +1719,24 @@ export const db = {
   // Use this for CrewCheckin and TMForm to prevent rate exposure
   async getLaborClassesForField(companyId) {
     if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) return { categories: [], classes: [] }
+
       // Use the secure RPC function that only returns non-sensitive fields
-      const { data, error } = await supabase
+      const { data, error } = await client
         .rpc('get_labor_classes_for_field', { p_company_id: companyId })
 
       if (error) {
         console.error('Error loading field labor classes:', error)
         // Fallback to direct query if RPC not available (pre-migration)
         const [categoriesResult, classesResult] = await Promise.all([
-          supabase
+          client
             .from('labor_categories')
             .select('id, name')
             .eq('company_id', companyId)
             .eq('active', true)
             .order('name'),
-          supabase
+          client
             .from('labor_classes')
             .select('id, name, category_id')
             .eq('company_id', companyId)
@@ -2165,8 +2172,11 @@ export const db = {
   async getPreviousTicketCrew(projectId, beforeDate) {
     if (!isSupabaseConfigured) return null
 
+    const client = getClient()
+    if (!client) return null
+
     // Find the most recent ticket before the given date
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await client
       .from('t_and_m_tickets')
       .select(`
         id,
@@ -5663,7 +5673,9 @@ export const db = {
   // Only returns CORs that can still receive tickets (not billed or archived)
   async getAssignableCORs(projectId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
         .from('change_orders')
         .select('id, cor_number, title, status, cor_total')
         .eq('project_id', projectId)
