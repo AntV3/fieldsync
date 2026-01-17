@@ -3602,6 +3602,26 @@ export const db = {
     }
 
     const client = getClient()
+    if (!client) {
+      // Offline fallback - queue for later
+      const checkin = {
+        id: generateTempId(),
+        project_id: projectId,
+        check_in_date: checkDate,
+        workers: workers,
+        created_by: createdBy,
+        updated_at: new Date().toISOString(),
+        _offline: true
+      }
+      await cacheCrewCheckin(checkin)
+      await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
+        projectId,
+        workers,
+        checkInDate: checkDate
+      })
+      return checkin
+    }
+
     const { data, error } = await client
       .from('crew_checkins')
       .upsert({
@@ -6009,6 +6029,11 @@ export const db = {
 
   async addBulkLaborItems(corId, laborItems) {
     if (isSupabaseConfigured && laborItems.length > 0) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
       const items = laborItems.map((item, index) => {
         const regularTotal = Math.round(item.regular_hours * item.regular_rate)
         const overtimeTotal = Math.round(item.overtime_hours * item.overtime_rate)
@@ -6028,7 +6053,7 @@ export const db = {
         }
       })
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('change_order_labor')
         .insert(items)
         .select()
@@ -6040,6 +6065,11 @@ export const db = {
 
   async addBulkMaterialItems(corId, materialItems) {
     if (isSupabaseConfigured && materialItems.length > 0) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
       // Allowed source_type values for materials
       const allowedSourceTypes = ['backup_sheet', 'invoice', 'mobilization', 'custom', 'field_ticket', 'rental']
 
@@ -6062,7 +6092,7 @@ export const db = {
         }
       })
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('change_order_materials')
         .insert(items)
         .select()
@@ -6074,6 +6104,11 @@ export const db = {
 
   async addBulkEquipmentItems(corId, equipmentItems) {
     if (isSupabaseConfigured && equipmentItems.length > 0) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
       // Allowed source_type values for equipment
       const allowedSourceTypes = ['backup_sheet', 'invoice', 'custom', 'field_ticket', 'rental']
 
@@ -6096,7 +6131,7 @@ export const db = {
         }
       })
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('change_order_equipment')
         .insert(items)
         .select()
@@ -6108,6 +6143,11 @@ export const db = {
 
   async addBulkSubcontractorItems(corId, subItems) {
     if (isSupabaseConfigured && subItems.length > 0) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
       // Build items - requires migration_complete_fixes.sql for company_name column
       const items = subItems.map((item, index) => ({
         change_order_id: corId,
@@ -6122,7 +6162,7 @@ export const db = {
         sort_order: item.sort_order ?? index
       }))
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('change_order_subcontractors')
         .insert(items)
         .select()
@@ -6134,12 +6174,31 @@ export const db = {
 
   // Clear all line items for a COR (used when replacing items during update)
   async clearCORLineItems(corId) {
-    if (isSupabaseConfigured) {
-      // Delete all line items for this COR
-      await supabase.from('change_order_labor').delete().eq('change_order_id', corId)
-      await supabase.from('change_order_materials').delete().eq('change_order_id', corId)
-      await supabase.from('change_order_equipment').delete().eq('change_order_id', corId)
-      await supabase.from('change_order_subcontractors').delete().eq('change_order_id', corId)
+    if (!isSupabaseConfigured) return
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    try {
+      // Delete all line items for this COR in parallel
+      const results = await Promise.all([
+        client.from('change_order_labor').delete().eq('change_order_id', corId),
+        client.from('change_order_materials').delete().eq('change_order_id', corId),
+        client.from('change_order_equipment').delete().eq('change_order_id', corId),
+        client.from('change_order_subcontractors').delete().eq('change_order_id', corId)
+      ])
+
+      // Check for any errors
+      for (const result of results) {
+        if (result.error) {
+          throw result.error
+        }
+      }
+    } catch (error) {
+      console.error('Error clearing COR line items:', error)
+      throw error
     }
   },
 
@@ -6266,8 +6325,13 @@ export const db = {
 
   async importTicketDataToCOR(ticketId, corId, companyId, workType, jobType) {
     if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
       // 1. Get ticket with workers and items
-      const { data: ticket, error: ticketError } = await supabase
+      const { data: ticket, error: ticketError } = await client
         .from('t_and_m_tickets')
         .select(`
           *,
@@ -6282,7 +6346,7 @@ export const db = {
       if (ticketError) throw ticketError
 
       // 2. Get labor rates for this company/work type/job type
-      const { data: rates, error: ratesError } = await supabase
+      const { data: rates, error: ratesError } = await client
         .from('labor_rates')
         .select('*')
         .eq('company_id', companyId)
@@ -6363,7 +6427,7 @@ export const db = {
       }
 
       // 6. Mark association as data_imported and import_status completed
-      const { error: updateError } = await supabase
+      const { error: updateError } = await client
         .from('change_order_ticket_associations')
         .update({
           data_imported: true,
@@ -6384,20 +6448,25 @@ export const db = {
 
   async reimportTicketDataToCOR(ticketId, corId, companyId, workType, jobType) {
     if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
       // Delete existing line items from this ticket
-      await supabase
+      await client
         .from('change_order_labor')
         .delete()
         .eq('change_order_id', corId)
         .eq('source_ticket_id', ticketId)
 
-      await supabase
+      await client
         .from('change_order_materials')
         .delete()
         .eq('change_order_id', corId)
         .eq('source_ticket_id', ticketId)
 
-      await supabase
+      await client
         .from('change_order_equipment')
         .delete()
         .eq('change_order_id', corId)
@@ -6412,7 +6481,12 @@ export const db = {
   // Mark a ticket import as failed (for retry tracking)
   async markImportFailed(ticketId, corId, errorMessage = 'Import failed') {
     if (isSupabaseConfigured) {
-      const { error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
+      const { error } = await client
         .from('change_order_ticket_associations')
         .update({
           import_status: 'failed',
@@ -6863,11 +6937,16 @@ export const db = {
   // Create a signature request for a document (COR or T&M)
   async createSignatureRequest(documentType, documentId, companyId, projectId, createdBy = null, expiresAt = null) {
     if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
       // Generate a unique token using the database function
-      const { data: tokenResult, error: tokenError } = await supabase.rpc('generate_signature_token')
+      const { data: tokenResult, error: tokenError } = await client.rpc('generate_signature_token')
       if (tokenError) throw tokenError
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('signature_requests')
         .insert({
           document_type: documentType,
@@ -6889,10 +6968,15 @@ export const db = {
   // Get signature request by token (for public signing page)
   async getSignatureRequestByToken(token) {
     if (isSupabaseConfigured) {
-      // Increment view count
-      await supabase.rpc('increment_signature_view_count', { token })
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
 
-      const { data, error } = await supabase
+      // Increment view count
+      await client.rpc('increment_signature_view_count', { token })
+
+      const { data, error } = await client
         .from('signature_requests')
         .select(`
           *,
@@ -6909,7 +6993,12 @@ export const db = {
   // Get all signature requests for a document
   async getSignatureRequestsForDocument(documentType, documentId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
+      const { data, error } = await client
         .from('signature_requests')
         .select(`
           *,
@@ -6927,7 +7016,12 @@ export const db = {
   // Add a signature to a request
   async addSignature(requestId, slot, signatureData) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
+      const { data, error } = await client
         .from('signatures')
         .insert({
           signature_request_id: requestId,
@@ -6951,6 +7045,11 @@ export const db = {
   // Sync signature to the main document table (COR or T&M)
   async syncSignatureToDocument(signature, signatureRequest) {
     if (!isSupabaseConfigured) return null
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
 
     const { document_type, document_id } = signatureRequest
     const slot = signature.signature_slot
@@ -6976,7 +7075,7 @@ export const db = {
     }
 
     const tableName = document_type === 'cor' ? 'change_orders' : 't_and_m_tickets'
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from(tableName)
       .update(updates)
       .eq('id', document_id)
@@ -6989,7 +7088,12 @@ export const db = {
   // Revoke a signature request
   async revokeSignatureRequest(requestId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
+      const { data, error } = await client
         .from('signature_requests')
         .update({ status: 'revoked' })
         .eq('id', requestId)
@@ -7005,8 +7109,13 @@ export const db = {
   async getDocumentForSigning(documentType, documentId) {
     if (!isSupabaseConfigured) return null
 
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
     if (documentType === 'cor') {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('change_orders')
         .select(`
           *,
@@ -7030,7 +7139,7 @@ export const db = {
       if (error) throw error
       return data
     } else if (documentType === 'tm_ticket') {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .select(`
           *,

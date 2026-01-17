@@ -23,9 +23,9 @@ export default function SignatureCapture({ onSave, onClose, signerName: initialN
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
 
-    // Handle both mouse and touch events
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    // Handle both mouse and touch events (with bounds checking)
+    const clientX = e.touches?.length ? e.touches[0].clientX : e.clientX
+    const clientY = e.touches?.length ? e.touches[0].clientY : e.clientY
 
     return {
       x: (clientX - rect.left) * scaleX,

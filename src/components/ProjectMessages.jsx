@@ -36,7 +36,7 @@ export default function ProjectMessages({ project, company, userName, onShowToas
       db.markMessagesRead?.(project.id, 'office')
       setUnreadCount(0)
     }
-  }, [messages, isExpanded])
+  }, [messages, isExpanded, project.id])
 
   const loadMessages = async () => {
     try {

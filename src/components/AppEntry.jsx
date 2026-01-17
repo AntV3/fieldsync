@@ -1,17 +1,29 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { HardHat, Briefcase } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join'
-  
+
   // Foreman state
   const [companyCode, setCompanyCode] = useState('')
   const [company, setCompany] = useState(null)
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
   const [pinState, setPinState] = useState('') // '', 'error', 'success'
+
+  // Refs for timeout cleanup to prevent memory leaks
+  const pinResetTimeoutRef = useRef(null)
+  const pinSubmitTimeoutRef = useRef(null)
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (pinResetTimeoutRef.current) clearTimeout(pinResetTimeoutRef.current)
+      if (pinSubmitTimeoutRef.current) clearTimeout(pinSubmitTimeoutRef.current)
+    }
+  }, [])
 
   // Office state
   const [email, setEmail] = useState('')
@@ -68,7 +80,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (result.rateLimited) {
         setPinState('error')
         onShowToast('Too many attempts. Please wait 15 minutes.', 'error')
-        setTimeout(() => {
+        if (pinResetTimeoutRef.current) clearTimeout(pinResetTimeoutRef.current)
+        pinResetTimeoutRef.current = setTimeout(() => {
           setPin('')
           setPinState('')
         }, 800)
@@ -118,7 +131,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       setPinState('') // Reset any error state
       if (newPin.length === 4) {
         // Optimized timing - submit immediately after slight visual feedback
-        setTimeout(() => submitPin(newPin), 150)
+        if (pinSubmitTimeoutRef.current) clearTimeout(pinSubmitTimeoutRef.current)
+        pinSubmitTimeoutRef.current = setTimeout(() => submitPin(newPin), 150)
       }
     }
   }
