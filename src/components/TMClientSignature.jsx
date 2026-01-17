@@ -88,8 +88,8 @@ export default function TMClientSignature({
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const clientX = e.touches?.length ? e.touches[0].clientX : e.clientX
+    const clientY = e.touches?.length ? e.touches[0].clientY : e.clientY
 
     return {
       x: (clientX - rect.left) * scaleX,

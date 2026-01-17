@@ -1,25 +1,30 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getConnectionStatus, onConnectionChange, getPendingActionCount } from '../lib/supabase'
 
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(getConnectionStatus())
   const [pendingCount, setPendingCount] = useState(0)
   const [showSynced, setShowSynced] = useState(false)
-  const [wasOffline, setWasOffline] = useState(false)
+
+  // Use ref for wasOffline to avoid dependency cycle in useEffect
+  const wasOfflineRef = useRef(false)
+  const syncedTimeoutRef = useRef(null)
 
   useEffect(() => {
     // Subscribe to connection changes
     const unsubscribe = onConnectionChange(async (online) => {
       setIsOnline(online)
 
-      if (online && wasOffline) {
+      if (online && wasOfflineRef.current) {
         // Show "synced" message briefly when coming back online
         setShowSynced(true)
-        setTimeout(() => setShowSynced(false), 3000)
+        if (syncedTimeoutRef.current) clearTimeout(syncedTimeoutRef.current)
+        syncedTimeoutRef.current = setTimeout(() => setShowSynced(false), 3000)
+        wasOfflineRef.current = false
       }
 
       if (!online) {
-        setWasOffline(true)
+        wasOfflineRef.current = true
       }
 
       // Update pending count
@@ -41,8 +46,9 @@ export default function OfflineIndicator() {
     return () => {
       unsubscribe()
       clearInterval(interval)
+      if (syncedTimeoutRef.current) clearTimeout(syncedTimeoutRef.current)
     }
-  }, [wasOffline])
+  }, []) // Empty dependency array - runs once on mount
 
   // Don't show anything if online and no pending actions
   if (isOnline && pendingCount === 0 && !showSynced) {
