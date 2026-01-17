@@ -2849,11 +2849,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             <div className="tm-batch-preview">
               <strong>{t('willApplyTo')}:</strong>
               <span>
-                {[
-                  ...supervision.filter(s => s && s.name && s.name.trim()),
-                  ...operators.filter(o => o && o.name && o.name.trim()),
-                  ...laborers.filter(l => l && l.name && l.name.trim())
-                ].length} {t('workers_plural')}
+                {hasCustomLaborClasses
+                  ? Object.values(dynamicWorkers || {}).flat().filter(w => w && w.name && w.name.trim()).length
+                  : [
+                      ...supervision.filter(s => s && s.name && s.name.trim()),
+                      ...operators.filter(o => o && o.name && o.name.trim()),
+                      ...laborers.filter(l => l && l.name && l.name.trim())
+                    ].length
+                } {t('workers_plural')}
               </span>
             </div>
 

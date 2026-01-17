@@ -10,8 +10,10 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const [issues, setIssues] = useState('')
 
   useEffect(() => {
-    loadReport()
-  }, [project.id])
+    if (project?.id) {
+      loadReport()
+    }
+  }, [project?.id])
 
   const loadReport = async () => {
     try {
@@ -90,7 +92,23 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     )
   }
 
-  const isSubmitted = report?.status === 'submitted'
+  // Handle case where report failed to load
+  if (!report) {
+    return (
+      <div className="daily-report">
+        <div className="daily-report-header">
+          <button className="back-btn-simple" onClick={onClose}>←</button>
+          <h2>Daily Report</h2>
+        </div>
+        <div className="daily-report-error">
+          <p>Unable to load report data.</p>
+          <button className="btn btn-secondary" onClick={loadReport}>Retry</button>
+        </div>
+      </div>
+    )
+  }
+
+  const isSubmitted = report.status === 'submitted'
 
   return (
     <div className="daily-report">
