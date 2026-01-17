@@ -326,7 +326,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Helper to determine worker completion state for visual indicators
   const getWorkerState = (worker) => {
-    const hasName = worker.name.trim() !== ''
+    if (!worker) return 'empty'
+    const hasName = worker.name && worker.name.trim() !== ''
     const hasHours = parseFloat(worker.hours) > 0 || parseFloat(worker.overtimeHours) > 0
     if (!hasName) return 'empty'
     if (hasHours) return 'complete'
@@ -420,24 +421,24 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
     // Apply to supervision
     setSupervision(supervision.map(s =>
-      s.name.trim() ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
+      (s && s.name && s.name.trim()) ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
     ))
 
     // Apply to operators
     setOperators(operators.map(o =>
-      o.name.trim() ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
+      (o && o.name && o.name.trim()) ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
     ))
 
     // Apply to laborers
     setLaborers(laborers.map(l =>
-      l.name.trim() ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
+      (l && l.name && l.name.trim()) ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
     ))
 
     // Count how many workers were updated
     const updatedCount = [
-      ...supervision.filter(s => s.name.trim()),
-      ...operators.filter(o => o.name.trim()),
-      ...laborers.filter(l => l.name.trim())
+      ...supervision.filter(s => s && s.name && s.name.trim()),
+      ...operators.filter(o => o && o.name && o.name.trim()),
+      ...laborers.filter(l => l && l.name && l.name.trim())
     ].length
 
     setShowBatchHoursModal(false)
@@ -474,20 +475,20 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
     // Apply to all workers with names
     setSupervision(prev => prev.map(s =>
-      s.name.trim() ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
+      (s && s.name && s.name.trim()) ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
     ))
     setOperators(prev => prev.map(o =>
-      o.name.trim() ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
+      (o && o.name && o.name.trim()) ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
     ))
     setLaborers(prev => prev.map(l =>
-      l.name.trim() ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
+      (l && l.name && l.name.trim()) ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
     ))
 
     // Count workers updated
     const count = [
-      ...supervision.filter(s => s.name.trim()),
-      ...operators.filter(o => o.name.trim()),
-      ...laborers.filter(l => l.name.trim())
+      ...supervision.filter(s => s && s.name && s.name.trim()),
+      ...operators.filter(o => o && o.name && o.name.trim()),
+      ...laborers.filter(l => l && l.name && l.name.trim())
     ].length
 
     if (count > 0) {
@@ -753,11 +754,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Get all valid dynamic workers for submission
   const getValidDynamicWorkers = () => {
+    if (!dynamicWorkers || typeof dynamicWorkers !== 'object') {
+      return []
+    }
     const allWorkers = []
     Object.entries(dynamicWorkers).forEach(([classId, workers]) => {
+      if (!Array.isArray(workers)) return
       const laborClass = laborClasses.find(lc => lc.id === classId)
       workers.forEach(w => {
-        if (w.name.trim() && (parseFloat(w.hours) > 0 || parseFloat(w.overtimeHours) > 0)) {
+        if (w && w.name && w.name.trim() && (parseFloat(w.hours) > 0 || parseFloat(w.overtimeHours) > 0)) {
           allWorkers.push({
             name: w.name.trim(),
             hours: parseFloat(w.hours) || 0,
@@ -965,9 +970,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return getValidDynamicWorkers().length > 0
       } else {
         // Check hardcoded workers (fallback)
-        const hasSupervision = supervision.some(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
-        const hasOperators = operators.some(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
-        const hasLaborers = laborers.some(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
+        const hasSupervision = supervision.some(s => s && s.name && s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+        const hasOperators = operators.some(o => o && o.name && o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
+        const hasLaborers = laborers.some(l => l && l.name && l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
         return hasSupervision || hasOperators || hasLaborers
       }
     }
@@ -1040,9 +1045,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
       }
     } else {
-      const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
-      const validOperators = operators.filter(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
-      const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
+      const validSupervision = supervision.filter(s => s && s.name && s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+      const validOperators = operators.filter(o => o && o.name && o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
+      const validLaborers = laborers.filter(l => l && l.name && l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
 
       if (validSupervision.length === 0 && validOperators.length === 0 && validLaborers.length === 0) {
         onShowToast('Add at least one worker', 'error')
@@ -1227,9 +1232,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Get total workers and hours for summary
   // Handles both dynamic labor classes and hardcoded fallback
-  const validSupervision = supervision.filter(s => s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
-  const validOperators = operators.filter(o => o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
-  const validLaborers = laborers.filter(l => l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
+  // Added null safety checks to prevent TDZ errors during render
+  const validSupervision = supervision.filter(s => s && s.name && s.name.trim() && (parseFloat(s.hours) > 0 || parseFloat(s.overtimeHours) > 0))
+  const validOperators = operators.filter(o => o && o.name && o.name.trim() && (parseFloat(o.hours) > 0 || parseFloat(o.overtimeHours) > 0))
+  const validLaborers = laborers.filter(l => l && l.name && l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
 
   // Dynamic workers summary (when company has custom classes)
   const validDynamicWorkersList = getValidDynamicWorkers()
@@ -1248,11 +1254,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Workers with names (for running total - shows who needs hours)
   const namedWorkers = hasCustomLaborClasses
-    ? Object.values(dynamicWorkers).flat().filter(w => w.name.trim())
+    ? Object.values(dynamicWorkers || {}).flat().filter(w => w && w.name && w.name.trim())
     : [
-        ...supervision.filter(s => s.name.trim()),
-        ...operators.filter(o => o.name.trim()),
-        ...laborers.filter(l => l.name.trim())
+        ...supervision.filter(s => s && s.name && s.name.trim()),
+        ...operators.filter(o => o && o.name && o.name.trim()),
+        ...laborers.filter(l => l && l.name && l.name.trim())
       ]
   const workersWithHours = totalWorkers
   const workersNeedingHours = namedWorkers.length - workersWithHours
@@ -1505,7 +1511,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                           // If worker has labor_class_id and we have custom classes, add to dynamic section
                           if (worker.labor_class_id && hasCustomLaborClasses && dynamicWorkers[worker.labor_class_id]) {
                             const classWorkers = dynamicWorkers[worker.labor_class_id] || []
-                            const emptyIndex = classWorkers.findIndex(w => !w.name.trim())
+                            const emptyIndex = classWorkers.findIndex(w => !w || !w.name || !w.name.trim())
                             if (emptyIndex >= 0) {
                               // Update existing empty slot
                               const updated = [...classWorkers]
@@ -1529,7 +1535,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                             const role = (worker.role || '').toLowerCase()
 
                             if (role.includes('foreman') || role.includes('supervisor') || role.includes('superintendent')) {
-                              const emptySupIndex = supervision.findIndex(s => !s.name.trim())
+                              const emptySupIndex = supervision.findIndex(s => !s || !s.name || !s.name.trim())
                               if (emptySupIndex >= 0) {
                                 updateSupervision(emptySupIndex, 'name', worker.name)
                                 updateSupervision(emptySupIndex, 'role', role.includes('superintendent') ? 'Superintendent' : 'Foreman')
@@ -1544,7 +1550,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                                 }])
                               }
                             } else if (role.includes('operator')) {
-                              const emptyOpIndex = operators.findIndex(o => !o.name.trim())
+                              const emptyOpIndex = operators.findIndex(o => !o || !o.name || !o.name.trim())
                               if (emptyOpIndex >= 0) {
                                 updateOperator(emptyOpIndex, 'name', worker.name)
                               } else {
@@ -1557,7 +1563,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                                 }])
                               }
                             } else {
-                              const emptyLabIndex = laborers.findIndex(l => !l.name.trim())
+                              const emptyLabIndex = laborers.findIndex(l => !l || !l.name || !l.name.trim())
                               if (emptyLabIndex >= 0) {
                                 updateLaborer(emptyLabIndex, 'name', worker.name)
                               } else {
@@ -2785,9 +2791,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               <strong>{t('willApplyTo')}:</strong>
               <span>
                 {[
-                  ...supervision.filter(s => s.name.trim()),
-                  ...operators.filter(o => o.name.trim()),
-                  ...laborers.filter(l => l.name.trim())
+                  ...supervision.filter(s => s && s.name && s.name.trim()),
+                  ...operators.filter(o => o && o.name && o.name.trim()),
+                  ...laborers.filter(l => l && l.name && l.name.trim())
                 ].length} {t('workers_plural')}
               </span>
             </div>

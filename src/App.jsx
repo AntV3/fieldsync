@@ -8,9 +8,10 @@ import Logo from './components/Logo'
 import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
+// ForemanView imported directly to avoid lazy loading bundling issues
+import ForemanView from './components/ForemanView'
 
 // Lazy load large components for code splitting
-const ForemanView = lazy(() => import('./components/ForemanView'))
 const Dashboard = lazy(() => import('./components/Dashboard'))
 const Setup = lazy(() => import('./components/Setup'))
 const BrandingSettings = lazy(() => import('./components/BrandingSettings'))
@@ -485,14 +486,12 @@ export default function App() {
       <ThemeProvider>
         <BrandingProvider companyId={foremanProject.company_id}>
           <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <ForemanView
-                project={foremanProject}
-                companyId={foremanProject.company_id}
-                onShowToast={showToast}
-                onExit={handleExitForeman}
-              />
-            </Suspense>
+            <ForemanView
+              project={foremanProject}
+              companyId={foremanProject.company_id}
+              onShowToast={showToast}
+              onExit={handleExitForeman}
+            />
           </ErrorBoundary>
           <OfflineIndicator />
           {toast && (
