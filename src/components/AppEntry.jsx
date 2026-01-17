@@ -83,7 +83,6 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       // If secure method failed but no rate limit, try fallback lookup
       // This handles cases where the RPC function isn't deployed yet
       if (result.error) {
-        console.warn('Secure PIN validation failed, trying fallback:', result.error)
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
           onForemanAccess(fallbackProject)
@@ -94,7 +93,6 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       onShowToast('Invalid PIN', 'error')
       setPin('')
     } catch (err) {
-      console.error('PIN validation error:', err)
       // Try fallback on exception
       try {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
@@ -103,7 +101,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           return
         }
       } catch (fallbackErr) {
-        console.error('Fallback PIN validation also failed:', fallbackErr)
+        // Fallback also failed, silent failure
       }
       onShowToast('Error checking PIN', 'error')
       setPin('')

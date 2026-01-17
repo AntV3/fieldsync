@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from './supabase'
 
 const BrandingContext = createContext()
@@ -257,13 +257,21 @@ export function BrandingProvider({ children, companyId }) {
     }
   }
 
-  const value = {
+  const refreshBranding = useCallback(() => {
+    if (companyId) {
+      loadBranding(companyId)
+    } else {
+      loadBrandingByDomain()
+    }
+  }, [companyId])
+
+  const value = useMemo(() => ({
     branding,
     loading,
     updateBranding,
     uploadBrandingImage,
-    refreshBranding: () => companyId ? loadBranding(companyId) : loadBrandingByDomain()
-  }
+    refreshBranding
+  }), [branding, loading, refreshBranding])
 
   return (
     <BrandingContext.Provider value={value}>
