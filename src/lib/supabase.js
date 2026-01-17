@@ -818,6 +818,7 @@ export const db = {
 
   // Get project by PIN within a specific company (secure foreman access)
   async getProjectByPinAndCompany(pin, companyId) {
+    console.log('[PIN Auth Fallback] Trying direct lookup', { pin: '****', companyId })
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('projects')
@@ -826,6 +827,7 @@ export const db = {
         .eq('company_id', companyId)
         .eq('status', 'active')
         .single()
+      console.log('[PIN Auth Fallback] Result:', { data, error })
       if (error) return null
       return data
     } else {
@@ -844,6 +846,8 @@ export const db = {
     if (isSupabaseConfigured) {
       const deviceId = getDeviceId()
 
+      console.log('[PIN Auth] Starting secure PIN validation', { pin: '****', companyCode, deviceId })
+
       // Use the new session-based validation
       const { data, error } = await supabase
         .rpc('validate_pin_and_create_session', {
@@ -853,44 +857,39 @@ export const db = {
           p_ip_address: null // IP is not available client-side
         })
 
-      console.log('[PIN Validation] RPC Response:', { data, error, pin, companyCode })
+      console.log('[PIN Auth] RPC response:', { data, error })
 
       if (error) {
-        console.error('[PIN Validation] RPC Error:', error)
-        return { success: false, rateLimited: false, project: null, error: error.message, errorType: 'rpc_error' }
+        console.error('[PIN Auth] RPC error:', error)
+        return { success: false, rateLimited: false, project: null, error: error.message }
       }
 
       if (!data || data.length === 0) {
-        console.warn('[PIN Validation] No data returned from RPC')
-        return { success: false, rateLimited: false, project: null, errorType: 'no_data' }
+        console.warn('[PIN Auth] RPC returned empty data')
+        return { success: false, rateLimited: false, project: null }
       }
 
       const result = data[0]
-      console.log('[PIN Validation] Result:', result)
+      console.log('[PIN Auth] RPC result:', result)
 
       // Check error codes
       if (result.error_code === 'RATE_LIMITED') {
-        console.warn('[PIN Validation] Rate limited')
-        return { success: false, rateLimited: true, project: null, errorType: 'rate_limited' }
+        console.warn('[PIN Auth] Rate limited')
+        return { success: false, rateLimited: true, project: null }
       }
 
-      if (result.error_code === 'INVALID_COMPANY') {
-        console.warn('[PIN Validation] Invalid company code:', companyCode)
-        return { success: false, rateLimited: false, project: null, errorType: 'invalid_company' }
-      }
-
-      if (result.error_code === 'INVALID_PIN') {
-        console.warn('[PIN Validation] Invalid PIN for company:', companyCode)
-        return { success: false, rateLimited: false, project: null, errorType: 'invalid_pin' }
+      if (result.error_code === 'INVALID_COMPANY' || result.error_code === 'INVALID_PIN') {
+        console.warn('[PIN Auth] Invalid company or PIN:', result.error_code)
+        return { success: false, rateLimited: false, project: null }
       }
 
       // Check if successful
       if (!result.success || !result.project_id) {
-        console.warn('[PIN Validation] Validation failed:', result)
-        return { success: false, rateLimited: false, project: null, errorType: 'validation_failed' }
+        console.warn('[PIN Auth] Validation failed:', { success: result.success, project_id: result.project_id })
+        return { success: false, rateLimited: false, project: null }
       }
 
-      console.log('[PIN Validation] Success! Creating session for project:', result.project_id)
+      console.log('[PIN Auth] Validation successful, creating session')
 
       // Store the session for subsequent requests
       setFieldSession({
@@ -910,11 +909,7 @@ export const db = {
         .eq('id', result.project_id)
         .single()
 
-      if (projectError) {
-        console.error('[PIN Validation] Error fetching project details:', projectError)
-      }
-
-      console.log('[PIN Validation] Project data fetched:', projectData)
+      console.log('[PIN Auth] Project fetch result:', { projectData, projectError })
 
       return {
         success: true,
@@ -2372,12 +2367,14 @@ export const db = {
   // ============================================
 
   async getCompanyByCode(code) {
+    console.log('[Company Lookup] Looking up company by code:', code)
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .eq('code', code)
         .single()
+      console.log('[Company Lookup] Result:', { data: data ? { id: data.id, name: data.name, code: data.code } : null, error })
       if (error) return null
       return data
     }

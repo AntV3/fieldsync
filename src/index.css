@@ -1153,7 +1153,7 @@ body {
   color: var(--text-muted);
 }
 
-/* Status Dot */
+/* MIGRATED TO: src/styles/components/badges.css
 .status-dot-container {
   display: inline-flex;
   align-items: center;
@@ -1215,7 +1215,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* Quick Stats */
 .quick-stats {
   display: flex;
   flex-wrap: wrap;
@@ -1246,7 +1245,6 @@ body {
   opacity: 0.8;
 }
 
-/* Status Indicator */
 .status-indicator {
   display: inline-flex;
   align-items: center;
@@ -1282,7 +1280,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* Metric Delta */
 .metric-delta {
   display: inline-flex;
   align-items: center;
@@ -1298,6 +1295,7 @@ body {
 .metric-delta.negative {
   color: var(--accent-red);
 }
+END MIGRATED */
 
 .metric-delta.neutral {
   color: var(--text-muted);
@@ -1631,7 +1629,7 @@ span svg {
   color: var(--text-secondary);
 }
 
-/* Cards */
+/* MIGRATED TO: src/styles/components/cards.css
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -1640,8 +1638,9 @@ span svg {
   margin-bottom: 1.5rem;
   animation: fadeIn 0.3s ease;
 }
+END MIGRATED */
 
-/* Forms */
+/* MIGRATED TO: src/styles/components/forms.css
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -1682,8 +1681,9 @@ input:focus {
 input::placeholder {
   color: var(--text-muted);
 }
+END MIGRATED */
 
-/* Buttons */
+/* MIGRATED TO: src/styles/components/buttons.css
 .btn {
   padding: 0.875rem 1.5rem;
   border-radius: 10px;
@@ -1743,6 +1743,7 @@ input::placeholder {
 .btn-full {
   width: 100%;
 }
+END MIGRATED */
 
 /* Project Type Toggle (Work Type / Job Type) */
 .project-type-toggle {
@@ -2186,7 +2187,7 @@ input[type="number"] {
   }
 }
 
-/* Status Badges */
+/* MIGRATED TO: src/styles/components/badges.css
 .status-badge {
   padding: 0.375rem 0.875rem;
   border-radius: 20px;
@@ -2215,6 +2216,7 @@ input[type="number"] {
   color: var(--accent-green);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
+END MIGRATED */
 
 /* Area Status List */
 .area-status-list {
@@ -2320,6 +2322,7 @@ input[type="number"] {
   gap: 0.875rem;
 }
 
+/* MIGRATED TO: src/styles/components/cards.css
 .project-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -2365,6 +2368,7 @@ input[type="number"] {
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
   border-radius: 3px;
 }
+END MIGRATED */
 
 /* Empty State */
 .empty-state {
@@ -6200,6 +6204,7 @@ input[type="number"] {
   flex-shrink: 0;
 }
 
+/* MIGRATED TO: src/styles/components/buttons.css
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
@@ -6210,6 +6215,7 @@ input[type="number"] {
   background: var(--bg-elevated);
   color: var(--text-primary);
 }
+END MIGRATED */
 
 .tm-ticket-header {
   display: flex;
@@ -6341,6 +6347,7 @@ input[type="number"] {
   flex-wrap: wrap;
 }
 
+/* MIGRATED TO: src/styles/components/buttons.css
 .btn-success {
   background: var(--accent-green);
   color: white;
@@ -6367,6 +6374,7 @@ input[type="number"] {
 .btn-danger:hover {
   background: #dc2626;
 }
+END MIGRATED */
 
 /* Foreman T&M Button */
 .foreman-tm-btn {
@@ -9042,6 +9050,7 @@ input[type="number"] {
   border-radius: 4px;
 }
 
+/* MIGRATED TO: src/styles/components/buttons.css
 .btn-secondary {
   padding: 0.75rem 1.5rem;
   background: var(--bg-elevated);
@@ -9079,6 +9088,7 @@ input[type="number"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
+END MIGRATED */
 
 .help-text {
   font-size: 0.75rem;
@@ -17360,10 +17370,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* =====================================================
-   MODAL OVERLAY - Generic Modal Styles
-   ===================================================== */
-
+/* MIGRATED TO: src/styles/components/modals.css
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -17399,7 +17406,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   overscroll-behavior: contain;
 }
 
-/* Ensure signature modal body scrolls on mobile */
 .signature-body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -17431,6 +17437,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
 }
+END MIGRATED */
 
 .close-btn {
   background: transparent;
@@ -25921,6 +25928,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text-color);
 }
 
+/* Mobile header - hidden on desktop */
+.financials-nav-mobile-header {
+  display: none;
+}
+
 /* Navigation Items Container */
 .financials-nav-items {
   display: flex;
@@ -26493,28 +26505,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .financials-mobile-menu-toggle {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    padding: 0.875rem 1.25rem;
     background: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 50px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    margin-bottom: 1rem;
+    z-index: 150;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35), 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .financials-mobile-menu-toggle:hover {
     background: var(--primary-color-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4), 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   .financials-mobile-menu-toggle:active {
     transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   }
 
   /* Overlay/Backdrop for mobile sidebar */
@@ -26569,6 +26586,54 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .financials-nav {
     border-radius: 0;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Hide desktop collapse toggle on mobile */
+  .financials-nav-toggle {
+    display: none;
+  }
+
+  /* Mobile header with close button */
+  .financials-nav-mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+  }
+
+  .financials-nav-mobile-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .financials-nav-mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .financials-nav-mobile-close:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  .financials-nav-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
   }
 
   .section-toolbar {

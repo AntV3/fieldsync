@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { BarChart3, FileText, ClipboardList, Receipt, ChevronRight, ChevronLeft, PanelLeftOpen } from 'lucide-react'
+import { BarChart3, FileText, ClipboardList, Receipt, ChevronRight, ChevronLeft, PanelLeftOpen, X } from 'lucide-react'
 import { CountBadge } from './ui'
 
 /**
@@ -52,6 +52,7 @@ export default memo(function FinancialsNav({
   onSectionChange,
   collapsed = false,
   onToggleCollapse,
+  onMobileClose,
   stats = {}
 }) {
   const {
@@ -94,7 +95,21 @@ export default memo(function FinancialsNav({
       className={`financials-nav ${collapsed ? 'collapsed' : ''}`}
       aria-label="Financials sections"
     >
-      {/* Collapse Toggle */}
+      {/* Mobile Header with Close Button */}
+      {onMobileClose && (
+        <div className="financials-nav-mobile-header">
+          <span className="financials-nav-mobile-title">Financials</span>
+          <button
+            className="financials-nav-mobile-close"
+            onClick={onMobileClose}
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      )}
+
+      {/* Collapse Toggle - hidden on mobile */}
       <button
         className="financials-nav-toggle"
         onClick={onToggleCollapse}

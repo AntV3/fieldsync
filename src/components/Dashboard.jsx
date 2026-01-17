@@ -1485,6 +1485,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     }}
                     collapsed={financialsSidebarCollapsed}
                     onToggleCollapse={handleToggleFinancialsSidebar}
+                    onMobileClose={handleCloseMobileSidebar}
                     stats={financialsNavStats}
                   />
                 </div>
