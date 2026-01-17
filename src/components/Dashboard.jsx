@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
@@ -7,30 +7,32 @@ import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
 import { ProjectHealthBadge } from './dashboard/AccessibleStatusBadge'
-import TMList from './TMList'
-import ShareModal from './ShareModal'
-import InjuryReportsList from './InjuryReportsList'
-import NotificationSettings from './NotificationSettings'
-import DailyReportsList from './DailyReportsList'
 import ManDayCosts from './ManDayCosts'
-import CORList from './cor/CORList'
-import CORForm from './cor/CORForm'
-import CORDetail from './cor/CORDetail'
-import BillingCenter from './billing/BillingCenter'
 import ProgressBillingCard from './billing/ProgressBillingCard'
-import DrawRequestModal from './billing/DrawRequestModal'
 import ProjectEquipmentCard from './equipment/ProjectEquipmentCard'
-import EquipmentModal from './equipment/EquipmentModal'
 import BurnRateCard from './BurnRateCard'
 import CostContributorsCard from './CostContributorsCard'
 import ProfitabilityCard from './ProfitabilityCard'
 import DisposalSummary from './DisposalSummary'
-import AddCostModal from './AddCostModal'
 import ProjectTeam from './ProjectTeam'
 import HeroMetrics from './HeroMetrics'
 import FinancialsNav from './FinancialsNav'
 import { FinancialTrendChart } from './charts'
 import { TicketSkeleton, ChartSkeleton } from './ui'
+
+// Lazy load modals and conditionally rendered heavy components
+const TMList = lazy(() => import('./TMList'))
+const ShareModal = lazy(() => import('./ShareModal'))
+const InjuryReportsList = lazy(() => import('./InjuryReportsList'))
+const NotificationSettings = lazy(() => import('./NotificationSettings'))
+const DailyReportsList = lazy(() => import('./DailyReportsList'))
+const CORList = lazy(() => import('./cor/CORList'))
+const CORForm = lazy(() => import('./cor/CORForm'))
+const CORDetail = lazy(() => import('./cor/CORDetail'))
+const BillingCenter = lazy(() => import('./billing/BillingCenter'))
+const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
+const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
+const AddCostModal = lazy(() => import('./AddCostModal'))
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -596,7 +598,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setSaving(true)
 
     try {
-      // Update project
+      // Update project - include company.id for cross-tenant security
       await db.updateProject(selectedProject.id, {
         name: editData.name.trim(),
         job_number: editData.job_number?.trim() || null,
@@ -609,7 +611,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         job_type: editData.job_type || 'standard',
         pin: editData.pin || null,
         default_dump_site_id: editData.default_dump_site_id || null
-      })
+      }, company?.id)
 
       // Handle areas
       const existingAreaIds = areas.map(a => a.id)
@@ -1588,20 +1590,22 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                             ← Back to summary
                           </button>
                         )}
-                        <CORList
-                          project={selectedProject}
-                          company={company}
-                          areas={areas}
-                          refreshKey={corRefreshKey}
-                          onShowToast={onShowToast}
-                          previewMode={corViewMode === 'preview' && corDisplayMode !== 'log'}
-                          previewLimit={5}
-                          onViewAll={handleViewAllCORs}
-                          onDisplayModeChange={setCORDisplayMode}
-                          onCreateCOR={handleCreateCOR}
-                          onViewCOR={handleViewCOR}
-                          onEditCOR={handleEditCOR}
-                        />
+                        <Suspense fallback={<TicketSkeleton />}>
+                          <CORList
+                            project={selectedProject}
+                            company={company}
+                            areas={areas}
+                            refreshKey={corRefreshKey}
+                            onShowToast={onShowToast}
+                            previewMode={corViewMode === 'preview' && corDisplayMode !== 'log'}
+                            previewLimit={5}
+                            onViewAll={handleViewAllCORs}
+                            onDisplayModeChange={setCORDisplayMode}
+                            onCreateCOR={handleCreateCOR}
+                            onViewCOR={handleViewCOR}
+                            onEditCOR={handleEditCOR}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   )}
@@ -1618,14 +1622,16 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                             ← Back to summary
                           </button>
                         )}
-                        <TMList
-                          project={selectedProject}
-                          company={company}
-                          onShowToast={onShowToast}
-                          compact={tmViewMode === 'preview'}
-                          previewMode={tmViewMode === 'preview'}
-                          onViewAll={handleViewAllTickets}
-                        />
+                        <Suspense fallback={<TicketSkeleton />}>
+                          <TMList
+                            project={selectedProject}
+                            company={company}
+                            onShowToast={onShowToast}
+                            compact={tmViewMode === 'preview'}
+                            previewMode={tmViewMode === 'preview'}
+                            onViewAll={handleViewAllTickets}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   )}
@@ -1633,12 +1639,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   {/* BILLING SECTION */}
                   {financialsSection === 'billing' && (
                     <div className="financials-billing animate-fade-in">
-                      <BillingCenter
-                        project={selectedProject}
-                        company={company}
-                        user={user}
-                        onShowToast={onShowToast}
-                      />
+                      <Suspense fallback={<TicketSkeleton />}>
+                        <BillingCenter
+                          project={selectedProject}
+                          company={company}
+                          user={user}
+                          onShowToast={onShowToast}
+                        />
+                      </Suspense>
                     </div>
                   )}
                 </div>
@@ -1712,7 +1720,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   <span className="reports-section-count">{projectData?.dailyReportsCount || 0} total</span>
                 </div>
                 <div className="reports-section-content">
-                  <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+                  <Suspense fallback={<TicketSkeleton />}>
+                    <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+                  </Suspense>
                 </div>
               </div>
 
@@ -1733,13 +1743,15 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   </span>
                 </div>
                 <div className="reports-section-content">
-                  <InjuryReportsList
-                    project={selectedProject}
-                    companyId={company?.id || selectedProject?.company_id}
-                    company={company}
-                    user={user}
-                    onShowToast={onShowToast}
-                  />
+                  <Suspense fallback={<TicketSkeleton />}>
+                    <InjuryReportsList
+                      project={selectedProject}
+                      companyId={company?.id || selectedProject?.company_id}
+                      company={company}
+                      user={user}
+                      onShowToast={onShowToast}
+                    />
+                  </Suspense>
                 </div>
               </div>
             </div>
@@ -1934,133 +1946,147 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
         {/* Share Modal */}
         {showShareModal && (
-          <ShareModal
-            project={selectedProject}
-            user={user}
-            onClose={() => setShowShareModal(false)}
-            onShareCreated={(share) => {
-              onShowToast('Share link created successfully!', 'success')
-            }}
-          />
+          <Suspense fallback={null}>
+            <ShareModal
+              project={selectedProject}
+              user={user}
+              onClose={() => setShowShareModal(false)}
+              onShareCreated={(share) => {
+                onShowToast('Share link created successfully!', 'success')
+              }}
+            />
+          </Suspense>
         )}
 
         {/* Notification Settings Modal */}
         {showNotificationSettings && (
           <div className="notification-settings-modal">
-            <NotificationSettings
-              project={selectedProject}
-              company={company}
-              onShowToast={onShowToast}
-              onClose={() => setShowNotificationSettings(false)}
-            />
+            <Suspense fallback={null}>
+              <NotificationSettings
+                project={selectedProject}
+                company={company}
+                onShowToast={onShowToast}
+                onClose={() => setShowNotificationSettings(false)}
+              />
+            </Suspense>
           </div>
         )}
 
         {/* COR Form Modal */}
         {showCORForm && (
-          <CORForm
-            project={selectedProject}
-            company={company}
-            areas={areas}
-            existingCOR={editingCOR}
-            onClose={() => {
-              setShowCORForm(false)
-              setEditingCOR(null)
-            }}
-            onSaved={() => {
-              setShowCORForm(false)
-              setEditingCOR(null)
-              setCORRefreshKey(prev => prev + 1)
-            }}
-            onShowToast={onShowToast}
-          />
+          <Suspense fallback={null}>
+            <CORForm
+              project={selectedProject}
+              company={company}
+              areas={areas}
+              existingCOR={editingCOR}
+              onClose={() => {
+                setShowCORForm(false)
+                setEditingCOR(null)
+              }}
+              onSaved={() => {
+                setShowCORForm(false)
+                setEditingCOR(null)
+                setCORRefreshKey(prev => prev + 1)
+              }}
+              onShowToast={onShowToast}
+            />
+          </Suspense>
         )}
 
         {/* COR Detail Modal */}
         {showCORDetail && viewingCOR && (
-          <CORDetail
-            cor={viewingCOR}
-            project={selectedProject}
-            company={company}
-            areas={areas}
-            onClose={() => {
-              setShowCORDetail(false)
-              setViewingCOR(null)
-            }}
-            onEdit={(cor) => {
-              setShowCORDetail(false)
-              setViewingCOR(null)
-              setEditingCOR(cor)
-              setShowCORForm(true)
-            }}
-            onShowToast={onShowToast}
-            onStatusChange={() => {
-              // Trigger a refresh of the COR list
-            }}
-          />
+          <Suspense fallback={null}>
+            <CORDetail
+              cor={viewingCOR}
+              project={selectedProject}
+              company={company}
+              areas={areas}
+              onClose={() => {
+                setShowCORDetail(false)
+                setViewingCOR(null)
+              }}
+              onEdit={(cor) => {
+                setShowCORDetail(false)
+                setViewingCOR(null)
+                setEditingCOR(cor)
+                setShowCORForm(true)
+              }}
+              onShowToast={onShowToast}
+              onStatusChange={() => {
+                // Trigger a refresh of the COR list
+              }}
+            />
+          </Suspense>
         )}
 
         {/* Add Cost Modal */}
         {showAddCostModal && (
-          <AddCostModal
-            onClose={() => setShowAddCostModal(false)}
-            saving={savingCost}
-            onSave={async (costData) => {
-              try {
-                setSavingCost(true)
-                await db.addProjectCost(selectedProject.id, company.id, costData)
-                setShowAddCostModal(false)
-                loadProjects()
-                onShowToast('Cost added successfully', 'success')
-              } catch (err) {
-                console.error('Error adding cost:', err)
-                onShowToast('Error adding cost', 'error')
-              } finally {
-                setSavingCost(false)
-              }
-            }}
-          />
+          <Suspense fallback={null}>
+            <AddCostModal
+              onClose={() => setShowAddCostModal(false)}
+              saving={savingCost}
+              onSave={async (costData) => {
+                try {
+                  setSavingCost(true)
+                  await db.addProjectCost(selectedProject.id, company.id, costData)
+                  setShowAddCostModal(false)
+                  loadProjects()
+                  onShowToast('Cost added successfully', 'success')
+                } catch (err) {
+                  console.error('Error adding cost:', err)
+                  onShowToast('Error adding cost', 'error')
+                } finally {
+                  setSavingCost(false)
+                }
+              }}
+            />
+          </Suspense>
         )}
 
         {/* Equipment Modal */}
         {showEquipmentModal && (
-          <EquipmentModal
-            project={selectedProject}
-            company={company}
-            user={user}
-            editItem={editingEquipment}
-            onSave={() => {
-              setShowEquipmentModal(false)
-              setEditingEquipment(null)
-              setEquipmentRefreshKey(prev => prev + 1)
-              onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success')
-            }}
-            onClose={() => {
-              setShowEquipmentModal(false)
-              setEditingEquipment(null)
-            }}
-          />
+          <Suspense fallback={null}>
+            <EquipmentModal
+              project={selectedProject}
+              company={company}
+              user={user}
+              editItem={editingEquipment}
+              onSave={() => {
+                setShowEquipmentModal(false)
+                setEditingEquipment(null)
+                setEquipmentRefreshKey(prev => prev + 1)
+                onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success')
+              }}
+              onClose={() => {
+                setShowEquipmentModal(false)
+                setEditingEquipment(null)
+              }}
+            />
+          </Suspense>
         )}
 
         {/* Draw Request Modal */}
         {showDrawRequestModal && (
-          <DrawRequestModal
-            project={selectedProject}
-            company={company}
-            areas={areas}
-            corStats={projectsData.find(p => p.id === selectedProject?.id)?.corStats}
-            editDrawRequest={editingDrawRequest}
-            onSave={() => {
-              setShowDrawRequestModal(false)
-              setEditingDrawRequest(null)
-              setDrawRequestRefreshKey(prev => prev + 1)
-              onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success')
-            }}
-            onClose={() => {
-              setShowDrawRequestModal(false)
-              setEditingDrawRequest(null)
-            }}
-          />
+          <Suspense fallback={null}>
+            <DrawRequestModal
+              project={selectedProject}
+              company={company}
+              areas={areas}
+              corStats={projectsData.find(p => p.id === selectedProject?.id)?.corStats}
+              editDrawRequest={editingDrawRequest}
+              onSave={() => {
+                setShowDrawRequestModal(false)
+                setEditingDrawRequest(null)
+                setDrawRequestRefreshKey(prev => prev + 1)
+                onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success')
+              }}
+              onClose={() => {
+                setShowDrawRequestModal(false)
+                setEditingDrawRequest(null)
+              }}
+            />
+          </Suspense>
         )}
       </div>
     )

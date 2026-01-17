@@ -18,13 +18,15 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const defaultRoles = ['Foreman', 'Laborer', 'Supervisor', 'Operator']
 
   useEffect(() => {
-    loadTodaysCrew()
-    if (companyId) {
-      loadLaborClasses()
-    } else {
-      setLoadingClasses(false)
+    if (project?.id) {
+      loadTodaysCrew()
+      if (companyId) {
+        loadLaborClasses()
+      } else {
+        setLoadingClasses(false)
+      }
     }
-  }, [project.id, companyId])
+  }, [project?.id, companyId])
 
   const loadLaborClasses = async () => {
     try {
@@ -43,6 +45,8 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       }
     } catch (err) {
       console.error('Error loading labor classes:', err)
+      // Show toast but continue with default roles
+      onShowToast?.('Using default roles - custom labor classes unavailable', 'info')
     } finally {
       setLoadingClasses(false)
     }

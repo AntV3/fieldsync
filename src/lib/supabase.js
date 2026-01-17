@@ -818,7 +818,6 @@ export const db = {
 
   // Get project by PIN within a specific company (secure foreman access)
   async getProjectByPinAndCompany(pin, companyId) {
-    console.log('[PIN Auth Fallback] Trying direct lookup', { pin: '****', companyId })
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('projects')
@@ -827,7 +826,6 @@ export const db = {
         .eq('company_id', companyId)
         .eq('status', 'active')
         .single()
-      console.log('[PIN Auth Fallback] Result:', { data, error })
       if (error) return null
       return data
     } else {
@@ -846,8 +844,6 @@ export const db = {
     if (isSupabaseConfigured) {
       const deviceId = getDeviceId()
 
-      console.log('[PIN Auth] Starting secure PIN validation', { pin: '****', companyCode, deviceId })
-
       // Use the new session-based validation
       const { data, error } = await supabase
         .rpc('validate_pin_and_create_session', {
@@ -857,39 +853,30 @@ export const db = {
           p_ip_address: null // IP is not available client-side
         })
 
-      console.log('[PIN Auth] RPC response:', { data, error })
-
       if (error) {
-        console.error('[PIN Auth] RPC error:', error)
+        console.error('[PIN Auth] RPC error')
         return { success: false, rateLimited: false, project: null, error: error.message }
       }
 
       if (!data || data.length === 0) {
-        console.warn('[PIN Auth] RPC returned empty data')
         return { success: false, rateLimited: false, project: null }
       }
 
       const result = data[0]
-      console.log('[PIN Auth] RPC result:', result)
 
       // Check error codes
       if (result.error_code === 'RATE_LIMITED') {
-        console.warn('[PIN Auth] Rate limited')
         return { success: false, rateLimited: true, project: null }
       }
 
       if (result.error_code === 'INVALID_COMPANY' || result.error_code === 'INVALID_PIN') {
-        console.warn('[PIN Auth] Invalid company or PIN:', result.error_code)
         return { success: false, rateLimited: false, project: null }
       }
 
       // Check if successful
       if (!result.success || !result.project_id) {
-        console.warn('[PIN Auth] Validation failed:', { success: result.success, project_id: result.project_id })
         return { success: false, rateLimited: false, project: null }
       }
-
-      console.log('[PIN Auth] Validation successful, creating session')
 
       // Store the session for subsequent requests
       setFieldSession({
@@ -908,8 +895,6 @@ export const db = {
         .select('*')
         .eq('id', result.project_id)
         .single()
-
-      console.log('[PIN Auth] Project fetch result:', { projectData, projectError })
 
       return {
         success: true,
@@ -1000,17 +985,22 @@ export const db = {
     }
   },
 
-  // Update project
-  async updateProject(id, updates) {
+  // Update project - requires companyId for cross-tenant security
+  async updateProject(id, updates, companyId = null) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('projects')
         .update(updates)
         .eq('id', id)
-        .select()
-        .single()
+
+      // Add company_id check if provided (prevents cross-tenant access)
+      if (companyId) {
+        query = query.eq('company_id', companyId)
+      }
+
+      const { data, error } = await query.select().single()
       if (error) {
-        console.error('Error updating project:', error)
+        console.error('Error updating project')
         throw error
       }
       return data
@@ -1025,12 +1015,20 @@ export const db = {
     }
   },
 
-  async deleteProject(id) {
+  // Delete project - requires companyId for cross-tenant security
+  async deleteProject(id, companyId = null) {
     if (isSupabaseConfigured) {
-      const { error } = await supabase
+      let query = supabase
         .from('projects')
         .delete()
         .eq('id', id)
+
+      // Add company_id check if provided (prevents cross-tenant access)
+      if (companyId) {
+        query = query.eq('company_id', companyId)
+      }
+
+      const { error } = await query
       if (error) throw error
     } else {
       const localData = getLocalData()
@@ -1096,7 +1094,8 @@ export const db = {
     }
   },
 
-  async updateAreaStatus(id, status) {
+  // Update area status - projectId optional for cross-tenant security
+  async updateAreaStatus(id, status, projectId = null) {
     if (isSupabaseConfigured) {
       // If offline, update cache and queue action
       if (!getConnectionStatus()) {
@@ -1106,12 +1105,17 @@ export const db = {
       }
 
       const client = getClient()
-      const { data, error } = await client
+      let query = client
         .from('areas')
         .update({ status })
         .eq('id', id)
-        .select()
-        .single()
+
+      // Add project_id check if provided (prevents cross-tenant access)
+      if (projectId) {
+        query = query.eq('project_id', projectId)
+      }
+
+      const { data, error } = await query.select().single()
 
       if (error) {
         // If network error, queue for later
@@ -1125,9 +1129,7 @@ export const db = {
 
       // Update cache with server response
       if (data) {
-        updateCachedAreaStatus(id, status).catch(err =>
-          console.error('Failed to update cached area:', err)
-        )
+        updateCachedAreaStatus(id, status).catch(() => {})
       }
 
       return data
@@ -1143,15 +1145,20 @@ export const db = {
     }
   },
 
-  // Update area (name, weight, sort_order)
-  async updateArea(id, updates) {
+  // Update area (name, weight, sort_order) - projectId optional for security
+  async updateArea(id, updates, projectId = null) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('areas')
         .update(updates)
         .eq('id', id)
-        .select()
-        .single()
+
+      // Add project_id check if provided (prevents cross-tenant access)
+      if (projectId) {
+        query = query.eq('project_id', projectId)
+      }
+
+      const { data, error } = await query.select().single()
       if (error) throw error
       return data
     } else {
@@ -1166,13 +1173,20 @@ export const db = {
     }
   },
 
-  // Delete area
-  async deleteArea(id) {
+  // Delete area - projectId optional for cross-tenant security
+  async deleteArea(id, projectId = null) {
     if (isSupabaseConfigured) {
-      const { error } = await supabase
+      let query = supabase
         .from('areas')
         .delete()
         .eq('id', id)
+
+      // Add project_id check if provided (prevents cross-tenant access)
+      if (projectId) {
+        query = query.eq('project_id', projectId)
+      }
+
+      const { error } = await query
       if (error) throw error
     } else {
       const localData = getLocalData()
@@ -1518,7 +1532,9 @@ export const db = {
 
   async getMaterialsEquipmentByCategory(companyId, category) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
         .from('materials_equipment')
         .select('*')
         .eq('company_id', companyId)
@@ -1533,7 +1549,9 @@ export const db = {
 
   async getAllMaterialsEquipment(companyId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
         .from('materials_equipment')
         .select('*')
         .eq('company_id', companyId)
@@ -1701,21 +1719,24 @@ export const db = {
   // Use this for CrewCheckin and TMForm to prevent rate exposure
   async getLaborClassesForField(companyId) {
     if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) return { categories: [], classes: [] }
+
       // Use the secure RPC function that only returns non-sensitive fields
-      const { data, error } = await supabase
+      const { data, error } = await client
         .rpc('get_labor_classes_for_field', { p_company_id: companyId })
 
       if (error) {
         console.error('Error loading field labor classes:', error)
         // Fallback to direct query if RPC not available (pre-migration)
         const [categoriesResult, classesResult] = await Promise.all([
-          supabase
+          client
             .from('labor_categories')
             .select('id, name')
             .eq('company_id', companyId)
             .eq('active', true)
             .order('name'),
-          supabase
+          client
             .from('labor_classes')
             .select('id, name, category_id')
             .eq('company_id', companyId)
@@ -2062,7 +2083,11 @@ export const db = {
         return tempTicket
       }
 
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .insert({
           project_id: ticket.project_id,
@@ -2112,7 +2137,11 @@ export const db = {
         time_ended: w.time_ended || null,
         role: w.role || 'Laborer'
       }))
-      const { error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { error } = await client
         .from('t_and_m_workers')
         .insert(workersData)
       if (error) throw error
@@ -2128,7 +2157,11 @@ export const db = {
         custom_category: item.custom_category || null,
         quantity: item.quantity
       }))
-      const { error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { error } = await client
         .from('t_and_m_items')
         .insert(itemsData)
       if (error) throw error
@@ -2139,8 +2172,11 @@ export const db = {
   async getPreviousTicketCrew(projectId, beforeDate) {
     if (!isSupabaseConfigured) return null
 
+    const client = getClient()
+    if (!client) return null
+
     // Find the most recent ticket before the given date
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await client
       .from('t_and_m_tickets')
       .select(`
         id,
@@ -2151,12 +2187,36 @@ export const db = {
       .lt('work_date', beforeDate)
       .order('work_date', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle() // Use maybeSingle to return null instead of 406 when no previous tickets
 
     if (error || !ticket) return null
 
     // Group workers by role
     const workers = ticket.t_and_m_workers || []
+
+    // Check if any workers have labor_class_id (indicates custom labor classes)
+    const hasCustomClasses = workers.some(w => w.labor_class_id)
+
+    // Build dynamic workers structure for custom labor classes
+    const dynamicWorkers = {}
+    if (hasCustomClasses) {
+      workers.forEach(w => {
+        if (w.labor_class_id) {
+          if (!dynamicWorkers[w.labor_class_id]) {
+            dynamicWorkers[w.labor_class_id] = []
+          }
+          dynamicWorkers[w.labor_class_id].push({
+            name: w.name,
+            hours: w.hours?.toString() || '',
+            overtimeHours: w.overtime_hours?.toString() || '',
+            timeStarted: w.time_started || '',
+            timeEnded: w.time_ended || ''
+          })
+        }
+      })
+    }
+
+    // Build legacy worker arrays
     const supervision = workers
       .filter(w => ['Foreman', 'General Foreman', 'Superintendent'].includes(w.role))
       .map(w => ({
@@ -2193,6 +2253,7 @@ export const db = {
       supervision: supervision.length > 0 ? supervision : null,
       operators: operators.length > 0 ? operators : null,
       laborers: laborers.length > 0 ? laborers : null,
+      dynamicWorkers: Object.keys(dynamicWorkers).length > 0 ? dynamicWorkers : null,
       totalWorkers: workers.length
     }
   },
@@ -2276,7 +2337,11 @@ export const db = {
 
   async updateTMTicketPhotos(ticketId, photos) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .update({ photos })
         .eq('id', ticketId)
@@ -2291,7 +2356,11 @@ export const db = {
   // Save client signature directly to T&M ticket (on-site signing)
   async saveTMClientSignature(ticketId, signatureData) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
           client_signature_data: signatureData.signature,
@@ -2367,14 +2436,12 @@ export const db = {
   // ============================================
 
   async getCompanyByCode(code) {
-    console.log('[Company Lookup] Looking up company by code:', code)
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .eq('code', code)
         .single()
-      console.log('[Company Lookup] Result:', { data: data ? { id: data.id, name: data.name, code: data.code } : null, error })
       if (error) return null
       return data
     }
@@ -2951,6 +3018,11 @@ export const db = {
   async uploadPhoto(companyId, projectId, ticketId, file) {
     if (!isSupabaseConfigured) return null
 
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
     const start = performance.now()
     const fileSize = file.size || 0
 
@@ -2966,7 +3038,7 @@ export const db = {
     const filePath = `${companyId}/${projectId}/${ticketId}/${fileName}`
 
     try {
-      const { data, error } = await supabase.storage
+      const { data, error } = await client.storage
         .from('tm-photos')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -2985,7 +3057,7 @@ export const db = {
       if (error) throw error
 
       // Get public URL
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = client.storage
         .from('tm-photos')
         .getPublicUrl(filePath)
 
@@ -3004,6 +3076,11 @@ export const db = {
   async uploadPhotoBase64(companyId, projectId, ticketId, base64Data, fileName = 'photo.jpg') {
     if (!isSupabaseConfigured) return null
 
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
     // Convert base64 to blob
     const base64Response = await fetch(base64Data)
     const blob = await base64Response.blob()
@@ -3015,11 +3092,11 @@ export const db = {
     const randomId = Array.from(array, b => b.toString(36)).join('')
     const extension = fileName.split('.').pop() || 'jpg'
     const newFileName = `${timestamp}-${randomId}.${extension}`
-    
+
     // Path: company/project/ticket/filename
     const filePath = `${companyId}/${projectId}/${ticketId}/${newFileName}`
 
-    const { data, error } = await supabase.storage
+    const { data, error } = await client.storage
       .from('tm-photos')
       .upload(filePath, blob, {
         cacheControl: '3600',
@@ -3030,7 +3107,7 @@ export const db = {
     if (error) throw error
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = client.storage
       .from('tm-photos')
       .getPublicUrl(filePath)
 
@@ -3490,10 +3567,10 @@ export const db = {
       .select('*')
       .eq('project_id', projectId)
       .eq('check_in_date', checkDate)
-      .single()
+      .maybeSingle() // Use maybeSingle to return null instead of 406 when no rows
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
-      // Don't log error, it's expected when no checkin exists
+    if (error) {
+      console.error('Error fetching crew checkin:', error)
     }
     return data
   },
@@ -3717,10 +3794,10 @@ export const db = {
       .select('*')
       .eq('project_id', projectId)
       .eq('report_date', reportDate)
-      .single()
+      .maybeSingle() // Use maybeSingle to return null instead of 406 when no report exists
 
-    if (error && error.code !== 'PGRST116') {
-      // Don't log error, it's expected when no report exists
+    if (error) {
+      console.error('Error fetching daily report:', error)
     }
     return data
   },
@@ -5596,7 +5673,9 @@ export const db = {
   // Only returns CORs that can still receive tickets (not billed or archived)
   async getAssignableCORs(projectId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
         .from('change_orders')
         .select('id, cor_number, title, status, cor_total')
         .eq('project_id', projectId)

@@ -23,8 +23,10 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [activeTab, setActiveTab] = useState('actions')
 
   useEffect(() => {
-    loadAreas()
-  }, [project.id])
+    if (project?.id) {
+      loadAreas()
+    }
+  }, [project?.id])
 
   const loadAreas = async () => {
     try {
