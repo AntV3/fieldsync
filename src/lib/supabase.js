@@ -2076,7 +2076,8 @@ export const db = {
         return tempTicket
       }
 
-      const { data, error } = await supabase
+      const client = getClient()
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .insert({
           project_id: ticket.project_id,
@@ -2126,7 +2127,8 @@ export const db = {
         time_ended: w.time_ended || null,
         role: w.role || 'Laborer'
       }))
-      const { error } = await supabase
+      const client = getClient()
+      const { error } = await client
         .from('t_and_m_workers')
         .insert(workersData)
       if (error) throw error
@@ -2142,7 +2144,8 @@ export const db = {
         custom_category: item.custom_category || null,
         quantity: item.quantity
       }))
-      const { error } = await supabase
+      const client = getClient()
+      const { error } = await client
         .from('t_and_m_items')
         .insert(itemsData)
       if (error) throw error
@@ -2315,7 +2318,8 @@ export const db = {
 
   async updateTMTicketPhotos(ticketId, photos) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .update({ photos })
         .eq('id', ticketId)
@@ -2330,7 +2334,8 @@ export const db = {
   // Save client signature directly to T&M ticket (on-site signing)
   async saveTMClientSignature(ticketId, signatureData) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
           client_signature_data: signatureData.signature,
