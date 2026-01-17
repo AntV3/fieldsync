@@ -420,32 +420,58 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   // Apply batch hours to all workers with names
   const applyBatchHours = () => {
     const { timeStarted, timeEnded, hours, overtimeHours } = batchHours
+    let updatedCount = 0
 
-    // Apply to supervision
-    setSupervision(supervision.map(s =>
-      (s && s.name && s.name.trim()) ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
-    ))
+    if (hasCustomLaborClasses) {
+      // Apply to dynamic workers
+      const updatedDynamic = {}
+      Object.entries(dynamicWorkers).forEach(([classId, workers]) => {
+        updatedDynamic[classId] = workers.map(w => {
+          if (w && w.name && w.name.trim()) {
+            updatedCount++
+            return { ...w, timeStarted, timeEnded, hours, overtimeHours }
+          }
+          return w
+        })
+      })
+      setDynamicWorkers(updatedDynamic)
+    } else {
+      // Apply to legacy supervision
+      setSupervision(supervision.map(s => {
+        if (s && s.name && s.name.trim()) {
+          updatedCount++
+          return { ...s, timeStarted, timeEnded, hours, overtimeHours }
+        }
+        return s
+      }))
 
-    // Apply to operators
-    setOperators(operators.map(o =>
-      (o && o.name && o.name.trim()) ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
-    ))
+      // Apply to operators
+      setOperators(operators.map(o => {
+        if (o && o.name && o.name.trim()) {
+          updatedCount++
+          return { ...o, timeStarted, timeEnded, hours, overtimeHours }
+        }
+        return o
+      }))
 
-    // Apply to laborers
-    setLaborers(laborers.map(l =>
-      (l && l.name && l.name.trim()) ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
-    ))
-
-    // Count how many workers were updated
-    const updatedCount = [
-      ...supervision.filter(s => s && s.name && s.name.trim()),
-      ...operators.filter(o => o && o.name && o.name.trim()),
-      ...laborers.filter(l => l && l.name && l.name.trim())
-    ].length
+      // Apply to laborers
+      setLaborers(laborers.map(l => {
+        if (l && l.name && l.name.trim()) {
+          updatedCount++
+          return { ...l, timeStarted, timeEnded, hours, overtimeHours }
+        }
+        return l
+      }))
+    }
 
     setShowBatchHoursModal(false)
     setBatchHours({ timeStarted: '', timeEnded: '', hours: '', overtimeHours: '' })
-    onShowToast(`Applied hours to ${updatedCount} worker${updatedCount !== 1 ? 's' : ''}`, 'success')
+
+    if (updatedCount > 0) {
+      onShowToast(t('appliedHours').replace('{count}', updatedCount), 'success')
+    } else {
+      onShowToast(lang === 'en' ? 'Add workers first' : 'Agregue trabajadores primero', 'info')
+    }
   }
 
   // Apply preset hours directly to all workers (inline, no modal)
@@ -475,23 +501,45 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
     }
 
-    // Apply to all workers with names
-    setSupervision(prev => prev.map(s =>
-      (s && s.name && s.name.trim()) ? { ...s, timeStarted, timeEnded, hours, overtimeHours } : s
-    ))
-    setOperators(prev => prev.map(o =>
-      (o && o.name && o.name.trim()) ? { ...o, timeStarted, timeEnded, hours, overtimeHours } : o
-    ))
-    setLaborers(prev => prev.map(l =>
-      (l && l.name && l.name.trim()) ? { ...l, timeStarted, timeEnded, hours, overtimeHours } : l
-    ))
+    let count = 0
 
-    // Count workers updated
-    const count = [
-      ...supervision.filter(s => s && s.name && s.name.trim()),
-      ...operators.filter(o => o && o.name && o.name.trim()),
-      ...laborers.filter(l => l && l.name && l.name.trim())
-    ].length
+    if (hasCustomLaborClasses) {
+      // Apply to dynamic workers
+      const updatedDynamic = {}
+      Object.entries(dynamicWorkers).forEach(([classId, workers]) => {
+        updatedDynamic[classId] = workers.map(w => {
+          if (w && w.name && w.name.trim()) {
+            count++
+            return { ...w, timeStarted, timeEnded, hours, overtimeHours }
+          }
+          return w
+        })
+      })
+      setDynamicWorkers(updatedDynamic)
+    } else {
+      // Apply to legacy workers
+      setSupervision(prev => prev.map(s => {
+        if (s && s.name && s.name.trim()) {
+          count++
+          return { ...s, timeStarted, timeEnded, hours, overtimeHours }
+        }
+        return s
+      }))
+      setOperators(prev => prev.map(o => {
+        if (o && o.name && o.name.trim()) {
+          count++
+          return { ...o, timeStarted, timeEnded, hours, overtimeHours }
+        }
+        return o
+      }))
+      setLaborers(prev => prev.map(l => {
+        if (l && l.name && l.name.trim()) {
+          count++
+          return { ...l, timeStarted, timeEnded, hours, overtimeHours }
+        }
+        return l
+      }))
+    }
 
     if (count > 0) {
       onShowToast(t('appliedHours').replace('{count}', count), 'success')
@@ -578,26 +626,31 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       const previousCrew = await db.getPreviousTicketCrew(project.id, workDate)
 
       if (!previousCrew || previousCrew.totalWorkers === 0) {
-        onShowToast('No previous crew found for this project', 'info')
+        onShowToast(t('noPreviousCrew'), 'info')
         return
       }
 
-      // Apply previous crew data
-      if (previousCrew.supervision) {
-        setSupervision(previousCrew.supervision)
-      }
-      if (previousCrew.operators) {
-        setOperators(previousCrew.operators)
-      }
-      if (previousCrew.laborers) {
-        setLaborers(previousCrew.laborers)
+      if (hasCustomLaborClasses && previousCrew.dynamicWorkers) {
+        // Apply dynamic workers from previous ticket
+        setDynamicWorkers(previousCrew.dynamicWorkers)
+      } else {
+        // Apply legacy crew data
+        if (previousCrew.supervision) {
+          setSupervision(previousCrew.supervision)
+        }
+        if (previousCrew.operators) {
+          setOperators(previousCrew.operators)
+        }
+        if (previousCrew.laborers) {
+          setLaborers(previousCrew.laborers)
+        }
       }
 
       const dateStr = new Date(previousCrew.workDate).toLocaleDateString()
-      onShowToast(`Loaded ${previousCrew.totalWorkers} workers from ${dateStr}`, 'success')
+      onShowToast(t('loadedWorkers').replace('{count}', previousCrew.totalWorkers).replace('{date}', dateStr), 'success')
     } catch (error) {
       console.error('Error loading previous crew:', error)
-      onShowToast('Error loading previous crew', 'error')
+      onShowToast(lang === 'en' ? 'Error loading previous crew' : 'Error cargando equipo anterior', 'error')
     } finally {
       setLoadingPreviousCrew(false)
     }

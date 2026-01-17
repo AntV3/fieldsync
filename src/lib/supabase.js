@@ -2157,6 +2157,30 @@ export const db = {
 
     // Group workers by role
     const workers = ticket.t_and_m_workers || []
+
+    // Check if any workers have labor_class_id (indicates custom labor classes)
+    const hasCustomClasses = workers.some(w => w.labor_class_id)
+
+    // Build dynamic workers structure for custom labor classes
+    const dynamicWorkers = {}
+    if (hasCustomClasses) {
+      workers.forEach(w => {
+        if (w.labor_class_id) {
+          if (!dynamicWorkers[w.labor_class_id]) {
+            dynamicWorkers[w.labor_class_id] = []
+          }
+          dynamicWorkers[w.labor_class_id].push({
+            name: w.name,
+            hours: w.hours?.toString() || '',
+            overtimeHours: w.overtime_hours?.toString() || '',
+            timeStarted: w.time_started || '',
+            timeEnded: w.time_ended || ''
+          })
+        }
+      })
+    }
+
+    // Build legacy worker arrays
     const supervision = workers
       .filter(w => ['Foreman', 'General Foreman', 'Superintendent'].includes(w.role))
       .map(w => ({
@@ -2193,6 +2217,7 @@ export const db = {
       supervision: supervision.length > 0 ? supervision : null,
       operators: operators.length > 0 ? operators : null,
       laborers: laborers.length > 0 ? laborers : null,
+      dynamicWorkers: Object.keys(dynamicWorkers).length > 0 ? dynamicWorkers : null,
       totalWorkers: workers.length
     }
   },
