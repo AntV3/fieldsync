@@ -74,6 +74,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const pendingAreasRefreshRef = useRef(false)
   const pendingCORRefreshRef = useRef(false)
 
+  // Cache for project details to avoid re-fetching when switching between projects
+  // Key: projectId, Value: { data: enhancedProjectData, timestamp: Date.now() }
+  const projectDetailsCacheRef = useRef(new Map())
+  const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minute cache TTL
+
   // Debounced refresh function that coalesces multiple rapid refresh requests
   // This prevents 5+ loadProjects() calls when multiple subscriptions fire at once
   const debouncedRefresh = useCallback((options = {}) => {
@@ -241,234 +246,270 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [financialsSection])
 
+  // Load detailed data for a single project (on-demand, with caching)
+  // This replaces the previous N+1 pattern where ALL project details were loaded upfront
+  const loadProjectDetails = async (project, forceRefresh = false) => {
+    const cacheKey = project.id
+    const cached = projectDetailsCacheRef.current.get(cacheKey)
+
+    // Return cached data if valid and not forcing refresh
+    if (cached && !forceRefresh && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+      return cached.data
+    }
+
+    try {
+      // Fetch detailed project data in parallel (9 queries for 1 project, not 9N)
+      const [
+        projectAreas,
+        tickets,
+        changeOrderData,
+        dailyReports,
+        injuryReports,
+        laborCosts,
+        haulOffCosts,
+        customCosts,
+        corStats
+      ] = await Promise.all([
+        db.getAreas(project.id).catch(() => []),
+        db.getTMTickets(project.id).catch(() => []),
+        db.getChangeOrderTotals(project.id).catch(() => null),
+        db.getDailyReports(project.id, 100).catch(() => []),
+        db.getInjuryReports(project.id).catch(() => []),
+        db.calculateManDayCosts(
+          project.id,
+          company?.id,
+          project.work_type || 'demolition',
+          project.job_type || 'standard'
+        ).catch(() => null),
+        db.calculateHaulOffCosts(project.id).catch(() => null),
+        db.getProjectCosts(project.id).catch(() => []),
+        db.getCORStats(project.id).catch(() => null)
+      ])
+
+      // Calculate progress - use SOV values if available
+      const progressData = calculateValueProgress(projectAreas)
+      const progress = progressData.progress
+
+      // Calculate revised contract value
+      const changeOrderValue = changeOrderData?.totalApprovedValue || 0
+      const revisedContractValue = project.contract_value + changeOrderValue
+
+      // Billable calculation
+      const billable = progressData.isValueBased
+        ? progressData.earnedValue
+        : (progress / 100) * revisedContractValue
+      const pendingTickets = tickets.filter(t => t.status === 'pending').length
+
+      // Recent activity
+      const oneWeekAgo = new Date()
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+      const recentDailyReports = dailyReports.filter(r => new Date(r.report_date) >= oneWeekAgo).length
+
+      // Custom costs
+      const customCostTotal = customCosts.reduce((sum, c) => {
+        const amount = parseFloat(c.amount)
+        return sum + (isNaN(amount) ? 0 : amount)
+      }, 0)
+
+      // Materials/equipment costs from T&M
+      let materialsEquipmentCost = 0
+      const materialsEquipmentByDate = {}
+      tickets.forEach(ticket => {
+        const ticketDate = ticket.work_date || ticket.ticket_date || ticket.created_at?.split('T')[0]
+        const items = ticket.t_and_m_items || ticket.items || []
+        let ticketMaterialsCost = 0
+        items.forEach(item => {
+          const qty = parseFloat(item.quantity) || 1
+          const cost = parseFloat(item.unit_cost) || parseFloat(item.materials_equipment?.cost_per_unit) || 0
+          ticketMaterialsCost += qty * cost
+        })
+        if (ticketMaterialsCost > 0 && ticketDate) {
+          materialsEquipmentCost += ticketMaterialsCost
+          if (!materialsEquipmentByDate[ticketDate]) {
+            materialsEquipmentByDate[ticketDate] = { date: ticketDate, cost: 0 }
+          }
+          materialsEquipmentByDate[ticketDate].cost += ticketMaterialsCost
+        }
+      })
+      const materialsEquipmentByDateArray = Object.values(materialsEquipmentByDate)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+
+      // Total costs
+      const laborCost = laborCosts?.totalCost || 0
+      const haulOffCost = haulOffCosts?.totalCost || 0
+      const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal
+
+      // Profit calculations
+      const currentProfit = billable - allCostsTotal
+      const profitMargin = billable > 0 ? (currentProfit / billable) * 100 : 0
+
+      // Burn rate
+      const laborDays = laborCosts?.byDate?.length || 0
+      const materialsDays = materialsEquipmentByDateArray.length
+      const totalBurnDays = Math.max(laborDays, materialsDays)
+      const totalBurn = laborCost + materialsEquipmentCost
+      const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
+
+      // Schedule insights
+      const scheduleInsights = calculateScheduleInsights(
+        { ...project, progress },
+        laborCosts?.totalManDays || 0
+      )
+
+      const enhancedData = {
+        ...project,
+        areas: projectAreas,
+        progress,
+        billable,
+        changeOrderValue,
+        revisedContractValue,
+        changeOrderPending: changeOrderData?.pendingCount || 0,
+        totalTickets: tickets.length,
+        pendingTickets,
+        approvedTickets: tickets.filter(t => t.status === 'approved').length,
+        tmTickets: tickets,
+        dailyReportsCount: dailyReports.length,
+        recentDailyReports,
+        injuryReportsCount: injuryReports.length,
+        lastDailyReport: dailyReports[0]?.report_date || null,
+        isValueBased: progressData.isValueBased,
+        earnedValue: progressData.earnedValue,
+        totalSOVValue: progressData.totalValue,
+        laborCost,
+        laborDaysWorked: laborDays,
+        laborManDays: laborCosts?.totalManDays || 0,
+        laborByDate: laborCosts?.byDate || [],
+        dailyBurn,
+        materialsEquipmentCost,
+        materialsEquipmentByDate: materialsEquipmentByDateArray,
+        haulOffCost,
+        haulOffLoads: haulOffCosts?.totalLoads || 0,
+        haulOffDays: haulOffCosts?.daysWithHaulOff || 0,
+        haulOffByType: haulOffCosts?.byWasteType || {},
+        haulOffByDate: haulOffCosts?.byDate || [],
+        customCosts,
+        customCostTotal,
+        totalBurn,
+        totalBurnDays,
+        allCostsTotal,
+        currentProfit,
+        profitMargin,
+        corPendingValue: corStats?.total_pending_value || 0,
+        corPendingCount: corStats?.pending_count || 0,
+        corApprovedValue: corStats?.total_approved_value || 0,
+        corBilledValue: corStats?.total_billed_value || 0,
+        corTotalCount: corStats?.total_cors || 0,
+        corStats: corStats,
+        scheduleStatus: scheduleInsights.scheduleStatus,
+        scheduleVariance: scheduleInsights.scheduleVariance,
+        scheduleLabel: scheduleInsights.scheduleLabel,
+        laborStatus: scheduleInsights.laborStatus,
+        laborVariance: scheduleInsights.laborVariance,
+        laborLabel: scheduleInsights.laborLabel,
+        hasScheduleData: scheduleInsights.hasScheduleData,
+        hasLaborData: scheduleInsights.hasLaborData,
+        actualManDays: laborCosts?.totalManDays || 0,
+        hasError: false,
+        _detailsLoaded: true
+      }
+
+      // Cache the enhanced data
+      projectDetailsCacheRef.current.set(cacheKey, {
+        data: enhancedData,
+        timestamp: Date.now()
+      })
+
+      return enhancedData
+    } catch (error) {
+      console.error(`Error loading details for project ${project.id}:`, error)
+      return { ...project, hasError: true, _detailsLoaded: false }
+    }
+  }
+
+  // OPTIMIZED: Load projects with summary data only (1 query instead of 9N)
+  // Detailed data is loaded on-demand when a project is selected
   const loadProjects = async () => {
     try {
-      // Use optimized single-query dashboard summary when available
-      // This replaces 9N queries with a single database call
+      // Single optimized query for all project summaries
       const data = await db.getProjectDashboardSummary(company?.id)
       setProjects(data)
 
-      // Load enhanced data for executive summary
-      // Each project is wrapped in try/catch so one failure doesn't break the entire dashboard
-      // Note: Some data is already included in the summary, reducing queries needed
-      const enhanced = await Promise.all(data.map(async (project) => {
-        try {
-          // Fetch additional project data in parallel
-          // Areas and tickets are loaded for detailed calculations (billable, burn rate)
-          // The summary already has counts - we need full data for SOV/value calculations
-          const [
-            projectAreas,
-            tickets,
-            changeOrderData,
-            dailyReports,
-            injuryReports,
-            laborCosts,
-            haulOffCosts,
-            customCosts,
-            corStats
-          ] = await Promise.all([
-            db.getAreas(project.id).catch(() => []),
-            db.getTMTickets(project.id).catch(() => []),
-            db.getChangeOrderTotals(project.id).catch(() => null),
-            db.getDailyReports(project.id, 100).catch(() => []),
-            db.getInjuryReports(project.id).catch(() => []),
-            db.calculateManDayCosts(
-              project.id,
-              company?.id,
-              project.work_type || 'demolition',
-              project.job_type || 'standard'
-            ).catch(() => null),
-            db.calculateHaulOffCosts(project.id).catch(() => null),
-            db.getProjectCosts(project.id).catch(() => []),
-            db.getCORStats(project.id).catch(() => null)
-          ])
-
-          // Calculate progress - use SOV values if available, otherwise fallback to percentage
-          const progressData = calculateValueProgress(projectAreas)
-          const progress = progressData.progress
-
-          // Calculate revised contract value (original + change orders)
-          const changeOrderValue = changeOrderData?.totalApprovedValue || 0
-          const revisedContractValue = project.contract_value + changeOrderValue
-
-          // Billable: use actual earned value from SOV if available, otherwise percentage-based
-          const billable = progressData.isValueBased
-            ? progressData.earnedValue
-            : (progress / 100) * revisedContractValue
-          const pendingTickets = tickets.filter(t => t.status === 'pending').length
-
-          // Get recent report activity (last 7 days)
-          const oneWeekAgo = new Date()
-          oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-          const recentDailyReports = dailyReports.filter(r => new Date(r.report_date) >= oneWeekAgo).length
-
-          // Calculate total custom costs (with validation)
-          const customCostTotal = customCosts.reduce((sum, c) => {
-            const amount = parseFloat(c.amount)
-            return sum + (isNaN(amount) ? 0 : amount)
-          }, 0)
-
-          // Calculate materials/equipment costs from T&M tickets
-          let materialsEquipmentCost = 0
-          const materialsEquipmentByDate = {}
-          tickets.forEach(ticket => {
-            const ticketDate = ticket.work_date || ticket.ticket_date || ticket.created_at?.split('T')[0]
-            const items = ticket.t_and_m_items || ticket.items || []
-
-            let ticketMaterialsCost = 0
-            items.forEach(item => {
-              const qty = parseFloat(item.quantity) || 1
-              const cost = parseFloat(item.unit_cost) || parseFloat(item.materials_equipment?.cost_per_unit) || 0
-              ticketMaterialsCost += qty * cost
-            })
-
-            if (ticketMaterialsCost > 0 && ticketDate) {
-              materialsEquipmentCost += ticketMaterialsCost
-              if (!materialsEquipmentByDate[ticketDate]) {
-                materialsEquipmentByDate[ticketDate] = { date: ticketDate, cost: 0 }
-              }
-              materialsEquipmentByDate[ticketDate].cost += ticketMaterialsCost
-            }
-          })
-          const materialsEquipmentByDateArray = Object.values(materialsEquipmentByDate)
-            .sort((a, b) => new Date(b.date) - new Date(a.date))
-
-          // Total costs combining labor, materials/equipment, and custom
-          const laborCost = laborCosts?.totalCost || 0
-          const haulOffCost = haulOffCosts?.totalCost || 0 // Keep for backwards compatibility
-          const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal
-
-          // Calculate profit and margin
-          const currentProfit = billable - allCostsTotal
-          const profitMargin = billable > 0 ? (currentProfit / billable) * 100 : 0
-
-          // Burn rate calculations - now using labor + materials/equipment
-          const laborDays = laborCosts?.byDate?.length || 0
-          const materialsDays = materialsEquipmentByDateArray.length
-          const totalBurnDays = Math.max(laborDays, materialsDays)
-          const totalBurn = laborCost + materialsEquipmentCost
-          const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
-
-          // Schedule performance insights
-          const scheduleInsights = calculateScheduleInsights(
-            { ...project, progress },
-            laborCosts?.totalManDays || 0
-          )
-
-          return {
-            ...project,
-            areas: projectAreas,
-            progress,
-            billable,
-            changeOrderValue,
-            revisedContractValue,
-            changeOrderPending: changeOrderData?.pendingCount || 0,
-            totalTickets: tickets.length,
-            pendingTickets,
-            approvedTickets: tickets.filter(t => t.status === 'approved').length,
-            tmTickets: tickets, // Full T&M ticket array for charts
-            dailyReportsCount: dailyReports.length,
-            recentDailyReports,
-            injuryReportsCount: injuryReports.length,
-            lastDailyReport: dailyReports[0]?.report_date || null,
-            // SOV/Scheduled Value data
-            isValueBased: progressData.isValueBased,
-            earnedValue: progressData.earnedValue,
-            totalSOVValue: progressData.totalValue,
-            // Burn rate data
-            laborCost,
-            laborDaysWorked: laborDays,
-            laborManDays: laborCosts?.totalManDays || 0,
-            laborByDate: laborCosts?.byDate || [],
-            dailyBurn,
-            // Materials/Equipment costs (from T&M tickets)
-            materialsEquipmentCost,
-            materialsEquipmentByDate: materialsEquipmentByDateArray,
-            // Haul-off costs (kept for backwards compatibility)
-            haulOffCost,
-            haulOffLoads: haulOffCosts?.totalLoads || 0,
-            haulOffDays: haulOffCosts?.daysWithHaulOff || 0,
-            haulOffByType: haulOffCosts?.byWasteType || {},
-            haulOffByDate: haulOffCosts?.byDate || [],
-            // Custom costs
-            customCosts,
-            customCostTotal,
-            // Combined totals
-            totalBurn,
-            totalBurnDays,
-            allCostsTotal,
-            // Profitability
-            currentProfit,
-            profitMargin,
-            // COR (Change Order Request) stats - pending value represents unapproved extra work
-            corPendingValue: corStats?.total_pending_value || 0,
-            corPendingCount: corStats?.pending_count || 0,
-            corApprovedValue: corStats?.total_approved_value || 0,
-            corBilledValue: corStats?.total_billed_value || 0,
-            corTotalCount: corStats?.total_cors || 0,
-            corStats: corStats, // Raw COR stats for charts
-            // Schedule performance insights
-            scheduleStatus: scheduleInsights.scheduleStatus,
-            scheduleVariance: scheduleInsights.scheduleVariance,
-            scheduleLabel: scheduleInsights.scheduleLabel,
-            laborStatus: scheduleInsights.laborStatus,
-            laborVariance: scheduleInsights.laborVariance,
-            laborLabel: scheduleInsights.laborLabel,
-            hasScheduleData: scheduleInsights.hasScheduleData,
-            hasLaborData: scheduleInsights.hasLaborData,
-            actualManDays: laborCosts?.totalManDays || 0,
-            // No error flag
-            hasError: false
-          }
-        } catch (error) {
-          // If project data fails to load, return project with fallback values
-          console.error(`Error loading data for project ${project.id}:`, error)
-          return {
-            ...project,
-            areas: [],
-            progress: 0,
-            billable: 0,
-            changeOrderValue: 0,
-            revisedContractValue: project.contract_value,
-            changeOrderPending: 0,
-            totalTickets: 0,
-            pendingTickets: 0,
-            approvedTickets: 0,
-            dailyReportsCount: 0,
-            recentDailyReports: 0,
-            injuryReportsCount: 0,
-            lastDailyReport: null,
-            isValueBased: false,
-            earnedValue: 0,
-            totalSOVValue: 0,
-            laborCost: 0,
-            laborDaysWorked: 0,
-            laborManDays: 0,
-            laborByDate: [],
-            dailyBurn: 0,
-            haulOffCost: 0,
-            haulOffLoads: 0,
-            haulOffDays: 0,
-            haulOffByType: {},
-            haulOffByDate: [],
-            customCosts: [],
-            customCostTotal: 0,
-            totalBurn: 0,
-            totalBurnDays: 0,
-            allCostsTotal: 0,
-            currentProfit: 0,
-            profitMargin: 0,
-            // COR fallback values
-            corPendingValue: 0,
-            corPendingCount: 0,
-            corApprovedValue: 0,
-            corBilledValue: 0,
-            corTotalCount: 0,
-            // Flag that this project had an error loading
-            hasError: true
-          }
+      // Create lightweight enhanced data using ONLY summary metrics from the RPC
+      // This uses data already returned from getProjectDashboardSummary (no additional queries!)
+      // Detailed data is loaded on-demand via loadProjectDetails when a project is selected
+      const enhanced = data.map(project => {
+        // Check if we have cached detailed data for this project
+        const cached = projectDetailsCacheRef.current.get(project.id)
+        if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+          // Use cached detailed data if still valid
+          return cached.data
         }
-      }))
+
+        // Use summary data from RPC (no additional queries needed)
+        // Progress is estimated from area counts in the summary
+        const totalAreas = project.areaCount || 0
+        const completedAreas = project.completedAreas || 0
+        const progress = totalAreas > 0 ? Math.round((completedAreas / totalAreas) * 100) : 0
+
+        return {
+          ...project,
+          // Basic metrics from summary (already loaded)
+          progress,
+          areas: [], // Loaded on-demand when project selected
+          totalTickets: project.ticketCount || 0,
+          pendingTickets: project.pendingTicketCount || 0,
+          approvedTickets: project.approvedTicketCount || 0,
+          dailyReportsCount: project.dailyReportsThisWeek || 0,
+          recentDailyReports: project.dailyReportsThisWeek || 0,
+          corTotalCount: project.corCount || 0,
+          // Placeholder values - loaded on-demand when selected
+          billable: 0,
+          changeOrderValue: 0,
+          revisedContractValue: project.contract_value || 0,
+          changeOrderPending: 0,
+          tmTickets: [],
+          injuryReportsCount: 0,
+          lastDailyReport: null,
+          isValueBased: false,
+          earnedValue: 0,
+          totalSOVValue: 0,
+          laborCost: 0,
+          laborDaysWorked: 0,
+          laborManDays: 0,
+          laborByDate: [],
+          dailyBurn: 0,
+          materialsEquipmentCost: 0,
+          materialsEquipmentByDate: [],
+          haulOffCost: 0,
+          haulOffLoads: 0,
+          haulOffDays: 0,
+          haulOffByType: {},
+          haulOffByDate: [],
+          customCosts: [],
+          customCostTotal: 0,
+          totalBurn: 0,
+          totalBurnDays: 0,
+          allCostsTotal: 0,
+          currentProfit: 0,
+          profitMargin: 0,
+          corPendingValue: 0,
+          corPendingCount: 0,
+          corApprovedValue: 0,
+          corBilledValue: 0,
+          corStats: null,
+          scheduleStatus: 'on_track',
+          scheduleVariance: 0,
+          scheduleLabel: 'On Track',
+          laborStatus: 'on_track',
+          laborVariance: 0,
+          laborLabel: null,
+          hasScheduleData: false,
+          hasLaborData: false,
+          actualManDays: 0,
+          hasError: false,
+          _detailsLoaded: false // Flag to indicate detailed data needs loading
+        }
+      })
       setProjectsData(enhanced)
     } catch (error) {
       console.error('Error loading projects:', error)
@@ -487,8 +528,22 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }
 
-  const handleSelectProject = (project) => {
+  const handleSelectProject = async (project) => {
+    // Set the project immediately for responsive UI
     setSelectedProject(project)
+
+    // If detailed data hasn't been loaded yet, load it now (lazy loading)
+    if (!project._detailsLoaded) {
+      const detailedProject = await loadProjectDetails(project)
+
+      // Update projectsData with the detailed version
+      setProjectsData(prev => prev.map(p =>
+        p.id === project.id ? detailedProject : p
+      ))
+
+      // Update selectedProject with detailed data
+      setSelectedProject(detailedProject)
+    }
   }
 
   const handleBack = () => {

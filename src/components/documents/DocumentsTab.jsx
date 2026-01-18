@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Upload, Search, FolderOpen, Settings, Loader2, X, ArrowLeft, Folder, FileText, Download, File, Image, FileSpreadsheet, Plus, MoreVertical, Eye, Archive, CheckCircle } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { DOCUMENTS_PER_PAGE } from '../../lib/constants'
@@ -135,10 +135,8 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     setSearchQuery('')
   }
 
-  // Search documents
-  const handleSearch = useCallback(async (query) => {
-    setSearchQuery(query)
-
+  // Search documents (internal function)
+  const performSearch = useCallback(async (query) => {
     if (!query.trim()) {
       setSearchResults(null)
       return
@@ -154,6 +152,31 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
       setSearching(false)
     }
   }, [project.id])
+
+  // Debounced search to prevent excessive API calls
+  const searchTimeoutRef = useRef(null)
+  const handleSearch = useCallback((query) => {
+    setSearchQuery(query)
+
+    // Clear any pending search
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    // Debounce search by 300ms
+    searchTimeoutRef.current = setTimeout(() => {
+      performSearch(query)
+    }, 300)
+  }, [performSearch])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Handle upload complete
   const handleUploadComplete = () => {

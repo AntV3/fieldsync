@@ -842,6 +842,41 @@ export const db = {
   // Returns a session token that must be used for all subsequent requests
   async getProjectByPinSecure(pin, companyCode) {
     if (isSupabaseConfigured) {
+      // CLIENT-SIDE RATE LIMITING (defense-in-depth)
+      const rateLimitKey = `pin_attempts_${companyCode}`
+      const lockoutKey = `pin_lockout_${companyCode}`
+      const MAX_ATTEMPTS = 5
+      const LOCKOUT_MS = 5 * 60 * 1000 // 5 minutes
+
+      // Check if currently locked out
+      const lockoutUntil = localStorage.getItem(lockoutKey)
+      if (lockoutUntil && Date.now() < parseInt(lockoutUntil)) {
+        const remainingMs = parseInt(lockoutUntil) - Date.now()
+        const remainingMins = Math.ceil(remainingMs / 60000)
+        return {
+          success: false,
+          rateLimited: true,
+          project: null,
+          error: `Too many attempts. Please try again in ${remainingMins} minute${remainingMins > 1 ? 's' : ''}.`
+        }
+      }
+
+      // Track attempts
+      let attempts = parseInt(localStorage.getItem(rateLimitKey) || '0')
+      attempts++
+      localStorage.setItem(rateLimitKey, attempts.toString())
+
+      // Lockout after MAX_ATTEMPTS
+      if (attempts > MAX_ATTEMPTS) {
+        localStorage.setItem(lockoutKey, (Date.now() + LOCKOUT_MS).toString())
+        return {
+          success: false,
+          rateLimited: true,
+          project: null,
+          error: 'Too many failed attempts. Please try again in 5 minutes.'
+        }
+      }
+
       const deviceId = getDeviceId()
 
       // Use the new session-based validation
@@ -877,6 +912,10 @@ export const db = {
       if (!result.success || !result.project_id) {
         return { success: false, rateLimited: false, project: null }
       }
+
+      // SUCCESS: Clear rate limit counters
+      localStorage.removeItem(`pin_attempts_${companyCode}`)
+      localStorage.removeItem(`pin_lockout_${companyCode}`)
 
       // Store the session for subsequent requests
       setFieldSession({
@@ -988,17 +1027,20 @@ export const db = {
   // Update project - requires companyId for cross-tenant security
   async updateProject(id, updates, companyId = null) {
     if (isSupabaseConfigured) {
-      let query = supabase
+      // SECURITY: Require companyId to prevent cross-tenant data access
+      if (!companyId) {
+        console.error('[Security] updateProject called without companyId - this is a security risk')
+        throw new Error('Company ID is required for security verification')
+      }
+
+      const { data, error } = await supabase
         .from('projects')
         .update(updates)
         .eq('id', id)
+        .eq('company_id', companyId)  // Always enforce cross-tenant security
+        .select()
+        .single()
 
-      // Add company_id check if provided (prevents cross-tenant access)
-      if (companyId) {
-        query = query.eq('company_id', companyId)
-      }
-
-      const { data, error } = await query.select().single()
       if (error) {
         console.error('Error updating project')
         throw error
@@ -1892,6 +1934,13 @@ export const db = {
     if (isSupabaseConfigured) {
       const start = performance.now()
       const client = getClient()
+      const inFieldMode = isFieldMode()
+
+      // SECURITY: Exclude cost_per_unit for field users to protect pricing data
+      const materialsSelect = inFieldMode
+        ? 'materials_equipment (name, unit, category)' // No cost_per_unit for field users
+        : 'materials_equipment (name, unit, cost_per_unit, category)' // Full data for office
+
       try {
         const { data, error } = await client
           .from('t_and_m_tickets')
@@ -1900,7 +1949,7 @@ export const db = {
             t_and_m_workers (*),
             t_and_m_items (
               *,
-              materials_equipment (name, unit, cost_per_unit, category)
+              ${materialsSelect}
             )
           `)
           .eq('project_id', projectId)
@@ -1928,6 +1977,13 @@ export const db = {
     if (isSupabaseConfigured) {
       const start = performance.now()
       const client = getClient()
+      const inFieldMode = isFieldMode()
+
+      // SECURITY: Exclude cost_per_unit for field users to protect pricing data
+      const materialsSelect = inFieldMode
+        ? 'materials_equipment (name, unit, category)'
+        : 'materials_equipment (name, unit, cost_per_unit, category)'
+
       try {
         let query = client
           .from('t_and_m_tickets')
@@ -1936,7 +1992,7 @@ export const db = {
             t_and_m_workers (*),
             t_and_m_items (
               *,
-              materials_equipment (name, unit, cost_per_unit, category)
+              ${materialsSelect}
             )
           `, { count: 'exact' })
           .eq('project_id', projectId)

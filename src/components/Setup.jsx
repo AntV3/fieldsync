@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
-import * as XLSX from 'xlsx'
+// Dynamic import for XLSX (loaded on-demand to reduce initial bundle)
+const loadXLSX = () => import('xlsx')
 
 // Currency formatting helpers
 const formatCurrencyDisplay = (value) => {
@@ -168,7 +169,10 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     fileInputRef.current?.click()
   }
 
-  const parseExcel = (file) => {
+  const parseExcel = async (file) => {
+    // Dynamic import - only loads XLSX when user actually imports
+    const XLSX = (await loadXLSX()).default || await loadXLSX()
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
 

@@ -6,7 +6,8 @@ import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import Toast from './Toast'
-import jsPDF from 'jspdf'
+// Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
+const loadJsPDF = () => import('jspdf')
 
 export default function InjuryReportsList({ project, companyId, company, user, onShowToast }) {
   const { branding } = useBranding()
@@ -198,6 +199,10 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     }
 
     setToast({ type: 'info', message: 'Generating PDF...' })
+
+    // Dynamic import - only loads jsPDF when user actually exports
+    const jsPDFModule = await loadJsPDF()
+    const jsPDF = jsPDFModule.default
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()

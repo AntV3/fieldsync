@@ -7,9 +7,10 @@ import SignatureLinkGenerator from './SignatureLinkGenerator'
 import { TicketSkeleton, CountBadge } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
-import * as XLSX from 'xlsx'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+// Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
+// jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
+const loadXLSX = () => import('xlsx')
+const loadJsPDF = () => Promise.all([import('jspdf'), import('jspdf-autotable')])
 
 export default function TMList({
   project,
@@ -33,6 +34,7 @@ export default function TMList({
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const TICKETS_PER_PAGE = 25
+  const MAX_TICKETS_IN_MEMORY = 500 // Prevent memory bloat from infinite scroll
 
   // View mode state - in preview mode, we filter to current month
   const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
@@ -120,7 +122,15 @@ export default function TMList({
       if (reset) {
         setTickets(result.tickets)
       } else {
-        setTickets(prev => [...prev, ...result.tickets])
+        // Append new tickets but limit total to prevent memory bloat
+        setTickets(prev => {
+          const combined = [...prev, ...result.tickets]
+          // If exceeding limit, keep only the most recent tickets
+          if (combined.length > MAX_TICKETS_IN_MEMORY) {
+            return combined.slice(-MAX_TICKETS_IN_MEMORY)
+          }
+          return combined
+        })
       }
 
       setPage(pageNum)
@@ -397,14 +407,19 @@ export default function TMList({
     return filtered
   }
 
-  // Export to Excel
-  const exportToExcel = () => {
+  // Export to Excel (loads XLSX library on-demand)
+  const exportToExcel = async () => {
     const exportTickets = getExportTickets()
-    
+
     if (exportTickets.length === 0) {
       onShowToast('No tickets to export', 'error')
       return
     }
+
+    onShowToast('Preparing Excel export...', 'info')
+
+    // Dynamic import - only loads XLSX when user actually exports
+    const XLSX = (await loadXLSX()).default || await loadXLSX()
 
     // Create workers sheet
     const workersData = []
@@ -491,7 +506,7 @@ export default function TMList({
     onShowToast('Export downloaded!', 'success')
   }
 
-  // Export to PDF - Professional format with company branding
+  // Export to PDF - Professional format with company branding (loads jsPDF on-demand)
   const exportToPDF = async () => {
     const exportTickets = getExportTickets()
 
@@ -501,6 +516,11 @@ export default function TMList({
     }
 
     onShowToast('Generating PDF...', 'info')
+
+    // Dynamic import - only loads jsPDF and autoTable when user actually exports
+    const [jsPDFModule, autoTableModule] = await loadJsPDF()
+    const jsPDF = jsPDFModule.default
+    const autoTable = autoTableModule.default
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()

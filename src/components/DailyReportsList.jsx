@@ -4,7 +4,8 @@ import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import { ErrorState, EmptyState } from './ui'
-import jsPDF from 'jspdf'
+// Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
+const loadJsPDF = () => import('jspdf')
 
 export default function DailyReportsList({ project, company, onShowToast }) {
   const { branding } = useBranding()
@@ -204,6 +205,10 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     }
 
     onShowToast?.('Generating PDF...', 'info')
+
+    // Dynamic import - only loads jsPDF when user actually exports
+    const jsPDFModule = await loadJsPDF()
+    const jsPDF = jsPDFModule.default
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
