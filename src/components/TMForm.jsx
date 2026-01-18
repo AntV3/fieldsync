@@ -302,6 +302,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [laborClasses, setLaborClasses] = useState([])
   const [dynamicWorkers, setDynamicWorkers] = useState({}) // { classId: [workers] }
   const [loadingLaborClasses, setLoadingLaborClasses] = useState(true)
+  const [activeLaborClassIds, setActiveLaborClassIds] = useState(new Set()) // Only show these labor classes
 
   // Check if company has custom labor classes
   const hasCustomLaborClasses = laborClasses.length > 0
@@ -385,15 +386,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         const data = await db.getLaborClassesForField(companyId)
         setLaborCategories(data.categories || [])
         setLaborClasses(data.classes || [])
-
-        // Initialize dynamic workers state with one empty worker per class
-        if (data.classes && data.classes.length > 0) {
-          const initial = {}
-          data.classes.forEach(lc => {
-            initial[lc.id] = [{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }]
-          })
-          setDynamicWorkers(initial)
-        }
+        // Don't initialize all classes here - we'll initialize based on todaysCrew
       } catch (err) {
         console.error('Error loading labor classes:', err)
       } finally {
@@ -403,6 +396,51 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
     loadLaborClasses()
   }, [companyId])
+
+  // Initialize labor classes based on today's crew check-in
+  // Only show labor classes that have workers checked in today
+  useEffect(() => {
+    if (loadingLaborClasses || laborClasses.length === 0) return
+
+    // Get unique labor class IDs from today's crew
+    const crewLaborClassIds = new Set()
+    todaysCrew.forEach(worker => {
+      if (worker.labor_class_id) {
+        crewLaborClassIds.add(worker.labor_class_id)
+      }
+    })
+
+    // If no crew has labor classes assigned, show nothing initially (user can add manually)
+    // Initialize dynamicWorkers only for the classes that have crew members
+    const initialWorkers = {}
+    const activeIds = new Set()
+
+    crewLaborClassIds.forEach(classId => {
+      // Only add if it's a valid labor class for this company
+      if (laborClasses.some(lc => lc.id === classId)) {
+        initialWorkers[classId] = [{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }]
+        activeIds.add(classId)
+      }
+    })
+
+    // If no labor classes from crew, initialize with empty state
+    // User can manually add labor classes as needed
+    setDynamicWorkers(prev => {
+      // Only reset if we haven't already initialized (prevent overwriting user input)
+      if (Object.keys(prev).length === 0) {
+        return initialWorkers
+      }
+      return prev
+    })
+
+    setActiveLaborClassIds(prev => {
+      // Only reset if we haven't already initialized
+      if (prev.size === 0) {
+        return activeIds
+      }
+      return prev
+    })
+  }, [laborClasses, todaysCrew, loadingLaborClasses])
 
   // Load all CORs that can receive T&M tickets
   const loadAssignableCORs = async () => {
@@ -805,6 +843,43 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }
       }
     })
+  }
+
+  // Activate a labor class (add it to the visible list)
+  const activateLaborClass = (classId) => {
+    if (!classId) return
+    // Add to active set
+    setActiveLaborClassIds(prev => new Set([...prev, classId]))
+    // Initialize with one empty worker if not already initialized
+    setDynamicWorkers(prev => {
+      if (!prev[classId] || prev[classId].length === 0) {
+        return {
+          ...prev,
+          [classId]: [{ name: '', hours: '', overtimeHours: '', timeStarted: '', timeEnded: '' }]
+        }
+      }
+      return prev
+    })
+  }
+
+  // Remove a labor class from the visible list
+  const deactivateLaborClass = (classId) => {
+    setActiveLaborClassIds(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(classId)
+      return newSet
+    })
+    // Clear workers for this class
+    setDynamicWorkers(prev => {
+      const newWorkers = { ...prev }
+      delete newWorkers[classId]
+      return newWorkers
+    })
+  }
+
+  // Get labor classes not currently active (for dropdown)
+  const getInactiveLaborClasses = () => {
+    return laborClasses.filter(lc => !activeLaborClassIds.has(lc.id))
   }
 
   // Get all valid dynamic workers for submission
@@ -1569,26 +1644,34 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                           if (isAdded) return
 
                           // If worker has labor_class_id and we have custom classes, add to dynamic section
-                          if (worker.labor_class_id && hasCustomLaborClasses && dynamicWorkers[worker.labor_class_id]) {
+                          const validLaborClass = worker.labor_class_id && hasCustomLaborClasses &&
+                            laborClasses.some(lc => lc.id === worker.labor_class_id)
+
+                          if (validLaborClass) {
+                            // Activate the labor class if not already active
+                            if (!activeLaborClassIds.has(worker.labor_class_id)) {
+                              setActiveLaborClassIds(prev => new Set([...prev, worker.labor_class_id]))
+                            }
+
                             const classWorkers = dynamicWorkers[worker.labor_class_id] || []
                             const emptyIndex = classWorkers.findIndex(w => !w || !w.name || !w.name.trim())
                             if (emptyIndex >= 0) {
                               // Update existing empty slot
                               const updated = [...classWorkers]
                               updated[emptyIndex] = { ...updated[emptyIndex], name: worker.name }
-                              setDynamicWorkers({ ...dynamicWorkers, [worker.labor_class_id]: updated })
+                              setDynamicWorkers(prev => ({ ...prev, [worker.labor_class_id]: updated }))
                             } else {
-                              // Add new worker
-                              setDynamicWorkers({
-                                ...dynamicWorkers,
-                                [worker.labor_class_id]: [...classWorkers, {
+                              // Add new worker (or initialize if class was just activated)
+                              setDynamicWorkers(prev => ({
+                                ...prev,
+                                [worker.labor_class_id]: [...(prev[worker.labor_class_id] || []), {
                                   name: worker.name,
                                   hours: '',
                                   overtimeHours: '',
                                   timeStarted: '',
                                   timeEnded: ''
                                 }]
-                              })
+                              }))
                             }
                           } else {
                             // Fall back to legacy sections based on role name
@@ -1740,17 +1823,32 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           </div>
 
           {/* Dynamic Labor Classes (when company has custom classes) */}
+          {/* Only show labor classes that are active (from crew check-in or manually added) */}
           {hasCustomLaborClasses && !loadingLaborClasses && (
             <>
+              {/* Render active labor classes grouped by category */}
               {laborCategories.map(category => {
-                const categoryClasses = laborClasses.filter(lc => lc.category_id === category.id)
-                if (categoryClasses.length === 0) return null
+                // Only show classes in this category that are active
+                const activeCategoryClasses = laborClasses.filter(
+                  lc => lc.category_id === category.id && activeLaborClassIds.has(lc.id)
+                )
+                if (activeCategoryClasses.length === 0) return null
                 return (
                   <div key={category.id} className="tm-labor-category-section">
                     <div className="tm-category-header">{category.name}</div>
-                    {categoryClasses.map(laborClass => (
+                    {activeCategoryClasses.map(laborClass => (
                       <div key={laborClass.id} className="tm-field">
-                        <label>{laborClass.name}</label>
+                        <div className="tm-field-header">
+                          <label>{laborClass.name}</label>
+                          <button
+                            type="button"
+                            className="tm-remove-class-btn"
+                            onClick={() => deactivateLaborClass(laborClass.id)}
+                            title={lang === 'en' ? 'Remove this labor class' : 'Eliminar esta clase'}
+                          >
+                            ×
+                          </button>
+                        </div>
                         <div className="tm-workers-list">
                           {(dynamicWorkers[laborClass.id] || []).map((worker, index) => {
                             const workerState = getWorkerState(worker)
@@ -1817,10 +1915,21 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   </div>
                 )
               })}
-              {/* Classes without category */}
-              {laborClasses.filter(lc => !lc.category_id).map(laborClass => (
+
+              {/* Active classes without category */}
+              {laborClasses.filter(lc => !lc.category_id && activeLaborClassIds.has(lc.id)).map(laborClass => (
                 <div key={laborClass.id} className="tm-field">
-                  <label>{laborClass.name}</label>
+                  <div className="tm-field-header">
+                    <label>{laborClass.name}</label>
+                    <button
+                      type="button"
+                      className="tm-remove-class-btn"
+                      onClick={() => deactivateLaborClass(laborClass.id)}
+                      title={lang === 'en' ? 'Remove this labor class' : 'Eliminar esta clase'}
+                    >
+                      ×
+                    </button>
+                  </div>
                   <div className="tm-workers-list">
                     {(dynamicWorkers[laborClass.id] || []).map((worker, index) => {
                       const workerState = getWorkerState(worker)
@@ -1884,6 +1993,56 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                   </button>
                 </div>
               ))}
+
+              {/* Add Labor Class dropdown - shows classes not yet active */}
+              {getInactiveLaborClasses().length > 0 && (
+                <div className="tm-add-labor-class-section">
+                  <select
+                    className="tm-add-labor-class-select"
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        activateLaborClass(e.target.value)
+                      }
+                    }}
+                  >
+                    <option value="">
+                      + {lang === 'en' ? 'Add Labor Class...' : 'Agregar Clase de Trabajo...'}
+                    </option>
+                    {laborCategories.map(category => {
+                      const inactiveInCategory = getInactiveLaborClasses().filter(lc => lc.category_id === category.id)
+                      if (inactiveInCategory.length === 0) return null
+                      return (
+                        <optgroup key={category.id} label={category.name}>
+                          {inactiveInCategory.map(lc => (
+                            <option key={lc.id} value={lc.id}>{lc.name}</option>
+                          ))}
+                        </optgroup>
+                      )
+                    })}
+                    {/* Uncategorized classes */}
+                    {getInactiveLaborClasses().filter(lc => !lc.category_id).length > 0 && (
+                      <optgroup label={lang === 'en' ? 'Other' : 'Otros'}>
+                        {getInactiveLaborClasses().filter(lc => !lc.category_id).map(lc => (
+                          <option key={lc.id} value={lc.id}>{lc.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+              )}
+
+              {/* Empty state - no labor classes active yet */}
+              {activeLaborClassIds.size === 0 && (
+                <div className="tm-no-labor-classes">
+                  <p>
+                    {lang === 'en'
+                      ? 'No labor classes added yet. Select from crew check-in above or add manually:'
+                      : 'No hay clases de trabajo agregadas. Seleccione del check-in o agregue manualmente:'
+                    }
+                  </p>
+                </div>
+              )}
             </>
           )}
 

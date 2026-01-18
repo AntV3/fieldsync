@@ -157,3 +157,62 @@ export const COLORS = {
   DANGER: '#ef4444',
   DARK_SLATE: [30, 41, 59]
 }
+
+// ============================================
+// DOCUMENT MANAGEMENT
+// ============================================
+export const DOCUMENT_CATEGORIES = [
+  { id: 'plans', label: 'Plans & Drawings', icon: 'Map' },
+  { id: 'specs', label: 'Specifications', icon: 'FileText' },
+  { id: 'permits', label: 'Permits & Approvals', icon: 'Shield' },
+  { id: 'contracts', label: 'Contracts', icon: 'FileSignature' },
+  { id: 'submittals', label: 'Submittals', icon: 'Send' },
+  { id: 'rfis', label: 'RFIs', icon: 'HelpCircle' },
+  { id: 'photos', label: 'Site Photos', icon: 'Camera' },
+  { id: 'reports', label: 'Reports', icon: 'ClipboardList' },
+  { id: 'safety', label: 'Safety Documents', icon: 'AlertTriangle' },
+  { id: 'general', label: 'General', icon: 'Folder' }
+]
+
+export const ALLOWED_FILE_TYPES = {
+  // Documents
+  'application/pdf': { ext: 'pdf', maxSize: 25 * 1024 * 1024, label: 'PDF' },
+  'application/msword': { ext: 'doc', maxSize: 15 * 1024 * 1024, label: 'Word' },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { ext: 'docx', maxSize: 15 * 1024 * 1024, label: 'Word' },
+
+  // Spreadsheets
+  'application/vnd.ms-excel': { ext: 'xls', maxSize: 15 * 1024 * 1024, label: 'Excel' },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { ext: 'xlsx', maxSize: 15 * 1024 * 1024, label: 'Excel' },
+
+  // Images
+  'image/jpeg': { ext: 'jpg', maxSize: 10 * 1024 * 1024, label: 'Image' },
+  'image/png': { ext: 'png', maxSize: 10 * 1024 * 1024, label: 'Image' }
+}
+
+export const DOCUMENT_VISIBILITY = {
+  ALL: 'all',
+  OFFICE_ONLY: 'office_only',
+  ADMIN_ONLY: 'admin_only'
+}
+
+export const DOCUMENT_VISIBILITY_LABELS = {
+  all: { label: 'Everyone', description: 'Visible to all team members including field users' },
+  office_only: { label: 'Office Only', description: 'Only visible to office staff and admins' },
+  admin_only: { label: 'Admins Only', description: 'Only visible to company administrators' }
+}
+
+export const DOCUMENT_APPROVAL_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+}
+
+// Categories that require admin approval before becoming visible
+export const APPROVAL_REQUIRED_CATEGORIES = ['contracts']
+
+export const DOCUMENTS_PER_PAGE = 25
+
+// Storage limit per project (in bytes) - 250 MB
+// Keeps costs minimal during pre-revenue phase
+// Increase this once subscription billing is active
+export const PROJECT_STORAGE_LIMIT_BYTES = 250 * 1024 * 1024 // 250 MB

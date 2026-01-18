@@ -15,6 +15,27 @@ export default class ErrorBoundary extends Component {
     this.setState({ error, errorInfo })
     // Log error to console for debugging
     console.error('ErrorBoundary caught an error:', error, errorInfo)
+
+    // Check if this is a chunk loading failure (stale deployment)
+    const isChunkError = error?.message?.includes('Failed to fetch dynamically imported module') ||
+                         error?.message?.includes('Loading chunk') ||
+                         error?.message?.includes('Loading CSS chunk')
+
+    if (isChunkError) {
+      console.warn('[ErrorBoundary] Chunk load failure detected, clearing cache and reloading...')
+      // Clear caches and reload to get fresh assets
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          Promise.all(names.map((name) => caches.delete(name))).then(() => {
+            window.location.reload()
+          })
+        }).catch(() => {
+          window.location.reload()
+        })
+      } else {
+        window.location.reload()
+      }
+    }
   }
 
   handleRetry = () => {

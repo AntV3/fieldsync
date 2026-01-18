@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen } from 'lucide-react'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
@@ -33,6 +33,7 @@ const BillingCenter = lazy(() => import('./billing/BillingCenter'))
 const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
 const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
 const AddCostModal = lazy(() => import('./AddCostModal'))
+const DocumentsTab = lazy(() => import('./documents/DocumentsTab'))
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -1228,6 +1229,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
       { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
+      { id: 'documents', label: 'Documents', Icon: FolderOpen },
       { id: 'info', label: 'Info', Icon: Info }
     ]
 
@@ -1754,6 +1756,20 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   </Suspense>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* DOCUMENTS TAB */}
+          {activeProjectTab === 'documents' && (
+            <div className="pv-tab-panel documents-tab">
+              <Suspense fallback={<TicketSkeleton />}>
+                <DocumentsTab
+                  project={selectedProject}
+                  companyId={company?.id || selectedProject?.company_id}
+                  onShowToast={onShowToast}
+                  userRole={user?.access_level || 'office'}
+                />
+              </Suspense>
             </div>
           )}
 
