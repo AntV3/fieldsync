@@ -7633,655 +7633,6 @@ export const db = {
         }
       }
     }
-  }
-}
-
-// ============================================
-// Equipment Tracking Operations
-// ============================================
-
-export const equipmentOps = {
-  // ----------------------------------------
-  // Equipment Catalog (Company-level)
-  // ----------------------------------------
-
-  /**
-   * Get all equipment in company catalog
-   */
-  async getCompanyEquipment(companyId, activeOnly = true) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return []
-    }
-
-    let query = supabase
-      .from('equipment')
-      .select('*')
-      .eq('company_id', companyId)
-      .order('name')
-
-    if (activeOnly) {
-      query = query.eq('is_active', true)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching company equipment:', error)
-      return []
-    }
-
-    return data || []
-  },
-
-  /**
-   * Create equipment in company catalog
-   */
-  async createEquipment(equipment) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('equipment')
-      .insert(equipment)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error creating equipment:', error)
-      throw error
-    }
-
-    return data
-  },
-
-  /**
-   * Update equipment in catalog
-   */
-  async updateEquipment(equipmentId, updates) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('equipment')
-      .update(updates)
-      .eq('id', equipmentId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating equipment:', error)
-      throw error
-    }
-
-    return data
-  },
-
-  /**
-   * Deactivate equipment (soft delete)
-   */
-  async deactivateEquipment(equipmentId) {
-    return this.updateEquipment(equipmentId, { is_active: false })
-  },
-
-  // ----------------------------------------
-  // Project Equipment
-  // ----------------------------------------
-
-  /**
-   * Get all equipment on a project
-   */
-  async getProjectEquipment(projectId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return []
-    }
-
-    const { data, error } = await supabase
-      .from('project_equipment')
-      .select(`
-        *,
-        equipment:equipment_id (
-          id,
-          name,
-          description,
-          is_owned
-        )
-      `)
-      .eq('project_id', projectId)
-      .order('start_date', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching project equipment:', error)
-      return []
-    }
-
-    return data || []
-  },
-
-  /**
-   * Get equipment currently on site (no end_date)
-   */
-  async getActiveProjectEquipment(projectId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return []
-    }
-
-    const { data, error } = await supabase
-      .from('project_equipment')
-      .select(`
-        *,
-        equipment:equipment_id (
-          id,
-          name,
-          description,
-          is_owned
-        )
-      `)
-      .eq('project_id', projectId)
-      .is('end_date', null)
-      .order('start_date', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching active project equipment:', error)
-      return []
-    }
-
-    return data || []
-  },
-
-  /**
-   * Add equipment to a project
-   */
-  async addEquipmentToProject(projectEquipment) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('project_equipment')
-      .insert(projectEquipment)
-      .select(`
-        *,
-        equipment:equipment_id (
-          id,
-          name,
-          description,
-          is_owned
-        )
-      `)
-      .single()
-
-    if (error) {
-      console.error('Error adding equipment to project:', error)
-      throw error
-    }
-
-    return data
-  },
-
-  /**
-   * Update project equipment
-   */
-  async updateProjectEquipment(projectEquipmentId, updates) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('project_equipment')
-      .update(updates)
-      .eq('id', projectEquipmentId)
-      .select(`
-        *,
-        equipment:equipment_id (
-          id,
-          name,
-          description,
-          is_owned
-        )
-      `)
-      .single()
-
-    if (error) {
-      console.error('Error updating project equipment:', error)
-      throw error
-    }
-
-    return data
-  },
-
-  /**
-   * Mark equipment as returned (set end_date)
-   */
-  async markEquipmentReturned(projectEquipmentId, endDate = null) {
-    return this.updateProjectEquipment(projectEquipmentId, {
-      end_date: endDate || new Date().toISOString().split('T')[0]
-    })
-  },
-
-  /**
-   * Delete project equipment record
-   */
-  async removeEquipmentFromProject(projectEquipmentId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return false
-    }
-
-    const { error } = await supabase
-      .from('project_equipment')
-      .delete()
-      .eq('id', projectEquipmentId)
-
-    if (error) {
-      console.error('Error removing project equipment:', error)
-      throw error
-    }
-
-    return true
-  },
-
-  /**
-   * Calculate total equipment cost for a project
-   */
-  calculateProjectEquipmentCost(projectEquipment) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    return projectEquipment.reduce((total, eq) => {
-      const startDate = new Date(eq.start_date)
-      startDate.setHours(0, 0, 0, 0)
-
-      let endDate
-      if (eq.end_date) {
-        endDate = new Date(eq.end_date)
-        endDate.setHours(0, 0, 0, 0)
-      } else {
-        endDate = today
-      }
-
-      // Calculate days (inclusive)
-      const days = Math.max(1, Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)
-
-      return total + (eq.daily_rate * days)
-    }, 0)
-  },
-
-  /**
-   * Calculate days on site for a single equipment entry
-   */
-  calculateDaysOnSite(startDate, endDate = null) {
-    const start = new Date(startDate)
-    start.setHours(0, 0, 0, 0)
-
-    let end
-    if (endDate) {
-      end = new Date(endDate)
-    } else {
-      end = new Date()
-    }
-    end.setHours(0, 0, 0, 0)
-
-    return Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1)
-  }
-}
-
-// ============================================
-// Draw Request / Progress Billing Operations
-// ============================================
-
-export const drawRequestOps = {
-  /**
-   * Get next draw number for a project
-   */
-  async getNextDrawNumber(projectId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return 1
-    }
-
-    const { data, error } = await supabase
-      .from('draw_requests')
-      .select('draw_number')
-      .eq('project_id', projectId)
-      .order('draw_number', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error getting next draw number:', error)
-    }
-
-    return (data?.draw_number || 0) + 1
-  },
-
-  /**
-   * Get previous billing totals for a project
-   */
-  async getPreviousBillingTotals(projectId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return { totalBilled: 0, totalRetention: 0 }
-    }
-
-    const { data, error } = await supabase
-      .from('draw_requests')
-      .select('current_billing, retention_held')
-      .eq('project_id', projectId)
-      .in('status', ['submitted', 'approved', 'paid'])
-
-    if (error) {
-      console.error('Error getting previous billing totals:', error)
-      return { totalBilled: 0, totalRetention: 0 }
-    }
-
-    const totalBilled = (data || []).reduce((sum, dr) => sum + (dr.current_billing || 0), 0)
-    const totalRetention = data?.length > 0 ? Math.max(...data.map(dr => dr.retention_held || 0)) : 0
-
-    return { totalBilled, totalRetention }
-  },
-
-  /**
-   * Get all draw requests for a project
-   */
-  async getProjectDrawRequests(projectId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return []
-    }
-
-    const { data, error } = await supabase
-      .from('draw_requests')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('draw_number', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching draw requests:', error)
-      return []
-    }
-
-    return data || []
-  },
-
-  /**
-   * Get a single draw request with its items
-   */
-  async getDrawRequest(drawRequestId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('draw_requests')
-      .select(`
-        *,
-        draw_request_items (
-          *
-        )
-      `)
-      .eq('id', drawRequestId)
-      .single()
-
-    if (error) {
-      console.error('Error fetching draw request:', error)
-      return null
-    }
-
-    return data
-  },
-
-  /**
-   * Create a new draw request with items
-   */
-  async createDrawRequest(drawRequest, items) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return null
-    }
-
-    // Insert draw request
-    const { data: dr, error: drError } = await supabase
-      .from('draw_requests')
-      .insert(drawRequest)
-      .select()
-      .single()
-
-    if (drError) {
-      console.error('Error creating draw request:', drError)
-      throw drError
-    }
-
-    // Insert items if provided
-    if (items && items.length > 0) {
-      const itemsWithDrawId = items.map((item, index) => ({
-        ...item,
-        draw_request_id: dr.id,
-        sort_order: index
-      }))
-
-      const { error: itemsError } = await supabase
-        .from('draw_request_items')
-        .insert(itemsWithDrawId)
-
-      if (itemsError) {
-        console.error('Error creating draw request items:', itemsError)
-        // Don't throw - draw request was created, items can be added later
-      }
-    }
-
-    // Fetch complete draw request with items
-    return this.getDrawRequest(dr.id)
-  },
-
-  /**
-   * Update a draw request
-   */
-  async updateDrawRequest(drawRequestId, updates) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('draw_requests')
-      .update(updates)
-      .eq('id', drawRequestId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating draw request:', error)
-      throw error
-    }
-
-    return data
-  },
-
-  /**
-   * Update draw request status
-   */
-  async updateDrawRequestStatus(drawRequestId, status) {
-    const updates = { status }
-
-    // Add timestamp based on status
-    if (status === 'submitted') {
-      updates.submitted_at = new Date().toISOString()
-    } else if (status === 'approved') {
-      updates.approved_at = new Date().toISOString()
-    } else if (status === 'paid') {
-      updates.paid_at = new Date().toISOString()
-    }
-
-    return this.updateDrawRequest(drawRequestId, updates)
-  },
-
-  /**
-   * Update draw request items (bulk update)
-   */
-  async updateDrawRequestItems(drawRequestId, items) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return false
-    }
-
-    // Delete existing items
-    const { error: deleteError } = await supabase
-      .from('draw_request_items')
-      .delete()
-      .eq('draw_request_id', drawRequestId)
-
-    if (deleteError) {
-      console.error('Error deleting old draw request items:', deleteError)
-      throw deleteError
-    }
-
-    // Insert new items
-    if (items && items.length > 0) {
-      const itemsWithDrawId = items.map((item, index) => ({
-        ...item,
-        draw_request_id: drawRequestId,
-        sort_order: index
-      }))
-
-      const { error: insertError } = await supabase
-        .from('draw_request_items')
-        .insert(itemsWithDrawId)
-
-      if (insertError) {
-        console.error('Error inserting draw request items:', insertError)
-        throw insertError
-      }
-    }
-
-    return true
-  },
-
-  /**
-   * Delete a draft draw request
-   */
-  async deleteDrawRequest(drawRequestId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return false
-    }
-
-    const { error } = await supabase
-      .from('draw_requests')
-      .delete()
-      .eq('id', drawRequestId)
-
-    if (error) {
-      console.error('Error deleting draw request:', error)
-      throw error
-    }
-
-    return true
-  },
-
-  /**
-   * Get schedule of values from project areas
-   * Returns areas with their scheduled values for use in draw requests
-   */
-  async getScheduleOfValues(projectId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return []
-    }
-
-    const { data, error } = await supabase
-      .from('areas')
-      .select('id, name, square_footage, price_per_sqft')
-      .eq('project_id', projectId)
-      .order('created_at')
-
-    if (error) {
-      console.error('Error fetching schedule of values:', error)
-      return []
-    }
-
-    // Calculate scheduled value for each area
-    return (data || []).map((area, index) => ({
-      area_id: area.id,
-      item_number: String(index + 1),
-      description: area.name,
-      scheduled_value: Math.round((area.square_footage || 0) * (area.price_per_sqft || 0) * 100) // Convert to cents
-    }))
-  },
-
-  /**
-   * Get previous draw request items for calculating previous work
-   */
-  async getPreviousDrawItems(projectId) {
-    if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
-      return {}
-    }
-
-    // Get the most recent submitted/approved/paid draw request
-    const { data: latestDraw, error: drawError } = await supabase
-      .from('draw_requests')
-      .select('id')
-      .eq('project_id', projectId)
-      .in('status', ['submitted', 'approved', 'paid'])
-      .order('draw_number', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (drawError && drawError.code !== 'PGRST116') {
-      console.error('Error fetching latest draw:', drawError)
-      return {}
-    }
-
-    if (!latestDraw) {
-      return {}
-    }
-
-    // Get items from that draw
-    const { data: items, error: itemsError } = await supabase
-      .from('draw_request_items')
-      .select('area_id, total_percent, total_amount')
-      .eq('draw_request_id', latestDraw.id)
-
-    if (itemsError) {
-      console.error('Error fetching previous draw items:', itemsError)
-      return {}
-    }
-
-    // Return as a map by area_id
-    return (items || []).reduce((acc, item) => {
-      if (item.area_id) {
-        acc[item.area_id] = {
-          previous_percent: item.total_percent || 0,
-          previous_amount: item.total_amount || 0
-        }
-      }
-      return acc
-    }, {})
-  },
-
-  /**
-   * Calculate completion percentage from amount
-   */
-  calculatePercentFromAmount(amount, scheduledValue) {
-    if (!scheduledValue || scheduledValue === 0) return 0
-    return Math.round((amount / scheduledValue) * 10000) // basis points
-  },
-
-  /**
-   * Calculate amount from percentage
-   */
-  calculateAmountFromPercent(percent, scheduledValue) {
-    return Math.round((percent / 10000) * scheduledValue)
   },
 
   // ============================================
@@ -9040,6 +8391,655 @@ export const drawRequestOps = {
       triggered_by: 'user',
       user_id: (await client.auth.getUser()).data?.user?.id
     })
+  }
+}
+
+// ============================================
+// Equipment Tracking Operations
+// ============================================
+
+export const equipmentOps = {
+  // ----------------------------------------
+  // Equipment Catalog (Company-level)
+  // ----------------------------------------
+
+  /**
+   * Get all equipment in company catalog
+   */
+  async getCompanyEquipment(companyId, activeOnly = true) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return []
+    }
+
+    let query = supabase
+      .from('equipment')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('name')
+
+    if (activeOnly) {
+      query = query.eq('is_active', true)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching company equipment:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  /**
+   * Create equipment in company catalog
+   */
+  async createEquipment(equipment) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('equipment')
+      .insert(equipment)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating equipment:', error)
+      throw error
+    }
+
+    return data
+  },
+
+  /**
+   * Update equipment in catalog
+   */
+  async updateEquipment(equipmentId, updates) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('equipment')
+      .update(updates)
+      .eq('id', equipmentId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating equipment:', error)
+      throw error
+    }
+
+    return data
+  },
+
+  /**
+   * Deactivate equipment (soft delete)
+   */
+  async deactivateEquipment(equipmentId) {
+    return this.updateEquipment(equipmentId, { is_active: false })
+  },
+
+  // ----------------------------------------
+  // Project Equipment
+  // ----------------------------------------
+
+  /**
+   * Get all equipment on a project
+   */
+  async getProjectEquipment(projectId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return []
+    }
+
+    const { data, error } = await supabase
+      .from('project_equipment')
+      .select(`
+        *,
+        equipment:equipment_id (
+          id,
+          name,
+          description,
+          is_owned
+        )
+      `)
+      .eq('project_id', projectId)
+      .order('start_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching project equipment:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  /**
+   * Get equipment currently on site (no end_date)
+   */
+  async getActiveProjectEquipment(projectId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return []
+    }
+
+    const { data, error } = await supabase
+      .from('project_equipment')
+      .select(`
+        *,
+        equipment:equipment_id (
+          id,
+          name,
+          description,
+          is_owned
+        )
+      `)
+      .eq('project_id', projectId)
+      .is('end_date', null)
+      .order('start_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching active project equipment:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  /**
+   * Add equipment to a project
+   */
+  async addEquipmentToProject(projectEquipment) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('project_equipment')
+      .insert(projectEquipment)
+      .select(`
+        *,
+        equipment:equipment_id (
+          id,
+          name,
+          description,
+          is_owned
+        )
+      `)
+      .single()
+
+    if (error) {
+      console.error('Error adding equipment to project:', error)
+      throw error
+    }
+
+    return data
+  },
+
+  /**
+   * Update project equipment
+   */
+  async updateProjectEquipment(projectEquipmentId, updates) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('project_equipment')
+      .update(updates)
+      .eq('id', projectEquipmentId)
+      .select(`
+        *,
+        equipment:equipment_id (
+          id,
+          name,
+          description,
+          is_owned
+        )
+      `)
+      .single()
+
+    if (error) {
+      console.error('Error updating project equipment:', error)
+      throw error
+    }
+
+    return data
+  },
+
+  /**
+   * Mark equipment as returned (set end_date)
+   */
+  async markEquipmentReturned(projectEquipmentId, endDate = null) {
+    return this.updateProjectEquipment(projectEquipmentId, {
+      end_date: endDate || new Date().toISOString().split('T')[0]
+    })
+  },
+
+  /**
+   * Delete project equipment record
+   */
+  async removeEquipmentFromProject(projectEquipmentId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return false
+    }
+
+    const { error } = await supabase
+      .from('project_equipment')
+      .delete()
+      .eq('id', projectEquipmentId)
+
+    if (error) {
+      console.error('Error removing project equipment:', error)
+      throw error
+    }
+
+    return true
+  },
+
+  /**
+   * Calculate total equipment cost for a project
+   */
+  calculateProjectEquipmentCost(projectEquipment) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    return projectEquipment.reduce((total, eq) => {
+      const startDate = new Date(eq.start_date)
+      startDate.setHours(0, 0, 0, 0)
+
+      let endDate
+      if (eq.end_date) {
+        endDate = new Date(eq.end_date)
+        endDate.setHours(0, 0, 0, 0)
+      } else {
+        endDate = today
+      }
+
+      // Calculate days (inclusive)
+      const days = Math.max(1, Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)
+
+      return total + (eq.daily_rate * days)
+    }, 0)
+  },
+
+  /**
+   * Calculate days on site for a single equipment entry
+   */
+  calculateDaysOnSite(startDate, endDate = null) {
+    const start = new Date(startDate)
+    start.setHours(0, 0, 0, 0)
+
+    let end
+    if (endDate) {
+      end = new Date(endDate)
+    } else {
+      end = new Date()
+    }
+    end.setHours(0, 0, 0, 0)
+
+    return Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1)
+  }
+}
+
+// ============================================
+// Draw Request / Progress Billing Operations
+// ============================================
+
+export const drawRequestOps = {
+  /**
+   * Get next draw number for a project
+   */
+  async getNextDrawNumber(projectId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return 1
+    }
+
+    const { data, error } = await supabase
+      .from('draw_requests')
+      .select('draw_number')
+      .eq('project_id', projectId)
+      .order('draw_number', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error getting next draw number:', error)
+    }
+
+    return (data?.draw_number || 0) + 1
+  },
+
+  /**
+   * Get previous billing totals for a project
+   */
+  async getPreviousBillingTotals(projectId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return { totalBilled: 0, totalRetention: 0 }
+    }
+
+    const { data, error } = await supabase
+      .from('draw_requests')
+      .select('current_billing, retention_held')
+      .eq('project_id', projectId)
+      .in('status', ['submitted', 'approved', 'paid'])
+
+    if (error) {
+      console.error('Error getting previous billing totals:', error)
+      return { totalBilled: 0, totalRetention: 0 }
+    }
+
+    const totalBilled = (data || []).reduce((sum, dr) => sum + (dr.current_billing || 0), 0)
+    const totalRetention = data?.length > 0 ? Math.max(...data.map(dr => dr.retention_held || 0)) : 0
+
+    return { totalBilled, totalRetention }
+  },
+
+  /**
+   * Get all draw requests for a project
+   */
+  async getProjectDrawRequests(projectId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return []
+    }
+
+    const { data, error } = await supabase
+      .from('draw_requests')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('draw_number', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching draw requests:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  /**
+   * Get a single draw request with its items
+   */
+  async getDrawRequest(drawRequestId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('draw_requests')
+      .select(`
+        *,
+        draw_request_items (
+          *
+        )
+      `)
+      .eq('id', drawRequestId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching draw request:', error)
+      return null
+    }
+
+    return data
+  },
+
+  /**
+   * Create a new draw request with items
+   */
+  async createDrawRequest(drawRequest, items) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return null
+    }
+
+    // Insert draw request
+    const { data: dr, error: drError } = await supabase
+      .from('draw_requests')
+      .insert(drawRequest)
+      .select()
+      .single()
+
+    if (drError) {
+      console.error('Error creating draw request:', drError)
+      throw drError
+    }
+
+    // Insert items if provided
+    if (items && items.length > 0) {
+      const itemsWithDrawId = items.map((item, index) => ({
+        ...item,
+        draw_request_id: dr.id,
+        sort_order: index
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('draw_request_items')
+        .insert(itemsWithDrawId)
+
+      if (itemsError) {
+        console.error('Error creating draw request items:', itemsError)
+        // Don't throw - draw request was created, items can be added later
+      }
+    }
+
+    // Fetch complete draw request with items
+    return this.getDrawRequest(dr.id)
+  },
+
+  /**
+   * Update a draw request
+   */
+  async updateDrawRequest(drawRequestId, updates) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('draw_requests')
+      .update(updates)
+      .eq('id', drawRequestId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating draw request:', error)
+      throw error
+    }
+
+    return data
+  },
+
+  /**
+   * Update draw request status
+   */
+  async updateDrawRequestStatus(drawRequestId, status) {
+    const updates = { status }
+
+    // Add timestamp based on status
+    if (status === 'submitted') {
+      updates.submitted_at = new Date().toISOString()
+    } else if (status === 'approved') {
+      updates.approved_at = new Date().toISOString()
+    } else if (status === 'paid') {
+      updates.paid_at = new Date().toISOString()
+    }
+
+    return this.updateDrawRequest(drawRequestId, updates)
+  },
+
+  /**
+   * Update draw request items (bulk update)
+   */
+  async updateDrawRequestItems(drawRequestId, items) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return false
+    }
+
+    // Delete existing items
+    const { error: deleteError } = await supabase
+      .from('draw_request_items')
+      .delete()
+      .eq('draw_request_id', drawRequestId)
+
+    if (deleteError) {
+      console.error('Error deleting old draw request items:', deleteError)
+      throw deleteError
+    }
+
+    // Insert new items
+    if (items && items.length > 0) {
+      const itemsWithDrawId = items.map((item, index) => ({
+        ...item,
+        draw_request_id: drawRequestId,
+        sort_order: index
+      }))
+
+      const { error: insertError } = await supabase
+        .from('draw_request_items')
+        .insert(itemsWithDrawId)
+
+      if (insertError) {
+        console.error('Error inserting draw request items:', insertError)
+        throw insertError
+      }
+    }
+
+    return true
+  },
+
+  /**
+   * Delete a draft draw request
+   */
+  async deleteDrawRequest(drawRequestId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return false
+    }
+
+    const { error } = await supabase
+      .from('draw_requests')
+      .delete()
+      .eq('id', drawRequestId)
+
+    if (error) {
+      console.error('Error deleting draw request:', error)
+      throw error
+    }
+
+    return true
+  },
+
+  /**
+   * Get schedule of values from project areas
+   * Returns areas with their scheduled values for use in draw requests
+   */
+  async getScheduleOfValues(projectId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return []
+    }
+
+    const { data, error } = await supabase
+      .from('areas')
+      .select('id, name, square_footage, price_per_sqft')
+      .eq('project_id', projectId)
+      .order('created_at')
+
+    if (error) {
+      console.error('Error fetching schedule of values:', error)
+      return []
+    }
+
+    // Calculate scheduled value for each area
+    return (data || []).map((area, index) => ({
+      area_id: area.id,
+      item_number: String(index + 1),
+      description: area.name,
+      scheduled_value: Math.round((area.square_footage || 0) * (area.price_per_sqft || 0) * 100) // Convert to cents
+    }))
+  },
+
+  /**
+   * Get previous draw request items for calculating previous work
+   */
+  async getPreviousDrawItems(projectId) {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured')
+      return {}
+    }
+
+    // Get the most recent submitted/approved/paid draw request
+    const { data: latestDraw, error: drawError } = await supabase
+      .from('draw_requests')
+      .select('id')
+      .eq('project_id', projectId)
+      .in('status', ['submitted', 'approved', 'paid'])
+      .order('draw_number', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (drawError && drawError.code !== 'PGRST116') {
+      console.error('Error fetching latest draw:', drawError)
+      return {}
+    }
+
+    if (!latestDraw) {
+      return {}
+    }
+
+    // Get items from that draw
+    const { data: items, error: itemsError } = await supabase
+      .from('draw_request_items')
+      .select('area_id, total_percent, total_amount')
+      .eq('draw_request_id', latestDraw.id)
+
+    if (itemsError) {
+      console.error('Error fetching previous draw items:', itemsError)
+      return {}
+    }
+
+    // Return as a map by area_id
+    return (items || []).reduce((acc, item) => {
+      if (item.area_id) {
+        acc[item.area_id] = {
+          previous_percent: item.total_percent || 0,
+          previous_amount: item.total_amount || 0
+        }
+      }
+      return acc
+    }, {})
+  },
+
+  /**
+   * Calculate completion percentage from amount
+   */
+  calculatePercentFromAmount(amount, scheduledValue) {
+    if (!scheduledValue || scheduledValue === 0) return 0
+    return Math.round((amount / scheduledValue) * 10000) // basis points
+  },
+
+  /**
+   * Calculate amount from percentage
+   */
+  calculateAmountFromPercent(percent, scheduledValue) {
+    return Math.round((percent / 10000) * scheduledValue)
   }
 }
 
