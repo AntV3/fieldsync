@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
-import { FileText, ClipboardList, AlertTriangle, Info, CheckSquare, Zap, HardHat, Truck } from 'lucide-react'
+import { FileText, ClipboardList, AlertTriangle, Info, CheckSquare, Zap, HardHat, Truck, FolderOpen } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
 import ThemeToggle from './ThemeToggle'
 import DisposalLoadInput from './DisposalLoadInput'
+import FolderGrid from './documents/FolderGrid'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -284,6 +285,13 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           <CheckSquare size={18} />
           Progress
         </button>
+        <button
+          className={`foreman-tab ${activeTab === 'docs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('docs')}
+        >
+          <FolderOpen size={18} />
+          Docs
+        </button>
       </div>
 
       {/* Actions Tab */}
@@ -324,6 +332,16 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
             <AlertTriangle size={22} />
             Report Injury
           </button>
+        </div>
+      )}
+
+      {/* Docs Tab */}
+      {activeTab === 'docs' && (
+        <div className="foreman-docs">
+          <FolderGrid
+            projectId={project.id}
+            onShowToast={onShowToast}
+          />
         </div>
       )}
 
