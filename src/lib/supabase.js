@@ -7730,10 +7730,7 @@ export const db = {
 
     const { data, error } = await client
       .from('document_folders')
-      .select(`
-        *,
-        created_by_user:created_by(email)
-      `)
+      .select('*')
       .eq('project_id', projectId)
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true })
@@ -7833,10 +7830,7 @@ export const db = {
 
     let query = client
       .from('documents')
-      .select(`
-        *,
-        uploaded_by_user:uploaded_by(email)
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('folder_id', folderId)
       .is('archived_at', null)
       .eq('is_current', true)
@@ -7880,10 +7874,7 @@ export const db = {
 
     const { data, error, count } = await client
       .from('documents')
-      .select(`
-        *,
-        uploaded_by_user:uploaded_by(email)
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('project_id', projectId)
       .is('folder_id', null)
       .is('archived_at', null)
@@ -8010,7 +8001,7 @@ export const db = {
 
     let query = client
       .from('documents')
-      .select('*, uploaded_by_user:uploaded_by(email)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('project_id', projectId)
       .eq('is_current', true)
       .order('uploaded_at', { ascending: false })
@@ -8045,7 +8036,7 @@ export const db = {
 
     const { data, error } = await client
       .from('documents')
-      .select('*, uploaded_by_user:uploaded_by(email)')
+      .select('*')
       .eq('id', documentId)
       .single()
 
@@ -8073,7 +8064,7 @@ export const db = {
 
     const { data, error } = await client
       .from('documents')
-      .select('*, uploaded_by_user:uploaded_by(email)')
+      .select('*')
       .or(`id.eq.${parentId},parent_document_id.eq.${parentId}`)
       .order('version', { ascending: false })
 
@@ -8348,7 +8339,7 @@ export const db = {
 
     const { data, error } = await client
       .from('documents')
-      .select('*, uploaded_by_user:uploaded_by(email)')
+      .select('*')
       .eq('resource_type', resourceType)
       .eq('resource_id', resourceId)
       .is('archived_at', null)
@@ -8395,7 +8386,7 @@ export const db = {
 
     const { data, error } = await client
       .from('documents')
-      .select('*, project:projects(name), uploaded_by_user:uploaded_by(email)')
+      .select('*, project:projects(name)')
       .eq('company_id', companyId)
       .eq('approval_status', 'pending')
       .is('archived_at', null)
@@ -8413,7 +8404,7 @@ export const db = {
 
     const { data, error } = await client
       .from('documents')
-      .select('*, uploaded_by_user:uploaded_by(email)')
+      .select('*')
       .eq('project_id', projectId)
       .eq('is_current', true)
       .is('archived_at', null)
