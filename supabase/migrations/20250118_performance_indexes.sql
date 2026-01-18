@@ -89,10 +89,8 @@ ON companies(code) WHERE code IS NOT NULL;
 -- ============================================================
 -- 10. FIELD SESSIONS - Active session lookups
 -- ============================================================
--- Used by: PIN validation and session verification
-CREATE INDEX IF NOT EXISTS idx_field_sessions_token
-ON field_sessions(session_token) WHERE revoked_at IS NULL;
-
+-- Note: Basic indexes (token, project, expires) already exist in migration_field_sessions.sql
+-- This adds a composite index for device-based session management
 CREATE INDEX IF NOT EXISTS idx_field_sessions_project_device
 ON field_sessions(project_id, device_id, created_at DESC);
 
