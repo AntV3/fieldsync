@@ -900,7 +900,7 @@ export default function TMList({
 
     // Helper to get first ticket's signature data (for single-ticket exports)
     // For multi-ticket exports, signatures would be per-ticket
-    const firstTicket = ticketsToExport[0] || {}
+    const firstTicket = exportTickets[0] || {}
 
     // Helper function to render a signature block
     const renderSignatureBlock = (startY, label, signatureData, signerName, signerTitle, signerCompany, signedDate) => {

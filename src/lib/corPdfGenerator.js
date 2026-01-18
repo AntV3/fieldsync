@@ -17,7 +17,7 @@ import {
   formatDate,
   formatDateRange
 } from './corCalculations'
-import { hexToRgb, loadImageAsBase64 } from './imageUtils'
+import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
 
 // ============================================
 // HELPER FUNCTIONS
@@ -664,6 +664,9 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         const photoGap = 6
         const photosPerRow = 3
 
+        // Load all photos in parallel for faster PDF generation
+        const photoImages = await loadImagesAsBase64(ticket.photos)
+
         for (let i = 0; i < ticket.photos.length; i++) {
           if (i > 0 && i % photosPerRow === 0) {
             xPos = margin
@@ -676,25 +679,15 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
             xPos = margin
           }
 
-          try {
-            const imgData = await loadImageAsBase64(ticket.photos[i])
-            if (imgData) {
-              doc.setDrawColor(200, 200, 200)
-              doc.setLineWidth(1)
-              doc.rect(xPos - 1, yPos - 1, photoWidth + 2, photoHeight + 2, 'S')
-              doc.setFillColor(230, 230, 230)
-              doc.rect(xPos + 2, yPos + 2, photoWidth, photoHeight, 'F')
-              doc.addImage(imgData, 'JPEG', xPos, yPos, photoWidth, photoHeight)
-            } else {
-              doc.setFillColor(245, 245, 245)
-              doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
-              doc.setDrawColor(200, 200, 200)
-              doc.rect(xPos, yPos, photoWidth, photoHeight, 'S')
-              doc.setFontSize(7)
-              doc.setTextColor(150, 150, 150)
-              doc.text('Photo unavailable', xPos + 8, yPos + photoHeight / 2)
-            }
-          } catch (e) {
+          const imgData = photoImages[i]
+          if (imgData) {
+            doc.setDrawColor(200, 200, 200)
+            doc.setLineWidth(1)
+            doc.rect(xPos - 1, yPos - 1, photoWidth + 2, photoHeight + 2, 'S')
+            doc.setFillColor(230, 230, 230)
+            doc.rect(xPos + 2, yPos + 2, photoWidth, photoHeight, 'F')
+            doc.addImage(imgData, 'JPEG', xPos, yPos, photoWidth, photoHeight)
+          } else {
             doc.setFillColor(245, 245, 245)
             doc.rect(xPos, yPos, photoWidth, photoHeight, 'F')
             doc.setDrawColor(200, 200, 200)

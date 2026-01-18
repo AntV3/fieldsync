@@ -7154,7 +7154,16 @@ export const db = {
             )
           ),
           t_and_m_workers (*),
-          t_and_m_items (*)
+          t_and_m_items (
+            *,
+            materials_equipment (
+              id,
+              name,
+              unit,
+              cost_per_unit,
+              category
+            )
+          )
         `)
         .eq('id', documentId)
         .single()
