@@ -24,4 +24,27 @@ if ('serviceWorker' in navigator) {
         // Service worker registration failed silently
       })
   })
+
+  // Listen for service worker messages
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'SW_UPDATED') {
+      // New service worker activated - reload to get fresh assets
+      console.log('[App] Service worker updated, reloading for fresh assets...')
+      window.location.reload()
+    }
+    if (event.data?.type === 'ASSET_NOT_FOUND') {
+      // Asset not found (likely stale chunk reference) - reload page
+      console.warn('[App] Asset not found:', event.data.url, '- reloading...')
+      // Clear service worker cache and reload
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          names.forEach((name) => caches.delete(name))
+        }).finally(() => {
+          window.location.reload()
+        })
+      } else {
+        window.location.reload()
+      }
+    }
+  })
 }
