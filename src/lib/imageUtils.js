@@ -20,11 +20,13 @@ export const hexToRgb = (hex) => {
 
 /**
  * Load an image URL and convert to base64 for PDF embedding
+ * Uses JPEG format for smaller file sizes (vs PNG)
  * @param {string} url - Image URL to load
  * @param {number} timeout - Timeout in milliseconds (default 5000)
+ * @param {number} quality - JPEG quality 0-1 (default 0.85)
  * @returns {Promise<string|null>} Base64 data URL or null on failure
  */
-export const loadImageAsBase64 = (url, timeout = 5000) => {
+export const loadImageAsBase64 = (url, timeout = 5000, quality = 0.85) => {
   return new Promise((resolve) => {
     if (!url) {
       resolve(null)
@@ -48,7 +50,9 @@ export const loadImageAsBase64 = (url, timeout = 5000) => {
         canvas.height = img.height
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0)
-        resolve(canvas.toDataURL('image/png'))
+        // Use JPEG for photos (smaller than PNG), fallback to PNG for transparency
+        const dataUrl = canvas.toDataURL('image/jpeg', quality)
+        resolve(dataUrl)
       } catch (e) {
         // Canvas tainted or other error
         resolve(null)
@@ -62,6 +66,26 @@ export const loadImageAsBase64 = (url, timeout = 5000) => {
 
     img.src = url
   })
+}
+
+/**
+ * Load multiple images in parallel for faster PDF generation
+ * @param {string[]} urls - Array of image URLs to load
+ * @param {number} timeout - Timeout per image in milliseconds (default 5000)
+ * @param {number} quality - JPEG quality 0-1 (default 0.85)
+ * @returns {Promise<(string|null)[]>} Array of base64 data URLs (null for failed loads)
+ */
+export const loadImagesAsBase64 = async (urls, timeout = 5000, quality = 0.85) => {
+  if (!urls || urls.length === 0) {
+    return []
+  }
+
+  // Load all images in parallel
+  const results = await Promise.all(
+    urls.map(url => loadImageAsBase64(url, timeout, quality))
+  )
+
+  return results
 }
 
 /**
