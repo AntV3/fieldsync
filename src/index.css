@@ -28770,3 +28770,165 @@ END MIGRATED */
     width: 40px;
   }
 }
+
+/* =============================================
+   T&M FORM FIELD ROW FIX
+============================================= */
+
+/* Ensure field row inputs are properly contained */
+.tm-field-row .tm-field-half input {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Fix CE/PCO input to match date input styling */
+.tm-field-half .tm-input {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1rem;
+  box-sizing: border-box;
+  min-height: 52px; /* Match date input height */
+}
+
+/* Mobile field row - stack vertically */
+@media (max-width: 480px) {
+  .tm-field-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .tm-field-half {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* =============================================
+   T&M LABOR CLASS UI ELEMENTS
+============================================= */
+
+/* Labor class header with remove button */
+.tm-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.tm-field-header label {
+  margin-bottom: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+/* Remove labor class button */
+.tm-remove-class-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.tm-remove-class-btn:hover {
+  background: var(--bg-danger);
+  color: var(--accent-red);
+}
+
+/* Add labor class dropdown section */
+.tm-add-labor-class-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.tm-add-labor-class-select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tm-add-labor-class-select:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+.tm-add-labor-class-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: var(--bg-card);
+}
+
+/* Empty state for no labor classes */
+.tm-no-labor-classes {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.tm-no-labor-classes p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Loading indicator for labor classes */
+.tm-loading-labor-classes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.tm-loading-labor-classes .tm-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Labor category section styling */
+.tm-labor-category-section {
+  margin-bottom: 1.5rem;
+}
+
+.tm-category-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Mobile adjustments for labor class UI */
+@media (max-width: 480px) {
+  .tm-add-labor-class-select {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+
+  .tm-remove-class-btn {
+    padding: 0.5rem;
+    font-size: 1.5rem;
+  }
+}
