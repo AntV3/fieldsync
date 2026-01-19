@@ -190,7 +190,7 @@ CREATE POLICY "folders_insert" ON document_folders
       WHERE uc.user_id = auth.uid()
         AND uc.company_id = document_folders.company_id
         AND uc.status = 'active'
-        AND uc.access_level IN ('office', 'administrator')
+        AND uc.access_level IN ('member', 'administrator')
     )
   );
 
@@ -202,7 +202,7 @@ CREATE POLICY "folders_update" ON document_folders
       WHERE uc.user_id = auth.uid()
         AND uc.company_id = document_folders.company_id
         AND uc.status = 'active'
-        AND uc.access_level IN ('office', 'administrator')
+        AND uc.access_level IN ('member', 'administrator')
     )
   );
 
@@ -235,7 +235,7 @@ CREATE POLICY "documents_select" ON documents
         SELECT 1 FROM user_companies uc
         WHERE uc.user_id = auth.uid()
           AND uc.company_id = documents.company_id
-          AND uc.access_level IN ('office', 'administrator')
+          AND uc.access_level IN ('member', 'administrator')
       ))
       OR (visibility = 'admin_only' AND EXISTS (
         SELECT 1 FROM user_companies uc
@@ -264,7 +264,7 @@ CREATE POLICY "documents_insert" ON documents
       WHERE uc.user_id = auth.uid()
         AND uc.company_id = documents.company_id
         AND uc.status = 'active'
-        AND uc.access_level IN ('office', 'administrator')
+        AND uc.access_level IN ('member', 'administrator')
     )
   );
 
@@ -276,7 +276,7 @@ CREATE POLICY "documents_update" ON documents
       WHERE uc.user_id = auth.uid()
         AND uc.company_id = documents.company_id
         AND uc.status = 'active'
-        AND uc.access_level IN ('office', 'administrator')
+        AND uc.access_level IN ('member', 'administrator')
     )
   );
 
@@ -319,7 +319,7 @@ CREATE POLICY "doc_queue_insert" ON document_upload_queue
       WHERE uc.user_id = auth.uid()
         AND uc.company_id = document_upload_queue.company_id
         AND uc.status = 'active'
-        AND uc.access_level IN ('office', 'administrator')
+        AND uc.access_level IN ('member', 'administrator')
     )
   );
 
@@ -366,7 +366,7 @@ CREATE POLICY "document_storage_upload" ON storage.objects
       JOIN user_companies uc ON c.id = uc.company_id
       WHERE uc.user_id = auth.uid()
         AND uc.status = 'active'
-        AND uc.access_level IN ('office', 'administrator')
+        AND uc.access_level IN ('member', 'administrator')
     )
   );
 
@@ -381,7 +381,7 @@ CREATE POLICY "document_storage_update" ON storage.objects
       JOIN user_companies uc ON c.id = uc.company_id
       WHERE uc.user_id = auth.uid()
         AND uc.status = 'active'
-        AND uc.access_level IN ('office', 'administrator')
+        AND uc.access_level IN ('member', 'administrator')
     )
   );
 
