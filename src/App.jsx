@@ -189,6 +189,8 @@ export default function App() {
   // Office login
   const handleOfficeLogin = async (email, password) => {
     try {
+      // Ensure field-session auth does not override office auth
+      await clearFieldSession()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -826,5 +828,4 @@ export default function App() {
     </ThemeProvider>
   )
 }
-
 
