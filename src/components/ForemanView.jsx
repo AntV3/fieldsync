@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
-import { FileText, ClipboardList, AlertTriangle, Info, CheckSquare, Zap, HardHat, Truck, FolderOpen } from 'lucide-react'
+import {
+  FileText, ClipboardList, AlertTriangle, Info, CheckSquare,
+  HardHat, Truck, FolderOpen, ArrowLeft, ChevronDown, ChevronRight,
+  Users, Clock, CheckCircle2, Circle, Moon, Sun
+} from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
-import ThemeToggle from './ThemeToggle'
 import DisposalLoadInput from './DisposalLoadInput'
 import FolderGrid from './documents/FolderGrid'
 
@@ -15,13 +18,18 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
-  const [showTMForm, setShowTMForm] = useState(false)
-  const [showCrewCheckin, setShowCrewCheckin] = useState(false)
-  const [showDisposalLoads, setShowDisposalLoads] = useState(false)
-  const [showDailyReport, setShowDailyReport] = useState(false)
-  const [showInjuryReport, setShowInjuryReport] = useState(false)
+
+  // View states
+  const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress
   const [showProjectInfo, setShowProjectInfo] = useState(false)
-  const [activeTab, setActiveTab] = useState('actions')
+
+  // Theme
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.getAttribute('data-theme') === 'dark'
+    }
+    return false
+  })
 
   useEffect(() => {
     if (project?.id) {
@@ -33,15 +41,13 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     try {
       const data = await db.getAreas(project.id)
       setAreas(data)
-
-      // Start all groups collapsed initially
       const groups = [...new Set(data.map(a => a.group_name || 'General'))]
       const expanded = {}
       groups.forEach(g => expanded[g] = false)
       setExpandedGroups(expanded)
     } catch (error) {
       console.error('Error loading areas:', error)
-      onShowToast('Error loading areas', 'error')
+      onShowToast?.('Error loading areas', 'error')
     } finally {
       setLoading(false)
     }
@@ -50,114 +56,117 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const handleStatusUpdate = async (areaId, newStatus) => {
     const area = areas.find(a => a.id === areaId)
     if (!area) return
-
     const finalStatus = area.status === newStatus ? 'not_started' : newStatus
-
     setUpdating(areaId)
-
     try {
       await db.updateAreaStatus(areaId, finalStatus)
-
-      setAreas(prev => prev.map(a =>
-        a.id === areaId ? { ...a, status: finalStatus } : a
-      ))
-
-      onShowToast('Updated', 'success')
+      setAreas(prev => prev.map(a => a.id === areaId ? { ...a, status: finalStatus } : a))
     } catch (error) {
       console.error('Error updating status:', error)
-      onShowToast('Error updating', 'error')
+      onShowToast?.('Error updating', 'error')
     } finally {
       setUpdating(null)
     }
   }
 
   const toggleGroup = (group) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [group]: !prev[group]
-    }))
+    setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))
   }
 
-  if (loading) {
-    return (
-      <div className="foreman-container">
-        <div className="loading">
-          <div className="spinner"></div>
-          Loading...
-        </div>
-      </div>
-    )
+  const toggleTheme = () => {
+    const newTheme = isDark ? 'light' : 'dark'
+    document.documentElement.setAttribute('data-theme', newTheme)
+    localStorage.setItem('theme', newTheme)
+    setIsDark(!isDark)
   }
 
-  // Show T&M form
-  if (showTMForm) {
+  // Calculate stats
+  const progress = calculateProgress(areas)
+  const areasDone = areas.filter(a => a.status === 'done').length
+  const areasWorking = areas.filter(a => a.status === 'working').length
+  const areasRemaining = areas.length - areasDone
+
+  // Group areas
+  const groupedAreas = areas.reduce((acc, area) => {
+    const group = area.group_name || 'General'
+    if (!acc[group]) acc[group] = []
+    acc[group].push(area)
+    return acc
+  }, {})
+
+  const hasGroups = Object.keys(groupedAreas).length > 1 ||
+    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General'])
+
+  const getGroupProgress = (groupAreas) => {
+    const done = groupAreas.filter(a => a.status === 'done').length
+    return `${done}/${groupAreas.length}`
+  }
+
+  // T&M Form View
+  if (activeView === 'tm') {
     return (
-      <div className="foreman-container">
+      <div className="fm-view">
         <TMForm
           project={project}
           companyId={companyId}
-          onSubmit={() => setShowTMForm(false)}
-          onCancel={() => setShowTMForm(false)}
+          onSubmit={() => setActiveView('home')}
+          onCancel={() => setActiveView('home')}
           onShowToast={onShowToast}
         />
       </div>
     )
   }
 
-  // Show Daily Report
-  if (showDailyReport) {
+  // Daily Report View
+  if (activeView === 'report') {
     return (
       <DailyReport
         project={project}
         onShowToast={onShowToast}
-        onClose={() => setShowDailyReport(false)}
+        onClose={() => setActiveView('home')}
       />
     )
   }
 
-  // Show Injury Report
-  if (showInjuryReport) {
+  // Injury Report View
+  if (activeView === 'injury') {
     return (
-      <div className="foreman-container">
+      <div className="fm-view">
         <InjuryReportForm
           project={project}
           companyId={companyId}
-          onClose={() => setShowInjuryReport(false)}
+          onClose={() => setActiveView('home')}
           onReportCreated={() => {
-            setShowInjuryReport(false)
-            onShowToast('Injury report submitted', 'success')
+            setActiveView('home')
+            onShowToast?.('Injury report submitted', 'success')
           }}
         />
       </div>
     )
   }
 
-  // Show Crew Check-in
-  if (showCrewCheckin) {
+  // Crew Check-in View
+  if (activeView === 'crew') {
     return (
-      <div className="foreman-container">
-        <div className="foreman-view-header">
-          <button className="back-btn-simple" onClick={() => setShowCrewCheckin(false)}>
-            ←
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => setActiveView('home')}>
+            <ArrowLeft size={20} />
           </button>
           <h2>Crew Check-in</h2>
         </div>
-        <CrewCheckin
-          project={project}
-          companyId={companyId}
-          onShowToast={onShowToast}
-        />
+        <CrewCheckin project={project} companyId={companyId} onShowToast={onShowToast} />
       </div>
     )
   }
 
-  // Show Disposal Loads
-  if (showDisposalLoads) {
+  // Disposal Loads View
+  if (activeView === 'disposal') {
     return (
-      <div className="foreman-container">
-        <div className="foreman-view-header">
-          <button className="back-btn-simple" onClick={() => setShowDisposalLoads(false)}>
-            ←
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => setActiveView('home')}>
+            <ArrowLeft size={20} />
           </button>
           <h2>Disposal Loads</h2>
         </div>
@@ -170,269 +179,217 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
-  const progress = calculateProgress(areas)
-  
-  // Group areas by group_name
-  const groupedAreas = areas.reduce((acc, area) => {
-    const group = area.group_name || 'General'
-    if (!acc[group]) acc[group] = []
-    acc[group].push(area)
-    return acc
-  }, {})
-
-  const hasGroups = Object.keys(groupedAreas).length > 1 || 
-    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General'])
-
-  // Calculate group progress
-  const getGroupProgress = (groupAreas) => {
-    const done = groupAreas.filter(a => a.status === 'done').length
-    return `${done}/${groupAreas.length}`
+  // Documents View
+  if (activeView === 'docs') {
+    return (
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => setActiveView('home')}>
+            <ArrowLeft size={20} />
+          </button>
+          <h2>Documents</h2>
+        </div>
+        <FolderGrid projectId={project.id} onShowToast={onShowToast} />
+      </div>
+    )
   }
 
-  // Calculate stats
-  const areasDone = areas.filter(a => a.status === 'done').length
-  const areasWorking = areas.filter(a => a.status === 'working').length
-  const areasRemaining = areas.length - areasDone
-
-  return (
-    <div className="foreman-container">
-      <div className="foreman-header">
-        <button className="back-btn-simple" onClick={onExit}>
-          ←
-        </button>
-        <div className="foreman-header-info">
-          <div className="foreman-project-name">{project.name}</div>
-          <div className="foreman-progress">{progress}% Complete</div>
-        </div>
-        <div className="foreman-header-actions">
-          <ThemeToggle compact />
-          <button
-            className="foreman-info-btn"
-            onClick={() => setShowProjectInfo(!showProjectInfo)}
-          >
-            <Info size={20} />
+  // Progress View
+  if (activeView === 'progress') {
+    return (
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => setActiveView('home')}>
+            <ArrowLeft size={20} />
           </button>
+          <h2>Progress</h2>
+          <span className="fm-subheader-badge">{progress}%</span>
+        </div>
+
+        <div className="fm-progress-content">
+          {loading ? (
+            <div className="fm-loading">
+              <div className="spinner"></div>
+              <span>Loading...</span>
+            </div>
+          ) : areas.length === 0 ? (
+            <div className="fm-empty">
+              <CheckSquare size={48} />
+              <h3>No tasks yet</h3>
+              <p>Office will add tasks to this project</p>
+            </div>
+          ) : hasGroups ? (
+            Object.entries(groupedAreas).map(([group, groupAreas]) => (
+              <div key={group} className="fm-group">
+                <button className="fm-group-header" onClick={() => toggleGroup(group)}>
+                  <div className="fm-group-left">
+                    {expandedGroups[group] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                    <span>{group}</span>
+                  </div>
+                  <span className="fm-group-count">{getGroupProgress(groupAreas)}</span>
+                </button>
+                {expandedGroups[group] && (
+                  <div className="fm-group-items">
+                    {groupAreas.map(area => (
+                      <div key={area.id} className={`fm-task ${area.status}`}>
+                        <span className="fm-task-name">{area.name}</span>
+                        <div className="fm-task-btns">
+                          <button
+                            className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
+                            onClick={() => handleStatusUpdate(area.id, 'working')}
+                            disabled={updating === area.id}
+                          >
+                            <Clock size={14} />
+                          </button>
+                          <button
+                            className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
+                            onClick={() => handleStatusUpdate(area.id, 'done')}
+                            disabled={updating === area.id}
+                          >
+                            <CheckCircle2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="fm-task-list">
+              {areas.map(area => (
+                <div key={area.id} className={`fm-task ${area.status}`}>
+                  <span className="fm-task-name">{area.name}</span>
+                  <div className="fm-task-btns">
+                    <button
+                      className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
+                      onClick={() => handleStatusUpdate(area.id, 'working')}
+                      disabled={updating === area.id}
+                    >
+                      <Clock size={14} />
+                    </button>
+                    <button
+                      className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
+                      onClick={() => handleStatusUpdate(area.id, 'done')}
+                      disabled={updating === area.id}
+                    >
+                      <CheckCircle2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+    )
+  }
 
-      {/* Project Info Panel */}
+  // HOME VIEW - Main Dashboard
+  return (
+    <div className="fm-view">
+      {/* Header */}
+      <div className="fm-header">
+        <button className="fm-exit" onClick={onExit}>
+          <ArrowLeft size={20} />
+        </button>
+        <div className="fm-header-center">
+          <h1 className="fm-project-name">{project.name}</h1>
+          <button className="fm-info-toggle" onClick={() => setShowProjectInfo(!showProjectInfo)}>
+            <Info size={16} />
+          </button>
+        </div>
+        <button className="fm-theme" onClick={toggleTheme}>
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      </div>
+
+      {/* Project Info (collapsible) */}
       {showProjectInfo && (
-        <div className="foreman-project-info">
-          {project.job_number && (
-            <div className="foreman-info-row">
-              <span className="foreman-info-label">Job #</span>
-              <span className="foreman-info-value">{project.job_number}</span>
-            </div>
-          )}
-          {project.address && (
-            <div className="foreman-info-row">
-              <span className="foreman-info-label">Address</span>
-              <span className="foreman-info-value">{project.address}</span>
-            </div>
-          )}
-          {project.general_contractor && (
-            <div className="foreman-info-row">
-              <span className="foreman-info-label">GC / Client</span>
-              <span className="foreman-info-value">{project.general_contractor}</span>
-            </div>
-          )}
-          {project.client_contact && (
-            <div className="foreman-info-row">
-              <span className="foreman-info-label">Contact</span>
-              <span className="foreman-info-value">{project.client_contact}</span>
-            </div>
-          )}
+        <div className="fm-project-info">
+          {project.job_number && <div className="fm-info-item"><span>Job #</span><span>{project.job_number}</span></div>}
+          {project.address && <div className="fm-info-item"><span>Address</span><span>{project.address}</span></div>}
+          {project.general_contractor && <div className="fm-info-item"><span>GC</span><span>{project.general_contractor}</span></div>}
           {project.client_phone && (
-            <div className="foreman-info-row">
-              <span className="foreman-info-label">Phone</span>
-              <a href={`tel:${project.client_phone}`} className="foreman-info-value foreman-info-link">
-                {project.client_phone}
-              </a>
+            <div className="fm-info-item">
+              <span>Phone</span>
+              <a href={`tel:${project.client_phone}`}>{project.client_phone}</a>
             </div>
           )}
         </div>
       )}
+
+      {/* Progress Bar */}
+      <div className="fm-progress-bar">
+        <div className="fm-progress-fill" style={{ width: `${progress}%` }}></div>
+        <span className="fm-progress-text">{progress}% Complete</span>
+      </div>
 
       {/* Quick Stats */}
-      <div className="foreman-stats">
-        <div className="foreman-stat">
-          <div className="foreman-stat-value working">{areasWorking}</div>
-          <div className="foreman-stat-label">Working</div>
+      <div className="fm-stats">
+        <div className="fm-stat">
+          <span className="fm-stat-num working">{areasWorking}</span>
+          <span className="fm-stat-label">Working</span>
         </div>
-        <div className="foreman-stat">
-          <div className="foreman-stat-value done">{areasDone}</div>
-          <div className="foreman-stat-label">Done</div>
+        <div className="fm-stat">
+          <span className="fm-stat-num done">{areasDone}</span>
+          <span className="fm-stat-label">Done</span>
         </div>
-        <div className="foreman-stat">
-          <div className="foreman-stat-value remaining">{areasRemaining}</div>
-          <div className="foreman-stat-label">Remaining</div>
+        <div className="fm-stat">
+          <span className="fm-stat-num">{areasRemaining}</span>
+          <span className="fm-stat-label">Left</span>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="foreman-tabs">
-        <button
-          className={`foreman-tab ${activeTab === 'actions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('actions')}
-        >
-          <Zap size={18} />
-          Actions
-        </button>
-        <button
-          className={`foreman-tab ${activeTab === 'progress' ? 'active' : ''}`}
-          onClick={() => setActiveTab('progress')}
-        >
-          <CheckSquare size={18} />
-          Progress
-        </button>
-        <button
-          className={`foreman-tab ${activeTab === 'docs' ? 'active' : ''}`}
-          onClick={() => setActiveTab('docs')}
-        >
-          <FolderOpen size={18} />
-          Docs
-        </button>
+      {/* Primary Actions - Most Used */}
+      <div className="fm-section">
+        <h3 className="fm-section-title">Quick Actions</h3>
+        <div className="fm-primary-actions">
+          <button className="fm-action-card primary" onClick={() => setActiveView('crew')}>
+            <div className="fm-action-icon">
+              <Users size={28} />
+            </div>
+            <span className="fm-action-label">Crew Check-in</span>
+          </button>
+          <button className="fm-action-card primary" onClick={() => setActiveView('tm')}>
+            <div className="fm-action-icon">
+              <FileText size={28} />
+            </div>
+            <span className="fm-action-label">T&M Ticket</span>
+          </button>
+        </div>
       </div>
 
-      {/* Actions Tab */}
-      {activeTab === 'actions' && (
-        <div className="field-actions">
-          <button
-            className="field-action-btn"
-            onClick={() => setShowCrewCheckin(true)}
-          >
-            <HardHat size={22} />
-            Crew Check-in
+      {/* Secondary Actions */}
+      <div className="fm-section">
+        <div className="fm-secondary-actions">
+          <button className="fm-action-row" onClick={() => setActiveView('progress')}>
+            <CheckSquare size={20} />
+            <span>Update Progress</span>
+            <span className="fm-action-badge">{areasRemaining} left</span>
           </button>
-          <button
-            className="field-action-btn"
-            onClick={() => setShowTMForm(true)}
-          >
-            <FileText size={22} />
-            T&M Ticket
+          <button className="fm-action-row" onClick={() => setActiveView('disposal')}>
+            <Truck size={20} />
+            <span>Disposal Loads</span>
           </button>
-          <button
-            className="field-action-btn"
-            onClick={() => setShowDisposalLoads(true)}
-          >
-            <Truck size={22} />
-            Disposal Loads
+          <button className="fm-action-row" onClick={() => setActiveView('docs')}>
+            <FolderOpen size={20} />
+            <span>Documents</span>
           </button>
-          <button
-            className="field-action-btn"
-            onClick={() => setShowDailyReport(true)}
-          >
-            <ClipboardList size={22} />
-            Daily Report
-          </button>
-          <button
-            className="field-action-btn danger"
-            onClick={() => setShowInjuryReport(true)}
-          >
-            <AlertTriangle size={22} />
-            Report Injury
+          <button className="fm-action-row" onClick={() => setActiveView('report')}>
+            <ClipboardList size={20} />
+            <span>Daily Report</span>
           </button>
         </div>
-      )}
+      </div>
 
-      {/* Docs Tab */}
-      {activeTab === 'docs' && (
-        <div className="foreman-docs">
-          <FolderGrid
-            projectId={project.id}
-            onShowToast={onShowToast}
-          />
-        </div>
-      )}
-
-      {/* Progress Tab */}
-      {activeTab === 'progress' && (
-        <div className="foreman-areas">
-        {hasGroups ? (
-          // Grouped display with clear sections
-          Object.entries(groupedAreas).map(([group, groupAreas]) => (
-            <div key={group} className="foreman-group">
-              <div 
-                className="foreman-group-header"
-                onClick={() => toggleGroup(group)}
-              >
-                <div className="foreman-group-title">
-                  <span className="foreman-group-arrow">
-                    {expandedGroups[group] ? '▼' : '▶'}
-                  </span>
-                  <span className="foreman-group-name">{group}</span>
-                </div>
-                <span className="foreman-group-progress">
-                  {getGroupProgress(groupAreas)}
-                </span>
-              </div>
-              
-              {expandedGroups[group] && (
-                <div className="foreman-group-tasks">
-                  {groupAreas.map(area => (
-                    <div key={area.id} className={`foreman-area-card ${area.status}`}>
-                      <div className="foreman-area-name">{area.name}</div>
-                      <div className="foreman-area-buttons">
-                        <button
-                          className={`foreman-btn working ${area.status === 'working' ? 'active' : ''}`}
-                          onClick={() => handleStatusUpdate(area.id, 'working')}
-                          disabled={updating === area.id}
-                        >
-                          {updating === area.id ? '...' : 'Working'}
-                        </button>
-                        <button
-                          className={`foreman-btn done ${area.status === 'done' ? 'active' : ''}`}
-                          onClick={() => handleStatusUpdate(area.id, 'done')}
-                          disabled={updating === area.id}
-                        >
-                          {updating === area.id ? '...' : 'Done'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
-        ) : (
-          // Flat display (no groups)
-          areas.map(area => (
-            <div key={area.id} className={`foreman-area-card ${area.status}`}>
-              <div className="foreman-area-name">{area.name}</div>
-              <div className="foreman-area-buttons">
-                <button
-                  className={`foreman-btn working ${area.status === 'working' ? 'active' : ''}`}
-                  onClick={() => handleStatusUpdate(area.id, 'working')}
-                  disabled={updating === area.id}
-                >
-                  {updating === area.id ? '...' : 'Working'}
-                </button>
-                <button
-                  className={`foreman-btn done ${area.status === 'done' ? 'active' : ''}`}
-                  onClick={() => handleStatusUpdate(area.id, 'done')}
-                  disabled={updating === area.id}
-                >
-                  {updating === area.id ? '...' : 'Done'}
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-
-          {areas.length === 0 && (
-            <div className="foreman-empty">
-              <ClipboardList size={48} className="foreman-empty-icon" />
-              <div className="foreman-empty-text">No areas yet</div>
-              <div className="foreman-empty-subtext">Office needs to add areas to this project</div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Emergency Action */}
+      <div className="fm-section">
+        <button className="fm-action-row danger" onClick={() => setActiveView('injury')}>
+          <AlertTriangle size={20} />
+          <span>Report Injury</span>
+        </button>
+      </div>
     </div>
   )
 }
-
-
-
-
-

@@ -3878,44 +3878,37 @@ export const db = {
     return data
   },
 
-  // Compile daily report data from other tables
+  // Compile daily report data from other tables (parallelized for speed)
   async compileDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
     const reportDate = date || new Date().toISOString().split('T')[0]
     const client = getClient()
 
-    // Get crew check-in
-    const crew = await this.getCrewCheckin(projectId, reportDate)
+    // Run all queries in parallel for faster loading
+    const [crew, areasResult, ticketsResult] = await Promise.all([
+      this.getCrewCheckin(projectId, reportDate),
+      client.from('areas').select('*').eq('project_id', projectId),
+      client.from('t_and_m_tickets').select('*').eq('project_id', projectId).eq('work_date', reportDate)
+    ])
 
-    // Get completed tasks for today
-    const { data: areas } = await client
-      .from('areas')
-      .select('*')
-      .eq('project_id', projectId)
+    const areas = areasResult?.data || []
+    const tickets = ticketsResult?.data || []
 
-    const completedToday = areas?.filter(a =>
+    const completedToday = areas.filter(a =>
       a.status === 'done' &&
       a.completed_at?.startsWith(reportDate)
-    ) || []
+    )
 
-    // Get T&M tickets for today
-    const { data: tickets } = await client
-      .from('t_and_m_tickets')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('work_date', reportDate)
-    
-    // Count photos from tickets
-    const photosCount = tickets?.reduce((sum, t) => sum + (t.photos?.length || 0), 0) || 0
-    
+    const photosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+
     return {
       crew_count: crew?.workers?.length || 0,
       crew_list: crew?.workers || [],
       tasks_completed: completedToday.length,
-      tasks_total: areas?.length || 0,
+      tasks_total: areas.length,
       completed_tasks: completedToday.map(a => ({ name: a.name, group: a.group_name })),
-      tm_tickets_count: tickets?.length || 0,
+      tm_tickets_count: tickets.length,
       photos_count: photosCount
     }
   },
