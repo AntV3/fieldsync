@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Upload, Search, FolderOpen, Settings, Loader2, X, ArrowLeft, Folder, FileText, Download, File, Image, FileSpreadsheet, Plus, MoreVertical, Eye, Archive, CheckCircle } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Upload, Search, FolderOpen, Loader2, X, ArrowLeft, Folder, FileText, Download, File, Image, FileSpreadsheet, Plus, Eye, Archive, CheckCircle, Settings2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { DOCUMENTS_PER_PAGE } from '../../lib/constants'
 import DocumentUploadModal from './DocumentUploadModal'
@@ -135,7 +135,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     setSearchQuery('')
   }
 
-  // Search documents (internal function)
+  // Search documents
   const performSearch = useCallback(async (query) => {
     if (!query.trim()) {
       setSearchResults(null)
@@ -153,23 +153,18 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     }
   }, [project.id])
 
-  // Debounced search to prevent excessive API calls
+  // Debounced search
   const searchTimeoutRef = useRef(null)
   const handleSearch = useCallback((query) => {
     setSearchQuery(query)
-
-    // Clear any pending search
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
-
-    // Debounce search by 300ms
     searchTimeoutRef.current = setTimeout(() => {
       performSearch(query)
     }, 300)
   }, [performSearch])
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
@@ -182,7 +177,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
   const handleUploadComplete = () => {
     setShowUploadModal(false)
     setUploadToFolder(null)
-    loadFolders() // Refresh folder counts
+    loadFolders()
     if (selectedFolder) {
       loadFolderDocuments(selectedFolder, true)
     }
@@ -230,7 +225,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     setShowUploadModal(true)
   }
 
-  // Field user (foreman) view - clean folder grid only
+  // Field user view - clean folder grid
   if (isFieldUser) {
     return (
       <FolderGrid
@@ -261,10 +256,10 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
   // Loading state
   if (loading) {
     return (
-      <div className="documents-tab">
-        <div className="documents-loading">
+      <div className="docs-container">
+        <div className="docs-loading">
           <Loader2 size={24} className="spinner" />
-          <span>Loading folders...</span>
+          <span>Loading documents...</span>
         </div>
       </div>
     )
@@ -276,86 +271,72 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     const displayDocs = searchResults !== null ? searchResults : documents
 
     return (
-      <div className="documents-tab">
-        {/* Folder header */}
-        <div className="documents-folder-header">
-          <button className="back-btn" onClick={goBack}>
-            <ArrowLeft size={20} />
-            Back
+      <div className="docs-container">
+        {/* Folder Header */}
+        <div className="docs-folder-header">
+          <button className="docs-back-btn" onClick={goBack}>
+            <ArrowLeft size={18} />
+            <span>Back</span>
           </button>
-          <div className="documents-folder-title">
-            <Folder size={24} style={{ color: folderColor }} />
-            <h3>{selectedFolder.name}</h3>
-            <span className="documents-folder-count">{totalCount} files</span>
+
+          <div className="docs-folder-info">
+            <div className="docs-folder-icon" style={{ backgroundColor: `${folderColor}15` }}>
+              <Folder size={20} style={{ color: folderColor }} />
+            </div>
+            <div>
+              <h2 className="docs-folder-name">{selectedFolder.name}</h2>
+              <span className="docs-folder-count">{totalCount} files</span>
+            </div>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={() => startUploadToFolder(selectedFolder)}
-          >
+
+          <button className="docs-upload-btn" onClick={() => startUploadToFolder(selectedFolder)}>
             <Upload size={18} />
-            Upload
+            <span>Upload</span>
           </button>
         </div>
 
-        {/* Search */}
-        <div className="documents-search-bar">
-          <div className="documents-search">
-            <Search size={18} className="search-icon" />
+        {/* Search Bar */}
+        <div className="docs-search-wrapper">
+          <div className="docs-search">
+            <Search size={16} />
             <input
               type="text"
               placeholder="Search in folder..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="documents-search-input"
             />
             {searchQuery && (
-              <button
-                className="search-clear"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSearchResults(null)
-                }}
-              >
+              <button onClick={() => { setSearchQuery(''); setSearchResults(null) }}>
                 <X size={16} />
               </button>
             )}
-            {searching && <Loader2 size={16} className="search-spinner" />}
+            {searching && <Loader2 size={16} className="spinner" />}
           </div>
         </div>
 
-        {/* Search results indicator */}
+        {/* Search Results Info */}
         {searchResults !== null && (
-          <div className="documents-search-results">
+          <div className="docs-search-info">
             <span>{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"</span>
-            <button onClick={() => { setSearchQuery(''); setSearchResults(null) }}>
-              Clear search
-            </button>
+            <button onClick={() => { setSearchQuery(''); setSearchResults(null) }}>Clear</button>
           </div>
         )}
 
-        {/* Documents list */}
-        <div className="documents-list">
+        {/* Document List */}
+        <div className="docs-list">
           {loadingDocs ? (
-            <div className="documents-loading">
+            <div className="docs-loading">
               <Loader2 size={24} className="spinner" />
-              <span>Loading documents...</span>
+              <span>Loading...</span>
             </div>
           ) : displayDocs.length === 0 ? (
-            <div className="documents-empty">
+            <div className="docs-empty">
               <Folder size={48} style={{ color: folderColor, opacity: 0.3 }} />
-              <h3>No documents</h3>
-              <p>
-                {searchResults !== null
-                  ? 'No documents match your search.'
-                  : 'Upload your first document to this folder.'
-                }
-              </p>
+              <h3>{searchResults !== null ? 'No results' : 'Empty folder'}</h3>
+              <p>{searchResults !== null ? 'Try a different search term.' : 'Upload your first document.'}</p>
               {searchResults === null && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => startUploadToFolder(selectedFolder)}
-                >
-                  <Upload size={18} />
+                <button className="docs-empty-btn" onClick={() => startUploadToFolder(selectedFolder)}>
+                  <Upload size={16} />
                   Upload Document
                 </button>
               )}
@@ -366,78 +347,52 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
                 const FileIcon = getFileIcon(doc.mime_type)
                 const isPending = doc.approval_status === 'pending'
                 return (
-                  <div
-                    key={doc.id}
-                    className={`document-card ${isPending ? 'pending' : ''}`}
-                  >
-                    <div className="document-icon">
-                      <FileIcon size={24} />
+                  <div key={doc.id} className={`docs-item ${isPending ? 'pending' : ''}`}>
+                    <div className="docs-item-icon">
+                      <FileIcon size={20} />
                     </div>
-                    <div className="document-info">
-                      <div className="document-name">
+                    <div className="docs-item-info">
+                      <span className="docs-item-name">
                         {doc.name}
-                        {doc.version > 1 && (
-                          <span className="document-version">v{doc.version}</span>
-                        )}
-                      </div>
-                      <div className="document-meta">
-                        <span>{formatFileSize(doc.file_size_bytes)}</span>
-                        <span>{formatDate(doc.uploaded_at)}</span>
-                      </div>
+                        {doc.version > 1 && <span className="docs-item-version">v{doc.version}</span>}
+                      </span>
+                      <span className="docs-item-meta">
+                        {formatFileSize(doc.file_size_bytes)} · {formatDate(doc.uploaded_at)}
+                      </span>
                     </div>
-                    {isPending && (
-                      <span className="status-badge pending">Pending</span>
-                    )}
-                    <div className="document-actions">
-                      <button
-                        className="document-action-btn"
-                        onClick={() => handleDocumentAction('view', doc)}
-                        title="View details"
-                      >
-                        <Eye size={18} />
+                    {isPending && <span className="docs-badge pending">Pending</span>}
+                    <div className="docs-item-actions">
+                      <button onClick={() => handleDocumentAction('view', doc)} title="View">
+                        <Eye size={16} />
                       </button>
-                      <button
-                        className="document-action-btn"
-                        onClick={() => handleDocumentAction('download', doc)}
-                        title="Download"
-                      >
-                        <Download size={18} />
+                      <button onClick={() => handleDocumentAction('download', doc)} title="Download">
+                        <Download size={16} />
                       </button>
                       {isPending && (
-                        <button
-                          className="document-action-btn approve"
-                          onClick={() => handleDocumentAction('approve', doc)}
-                          title="Approve"
-                        >
-                          <CheckCircle size={18} />
+                        <button className="approve" onClick={() => handleDocumentAction('approve', doc)} title="Approve">
+                          <CheckCircle size={16} />
                         </button>
                       )}
-                      <button
-                        className="document-action-btn danger"
-                        onClick={() => handleDocumentAction('archive', doc)}
-                        title="Archive"
-                      >
-                        <Archive size={18} />
+                      <button className="danger" onClick={() => handleDocumentAction('archive', doc)} title="Archive">
+                        <Archive size={16} />
                       </button>
                     </div>
                   </div>
                 )
               })}
 
-              {/* Load more */}
+              {/* Load More */}
               {hasMore && searchResults === null && (
-                <div className="documents-load-more">
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setPage(prev => prev + 1)
-                      loadFolderDocuments(selectedFolder, false)
-                    }}
-                    disabled={loadingDocs}
-                  >
-                    Load More ({documents.length} of {totalCount})
-                  </button>
-                </div>
+                <button
+                  className="docs-load-more"
+                  onClick={() => {
+                    setPage(prev => prev + 1)
+                    loadFolderDocuments(selectedFolder, false)
+                  }}
+                  disabled={loadingDocs}
+                >
+                  Load More ({documents.length} of {totalCount})
+                </button>
               )}
             </>
           )}
@@ -450,10 +405,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
             companyId={companyId}
             folderId={uploadToFolder?.id}
             folderName={uploadToFolder?.name}
-            onClose={() => {
-              setShowUploadModal(false)
-              setUploadToFolder(null)
-            }}
+            onClose={() => { setShowUploadModal(false); setUploadToFolder(null) }}
             onUploadComplete={handleUploadComplete}
             onShowToast={onShowToast}
           />
@@ -462,79 +414,60 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     )
   }
 
-  // Main folder list view (Office/Admin)
+  // Main folder list view
   return (
-    <div className="documents-tab">
+    <div className="docs-container">
       {/* Header */}
-      <div className="documents-header">
-        <button
-          className="btn btn-secondary"
-          onClick={() => setShowFolderManager(true)}
-        >
-          <Settings size={18} />
-          Manage Folders
-        </button>
-
-        <div className="documents-search">
-          <Search size={18} className="search-icon" />
+      <div className="docs-header">
+        <div className="docs-search">
+          <Search size={16} />
           <input
             type="text"
-            placeholder="Search all documents..."
+            placeholder="Search documents..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className="documents-search-input"
           />
           {searchQuery && (
-            <button
-              className="search-clear"
-              onClick={() => {
-                setSearchQuery('')
-                setSearchResults(null)
-              }}
-            >
+            <button onClick={() => { setSearchQuery(''); setSearchResults(null) }}>
               <X size={16} />
             </button>
           )}
-          {searching && <Loader2 size={16} className="search-spinner" />}
+          {searching && <Loader2 size={16} className="spinner" />}
         </div>
+
+        <button className="docs-manage-btn" onClick={() => setShowFolderManager(true)}>
+          <Settings2 size={18} />
+          <span>Manage</span>
+        </button>
       </div>
 
-      {/* Search results */}
+      {/* Search Results */}
       {searchResults !== null ? (
         <>
-          <div className="documents-search-results">
-            <span>{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"</span>
-            <button onClick={() => { setSearchQuery(''); setSearchResults(null) }}>
-              Clear search
-            </button>
+          <div className="docs-search-info">
+            <span>{searchResults.length} result{searchResults.length !== 1 ? 's' : ''}</span>
+            <button onClick={() => { setSearchQuery(''); setSearchResults(null) }}>Clear</button>
           </div>
-          <div className="documents-list">
+          <div className="docs-list">
             {searchResults.map(doc => {
               const FileIcon = getFileIcon(doc.mime_type)
               return (
-                <div key={doc.id} className="document-card">
-                  <div className="document-icon">
-                    <FileIcon size={24} />
+                <div key={doc.id} className="docs-item">
+                  <div className="docs-item-icon">
+                    <FileIcon size={20} />
                   </div>
-                  <div className="document-info">
-                    <div className="document-name">{doc.name}</div>
-                    <div className="document-meta">
-                      <span>{formatFileSize(doc.file_size_bytes)}</span>
-                      <span>{formatDate(doc.uploaded_at)}</span>
-                    </div>
+                  <div className="docs-item-info">
+                    <span className="docs-item-name">{doc.name}</span>
+                    <span className="docs-item-meta">
+                      {formatFileSize(doc.file_size_bytes)} · {formatDate(doc.uploaded_at)}
+                    </span>
                   </div>
-                  <div className="document-actions">
-                    <button
-                      className="document-action-btn"
-                      onClick={() => handleDocumentAction('view', doc)}
-                    >
-                      <Eye size={18} />
+                  <div className="docs-item-actions">
+                    <button onClick={() => handleDocumentAction('view', doc)}>
+                      <Eye size={16} />
                     </button>
-                    <button
-                      className="document-action-btn"
-                      onClick={() => handleDocumentAction('download', doc)}
-                    >
-                      <Download size={18} />
+                    <button onClick={() => handleDocumentAction('download', doc)}>
+                      <Download size={16} />
                     </button>
                   </div>
                 </div>
@@ -543,17 +476,14 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
           </div>
         </>
       ) : (
-        /* Folder grid */
-        <div className="documents-folder-grid">
+        /* Folder Grid */
+        <div className="docs-grid">
           {folders.length === 0 ? (
-            <div className="documents-empty">
-              <FolderOpen size={64} />
+            <div className="docs-empty-state">
+              <FolderOpen size={56} />
               <h3>No folders yet</h3>
-              <p>Create folders to organize your project documents.</p>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowFolderManager(true)}
-              >
+              <p>Create folders to organize your documents</p>
+              <button onClick={() => setShowFolderManager(true)}>
                 <Plus size={18} />
                 Create Folder
               </button>
@@ -562,34 +492,24 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
             folders.map(folder => {
               const color = FOLDER_COLORS[folder.color] || FOLDER_COLORS.blue
               return (
-                <button
-                  key={folder.id}
-                  className="documents-folder-card"
-                  onClick={() => openFolder(folder)}
-                >
-                  <div
-                    className="documents-folder-icon"
-                    style={{ backgroundColor: `${color}15` }}
-                  >
-                    <Folder size={32} style={{ color }} />
+                <div key={folder.id} className="docs-folder-card" onClick={() => openFolder(folder)}>
+                  <div className="docs-folder-card-icon" style={{ backgroundColor: `${color}12` }}>
+                    <Folder size={28} style={{ color }} />
                   </div>
-                  <div className="documents-folder-info">
-                    <span className="documents-folder-name">{folder.name}</span>
-                    <span className="documents-folder-meta">
+                  <div className="docs-folder-card-content">
+                    <span className="docs-folder-card-name">{folder.name}</span>
+                    <span className="docs-folder-card-count">
                       {folder.document_count || 0} {folder.document_count === 1 ? 'file' : 'files'}
                     </span>
                   </div>
                   <button
-                    className="documents-folder-upload"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      startUploadToFolder(folder)
-                    }}
-                    title="Upload to folder"
+                    className="docs-folder-card-upload"
+                    onClick={(e) => { e.stopPropagation(); startUploadToFolder(folder) }}
+                    title="Upload"
                   >
-                    <Plus size={20} />
+                    <Plus size={18} />
                   </button>
-                </button>
+                </div>
               )
             })
           )}
@@ -599,10 +519,10 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
       {/* Folder Manager Modal */}
       {showFolderManager && (
         <div className="modal-overlay" onClick={() => setShowFolderManager(false)}>
-          <div className="folder-manager-modal" onClick={e => e.stopPropagation()}>
-            <div className="folder-manager-modal-header">
-              <h2>Folder Management</h2>
-              <button className="modal-close" onClick={() => setShowFolderManager(false)}>
+          <div className="docs-manager-modal" onClick={e => e.stopPropagation()}>
+            <div className="docs-manager-header">
+              <h2>Manage Folders</h2>
+              <button onClick={() => setShowFolderManager(false)}>
                 <X size={20} />
               </button>
             </div>
@@ -625,10 +545,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
           companyId={companyId}
           folderId={uploadToFolder?.id}
           folderName={uploadToFolder?.name}
-          onClose={() => {
-            setShowUploadModal(false)
-            setUploadToFolder(null)
-          }}
+          onClose={() => { setShowUploadModal(false); setUploadToFolder(null) }}
           onUploadComplete={handleUploadComplete}
           onShowToast={onShowToast}
         />

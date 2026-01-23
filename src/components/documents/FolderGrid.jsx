@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, ChevronRight, Download, ArrowLeft, Loader2, File, Image, FileSpreadsheet } from 'lucide-react'
+import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Download, ArrowLeft, Loader2, File, Image, FileSpreadsheet, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 
-// Icon mapping for folder icons
+// Icon mapping
 const FOLDER_ICONS = {
   folder: Folder,
   plans: Map,
@@ -16,7 +16,7 @@ const FOLDER_ICONS = {
   safety: AlertTriangle
 }
 
-// Color mapping for folder colors
+// Color mapping
 const FOLDER_COLORS = {
   blue: '#3b82f6',
   green: '#10b981',
@@ -28,7 +28,7 @@ const FOLDER_COLORS = {
   orange: '#f97316'
 }
 
-// Get file type icon
+// Get file icon
 const getFileIcon = (mimeType) => {
   if (mimeType?.startsWith('image/')) return Image
   if (mimeType?.includes('spreadsheet') || mimeType?.includes('excel')) return FileSpreadsheet
@@ -49,13 +49,6 @@ const formatFileSize = (bytes) => {
   return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`
 }
 
-// Format date
-const formatDate = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
 export default function FolderGrid({ projectId, onShowToast }) {
   const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -63,7 +56,6 @@ export default function FolderGrid({ projectId, onShowToast }) {
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(false)
 
-  // Load folders
   useEffect(() => {
     loadFolders()
   }, [projectId])
@@ -81,7 +73,6 @@ export default function FolderGrid({ projectId, onShowToast }) {
     }
   }
 
-  // Load documents in folder
   const openFolder = async (folder) => {
     setSelectedFolder(folder)
     setLoadingDocs(true)
@@ -96,7 +87,6 @@ export default function FolderGrid({ projectId, onShowToast }) {
     }
   }
 
-  // Download document
   const handleDownload = async (doc) => {
     try {
       await db.logDocumentAccess(doc.id, 'downloaded')
@@ -107,113 +97,110 @@ export default function FolderGrid({ projectId, onShowToast }) {
     }
   }
 
-  // Back to folders
   const goBack = () => {
     setSelectedFolder(null)
     setDocuments([])
   }
 
+  // Loading
   if (loading) {
     return (
-      <div className="folder-grid-loading">
-        <Loader2 size={24} className="spinner" />
-        <span>Loading folders...</span>
+      <div className="field-docs">
+        <div className="field-docs-loading">
+          <Loader2 size={24} className="spinner" />
+          <span>Loading...</span>
+        </div>
       </div>
     )
   }
 
-  // Document list view (inside folder)
+  // Document list view
   if (selectedFolder) {
     const FolderIcon = FOLDER_ICONS[selectedFolder.icon] || Folder
     const folderColor = FOLDER_COLORS[selectedFolder.color] || FOLDER_COLORS.blue
 
     return (
-      <div className="folder-documents-view">
+      <div className="field-docs">
         {/* Header */}
-        <div className="folder-documents-header">
-          <button className="folder-back-btn" onClick={goBack}>
+        <div className="field-docs-header">
+          <button className="field-docs-back" onClick={goBack}>
             <ArrowLeft size={20} />
-            Back
           </button>
-          <div className="folder-title" style={{ '--folder-color': folderColor }}>
-            <FolderIcon size={24} style={{ color: folderColor }} />
-            <h2>{selectedFolder.name}</h2>
-            <span className="folder-count">{documents.length} files</span>
+          <div className="field-docs-title">
+            <div className="field-docs-title-icon" style={{ backgroundColor: `${folderColor}15` }}>
+              <FolderIcon size={20} style={{ color: folderColor }} />
+            </div>
+            <div className="field-docs-title-text">
+              <h2>{selectedFolder.name}</h2>
+              <span>{documents.length} files</span>
+            </div>
           </div>
         </div>
 
         {/* Documents */}
-        {loadingDocs ? (
-          <div className="folder-grid-loading">
-            <Loader2 size={24} className="spinner" />
-            <span>Loading documents...</span>
-          </div>
-        ) : documents.length === 0 ? (
-          <div className="folder-empty">
-            <Folder size={48} style={{ color: folderColor, opacity: 0.3 }} />
-            <p>No documents in this folder</p>
-          </div>
-        ) : (
-          <div className="folder-document-list">
-            {documents.map(doc => {
+        <div className="field-docs-list">
+          {loadingDocs ? (
+            <div className="field-docs-loading">
+              <Loader2 size={24} className="spinner" />
+              <span>Loading...</span>
+            </div>
+          ) : documents.length === 0 ? (
+            <div className="field-docs-empty">
+              <Folder size={48} style={{ color: folderColor, opacity: 0.3 }} />
+              <p>No documents yet</p>
+            </div>
+          ) : (
+            documents.map(doc => {
               const FileIcon = getFileIcon(doc.mime_type)
               return (
-                <div key={doc.id} className="folder-document-item" onClick={() => handleDownload(doc)}>
-                  <div className="folder-doc-icon">
-                    <FileIcon size={24} />
+                <button key={doc.id} className="field-doc-item" onClick={() => handleDownload(doc)}>
+                  <div className="field-doc-icon">
+                    <FileIcon size={22} />
                   </div>
-                  <div className="folder-doc-info">
-                    <span className="folder-doc-name">{doc.name}</span>
-                    <span className="folder-doc-meta">
-                      {formatFileSize(doc.file_size_bytes)} • {formatDate(doc.uploaded_at)}
-                    </span>
+                  <div className="field-doc-info">
+                    <span className="field-doc-name">{doc.name}</span>
+                    <span className="field-doc-size">{formatFileSize(doc.file_size_bytes)}</span>
                   </div>
-                  <Download size={20} className="folder-doc-download" />
-                </div>
+                  <Download size={20} className="field-doc-download" />
+                </button>
               )
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
     )
   }
 
-  // Folder grid view
+  // Folder grid
   return (
-    <div className="folder-grid">
-      {folders.length === 0 ? (
-        <div className="folder-grid-empty">
-          <Folder size={64} />
-          <h3>No folders yet</h3>
-          <p>The office team will create folders for your project documents.</p>
-        </div>
-      ) : (
-        <div className="folder-grid-items">
-          {folders.map(folder => {
+    <div className="field-docs">
+      <div className="field-docs-grid">
+        {folders.length === 0 ? (
+          <div className="field-docs-empty">
+            <Folder size={56} />
+            <h3>No documents</h3>
+            <p>Documents will appear here when added</p>
+          </div>
+        ) : (
+          folders.map(folder => {
             const Icon = FOLDER_ICONS[folder.icon] || Folder
             const color = FOLDER_COLORS[folder.color] || FOLDER_COLORS.blue
+            const count = folder.document_count || 0
             return (
-              <button
-                key={folder.id}
-                className="folder-card"
-                onClick={() => openFolder(folder)}
-                style={{ '--folder-color': color }}
-              >
-                <div className="folder-card-icon" style={{ backgroundColor: `${color}15` }}>
-                  <Icon size={32} style={{ color }} />
+              <button key={folder.id} className="field-folder-card" onClick={() => openFolder(folder)}>
+                <div className="field-folder-icon" style={{ backgroundColor: `${color}12` }}>
+                  <Icon size={28} style={{ color }} />
                 </div>
-                <div className="folder-card-info">
-                  <span className="folder-card-name">{folder.name}</span>
-                  <span className="folder-card-count">
-                    {folder.document_count || 0} {folder.document_count === 1 ? 'file' : 'files'}
-                  </span>
+                <div className="field-folder-info">
+                  <span className="field-folder-name">{folder.name}</span>
+                  <span className="field-folder-count">{count} {count === 1 ? 'file' : 'files'}</span>
                 </div>
-                <ChevronRight size={20} className="folder-card-arrow" />
+                <ChevronRight size={20} className="field-folder-arrow" />
               </button>
             )
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
     </div>
   )
 }
