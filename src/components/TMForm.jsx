@@ -247,7 +247,7 @@ const TRANSLATIONS = {
 }
 
 export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
-  const [step, setStep] = useState(1) // 1: Work Details, 2: Crew & Hours, 3: Materials, 4: Evidence & Linkage, 5: Review, 6: Success/Signature
+  const [step, setStep] = useState(1) // 1: Work Details, 2: Crew & Hours, 3: Materials, 4: Review (includes Evidence), 5: Success/Signature
   const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
 
   // Post-submit signature state
@@ -1162,7 +1162,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       }
     }
 
-    if (step === 5) {
+    if (step === 4) {
       if (!submittedByName.trim()) {
         warnings.push(lang === 'en' ? 'Name required to submit' : 'Nombre requerido')
       }
@@ -1174,7 +1174,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const validationWarnings = getValidationWarnings()
 
   const goNext = () => {
-    if (step < 5) setStep(step + 1)
+    if (step < 4) setStep(step + 1)
   }
 
   const goBack = () => {
@@ -1388,7 +1388,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       // Store the ticket and go to success/signature step
       setSubmittedTicket(ticket)
       onShowToast('T&M submitted!', 'success')
-      setStep(6) // Go to success/signature step
+      setStep(5) // Go to success/signature step
     } catch (error) {
       console.error('Error submitting T&M:', error)
       onShowToast('Error submitting T&M', 'error')
@@ -1503,12 +1503,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {step === 1 && t('workInfo')}
           {step === 2 && t('crewHours')}
           {step === 3 && t('materialsEquipment')}
-          {step === 4 && t('evidence')}
-          {step === 5 && t('review')}
-          {step === 6 && (lang === 'en' ? 'Submitted' : 'Enviado')}
+          {step === 4 && t('review')}
+          {step === 5 && (lang === 'en' ? 'Submitted' : 'Enviado')}
         </h2>
         <div className="tm-header-right">
-          {step < 5 && (
+          {step < 4 && (
             <button
               className="tm-lang-toggle"
               onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
@@ -1518,13 +1517,12 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               {lang === 'en' ? 'ES' : 'EN'}
             </button>
           )}
-          {step < 6 && (
+          {step < 5 && (
             <div className="tm-step-dots">
               <span className={`tm-dot ${step >= 1 ? 'active' : ''}`}></span>
               <span className={`tm-dot ${step >= 2 ? 'active' : ''}`}></span>
               <span className={`tm-dot ${step >= 3 ? 'active' : ''}`}></span>
               <span className={`tm-dot ${step >= 4 ? 'active' : ''}`}></span>
-              <span className={`tm-dot ${step >= 5 ? 'active' : ''}`}></span>
             </div>
           )}
         </div>
@@ -1601,30 +1599,54 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       {/* Step 2: Crew & Hours */}
       {step === 2 && (
         <div className="tm-step-content">
-          {/* Sticky Crew Summary Pill */}
-          <div className="tm-crew-summary-pill">
-            <span className="pill-stat">{namedWorkers.length} {namedWorkers.length === 1 ? t('worker') : t('workers_plural')}</span>
-            <span className="pill-stat">{totalRegHours + totalOTHours}h {lang === 'en' ? 'total' : 'total'}</span>
+          {/* Crew Summary Bar */}
+          <div className="tm-crew-summary-bar">
+            <div className="tm-summary-left">
+              <span className="tm-summary-count">{namedWorkers.length}</span>
+              <span className="tm-summary-label">{namedWorkers.length === 1 ? t('worker') : t('workers_plural')}</span>
+            </div>
+            <div className="tm-summary-middle">
+              <span className="tm-summary-hours">{totalRegHours + totalOTHours}h</span>
+              <span className="tm-summary-label">{lang === 'en' ? 'total' : 'total'}</span>
+            </div>
             {workersNeedingHours > 0 && (
-              <span className="pill-warning">
+              <div className="tm-summary-warning">
                 <AlertCircle size={14} />
-                {workersNeedingHours} {lang === 'en' ? 'need hours' : 'sin horas'}
-              </span>
+                <span>{workersNeedingHours} {lang === 'en' ? 'need hours' : 'sin horas'}</span>
+              </div>
             )}
           </div>
 
-          {/* Select from Today's Crew */}
+          {/* Quick Actions - Same as Yesterday + Time Presets */}
+          <div className="tm-quick-actions-row">
+            <button
+              className="tm-quick-action"
+              onClick={loadPreviousCrew}
+              disabled={loadingPreviousCrew}
+            >
+              <Copy size={16} />
+              <span>{loadingPreviousCrew ? (lang === 'en' ? 'Loading...' : 'Cargando...') : t('sameAsYesterday')}</span>
+            </button>
+            {namedWorkers.length > 0 && (
+              <div className="tm-time-presets-inline">
+                <button className="tm-preset-chip" onClick={() => applyInlinePreset('8hr')}>8h</button>
+                <button className="tm-preset-chip" onClick={() => applyInlinePreset('10hr')}>10h</button>
+                <button className="tm-preset-chip" onClick={() => applyInlinePreset('4hr')}>4h</button>
+                <button className="tm-preset-chip more" onClick={() => setShowBatchHoursModal(true)} title={lang === 'en' ? 'Custom hours' : 'Horas personalizadas'}>
+                  <Clock size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Select from Today's Crew - Prominent */}
           {todaysCrew.length > 0 && (
-            <div className="tm-crew-picker">
-              <button 
-                className="tm-crew-picker-btn"
-                onClick={() => setShowCrewPicker(!showCrewPicker)}
-              >
-                <HardHat size={16} /> {showCrewPicker ? 'Hide' : 'Select from'} Today's Crew ({todaysCrew.length})
-              </button>
-              
-              {showCrewPicker && (
-                <div className="tm-crew-list">
+            <div className="tm-crew-select-section">
+              <div className="tm-section-header">
+                <h4><HardHat size={16} /> {lang === 'en' ? "Select T&M Workers" : "Seleccionar Trabajadores T&M"}</h4>
+                <span className="tm-section-hint">{lang === 'en' ? 'Tap to add' : 'Toca para agregar'}</span>
+              </div>
+              <div className="tm-crew-grid">
                   {todaysCrew.map((worker, index) => {
                     // Check if already added (in legacy or dynamic sections)
                     const inLegacy =
@@ -1732,95 +1754,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                       </button>
                     )
                   })}
-                </div>
-              )}
+              </div>
             </div>
           )}
-
-          {/* Quick Actions - Same as Yesterday + Batch Hours */}
-          <div className="tm-quick-actions-panel">
-            <div className="tm-batch-hours-header">
-              <Zap size={18} />
-              <span>{t('quickActions')}</span>
-            </div>
-            <div className="tm-quick-actions-buttons">
-              <button
-                type="button"
-                className="tm-quick-action-btn primary"
-                onClick={loadPreviousCrew}
-                disabled={loadingPreviousCrew}
-              >
-                <Copy size={16} />
-                {loadingPreviousCrew ? t('loading') : t('sameAsYesterday')}
-              </button>
-              <button
-                type="button"
-                className="tm-quick-action-btn"
-                onClick={() => setShowBatchHoursModal(true)}
-              >
-                <Clock size={16} />
-                {t('setCrewHours')}
-              </button>
-            </div>
-          </div>
-
-          {/* Inline Time Presets - One-tap hour application */}
-          <div className="tm-inline-presets">
-            <span className="tm-inline-presets-label">
-              {lang === 'en' ? 'Apply to all:' : 'Aplicar a todos:'}
-            </span>
-            <div className="tm-inline-presets-buttons">
-              <button
-                type="button"
-                className="tm-preset-chip"
-                onClick={() => applyInlinePreset('8hr')}
-              >
-                {t('preset8hr')}
-              </button>
-              <button
-                type="button"
-                className="tm-preset-chip"
-                onClick={() => applyInlinePreset('10hr')}
-              >
-                {t('preset10hr')}
-              </button>
-              <button
-                type="button"
-                className="tm-preset-chip"
-                onClick={() => applyInlinePreset('4hr')}
-              >
-                {t('preset4hr')}
-              </button>
-            </div>
-          </div>
-
-          {/* Running Total Banner - Live feedback */}
-          <div className={`tm-running-total ${totalWorkers > 0 ? 'has-data' : ''}`}>
-            <div className="tm-running-total-workers">
-              <HardHat size={18} />
-              <span className="tm-running-total-count">{namedWorkers.length}</span>
-              <span className="tm-running-total-label">
-                {namedWorkers.length === 1 ? t('worker') : t('workers_plural')}
-              </span>
-              {workersNeedingHours > 0 && (
-                <span className="tm-running-total-warning">
-                  ({workersNeedingHours} {lang === 'en' ? 'need hours' : 'sin horas'})
-                </span>
-              )}
-            </div>
-            <div className="tm-running-total-hours">
-              <Clock size={18} />
-              <span className="tm-running-total-count">{totalRegHours + totalOTHours}</span>
-              <span className="tm-running-total-label">
-                {lang === 'en' ? 'total hrs' : 'hrs total'}
-              </span>
-              {totalOTHours > 0 && (
-                <span className="tm-running-total-ot">
-                  ({totalOTHours} OT)
-                </span>
-              )}
-            </div>
-          </div>
 
           {/* Dynamic Labor Classes (when company has custom classes) */}
           {/* Only show labor classes that are active (from crew check-in or manually added) */}
@@ -2363,100 +2299,85 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 4: Evidence & Linkage */}
+      {/* Step 4: Review (includes Photos & COR) */}
       {step === 4 && (
         <div className="tm-step-content">
-          {/* Photos Section */}
-          <div className="tm-evidence-section">
-            <h3><Camera size={18} /> {t('photos')}</h3>
+          {/* PHOTOS - Prominent Action Card */}
+          <div className={`tm-action-card-prominent ${photos.length > 0 ? 'has-content' : 'needs-action'}`}>
+            <div className="tm-action-card-header">
+              <div className="tm-action-card-icon">
+                <Camera size={24} />
+              </div>
+              <div className="tm-action-card-title">
+                <h4>{lang === 'en' ? 'Photo Evidence' : 'Evidencia Fotográfica'}</h4>
+                <span className="tm-action-card-status">
+                  {photos.length > 0
+                    ? `${photos.length} ${lang === 'en' ? 'photo(s) added' : 'foto(s) agregada(s)'}`
+                    : (lang === 'en' ? 'Recommended for billing' : 'Recomendado para facturación')
+                  }
+                </span>
+              </div>
+            </div>
             {photos.length > 0 && (
-              <div className="tm-photo-grid">
+              <div className="tm-photo-preview-row">
                 {photos.map(photo => (
-                  <div key={photo.id} className={`tm-photo-item ${photo.status ? `photo-${photo.status}` : ''}`}>
+                  <div key={photo.id} className="tm-photo-preview-thumb">
                     <img src={photo.previewUrl} alt={photo.name} />
-                    {photo.status === 'compressing' && (
-                      <div className="tm-photo-status compressing">
-                        <Loader2 size={20} className="tm-spinner" />
-                        <span>{lang === 'en' ? 'Compressing' : 'Comprimiendo'}</span>
-                      </div>
-                    )}
-                    {photo.status === 'uploading' && (
-                      <div className="tm-photo-status uploading">
-                        <Loader2 size={20} className="tm-spinner" />
-                        <span>{lang === 'en' ? 'Uploading' : 'Subiendo'}</span>
-                      </div>
-                    )}
-                    {photo.status === 'confirmed' && (
-                      <div className="tm-photo-status confirmed">
-                        <Check size={20} />
-                      </div>
-                    )}
-                    {photo.status === 'failed' && (
-                      <div className="tm-photo-status failed" title={photo.error || 'Upload failed'}>
-                        <AlertCircle size={20} />
-                        <span>{lang === 'en' ? 'Failed' : 'Error'}</span>
-                      </div>
-                    )}
-                    {(!photo.status || photo.status === 'pending' || photo.status === 'failed') && (
-                      <button className="tm-photo-remove" onClick={() => removePhoto(photo.id)}>×</button>
-                    )}
+                    <button className="tm-photo-remove-x" onClick={() => removePhoto(photo.id)}>×</button>
                   </div>
                 ))}
               </div>
             )}
-            {(maxPhotos === -1 || photos.length < maxPhotos) && (
-              <label className="tm-photo-btn">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoAdd}
-                  style={{ display: 'none' }}
-                />
-                <Camera size={16} className="inline-icon" /> {photos.length > 0 ? (lang === 'en' ? 'Add More Photos' : 'Más Fotos') : t('addPhotos')}
-              </label>
-            )}
-            {maxPhotos !== -1 && (
-              <p className="tm-photo-hint">{photos.length}/{maxPhotos} {t('maxPhotos')}</p>
-            )}
+            <label className={`tm-action-card-btn ${photos.length === 0 ? 'primary' : ''}`}>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoAdd}
+                style={{ display: 'none' }}
+              />
+              <Camera size={18} />
+              <span>{photos.length > 0 ? (lang === 'en' ? 'Add More Photos' : 'Agregar Más Fotos') : (lang === 'en' ? 'Add Photos' : 'Agregar Fotos')}</span>
+            </label>
           </div>
 
-          {/* COR Assignment */}
-          <div className="tm-evidence-section">
-            <h3><Link size={18} /> {t('linkedCOR')}</h3>
-            <div className="tm-cor-row">
-              <select
-                value={selectedCorId}
-                onChange={(e) => setSelectedCorId(e.target.value)}
-                className="tm-input tm-select"
-              >
-                <option value="">-- {lang === 'en' ? 'No COR' : 'Sin COR'} --</option>
-                {assignableCORs.map(cor => (
-                  <option key={cor.id} value={cor.id}>
-                    {cor.cor_number}: {cor.title || 'Untitled'} ({cor.status})
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="tm-refresh-btn"
-                onClick={loadAssignableCORs}
-                disabled={loadingCORs}
-                title={lang === 'en' ? 'Refresh COR list' : 'Actualizar lista'}
-              >
-                <RefreshCw size={16} className={loadingCORs ? 'spinning' : ''} />
-              </button>
+          {/* COR LINKING - Prominent Action Card */}
+          <div className={`tm-action-card-prominent ${selectedCorId ? 'has-content' : ''}`}>
+            <div className="tm-action-card-header">
+              <div className="tm-action-card-icon cor">
+                <Link size={24} />
+              </div>
+              <div className="tm-action-card-title">
+                <h4>{lang === 'en' ? 'Link to Change Order' : 'Vincular a Orden de Cambio'}</h4>
+                <span className="tm-action-card-status">
+                  {selectedCorId
+                    ? `${lang === 'en' ? 'Linked to' : 'Vinculado a'}: ${assignableCORs.find(c => c.id === selectedCorId)?.cor_number || ''}`
+                    : (lang === 'en' ? 'Optional - Link this T&M to a COR' : 'Opcional - Vincular este T&M a un COR')
+                  }
+                </span>
+              </div>
             </div>
-            {assignableCORs.length === 0 && !loadingCORs && (
-              <p className="tm-cor-hint">{t('noCORs')}</p>
+            <select
+              value={selectedCorId}
+              onChange={(e) => setSelectedCorId(e.target.value)}
+              className="tm-cor-select-prominent"
+            >
+              <option value="">{lang === 'en' ? '-- Select a COR (optional) --' : '-- Seleccionar COR (opcional) --'}</option>
+              {assignableCORs.map(cor => (
+                <option key={cor.id} value={cor.id}>
+                  {cor.cor_number}: {cor.title || 'Untitled'} ({cor.status})
+                </option>
+              ))}
+            </select>
+            {assignableCORs.length === 0 && (
+              <p className="tm-cor-hint">{lang === 'en' ? 'No active CORs available for this project' : 'No hay CORs activos para este proyecto'}</p>
             )}
           </div>
-        </div>
-      )}
 
-      {/* Step 5: Review */}
-      {step === 5 && (
-        <div className="tm-step-content">
+          <div className="tm-review-divider">
+            <span>{lang === 'en' ? 'Ticket Summary' : 'Resumen del Ticket'}</span>
+          </div>
+
           {/* Work Info Summary */}
           <div className="tm-review-section">
             <div className="tm-review-section-header">
@@ -2477,34 +2398,6 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 <button className="tm-edit-link" onClick={() => setStep(1)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
               </div>
               <div className="tm-review-notes">{notes}</div>
-            </div>
-          )}
-
-          {/* Photos */}
-          {photos.length > 0 && (
-            <div className="tm-review-section">
-              <div className="tm-review-section-header">
-                <h4><Camera size={16} className="inline-icon" /> {t('photos')} ({photos.length})</h4>
-                <button className="tm-edit-link" onClick={() => setStep(4)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
-              </div>
-              <div className="tm-review-photos">
-                {photos.map(photo => (
-                  <img key={photo.id} src={photo.previewUrl} alt={photo.name} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* COR Assignment Display */}
-          {selectedCorId && (
-            <div className="tm-review-section">
-              <div className="tm-review-section-header">
-                <h4>🔗 {t('linkedCOR')}</h4>
-                <button className="tm-edit-link" onClick={() => setStep(4)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
-              </div>
-              <div className="tm-review-cor">
-                {assignableCORs.find(c => c.id === selectedCorId)?.cor_number}: {assignableCORs.find(c => c.id === selectedCorId)?.title || 'Untitled'}
-              </div>
             </div>
           )}
 
@@ -2638,8 +2531,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 6: Success & Client Signature */}
-      {step === 6 && submittedTicket && (
+      {/* Step 5: Success & Client Signature */}
+      {step === 5 && submittedTicket && (
         <div className="tm-step-content tm-success-step">
           <div className="tm-success-header">
             <div className="tm-success-icon">
@@ -2828,7 +2721,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       )}
 
       {/* Footer */}
-      {step < 6 && (
+      {step < 5 && (
         <div className="tm-wizard-footer">
           {/* Validation Warnings */}
           {validationWarnings.length > 0 && (
@@ -2866,7 +2759,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 className="tm-big-btn primary"
                 onClick={goNext}
               >
-                {lang === 'en' ? 'Next: Evidence' : 'Siguiente: Evidencia'} ({items.length} {items.length === 1 ? t('item') : t('items_plural')})
+                {lang === 'en' ? 'Review & Submit' : 'Revisar y Enviar'} ({items.length} {items.length === 1 ? t('item') : t('items_plural')})
               </button>
               <button className="tm-skip-btn" onClick={goNext}>
                 {t('skipNoMaterials')}
@@ -2875,20 +2768,6 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           )}
 
           {step === 4 && (
-            <>
-              <button
-                className="tm-big-btn primary"
-                onClick={goNext}
-              >
-                {t('reviewItems')} ({photos.length} {lang === 'en' ? 'photos' : 'fotos'})
-              </button>
-              <button className="tm-skip-btn" onClick={goNext}>
-                {lang === 'en' ? 'Skip (no photos)' : 'Saltar (sin fotos)'}
-              </button>
-            </>
-          )}
-
-          {step === 5 && (
             <button
               className={`tm-big-btn submit ${submitting ? 'submitting' : ''} ${!submittedByName.trim() ? 'needs-name' : 'ready'}`}
               onClick={handleSubmit}
@@ -2915,8 +2794,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 6: Success Footer */}
-      {step === 6 && (
+      {/* Step 5: Success Footer */}
+      {step === 5 && (
         <div className="tm-wizard-footer">
           <button
             className="tm-big-btn primary"
