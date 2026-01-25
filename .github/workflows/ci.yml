@@ -1,8 +1,8 @@
 # ============================================
-# CI Pipeline - Runs on every push and PR
+# CI Pipeline - Comprehensive Testing & Build Verification
 # ============================================
-# This workflow ensures code quality before merging to main.
-# It runs tests and builds the app to catch errors early.
+# This workflow ensures 100% verification before any code reaches production.
+# It runs on every push and PR with multiple validation stages.
 
 name: CI
 
@@ -15,43 +15,224 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Cancel in-progress runs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ----------------------------------------
-  # Test and Build Job
+  # Stage 1: Code Quality & Linting
   # ----------------------------------------
-  test-and-build:
-    name: Test & Build
+  lint:
+    name: Lint & Code Quality
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Get the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # Step 3: Install dependencies
       - name: Install dependencies
         run: npm ci
 
-      # Step 4: Run tests
-      - name: Run tests
-        run: npm test
+      - name: Run ESLint
+        run: npm run lint --if-present
+        continue-on-error: false
 
-      # Step 5: Build the app (catches build errors)
+      - name: Check for console.log in production code
+        run: |
+          echo "Checking for console.log statements..."
+          # Allow console.error and console.warn, flag console.log
+          if grep -r "console\.log" --include="*.jsx" --include="*.js" src/ --exclude-dir=test 2>/dev/null | grep -v "// eslint-disable" | grep -v "console.error" | grep -v "console.warn" | head -20; then
+            echo "::warning::Found console.log statements. Consider removing for production."
+          fi
+
+  # ----------------------------------------
+  # Stage 2: Unit & Integration Tests
+  # ----------------------------------------
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+        env:
+          CI: true
+
+      - name: Run tests with coverage
+        run: npm run test:coverage --if-present
+        continue-on-error: true
+
+  # ----------------------------------------
+  # Stage 3: Build Verification
+  # ----------------------------------------
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build application
         run: npm run build
         env:
-          # Use empty values for build (no real Supabase needed for build)
+          # Use placeholder values for build (no real Supabase needed)
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-key
 
+      - name: Verify build output
+        run: |
+          echo "Verifying build artifacts..."
+          if [ ! -d "dist" ]; then
+            echo "::error::Build failed - dist directory not found"
+            exit 1
+          fi
+          if [ ! -f "dist/index.html" ]; then
+            echo "::error::Build failed - index.html not found"
+            exit 1
+          fi
+          echo "Build artifacts verified successfully"
+          echo "Build size:"
+          du -sh dist/
+          echo "Asset breakdown:"
+          du -sh dist/assets/* | sort -hr | head -10
+
+      - name: Check for build warnings
+        run: |
+          # Re-run build and capture output
+          npm run build 2>&1 | tee build-output.txt
+          if grep -i "error" build-output.txt; then
+            echo "::error::Build produced errors"
+            exit 1
+          fi
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-key
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dist
+          path: dist/
+          retention-days: 7
+
   # ----------------------------------------
-  # Summary comment on PR
+  # Stage 4: Bundle Size Check
   # ----------------------------------------
-  # This is optional but helpful - adds a comment showing results
+  bundle-check:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and analyze
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-key
+
+      - name: Check main bundle size
+        run: |
+          # Get the main JS bundle size
+          MAIN_BUNDLE=$(find dist/assets -name "index-*.js" -type f | head -1)
+          if [ -n "$MAIN_BUNDLE" ]; then
+            SIZE=$(stat -f%z "$MAIN_BUNDLE" 2>/dev/null || stat -c%s "$MAIN_BUNDLE")
+            SIZE_KB=$((SIZE / 1024))
+            echo "Main bundle size: ${SIZE_KB}KB"
+
+            # Warn if bundle is over 500KB (gzipped would be ~150KB)
+            if [ $SIZE_KB -gt 500 ]; then
+              echo "::warning::Main bundle is ${SIZE_KB}KB. Consider code splitting for better performance."
+            fi
+          fi
+
+  # ----------------------------------------
+  # Stage 5: Security Audit
+  # ----------------------------------------
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for sensitive data
+        run: |
+          echo "Checking for potential sensitive data..."
+          # Check for potential API keys or secrets
+          if grep -rE "(api[_-]?key|secret|password|token)\s*[:=]\s*['\"][^'\"]{20,}" --include="*.js" --include="*.jsx" src/ 2>/dev/null | grep -v "placeholder" | grep -v "example"; then
+            echo "::error::Potential sensitive data found in source code"
+            exit 1
+          fi
+          echo "No sensitive data patterns found"
+
+  # ----------------------------------------
+  # Final Status Check
+  # ----------------------------------------
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, bundle-check, security]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ]; then
+            echo "::error::One or more required jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed successfully!"

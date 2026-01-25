@@ -3,8 +3,8 @@ import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
   FileText, ClipboardList, AlertTriangle, Info, CheckSquare,
-  HardHat, Truck, FolderOpen, ArrowLeft, ChevronDown, ChevronRight,
-  Users, Clock, CheckCircle2, Circle, Moon, Sun
+  Truck, FolderOpen, ArrowLeft, ChevronDown, ChevronRight,
+  Users, Clock, CheckCircle2, Moon, Sun, Check
 } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
@@ -23,6 +23,15 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress
   const [showProjectInfo, setShowProjectInfo] = useState(false)
 
+  // Today's activity status (for smart cards)
+  const [todayStatus, setTodayStatus] = useState({
+    crewCheckedIn: false,
+    crewCount: 0,
+    tmTicketsToday: 0,
+    dailyReportDone: false,
+    disposalLoadsToday: 0
+  })
+
   // Theme
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -31,11 +40,46 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     return false
   })
 
+  // Get current hour for time-based UI
+  const currentHour = new Date().getHours()
+  const isMorning = currentHour >= 5 && currentHour < 12
+  const isAfternoon = currentHour >= 12 && currentHour < 17
+  const isEvening = currentHour >= 17 || currentHour < 5
+
   useEffect(() => {
     if (project?.id) {
       loadAreas()
+      loadTodayStatus()
     }
   }, [project?.id])
+
+  // Load today's activity status
+  const loadTodayStatus = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+
+      // Load crew check-in for today
+      const crew = await db.getCrewCheckin(project.id, today)
+      const crewCheckedIn = crew && crew.length > 0
+
+      // Load T&M tickets for today
+      const tickets = await db.getTMTickets?.(project.id) || []
+      const todayTickets = tickets.filter(t => t.work_date === today)
+
+      // Load disposal loads for today
+      const disposal = await db.getDisposalLoads?.(project.id, today) || []
+
+      setTodayStatus({
+        crewCheckedIn,
+        crewCount: crew?.length || 0,
+        tmTicketsToday: todayTickets.length,
+        dailyReportDone: false, // We'll track this separately
+        disposalLoadsToday: disposal.length
+      })
+    } catch (error) {
+      console.error('Error loading today status:', error)
+    }
+  }
 
   const loadAreas = async () => {
     try {
@@ -341,27 +385,82 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </div>
       </div>
 
-      {/* Primary Actions - Most Used */}
+      {/* Smart Action Cards - Priority based on time & completion */}
       <div className="fm-section">
-        <h3 className="fm-section-title">Quick Actions</h3>
-        <div className="fm-primary-actions">
-          <button className="fm-action-card primary" onClick={() => setActiveView('crew')}>
-            <div className="fm-action-icon">
-              <Users size={28} />
+        <h3 className="fm-section-title">
+          {isMorning ? 'Good Morning' : isAfternoon ? 'Good Afternoon' : 'Good Evening'}
+        </h3>
+        <div className="fm-smart-cards">
+          {/* Crew Check-in - Priority in morning */}
+          <button
+            className={`fm-smart-card ${todayStatus.crewCheckedIn ? 'completed' : isMorning ? 'priority' : ''}`}
+            onClick={() => setActiveView('crew')}
+          >
+            <div className="fm-smart-card-icon">
+              <Users size={24} />
             </div>
-            <span className="fm-action-label">Crew Check-in</span>
+            <div className="fm-smart-card-content">
+              <span className="fm-smart-card-title">Crew Check-in</span>
+              <span className="fm-smart-card-status">
+                {todayStatus.crewCheckedIn
+                  ? `${todayStatus.crewCount} checked in`
+                  : 'Not done yet'}
+              </span>
+            </div>
+            {todayStatus.crewCheckedIn && (
+              <div className="fm-smart-card-check">
+                <Check size={20} />
+              </div>
+            )}
           </button>
-          <button className="fm-action-card primary" onClick={() => setActiveView('tm')}>
-            <div className="fm-action-icon">
-              <FileText size={28} />
+
+          {/* T&M Ticket - Always available */}
+          <button
+            className={`fm-smart-card ${todayStatus.tmTicketsToday > 0 ? 'has-activity' : ''}`}
+            onClick={() => setActiveView('tm')}
+          >
+            <div className="fm-smart-card-icon">
+              <FileText size={24} />
             </div>
-            <span className="fm-action-label">T&M Ticket</span>
+            <div className="fm-smart-card-content">
+              <span className="fm-smart-card-title">T&M Ticket</span>
+              <span className="fm-smart-card-status">
+                {todayStatus.tmTicketsToday > 0
+                  ? `${todayStatus.tmTicketsToday} today`
+                  : 'Create new'}
+              </span>
+            </div>
+            {todayStatus.tmTicketsToday > 0 && (
+              <div className="fm-smart-card-badge">{todayStatus.tmTicketsToday}</div>
+            )}
+          </button>
+
+          {/* Daily Report - Priority in evening */}
+          <button
+            className={`fm-smart-card ${todayStatus.dailyReportDone ? 'completed' : isEvening ? 'priority' : ''}`}
+            onClick={() => setActiveView('report')}
+          >
+            <div className="fm-smart-card-icon">
+              <ClipboardList size={24} />
+            </div>
+            <div className="fm-smart-card-content">
+              <span className="fm-smart-card-title">Daily Report</span>
+              <span className="fm-smart-card-status">
+                {todayStatus.dailyReportDone ? 'Submitted' : isEvening ? 'Ready to submit' : 'End of day'}
+              </span>
+            </div>
+            {todayStatus.dailyReportDone && (
+              <div className="fm-smart-card-check">
+                <Check size={20} />
+              </div>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Secondary Actions */}
+      {/* Other Actions */}
       <div className="fm-section">
+        <h3 className="fm-section-title">More Actions</h3>
         <div className="fm-secondary-actions">
           <button className="fm-action-row" onClick={() => setActiveView('progress')}>
             <CheckSquare size={20} />
@@ -371,14 +470,13 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           <button className="fm-action-row" onClick={() => setActiveView('disposal')}>
             <Truck size={20} />
             <span>Disposal Loads</span>
+            {todayStatus.disposalLoadsToday > 0 && (
+              <span className="fm-action-badge">{todayStatus.disposalLoadsToday} today</span>
+            )}
           </button>
           <button className="fm-action-row" onClick={() => setActiveView('docs')}>
             <FolderOpen size={20} />
             <span>Documents</span>
-          </button>
-          <button className="fm-action-row" onClick={() => setActiveView('report')}>
-            <ClipboardList size={20} />
-            <span>Daily Report</span>
           </button>
         </div>
       </div>

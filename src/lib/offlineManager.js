@@ -442,7 +442,7 @@ const processAction = async (action, db) => {
     case ACTION_TYPES.UPDATE_AREA_STATUS:
       return db.updateAreaStatus(payload.areaId, payload.status)
 
-    case ACTION_TYPES.CREATE_TM_TICKET:
+    case ACTION_TYPES.CREATE_TM_TICKET: {
       // Complex action - create ticket, upload photos, add workers/items
       const ticket = await db.createTMTicket(payload.ticket)
       if (payload.workers?.length > 0) {
@@ -453,6 +453,7 @@ const processAction = async (action, db) => {
       }
       // Note: Photos would need separate handling
       return ticket
+    }
 
     case ACTION_TYPES.SAVE_CREW_CHECKIN:
       return db.saveCrewCheckin(

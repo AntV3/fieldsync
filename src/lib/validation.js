@@ -60,7 +60,7 @@ export const rules = {
   },
 
   phone: (value) => {
-    if (value && !/^[\d\s\-\(\)\+]+$/.test(value)) {
+    if (value && !/^[\d\s\-()+]+$/.test(value)) {
       return 'Please enter a valid phone number'
     }
     return null

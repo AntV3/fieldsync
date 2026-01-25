@@ -623,6 +623,100 @@ export const db = {
     }
   },
 
+  // Universal Search - searches across projects, T&M tickets, CORs, and workers
+  async universalSearch(companyId, query, limit = 10) {
+    if (!isSupabaseConfigured || !query?.trim()) {
+      return { projects: [], tickets: [], cors: [], workers: [] }
+    }
+
+    const searchQuery = query.trim().toLowerCase()
+    const results = { projects: [], tickets: [], cors: [], workers: [] }
+
+    try {
+      // Search projects
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id, name, job_number, address, status')
+        .eq('company_id', companyId)
+        .eq('status', 'active')
+        .or(`name.ilike.%${searchQuery}%,job_number.ilike.%${searchQuery}%,address.ilike.%${searchQuery}%`)
+        .limit(limit)
+
+      results.projects = projects || []
+
+      // Search T&M tickets
+      const { data: tickets } = await supabase
+        .from('t_and_m_tickets')
+        .select(`
+          id, description, work_date, status, project_id,
+          projects!inner(id, name, company_id)
+        `)
+        .eq('projects.company_id', companyId)
+        .ilike('description', `%${searchQuery}%`)
+        .order('work_date', { ascending: false })
+        .limit(limit)
+
+      results.tickets = (tickets || []).map(t => ({
+        ...t,
+        projectName: t.projects?.name || 'Unknown Project'
+      }))
+
+      // Search Change Orders
+      const { data: cors } = await supabase
+        .from('change_orders')
+        .select(`
+          id, cor_number, title, status, project_id,
+          projects!inner(id, name, company_id)
+        `)
+        .eq('projects.company_id', companyId)
+        .or(`title.ilike.%${searchQuery}%,cor_number.ilike.%${searchQuery}%`)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      results.cors = (cors || []).map(c => ({
+        ...c,
+        projectName: c.projects?.name || 'Unknown Project'
+      }))
+
+      // Search workers from recent crew check-ins
+      const { data: checkins } = await supabase
+        .from('crew_checkins')
+        .select(`
+          workers,
+          project_id,
+          projects!inner(id, name, company_id)
+        `)
+        .eq('projects.company_id', companyId)
+        .order('check_in_date', { ascending: false })
+        .limit(50)
+
+      // Extract unique workers matching query
+      const workerMap = new Map()
+      ;(checkins || []).forEach(checkin => {
+        (checkin.workers || []).forEach(worker => {
+          if (worker.name.toLowerCase().includes(searchQuery)) {
+            const key = worker.name.toLowerCase()
+            if (!workerMap.has(key)) {
+              workerMap.set(key, {
+                name: worker.name,
+                role: worker.role,
+                projectName: checkin.projects?.name,
+                lastProject: checkin.projects
+              })
+            }
+          }
+        })
+      })
+
+      results.workers = Array.from(workerMap.values()).slice(0, limit)
+
+      return results
+    } catch (error) {
+      console.error('Universal search error:', error)
+      return results
+    }
+  },
+
   async archiveProject(id) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
@@ -3765,6 +3859,34 @@ export const db = {
       return []
     }
     return data || []
+  },
+
+  // Get unique recent workers from past check-ins (for quick-add feature)
+  async getRecentWorkers(projectId, limit = 30) {
+    if (!isSupabaseConfigured) return []
+
+    const history = await this.getCrewCheckinHistory(projectId, limit)
+
+    // Extract unique workers from all check-ins
+    const workerMap = new Map()
+    history.forEach(checkin => {
+      (checkin.workers || []).forEach(worker => {
+        const key = worker.name.toLowerCase()
+        if (!workerMap.has(key)) {
+          workerMap.set(key, {
+            name: worker.name,
+            role: worker.role,
+            labor_class_id: worker.labor_class_id || null,
+            lastSeen: checkin.check_in_date
+          })
+        }
+      })
+    })
+
+    // Return as array sorted by name
+    return Array.from(workerMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
   },
 
   // Get labor rates for a company (for man day calculations)

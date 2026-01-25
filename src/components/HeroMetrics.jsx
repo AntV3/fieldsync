@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react'
 import { DollarSign, TrendingUp, Receipt, PiggyBank } from 'lucide-react'
-import { HeroMetricsSkeleton } from './ui'
-import { MiniProgress, TrendIndicator } from './ui'
+import { HeroMetricsSkeleton, MiniProgress, TrendIndicator } from './ui'
 
 /**
  * HeroMetrics - Top-level financial summary for project dashboard

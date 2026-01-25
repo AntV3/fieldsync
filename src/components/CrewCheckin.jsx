@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat } from 'lucide-react'
+import { HardHat, UserPlus } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function CrewCheckin({ project, companyId, onShowToast }) {
@@ -8,6 +8,10 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const [saving, setSaving] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newWorker, setNewWorker] = useState({ name: '', role: '', labor_class_id: null })
+
+  // Recent workers for quick-add
+  const [recentWorkers, setRecentWorkers] = useState([])
+  const [loadingRecent, setLoadingRecent] = useState(true)
 
   // Labor classes from company pricing setup
   const [laborCategories, setLaborCategories] = useState([])
@@ -20,6 +24,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   useEffect(() => {
     if (project?.id) {
       loadTodaysCrew()
+      loadRecentWorkers()
       if (companyId) {
         loadLaborClasses()
       } else {
@@ -27,6 +32,17 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       }
     }
   }, [project?.id, companyId])
+
+  const loadRecentWorkers = async () => {
+    try {
+      const recent = await db.getRecentWorkers(project.id, 30)
+      setRecentWorkers(recent)
+    } catch (err) {
+      console.error('Error loading recent workers:', err)
+    } finally {
+      setLoadingRecent(false)
+    }
+  }
 
   const loadLaborClasses = async () => {
     try {
@@ -141,6 +157,37 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     }
   }
 
+  // Quick-add a recent worker with one tap
+  const handleQuickAdd = async (recentWorker) => {
+    // Check if already added
+    if (workers.find(w => w.name.toLowerCase() === recentWorker.name.toLowerCase())) {
+      onShowToast('Already checked in', 'info')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const updatedWorkers = [...workers, {
+        name: recentWorker.name,
+        role: recentWorker.role,
+        labor_class_id: recentWorker.labor_class_id
+      }]
+      await db.saveCrewCheckin(project.id, updatedWorkers)
+      setWorkers(updatedWorkers)
+      onShowToast(`${recentWorker.name} checked in`, 'success')
+    } catch (err) {
+      console.error('Error adding worker:', err)
+      onShowToast('Error adding crew member', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Get recent workers not already checked in today
+  const availableRecentWorkers = recentWorkers.filter(
+    rw => !workers.find(w => w.name.toLowerCase() === rw.name.toLowerCase())
+  )
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
@@ -215,6 +262,29 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
         </div>
       )}
 
+      {/* Quick-add recent workers */}
+      {!loadingRecent && availableRecentWorkers.length > 0 && (
+        <div className="crew-quick-add">
+          <div className="crew-quick-add-header">
+            <span>Tap to add</span>
+          </div>
+          <div className="crew-quick-add-grid">
+            {availableRecentWorkers.map(rw => (
+              <button
+                key={rw.name}
+                className="crew-quick-add-btn"
+                onClick={() => handleQuickAdd(rw)}
+                disabled={saving}
+              >
+                <span className="crew-quick-add-name">{rw.name}</span>
+                <span className="crew-quick-add-role">{rw.role}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manual add form */}
       {showAddForm ? (
         <div className="crew-add-form">
           <input
@@ -270,7 +340,8 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
           className="crew-add-btn"
           onClick={() => setShowAddForm(true)}
         >
-          + Add Crew Member
+          <UserPlus size={18} />
+          <span>Add New Person</span>
         </button>
       )}
 

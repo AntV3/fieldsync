@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { db } from '../lib/supabase'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search } from 'lucide-react'
+import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
@@ -67,6 +68,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showDrawRequestModal, setShowDrawRequestModal] = useState(false)
   const [editingDrawRequest, setEditingDrawRequest] = useState(null)
   const [drawRequestRefreshKey, setDrawRequestRefreshKey] = useState(0)
+
+  // Universal Search (Cmd+K)
+  const { isOpen: isSearchOpen, setIsOpen: setSearchOpen, close: closeSearch } = useUniversalSearch()
 
   // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
   // When multiple real-time events fire rapidly, this coalesces them into a single refresh
@@ -2181,6 +2185,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       <div className="business-overview">
         <div className="bo-header">
           <h2 className="bo-title">Portfolio Overview</h2>
+          <button className="search-trigger-btn" onClick={() => setSearchOpen(true)}>
+            <Search size={16} />
+            <span>Search</span>
+            <span className="shortcut">⌘K</span>
+          </button>
           <div className="bo-project-count">{projects.length} Active Project{projects.length !== 1 ? 's' : ''}</div>
         </div>
 
@@ -2370,6 +2379,37 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           )
         })}
       </div>
+
+      {/* Universal Search Modal */}
+      <UniversalSearch
+        isOpen={isSearchOpen}
+        onClose={closeSearch}
+        companyId={company?.id}
+        onSelectProject={(project) => {
+          handleSelectProject(project)
+        }}
+        onSelectTicket={(ticket) => {
+          // Navigate to project and open T&M tab
+          const project = projects.find(p => p.id === ticket.project_id)
+          if (project) {
+            handleSelectProject(project)
+            setActiveProjectTab('financials')
+            setFinancialsSection('tickets')
+          }
+        }}
+        onSelectCOR={(cor) => {
+          // Navigate to project and open COR
+          const project = projects.find(p => p.id === cor.project_id)
+          if (project) {
+            handleSelectProject(project)
+            setActiveProjectTab('financials')
+            setFinancialsSection('cors')
+            setViewingCOR(cor)
+            setShowCORDetail(true)
+          }
+        }}
+        onShowToast={onShowToast}
+      />
     </div>
   )
 }
