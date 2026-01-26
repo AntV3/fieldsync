@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
@@ -13,6 +13,7 @@ import InjuryReportForm from './InjuryReportForm'
 import DisposalLoadInput from './DisposalLoadInput'
 import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
+import ForemanLanding from './ForemanLanding'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -146,6 +147,11 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     const done = groupAreas.filter(a => a.status === 'done').length
     return `${done}/${groupAreas.length}`
   }
+
+  // Navigation handler for ForemanLanding (must be before early returns)
+  const handleNavigate = useCallback((viewId) => {
+    setActiveView(viewId)
+  }, [])
 
   // T&M Form View
   if (activeView === 'tm') {
@@ -341,7 +347,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
-  // HOME VIEW - Main Dashboard
+  // HOME VIEW - New Mobile Landing Page
   return (
     <div className="fm-view">
       {/* Header */}
@@ -375,135 +381,17 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </div>
       )}
 
-      {/* Progress Bar */}
-      <div className="fm-progress-bar">
-        <div className="fm-progress-fill" style={{ width: `${progress}%` }}></div>
-        <span className="fm-progress-text">{progress}% Complete</span>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="fm-stats">
-        <div className="fm-stat">
-          <span className="fm-stat-num working">{areasWorking}</span>
-          <span className="fm-stat-label">Working</span>
-        </div>
-        <div className="fm-stat">
-          <span className="fm-stat-num done">{areasDone}</span>
-          <span className="fm-stat-label">Done</span>
-        </div>
-        <div className="fm-stat">
-          <span className="fm-stat-num">{areasRemaining}</span>
-          <span className="fm-stat-label">Left</span>
-        </div>
-      </div>
-
-      {/* Smart Action Cards - Priority based on time & completion */}
-      <div className="fm-section">
-        <h3 className="fm-section-title">
-          {isMorning ? 'Good Morning' : isAfternoon ? 'Good Afternoon' : 'Good Evening'}
-        </h3>
-        <div className="fm-smart-cards">
-          {/* Crew Check-in - Priority in morning */}
-          <button
-            className={`fm-smart-card ${todayStatus.crewCheckedIn ? 'completed' : isMorning ? 'priority' : ''}`}
-            onClick={() => setActiveView('crew')}
-          >
-            <div className="fm-smart-card-icon">
-              <Users size={24} />
-            </div>
-            <div className="fm-smart-card-content">
-              <span className="fm-smart-card-title">Crew Check-in</span>
-              <span className="fm-smart-card-status">
-                {todayStatus.crewCheckedIn
-                  ? `${todayStatus.crewCount} checked in`
-                  : 'Not done yet'}
-              </span>
-            </div>
-            {todayStatus.crewCheckedIn && (
-              <div className="fm-smart-card-check">
-                <Check size={20} />
-              </div>
-            )}
-          </button>
-
-          {/* T&M Ticket - Always available */}
-          <button
-            className={`fm-smart-card ${todayStatus.tmTicketsToday > 0 ? 'has-activity' : ''}`}
-            onClick={() => setActiveView('tm')}
-          >
-            <div className="fm-smart-card-icon">
-              <FileText size={24} />
-            </div>
-            <div className="fm-smart-card-content">
-              <span className="fm-smart-card-title">T&M Ticket</span>
-              <span className="fm-smart-card-status">
-                {todayStatus.tmTicketsToday > 0
-                  ? `${todayStatus.tmTicketsToday} today`
-                  : 'Create new'}
-              </span>
-            </div>
-            {todayStatus.tmTicketsToday > 0 && (
-              <div className="fm-smart-card-badge">{todayStatus.tmTicketsToday}</div>
-            )}
-          </button>
-
-          {/* Daily Report - Priority in evening */}
-          <button
-            className={`fm-smart-card ${todayStatus.dailyReportDone ? 'completed' : isEvening ? 'priority' : ''}`}
-            onClick={() => setActiveView('report')}
-          >
-            <div className="fm-smart-card-icon">
-              <ClipboardList size={24} />
-            </div>
-            <div className="fm-smart-card-content">
-              <span className="fm-smart-card-title">Daily Report</span>
-              <span className="fm-smart-card-status">
-                {todayStatus.dailyReportDone ? 'Submitted' : isEvening ? 'Ready to submit' : 'End of day'}
-              </span>
-            </div>
-            {todayStatus.dailyReportDone && (
-              <div className="fm-smart-card-check">
-                <Check size={20} />
-              </div>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Other Actions */}
-      <div className="fm-section">
-        <h3 className="fm-section-title">More Actions</h3>
-        <div className="fm-secondary-actions">
-          <button className="fm-action-row" onClick={() => setActiveView('progress')}>
-            <CheckSquare size={20} />
-            <span>Update Progress</span>
-            <span className="fm-action-badge">{areasRemaining} left</span>
-          </button>
-          <button className="fm-action-row" onClick={() => setActiveView('metrics')}>
-            <BarChart2 size={20} />
-            <span>Project Metrics</span>
-          </button>
-          <button className="fm-action-row" onClick={() => setActiveView('disposal')}>
-            <Truck size={20} />
-            <span>Disposal Loads</span>
-            {todayStatus.disposalLoadsToday > 0 && (
-              <span className="fm-action-badge">{todayStatus.disposalLoadsToday} today</span>
-            )}
-          </button>
-          <button className="fm-action-row" onClick={() => setActiveView('docs')}>
-            <FolderOpen size={20} />
-            <span>Documents</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Emergency Action */}
-      <div className="fm-section">
-        <button className="fm-action-row danger" onClick={() => setActiveView('injury')}>
-          <AlertTriangle size={20} />
-          <span>Report Injury</span>
-        </button>
-      </div>
+      {/* New Mobile-First Landing Page */}
+      <ForemanLanding
+        project={project}
+        todayStatus={todayStatus}
+        progress={progress}
+        areasWorking={areasWorking}
+        areasDone={areasDone}
+        areasRemaining={areasRemaining}
+        onNavigate={handleNavigate}
+        onShowToast={onShowToast}
+      />
     </div>
   )
 }
