@@ -4,7 +4,7 @@ import { calculateProgress } from '../lib/utils'
 import {
   FileText, ClipboardList, AlertTriangle, Info, CheckSquare,
   Truck, FolderOpen, ArrowLeft, ChevronDown, ChevronRight,
-  Users, Clock, CheckCircle2, Moon, Sun, Check
+  Users, Clock, CheckCircle2, Moon, Sun, Check, BarChart2
 } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
@@ -12,6 +12,7 @@ import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
 import DisposalLoadInput from './DisposalLoadInput'
 import FolderGrid from './documents/FolderGrid'
+import ForemanMetrics from './ForemanMetrics'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -235,6 +236,17 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </div>
         <FolderGrid projectId={project.id} onShowToast={onShowToast} />
       </div>
+    )
+  }
+
+  // Metrics View
+  if (activeView === 'metrics') {
+    return (
+      <ForemanMetrics
+        project={project}
+        companyId={companyId}
+        onBack={() => setActiveView('home')}
+      />
     )
   }
 
@@ -466,6 +478,10 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
             <CheckSquare size={20} />
             <span>Update Progress</span>
             <span className="fm-action-badge">{areasRemaining} left</span>
+          </button>
+          <button className="fm-action-row" onClick={() => setActiveView('metrics')}>
+            <BarChart2 size={20} />
+            <span>Project Metrics</span>
           </button>
           <button className="fm-action-row" onClick={() => setActiveView('disposal')}>
             <Truck size={20} />
