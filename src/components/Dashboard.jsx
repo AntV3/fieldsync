@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { db } from '../lib/supabase'
+import { safeAsync } from '../lib/errorHandler'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search } from 'lucide-react'
@@ -274,20 +275,15 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         customCosts,
         corStats
       ] = await Promise.all([
-        db.getAreas(project.id).catch(() => []),
-        db.getTMTickets(project.id).catch(() => []),
-        db.getChangeOrderTotals(project.id).catch(() => null),
-        db.getDailyReports(project.id, 100).catch(() => []),
-        db.getInjuryReports(project.id).catch(() => []),
-        db.calculateManDayCosts(
-          project.id,
-          company?.id,
-          project.work_type || 'demolition',
-          project.job_type || 'standard'
-        ).catch(() => null),
-        db.calculateHaulOffCosts(project.id).catch(() => null),
-        db.getProjectCosts(project.id).catch(() => []),
-        db.getCORStats(project.id).catch(() => null)
+        safeAsync(() => db.getAreas(project.id), { fallback: [], context: { operation: 'getAreas', projectId: project.id } }),
+        safeAsync(() => db.getTMTickets(project.id), { fallback: [], context: { operation: 'getTMTickets', projectId: project.id } }),
+        safeAsync(() => db.getChangeOrderTotals(project.id), { fallback: null, context: { operation: 'getChangeOrderTotals', projectId: project.id } }),
+        safeAsync(() => db.getDailyReports(project.id, 100), { fallback: [], context: { operation: 'getDailyReports', projectId: project.id } }),
+        safeAsync(() => db.getInjuryReports(project.id), { fallback: [], context: { operation: 'getInjuryReports', projectId: project.id } }),
+        safeAsync(() => db.calculateManDayCosts(project.id, company?.id, project.work_type || 'demolition', project.job_type || 'standard'), { fallback: null, context: { operation: 'calculateManDayCosts', projectId: project.id } }),
+        safeAsync(() => db.calculateHaulOffCosts(project.id), { fallback: null, context: { operation: 'calculateHaulOffCosts', projectId: project.id } }),
+        safeAsync(() => db.getProjectCosts(project.id), { fallback: [], context: { operation: 'getProjectCosts', projectId: project.id } }),
+        safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } })
       ])
 
       // Calculate progress - use SOV values if available

@@ -5,6 +5,7 @@ import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
+import InjuryReportCard from './InjuryReportCard'
 import Toast from './Toast'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
@@ -449,62 +450,16 @@ export default function InjuryReportsList({ project, companyId, company, user, o
                   {expandedMonths.has(monthKey) && (
                     <div className="month-reports">
                       {monthData.reports.map(report => (
-                        <div
+                        <InjuryReportCard
                           key={report.id}
-                          className="report-card"
-                          onClick={() => handleViewDetails(report)}
-                        >
-                          <div className="report-header">
-                            <div>
-                              <div className="report-date">
-                                {formatDate(report.incident_date)} at {formatTime(report.incident_time)}
-                              </div>
-                              <div className="employee-name">{report.employee_name}</div>
-                            </div>
-                            <div className="report-badges">
-                              <span
-                                className="badge"
-                                style={{ backgroundColor: getInjuryTypeColor(report.injury_type) }}
-                              >
-                                {getInjuryTypeLabel(report.injury_type)}
-                              </span>
-                              <span
-                                className="badge"
-                                style={{ backgroundColor: getStatusColor(report.status) }}
-                              >
-                                {report.status.replace('_', ' ')}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="report-summary">
-                            <div className="summary-item">
-                              <strong>Location:</strong> {report.incident_location}
-                            </div>
-                            <div className="summary-item">
-                              <strong>Reported by:</strong> {report.reported_by_name} ({report.reported_by_title})
-                            </div>
-                            {report.body_part_affected && (
-                              <div className="summary-item">
-                                <strong>Body Part:</strong> {report.body_part_affected}
-                              </div>
-                            )}
-                            {report.osha_recordable && (
-                              <div className="summary-item">
-                                <span className="osha-badge">OSHA Recordable</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="report-description">
-                            {report.incident_description.substring(0, 150)}
-                            {report.incident_description.length > 150 && '...'}
-                          </div>
-
-                          <div className="report-footer">
-                            <span>Click to view full details</span>
-                          </div>
-                        </div>
+                          report={report}
+                          formatDate={formatDate}
+                          formatTime={formatTime}
+                          getInjuryTypeColor={getInjuryTypeColor}
+                          getInjuryTypeLabel={getInjuryTypeLabel}
+                          getStatusColor={getStatusColor}
+                          onViewDetails={handleViewDetails}
+                        />
                       ))}
                     </div>
                   )}
@@ -513,62 +468,16 @@ export default function InjuryReportsList({ project, companyId, company, user, o
             ) : (
               // Recent view - simple list
               filteredReports.map(report => (
-                <div
+                <InjuryReportCard
                   key={report.id}
-                  className="report-card"
-                  onClick={() => handleViewDetails(report)}
-                >
-                  <div className="report-header">
-                    <div>
-                      <div className="report-date">
-                        {formatDate(report.incident_date)} at {formatTime(report.incident_time)}
-                      </div>
-                      <div className="employee-name">{report.employee_name}</div>
-                    </div>
-                    <div className="report-badges">
-                      <span
-                        className="badge"
-                        style={{ backgroundColor: getInjuryTypeColor(report.injury_type) }}
-                      >
-                        {getInjuryTypeLabel(report.injury_type)}
-                      </span>
-                      <span
-                        className="badge"
-                        style={{ backgroundColor: getStatusColor(report.status) }}
-                      >
-                        {report.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="report-summary">
-                    <div className="summary-item">
-                      <strong>Location:</strong> {report.incident_location}
-                    </div>
-                    <div className="summary-item">
-                      <strong>Reported by:</strong> {report.reported_by_name} ({report.reported_by_title})
-                    </div>
-                    {report.body_part_affected && (
-                      <div className="summary-item">
-                        <strong>Body Part:</strong> {report.body_part_affected}
-                      </div>
-                    )}
-                    {report.osha_recordable && (
-                      <div className="summary-item">
-                        <span className="osha-badge">OSHA Recordable</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="report-description">
-                    {report.incident_description.substring(0, 150)}
-                    {report.incident_description.length > 150 && '...'}
-                  </div>
-
-                  <div className="report-footer">
-                    <span>Click to view full details</span>
-                  </div>
-                </div>
+                  report={report}
+                  formatDate={formatDate}
+                  formatTime={formatTime}
+                  getInjuryTypeColor={getInjuryTypeColor}
+                  getInjuryTypeLabel={getInjuryTypeLabel}
+                  getStatusColor={getStatusColor}
+                  onViewDetails={handleViewDetails}
+                />
               ))
             )}
           </div>

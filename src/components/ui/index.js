@@ -33,3 +33,5 @@ export {
   MetricDelta,
   CircularProgress
 } from './MicroVis'
+
+export { default as Modal } from './Modal'

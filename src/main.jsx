@@ -17,11 +17,11 @@ if ('serviceWorker' in navigator) {
       .then((registration) => {
         // Check for updates periodically (every 5 minutes)
         setInterval(() => {
-          registration.update().catch(() => {})
+          registration.update().catch(err => console.debug('[SW] Update check failed:', err.message))
         }, 300000)
       })
-      .catch(() => {
-        // Service worker registration failed silently
+      .catch(err => {
+        console.debug('[SW] Registration failed:', err.message)
       })
   })
 

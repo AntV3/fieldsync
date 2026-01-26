@@ -139,11 +139,17 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content share-modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-overlay" onClick={onClose} role="presentation">
+        <div
+          className="modal-content share-modal"
+          onClick={e => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-modal-title"
+        >
           <div className="modal-header">
-            <h2>Share Project: {project.name}</h2>
-            <button className="close-btn" onClick={onClose}>&times;</button>
+            <h2 id="share-modal-title">Share Project: {project.name}</h2>
+            <button className="close-btn" onClick={onClose} aria-label="Close share modal">&times;</button>
           </div>
 
           <div className="modal-body">
@@ -164,6 +170,7 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
                             className="btn-small"
                             onClick={() => handleCopyLink(share.share_token)}
                             disabled={!share.is_active || isExpired(share.expires_at)}
+                            aria-label="Copy share link to clipboard"
                           >
                             Copy
                           </button>

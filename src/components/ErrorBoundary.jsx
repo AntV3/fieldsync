@@ -29,7 +29,8 @@ export default class ErrorBoundary extends Component {
           Promise.all(names.map((name) => caches.delete(name))).then(() => {
             window.location.reload()
           })
-        }).catch(() => {
+        }).catch(err => {
+          console.warn('[ErrorBoundary] Cache clear failed, reloading anyway:', err.message)
           window.location.reload()
         })
       } else {

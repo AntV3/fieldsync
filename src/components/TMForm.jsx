@@ -289,6 +289,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customItem, setCustomItem] = useState({ name: '', category: '', quantity: '' })
   const materialsSearchRef = useRef(null)
+  const focusTimeoutRef = useRef(null)
 
   // Same as Yesterday state
   const [loadingPreviousCrew, setLoadingPreviousCrew] = useState(false)
@@ -608,9 +609,12 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   useEffect(() => {
     if (step === 3 && materialsSearchRef.current && !selectedCategory) {
       // Small delay to ensure the element is rendered
-      setTimeout(() => {
+      focusTimeoutRef.current = setTimeout(() => {
         materialsSearchRef.current?.focus()
       }, 100)
+    }
+    return () => {
+      if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current)
     }
   }, [step, selectedCategory])
 

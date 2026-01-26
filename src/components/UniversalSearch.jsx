@@ -17,6 +17,15 @@ export default function UniversalSearch({
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef(null)
   const searchTimeoutRef = useRef(null)
+  const focusTimeoutRef = useRef(null)
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+      if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current)
+    }
+  }, [])
 
   // Focus input when modal opens
   useEffect(() => {
@@ -24,7 +33,7 @@ export default function UniversalSearch({
       setQuery('')
       setResults({ projects: [], tickets: [], cors: [], workers: [] })
       setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      focusTimeoutRef.current = setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [isOpen])
 

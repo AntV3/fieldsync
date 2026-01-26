@@ -1265,7 +1265,7 @@ export const db = {
 
       // Update cache with server response
       if (data) {
-        updateCachedAreaStatus(id, status).catch(() => {})
+        updateCachedAreaStatus(id, status).catch(err => console.error('Failed to update cached area status:', err))
       }
 
       return data

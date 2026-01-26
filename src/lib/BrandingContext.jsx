@@ -125,7 +125,7 @@ export function BrandingProvider({ children, companyId }) {
     }
   }
 
-  const updateBranding = async (updates) => {
+  const updateBranding = useCallback(async (updates) => {
     try {
       if (!isSupabaseConfigured) {
         // Demo mode - just update state
@@ -198,7 +198,7 @@ export function BrandingProvider({ children, companyId }) {
       console.error('Error in updateBranding:', error)
       return { success: false, error: error.message }
     }
-  }
+  }, [companyId])
 
   const applyBrandingToDOM = (branding) => {
     const root = document.documentElement
@@ -222,7 +222,7 @@ export function BrandingProvider({ children, companyId }) {
     document.title = branding.custom_app_name || 'FieldSync'
   }
 
-  const uploadBrandingImage = async (file, type) => {
+  const uploadBrandingImage = useCallback(async (file, type) => {
     try {
       if (!isSupabaseConfigured) {
         // Demo mode - create object URL
@@ -255,7 +255,7 @@ export function BrandingProvider({ children, companyId }) {
       console.error('Error in uploadBrandingImage:', error)
       return { success: false, error: error.message }
     }
-  }
+  }, [companyId])
 
   const refreshBranding = useCallback(() => {
     if (companyId) {
@@ -271,7 +271,7 @@ export function BrandingProvider({ children, companyId }) {
     updateBranding,
     uploadBrandingImage,
     refreshBranding
-  }), [branding, loading, refreshBranding])
+  }), [branding, loading, updateBranding, uploadBrandingImage, refreshBranding])
 
   return (
     <BrandingContext.Provider value={value}>
