@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { HardHat, UserPlus } from 'lucide-react'
 import { db } from '../lib/supabase'
 
@@ -21,19 +21,20 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   // Fallback roles if no custom labor classes are set up
   const defaultRoles = ['Foreman', 'Laborer', 'Supervisor', 'Operator']
 
-  useEffect(() => {
-    if (project?.id) {
-      loadTodaysCrew()
-      loadRecentWorkers()
-      if (companyId) {
-        loadLaborClasses()
-      } else {
-        setLoadingClasses(false)
+  const loadTodaysCrew = useCallback(async () => {
+    try {
+      const checkin = await db.getCrewCheckin(project.id)
+      if (checkin?.workers) {
+        setWorkers(checkin.workers)
       }
+    } catch (err) {
+      console.error('Error loading crew:', err)
+    } finally {
+      setLoading(false)
     }
-  }, [project?.id, companyId])
+  }, [project?.id])
 
-  const loadRecentWorkers = async () => {
+  const loadRecentWorkers = useCallback(async () => {
     try {
       const recent = await db.getRecentWorkers(project.id, 30)
       setRecentWorkers(recent)
@@ -42,9 +43,9 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     } finally {
       setLoadingRecent(false)
     }
-  }
+  }, [project?.id])
 
-  const loadLaborClasses = async () => {
+  const loadLaborClasses = useCallback(async () => {
     try {
       // Use field-safe function that doesn't expose labor rates
       const data = await db.getLaborClassesForField(companyId)
@@ -66,20 +67,19 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     } finally {
       setLoadingClasses(false)
     }
-  }
+  }, [companyId, onShowToast])
 
-  const loadTodaysCrew = async () => {
-    try {
-      const checkin = await db.getCrewCheckin(project.id)
-      if (checkin?.workers) {
-        setWorkers(checkin.workers)
+  useEffect(() => {
+    if (project?.id) {
+      loadTodaysCrew()
+      loadRecentWorkers()
+      if (companyId) {
+        loadLaborClasses()
+      } else {
+        setLoadingClasses(false)
       }
-    } catch (err) {
-      console.error('Error loading crew:', err)
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [project?.id, companyId, loadTodaysCrew, loadRecentWorkers, loadLaborClasses])
 
   const handleRoleChange = (value) => {
     // Check if it's a labor class ID (UUID format)

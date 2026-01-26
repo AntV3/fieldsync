@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import Toast from './Toast'
 
@@ -21,19 +21,19 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
   const [expirationType, setExpirationType] = useState('never')
   const [customExpiration, setCustomExpiration] = useState('')
 
-  // Load existing shares
-  useEffect(() => {
-    loadShares()
-  }, [project.id])
-
-  const loadShares = async () => {
+  const loadShares = useCallback(async () => {
     try {
       const shares = await db.getProjectShares(project.id)
       setExistingShares(shares)
     } catch (error) {
       console.error('Error loading shares:', error)
     }
-  }
+  }, [project.id])
+
+  // Load existing shares
+  useEffect(() => {
+    loadShares()
+  }, [loadShares])
 
   const handlePermissionChange = (key) => {
     setPermissions(prev => ({

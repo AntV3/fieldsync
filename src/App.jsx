@@ -47,53 +47,8 @@ export default function App() {
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
-  useEffect(() => {
-    // Check if this is a public share link or signature link
-    // Token patterns support alphanumeric, underscore, and hyphen (for UUID-style tokens)
-    const path = window.location.pathname
-    const shareMatch = path.match(/^\/view\/([a-zA-Z0-9_-]+)$/)
-    const signatureMatch = path.match(/^\/sign\/([a-zA-Z0-9_-]+)$/)
-
-    if (shareMatch) {
-      setShareToken(shareMatch[1])
-      setView('public')
-      setLoading(false)
-    } else if (signatureMatch) {
-      setSignatureToken(signatureMatch[1])
-      setView('signature')
-      setLoading(false)
-    } else {
-      checkAuth()
-    }
-  }, [])
-
-  // Listen for auth state changes (handles token refresh and session expiry)
-  useEffect(() => {
-    if (!isSupabaseConfigured) return
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          // User signed out - reset state
-          setUser(null)
-          setCompany(null)
-          setUserCompanies([])
-          setView('entry')
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Token was refreshed - no action needed, session is valid
-        } else if (event === 'SIGNED_IN' && !user) {
-          // User signed in (might be from another tab or session restore)
-          checkAuth()
-        }
-      }
-    )
-
-    return () => {
-      subscription?.unsubscribe()
-    }
-  }, [user])
-
-  const checkAuth = async () => {
+  // checkAuth defined before useEffect to avoid ESLint warning
+  const checkAuth = useCallback(async () => {
     try {
       // Guard: If Supabase isn't configured, skip auth check
       if (!isSupabaseConfigured) {
@@ -102,37 +57,37 @@ export default function App() {
       }
 
       // Check if user is logged in
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
         setLoading(false)
         return
       }
 
       // Get user record
-      const { data: userData, error } = await supabase
+      const { data: userData } = await supabase
         .from('users')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', authUser.id)
         .single()
 
       if (userData) {
         setUser(userData)
 
         // Fetch all companies user has ACTIVE access to
-        let companies = await db.getUserCompanies(user.id)
+        let companies = await db.getUserCompanies(authUser.id)
 
         // If no active companies, check if this is a legacy user
         if (companies.length === 0 && userData.company_id) {
           // Legacy user detected - attempt repair
           const repaired = await db.repairLegacyUser(
-            user.id,
+            authUser.id,
             userData.company_id,
             userData.role || 'member'
           )
 
           if (repaired) {
             // Retry fetching companies after repair
-            companies = await db.getUserCompanies(user.id)
+            companies = await db.getUserCompanies(authUser.id)
           }
         }
 
@@ -140,13 +95,13 @@ export default function App() {
 
         // If still no active companies, check for pending memberships
         if (companies.length === 0) {
-          const pendingCount = await db.getUserPendingMemberships(user.id)
+          const pendingCount = await db.getUserPendingMemberships(authUser.id)
           if (pendingCount > 0) {
             setView('pending')
             return
           }
           // No active or pending - show entry screen
-          showToast('No company access. Join a company to continue.', 'error')
+          setToast({ message: 'No company access. Join a company to continue.', type: 'error' })
           await auth.signOut()
           return
         }
@@ -178,7 +133,53 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    // Check if this is a public share link or signature link
+    // Token patterns support alphanumeric, underscore, and hyphen (for UUID-style tokens)
+    const path = window.location.pathname
+    const shareMatch = path.match(/^\/view\/([a-zA-Z0-9_-]+)$/)
+    const signatureMatch = path.match(/^\/sign\/([a-zA-Z0-9_-]+)$/)
+
+    if (shareMatch) {
+      setShareToken(shareMatch[1])
+      setView('public')
+      setLoading(false)
+    } else if (signatureMatch) {
+      setSignatureToken(signatureMatch[1])
+      setView('signature')
+      setLoading(false)
+    } else {
+      checkAuth()
+    }
+  }, [checkAuth])
+
+  // Listen for auth state changes (handles token refresh and session expiry)
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          // User signed out - reset state
+          setUser(null)
+          setCompany(null)
+          setUserCompanies([])
+          setView('entry')
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Token was refreshed - no action needed, session is valid
+        } else if (event === 'SIGNED_IN' && !user) {
+          // User signed in (might be from another tab or session restore)
+          checkAuth()
+        }
+      }
+    )
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [user, checkAuth])
 
   // Foreman accessed project via PIN
   const handleForemanAccess = (project) => {
