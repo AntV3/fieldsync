@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import {
   initOfflineDB,
   getConnectionStatus,
@@ -23,120 +22,28 @@ import {
   ACTION_TYPES
 } from './offlineManager'
 // Import supabase client from separate file to avoid circular dependency with observability
-import { supabase, isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from './supabaseClient'
+import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { observe } from './observability'
+// Import field session management from dedicated module
+import {
+  getFieldSession,
+  setFieldSession,
+  clearFieldSession,
+  getFieldClient,
+  getClient,
+  getSupabaseClient,
+  isFieldMode,
+  getFieldProjectId,
+  getFieldCompanyId
+} from './fieldSession'
 
 // Re-export for other modules
 export { supabase, isSupabaseConfigured }
+export { clearFieldSession, getSupabaseClient, isFieldMode, getFieldProjectId, getFieldCompanyId }
 
 // Initialize offline database (guard for SSR/test environments)
 if (typeof window !== 'undefined') {
   initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
-}
-
-// ============================================
-// Field Session Management
-// ============================================
-// Field workers authenticate via PIN and receive a session token.
-// This token must be included in all subsequent requests.
-
-const FIELD_SESSION_KEY = 'fieldsync_field_session'
-
-// Store field session data
-let fieldSessionData = null
-
-// Get stored field session
-const getFieldSession = () => {
-  if (fieldSessionData) return fieldSessionData
-
-  try {
-    const stored = sessionStorage.getItem(FIELD_SESSION_KEY)
-    if (stored) {
-      fieldSessionData = JSON.parse(stored)
-      return fieldSessionData
-    }
-  } catch (e) {
-    // Ignore parse errors
-  }
-  return null
-}
-
-// Save field session
-const setFieldSession = (session) => {
-  fieldSessionData = session
-  if (session) {
-    sessionStorage.setItem(FIELD_SESSION_KEY, JSON.stringify(session))
-  } else {
-    sessionStorage.removeItem(FIELD_SESSION_KEY)
-  }
-}
-
-// Clear field session (logout)
-export const clearFieldSession = async () => {
-  const session = getFieldSession()
-  if (session?.token && isSupabaseConfigured) {
-    // Invalidate on server
-    try {
-      await supabase.rpc('invalidate_field_session', { p_session_token: session.token })
-    } catch (e) {
-      // Ignore errors during logout
-    }
-  }
-  setFieldSession(null)
-}
-
-// Create a Supabase client with field session header
-let fieldClient = null
-
-const getFieldClient = () => {
-  const session = getFieldSession()
-  if (!session?.token || !isSupabaseConfigured) return supabase
-
-  // Create client with session header if not already created or token changed
-  if (!fieldClient || fieldClient._sessionToken !== session.token) {
-    fieldClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          'x-field-session': session.token
-        }
-      }
-    })
-    fieldClient._sessionToken = session.token
-  }
-
-  return fieldClient
-}
-
-// Export function to get the appropriate client for field operations
-export const getSupabaseClient = () => {
-  const session = getFieldSession()
-  return session?.token ? getFieldClient() : supabase
-}
-
-// Internal function to get client - used by db methods
-// Returns field client with session header if in field mode, otherwise regular client
-const getClient = () => {
-  if (!isSupabaseConfigured) return null
-  const session = getFieldSession()
-  return session?.token ? getFieldClient() : supabase
-}
-
-// Check if currently in field mode with valid session
-export const isFieldMode = () => {
-  const session = getFieldSession()
-  return Boolean(session?.token && session?.projectId)
-}
-
-// Get current field project ID
-export const getFieldProjectId = () => {
-  const session = getFieldSession()
-  return session?.projectId || null
-}
-
-// Get current field company ID
-export const getFieldCompanyId = () => {
-  const session = getFieldSession()
-  return session?.companyId || null
 }
 
 // Local storage fallback for demo mode

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { ThemeProvider } from './lib/ThemeContext'
+import { ToastProvider } from './lib/ToastContext'
 import AppEntry from './components/AppEntry'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
@@ -519,6 +520,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <BrandingProvider companyId={company?.id}>
+      <ToastProvider>
       <div>
         {/* Demo Banner */}
         {!isSupabaseConfigured && (
@@ -825,6 +827,7 @@ export default function App() {
           />
         )}
       </div>
+      </ToastProvider>
       </BrandingProvider>
     </ThemeProvider>
   )
