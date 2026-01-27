@@ -21,6 +21,7 @@ import HeroMetrics from './HeroMetrics'
 import FinancialsNav from './FinancialsNav'
 import { FinancialTrendChart } from './charts'
 import { TicketSkeleton, ChartSkeleton } from './ui'
+import { OverviewProgressGauge, OverviewFinancialCard } from './overview'
 
 // Lazy load modals and conditionally rendered heavy components
 const TMList = lazy(() => import('./TMList'))
@@ -1357,50 +1358,25 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         <div className="pv-tab-content">
           {/* OVERVIEW TAB */}
           {activeProjectTab === 'overview' && (
-            <div className="pv-tab-panel overview-tab">
-              {/* Hero Metrics */}
-              <div className="overview-hero">
-                <div className="overview-hero-grid">
-                  {/* Progress */}
-                  <div className="overview-metric primary">
-                    <div className="overview-metric-value">{progress}%</div>
-                    <div className="overview-metric-label">Complete</div>
-                    <div className="overview-metric-bar">
-                      <div className="overview-metric-fill" style={{ width: `${progress}%` }}></div>
-                    </div>
-                  </div>
-
-                  {/* Areas Status */}
-                  <div className="overview-metric">
-                    <div className="overview-metric-value">{areasComplete}/{areas.length}</div>
-                    <div className="overview-metric-label">Areas Done</div>
-                    <div className="overview-metric-detail">
-                      {areasWorking > 0 && <span className="working">{areasWorking} active</span>}
-                    </div>
-                  </div>
-
-                  {/* Contract Value */}
-                  <div className="overview-metric">
-                    <div className="overview-metric-value">{formatCurrency(revisedContractValue)}</div>
-                    <div className="overview-metric-label">Contract</div>
-                    {hasChangeOrders && (
-                      <div className="overview-metric-detail green">+{formatCurrency(changeOrderValue)} COs</div>
-                    )}
-                  </div>
-
-                  {/* Billable */}
-                  <div className="overview-metric">
-                    <div className="overview-metric-value green">{formatCurrency(billable)}</div>
-                    <div className="overview-metric-label">Earned</div>
-                    <div className="overview-metric-detail">
-                      {isValueBased ? (
-                        <span>of {formatCurrency(totalSOVValue)} SOV</span>
-                      ) : (
-                        <span>{percentBilled}% billed</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+            <div className="pv-tab-panel overview-tab animate-fade-in">
+              {/* Enhanced Hero - Progress Gauge + Financial Snapshot */}
+              <div className="overview-hero-split">
+                <OverviewProgressGauge
+                  progress={progress}
+                  areasComplete={areasComplete}
+                  totalAreas={areas.length}
+                  areasWorking={areasWorking}
+                />
+                <OverviewFinancialCard
+                  earnedRevenue={billable}
+                  totalCosts={projectData?.allCostsTotal || 0}
+                  laborCost={projectData?.laborCost || 0}
+                  disposalCost={projectData?.haulOffCost || 0}
+                  equipmentCost={projectData?.materialsEquipmentCost || 0}
+                  materialsCost={0}
+                  otherCost={projectData?.customCostTotal || 0}
+                  contractValue={revisedContractValue}
+                />
               </div>
 
               {/* Action Items - What needs attention */}
@@ -1451,7 +1427,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     {areasNotStarted > 0 && <span className="section-badge pending">{areasNotStarted} Pending</span>}
                   </div>
                 </div>
-                <div className="work-areas-list">
+                <div className="work-areas-list stagger-areas">
                   {areas.map(area => (
                     <div key={area.id} className={`work-area-item ${area.status}`}>
                       <div className="work-area-status">
