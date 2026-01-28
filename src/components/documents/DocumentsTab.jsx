@@ -71,6 +71,9 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
   const isOfficeOrAdmin = userRole === 'office' || userRole === 'administrator'
   const isFieldUser = userRole === 'foreman'
 
+  // Track selected folder for real-time updates
+  const selectedFolderRef = useRef(null)
+
   // Load folders
   const loadFolders = useCallback(async () => {
     setLoading(true)
@@ -85,10 +88,28 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     }
   }, [project.id, onShowToast])
 
-  // Initial load
+  // Initial load and real-time subscriptions
   useEffect(() => {
     loadFolders()
-  }, [loadFolders])
+
+    // Subscribe to real-time document and folder changes
+    const folderSub = db.subscribeToDocumentFolders?.(project.id, () => {
+      loadFolders()
+    })
+    const docSub = db.subscribeToDocuments?.(project.id, () => {
+      // Refresh folder counts when documents change
+      loadFolders()
+      // If a folder is open, refresh its documents
+      if (selectedFolderRef.current) {
+        loadFolderDocuments(selectedFolderRef.current, true)
+      }
+    })
+
+    return () => {
+      folderSub?.unsubscribe?.()
+      docSub?.unsubscribe?.()
+    }
+  }, [loadFolders, project.id])
 
   // Load documents in folder
   const loadFolderDocuments = async (folder, reset = false) => {
@@ -122,6 +143,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
   // Open folder
   const openFolder = (folder) => {
     setSelectedFolder(folder)
+    selectedFolderRef.current = folder
     setSearchQuery('')
     setSearchResults(null)
     loadFolderDocuments(folder, true)
@@ -130,6 +152,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
   // Go back to folder list
   const goBack = () => {
     setSelectedFolder(null)
+    selectedFolderRef.current = null
     setDocuments([])
     setSearchResults(null)
     setSearchQuery('')
