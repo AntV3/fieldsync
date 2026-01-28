@@ -372,6 +372,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   useEffect(() => {
     loadTodaysCrew()
     loadAssignableCORs()
+
+    // Subscribe to COR changes so new CORs appear automatically
+    const corSub = db.subscribeToCORs?.(project.id, () => {
+      loadAssignableCORs()
+    })
+
+    return () => {
+      corSub?.unsubscribe?.()
+    }
   }, [project.id])
 
   // Load custom labor classes for the company

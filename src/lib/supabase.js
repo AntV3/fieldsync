@@ -7008,6 +7008,35 @@ export const db = {
     return null
   },
 
+  // Subscribe to document changes for a project
+  // Fires when documents are uploaded, updated, or archived
+  subscribeToDocuments(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`documents:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'documents', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to document folder changes for a project
+  subscribeToDocumentFolders(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`document_folders:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'document_folders', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
   // ============================================
   // Signature Workflow Functions
   // ============================================
@@ -7767,6 +7796,7 @@ export const db = {
         .select('folder_id')
         .in('folder_id', folderIds)
         .is('archived_at', null)
+        .eq('is_current', true)
 
       if (!countError && counts) {
         const countMap = {}
