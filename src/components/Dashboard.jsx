@@ -32,6 +32,7 @@ const DailyReportsList = lazy(() => import('./DailyReportsList'))
 const CORList = lazy(() => import('./cor/CORList'))
 const CORForm = lazy(() => import('./cor/CORForm'))
 const CORDetail = lazy(() => import('./cor/CORDetail'))
+const CORLogPreview = lazy(() => import('./cor/CORLogPreview'))
 const BillingCenter = lazy(() => import('./billing/BillingCenter'))
 const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
 const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
@@ -1005,6 +1006,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   const handleBackToCORPreview = useCallback(() => {
     setCORViewMode('preview')
+    setCORDisplayMode('list') // Reset display mode when going back to preview
+  }, [])
+
+  const handleViewFullCORLog = useCallback(() => {
+    setCORDisplayMode('log')
+    setCORViewMode('full')
   }, [])
 
   const handleCreateCOR = useCallback(() => {
@@ -1615,30 +1622,46 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   {financialsSection === 'cors' && (
                     <div className="financials-cors animate-fade-in">
                       <div className="financials-section cor-section-primary">
-                        {corViewMode === 'full' && corDisplayMode !== 'log' && (
-                          <button
-                            className="section-back-btn"
-                            onClick={handleBackToCORPreview}
-                          >
-                            ← Back to summary
-                          </button>
+                        {/* Preview Mode - Shows COR Log Preview (summary + table) */}
+                        {corViewMode === 'preview' && (
+                          <Suspense fallback={<TicketSkeleton />}>
+                            <CORLogPreview
+                              project={selectedProject}
+                              onShowToast={onShowToast}
+                              onViewFullList={handleViewAllCORs}
+                              onViewFullLog={handleViewFullCORLog}
+                              onCreateCOR={handleCreateCOR}
+                              previewLimit={5}
+                            />
+                          </Suspense>
                         )}
-                        <Suspense fallback={<TicketSkeleton />}>
-                          <CORList
-                            project={selectedProject}
-                            company={company}
-                            areas={areas}
-                            refreshKey={corRefreshKey}
-                            onShowToast={onShowToast}
-                            previewMode={corViewMode === 'preview' && corDisplayMode !== 'log'}
-                            previewLimit={5}
-                            onViewAll={handleViewAllCORs}
-                            onDisplayModeChange={setCORDisplayMode}
-                            onCreateCOR={handleCreateCOR}
-                            onViewCOR={handleViewCOR}
-                            onEditCOR={handleEditCOR}
-                          />
-                        </Suspense>
+
+                        {/* Full Mode - Shows full COR List or Log */}
+                        {corViewMode === 'full' && (
+                          <>
+                            <button
+                              className="section-back-btn"
+                              onClick={handleBackToCORPreview}
+                            >
+                              ← Back to summary
+                            </button>
+                            <Suspense fallback={<TicketSkeleton />}>
+                              <CORList
+                                project={selectedProject}
+                                company={company}
+                                areas={areas}
+                                refreshKey={corRefreshKey}
+                                onShowToast={onShowToast}
+                                previewMode={false}
+                                onViewAll={handleViewAllCORs}
+                                onDisplayModeChange={setCORDisplayMode}
+                                onCreateCOR={handleCreateCOR}
+                                onViewCOR={handleViewCOR}
+                                onEditCOR={handleEditCOR}
+                              />
+                            </Suspense>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
