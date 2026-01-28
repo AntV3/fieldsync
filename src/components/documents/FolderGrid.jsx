@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Download, ArrowLeft, Loader2, File, Image, FileSpreadsheet, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 
@@ -56,11 +56,10 @@ export default function FolderGrid({ projectId, onShowToast }) {
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(false)
 
-  useEffect(() => {
-    loadFolders()
-  }, [projectId])
+  // Use ref to track selected folder for real-time updates
+  const selectedFolderRef = useRef(null)
 
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     setLoading(true)
     try {
       const folderList = await db.getProjectFolders(projectId)
@@ -71,13 +70,13 @@ export default function FolderGrid({ projectId, onShowToast }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [projectId, onShowToast])
 
-  const openFolder = async (folder) => {
-    setSelectedFolder(folder)
+  const loadDocuments = useCallback(async (folderId) => {
+    if (!folderId) return
     setLoadingDocs(true)
     try {
-      const result = await db.getFolderDocuments(folder.id)
+      const result = await db.getFolderDocuments(folderId)
       setDocuments(result.documents)
     } catch (error) {
       console.error('Error loading documents:', error)
@@ -85,6 +84,34 @@ export default function FolderGrid({ projectId, onShowToast }) {
     } finally {
       setLoadingDocs(false)
     }
+  }, [onShowToast])
+
+  useEffect(() => {
+    loadFolders()
+
+    // Subscribe to real-time document and folder changes
+    const folderSub = db.subscribeToDocumentFolders?.(projectId, () => {
+      loadFolders()
+    })
+    const docSub = db.subscribeToDocuments?.(projectId, () => {
+      // Refresh folder counts when documents change
+      loadFolders()
+      // If a folder is open, refresh its documents
+      if (selectedFolderRef.current) {
+        loadDocuments(selectedFolderRef.current.id)
+      }
+    })
+
+    return () => {
+      folderSub?.unsubscribe?.()
+      docSub?.unsubscribe?.()
+    }
+  }, [projectId, loadFolders, loadDocuments])
+
+  const openFolder = async (folder) => {
+    setSelectedFolder(folder)
+    selectedFolderRef.current = folder
+    await loadDocuments(folder.id)
   }
 
   const handleDownload = async (doc) => {
@@ -99,6 +126,7 @@ export default function FolderGrid({ projectId, onShowToast }) {
 
   const goBack = () => {
     setSelectedFolder(null)
+    selectedFolderRef.current = null
     setDocuments([])
   }
 
