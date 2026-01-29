@@ -675,6 +675,237 @@
 [data-theme="light"] .cor-log-section.approved .section-total { color: #065f46; }
 [data-theme="light"] .cor-log-section.void .section-total { color: #991b1b; }
 
+/* ===========================================
+   COR CARD LIST - Light Mode Depth & Contrast
+   =========================================== */
+
+/* COR Cards need visible separation from card background */
+[data-theme="light"] .cor-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: var(--primary-color);
+}
+
+/* Stronger colored left border on cards for visual pop */
+[data-theme="light"] .cor-card.draft {
+  border-left: 4px solid #9ca3af;
+}
+
+[data-theme="light"] .cor-card.pending_approval {
+  border-left: 4px solid #f59e0b;
+}
+
+[data-theme="light"] .cor-card.approved {
+  border-left: 4px solid #10b981;
+}
+
+[data-theme="light"] .cor-card.rejected {
+  border-left: 4px solid #ef4444;
+}
+
+[data-theme="light"] .cor-card.billed {
+  border-left: 4px solid #3b82f6;
+}
+
+[data-theme="light"] .cor-card.closed {
+  border-left: 4px solid #6b7280;
+  opacity: 0.85;
+}
+
+/* COR card text contrast */
+[data-theme="light"] .cor-number {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cor-title {
+  color: #1e293b;
+}
+
+[data-theme="light"] .cor-total {
+  color: #059669;
+}
+
+[data-theme="light"] .cor-meta {
+  color: #475569;
+}
+
+[data-theme="light"] .cor-area {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+[data-theme="light"] .cor-period {
+  color: #64748b;
+}
+
+[data-theme="light"] .cor-created {
+  color: #64748b;
+}
+
+[data-theme="light"] .cor-card-footer {
+  border-top-color: #e2e8f0;
+}
+
+[data-theme="light"] .cor-action-btn {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .cor-action-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* COR Selection */
+[data-theme="light"] .cor-card.selected {
+  border-color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.04);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2), 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+[data-theme="light"] .cor-selection-bar {
+  background: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+/* COR signed badge */
+[data-theme="light"] .cor-signed-badge {
+  background: rgba(5, 150, 105, 0.1);
+  color: #065f46;
+}
+
+/* COR List Header & Stats */
+[data-theme="light"] .cor-list-info h3 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cor-stat-item {
+  color: #64748b;
+}
+
+[data-theme="light"] .cor-header-actions .btn {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* COR Filter/Search */
+[data-theme="light"] .cor-filters {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+/* ===========================================
+   GENERAL LIGHT MODE - Add Depth & Warmth
+   =========================================== */
+
+/* Give all cards more presence in light mode */
+[data-theme="light"] .financials-section {
+  background: transparent;
+}
+
+[data-theme="light"] .tm-section {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Section back button */
+[data-theme="light"] .section-back-btn {
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .section-back-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* TM Ticket Cards - match the improved depth */
+[data-theme="light"] .tm-ticket-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .tm-ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Summary cards - more visible */
+[data-theme="light"] .summary-card {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Buttons - subtle depth */
+[data-theme="light"] .btn-secondary {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .btn-primary {
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+[data-theme="light"] .btn-primary:hover {
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+
+/* Table improvements */
+[data-theme="light"] .cor-log-preview-table th {
+  background: #f1f5f9;
+  color: #475569;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+[data-theme="light"] .cor-log-preview-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+[data-theme="light"] .cor-log-table th {
+  border-bottom: 2px solid #cbd5e1;
+}
+
+/* COR Log Preview - extra depth */
+[data-theme="light"] .cor-log-preview {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-log-stat {
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-log-preview-view-all {
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-log-preview-view-all:hover {
+  background: #f1f5f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* COR Log Expanded - depth */
+[data-theme="light"] .cor-log-expanded {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Empty states - warmer background */
+[data-theme="light"] .cor-log-preview-empty,
+[data-theme="light"] .cor-log-empty {
+  background: #f8fafc;
+  color: #64748b;
+}
+
 * {
   margin: 0;
   padding: 0;
