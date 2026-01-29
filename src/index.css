@@ -546,6 +546,135 @@
   color: var(--text-secondary);
 }
 
+/* COR Log Preview - Light Mode Overrides */
+[data-theme="light"] .cor-log-preview {
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+[data-theme="light"] .cor-log-stat {
+  background: var(--bg-secondary);
+}
+
+[data-theme="light"] .cor-log-preview-table-wrapper {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-log-preview-view-all {
+  background: var(--bg-secondary);
+}
+
+/* COR Status Badges - Light Mode ADA Compliant (4.5:1 contrast) */
+[data-theme="light"] .cor-status-badge.draft,
+[data-theme="light"] .cor-log-status.draft {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+[data-theme="light"] .cor-status-badge.pending,
+[data-theme="light"] .cor-log-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-theme="light"] .cor-status-badge.approved,
+[data-theme="light"] .cor-log-status.approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-theme="light"] .cor-status-badge.rejected,
+[data-theme="light"] .cor-log-status.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+[data-theme="light"] .cor-status-badge.billed,
+[data-theme="light"] .cor-log-status.billed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+[data-theme="light"] .cor-status-badge.closed,
+[data-theme="light"] .cor-log-status.closed {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* COR Log Summary Cards - Light Mode */
+[data-theme="light"] .summary-card {
+  background: var(--bg-secondary);
+}
+
+[data-theme="light"] .summary-card.pending svg { color: #d97706; }
+[data-theme="light"] .summary-card.approved svg { color: #059669; }
+[data-theme="light"] .summary-card.void svg { color: #dc2626; }
+[data-theme="light"] .summary-card.total svg { color: var(--primary-color); }
+
+[data-theme="light"] .summary-card.pending .summary-card-amount { color: #92400e; }
+[data-theme="light"] .summary-card.approved .summary-card-amount { color: #065f46; }
+[data-theme="light"] .summary-card.void .summary-card-amount { color: #991b1b; }
+
+/* COR Log Stat Cards - Light Mode accent colors */
+[data-theme="light"] .cor-log-stat.approved .cor-log-stat-icon { color: #059669; }
+[data-theme="light"] .cor-log-stat.pending .cor-log-stat-icon { color: #d97706; }
+[data-theme="light"] .cor-log-stat.void .cor-log-stat-icon { color: #dc2626; }
+
+[data-theme="light"] .cor-log-stat.approved .cor-log-stat-value { color: #065f46; }
+[data-theme="light"] .cor-log-stat.pending .cor-log-stat-value { color: #92400e; }
+[data-theme="light"] .cor-log-stat.void .cor-log-stat-value { color: #991b1b; }
+
+/* COR Log Table - Light Mode */
+[data-theme="light"] .cor-log-table-wrapper {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-log-table thead {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="light"] .cor-log-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+/* COR Log Expanded - Light Mode */
+[data-theme="light"] .cor-log-expanded {
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+/* COR Log Modal - Light Mode */
+[data-theme="light"] .cor-log-modal {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-log-modal-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="light"] .cor-log-modal-close {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .cor-log-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+/* COR Log Summary Row - Light Mode */
+[data-theme="light"] .cor-log-summary-row .summary-breakdown-amounts .approved {
+  color: #065f46;
+}
+
+[data-theme="light"] .cor-log-summary-row .summary-breakdown-amounts .pending {
+  color: #92400e;
+}
+
+/* COR Log Section Colors - Light Mode */
+[data-theme="light"] .cor-log-section.pending .section-total { color: #92400e; }
+[data-theme="light"] .cor-log-section.approved .section-total { color: #065f46; }
+[data-theme="light"] .cor-log-section.void .section-total { color: #991b1b; }
+
 * {
   margin: 0;
   padding: 0;
