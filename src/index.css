@@ -18533,43 +18533,43 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* ============================
    COR Log Preview Styles
+   Matches existing cor-log, summary-card, and cor-log-table patterns
    ============================ */
 
 .cor-log-preview {
-  background: var(--card-bg, #fff);
-  border-radius: 0.75rem;
-  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
   padding: 1.25rem;
   animation: fadeInUp 0.3s ease-out;
 }
 
 .cor-log-preview-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+  padding: 0 0.25rem;
 }
 
 .cor-log-preview-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .cor-log-preview-title h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
 }
 
 .cor-log-preview-count {
-  font-size: 0.85rem;
-  color: var(--text-secondary, #6b7280);
-  background: var(--badge-bg, #f3f4f6);
-  padding: 0.25rem 0.5rem;
-  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .cor-log-preview-actions {
@@ -18577,77 +18577,63 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 0.5rem;
 }
 
-/* Summary Stats Row */
+/* Summary Stats Row - matches .summary-card pattern */
 .cor-log-preview-stats {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
 .cor-log-stat {
-  flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--stat-bg, #f9fafb);
-  border-radius: 0.5rem;
-  border: 1px solid var(--border-color, #e5e7eb);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.cor-log-stat:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
 }
 
 .cor-log-stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.cor-log-stat.approved .cor-log-stat-icon {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-}
-
-.cor-log-stat.pending .cor-log-stat-icon {
-  background: rgba(234, 179, 8, 0.1);
-  color: #eab308;
-}
-
-.cor-log-stat.void .cor-log-stat-icon {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
+.cor-log-stat.approved .cor-log-stat-icon { color: #059669; }
+.cor-log-stat.pending .cor-log-stat-icon { color: #d97706; }
+.cor-log-stat.void .cor-log-stat-icon { color: #dc2626; }
 
 .cor-log-stat-content {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.25rem;
 }
 
 .cor-log-stat-value {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary, #1f2937);
+  color: var(--text-primary);
 }
+
+.cor-log-stat.approved .cor-log-stat-value { color: #059669; }
+.cor-log-stat.pending .cor-log-stat-value { color: #d97706; }
+.cor-log-stat.void .cor-log-stat-value { color: #dc2626; }
 
 .cor-log-stat-label {
   font-size: 0.75rem;
-  color: var(--text-secondary, #6b7280);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
 }
 
-/* Preview Table */
+/* Preview Table - matches .cor-log-table pattern */
 .cor-log-preview-table-wrapper {
   overflow-x: auto;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-card);
   margin-bottom: 0.75rem;
 }
 
@@ -18657,20 +18643,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.875rem;
 }
 
-.cor-log-preview-table th,
-.cor-log-preview-table td {
-  padding: 0.625rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color, #e5e7eb);
-}
-
 .cor-log-preview-table th {
-  background: var(--table-header-bg, #f9fafb);
-  font-weight: 500;
-  color: var(--text-secondary, #6b7280);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.025em;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.cor-log-preview-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
 }
 
 .cor-log-preview-table tbody tr:last-child td {
@@ -18678,12 +18667,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .cor-log-preview-table tbody tr:hover {
-  background: var(--row-hover, #f9fafb);
+  background: var(--bg-tertiary);
 }
 
 .cor-log-preview-table .cor-number {
-  font-weight: 500;
-  color: var(--primary-color, #3b82f6);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .cor-log-preview-table .cor-title {
@@ -18691,70 +18680,79 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
 .cor-log-preview-table .cor-amount {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 .cor-log-preview-table .cor-date {
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-muted);
   font-size: 0.8rem;
 }
 
+/* Status badges - matches .cor-log-status pattern */
 .cor-status-badge {
   display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  text-transform: capitalize;
 }
 
 .cor-status-badge.draft {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--status-draft-bg, #374151);
+  color: var(--status-draft-text, #9ca3af);
 }
 
 .cor-status-badge.pending {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--status-pending-bg, #78350f);
+  color: var(--status-pending-text, #fbbf24);
 }
 
 .cor-status-badge.approved {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--status-approved-bg, #064e3b);
+  color: var(--status-approved-text, #34d399);
 }
 
 .cor-status-badge.rejected {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--status-rejected-bg, #7f1d1d);
+  color: var(--status-rejected-text, #f87171);
 }
 
 .cor-status-badge.billed {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--status-billed-bg, #1e3a5f);
+  color: var(--status-billed-text, #60a5fa);
 }
 
 .cor-status-badge.closed {
-  background: #e5e7eb;
-  color: #4b5563;
+  background: var(--status-closed-bg, #374151);
+  color: var(--status-closed-text, #9ca3af);
 }
 
 /* Empty State */
 .cor-log-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border-radius: 8px;
   text-align: center;
-  padding: 2rem 1rem;
-  color: var(--text-secondary, #6b7280);
 }
 
 .cor-log-preview-empty p {
-  margin: 0 0 1rem;
+  margin: 0;
 }
 
-/* View All Button */
+/* View All / Toggle List Button */
 .cor-log-preview-view-all {
   display: flex;
   align-items: center;
@@ -18762,10 +18760,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 0.5rem;
   width: 100%;
   padding: 0.75rem;
-  background: var(--button-secondary-bg, #f9fafb);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 0.5rem;
-  color: var(--text-secondary, #4b5563);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -18773,9 +18771,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .cor-log-preview-view-all:hover {
-  background: var(--button-secondary-hover, #f3f4f6);
-  color: var(--primary-color, #3b82f6);
-  border-color: var(--primary-color, #3b82f6);
+  background: var(--bg-tertiary);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 .cor-log-preview-view-all svg:last-child {
@@ -18783,7 +18781,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .cor-log-preview-view-all:hover svg:last-child {
-  transform: translateX(4px);
+  transform: translateY(-2px);
 }
 
 /* Loading Skeleton */
@@ -18792,30 +18790,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .skeleton-stats {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
 .skeleton-stat {
-  flex: 1;
   height: 72px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .skeleton-table {
-  border-radius: 0.5rem;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .skeleton-row {
   height: 48px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  background: var(--bg-tertiary);
+  animation: pulse 1.5s ease-in-out infinite;
   margin-bottom: 1px;
 }
 
@@ -18823,6 +18819,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (max-width: 640px) {
   .cor-log-preview {
     padding: 1rem;
+    border-radius: 8px;
   }
 
   .cor-log-preview-header {
@@ -18836,12 +18833,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .cor-log-preview-stats {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     gap: 0.5rem;
-  }
-
-  .cor-log-stat {
-    padding: 0.625rem 0.75rem;
   }
 
   .cor-log-preview-table .cor-title {
