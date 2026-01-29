@@ -24778,6 +24778,67 @@ END MIGRATED */
   font-size: 0.85rem;
 }
 
+/* Crew Timeline Chart */
+.crew-timeline-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.crew-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.crew-timeline-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.crew-time-range-pills {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.crew-range-pill {
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crew-range-pill:hover {
+  color: var(--text-primary);
+}
+
+.crew-range-pill.active {
+  background: var(--bg-elevated);
+  color: var(--accent-blue);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.crew-chart-container {
+  width: 100%;
+  min-height: 180px;
+}
+
+/* Recharts overrides for crew chart */
+.crew-chart-container .recharts-legend-item-text {
+  color: var(--text-secondary) !important;
+  font-size: 0.75rem !important;
+}
+
 /* Light mode crew metrics */
 [data-theme="light"] .crew-metrics-card {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -24795,6 +24856,16 @@ END MIGRATED */
 
 [data-theme="light"] .crew-date-btn:hover:not(:disabled) {
   background: #e2e8f0;
+}
+
+[data-theme="light"] .crew-time-range-pills {
+  background: #e2e8f0;
+}
+
+[data-theme="light"] .crew-range-pill.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Field Document Export Grid */
