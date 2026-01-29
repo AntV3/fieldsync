@@ -3,7 +3,8 @@ import { db } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search } from 'lucide-react'
+import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search, Download } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
@@ -21,7 +22,7 @@ import HeroMetrics from './HeroMetrics'
 import FinancialsNav from './FinancialsNav'
 import { FinancialTrendChart } from './charts'
 import { TicketSkeleton, ChartSkeleton } from './ui'
-import { OverviewProgressGauge, OverviewFinancialCard } from './overview'
+import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from './overview'
 
 // Lazy load modals and conditionally rendered heavy components
 const TMList = lazy(() => import('./TMList'))
@@ -1001,6 +1002,38 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setCORListExpanded(prev => !prev)
   }, [])
 
+  // Field document export handler
+  const handleExportFieldDocuments = useCallback(async (type = 'all') => {
+    if (!selectedProject) return
+    onShowToast('Gathering field data...', 'info')
+    try {
+      const [dailyReports, injuryReports, crewCheckins] = await Promise.all([
+        db.getDailyReports(selectedProject.id, 365),
+        db.getInjuryReports(selectedProject.id),
+        db.getCrewCheckinHistory(selectedProject.id, 365)
+      ])
+
+      if (type === 'daily') {
+        await exportDailyReportsPDF(dailyReports || [], selectedProject)
+      } else if (type === 'incidents') {
+        await exportIncidentReportsPDF(injuryReports || [], selectedProject)
+      } else if (type === 'crew') {
+        await exportCrewCheckinsPDF(crewCheckins || [], selectedProject)
+      } else {
+        await exportAllFieldDocumentsPDF({
+          dailyReports: dailyReports || [],
+          incidentReports: injuryReports || [],
+          crewCheckins: crewCheckins || [],
+          project: selectedProject
+        })
+      }
+      onShowToast('PDF exported!', 'success')
+    } catch (error) {
+      console.error('Error exporting field documents:', error)
+      onShowToast('Error generating PDF', 'error')
+    }
+  }, [selectedProject, onShowToast])
+
   const handleBackToTMPreview = useCallback(() => {
     setTMViewMode('preview')
   }, [])
@@ -1381,6 +1414,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 />
               </div>
 
+              {/* Crew On-Site Metrics */}
+              <OverviewCrewMetrics
+                project={selectedProject}
+                onShowToast={onShowToast}
+              />
+
               {/* Action Items - What needs attention */}
               {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0) && (
                 <div className="overview-attention-card">
@@ -1471,6 +1510,34 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     <span className="quick-stat-label">T&M Tickets</span>
                   </div>
                   <span className="quick-stat-arrow">→</span>
+                </div>
+              </div>
+
+              {/* Field Document Export */}
+              <div className="overview-section-card">
+                <div className="section-card-header">
+                  <h3>Field Documents</h3>
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => handleExportFieldDocuments('all')}
+                    title="Export all field documents as PDF"
+                  >
+                    <Download size={14} /> Export All
+                  </button>
+                </div>
+                <div className="field-export-grid">
+                  <button className="field-export-btn" onClick={() => handleExportFieldDocuments('daily')}>
+                    <ClipboardList size={18} />
+                    <span>Daily Reports</span>
+                  </button>
+                  <button className="field-export-btn" onClick={() => handleExportFieldDocuments('incidents')}>
+                    <FileText size={18} />
+                    <span>Incident Reports</span>
+                  </button>
+                  <button className="field-export-btn" onClick={() => handleExportFieldDocuments('crew')}>
+                    <HardHat size={18} />
+                    <span>Crew Check-Ins</span>
+                  </button>
                 </div>
               </div>
             </div>
