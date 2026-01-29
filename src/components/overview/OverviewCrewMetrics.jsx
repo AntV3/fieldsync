@@ -406,7 +406,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         </div>
 
         <div className="crew-chart-container">
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer width="100%" height={140}>
             <BarChart
               data={chartData}
               onClick={(e) => e?.activePayload?.[0] && handleBarClick(e.activePayload[0].payload)}

@@ -9,8 +9,8 @@ export const OverviewProgressGauge = memo(function OverviewProgressGauge({
   areasComplete = 0,
   totalAreas = 0,
   areasWorking = 0,
-  size = 140,
-  strokeWidth = 10
+  size = 110,
+  strokeWidth = 9
 }) {
   const [animatedProgress, setAnimatedProgress] = useState(0)
   const animationRef = useRef(null)

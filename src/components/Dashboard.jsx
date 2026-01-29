@@ -1394,7 +1394,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           {/* OVERVIEW TAB */}
           {activeProjectTab === 'overview' && (
             <div className="pv-tab-panel overview-tab animate-fade-in">
-              {/* Enhanced Hero - Progress Gauge + Financial Snapshot */}
+              {/* Row 1: Hero - Progress + Financials */}
               <div className="overview-hero-split">
                 <OverviewProgressGauge
                   progress={progress}
@@ -1414,129 +1414,96 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 />
               </div>
 
-              {/* Crew On-Site Metrics */}
-              <OverviewCrewMetrics
-                project={selectedProject}
-                onShowToast={onShowToast}
-              />
+              {/* Row 2: Two-column grid - Crew Metrics | Work Areas */}
+              <div className="overview-two-col">
+                {/* Left: Crew On-Site */}
+                <OverviewCrewMetrics
+                  project={selectedProject}
+                  onShowToast={onShowToast}
+                />
 
-              {/* Action Items - What needs attention */}
-              {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0) && (
-                <div className="overview-attention-card">
-                  <div className="attention-header">
-                    <h3>Needs Attention</h3>
-                    <span className="attention-count">
-                      {(projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)} items
-                    </span>
+                {/* Right: Work Areas */}
+                <div className="overview-section-card overview-work-areas-card">
+                  <div className="section-card-header">
+                    <h3>Work Areas</h3>
+                    <div className="section-card-badges">
+                      {areasComplete > 0 && <span className="section-badge done">{areasComplete} Done</span>}
+                      {areasWorking > 0 && <span className="section-badge working">{areasWorking} Active</span>}
+                      {areasNotStarted > 0 && <span className="section-badge pending">{areasNotStarted} Pending</span>}
+                    </div>
                   </div>
-                  <div className="attention-items">
+                  <div className="work-areas-list work-areas-scroll stagger-areas">
+                    {areas.map(area => (
+                      <div key={area.id} className={`work-area-item ${area.status}`}>
+                        <div className="work-area-status">
+                          {area.status === 'done' && <span className="status-icon done">✓</span>}
+                          {area.status === 'working' && <span className="status-icon working">●</span>}
+                          {area.status === 'not_started' && <span className="status-icon pending">○</span>}
+                        </div>
+                        <div className="work-area-info">
+                          <span className="work-area-name">{area.name}</span>
+                          <span className="work-area-weight">
+                            {area.scheduled_value ? formatCurrency(area.scheduled_value) : `${area.weight}%`}
+                          </span>
+                        </div>
+                        <div className="work-area-bar">
+                          <div
+                            className={`work-area-fill ${area.status}`}
+                            style={{ width: area.status === 'done' ? '100%' : area.status === 'working' ? '50%' : '0%' }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3: Bottom strip - Attention + Quick Nav + Exports */}
+              <div className="overview-bottom-strip">
+                {/* Attention items inline */}
+                {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0) && (
+                  <div className="overview-attention-inline">
                     {projectData?.pendingTickets > 0 && (
-                      <div className="attention-item" onClick={() => setActiveProjectTab('financials')}>
-                        <div className="attention-item-icon warning">
-                          <ClipboardList size={16} />
-                        </div>
-                        <div className="attention-item-content">
-                          <span className="attention-item-title">{projectData.pendingTickets} T&M ticket{projectData.pendingTickets !== 1 ? 's' : ''} awaiting approval</span>
-                          <span className="attention-item-action">Review in Financials</span>
-                        </div>
-                        <span className="attention-item-arrow">→</span>
+                      <div className="attention-chip warning" onClick={() => setActiveProjectTab('financials')}>
+                        <ClipboardList size={14} />
+                        <span>{projectData.pendingTickets} T&M pending</span>
                       </div>
                     )}
                     {projectData?.changeOrderPending > 0 && (
-                      <div className="attention-item" onClick={() => setActiveProjectTab('financials')}>
-                        <div className="attention-item-icon info">
-                          <FileText size={16} />
-                        </div>
-                        <div className="attention-item-content">
-                          <span className="attention-item-title">{projectData.changeOrderPending} change order{projectData.changeOrderPending !== 1 ? 's' : ''} pending</span>
-                          <span className="attention-item-action">Review in Financials</span>
-                        </div>
-                        <span className="attention-item-arrow">→</span>
+                      <div className="attention-chip info" onClick={() => setActiveProjectTab('financials')}>
+                        <FileText size={14} />
+                        <span>{projectData.changeOrderPending} CO pending</span>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Work Areas */}
-              <div className="overview-section-card">
-                <div className="section-card-header">
-                  <h3>Work Areas</h3>
-                  <div className="section-card-badges">
-                    {areasComplete > 0 && <span className="section-badge done">{areasComplete} Complete</span>}
-                    {areasWorking > 0 && <span className="section-badge working">{areasWorking} Active</span>}
-                    {areasNotStarted > 0 && <span className="section-badge pending">{areasNotStarted} Pending</span>}
-                  </div>
-                </div>
-                <div className="work-areas-list stagger-areas">
-                  {areas.map(area => (
-                    <div key={area.id} className={`work-area-item ${area.status}`}>
-                      <div className="work-area-status">
-                        {area.status === 'done' && <span className="status-icon done">✓</span>}
-                        {area.status === 'working' && <span className="status-icon working">●</span>}
-                        {area.status === 'not_started' && <span className="status-icon pending">○</span>}
-                      </div>
-                      <div className="work-area-info">
-                        <span className="work-area-name">{area.name}</span>
-                        <span className="work-area-weight">
-                          {area.scheduled_value ? formatCurrency(area.scheduled_value) : `${area.weight}%`}
-                        </span>
-                      </div>
-                      <div className="work-area-bar">
-                        <div
-                          className={`work-area-fill ${area.status}`}
-                          style={{ width: area.status === 'done' ? '100%' : area.status === 'working' ? '50%' : '0%' }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick Stats Row */}
-              <div className="overview-stats-row">
-                <div className="quick-stat-card" onClick={() => setActiveProjectTab('reports')}>
-                  <div className="quick-stat-icon"><ClipboardList size={20} /></div>
-                  <div className="quick-stat-content">
-                    <span className="quick-stat-value">{projectData?.dailyReportsCount || 0}</span>
-                    <span className="quick-stat-label">Daily Reports</span>
-                  </div>
-                  <span className="quick-stat-arrow">→</span>
-                </div>
-                <div className="quick-stat-card" onClick={() => setActiveProjectTab('financials')}>
-                  <div className="quick-stat-icon"><DollarSign size={20} /></div>
-                  <div className="quick-stat-content">
-                    <span className="quick-stat-value">{projectData?.totalTickets || 0}</span>
-                    <span className="quick-stat-label">T&M Tickets</span>
-                  </div>
-                  <span className="quick-stat-arrow">→</span>
-                </div>
-              </div>
-
-              {/* Field Document Export */}
-              <div className="overview-section-card">
-                <div className="section-card-header">
-                  <h3>Field Documents</h3>
-                  <button
-                    className="btn btn-secondary btn-small"
-                    onClick={() => handleExportFieldDocuments('all')}
-                    title="Export all field documents as PDF"
-                  >
-                    <Download size={14} /> Export All
+                {/* Quick nav + export buttons */}
+                <div className="overview-quick-actions">
+                  <button className="overview-action-btn" onClick={() => setActiveProjectTab('reports')}>
+                    <ClipboardList size={15} />
+                    <span>{projectData?.dailyReportsCount || 0} Reports</span>
                   </button>
-                </div>
-                <div className="field-export-grid">
-                  <button className="field-export-btn" onClick={() => handleExportFieldDocuments('daily')}>
-                    <ClipboardList size={18} />
-                    <span>Daily Reports</span>
+                  <button className="overview-action-btn" onClick={() => setActiveProjectTab('financials')}>
+                    <DollarSign size={15} />
+                    <span>{projectData?.totalTickets || 0} T&M Tickets</span>
                   </button>
-                  <button className="field-export-btn" onClick={() => handleExportFieldDocuments('incidents')}>
-                    <FileText size={18} />
-                    <span>Incident Reports</span>
+                  <span className="overview-action-divider" />
+                  <button className="overview-action-btn export" onClick={() => handleExportFieldDocuments('all')}>
+                    <Download size={15} />
+                    <span>Export All Docs</span>
                   </button>
-                  <button className="field-export-btn" onClick={() => handleExportFieldDocuments('crew')}>
-                    <HardHat size={18} />
-                    <span>Crew Check-Ins</span>
+                  <button className="overview-action-btn export" onClick={() => handleExportFieldDocuments('daily')}>
+                    <Download size={14} />
+                    <span>Daily</span>
+                  </button>
+                  <button className="overview-action-btn export" onClick={() => handleExportFieldDocuments('incidents')}>
+                    <Download size={14} />
+                    <span>Incidents</span>
+                  </button>
+                  <button className="overview-action-btn export" onClick={() => handleExportFieldDocuments('crew')}>
+                    <Download size={14} />
+                    <span>Crew</span>
                   </button>
                 </div>
               </div>

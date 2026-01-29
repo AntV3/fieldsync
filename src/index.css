@@ -24309,7 +24309,174 @@ END MIGRATED */
 .overview-tab {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 12px;
+}
+
+/* Two-column grid for crew + work areas */
+.overview-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+/* Work areas card with scrollable content */
+.overview-work-areas-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
+}
+
+.work-areas-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.work-areas-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.work-areas-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+/* Bottom strip: attention + quick actions all in one row */
+.overview-bottom-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+/* Inline attention chips */
+.overview-attention-inline {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.attention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.attention-chip:hover {
+  opacity: 0.8;
+}
+
+.attention-chip.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.attention-chip.info {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+
+/* Quick action buttons in bottom strip */
+.overview-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.overview-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.overview-action-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.overview-action-btn.export {
+  border-style: dashed;
+}
+
+.overview-action-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+/* Light mode bottom strip */
+[data-theme="light"] .overview-bottom-strip {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .attention-chip.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+[data-theme="light"] .attention-chip.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+[data-theme="light"] .overview-action-btn {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .overview-action-btn:hover {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #93c5fd;
+}
+
+@media (max-width: 768px) {
+  .overview-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-work-areas-card {
+    max-height: none;
+  }
+
+  .work-areas-scroll {
+    max-height: none;
+  }
+
+  .overview-bottom-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .overview-quick-actions {
+    margin-left: 0;
+  }
 }
 
 .overview-hero {
@@ -24489,7 +24656,7 @@ END MIGRATED */
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 12px 14px;
 }
 
 .section-card-header {
@@ -24627,7 +24794,7 @@ END MIGRATED */
 .crew-metrics-card {
   background: var(--bg-card);
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px 14px;
   border: 1px solid var(--border-color);
 }
 
@@ -24635,7 +24802,7 @@ END MIGRATED */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .crew-metrics-header h3 {
@@ -24662,9 +24829,8 @@ END MIGRATED */
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  padding: 6px 0;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .crew-date-btn {
@@ -24702,16 +24868,16 @@ END MIGRATED */
 .crew-stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .crew-stat {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
 }
@@ -24734,7 +24900,7 @@ END MIGRATED */
 }
 
 .crew-stat-value {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
@@ -24780,8 +24946,8 @@ END MIGRATED */
 
 /* Crew Timeline Chart */
 .crew-timeline-section {
-  margin-top: 16px;
-  padding-top: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-color);
 }
 
@@ -24789,7 +24955,7 @@ END MIGRATED */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .crew-timeline-title {
@@ -24830,7 +24996,7 @@ END MIGRATED */
 
 .crew-chart-container {
   width: 100%;
-  min-height: 180px;
+  min-height: 140px;
 }
 
 /* Recharts overrides for crew chart */
@@ -24973,11 +25139,11 @@ END MIGRATED */
 .overview-hero-split {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2rem;
+  gap: 1.25rem;
   align-items: center;
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
-  border-radius: 16px;
-  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
   border: 1px solid var(--border-color);
 }
 
