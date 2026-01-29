@@ -33,6 +33,7 @@ const CORList = lazy(() => import('./cor/CORList'))
 const CORForm = lazy(() => import('./cor/CORForm'))
 const CORDetail = lazy(() => import('./cor/CORDetail'))
 const CORLogPreview = lazy(() => import('./cor/CORLogPreview'))
+const CORLog = lazy(() => import('./cor/CORLog'))
 const BillingCenter = lazy(() => import('./billing/BillingCenter'))
 const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
 const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
@@ -54,7 +55,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors' | 'tickets'
   const [financialsSidebarCollapsed, setFinancialsSidebarCollapsed] = useState(true) // Start collapsed for more real estate
   const [financialsSidebarMobileOpen, setFinancialsSidebarMobileOpen] = useState(false) // For mobile sidebar overlay
-  const [corViewMode, setCORViewMode] = useState('preview') // 'preview' | 'full'
+  const [corListExpanded, setCORListExpanded] = useState(false) // Whether the full card list is shown below the log
   const [corDisplayMode, setCORDisplayMode] = useState('list') // 'list' | 'log' - for layout expansion
   const [tmViewMode, setTMViewMode] = useState('preview') // 'preview' | 'full'
   const [dumpSites, setDumpSites] = useState([])
@@ -996,22 +997,16 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setFinancialsSidebarMobileOpen(false)
   }, [])
 
-  const handleViewAllCORs = useCallback(() => {
-    setCORViewMode('full')
+  const handleToggleCORList = useCallback(() => {
+    setCORListExpanded(prev => !prev)
   }, [])
 
   const handleBackToTMPreview = useCallback(() => {
     setTMViewMode('preview')
   }, [])
 
-  const handleBackToCORPreview = useCallback(() => {
-    setCORViewMode('preview')
-    setCORDisplayMode('list') // Reset display mode when going back to preview
-  }, [])
-
   const handleViewFullCORLog = useCallback(() => {
     setCORDisplayMode('log')
-    setCORViewMode('full')
   }, [])
 
   const handleCreateCOR = useCallback(() => {
@@ -1621,48 +1616,40 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   {/* CHANGE ORDERS SECTION */}
                   {financialsSection === 'cors' && (
                     <div className="financials-cors animate-fade-in">
+                      {/* COR Log - Always visible first */}
                       <div className="financials-section cor-section-primary">
-                        {/* Preview Mode - Shows COR Log Preview (summary + table) */}
-                        {corViewMode === 'preview' && (
+                        <Suspense fallback={<TicketSkeleton />}>
+                          <CORLogPreview
+                            project={selectedProject}
+                            onShowToast={onShowToast}
+                            onToggleList={handleToggleCORList}
+                            showingList={corListExpanded}
+                            onViewFullLog={handleViewFullCORLog}
+                            onCreateCOR={handleCreateCOR}
+                          />
+                        </Suspense>
+                      </div>
+
+                      {/* Full COR Card List - Expands below the log when toggled */}
+                      {corListExpanded && (
+                        <div className="financials-section cor-section-list animate-fade-in" style={{ marginTop: '1rem' }}>
                           <Suspense fallback={<TicketSkeleton />}>
-                            <CORLogPreview
+                            <CORList
                               project={selectedProject}
+                              company={company}
+                              areas={areas}
+                              refreshKey={corRefreshKey}
                               onShowToast={onShowToast}
-                              onViewFullList={handleViewAllCORs}
-                              onViewFullLog={handleViewFullCORLog}
+                              previewMode={false}
+                              onViewAll={handleToggleCORList}
+                              onDisplayModeChange={setCORDisplayMode}
                               onCreateCOR={handleCreateCOR}
-                              previewLimit={5}
+                              onViewCOR={handleViewCOR}
+                              onEditCOR={handleEditCOR}
                             />
                           </Suspense>
-                        )}
-
-                        {/* Full Mode - Shows full COR List or Log */}
-                        {corViewMode === 'full' && (
-                          <>
-                            <button
-                              className="section-back-btn"
-                              onClick={handleBackToCORPreview}
-                            >
-                              ← Back to summary
-                            </button>
-                            <Suspense fallback={<TicketSkeleton />}>
-                              <CORList
-                                project={selectedProject}
-                                company={company}
-                                areas={areas}
-                                refreshKey={corRefreshKey}
-                                onShowToast={onShowToast}
-                                previewMode={false}
-                                onViewAll={handleViewAllCORs}
-                                onDisplayModeChange={setCORDisplayMode}
-                                onCreateCOR={handleCreateCOR}
-                                onViewCOR={handleViewCOR}
-                                onEditCOR={handleEditCOR}
-                              />
-                            </Suspense>
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -2088,6 +2075,29 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               }}
             />
           </Suspense>
+        )}
+
+        {/* COR Log Modal */}
+        {corDisplayMode === 'log' && selectedProject && (
+          <div className="cor-log-modal-overlay" onClick={() => setCORDisplayMode('list')}>
+            <div className="cor-log-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="cor-log-modal-header">
+                <h2>Change Order Log</h2>
+                <button
+                  className="cor-log-modal-close"
+                  onClick={() => setCORDisplayMode('list')}
+                  title="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="cor-log-modal-content">
+                <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+                  <CORLog project={selectedProject} company={company} onShowToast={onShowToast} />
+                </Suspense>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Add Cost Modal */}

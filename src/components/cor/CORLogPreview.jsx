@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Clock, CheckCircle, XCircle, ChevronRight, Plus, Table, List } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Table, List } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 
 /**
- * CORLogPreview - Compact preview of the COR Log for the Financials tab
- * Shows summary statistics and a preview table with recent CORs
- * Allows quick access to full list or detailed log view
+ * CORLogPreview - COR Log view for the Financials tab
+ * Shows summary statistics and full log table
+ * "Show Full List" expands the card list below
  */
 
 const STATUS_CATEGORIES = {
@@ -27,10 +27,10 @@ const STATUS_DISPLAY = {
 export default function CORLogPreview({
   project,
   onShowToast,
-  onViewFullList,    // Opens full COR card list
-  onViewFullLog,     // Opens full COR log modal
+  onToggleList,      // Toggles the full card list below
+  showingList,       // Whether the list is currently expanded
+  onViewFullLog,     // Opens full COR log modal (with edit capabilities)
   onCreateCOR,
-  previewLimit = 5
 }) {
   const [logEntries, setLogEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -83,12 +83,11 @@ export default function CORLogPreview({
     }
   }, [logEntries, groupedEntries])
 
-  // Get preview entries (most recent)
-  const previewEntries = useMemo(() => {
+  // All entries sorted by most recent
+  const sortedEntries = useMemo(() => {
     return [...logEntries]
       .sort((a, b) => new Date(b.changeOrder?.createdAt || 0) - new Date(a.changeOrder?.createdAt || 0))
-      .slice(0, previewLimit)
-  }, [logEntries, previewLimit])
+  }, [logEntries])
 
   if (loading) {
     return (
@@ -119,9 +118,9 @@ export default function CORLogPreview({
           <button
             className="btn btn-secondary btn-small"
             onClick={onViewFullLog}
-            title="View full COR log with edit capabilities"
+            title="Open full COR log with edit & export"
           >
-            <Table size={14} /> Full Log
+            <Table size={14} /> Edit Log
           </button>
           <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
             <Plus size={14} /> New COR
@@ -164,8 +163,8 @@ export default function CORLogPreview({
         )}
       </div>
 
-      {/* Preview Table */}
-      {previewEntries.length > 0 ? (
+      {/* Full Log Table */}
+      {sortedEntries.length > 0 ? (
         <div className="cor-log-preview-table-wrapper">
           <table className="cor-log-preview-table">
             <thead>
@@ -178,7 +177,7 @@ export default function CORLogPreview({
               </tr>
             </thead>
             <tbody>
-              {previewEntries.map(entry => (
+              {sortedEntries.map(entry => (
                 <tr key={entry.id}>
                   <td className="cor-number">{entry.changeOrder?.corNumber || '—'}</td>
                   <td className="cor-title">{entry.changeOrder?.title || 'Untitled'}</td>
@@ -207,12 +206,12 @@ export default function CORLogPreview({
         </div>
       )}
 
-      {/* View All Link */}
-      {logEntries.length > previewLimit && (
-        <button className="cor-log-preview-view-all" onClick={onViewFullList}>
+      {/* Show/Hide Full List Toggle */}
+      {sortedEntries.length > 0 && (
+        <button className="cor-log-preview-view-all" onClick={onToggleList}>
           <List size={14} />
-          <span>View All {summary.totalCORs} Change Orders</span>
-          <ChevronRight size={16} />
+          <span>{showingList ? 'Hide' : 'Show'} Full COR List</span>
+          {showingList ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       )}
     </div>
