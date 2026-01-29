@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -77,6 +77,41 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       setLoading(false)
     }
   }
+
+  // Real-time subscriptions - reload metrics when underlying data changes
+  const refreshTimeoutRef = useRef(null)
+
+  const debouncedReload = useCallback(() => {
+    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
+    refreshTimeoutRef.current = setTimeout(() => {
+      loadMetrics()
+    }, 300)
+  }, [project?.id, timeRange])
+
+  useEffect(() => {
+    if (!project?.id) return
+    const subs = []
+
+    const areaSub = db.subscribeToAreas?.(project.id, debouncedReload)
+    if (areaSub) subs.push(areaSub)
+
+    const crewSub = db.subscribeToCrewCheckins?.(project.id, debouncedReload)
+    if (crewSub) subs.push(crewSub)
+
+    const tmSub = db.subscribeToTMTickets?.(project.id, debouncedReload)
+    if (tmSub) subs.push(tmSub)
+
+    const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedReload)
+    if (haulSub) subs.push(haulSub)
+
+    const reportSub = db.subscribeToDailyReports?.(project.id, debouncedReload)
+    if (reportSub) subs.push(reportSub)
+
+    return () => {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
+      subs.forEach(sub => db.unsubscribe?.(sub))
+    }
+  }, [project?.id, debouncedReload])
 
   // Calculate derived metrics
   const derivedMetrics = useMemo(() => {

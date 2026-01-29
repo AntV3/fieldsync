@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
@@ -82,6 +82,42 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
       console.error('Error loading today status:', error)
     }
   }
+
+  // Real-time subscriptions for live updates
+  const refreshTimeoutRef = useRef(null)
+
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
+    refreshTimeoutRef.current = setTimeout(() => {
+      loadAreas()
+      loadTodayStatus()
+    }, 300)
+  }, [project?.id])
+
+  useEffect(() => {
+    if (!project?.id) return
+    const subs = []
+
+    const areaSub = db.subscribeToAreas?.(project.id, debouncedRefresh)
+    if (areaSub) subs.push(areaSub)
+
+    const crewSub = db.subscribeToCrewCheckins?.(project.id, debouncedRefresh)
+    if (crewSub) subs.push(crewSub)
+
+    const tmSub = db.subscribeToTMTickets?.(project.id, debouncedRefresh)
+    if (tmSub) subs.push(tmSub)
+
+    const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedRefresh)
+    if (haulSub) subs.push(haulSub)
+
+    const reportSub = db.subscribeToDailyReports?.(project.id, debouncedRefresh)
+    if (reportSub) subs.push(reportSub)
+
+    return () => {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
+      subs.forEach(sub => db.unsubscribe?.(sub))
+    }
+  }, [project?.id, debouncedRefresh])
 
   const loadAreas = async () => {
     try {
