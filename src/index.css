@@ -20,6 +20,10 @@
   --progress-bg: #2a2a32;
   --shadow-color: rgba(0, 0, 0, 0.3);
 
+  /* Aliases for consistency (some components use these) */
+  --text-color: #ffffff;
+  --hover-bg: #222228;
+
   /* Branding CSS Variables (can be overridden dynamically) */
   --primary-color: #3b82f6;
   --secondary-color: #1e40af;
@@ -46,6 +50,10 @@
   --border-light: #f1f5f9;
   --progress-bg: #e2e8f0;
   --shadow-color: rgba(0, 0, 0, 0.08);
+
+  /* Aliases for consistency (some components use these) */
+  --text-color: #0f172a;
+  --hover-bg: #f1f5f9;
 
   /* Slightly darker accents for better contrast on light backgrounds */
   --primary-color: #2563eb;
@@ -904,6 +912,186 @@
 [data-theme="light"] .cor-log-empty {
   background: #f8fafc;
   color: #64748b;
+}
+
+/* ===========================================
+   FILTER PILLS & TOGGLES - Light Mode
+   =========================================== */
+
+/* Controls bar */
+[data-theme="light"] .cor-controls,
+[data-theme="light"] .tm-list-filters {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+/* Filter pills container */
+[data-theme="light"] .cor-filter-pills,
+[data-theme="light"] .tm-filter-tabs {
+  background: #e2e8f0;
+}
+
+/* Active pill - blue accent */
+[data-theme="light"] .cor-pill.active,
+[data-theme="light"] .tm-filter-tab.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Pill count badge */
+[data-theme="light"] .cor-pill-count,
+[data-theme="light"] .tm-filter-count {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .cor-pill.active .cor-pill-count,
+[data-theme="light"] .tm-filter-tab.active .tm-filter-count {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* View toggle */
+[data-theme="light"] .cor-view-toggle,
+[data-theme="light"] .view-mode-tabs {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .cor-toggle-btn.active,
+[data-theme="light"] .view-mode-tab.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Group filter select */
+[data-theme="light"] .cor-group-filter,
+[data-theme="light"] .cor-area-filter {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* Date filter */
+[data-theme="light"] .cor-date-filter,
+[data-theme="light"] .date-filter {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .cor-date-filter input,
+[data-theme="light"] .date-filter input {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* ===========================================
+   LIGHT MODE - More Color, Less Blinding White
+   =========================================== */
+
+/* Warm up the main background */
+[data-theme="light"] body {
+  background: #f1f5f9;
+}
+
+/* Main content area - subtle warm tint */
+[data-theme="light"] .dashboard-content,
+[data-theme="light"] .main-content {
+  background: #f1f5f9;
+}
+
+/* Navigation - slight depth */
+[data-theme="light"] .nav,
+[data-theme="light"] .sidebar {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+/* Tab navigation - add color accent */
+[data-theme="light"] .tab-nav,
+[data-theme="light"] .financials-nav {
+  background: #ffffff;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+[data-theme="light"] .tab-btn.active,
+[data-theme="light"] .financials-nav-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+/* Section headers - subtle blue tint */
+[data-theme="light"] .section-header {
+  color: #0f172a;
+}
+
+/* Project cards - warm shadow */
+[data-theme="light"] .project-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .project-card:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: #93c5fd;
+}
+
+/* Overview cards */
+[data-theme="light"] .overview-hero-split {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+/* Daily report cards */
+[data-theme="light"] .daily-report-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .daily-report-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Attention/alert cards - warm accent */
+[data-theme="light"] .attention-card,
+[data-theme="light"] .alert-card {
+  border-left: 4px solid #f59e0b;
+}
+
+/* Stats values - use accent colors */
+[data-theme="light"] .stat-value,
+[data-theme="light"] .quick-stat-value {
+  color: #0f172a;
+}
+
+/* Active/success values - green accent */
+[data-theme="light"] .stat-value.positive,
+[data-theme="light"] .profit-positive {
+  color: #059669;
+}
+
+/* Warning values */
+[data-theme="light"] .stat-value.negative,
+[data-theme="light"] .profit-negative {
+  color: #dc2626;
+}
+
+/* Input fields - slight border color */
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 * {
@@ -29078,14 +29266,14 @@ END MIGRATED */
 
 .cor-pill:hover,
 .tm-filter-tab:hover {
-  color: var(--text-color);
-  background: var(--hover-bg);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
 }
 
 .cor-pill.active,
 .tm-filter-tab.active {
-  background: white;
-  color: var(--text-color);
+  background: var(--bg-elevated);
+  color: var(--accent-blue);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -29130,13 +29318,13 @@ END MIGRATED */
 
 .cor-toggle-btn:hover,
 .view-mode-tab:hover {
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .cor-toggle-btn.active,
 .view-mode-tab.active {
-  background: white;
-  color: var(--text-color);
+  background: var(--bg-elevated);
+  color: var(--accent-blue);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -29148,7 +29336,7 @@ END MIGRATED */
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: var(--text-color);
+  color: var(--text-primary);
   font-size: 0.8125rem;
   cursor: pointer;
   appearance: none;
@@ -29181,7 +29369,7 @@ END MIGRATED */
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  color: var(--text-color);
+  color: var(--text-primary);
   font-size: 0.8125rem;
 }
 
