@@ -388,6 +388,48 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         </div>
       )}
 
+      {/* Worker name lists */}
+      {todayMetrics.total > 0 && (
+        <div className="crew-name-lists">
+          {todayMetrics.contract.length > 0 && (
+            <div className="crew-name-group">
+              <div className="crew-name-group-header contract">
+                <HardHat size={13} />
+                <span>Contract ({todayMetrics.contract.length})</span>
+              </div>
+              <div className="crew-name-tags">
+                {todayMetrics.contract.map((w, i) => (
+                  <span key={i} className="crew-name-tag contract">
+                    {w.name}
+                    {w.role && w.role !== 'Laborer' && (
+                      <span className="crew-name-role">{w.role}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {todayMetrics.tm.length > 0 && (
+            <div className="crew-name-group">
+              <div className="crew-name-group-header tm">
+                <Wrench size={13} />
+                <span>T&M ({todayMetrics.tm.length})</span>
+              </div>
+              <div className="crew-name-tags">
+                {todayMetrics.tm.map((w, i) => (
+                  <span key={i} className="crew-name-tag tm">
+                    {w.name}
+                    {w.role && w.role !== 'Laborer' && (
+                      <span className="crew-name-role">{w.role}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Day-by-day timeline chart */}
       <div className="crew-timeline-section">
         <div className="crew-timeline-header">

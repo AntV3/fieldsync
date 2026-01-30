@@ -24937,6 +24937,79 @@ END MIGRATED */
   background: #f59e0b;
 }
 
+/* Crew Name Lists */
+.crew-name-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.crew-name-group-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.crew-name-group-header.contract {
+  color: var(--accent-blue);
+}
+
+.crew-name-group-header.tm {
+  color: #f59e0b;
+}
+
+.crew-name-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.crew-name-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.crew-name-tag.contract {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.crew-name-tag.tm {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.crew-name-role {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+[data-theme="light"] .crew-name-tag.contract {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+[data-theme="light"] .crew-name-tag.tm {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
 .crew-empty {
   text-align: center;
   padding: 12px;
