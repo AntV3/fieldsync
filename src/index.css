@@ -2014,14 +2014,14 @@ textarea {
 .nav {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  padding: 1rem 1.5rem;
+  padding: 1rem 2.5rem;
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
 .nav-content {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -2110,9 +2110,9 @@ textarea {
 
 /* Container */
 .container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2rem 2.5rem;
 }
 
 /* Typography */
@@ -2538,7 +2538,7 @@ input[type="number"] {
    ============================================ */
 
 .project-detail-view {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -11818,7 +11818,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    ========================================== */
 
 .project-view {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
