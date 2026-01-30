@@ -163,7 +163,9 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          // User signed out - reset state
+          // User signed out - reset state, but don't interfere with public/signature views
+          const path = window.location.pathname
+          if (path.startsWith('/sign/') || path.startsWith('/view/')) return
           setUser(null)
           setCompany(null)
           setUserCompanies([])
@@ -172,7 +174,11 @@ export default function App() {
           // Token was refreshed - no action needed, session is valid
         } else if (event === 'SIGNED_IN' && !user) {
           // User signed in (might be from another tab or session restore)
-          checkAuth()
+          // Don't override public/signature views - those are accessed without auth
+          const path = window.location.pathname
+          if (!path.startsWith('/sign/') && !path.startsWith('/view/')) {
+            checkAuth()
+          }
         }
       }
     )
