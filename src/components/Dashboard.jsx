@@ -157,7 +157,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       onCrewCheckin: () => debouncedRefresh(), // Crew check-ins affect labor costs
       onAreaUpdate: () => debouncedRefresh(), // Area updates affect progress
       onCORChange: () => debouncedRefresh({ refreshCOR: true }), // COR changes
-      onInjuryReport: () => debouncedRefresh()
+      onInjuryReport: () => debouncedRefresh(),
+      onProjectChange: () => debouncedRefresh(), // Project details changed
+      onMaterialsEquipmentChange: () => debouncedRefresh(), // Pricing updates
+      onLaborRateChange: () => debouncedRefresh() // Labor rate updates
     })
 
     return () => {
