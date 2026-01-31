@@ -113,6 +113,27 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     const reportSub = db.subscribeToDailyReports?.(project.id, debouncedRefresh)
     if (reportSub) subs.push(reportSub)
 
+    // COR status changes from office (approvals, rejections)
+    const corSub = db.subscribeToCORs?.(project.id, debouncedRefresh)
+    if (corSub) subs.push(corSub)
+
+    // Material request responses from office
+    const matReqSub = db.subscribeToMaterialRequests?.(project.id, debouncedRefresh)
+    if (matReqSub) subs.push(matReqSub)
+
+    // Project-level changes from office (name, dates, budget)
+    const projectSub = db.subscribeToProject?.(project.id, debouncedRefresh)
+    if (projectSub) subs.push(projectSub)
+
+    // Materials/equipment pricing changes from office
+    if (companyId) {
+      const materialsSub = db.subscribeToMaterialsEquipment?.(companyId, debouncedRefresh)
+      if (materialsSub) subs.push(materialsSub)
+
+      const laborSub = db.subscribeToLaborRates?.(companyId, debouncedRefresh)
+      if (laborSub) subs.push(laborSub)
+    }
+
     return () => {
       if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
       subs.forEach(sub => db.unsubscribe?.(sub))

@@ -1258,7 +1258,7 @@ export const db = {
       return supabase
         .channel(`messages:${projectId}`)
         .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
+          { event: '*', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
           callback
         )
         .subscribe()
@@ -1314,7 +1314,7 @@ export const db = {
       return supabase
         .channel(`injury_reports:${companyId}`)
         .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },
+          { event: '*', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },
           callback
         )
         .subscribe()
@@ -1343,42 +1343,35 @@ export const db = {
     const channel = supabase.channel(`company_activity:${companyId}`)
 
     // Subscribe to project-level changes
+    // Use wildcard event '*' for all entities to capture INSERT, UPDATE, and DELETE
     projectIds.forEach(projectId => {
       // Messages
       channel.on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
+        { event: '*', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onMessage?.(payload)
       )
 
       // Material requests
       channel.on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'material_requests', filter: `project_id=eq.${projectId}` },
+        { event: '*', schema: 'public', table: 'material_requests', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onMaterialRequest?.(payload)
       )
 
-      // T&M Tickets - INSERT and UPDATE
+      // T&M Tickets
       channel.on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 't_and_m_tickets', filter: `project_id=eq.${projectId}` },
-        (payload) => callbacks.onTMTicket?.(payload)
-      )
-      channel.on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 't_and_m_tickets', filter: `project_id=eq.${projectId}` },
+        { event: '*', schema: 'public', table: 't_and_m_tickets', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onTMTicket?.(payload)
       )
 
       // Crew check-ins - critical for labor tracking
       channel.on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'crew_checkins', filter: `project_id=eq.${projectId}` },
-        (payload) => callbacks.onCrewCheckin?.(payload)
-      )
-      channel.on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'crew_checkins', filter: `project_id=eq.${projectId}` },
+        { event: '*', schema: 'public', table: 'crew_checkins', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onCrewCheckin?.(payload)
       )
 
-      // Area progress updates
+      // Area progress updates (INSERT, UPDATE, and DELETE)
       channel.on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'areas', filter: `project_id=eq.${projectId}` },
+        { event: '*', schema: 'public', table: 'areas', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onAreaUpdate?.(payload)
       )
 
@@ -1387,12 +1380,30 @@ export const db = {
         { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onCORChange?.(payload)
       )
+
+      // Project-level changes (name, dates, budget updates from office)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
+        (payload) => callbacks.onProjectChange?.(payload)
+      )
     })
 
-    // Subscribe to injury reports company-wide
+    // Subscribe to injury reports company-wide (INSERT, UPDATE, and DELETE)
     channel.on('postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },
+      { event: '*', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },
       (payload) => callbacks.onInjuryReport?.(payload)
+    )
+
+    // Subscribe to materials/equipment pricing changes company-wide
+    channel.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'materials_equipment', filter: `company_id=eq.${companyId}` },
+      (payload) => callbacks.onMaterialsEquipmentChange?.(payload)
+    )
+
+    // Subscribe to labor rate changes company-wide
+    channel.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'labor_rates', filter: `company_id=eq.${companyId}` },
+      (payload) => callbacks.onLaborRateChange?.(payload)
     )
 
     return channel.subscribe()
@@ -7030,6 +7041,48 @@ export const db = {
         .channel(`document_folders:${projectId}`)
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'document_folders', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to materials/equipment changes for a company
+  subscribeToMaterialsEquipment(companyId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`materials_equipment:${companyId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'materials_equipment', filter: `company_id=eq.${companyId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to labor rate changes for a company
+  subscribeToLaborRates(companyId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`labor_rates:${companyId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'labor_rates', filter: `company_id=eq.${companyId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to project-level changes (name, dates, budget, etc.)
+  subscribeToProject(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
           callback
         )
         .subscribe()
