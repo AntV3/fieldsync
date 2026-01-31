@@ -4,7 +4,7 @@ import { safeAsync } from '../lib/errorHandler'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search, Download } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search, Download, Users, Shield, Package, TrendingUp, TrendingDown, Camera, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
@@ -270,7 +270,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
 
     try {
-      // Fetch detailed project data in parallel (9 queries for 1 project, not 9N)
+      // Fetch detailed project data in parallel (12 queries for 1 project, not 12N)
       const [
         projectAreas,
         tickets,
@@ -280,7 +280,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         laborCosts,
         haulOffCosts,
         customCosts,
-        corStats
+        corStats,
+        crewHistory,
+        materialRequests,
+        weeklyDisposal
       ] = await Promise.all([
         safeAsync(() => db.getAreas(project.id), { fallback: [], context: { operation: 'getAreas', projectId: project.id } }),
         safeAsync(() => db.getTMTickets(project.id), { fallback: [], context: { operation: 'getTMTickets', projectId: project.id } }),
@@ -290,7 +293,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.calculateManDayCosts(project.id, company?.id, project.work_type || 'demolition', project.job_type || 'standard'), { fallback: null, context: { operation: 'calculateManDayCosts', projectId: project.id } }),
         safeAsync(() => db.calculateHaulOffCosts(project.id), { fallback: null, context: { operation: 'calculateHaulOffCosts', projectId: project.id } }),
         safeAsync(() => db.getProjectCosts(project.id), { fallback: [], context: { operation: 'getProjectCosts', projectId: project.id } }),
-        safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } })
+        safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } }),
+        safeAsync(() => db.getCrewCheckinHistory(project.id, 60), { fallback: [], context: { operation: 'getCrewCheckinHistory', projectId: project.id } }),
+        safeAsync(() => db.getMaterialRequests(project.id), { fallback: [], context: { operation: 'getMaterialRequests', projectId: project.id } }),
+        safeAsync(() => db.getWeeklyDisposalSummary(project.id, 4), { fallback: [], context: { operation: 'getWeeklyDisposalSummary', projectId: project.id } })
       ])
 
       // Calculate progress - use SOV values if available
@@ -363,6 +369,57 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         laborCosts?.totalManDays || 0
       )
 
+      // Crew analytics from check-in history
+      const crewByDate = {}
+      const uniqueWorkers = new Set()
+      ;(crewHistory || []).forEach(checkin => {
+        const workers = checkin.workers || []
+        crewByDate[checkin.check_in_date] = workers.length
+        workers.forEach(w => uniqueWorkers.add(w.name?.toLowerCase()))
+      })
+      const crewDates = Object.keys(crewByDate).sort()
+      const avgCrewSize = crewDates.length > 0
+        ? Math.round(crewDates.reduce((sum, d) => sum + crewByDate[d], 0) / crewDates.length * 10) / 10
+        : 0
+      const peakCrewSize = crewDates.length > 0
+        ? Math.max(...crewDates.map(d => crewByDate[d]))
+        : 0
+      // Crew trend: compare last 7 days avg to prior 7 days avg
+      const recentCrewDates = crewDates.slice(-7)
+      const priorCrewDates = crewDates.slice(-14, -7)
+      const recentCrewAvg = recentCrewDates.length > 0
+        ? recentCrewDates.reduce((s, d) => s + crewByDate[d], 0) / recentCrewDates.length
+        : 0
+      const priorCrewAvg = priorCrewDates.length > 0
+        ? priorCrewDates.reduce((s, d) => s + crewByDate[d], 0) / priorCrewDates.length
+        : 0
+
+      // Material request analytics
+      const pendingMaterialRequests = (materialRequests || []).filter(r => r.status === 'pending').length
+      const orderedMaterialRequests = (materialRequests || []).filter(r => r.status === 'ordered').length
+      const deliveredMaterialRequests = (materialRequests || []).filter(r => r.status === 'delivered').length
+      const urgentMaterialRequests = (materialRequests || []).filter(r => r.priority === 'urgent' && r.status === 'pending').length
+
+      // Daily report field notes analysis
+      const reportsWithIssues = dailyReports.filter(r => r.issues && r.issues.trim().length > 0).length
+      const totalPhotosFromTickets = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+
+      // Disposal totals from weekly data
+      const disposalTotalLoads = (weeklyDisposal || []).reduce((sum, w) => {
+        return sum + (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0)
+      }, 0)
+
+      // Days since last injury
+      const lastInjuryDate = injuryReports.length > 0
+        ? new Date(injuryReports[0]?.incident_date || injuryReports[0]?.created_at)
+        : null
+      const daysSinceLastInjury = lastInjuryDate
+        ? Math.floor((new Date() - lastInjuryDate) / (1000 * 60 * 60 * 24))
+        : null
+
+      // Task completion velocity: areas completed in last 14 days vs prior 14 days
+      const completedAreas = projectAreas.filter(a => a.status === 'done')
+
       const enhancedData = {
         ...project,
         areas: projectAreas,
@@ -416,6 +473,35 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         hasScheduleData: scheduleInsights.hasScheduleData,
         hasLaborData: scheduleInsights.hasLaborData,
         actualManDays: laborCosts?.totalManDays || 0,
+        // Crew analytics
+        crewHistory: crewHistory || [],
+        crewByDate,
+        uniqueWorkerCount: uniqueWorkers.size,
+        avgCrewSize,
+        peakCrewSize,
+        crewDaysTracked: crewDates.length,
+        crewTrend: priorCrewAvg > 0 ? ((recentCrewAvg - priorCrewAvg) / priorCrewAvg * 100) : 0,
+        recentCrewAvg,
+        // Material requests
+        materialRequests: materialRequests || [],
+        pendingMaterialRequests,
+        orderedMaterialRequests,
+        deliveredMaterialRequests,
+        urgentMaterialRequests,
+        totalMaterialRequests: (materialRequests || []).length,
+        // Field activity insights
+        reportsWithIssues,
+        totalPhotosFromTickets,
+        dailyReports,
+        // Disposal trends
+        weeklyDisposal: weeklyDisposal || [],
+        disposalTotalLoads,
+        // Safety analytics
+        daysSinceLastInjury,
+        injuryReports,
+        oshaRecordable: injuryReports.filter(r => r.osha_recordable).length,
+        // Completion
+        completedAreasCount: completedAreas.length,
         hasError: false,
         _detailsLoaded: true
       }
@@ -1464,8 +1550,20 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               {/* Row 3: Bottom strip - Attention + Quick Nav + Exports */}
               <div className="overview-bottom-strip">
                 {/* Attention items inline */}
-                {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0) && (
+                {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (
                   <div className="overview-attention-inline">
+                    {projectData?.urgentMaterialRequests > 0 && (
+                      <div className="attention-chip warning" onClick={() => setActiveProjectTab('reports')}>
+                        <AlertTriangle size={14} />
+                        <span>{projectData.urgentMaterialRequests} urgent material request{projectData.urgentMaterialRequests !== 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    {projectData?.pendingMaterialRequests > 0 && !projectData?.urgentMaterialRequests && (
+                      <div className="attention-chip info" onClick={() => setActiveProjectTab('reports')}>
+                        <Package size={14} />
+                        <span>{projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending</span>
+                      </div>
+                    )}
                     {projectData?.pendingTickets > 0 && (
                       <div className="attention-chip warning" onClick={() => setActiveProjectTab('financials')}>
                         <ClipboardList size={14} />
@@ -1737,7 +1835,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           {/* REPORTS TAB */}
           {activeProjectTab === 'reports' && (
             <div className="pv-tab-panel reports-tab">
-              {/* Hero Metrics */}
+              {/* Hero Metrics - High Level Project Pulse */}
               <div className="reports-hero">
                 <div className="reports-hero-grid">
                   {/* Total Reports */}
@@ -1763,29 +1861,316 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     </div>
                   </div>
 
-                  {/* Injury Reports */}
-                  <div className={`reports-metric ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
-                    <div className="reports-metric-value">{projectData?.injuryReportsCount || 0}</div>
-                    <div className="reports-metric-label">Injuries</div>
-                    <div className="reports-metric-status">
-                      {(projectData?.injuryReportsCount || 0) === 0 ? 'No incidents' : 'Review required'}
-                    </div>
-                  </div>
-
-                  {/* Last Report */}
+                  {/* T&M Tickets */}
                   <div className="reports-metric">
-                    <div className="reports-metric-value small">
-                      {projectData?.lastDailyReport
-                        ? new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        : 'None'
-                      }
-                    </div>
-                    <div className="reports-metric-label">Last Filed</div>
-                    {projectData?.lastDailyReport && (
-                      <div className="reports-metric-detail">
-                        {Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))} days ago
+                    <div className="reports-metric-value">{projectData?.totalTickets || 0}</div>
+                    <div className="reports-metric-label">T&M Tickets</div>
+                    {(projectData?.pendingTickets || 0) > 0 && (
+                      <div className="reports-metric-status" style={{ background: '#fef3c7', color: '#92400e' }}>
+                        {projectData.pendingTickets} pending
                       </div>
                     )}
+                  </div>
+
+                  {/* Photo Evidence */}
+                  <div className="reports-metric">
+                    <div className="reports-metric-value">{projectData?.totalPhotosFromTickets || 0}</div>
+                    <div className="reports-metric-label">Photos Captured</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Two-Column Layout: Crew + Safety */}
+              <div className="reports-two-col">
+                {/* Crew Analytics Card */}
+                <div className="reports-insight-card">
+                  <div className="reports-insight-header">
+                    <div className="reports-insight-title">
+                      <Users size={18} />
+                      <h3>Crew Analytics</h3>
+                    </div>
+                  </div>
+                  <div className="reports-insight-body">
+                    <div className="reports-stat-grid">
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.uniqueWorkerCount || 0}</span>
+                        <span className="reports-stat-label">Total Workers</span>
+                      </div>
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.avgCrewSize || 0}</span>
+                        <span className="reports-stat-label">Avg Crew / Day</span>
+                      </div>
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.peakCrewSize || 0}</span>
+                        <span className="reports-stat-label">Peak Crew Size</span>
+                      </div>
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.crewDaysTracked || 0}</span>
+                        <span className="reports-stat-label">Days Tracked</span>
+                      </div>
+                    </div>
+                    {(projectData?.crewTrend || 0) !== 0 && (
+                      <div className={`reports-trend-badge ${projectData.crewTrend > 0 ? 'up' : 'down'}`}>
+                        {projectData.crewTrend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        <span>{Math.abs(Math.round(projectData.crewTrend))}% {projectData.crewTrend > 0 ? 'increase' : 'decrease'} vs prior week</span>
+                      </div>
+                    )}
+                    {/* Mini crew size bar chart */}
+                    {projectData?.crewByDate && Object.keys(projectData.crewByDate).length > 0 && (
+                      <div className="reports-mini-chart">
+                        <div className="reports-mini-chart-label">Recent Crew Size</div>
+                        <div className="reports-mini-bars">
+                          {Object.keys(projectData.crewByDate).sort().slice(-14).map(date => {
+                            const count = projectData.crewByDate[date]
+                            const max = projectData.peakCrewSize || 1
+                            return (
+                              <div key={date} className="reports-mini-bar-wrap" title={`${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count} workers`}>
+                                <div className="reports-mini-bar" style={{ height: `${(count / max) * 100}%` }}></div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Safety Dashboard Card */}
+                <div className="reports-insight-card">
+                  <div className="reports-insight-header">
+                    <div className="reports-insight-title">
+                      <Shield size={18} />
+                      <h3>Safety Dashboard</h3>
+                    </div>
+                    <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
+                      {(projectData?.injuryReportsCount || 0) > 0
+                        ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
+                        : 'No incidents'
+                      }
+                    </span>
+                  </div>
+                  <div className="reports-insight-body">
+                    {/* Days Since Last Injury - prominent */}
+                    <div className="reports-safety-hero">
+                      <div className={`reports-safety-days ${(projectData?.daysSinceLastInjury === null || projectData?.daysSinceLastInjury > 30) ? 'excellent' : projectData?.daysSinceLastInjury > 7 ? 'good' : 'caution'}`}>
+                        <span className="reports-safety-days-value">
+                          {projectData?.daysSinceLastInjury !== null ? projectData.daysSinceLastInjury : '--'}
+                        </span>
+                        <span className="reports-safety-days-label">
+                          {projectData?.daysSinceLastInjury !== null ? 'Days Since Last Incident' : 'No Incidents Recorded'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="reports-stat-grid">
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.injuryReportsCount || 0}</span>
+                        <span className="reports-stat-label">Total Incidents</span>
+                      </div>
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.oshaRecordable || 0}</span>
+                        <span className="reports-stat-label">OSHA Recordable</span>
+                      </div>
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.reportsWithIssues || 0}</span>
+                        <span className="reports-stat-label">Reports w/ Issues</span>
+                      </div>
+                      <div className="reports-stat">
+                        <span className="reports-stat-value">{projectData?.laborManDays || 0}</span>
+                        <span className="reports-stat-label">Total Man-Days</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Material Requests + Disposal Summary Row */}
+              <div className="reports-two-col">
+                {/* Material Requests */}
+                <div className="reports-insight-card">
+                  <div className="reports-insight-header">
+                    <div className="reports-insight-title">
+                      <Package size={18} />
+                      <h3>Material Requests</h3>
+                    </div>
+                    <span className="reports-section-count">{projectData?.totalMaterialRequests || 0} total</span>
+                  </div>
+                  <div className="reports-insight-body">
+                    {(projectData?.totalMaterialRequests || 0) === 0 ? (
+                      <div className="reports-empty-state">
+                        <Package size={32} />
+                        <p>No material requests yet</p>
+                        <span>Requests from the field will appear here</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="reports-material-pipeline">
+                          {projectData?.urgentMaterialRequests > 0 && (
+                            <div className="reports-material-status urgent">
+                              <AlertTriangle size={14} />
+                              <span>{projectData.urgentMaterialRequests} Urgent</span>
+                            </div>
+                          )}
+                          <div className="reports-material-status pending">
+                            <span className="reports-material-dot"></span>
+                            <span>{projectData?.pendingMaterialRequests || 0} Pending</span>
+                          </div>
+                          <div className="reports-material-status ordered">
+                            <span className="reports-material-dot"></span>
+                            <span>{projectData?.orderedMaterialRequests || 0} Ordered</span>
+                          </div>
+                          <div className="reports-material-status delivered">
+                            <CheckCircle2 size={14} />
+                            <span>{projectData?.deliveredMaterialRequests || 0} Delivered</span>
+                          </div>
+                        </div>
+                        {/* Recent requests */}
+                        <div className="reports-recent-list">
+                          {(projectData?.materialRequests || []).slice(0, 3).map(req => (
+                            <div key={req.id} className={`reports-recent-item ${req.status}`}>
+                              <div className="reports-recent-item-main">
+                                <span className={`reports-recent-item-status ${req.status}`}>{req.status}</span>
+                                <span className="reports-recent-item-date">
+                                  {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                              </div>
+                              <div className="reports-recent-item-detail">
+                                {(req.items || []).slice(0, 2).map((item, i) => (
+                                  <span key={i}>{item.name}{item.quantity ? ` (${item.quantity})` : ''}</span>
+                                ))}
+                                {(req.items || []).length > 2 && (
+                                  <span className="reports-recent-more">+{(req.items || []).length - 2} more</span>
+                                )}
+                              </div>
+                              {req.priority === 'urgent' && (
+                                <span className="reports-urgent-tag">URGENT</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Disposal Trends */}
+                <div className="reports-insight-card">
+                  <div className="reports-insight-header">
+                    <div className="reports-insight-title">
+                      <Truck size={18} />
+                      <h3>Disposal Trends</h3>
+                    </div>
+                    <span className="reports-section-count">{projectData?.disposalTotalLoads || 0} loads</span>
+                  </div>
+                  <div className="reports-insight-body">
+                    {(projectData?.weeklyDisposal || []).length === 0 ? (
+                      <div className="reports-empty-state">
+                        <Truck size={32} />
+                        <p>No disposal data yet</p>
+                        <span>Disposal loads from the field will appear here</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Stacked weekly bar chart */}
+                        <div className="reports-disposal-chart">
+                          <div className="reports-disposal-bars">
+                            {(projectData?.weeklyDisposal || []).map((week, i) => {
+                              const total = (week.concrete || 0) + (week.trash || 0) + (week.metals || 0) + (week.hazardous_waste || 0)
+                              const maxWeek = Math.max(...(projectData?.weeklyDisposal || []).map(w => (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0))) || 1
+                              return (
+                                <div key={i} className="reports-disposal-bar-col">
+                                  <div className="reports-disposal-bar-stack" style={{ height: `${(total / maxWeek) * 100}%` }}>
+                                    {week.concrete > 0 && <div className="reports-disposal-seg concrete" style={{ flex: week.concrete }} title={`Concrete: ${week.concrete}`}></div>}
+                                    {week.trash > 0 && <div className="reports-disposal-seg trash" style={{ flex: week.trash }} title={`Trash: ${week.trash}`}></div>}
+                                    {week.metals > 0 && <div className="reports-disposal-seg metals" style={{ flex: week.metals }} title={`Metals: ${week.metals}`}></div>}
+                                    {week.hazardous_waste > 0 && <div className="reports-disposal-seg hazardous" style={{ flex: week.hazardous_waste }} title={`Hazardous: ${week.hazardous_waste}`}></div>}
+                                  </div>
+                                  <span className="reports-disposal-bar-label">
+                                    {new Date(week.week + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <div className="reports-disposal-legend">
+                            <span className="reports-disposal-legend-item"><span className="reports-disposal-dot concrete"></span>Concrete</span>
+                            <span className="reports-disposal-legend-item"><span className="reports-disposal-dot trash"></span>Trash</span>
+                            <span className="reports-disposal-legend-item"><span className="reports-disposal-dot metals"></span>Metals</span>
+                            <span className="reports-disposal-legend-item"><span className="reports-disposal-dot hazardous"></span>Hazardous</span>
+                          </div>
+                        </div>
+                        {/* Haul-off cost summary */}
+                        {(projectData?.haulOffCost || 0) > 0 && (
+                          <div className="reports-disposal-cost">
+                            <span>Total Disposal Cost</span>
+                            <strong>{formatCurrency(projectData.haulOffCost)}</strong>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Field Activity Summary */}
+              <div className="reports-insight-card reports-activity-summary">
+                <div className="reports-insight-header">
+                  <div className="reports-insight-title">
+                    <ClipboardList size={18} />
+                    <h3>Field Activity Summary</h3>
+                  </div>
+                  <div className="reports-activity-badges">
+                    {projectData?.lastDailyReport && (
+                      <span className="reports-last-filed">
+                        Last report: {new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {' '}({Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))}d ago)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="reports-insight-body">
+                  <div className="reports-activity-grid">
+                    <div className="reports-activity-stat">
+                      <div className="reports-activity-stat-icon"><ClipboardList size={16} /></div>
+                      <div className="reports-activity-stat-info">
+                        <strong>{projectData?.dailyReportsCount || 0}</strong>
+                        <span>Daily Reports Filed</span>
+                      </div>
+                    </div>
+                    <div className="reports-activity-stat">
+                      <div className="reports-activity-stat-icon"><FileText size={16} /></div>
+                      <div className="reports-activity-stat-info">
+                        <strong>{projectData?.totalTickets || 0}</strong>
+                        <span>T&M Tickets Created</span>
+                      </div>
+                    </div>
+                    <div className="reports-activity-stat">
+                      <div className="reports-activity-stat-icon"><Camera size={16} /></div>
+                      <div className="reports-activity-stat-info">
+                        <strong>{projectData?.totalPhotosFromTickets || 0}</strong>
+                        <span>Photos Documented</span>
+                      </div>
+                    </div>
+                    <div className="reports-activity-stat">
+                      <div className="reports-activity-stat-icon"><HardHat size={16} /></div>
+                      <div className="reports-activity-stat-info">
+                        <strong>{projectData?.completedAreasCount || 0}/{areas.length}</strong>
+                        <span>Work Areas Complete</span>
+                      </div>
+                    </div>
+                    <div className="reports-activity-stat">
+                      <div className="reports-activity-stat-icon"><DollarSign size={16} /></div>
+                      <div className="reports-activity-stat-info">
+                        <strong>{formatCurrency(projectData?.allCostsTotal || 0)}</strong>
+                        <span>Total Costs Tracked</span>
+                      </div>
+                    </div>
+                    <div className="reports-activity-stat">
+                      <div className="reports-activity-stat-icon"><Users size={16} /></div>
+                      <div className="reports-activity-stat-info">
+                        <strong>{projectData?.laborManDays || 0}</strong>
+                        <span>Total Man-Days</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
