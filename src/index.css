@@ -26143,6 +26143,15 @@ END MIGRATED */
   color: var(--text-secondary);
 }
 
+/* Reports Lists Side-by-Side */
+.reports-lists-row {
+  align-items: start;
+}
+
+.reports-lists-row .reports-section-card {
+  min-height: 200px;
+}
+
 /* Responsive: Reports Tab */
 @media (max-width: 768px) {
   .reports-two-col {

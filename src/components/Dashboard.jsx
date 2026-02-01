@@ -1550,20 +1550,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               {/* Row 3: Bottom strip - Attention + Quick Nav + Exports */}
               <div className="overview-bottom-strip">
                 {/* Attention items inline */}
-                {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (
+                {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0) && (
                   <div className="overview-attention-inline">
-                    {projectData?.urgentMaterialRequests > 0 && (
-                      <div className="attention-chip warning" onClick={() => setActiveProjectTab('reports')}>
-                        <AlertTriangle size={14} />
-                        <span>{projectData.urgentMaterialRequests} urgent material request{projectData.urgentMaterialRequests !== 1 ? 's' : ''}</span>
-                      </div>
-                    )}
-                    {projectData?.pendingMaterialRequests > 0 && !projectData?.urgentMaterialRequests && (
-                      <div className="attention-chip info" onClick={() => setActiveProjectTab('reports')}>
-                        <Package size={14} />
-                        <span>{projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending</span>
-                      </div>
-                    )}
                     {projectData?.pendingTickets > 0 && (
                       <div className="attention-chip warning" onClick={() => setActiveProjectTab('financials')}>
                         <ClipboardList size={14} />
@@ -1983,77 +1971,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </div>
               </div>
 
-              {/* Material Requests + Disposal Summary Row */}
-              <div className="reports-two-col">
-                {/* Material Requests */}
-                <div className="reports-insight-card">
-                  <div className="reports-insight-header">
-                    <div className="reports-insight-title">
-                      <Package size={18} />
-                      <h3>Material Requests</h3>
-                    </div>
-                    <span className="reports-section-count">{projectData?.totalMaterialRequests || 0} total</span>
-                  </div>
-                  <div className="reports-insight-body">
-                    {(projectData?.totalMaterialRequests || 0) === 0 ? (
-                      <div className="reports-empty-state">
-                        <Package size={32} />
-                        <p>No material requests yet</p>
-                        <span>Requests from the field will appear here</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="reports-material-pipeline">
-                          {projectData?.urgentMaterialRequests > 0 && (
-                            <div className="reports-material-status urgent">
-                              <AlertTriangle size={14} />
-                              <span>{projectData.urgentMaterialRequests} Urgent</span>
-                            </div>
-                          )}
-                          <div className="reports-material-status pending">
-                            <span className="reports-material-dot"></span>
-                            <span>{projectData?.pendingMaterialRequests || 0} Pending</span>
-                          </div>
-                          <div className="reports-material-status ordered">
-                            <span className="reports-material-dot"></span>
-                            <span>{projectData?.orderedMaterialRequests || 0} Ordered</span>
-                          </div>
-                          <div className="reports-material-status delivered">
-                            <CheckCircle2 size={14} />
-                            <span>{projectData?.deliveredMaterialRequests || 0} Delivered</span>
-                          </div>
-                        </div>
-                        {/* Recent requests */}
-                        <div className="reports-recent-list">
-                          {(projectData?.materialRequests || []).slice(0, 3).map(req => (
-                            <div key={req.id} className={`reports-recent-item ${req.status}`}>
-                              <div className="reports-recent-item-main">
-                                <span className={`reports-recent-item-status ${req.status}`}>{req.status}</span>
-                                <span className="reports-recent-item-date">
-                                  {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </span>
-                              </div>
-                              <div className="reports-recent-item-detail">
-                                {(req.items || []).slice(0, 2).map((item, i) => (
-                                  <span key={i}>{item.name}{item.quantity ? ` (${item.quantity})` : ''}</span>
-                                ))}
-                                {(req.items || []).length > 2 && (
-                                  <span className="reports-recent-more">+{(req.items || []).length - 2} more</span>
-                                )}
-                              </div>
-                              {req.priority === 'urgent' && (
-                                <span className="reports-urgent-tag">URGENT</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Disposal Trends */}
-                <div className="reports-insight-card">
+              {/* Disposal Trends - Full Width */}
+              <div className="reports-insight-card">
                   <div className="reports-insight-header">
                     <div className="reports-insight-title">
                       <Truck size={18} />
@@ -2109,7 +2028,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     )}
                   </div>
                 </div>
-              </div>
 
               {/* Field Activity Summary */}
               <div className="reports-insight-card reports-activity-summary">
@@ -2175,48 +2093,51 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </div>
               </div>
 
-              {/* Daily Reports Section */}
-              <div className="reports-section-card">
-                <div className="reports-section-header">
-                  <div className="reports-section-title">
-                    <ClipboardList size={18} />
-                    <h3>Daily Reports</h3>
+              {/* Daily Reports + Injury Reports Side by Side */}
+              <div className="reports-two-col reports-lists-row">
+                {/* Daily Reports */}
+                <div className="reports-section-card">
+                  <div className="reports-section-header">
+                    <div className="reports-section-title">
+                      <ClipboardList size={18} />
+                      <h3>Daily Reports</h3>
+                    </div>
+                    <span className="reports-section-count">{projectData?.dailyReportsCount || 0} total</span>
                   </div>
-                  <span className="reports-section-count">{projectData?.dailyReportsCount || 0} total</span>
+                  <div className="reports-section-content">
+                    <Suspense fallback={<TicketSkeleton />}>
+                      <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+                    </Suspense>
+                  </div>
                 </div>
-                <div className="reports-section-content">
-                  <Suspense fallback={<TicketSkeleton />}>
-                    <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
-                  </Suspense>
-                </div>
-              </div>
 
-              {/* Injury Reports Section */}
-              <div className={`reports-section-card ${(projectData?.injuryReportsCount || 0) > 0 ? 'has-warning' : ''}`}>
-                <div className="reports-section-header">
-                  <div className="reports-section-title">
-                    <span className={`reports-section-icon ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
-                      {(projectData?.injuryReportsCount || 0) > 0 ? '⚠' : '✓'}
+                {/* Injury Reports */}
+                <div className={`reports-section-card ${(projectData?.injuryReportsCount || 0) > 0 ? 'has-warning' : ''}`}>
+                  <div className="reports-section-header">
+                    <div className="reports-section-title">
+                      <span className={`reports-section-icon ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
+                        {(projectData?.injuryReportsCount || 0) > 0 ? '⚠' : '✓'}
+                      </span>
+                      <h3>Safety & Injury Reports</h3>
+                    </div>
+                    <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
+                      {(projectData?.injuryReportsCount || 0) > 0
+                        ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
+                        : 'No incidents'
+                      }
                     </span>
-                    <h3>Safety & Injury Reports</h3>
                   </div>
-                  <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
-                    {(projectData?.injuryReportsCount || 0) > 0
-                      ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
-                      : 'No incidents'
-                    }
-                  </span>
-                </div>
-                <div className="reports-section-content">
-                  <Suspense fallback={<TicketSkeleton />}>
-                    <InjuryReportsList
-                      project={selectedProject}
-                      companyId={company?.id || selectedProject?.company_id}
-                      company={company}
-                      user={user}
-                      onShowToast={onShowToast}
-                    />
-                  </Suspense>
+                  <div className="reports-section-content">
+                    <Suspense fallback={<TicketSkeleton />}>
+                      <InjuryReportsList
+                        project={selectedProject}
+                        companyId={company?.id || selectedProject?.company_id}
+                        company={company}
+                        user={user}
+                        onShowToast={onShowToast}
+                      />
+                    </Suspense>
+                  </div>
                 </div>
               </div>
             </div>
