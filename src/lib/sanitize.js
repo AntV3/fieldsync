@@ -301,8 +301,11 @@ function sanitizeObject(obj, options = {}) {
     return obj.map(item => sanitizeObject(item, options))
   }
 
+  const DANGEROUS_KEYS = ['__proto__', 'constructor', 'prototype']
   const result = {}
   for (const [key, value] of Object.entries(obj)) {
+    // Prevent prototype pollution
+    if (DANGEROUS_KEYS.includes(key)) continue
     if (typeof value === 'string') {
       result[key] = sanitizeText(value, options)
     } else if (typeof value === 'object' && value !== null) {

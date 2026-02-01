@@ -68,8 +68,9 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       const areaWeight = parseFloat(area.weight) || 0
       // Calculate area's contribution to revenue
       // If scheduled_value exists (SOV), use that; otherwise calculate from weight
-      const areaValue = area.scheduled_value
-        ? parseFloat(area.scheduled_value)
+      const parsedScheduledValue = area.scheduled_value ? parseFloat(area.scheduled_value) : NaN
+      const areaValue = !isNaN(parsedScheduledValue)
+        ? parsedScheduledValue
         : (totalWeight > 0 ? (areaWeight / totalWeight) * contractValue : 0)
 
       if (!revenueByDate[completionDate]) {

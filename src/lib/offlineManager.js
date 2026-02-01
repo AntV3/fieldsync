@@ -399,18 +399,27 @@ if (typeof window !== 'undefined') {
 // ============================================
 
 let isSyncing = false
+const MAX_SYNC_ATTEMPTS = 10 // Archive actions after this many failures
 
 // Process pending actions queue
 export const syncPendingActions = async (db) => {
-  if (isSyncing || !isOnline) return { synced: 0, failed: 0 }
+  if (isSyncing || !isOnline) return { synced: 0, failed: 0, archived: 0 }
 
   isSyncing = true
-  const results = { synced: 0, failed: 0 }
+  const results = { synced: 0, failed: 0, archived: 0 }
 
   try {
     const actions = await getPendingActions()
 
     for (const action of actions) {
+      // Skip actions that have exceeded max attempts
+      if ((action.attempts || 0) >= MAX_SYNC_ATTEMPTS) {
+        console.warn(`Archiving action ${action.type} after ${action.attempts} failed attempts`)
+        await removePendingAction(action.id)
+        results.archived++
+        continue
+      }
+
       try {
         await processAction(action, db)
         await removePendingAction(action.id)

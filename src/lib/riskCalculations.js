@@ -55,13 +55,15 @@ export const FACTOR_WEIGHTS = {
  * 0 = healthy, 100 = critical
  */
 function calculateFactorScore(value, thresholds) {
+  if (value === null || value === undefined || isNaN(value)) return 0
   if (value <= thresholds.healthy) return 0
   if (value >= thresholds.critical) return 100
 
   // Linear interpolation between healthy and critical
   const range = thresholds.critical - thresholds.healthy
+  if (range <= 0) return 100 // Guard against misconfigured thresholds
   const excess = value - thresholds.healthy
-  return (excess / range) * 100
+  return Math.min(100, Math.max(0, (excess / range) * 100))
 }
 
 /**
@@ -435,7 +437,9 @@ export function calculateProjections(project) {
     const daysElapsed = Math.max(1, (now - startDate) / (1000 * 60 * 60 * 24))
     const progressPerDay = actualProgress / daysElapsed
     const remainingProgress = 100 - actualProgress
-    const daysRemaining = remainingProgress / progressPerDay
+    // Guard against near-zero progress rate producing unrealistic projections
+    if (progressPerDay < 0.001) return { estimatedCompletionCost, estimatedFinalMargin, estimatedCompletionDate: null, costPerPercent }
+    const daysRemaining = Math.min(remainingProgress / progressPerDay, 3650) // Cap at 10 years
 
     estimatedCompletionDate = new Date(now.getTime() + daysRemaining * 24 * 60 * 60 * 1000)
   }

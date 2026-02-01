@@ -93,28 +93,41 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         return
       }
 
-      // If secure method failed but no rate limit, try fallback lookup
-      // This handles cases where the RPC function isn't deployed yet
-      if (result.error) {
-        const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
-        if (fallbackProject) {
-          onForemanAccess(fallbackProject)
-          return
+      // If secure method returned an RPC deployment error (not an auth failure),
+      // fall back to direct lookup. Only allow fallback for infrastructure errors,
+      // never for rate-limited or invalid-PIN responses.
+      if (result.error && !result.rateLimited && !result.invalidPin) {
+        const isInfraError = typeof result.error === 'string' &&
+          (result.error.includes('function') || result.error.includes('rpc') ||
+           result.error.includes('not found') || result.error.includes('42883'))
+        if (isInfraError) {
+          const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
+          if (fallbackProject) {
+            onForemanAccess(fallbackProject)
+            return
+          }
         }
       }
 
       onShowToast('Invalid PIN', 'error')
       setPin('')
     } catch (err) {
-      // Try fallback on exception
-      try {
-        const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
-        if (fallbackProject) {
-          onForemanAccess(fallbackProject)
-          return
+      // Only fall back on infrastructure errors (network, RPC not deployed)
+      // Never fall back if the secure method rejected the PIN
+      const errMsg = err?.message || ''
+      const isInfraError = errMsg.includes('fetch') || errMsg.includes('network') ||
+        errMsg.includes('Failed to fetch') || errMsg.includes('rpc') ||
+        errMsg.includes('function') || errMsg.includes('42883')
+      if (isInfraError) {
+        try {
+          const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
+          if (fallbackProject) {
+            onForemanAccess(fallbackProject)
+            return
+          }
+        } catch (fallbackErr) {
+          // Fallback also failed
         }
-      } catch (fallbackErr) {
-        // Fallback also failed, silent failure
       }
       onShowToast('Error checking PIN', 'error')
       setPin('')
