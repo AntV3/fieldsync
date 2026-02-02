@@ -10,6 +10,7 @@ import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
 import InstallPrompt from './components/InstallPrompt'
+import MFAChallenge from './components/MFAChallenge'
 // ForemanView imported directly to avoid lazy loading bundling issues
 import ForemanView from './components/ForemanView'
 
@@ -48,6 +49,8 @@ export default function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
+  const [mfaPending, setMfaPending] = useState(false)
+  const [mfaFactorId, setMfaFactorId] = useState(null)
 
   // checkAuth defined before useEffect to avoid ESLint warning
   const checkAuth = useCallback(async () => {
@@ -265,7 +268,16 @@ export default function App() {
             .single()
 
           setCompany(fullCompany)
-          setView('office')
+
+          // Check if user has MFA enrolled
+          const { data: factors } = await supabase.auth.mfa.listFactors()
+          const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
+          if (verifiedFactor) {
+            setMfaFactorId(verifiedFactor.id)
+            setMfaPending(true)
+          } else {
+            setView('office')
+          }
         } else {
           // Check if there are pending memberships
           const pendingCount = await db.getUserPendingMemberships(data.user.id)
@@ -385,6 +397,41 @@ export default function App() {
             <Logo className="loading-logo" />
             <div className="spinner"></div>
           </div>
+        </BrandingProvider>
+      </ThemeProvider>
+    )
+  }
+
+  // MFA Challenge screen (shown after login when MFA is enabled)
+  if (mfaPending) {
+    return (
+      <ThemeProvider>
+        <BrandingProvider companyId={company?.id}>
+          <ErrorBoundary>
+            <MFAChallenge
+              factorId={mfaFactorId}
+              onVerified={() => {
+                setMfaPending(false)
+                setView('office')
+              }}
+              onCancel={async () => {
+                setMfaPending(false)
+                setMfaFactorId(null)
+                await auth.signOut()
+                setUser(null)
+                setCompany(null)
+                setUserCompanies([])
+                setView('entry')
+              }}
+            />
+          </ErrorBoundary>
+          {toast && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
+          )}
         </BrandingProvider>
       </ThemeProvider>
     )

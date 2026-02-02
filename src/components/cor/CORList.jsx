@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare } from 'lucide-react'
+import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
 import { hexToRgb, loadImageAsBase64 } from '../../lib/imageUtils'
 import { CardSkeleton, CountBadge } from '../ui'
 import { useBranding } from '../../lib/BrandingContext'
+import { useFilteredPagination } from '../../hooks/useFilteredPagination'
+import Pagination from '../ui/Pagination'
 import CORLog from './CORLog'
 import CORCard from './CORCard'
 
@@ -590,12 +592,31 @@ export default function CORList({
     return filtered
   }, [cors, filter, areaFilter, groupFilter, viewMode, dateFilter, previewMode, previewLimit])
 
+  // Pagination for COR list (skipped in preview mode)
+  const {
+    paginatedItems,
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    totalPages,
+    goToPage,
+    pageSize,
+    setPageSize,
+    totalItems: paginatedTotalItems
+  } = useFilteredPagination(filteredCORs, {
+    pageSize: 25,
+    searchFields: ['title', 'cor_number', 'scope_of_work', 'status']
+  })
+
+  // In preview mode use filteredCORs directly; otherwise use paginated results
+  const displayCORs = previewMode ? filteredCORs : paginatedItems
+
   // Group CORs by month for 'all' view
   const corsByMonth = useMemo(() => {
     if (viewMode !== 'all') return null
 
     const groups = {}
-    filteredCORs.forEach(cor => {
+    displayCORs.forEach(cor => {
       const date = new Date(cor.created_at)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -608,7 +629,7 @@ export default function CORList({
     })
 
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]))
-  }, [filteredCORs, viewMode])
+  }, [displayCORs, viewMode])
 
   // Auto-expand current month
   useEffect(() => {
@@ -843,6 +864,25 @@ export default function CORList({
             </div>
           )}
 
+          {/* Search Input */}
+          {!previewMode && (
+            <div className="cor-search">
+              <Search size={14} className="cor-search-icon" />
+              <input
+                type="text"
+                className="cor-search-input"
+                placeholder="Search CORs by title, number, scope, or status..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button className="cor-search-clear" onClick={() => setSearchTerm('')}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Date Filter - Only in All mode and not preview mode */}
           {viewMode === 'all' && !previewMode && (
             <div className="cor-date-filter">
@@ -867,7 +907,7 @@ export default function CORList({
           )}
 
           {/* COR List */}
-          {filteredCORs.length === 0 ? (
+          {displayCORs.length === 0 ? (
             <div className="cor-empty">
               <FileText size={24} className="cor-empty-icon" />
               <p>No change orders {filter !== 'all' ? `(${filter.replace('_', ' ')})` : ''}</p>
@@ -899,9 +939,21 @@ export default function CORList({
                   </div>
                 ))
               ) : (
-                filteredCORs.map(cor => renderCORCard(cor))
+                displayCORs.map(cor => renderCORCard(cor))
               )}
             </div>
+          )}
+
+          {/* Pagination - only in full mode */}
+          {!previewMode && totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+              totalItems={paginatedTotalItems}
+            />
           )}
 
           {/* See All Footer - only in preview mode when there are more items */}

@@ -11,7 +11,8 @@ import {
   formatDateRange
 } from '../../lib/corCalculations'
 import { executeExport, ExportStatus } from '../../lib/corExportPipeline'
-import SignatureCapture from './SignatureCapture'
+import { exportCORDetail } from '../../lib/financialExport'
+import SignatureCanvas from '../ui/SignatureCanvas'
 import SignatureLinkGenerator from '../SignatureLinkGenerator'
 
 export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
@@ -844,6 +845,9 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
               </button>
             )}
 
+            <button className="btn btn-ghost btn-small" onClick={() => exportCORDetail(corData, project)} aria-label="Export COR to CSV">
+              <Download size={16} aria-hidden="true" /> Export CSV
+            </button>
             <button className="btn btn-secondary" onClick={handleExportPDF} aria-label="Export COR to PDF">
               <Download size={16} aria-hidden="true" /> Export PDF
             </button>
@@ -853,7 +857,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
       {/* Signature Capture Modal */}
       {showSignature && (
-        <SignatureCapture
+        <SignatureCanvas
           onSave={handleSaveSignature}
           onClose={() => setShowSignature(false)}
           signerName=""
