@@ -1,0 +1,9 @@
+.install-prompt { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000; background: var(--bg-primary, #fff); border-top: 1px solid var(--border-color, #e2e8f0); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 -4px 12px rgba(0,0,0,0.1); animation: slideUp 0.3s ease; }
+.install-prompt-content { display: flex; align-items: center; gap: 12px; color: var(--text-primary); }
+.install-prompt-text { display: flex; flex-direction: column; font-size: 13px; }
+.install-prompt-text strong { font-size: 14px; }
+.install-prompt-text span { color: var(--text-muted, #64748b); }
+.install-prompt-actions { display: flex; align-items: center; gap: 8px; }
+.install-prompt-dismiss { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; }
+.install-prompt-dismiss:hover { background: var(--bg-secondary); }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }

@@ -9,6 +9,7 @@ import Logo from './components/Logo'
 import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
+import InstallPrompt from './components/InstallPrompt'
 // ForemanView imported directly to avoid lazy loading bundling issues
 import ForemanView from './components/ForemanView'
 
@@ -832,6 +833,7 @@ export default function App() {
             onClose={() => setToast(null)}
           />
         )}
+        <InstallPrompt />
       </div>
       </ToastProvider>
       </BrandingProvider>
