@@ -1,0 +1,2077 @@
+/* ==========================================
+   Project View - Clean UX Design
+   ========================================== */
+
+.project-view {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.project-view.tabbed {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+}
+
+/* ============================================
+   TABBED PROJECT VIEW - Sticky Header
+   ============================================ */
+
+.pv-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  padding: 1rem 0 0;
+  margin: -1rem -1rem 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pv-header-title {
+  margin-bottom: 0.75rem;
+}
+
+.pv-header-title h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.pv-header-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Key Metrics Bar */
+.pv-metrics-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.pv-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pv-metric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-metric-value.highlight {
+  color: var(--accent-green);
+}
+
+.pv-metric-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pv-metric-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+}
+
+/* Tab Navigation */
+.pv-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.pv-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pv-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.pv-tab:hover {
+  color: var(--text-primary);
+}
+
+.pv-tab.active {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
+}
+
+.pv-tab-icon {
+  font-size: 0.9rem;
+}
+
+.pv-tab-label {
+  font-size: 0.85rem;
+}
+
+/* Tab Badge for pending items */
+.pv-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.375rem;
+  margin-left: 0.25rem;
+  background: #f59e0b;
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 9px;
+  line-height: 1;
+}
+
+.pv-tab.active .pv-tab-badge {
+  background: var(--accent-blue);
+}
+
+/* Tab Content Area */
+.pv-tab-content {
+  flex: 1;
+  padding: 1.25rem 0;
+}
+
+.pv-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Content Cards */
+.pv-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.pv-card h3 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.pv-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pv-card-header h3 {
+  margin: 0;
+}
+
+/* =====================================================
+   FINANCIALS TAB - Clean Professional Layout
+   ===================================================== */
+
+.financials-tab {
+  gap: 1.25rem !important;
+}
+
+/* Hero Metrics Section */
+.financials-hero {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.financials-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .financials-hero-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .financials-hero-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+}
+
+.fin-metric {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.fin-metric-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.fin-metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.fin-metric-value.green {
+  color: var(--accent-green);
+}
+
+.fin-metric-detail {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.fin-metric-detail.green {
+  color: var(--accent-green);
+}
+
+.fin-metric-detail.warning {
+  color: var(--accent-yellow);
+}
+
+.fin-metric-bar {
+  height: 3px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.fin-metric-fill {
+  height: 100%;
+  background: var(--accent-blue);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Enhanced Hero Metrics */
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 1024px) {
+  .hero-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-metrics {
+    gap: 0.5rem;
+  }
+}
+
+.hero-metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hero-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero-metric-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: currentColor;
+  background: rgba(var(--icon-bg-rgb, 59, 130, 246), 0.12);
+}
+
+.hero-metric-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.hero-metric-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.hero-metric-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+@media (max-width: 480px) {
+  .hero-metric-value {
+    font-size: 1.1rem;
+  }
+}
+
+.hero-metric-success {
+  color: var(--accent-green);
+}
+
+.hero-metric-warning {
+  color: var(--accent-amber);
+}
+
+.hero-metric-danger {
+  color: var(--accent-red);
+}
+
+.hero-metric-sublabel {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.hero-metric-progress {
+  margin-top: 0.15rem;
+}
+
+.hero-metric-progress-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+/* Financials Tab Split Layout */
+.financials-layout {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Expanded layout when COR Log is active */
+.financials-layout.log-expanded {
+  display: block;
+}
+
+.financials-layout.log-expanded .financials-main {
+  max-width: 100%;
+}
+
+.financials-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.financials-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .financials-layout {
+    flex-direction: column;
+  }
+
+  .financials-sidebar {
+    width: 100%;
+  }
+}
+
+/* Financials Navigation */
+.financials-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: sticky;
+  top: 80px;
+}
+
+@media (max-width: 900px) {
+  .financials-nav {
+    flex-direction: row;
+    position: static;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.5rem;
+  }
+
+  .financials-nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.financials-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+  .financials-nav-item {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+.financials-nav-item:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-blue);
+}
+
+.financials-nav-item.active {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+.financials-nav-item.active .financials-nav-icon {
+  color: var(--accent-blue);
+}
+
+.financials-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.financials-nav-item.active .financials-nav-icon {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.financials-nav-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.financials-nav-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.financials-nav-desc {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+}
+
+@media (max-width: 900px) {
+  .financials-nav-desc {
+    display: none;
+  }
+}
+
+.financials-nav-arrow {
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.financials-nav-item:hover .financials-nav-arrow,
+.financials-nav-item.active .financials-nav-arrow {
+  opacity: 1;
+}
+
+.financials-nav-item.active .financials-nav-arrow {
+  transform: translateX(2px);
+  color: var(--accent-blue);
+}
+
+@media (max-width: 900px) {
+  .financials-nav-arrow {
+    display: none;
+  }
+}
+
+/* Nav Summary */
+.financials-nav-summary {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .financials-nav-summary {
+    display: none;
+  }
+}
+
+.nav-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.nav-summary-row.pending {
+  color: var(--accent-amber);
+}
+
+.pending-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+}
+
+/* Pipeline Section */
+.financials-pipeline {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pipeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.pipeline-header h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pipeline-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+}
+
+.pipeline-step {
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.pipeline-step.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.pipeline-arrow {
+  color: var(--text-muted);
+}
+
+.pipeline-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.pipeline-section {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pipeline-section:last-child {
+  border-bottom: none;
+}
+
+.pipeline-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pipeline-section-header h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pipeline-badge {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+/* Details Section - Collapsible */
+.financials-details {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.financials-details-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  list-style: none;
+}
+
+.financials-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.financials-details-summary::before {
+  content: '▶';
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.financials-details[open] .financials-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.financials-details-summary svg {
+  color: var(--accent-blue);
+}
+
+.financials-details-value {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.financials-details-content {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Project Health Card - Executive Overview */
+.pv-health-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.pv-health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pv-health-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pv-health-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.pv-health-indicator.complete {
+  background: var(--accent-green);
+  animation: none;
+}
+
+.pv-health-indicator.active {
+  background: var(--accent-blue);
+}
+
+.pv-health-indicator.pending {
+  background: var(--text-muted);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pv-health-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-health-percent {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.pv-health-bar {
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.pv-health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.pv-health-context {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Area Summary Pills */
+.pv-area-summary {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Needs Attention Card */
+.pv-attention-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.pv-attention-card h3 {
+  color: var(--accent-amber);
+}
+
+.pv-attention-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pv-attention-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pv-attention-item:hover {
+  background: var(--bg-secondary);
+  transform: translateX(4px);
+}
+
+.pv-attention-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  background: var(--accent-amber);
+  color: #000;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.pv-attention-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.pv-attention-arrow {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+
+.pv-attention-item:hover .pv-attention-arrow {
+  transform: translateX(4px);
+  color: var(--accent-amber);
+}
+
+/* Area Counts in Card Header */
+.pv-area-counts {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pv-count {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+}
+
+.pv-count.done {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.pv-count.working {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+
+.pv-count.pending {
+  background: rgba(156, 163, 175, 0.15);
+  color: var(--text-secondary);
+}
+
+/* Large Progress Display */
+.pv-progress-large {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.pv-progress-track {
+  flex: 1;
+  height: 12px;
+  background: var(--progress-bg);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pv-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.pv-progress-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.pv-progress-percent-lg {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  line-height: 1;
+}
+
+/* Quick Stats Grid */
+.pv-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.pv-quick-stat {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+}
+
+.pv-qs-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-qs-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.25rem;
+}
+
+/* Reports Summary Card */
+.pv-reports-summary {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
+}
+
+.pv-reports-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pv-report-stat {
+  text-align: center;
+  padding: 1rem 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+}
+
+.pv-report-stat.injury {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.pv-report-stat-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-report-stat.injury .pv-report-stat-value {
+  color: var(--accent-red);
+}
+
+.pv-report-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.pv-last-report {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Activity Summary Card */
+.pv-activity-summary {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+.pv-activity-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.pv-activity-stat {
+  text-align: center;
+  padding: 1rem 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+}
+
+.pv-activity-stat.has-pending {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.pv-activity-stat-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-activity-stat.has-pending .pv-activity-stat-value {
+  color: var(--accent-amber);
+}
+
+.pv-activity-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Info Tab Styles */
+.pv-info-card {
+  background: var(--bg-card);
+}
+
+.pv-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.pv-info-header h3 {
+  margin: 0;
+}
+
+.pv-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .pv-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pv-info-section {
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.pv-info-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-info-icon {
+  color: var(--text-muted);
+}
+
+.pv-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+}
+
+.pv-info-row:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-info-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.pv-info-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+.pv-info-link {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.pv-info-link:hover {
+  text-decoration: underline;
+}
+
+.pv-info-badge {
+  background: var(--bg-card);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.pv-info-mono {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  background: var(--bg-card);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.1em;
+}
+
+.pv-info-currency {
+  font-weight: 600;
+}
+
+.pv-info-currency.positive {
+  color: var(--accent-green);
+}
+
+.pv-info-total {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid var(--border-color);
+}
+
+.pv-info-total .pv-info-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-info-total .pv-info-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.pv-info-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+/* Work Areas in Info Tab */
+.pv-info-areas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.pv-info-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border-left: 3px solid var(--text-muted);
+}
+
+.pv-info-area.done {
+  border-left-color: var(--accent-green);
+}
+
+.pv-info-area.working {
+  border-left-color: var(--accent-blue);
+}
+
+.pv-info-area.not_started {
+  border-left-color: var(--text-muted);
+}
+
+.pv-info-area-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pv-info-area-weight {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.pv-info-area-status {
+  font-size: 0.75rem;
+}
+
+/* Burn Rate Card */
+.pv-burn-rate-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(239, 68, 68, 0.05) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.pv-burn-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pv-burn-header h3 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.pv-burn-badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pv-burn-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pv-burn-stat {
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+}
+
+.pv-burn-stat.main {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.pv-burn-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-burn-stat.main .pv-burn-value {
+  color: var(--accent-red);
+  font-size: 1.4rem;
+}
+
+.pv-burn-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Burn Ratio Bar */
+.pv-burn-context {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.pv-burn-ratio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pv-burn-ratio-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.pv-burn-ratio-bar {
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pv-burn-ratio-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-amber), var(--accent-red));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pv-burn-ratio-pct {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-burn-ratio-pct.warning {
+  color: var(--accent-amber);
+}
+
+/* Burn Footer */
+.pv-burn-footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.pv-burn-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Financial Card Styles */
+.pv-financial-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+}
+
+.pv-contract-breakdown {
+  margin-bottom: 1.25rem;
+}
+
+.pv-contract-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-contract-row:last-child {
+  border-bottom: none;
+}
+
+.pv-contract-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.pv-contract-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-contract-row.pv-co-added .pv-contract-value {
+  color: var(--accent-green);
+}
+
+.pv-contract-row.pv-contract-total {
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+  border-top: 2px solid var(--border-color);
+}
+
+.pv-contract-row.pv-contract-total .pv-contract-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-contract-row.pv-contract-total .pv-contract-value {
+  font-size: 1.25rem;
+}
+
+/* Billing Progress */
+.pv-billing-progress {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.pv-billing-track {
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.pv-billing-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 4px;
+}
+
+.pv-billing-stats {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pv-billing-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.pv-billing-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pv-billing-value.pv-remaining {
+  color: var(--accent-green);
+}
+
+.pv-billing-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Messages Full Width (for Activity Tab) */
+.pv-messages-full {
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   EXECUTIVE FINANCIAL CARD
+   ============================================ */
+
+.pv-executive-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--border-color);
+}
+
+.pv-exec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.pv-exec-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.pv-exec-badge {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
+/* Value Story - The narrative flow */
+.pv-value-story {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pv-story-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  position: relative;
+}
+
+.pv-story-item.change-orders {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.pv-story-item.current-total {
+  background: var(--bg-card);
+  border: 2px solid var(--accent-blue);
+}
+
+.pv-story-arrow,
+.pv-story-equals {
+  position: absolute;
+  left: -1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.pv-story-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 150px;
+}
+
+.pv-story-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pv-story-value.green {
+  color: var(--accent-green);
+}
+
+.pv-story-value.large {
+  font-size: 1.5rem;
+}
+
+.pv-story-desc {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Revenue Status */
+.pv-revenue-status {
+  padding-top: 0.5rem;
+}
+
+.pv-revenue-bar {
+  position: relative;
+  height: 10px;
+  background: var(--progress-bg);
+  border-radius: 5px;
+  overflow: visible;
+  margin-bottom: 1rem;
+}
+
+.pv-revenue-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.pv-revenue-marker {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 16px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.pv-revenue-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pv-revenue-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.pv-revenue-item.right {
+  text-align: right;
+}
+
+.pv-revenue-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.pv-revenue-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pv-revenue-value.green {
+  color: var(--accent-green);
+}
+
+.pv-revenue-pct {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+/* T&M Summary Badge */
+.pv-tm-summary-badge {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.pv-tm-summary-badge .pending-count {
+  color: var(--accent-amber);
+  font-weight: 500;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .pv-sticky-header {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .pv-metrics-bar {
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .pv-metric-value {
+    font-size: 0.95rem;
+  }
+
+  .pv-tab {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .pv-tab-icon {
+    display: none;
+  }
+
+  .pv-quick-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .pv-qs-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pv-metrics-bar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pv-metric-divider {
+    display: none;
+  }
+
+  .pv-metric {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+/* ============================================
+   LEGACY PROJECT VIEW STYLES (kept for compatibility)
+   ============================================ */
+
+/* Header */
+.pv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pv-back {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+.pv-back:hover {
+  color: var(--text-primary);
+}
+
+.pv-back span:first-child {
+  font-size: 1.1rem;
+}
+
+.pv-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pv-action {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pv-action:hover {
+  background: var(--bg-card);
+  border-color: var(--accent-blue);
+}
+
+/* Title Section */
+.pv-title-section {
+  margin-bottom: 1.25rem;
+}
+
+.pv-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.pv-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.pv-dot {
+  opacity: 0.4;
+}
+
+/* HERO: Financial Card */
+.pv-hero-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.pv-financial-bar {
+  margin-bottom: 1rem;
+}
+
+.pv-fin-track {
+  position: relative;
+  height: 8px;
+  background: var(--progress-bg);
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.pv-fin-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pv-fin-marker {
+  position: absolute;
+  top: -4px;
+  width: 3px;
+  height: 16px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.pv-financial-numbers {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pv-fin-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.pv-fin-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.pv-fin-value-sm {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.pv-fin-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pv-fin-of {
+  align-self: center;
+}
+
+.pv-fin-separator {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 0 0.25rem;
+}
+
+.pv-fin-remaining {
+  margin-left: auto;
+  text-align: right;
+}
+
+.pv-progress-context {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.pv-progress-percent {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.pv-progress-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Section Headers */
+.pv-section {
+  margin-bottom: 1.25rem;
+}
+
+.pv-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pv-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pv-section-icon {
+  color: var(--accent-blue);
+  font-size: 0.9rem;
+}
+
+.pv-section-title h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-section-summary {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.pv-summary-done {
+  color: var(--accent-green);
+  font-weight: 500;
+}
+
+.pv-summary-working {
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
+/* Areas Grid */
+.pv-areas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.6rem;
+}
+
+.pv-area-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+
+.pv-area-card.done {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.pv-area-card.working {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.pv-area-status {
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.pv-check {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.pv-working {
+  color: var(--accent-blue);
+  font-size: 0.6rem;
+}
+
+.pv-pending {
+  color: var(--text-muted);
+}
+
+.pv-area-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pv-area-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pv-area-weight {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Stats Row */
+.pv-stats-row {
+  margin-bottom: 1.25rem;
+}
+
+/* Content Grid */
+.pv-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.pv-content-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.pv-content-side {
+  min-width: 0;
+}
+
+.pv-content-side .project-messages {
+  height: 450px;
+  max-height: 450px;
+  position: sticky;
+  top: 1rem;
+}
+
+/* Secondary Section */
+.pv-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Mobile Responsive */
+@media (max-width: 900px) {
+  .pv-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pv-content-side .project-messages {
+    height: 350px;
+    max-height: 350px;
+    position: static;
+  }
+
+  .pv-secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .pv-areas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .pv-title {
+    font-size: 1.25rem;
+  }
+
+  .pv-fin-value {
+    font-size: 1.25rem;
+  }
+
+  .pv-progress-percent {
+    font-size: 1.5rem;
+  }
+
+  .pv-financial-numbers {
+    gap: 0.5rem;
+  }
+
+  .pv-fin-remaining {
+    margin-left: 0;
+    margin-top: 0.5rem;
+    flex-basis: 100%;
+    text-align: left;
+  }
+
+  .pv-areas-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

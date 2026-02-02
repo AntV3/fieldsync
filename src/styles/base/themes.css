@@ -1,0 +1,1062 @@
+
+/* Light Theme Specific Overrides */
+[data-theme="light"] .nav {
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+[data-theme="light"] .card,
+[data-theme="light"] .project-card,
+[data-theme="light"] .foreman-card,
+[data-theme="light"] .cor-section,
+[data-theme="light"] .tm-wizard {
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background: var(--bg-input);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .demo-banner {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Ensure buttons with white text stay readable in light mode */
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-success,
+[data-theme="light"] .btn-danger {
+  color: white;
+}
+
+/* Status badges - ensure contrast in light mode */
+[data-theme="light"] .status-badge.done,
+[data-theme="light"] .status-badge.approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-theme="light"] .status-badge.working,
+[data-theme="light"] .status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-theme="light"] .status-badge.not_started {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Modal and overlay adjustments for light mode */
+[data-theme="light"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .modal-content {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Table row hover in light mode */
+[data-theme="light"] table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Progress bars in light mode */
+[data-theme="light"] .progress-bar {
+  background: var(--progress-bg);
+}
+
+/* Foreman view cards */
+[data-theme="light"] .foreman-header,
+[data-theme="light"] .foreman-project-info,
+[data-theme="light"] .foreman-card {
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+/* Entry page cards in light mode */
+[data-theme="light"] .entry-card {
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+[data-theme="light"] .entry-card:hover {
+  box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+/* ============================================
+   Comprehensive Light Mode Fixes
+   ============================================ */
+
+/* Foreman View - ensure all text is readable */
+[data-theme="light"] .foreman-container {
+  background: var(--bg-primary);
+}
+
+[data-theme="light"] .foreman-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-project-name,
+[data-theme="light"] .foreman-progress {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-stat-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-tabs {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-tab {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-tab.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
+[data-theme="light"] .foreman-group-header {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-group-name,
+[data-theme="light"] .foreman-group-progress {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-area-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-area-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-btn.working.active {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  color: white;
+}
+
+[data-theme="light"] .foreman-btn.done.active {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: white;
+}
+
+/* Field Action Buttons */
+[data-theme="light"] .field-action-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .field-action-btn:hover {
+  border-color: var(--accent-blue);
+}
+
+[data-theme="light"] .field-action-btn.danger {
+  border-color: var(--accent-red);
+}
+
+/* T&M Form / Wizard */
+[data-theme="light"] .tm-wizard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .tm-wizard-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .tm-wizard-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-step-content {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-section-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-crew-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .tm-crew-item.selected {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-blue);
+}
+
+/* Disposal Load Input */
+[data-theme="light"] .disposal-load-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .disposal-header {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .disposal-date {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .quick-add-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .disposal-load-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .load-label,
+[data-theme="light"] .load-count {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .load-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Crew Check-in */
+[data-theme="light"] .crew-checkin-container {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .crew-member-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .crew-member-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .crew-member-role {
+  color: var(--text-secondary);
+}
+
+/* Daily Report */
+[data-theme="light"] .daily-report-form {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .daily-report-section {
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .daily-report-section h3 {
+  color: var(--text-primary);
+}
+
+/* Cards and sections - ensure borders visible */
+[data-theme="light"] .card,
+[data-theme="light"] .section-card,
+[data-theme="light"] .info-card {
+  border: 1px solid var(--border-color);
+}
+
+/* Project Info Panel */
+[data-theme="light"] .foreman-project-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-info-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-info-value {
+  color: var(--text-primary);
+}
+
+/* Dashboard Cards */
+[data-theme="light"] .burn-rate-card,
+[data-theme="light"] .profitability-card,
+[data-theme="light"] .cost-contributors-card,
+[data-theme="light"] .disposal-summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .burn-rate-title h3,
+[data-theme="light"] .card-title {
+  color: var(--text-primary);
+}
+
+/* COR Form */
+[data-theme="light"] .cor-form-container {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .cor-section-header {
+  color: var(--text-primary);
+}
+
+/* Modal Content */
+[data-theme="light"] .modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .modal-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .modal-header h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .modal-footer {
+  border-top: 1px solid var(--border-color);
+}
+
+/* Ticket Selector */
+[data-theme="light"] .ticket-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .ticket-item.selected {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-blue);
+}
+
+[data-theme="light"] .ticket-date,
+[data-theme="light"] .ticket-item-desc {
+  color: var(--text-primary);
+}
+
+/* Ticket Status Badges - Light Mode ADA Compliant (4.5:1 contrast) */
+[data-theme="light"] .ticket-status.pending,
+[data-theme="light"] .tm-ticket-status.pending {
+  background: #fef3c7;
+  color: #92400e; /* Dark amber - 4.5:1+ contrast on light yellow */
+}
+
+[data-theme="light"] .ticket-status.approved,
+[data-theme="light"] .tm-ticket-status.approved {
+  background: #d1fae5;
+  color: #065f46; /* Dark green - 4.5:1+ contrast on light green */
+}
+
+[data-theme="light"] .ticket-status.billed,
+[data-theme="light"] .tm-ticket-status.billed {
+  background: #dbeafe;
+  color: #1e40af; /* Dark blue - 4.5:1+ contrast on light blue */
+}
+
+[data-theme="light"] .ticket-status.rejected,
+[data-theme="light"] .tm-ticket-status.rejected {
+  background: #fee2e2;
+  color: #991b1b; /* Dark red - 4.5:1+ contrast on light red */
+}
+
+/* Ticket summary and secondary text - ensure readability */
+[data-theme="light"] .tm-ticket-summary,
+[data-theme="light"] .tm-ticket-hours,
+[data-theme="light"] .ticket-item-summary {
+  color: #374151; /* Gray-700 for better contrast */
+}
+
+/* Ticket PCO badge - ensure visibility */
+[data-theme="light"] .ticket-pco,
+[data-theme="light"] .tm-ticket-pco {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+/* Invoice status badges - Light Mode ADA Compliant */
+[data-theme="light"] .invoice-status.status-draft {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+[data-theme="light"] .invoice-status.status-sent {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+[data-theme="light"] .invoice-status.status-partial {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-theme="light"] .invoice-status.status-paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-theme="light"] .invoice-status.status-void {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Charts */
+[data-theme="light"] .chart-container,
+[data-theme="light"] .financial-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+/* Back button and headers */
+[data-theme="light"] .back-btn-simple {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-view-header h2 {
+  color: var(--text-primary);
+}
+
+/* Empty states */
+[data-theme="light"] .foreman-empty,
+[data-theme="light"] .empty-state {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-empty-text {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-empty-subtext {
+  color: var(--text-secondary);
+}
+
+/* Ensure all icons inherit proper color */
+[data-theme="light"] .field-action-btn svg,
+[data-theme="light"] .foreman-info-btn svg,
+[data-theme="light"] .back-btn-simple svg {
+  color: inherit;
+}
+
+/* Stats in light mode */
+[data-theme="light"] .foreman-stat-value {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-stat-value.working {
+  color: var(--accent-amber);
+}
+
+[data-theme="light"] .foreman-stat-value.done {
+  color: var(--accent-green);
+}
+
+/* Project list */
+[data-theme="light"] .project-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .project-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .project-info {
+  color: var(--text-secondary);
+}
+
+/* COR Log Preview - Light Mode Overrides */
+[data-theme="light"] .cor-log-preview {
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+[data-theme="light"] .cor-log-stat {
+  background: var(--bg-secondary);
+}
+
+[data-theme="light"] .cor-log-preview-table-wrapper {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-log-preview-view-all {
+  background: var(--bg-secondary);
+}
+
+/* COR Status Badges - Light Mode ADA Compliant (4.5:1 contrast) */
+[data-theme="light"] .cor-status-badge.draft,
+[data-theme="light"] .cor-log-status.draft {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+[data-theme="light"] .cor-status-badge.pending,
+[data-theme="light"] .cor-log-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+[data-theme="light"] .cor-status-badge.approved,
+[data-theme="light"] .cor-log-status.approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+[data-theme="light"] .cor-status-badge.rejected,
+[data-theme="light"] .cor-log-status.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+[data-theme="light"] .cor-status-badge.billed,
+[data-theme="light"] .cor-log-status.billed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+[data-theme="light"] .cor-status-badge.closed,
+[data-theme="light"] .cor-log-status.closed {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* COR Log Summary Cards - Light Mode */
+[data-theme="light"] .summary-card {
+  background: var(--bg-secondary);
+}
+
+[data-theme="light"] .summary-card.pending svg { color: #d97706; }
+[data-theme="light"] .summary-card.approved svg { color: #059669; }
+[data-theme="light"] .summary-card.void svg { color: #dc2626; }
+[data-theme="light"] .summary-card.total svg { color: var(--primary-color); }
+
+[data-theme="light"] .summary-card.pending .summary-card-amount { color: #92400e; }
+[data-theme="light"] .summary-card.approved .summary-card-amount { color: #065f46; }
+[data-theme="light"] .summary-card.void .summary-card-amount { color: #991b1b; }
+
+/* COR Log Stat Cards - Light Mode accent colors */
+[data-theme="light"] .cor-log-stat.approved .cor-log-stat-icon { color: #059669; }
+[data-theme="light"] .cor-log-stat.pending .cor-log-stat-icon { color: #d97706; }
+[data-theme="light"] .cor-log-stat.void .cor-log-stat-icon { color: #dc2626; }
+
+[data-theme="light"] .cor-log-stat.approved .cor-log-stat-value { color: #065f46; }
+[data-theme="light"] .cor-log-stat.pending .cor-log-stat-value { color: #92400e; }
+[data-theme="light"] .cor-log-stat.void .cor-log-stat-value { color: #991b1b; }
+
+/* COR Log Table - Light Mode */
+[data-theme="light"] .cor-log-table-wrapper {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-log-table thead {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="light"] .cor-log-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+/* COR Log Expanded - Light Mode */
+[data-theme="light"] .cor-log-expanded {
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+/* COR Log Modal - Light Mode */
+[data-theme="light"] .cor-log-modal {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .cor-log-modal-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="light"] .cor-log-modal-close {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .cor-log-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+/* COR Log Summary Row - Light Mode */
+[data-theme="light"] .cor-log-summary-row .summary-breakdown-amounts .approved {
+  color: #065f46;
+}
+
+[data-theme="light"] .cor-log-summary-row .summary-breakdown-amounts .pending {
+  color: #92400e;
+}
+
+/* COR Log Section Colors - Light Mode */
+[data-theme="light"] .cor-log-section.pending .section-total { color: #92400e; }
+[data-theme="light"] .cor-log-section.approved .section-total { color: #065f46; }
+[data-theme="light"] .cor-log-section.void .section-total { color: #991b1b; }
+
+/* ===========================================
+   COR CARD LIST - Light Mode Depth & Contrast
+   =========================================== */
+
+/* COR Cards need visible separation from card background */
+[data-theme="light"] .cor-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: var(--primary-color);
+}
+
+/* Stronger colored left border on cards for visual pop */
+[data-theme="light"] .cor-card.draft {
+  border-left: 4px solid #9ca3af;
+}
+
+[data-theme="light"] .cor-card.pending_approval {
+  border-left: 4px solid #f59e0b;
+}
+
+[data-theme="light"] .cor-card.approved {
+  border-left: 4px solid #10b981;
+}
+
+[data-theme="light"] .cor-card.rejected {
+  border-left: 4px solid #ef4444;
+}
+
+[data-theme="light"] .cor-card.billed {
+  border-left: 4px solid #3b82f6;
+}
+
+[data-theme="light"] .cor-card.closed {
+  border-left: 4px solid #6b7280;
+  opacity: 0.85;
+}
+
+/* COR card text contrast */
+[data-theme="light"] .cor-number {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cor-title {
+  color: #1e293b;
+}
+
+[data-theme="light"] .cor-total {
+  color: #059669;
+}
+
+[data-theme="light"] .cor-meta {
+  color: #475569;
+}
+
+[data-theme="light"] .cor-area {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+[data-theme="light"] .cor-period {
+  color: #64748b;
+}
+
+[data-theme="light"] .cor-created {
+  color: #64748b;
+}
+
+[data-theme="light"] .cor-card-footer {
+  border-top-color: #e2e8f0;
+}
+
+[data-theme="light"] .cor-action-btn {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .cor-action-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* COR Selection */
+[data-theme="light"] .cor-card.selected {
+  border-color: var(--primary-color);
+  background: rgba(37, 99, 235, 0.04);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2), 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+[data-theme="light"] .cor-selection-bar {
+  background: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+/* COR signed badge */
+[data-theme="light"] .cor-signed-badge {
+  background: rgba(5, 150, 105, 0.1);
+  color: #065f46;
+}
+
+/* COR List Header & Stats */
+[data-theme="light"] .cor-list-info h3 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cor-stat-item {
+  color: #64748b;
+}
+
+[data-theme="light"] .cor-header-actions .btn {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* COR Filter/Search */
+[data-theme="light"] .cor-filters {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+/* ===========================================
+   GENERAL LIGHT MODE - Add Depth & Warmth
+   =========================================== */
+
+/* Give all cards more presence in light mode */
+[data-theme="light"] .financials-section {
+  background: transparent;
+}
+
+[data-theme="light"] .tm-section {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Section back button */
+[data-theme="light"] .section-back-btn {
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .section-back-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* TM Ticket Cards - match the improved depth */
+[data-theme="light"] .tm-ticket-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .tm-ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Summary cards - more visible */
+[data-theme="light"] .summary-card {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Buttons - subtle depth */
+[data-theme="light"] .btn-secondary {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .btn-primary {
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+[data-theme="light"] .btn-primary:hover {
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+
+/* Table improvements */
+[data-theme="light"] .cor-log-preview-table th {
+  background: #f1f5f9;
+  color: #475569;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+[data-theme="light"] .cor-log-preview-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+[data-theme="light"] .cor-log-table th {
+  border-bottom: 2px solid #cbd5e1;
+}
+
+/* COR Log Preview - extra depth */
+[data-theme="light"] .cor-log-preview {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-log-stat {
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-log-preview-view-all {
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cor-log-preview-view-all:hover {
+  background: #f1f5f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* COR Log Expanded - depth */
+[data-theme="light"] .cor-log-expanded {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Empty states - warmer background */
+[data-theme="light"] .cor-log-preview-empty,
+[data-theme="light"] .cor-log-empty {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+/* ===========================================
+   FILTER PILLS & TOGGLES - Light Mode
+   =========================================== */
+
+/* Controls bar */
+[data-theme="light"] .cor-controls,
+[data-theme="light"] .tm-list-filters {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+/* Filter pills container */
+[data-theme="light"] .cor-filter-pills,
+[data-theme="light"] .tm-filter-tabs {
+  background: #e2e8f0;
+}
+
+/* Active pill - blue accent */
+[data-theme="light"] .cor-pill.active,
+[data-theme="light"] .tm-filter-tab.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Pill count badge */
+[data-theme="light"] .cor-pill-count,
+[data-theme="light"] .tm-filter-count {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .cor-pill.active .cor-pill-count,
+[data-theme="light"] .tm-filter-tab.active .tm-filter-count {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* View toggle */
+[data-theme="light"] .cor-view-toggle,
+[data-theme="light"] .view-mode-tabs {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .cor-toggle-btn.active,
+[data-theme="light"] .view-mode-tab.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Group filter select */
+[data-theme="light"] .cor-group-filter,
+[data-theme="light"] .cor-area-filter {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* Date filter */
+[data-theme="light"] .cor-date-filter,
+[data-theme="light"] .date-filter {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .cor-date-filter input,
+[data-theme="light"] .date-filter input {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* ===========================================
+   LIGHT MODE - More Color, Less Blinding White
+   =========================================== */
+
+/* Warm up the main background */
+[data-theme="light"] body {
+  background: #f1f5f9;
+}
+
+/* Main content area - subtle warm tint */
+[data-theme="light"] .dashboard-content,
+[data-theme="light"] .main-content {
+  background: #f1f5f9;
+}
+
+/* Navigation - slight depth */
+[data-theme="light"] .nav,
+[data-theme="light"] .sidebar {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+/* Tab navigation - add color accent */
+[data-theme="light"] .tab-nav,
+[data-theme="light"] .financials-nav {
+  background: #ffffff;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+[data-theme="light"] .tab-btn.active,
+[data-theme="light"] .financials-nav-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+/* Section headers - subtle blue tint */
+[data-theme="light"] .section-header {
+  color: #0f172a;
+}
+
+/* Project cards - warm shadow */
+[data-theme="light"] .project-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .project-card:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-color: #93c5fd;
+}
+
+/* Overview cards */
+[data-theme="light"] .overview-hero-split {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+/* Daily report cards */
+[data-theme="light"] .daily-report-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .daily-report-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Attention/alert cards - warm accent */
+[data-theme="light"] .attention-card,
+[data-theme="light"] .alert-card {
+  border-left: 4px solid #f59e0b;
+}
+
+/* Stats values - use accent colors */
+[data-theme="light"] .stat-value,
+[data-theme="light"] .quick-stat-value {
+  color: #0f172a;
+}
+
+/* Active/success values - green accent */
+[data-theme="light"] .stat-value.positive,
+[data-theme="light"] .profit-positive {
+  color: #059669;
+}
+
+/* Warning values */
+[data-theme="light"] .stat-value.negative,
+[data-theme="light"] .profit-negative {
+  color: #dc2626;
+}
+
+/* Input fields - slight border color */
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* Accessibility utility classes */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+

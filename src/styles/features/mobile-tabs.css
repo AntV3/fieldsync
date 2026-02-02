@@ -1,0 +1,76 @@
+/* =============================================
+   MOBILE RESPONSIVE - REDESIGNED TABS
+   ============================================= */
+
+@media (max-width: 768px) {
+  .overview-hero-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .overview-metric-value {
+    font-size: 1.5rem;
+  }
+
+  .overview-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-hero-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .reports-metric.primary {
+    grid-column: span 2;
+  }
+
+  .activity-hero-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .activity-metric.warning,
+  .activity-metric.success {
+    grid-column: span 2;
+  }
+
+  .info-hero-content {
+    flex-direction: column;
+  }
+
+  .info-quick-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .overview-hero-grid,
+  .reports-hero-grid,
+  .activity-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-metric.primary,
+  .activity-metric.warning,
+  .activity-metric.success {
+    grid-column: span 1;
+  }
+
+  .info-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attention-item {
+    flex-wrap: wrap;
+  }
+
+  .attention-item-content {
+    flex: 0 0 calc(100% - 48px);
+  }
+
+  .attention-item-arrow {
+    display: none;
+  }
+}
+

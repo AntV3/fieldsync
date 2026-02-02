@@ -1,0 +1,1589 @@
+   SIGNATURE CAPTURE STYLES
+   ===================================================== */
+
+.signature-modal {
+  max-width: 550px;
+  width: 95%;
+}
+
+.signature-body {
+  padding: 1.5rem;
+}
+
+.signature-area {
+  margin-top: 1.5rem;
+}
+
+.signature-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.signature-canvas-container {
+  position: relative;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  background: white;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.signature-canvas {
+  display: block;
+  width: 100%;
+  height: 150px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.signature-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #9ca3af;
+  font-size: 1.25rem;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.signature-legal {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .signature-modal {
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+  }
+
+  .signature-canvas {
+    height: 120px;
+  }
+}
+
+/* =====================================================
+   TICKET SELECTOR STYLES
+   ===================================================== */
+
+.ticket-selector-modal {
+  max-width: 700px;
+  width: 95%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ticket-selector-controls {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+.ticket-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.ticket-search svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.ticket-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.ticket-filters {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.filter-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.filter-btn.active {
+  background: var(--accent-blue);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.ticket-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.selected-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.ticket-selector-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.ticket-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.ticket-empty p {
+  margin: 1rem 0;
+}
+
+.ticket-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ticket-item {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s;
+}
+
+.ticket-item:hover {
+  background: var(--bg-secondary);
+}
+
+.ticket-item.selected {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.ticket-item.assigned {
+  opacity: 0.6;
+}
+
+.ticket-item-main {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+}
+
+.ticket-checkbox {
+  padding-top: 0.25rem;
+}
+
+.ticket-checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.ticket-item-info {
+  flex: 1;
+  cursor: pointer;
+}
+
+.ticket-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.ticket-date {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.ticket-status {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.ticket-status.pending {
+  background: rgba(217, 119, 6, 0.2);
+  color: var(--warning);
+}
+
+.ticket-status.approved {
+  background: rgba(5, 150, 105, 0.2);
+  color: var(--success);
+}
+
+.ticket-pco {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+}
+
+.ticket-item-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.ticket-item-summary {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ticket-item-summary span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.ticket-expand-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.ticket-item-details {
+  padding: 0.75rem 1rem 1rem 3.5rem;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
+}
+
+.ticket-detail-section {
+  margin-bottom: 0.75rem;
+}
+
+.ticket-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.ticket-detail-section h5 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.ticket-detail-section ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.ticket-detail-section li {
+  margin: 0.15rem 0;
+}
+
+@media (max-width: 640px) {
+  .ticket-selector-modal {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  .ticket-selector-controls {
+    flex-direction: column;
+  }
+
+  .ticket-filters {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .filter-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .ticket-item-summary {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+/* ============================================
+   Signature Workflow Styles
+   ============================================ */
+
+/* Signature Page (Public) */
+.signature-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.signature-page-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.signature-page-header .company-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.signature-page-header .company-logo-placeholder {
+  width: 48px;
+  height: 48px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.signature-page-header .company-info h1 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.signature-page-header .doc-type-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.signature-page-content {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.signature-page-footer {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.signature-page-loading,
+.signature-page-error {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.signature-page-error svg {
+  color: var(--color-error);
+}
+
+.signature-page-error h2 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.signature-page-error p {
+  color: var(--text-secondary);
+  max-width: 400px;
+}
+
+/* Success Banner */
+.signature-success-banner {
+  background: var(--color-success-bg, #d1fae5);
+  color: var(--color-success, #059669);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+/* Signed Overlay - Full screen confirmation after signing */
+.signature-signed-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(16, 185, 129, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.signature-signed-content {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  max-width: 400px;
+  margin: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.signature-signed-content svg {
+  color: #10b981;
+  margin-bottom: 1rem;
+}
+
+.signature-signed-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.75rem 0;
+}
+
+.signature-signed-content p {
+  font-size: 1rem;
+  color: #475569;
+  margin: 0 0 0.5rem 0;
+}
+
+.signature-signed-content .close-prompt {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 1rem;
+}
+
+.signature-signed-content .download-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding: 0.875rem 1.5rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.signature-signed-content .download-copy-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}
+
+.signature-signed-content .download-copy-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.signature-signed-content .download-copy-btn .btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Document Card */
+.signature-document-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.document-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.document-card-header svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.document-card-title h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.document-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.document-card-details {
+  padding: 1rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+.detail-value.amount {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.expand-details-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border: none;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expand-details-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.document-full-details {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.detail-section {
+  margin-bottom: 1rem;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section h4 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem;
+}
+
+.detail-section p {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.detail-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.detail-section li {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  padding: 0.25rem 0;
+}
+
+.detail-section li.more-items {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Signature Page Detail Sections (Full ticket info) */
+.signature-detail-section {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.signature-detail-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.signature-detail-section h4 svg {
+  color: var(--color-primary);
+}
+
+.signature-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.signature-detail-table th {
+  text-align: left;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.signature-detail-table td {
+  padding: 0.5rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.signature-detail-table tr:last-child td {
+  border-bottom: none;
+}
+
+.signature-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+.signature-photo-thumb {
+  aspect-ratio: 4/3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+
+.signature-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Signature Status Section */
+.signature-status-section {
+  margin-bottom: 1.5rem;
+}
+
+.signature-status-section h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 1rem;
+}
+
+.signature-slot-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.signature-slot-card.signed {
+  border-color: var(--color-success);
+  background: linear-gradient(to right, rgba(16, 185, 129, 0.05), transparent);
+}
+
+.slot-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.status-icon.signed {
+  color: var(--color-success);
+}
+
+.status-icon.pending {
+  color: var(--text-muted);
+}
+
+.slot-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.slot-signed-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.signer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.signer-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.signer-org {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.signed-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sign-btn {
+  width: 100%;
+}
+
+.fully-signed-message {
+  background: var(--color-success-bg, #d1fae5);
+  border: 1px solid var(--color-success);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-success);
+}
+
+.fully-signed-message svg {
+  flex-shrink: 0;
+}
+
+.fully-signed-message p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* COR Download Section */
+.cor-download-section {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary, #f8fafc);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.cor-download-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cor-download-section .download-description {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.cor-download-section .download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  min-width: 200px;
+}
+
+.cor-download-section .download-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.download-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Enhanced Signature Modal */
+.signature-modal.enhanced {
+  max-width: 480px;
+}
+
+.signature-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.signature-doc-ref {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+
+.signature-slot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: var(--bg-tertiary);
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.signature-fields {
+  margin-bottom: 1rem;
+}
+
+.signature-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.signature-acknowledgment {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.signature-acknowledgment .checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.signature-acknowledgment input[type="checkbox"] {
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* Signature Link Generator Modal */
+.signature-link-modal {
+  max-width: 520px;
+}
+
+.modal-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: normal;
+}
+
+.signature-link-section {
+  margin-bottom: 1.5rem;
+}
+
+.signature-link-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.section-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+}
+
+.link-options {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.link-options .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.new-link-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.link-display {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.link-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-card);
+  font-size: 0.8125rem;
+  font-family: monospace;
+  color: var(--text-primary);
+}
+
+.copy-btn {
+  flex-shrink: 0;
+}
+
+.preview-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.preview-link:hover {
+  text-decoration: underline;
+}
+
+.loading-inline {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.existing-links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.existing-link-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.link-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.status-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.link-created {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.link-card-body {
+  margin-bottom: 0.5rem;
+}
+
+.link-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.link-token {
+  font-family: monospace;
+  color: var(--text-secondary);
+}
+
+.link-expires,
+.link-views {
+  color: var(--text-muted);
+}
+
+.signatures-summary {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sig-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--color-success);
+  margin-top: 0.25rem;
+}
+
+.link-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.link-card-actions .btn-danger {
+  margin-left: auto;
+}
+
+.signature-info-box {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.signature-info-box svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.signature-info-box strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.signature-info-box ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.signature-info-box li {
+  margin: 0.25rem 0;
+}
+
+/* Dual Signatures in COR Detail */
+.dual-signatures {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.signature-block {
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.signature-block .signature-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .signature-page-content {
+    padding: 1rem;
+  }
+
+  .signature-fields-row {
+    grid-template-columns: 1fr;
+  }
+
+  .link-options {
+    flex-direction: column;
+  }
+
+  .link-options .form-group {
+    width: 100%;
+  }
+
+  .link-options .btn {
+    width: 100%;
+  }
+
+  .link-display {
+    flex-direction: column;
+  }
+
+  .slot-signed-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .link-card-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* ============================================
+   Full COR Document View (Signature Page)
+   ============================================ */
+
+.cor-full-document {
+  max-width: 900px;
+}
+
+.cor-header-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.cor-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.cor-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cor-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cor-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cor-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.cor-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+}
+
+.cor-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.cor-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cor-info-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cor-info-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cor-scope {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.cor-scope h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem 0;
+}
+
+.cor-scope p {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* COR Section (Labor, Materials, Equipment, Subcontractors) */
+.cor-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.cor-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cor-section-header svg {
+  color: var(--accent-blue);
+}
+
+.cor-section-header h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* T&M Backup Documentation Section */
+.cor-backup-section {
+  border: 1px solid var(--accent-blue);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
+}
+
+.cor-backup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.cor-backup-header:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.backup-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.backup-count {
+  background: var(--accent-blue);
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.backup-header-toggle {
+  color: var(--text-muted);
+}
+
+.backup-tickets-list {
+  padding: 0 1rem 1rem;
+}
+
+.backup-ticket {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.backup-ticket:last-child {
+  margin-bottom: 0;
+}
+
+.backup-ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.backup-ticket-header:hover {
+  background: var(--bg-tertiary);
+}
+
+.backup-ticket-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.backup-ticket-date {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.backup-ticket-ce {
+  background: var(--accent-blue);
+  color: white;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.backup-ticket-summary {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.backup-ticket-toggle {
+  color: var(--text-muted);
+}
+
+.backup-ticket-details {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.backup-detail-group {
+  padding-top: 0.75rem;
+}
+
+.backup-detail-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.backup-workers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.backup-worker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.worker-name {
+  color: var(--text-primary);
+}
+
+.worker-role {
+  background: var(--accent-orange);
+  color: white;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.worker-hours {
+  color: var(--text-secondary);
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-size: 0.8rem;
+}
+
+.worker-ot {
+  color: var(--accent-orange);
+}
+
+.backup-notes {
+  margin: 0;
+  padding: 0.6rem;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.backup-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 0.5rem;
+}
+
+.backup-photo {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.backup-photo:hover {
+  transform: scale(1.05);
+  border-color: var(--accent-blue);
+}
+
+.backup-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.backup-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(59, 130, 246, 0.08);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  font-size: 0.8rem;
+  color: var(--accent-blue);
+}
+
+.backup-note svg {
+  flex-shrink: 0;
+}
+

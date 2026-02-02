@@ -1,0 +1,461 @@
+   EQUIPMENT TRACKING STYLES
+   ============================================ */
+
+/* Project Equipment Card */
+.project-equipment-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.project-equipment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.project-equipment-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.project-equipment-title h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.project-equipment-title svg {
+  color: var(--accent-blue);
+}
+
+.equipment-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+}
+
+.project-equipment-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.equipment-loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.equipment-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.equipment-empty p {
+  margin-bottom: 1rem;
+}
+
+/* Equipment List */
+.equipment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.equipment-list.returned {
+  margin-top: 0.5rem;
+}
+
+.equipment-item {
+  background: var(--bg-hover);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.equipment-item.active {
+  border-left: 3px solid var(--accent-green);
+}
+
+.equipment-item.returned {
+  opacity: 0.7;
+  border-left: 3px solid var(--border-color);
+}
+
+.equipment-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.equipment-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.equipment-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.equipment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.equipment-meta svg {
+  color: var(--text-muted);
+}
+
+.equipment-item-cost {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.equipment-rate {
+  color: var(--text-muted);
+}
+
+.equipment-days {
+  color: var(--text-secondary);
+}
+
+.equipment-total {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 70px;
+  text-align: right;
+}
+
+.equipment-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Returned Equipment Section */
+.equipment-returned-section {
+  margin-top: 1rem;
+}
+
+.equipment-returned-toggle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.equipment-returned-toggle:hover {
+  color: var(--text-primary);
+}
+
+/* Equipment Total Row */
+.equipment-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0 0;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  font-weight: 600;
+}
+
+.equipment-grand-total {
+  color: var(--accent-blue);
+  font-size: 1.1rem;
+}
+
+.equipment-summary-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Equipment Modal */
+.equipment-modal {
+  max-width: 500px;
+}
+
+.equipment-modal .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.equipment-modal .form-help {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Equipment Catalog (Settings) */
+.equipment-catalog {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.equipment-catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.equipment-catalog-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.equipment-catalog-title h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.equipment-catalog-title svg {
+  color: var(--accent-blue);
+}
+
+.equipment-catalog-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.equipment-catalog-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.equipment-catalog-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.equipment-catalog-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.equipment-catalog-empty svg {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.equipment-catalog-empty p {
+  margin-bottom: 1rem;
+}
+
+/* Equipment Catalog List */
+.equipment-catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.equipment-catalog-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-hover);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.equipment-catalog-row:hover {
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.equipment-catalog-row.inactive {
+  opacity: 0.6;
+}
+
+.equipment-catalog-row.editing {
+  background: var(--bg-card);
+  border: 1px solid var(--accent-blue);
+}
+
+.equipment-catalog-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.equipment-catalog-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.equipment-catalog-name svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.equipment-catalog-name .badge {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+}
+
+.equipment-catalog-desc {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.equipment-catalog-rates {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.rate-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.rate-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rate-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.equipment-catalog-item-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* Equipment Form (inline in catalog) */
+.equipment-form {
+  width: 100%;
+}
+
+.equipment-form .form-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.equipment-form .form-group {
+  flex: 1;
+}
+
+.equipment-form .form-group.flex-2 {
+  flex: 2;
+}
+
+.equipment-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.equipment-form .input-with-prefix.compact {
+  font-size: 0.85rem;
+}
+
+.equipment-form .input-with-prefix.compact input {
+  padding: 0.4rem 0.5rem;
+  width: 60px;
+}
+
+.equipment-form .input-with-prefix.compact .input-prefix,
+.equipment-form .input-with-prefix.compact .input-suffix {
+  font-size: 0.75rem;
+  padding: 0 0.35rem;
+}
+
+.equipment-form .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Responsive Equipment */
+@media (max-width: 768px) {
+  .equipment-item-main {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .equipment-item-cost {
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border-color);
+  }
+
+  .equipment-catalog-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .equipment-catalog-rates {
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border-color);
+  }
+
+  .equipment-catalog-item-actions {
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+
+  .equipment-form .form-row {
+    flex-direction: column;
+  }
+}
+
