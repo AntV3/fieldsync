@@ -32,6 +32,7 @@
 @import './features/dashboard.css';
 @import './features/pagination.css';
 @import './features/install-prompt.css';
+@import './features/mfa.css';
 
 /*
    TODO: Continue extracting from legacy index.css:
