@@ -17,6 +17,24 @@ import OverviewCrewMetrics from './overview/OverviewCrewMetrics'
 import HeroMetrics from './HeroMetrics'
 import { TicketSkeleton } from './ui'
 
+// Financials components
+import FinancialsNav from './FinancialsNav'
+import { FinancialTrendChart } from './charts'
+import ProfitabilityCard from './ProfitabilityCard'
+import CostContributorsCard from './CostContributorsCard'
+import DisposalSummary from './DisposalSummary'
+import ProjectEquipmentCard from './equipment/ProjectEquipmentCard'
+import ProgressBillingCard from './billing/ProgressBillingCard'
+import ManDayCosts from './ManDayCosts'
+
+// Reports components
+import DailyReportsList from './DailyReportsList'
+import InjuryReportsList from './InjuryReportsList'
+
+// Settings components
+import ProjectTeam from './ProjectTeam'
+import MFASetup from './MFASetup'
+
 // Tab components
 import OverviewTab from './dashboard/tabs/OverviewTab'
 import FinancialsTab from './dashboard/tabs/FinancialsTab'
