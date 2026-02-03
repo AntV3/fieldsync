@@ -1,6 +1,7 @@
 import { DollarSign, HardHat, FileText, LayoutGrid, Building2, Phone, MapPin, Info } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import ProjectTeam from '../../ProjectTeam'
+import MFASetup from '../../MFASetup'
 
 export default function SettingsTab({
   selectedProject,
@@ -193,6 +194,11 @@ export default function SettingsTab({
           )}
         </div>
       </details>
+
+      {/* Account Security */}
+      <div className="info-section-card">
+        <MFASetup onShowToast={onShowToast} />
+      </div>
     </div>
   )
 }

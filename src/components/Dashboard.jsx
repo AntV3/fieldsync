@@ -5,39 +5,27 @@ import { formatCurrency, calculateProgress, calculateValueProgress, getOverallSt
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financialExport'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search, Download, Users, Shield, Package, TrendingUp, TrendingDown, Camera, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
 import { ProjectHealthBadge } from './dashboard/AccessibleStatusBadge'
-import ManDayCosts from './ManDayCosts'
-import ProgressBillingCard from './billing/ProgressBillingCard'
-import ProjectEquipmentCard from './equipment/ProjectEquipmentCard'
-import BurnRateCard from './BurnRateCard'
-import CostContributorsCard from './CostContributorsCard'
-import ProfitabilityCard from './ProfitabilityCard'
-import DisposalSummary from './DisposalSummary'
-import ProjectTeam from './ProjectTeam'
-import HeroMetrics from './HeroMetrics'
-import MFASetup from './MFASetup'
-import FinancialsNav from './FinancialsNav'
-import { FinancialTrendChart } from './charts'
-import { TicketSkeleton, ChartSkeleton } from './ui'
-import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from './overview'
+import OverviewProgressGauge from './overview/OverviewProgressGauge'
+import { TicketSkeleton } from './ui'
+
+// Tab components
+import OverviewTab from './dashboard/tabs/OverviewTab'
+import FinancialsTab from './dashboard/tabs/FinancialsTab'
+import ReportsTab from './dashboard/tabs/ReportsTab'
+import SettingsTab from './dashboard/tabs/SettingsTab'
 
 // Lazy load modals and conditionally rendered heavy components
-const TMList = lazy(() => import('./TMList'))
 const ShareModal = lazy(() => import('./ShareModal'))
-const InjuryReportsList = lazy(() => import('./InjuryReportsList'))
 const NotificationSettings = lazy(() => import('./NotificationSettings'))
-const DailyReportsList = lazy(() => import('./DailyReportsList'))
-const CORList = lazy(() => import('./cor/CORList'))
 const CORForm = lazy(() => import('./cor/CORForm'))
 const CORDetail = lazy(() => import('./cor/CORDetail'))
-const CORLogPreview = lazy(() => import('./cor/CORLogPreview'))
 const CORLog = lazy(() => import('./cor/CORLog'))
-const BillingCenter = lazy(() => import('./billing/BillingCenter'))
 const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
 const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
 const AddCostModal = lazy(() => import('./AddCostModal'))
