@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react'
-import { HardHat, Menu } from 'lucide-react'
+import { HardHat, Menu, Download } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
+import { exportProjectFinancials, exportToQuickBooksIIF } from '../../../lib/financialExport'
 import HeroMetrics from '../../HeroMetrics'
 import FinancialsNav from '../../FinancialsNav'
 import { FinancialTrendChart } from '../../charts'
@@ -64,6 +65,30 @@ export default function FinancialsTab({
 }) {
   return (
     <div className="pv-tab-panel financials-tab">
+      {/* Export Actions */}
+      <div className="export-actions" style={{ display: 'flex', gap: '8px', marginLeft: 'auto', marginBottom: '12px', justifyContent: 'flex-end' }}>
+        <button
+          className="btn btn-ghost btn-small"
+          onClick={() => exportProjectFinancials(selectedProject, {
+            earnedRevenue: billable,
+            approvedCORs: projectData?.cors?.filter(c => c.status === 'approved'),
+            laborByDate: projectData?.laborByDate,
+            haulOffByDate: projectData?.haulOffByDate,
+            customCosts: projectData?.customCosts
+          })}
+        >
+          <Download size={14} /> Export CSV
+        </button>
+        <button
+          className="btn btn-ghost btn-small"
+          onClick={() => exportToQuickBooksIIF(selectedProject, {
+            totalLaborCost: projectData?.totalLaborCost || 0,
+            totalDisposalCost: projectData?.totalDisposalCost || 0
+          })}
+        >
+          <Download size={14} /> QuickBooks
+        </button>
+      </div>
       {/* Key Metrics - Hero Section (Always visible) */}
       <HeroMetrics
         contractValue={selectedProject?.contract_value || 0}
