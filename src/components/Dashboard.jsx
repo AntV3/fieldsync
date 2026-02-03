@@ -5,7 +5,7 @@ import { formatCurrency, calculateProgress, calculateValueProgress, getOverallSt
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financialExport'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, AlertTriangle, Package, Menu, Users, TrendingUp, TrendingDown, Shield, Camera, CheckCircle2, MapPin, Building2, Phone } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
@@ -22,10 +22,17 @@ import FinancialsNav from './FinancialsNav'
 import { FinancialTrendChart } from './charts'
 import ProfitabilityCard from './ProfitabilityCard'
 import CostContributorsCard from './CostContributorsCard'
+import BurnRateCard from './BurnRateCard'
 import DisposalSummary from './DisposalSummary'
 import ProjectEquipmentCard from './equipment/ProjectEquipmentCard'
 import ProgressBillingCard from './billing/ProgressBillingCard'
 import ManDayCosts from './ManDayCosts'
+import BillingCenter from './billing/BillingCenter'
+
+// COR components
+import CORLogPreview from './cor/CORLogPreview'
+import CORList from './cor/CORList'
+import TMList from './TMList'
 
 // Reports components
 import DailyReportsList from './DailyReportsList'
