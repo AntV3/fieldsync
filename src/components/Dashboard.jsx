@@ -4,6 +4,7 @@ import { safeAsync } from '../lib/errorHandler'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
+import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financialExport'
 import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, Building2, Phone, MapPin, FileText, Menu, FolderOpen, Search, Download, Users, Shield, Package, TrendingUp, TrendingDown, Camera, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
@@ -19,6 +20,7 @@ import ProfitabilityCard from './ProfitabilityCard'
 import DisposalSummary from './DisposalSummary'
 import ProjectTeam from './ProjectTeam'
 import HeroMetrics from './HeroMetrics'
+import MFASetup from './MFASetup'
 import FinancialsNav from './FinancialsNav'
 import { FinancialTrendChart } from './charts'
 import { TicketSkeleton, ChartSkeleton } from './ui'
@@ -1614,6 +1616,30 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           {/* FINANCIALS TAB */}
           {activeProjectTab === 'financials' && (
             <div className="pv-tab-panel financials-tab">
+              {/* Export Actions */}
+              <div className="export-actions" style={{ display: 'flex', gap: '8px', marginLeft: 'auto', marginBottom: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  className="btn btn-ghost btn-small"
+                  onClick={() => exportProjectFinancials(selectedProject, {
+                    earnedRevenue: billable,
+                    approvedCORs: projectData?.cors?.filter(c => c.status === 'approved'),
+                    laborByDate: projectData?.laborByDate,
+                    haulOffByDate: projectData?.haulOffByDate,
+                    customCosts: projectData?.customCosts
+                  })}
+                >
+                  <Download size={14} /> Export CSV
+                </button>
+                <button
+                  className="btn btn-ghost btn-small"
+                  onClick={() => exportToQuickBooksIIF(selectedProject, {
+                    totalLaborCost: projectData?.totalLaborCost || 0,
+                    totalDisposalCost: projectData?.totalDisposalCost || 0
+                  })}
+                >
+                  <Download size={14} /> QuickBooks
+                </button>
+              </div>
               {/* Key Metrics - Hero Section (Always visible) */}
               <HeroMetrics
                 contractValue={selectedProject?.contract_value || 0}
@@ -2419,6 +2445,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   )}
                 </div>
               </details>
+
+              {/* Account Security */}
+              <div className="info-section-card">
+                <MFASetup onShowToast={onShowToast} />
+              </div>
             </div>
           )}
         </div>

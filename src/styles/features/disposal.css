@@ -1,0 +1,739 @@
+/* ============================================
+   Disposal Load Input (Foreman View)
+   ============================================ */
+
+.disposal-load-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.disposal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.disposal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.disposal-title svg {
+  color: var(--primary);
+}
+
+.disposal-badge {
+  background: var(--accent-blue);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.disposal-date {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.disposal-loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Quick Add Buttons */
+.disposal-quick-add {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.quick-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.quick-add-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--accent-blue);
+}
+
+.quick-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quick-add-icon {
+  font-size: 1.1rem;
+}
+
+.quick-add-label {
+  font-weight: 500;
+}
+
+/* Disposal Loads List */
+.disposal-loads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.disposal-load-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.load-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.load-icon {
+  font-size: 1.2rem;
+}
+
+.load-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.load-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.load-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.load-btn.decrement {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.load-btn.decrement:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.load-btn.increment {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.load-btn.increment:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.load-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.load-count {
+  font-size: 1.1rem;
+  font-weight: 600;
+  min-width: 2rem;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+/* Empty State */
+.disposal-empty {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--text-secondary);
+}
+
+.disposal-empty p {
+  margin: 0;
+}
+
+.disposal-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem !important;
+}
+
+/* Add Custom Amount Form */
+.disposal-add-form {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.add-form-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.load-type-select {
+  flex: 1;
+  padding: 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.count-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.count-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.count-btn:hover {
+  background: var(--bg-hover);
+}
+
+.count-input {
+  width: 50px;
+  padding: 0.5rem;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.count-input::-webkit-inner-spin-button,
+.count-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.add-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Add Custom Button */
+.disposal-add-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.6rem;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 1rem;
+}
+
+.disposal-add-custom:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* Summary Footer */
+.disposal-summary {
+  text-align: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.disposal-summary strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+/* Disposal History Section */
+.disposal-history-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.disposal-history-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.disposal-history-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.disposal-history-list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.disposal-history-day {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.disposal-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.disposal-history-date {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.disposal-history-total {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.disposal-history-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.disposal-history-type {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* ============================================
+   Disposal Summary Card (Office/PM View)
+   ============================================ */
+
+.disposal-summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.disposal-summary-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.disposal-summary-card .header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.disposal-summary-card .period-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  color: var(--text-secondary);
+}
+
+.disposal-summary-card .card-loading {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Total Count */
+.disposal-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.total-number {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.total-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Breakdown by Type */
+.disposal-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.disposal-type-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.type-info {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 100px;
+}
+
+.type-icon {
+  font-size: 0.9rem;
+}
+
+.type-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.type-stats {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.type-bar-container {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.type-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.type-count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* Weekly Trend Chart */
+.disposal-trend {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.trend-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 60px;
+  gap: 0.5rem;
+}
+
+.trend-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+}
+
+.trend-bar {
+  width: 100%;
+  max-width: 40px;
+  background: linear-gradient(to top, var(--accent-blue), #60a5fa);
+  border-radius: 4px 4px 0 0;
+  margin-top: auto;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+.trend-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Activity Days Footer */
+.disposal-activity-days {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Empty State */
+.disposal-empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.disposal-empty-state p {
+  margin: 0;
+}
+
+.disposal-empty-state .text-muted {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Disposal Summary - additional styles */
+.disposal-total-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.disposal-total-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.disposal-type-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 110px;
+}
+
+.disposal-type-icon {
+  font-size: 1rem;
+}
+
+.disposal-type-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.disposal-type-stats {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.disposal-type-count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 24px;
+  text-align: right;
+}
+
+.disposal-type-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.disposal-type-bar-fill {
+  height: 100%;
+  background: var(--accent-blue);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.disposal-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.disposal-expand-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.disposal-daily-breakdown {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.disposal-daily-row {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.disposal-daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.disposal-daily-date {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.disposal-daily-total {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.disposal-daily-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.disposal-daily-type {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* ============================================
+   Responsive for Disposal Components
+   ============================================ */
+
+@media (max-width: 480px) {
+  .disposal-quick-add {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quick-add-btn {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .add-form-row {
+    flex-direction: column;
+  }
+
+  .count-input-group {
+    justify-content: center;
+  }
+
+  .type-info {
+    min-width: 90px;
+  }
+
+  .type-label {
+    font-size: 0.8rem;
+  }
+}
+

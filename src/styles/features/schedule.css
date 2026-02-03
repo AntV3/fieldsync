@@ -1,0 +1,553 @@
+/* ==========================================
+   Schedule Performance Styles
+   ========================================== */
+
+/* Schedule Section in Portfolio Overview */
+.bo-schedule {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 0.5rem;
+}
+
+.bo-schedule-title {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.bo-schedule-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bo-pill.ahead {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.bo-pill.schedule-on-track {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.bo-pill.behind {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Labor Performance Summary */
+.bo-labor-summary {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bo-labor-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bo-labor-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.bo-labor-badge.under {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.bo-labor-badge.on-track {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+
+.bo-labor-badge.over {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+/* Project Card Schedule Badge */
+.project-schedule-badge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.schedule-indicator,
+.labor-indicator {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.schedule-indicator.ahead {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.schedule-indicator.on_track {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+
+.schedule-indicator.behind {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+}
+
+.labor-indicator.under {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+}
+
+.labor-indicator.on_track {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent-blue);
+}
+
+.labor-indicator.over {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--accent-red);
+}
+
+/* Date input styling */
+input[type="date"] {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* Required/Optional field labels */
+.required {
+  color: var(--accent-red);
+  font-weight: 500;
+}
+
+.optional {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.error-text {
+  display: block;
+  color: var(--accent-red);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .bo-schedule-pills {
+    justify-content: center;
+  }
+
+  .bo-labor-summary {
+    justify-content: center;
+  }
+
+  .project-schedule-badge {
+    justify-content: center;
+  }
+}
+
+/* Project View Change Orders */
+.pv-change-orders {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent-green);
+}
+
+.pv-co-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.pv-co-label {
+  color: var(--text-secondary);
+}
+
+.pv-co-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pv-co-row.pv-co-added .pv-co-value {
+  color: var(--accent-green);
+}
+
+/* T&M Change Order Badge */
+.tm-ce-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* T&M COR Link Badge */
+.tm-cor-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tm-cor-badge.locked {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* T&M Ticket Card locked state */
+.tm-ticket-card.locked {
+  border-left: 3px solid var(--accent-warning);
+}
+
+/* T&M Lock Notice */
+.tm-lock-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  color: var(--accent-warning);
+  font-size: 0.85rem;
+}
+
+.tm-lock-notice svg {
+  flex-shrink: 0;
+}
+
+/* T&M Change Order Value Display */
+.tm-change-order-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+}
+
+.tm-co-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.tm-co-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--accent-green);
+}
+
+/* Change Order Approval Modal */
+.change-order-modal {
+  max-width: 400px;
+}
+
+.change-order-modal h3 {
+  margin-bottom: 0.5rem;
+}
+
+.change-order-modal .modal-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.change-order-modal .form-help {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.change-order-modal .modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.change-order-modal .modal-actions .btn {
+  flex: 1;
+}
+
+/* COR Assignment Modal */
+.cor-assign-modal {
+  max-width: 450px;
+  width: 90%;
+}
+
+.cor-assign-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.cor-assign-modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.cor-assign-modal .modal-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.cor-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cor-select-wrapper label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cor-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.cor-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.cor-assign-modal .empty-state {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.cor-assign-modal .empty-state .text-muted {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.cor-assign-modal .modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.cor-assign-modal .modal-footer .btn {
+  flex: 1;
+}
+
+/* Enhanced Project Card - Compact */
+.project-card.enhanced {
+  padding: 0.875rem;
+}
+
+.project-card.enhanced.at-risk {
+  border-left: 3px solid var(--accent-red);
+}
+
+.project-stats-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.project-stat {
+  text-align: center;
+  flex: 1;
+}
+
+.project-stat .stat-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.project-stat .stat-value.negative {
+  color: var(--accent-red);
+}
+
+.project-stat .stat-label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+}
+
+.project-badges {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.project-badges .badge {
+  padding: 0.2rem 0.45rem;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.project-badges .badge.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+}
+
+.project-badges .badge.approved {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+/* Dashboard Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.dashboard-header .project-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Business Overview Mobile */
+@media (max-width: 768px) {
+  .business-overview {
+    padding: 1.25rem;
+  }
+
+  .bo-financial-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .bo-metric.primary {
+    min-width: auto;
+    flex: none;
+  }
+
+  .bo-metric-separator {
+    display: none;
+  }
+
+  .bo-metric-value {
+    font-size: 1.35rem;
+  }
+
+  .project-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .business-overview {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .bo-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .bo-metric-value {
+    font-size: 1.2rem;
+  }
+
+  .bo-metric.highlight .bo-metric-value {
+    font-size: 1.1rem;
+  }
+
+  .bo-health-pills {
+    gap: 0.35rem;
+  }
+
+  .bo-pill {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
+  .project-stats-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .project-stat {
+    flex: 1 1 30%;
+  }
+}
+

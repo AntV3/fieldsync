@@ -7,6 +7,7 @@ import SignatureLinkGenerator from './SignatureLinkGenerator'
 import { TicketSkeleton, CountBadge } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
+import { exportTMTicketsCSV } from '../lib/financialExport'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
 const loadXLSX = () => import('xlsx')
@@ -1179,6 +1180,9 @@ export default function TMList({
                   Clear ({selectedTickets.size})
                 </button>
               )}
+              <button className="btn btn-ghost btn-small" onClick={() => exportTMTicketsCSV(tickets, project)} disabled={tickets.length === 0}>
+                <FileSpreadsheet size={14} /> CSV
+              </button>
               <button className="btn btn-secondary btn-small" onClick={exportToExcel} disabled={tickets.length === 0}>
                 <FileSpreadsheet size={14} /> Excel {!compact && someSelected ? `(${selectedTickets.size})` : ''}
               </button>

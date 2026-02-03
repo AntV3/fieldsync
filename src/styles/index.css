@@ -1,19 +1,16 @@
 /* ============================================
    FieldSync Modular CSS Entry Point
-   ============================================
-
-   This file imports all modular CSS.
-   Import this file in main.jsx AFTER the legacy
-   index.css to allow new styles to override.
-
-   Once migration is complete, remove the legacy
-   index.css import entirely.
    ============================================ */
 
-/* Base - Import first */
+/* Base */
 @import './base/variables.css';
 @import './base/reset.css';
 @import './base/typography.css';
+@import './base/themes.css';
+
+/* Layout */
+@import './layout/grid.css';
+@import './layout/sidebar.css';
 
 /* Utilities */
 @import './utilities/accessibility.css';
@@ -26,18 +23,35 @@
 @import './components/mobile-nav.css';
 @import './components/modals.css';
 @import './components/skeleton.css';
+@import './components/nav.css';
 
 /* Features */
 @import './features/animations.css';
+@import './features/auth.css';
+@import './features/billing.css';
+@import './features/branding.css';
+@import './features/charts.css';
+@import './features/company-switcher.css';
+@import './features/cor.css';
 @import './features/dashboard.css';
-
-/*
-   TODO: Continue extracting from legacy index.css:
-
-   @import './components/tables.css';
-   @import './features/foreman.css';
-   @import './features/cor.css';
-   @import './features/tm.css';
-   @import './themes/light.css';
-   @import './themes/dark.css';
-*/
+@import './features/disposal.css';
+@import './features/documents.css';
+@import './features/equipment.css';
+@import './features/field-views.css';
+@import './features/financials.css';
+@import './features/foreman.css';
+@import './features/info-tab.css';
+@import './features/install-prompt.css';
+@import './features/membership.css';
+@import './features/mfa.css';
+@import './features/mobile-tabs.css';
+@import './features/notifications.css';
+@import './features/overview.css';
+@import './features/pagination.css';
+@import './features/pricing.css';
+@import './features/progress-billing.css';
+@import './features/project-view.css';
+@import './features/reports.css';
+@import './features/schedule.css';
+@import './features/signature.css';
+@import './features/tm-tickets.css';

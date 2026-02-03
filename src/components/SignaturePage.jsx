@@ -3,7 +3,7 @@ import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, T
 import { db } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
-import EnhancedSignatureCapture from './EnhancedSignatureCapture'
+import SignatureCanvas from './ui/SignatureCanvas'
 
 // Helper to format date
 const formatDate = (dateString) => {
@@ -480,7 +480,10 @@ export default function SignaturePage({ signatureToken }) {
         </footer>
 
         {showSignatureModal && activeSlot && (
-          <EnhancedSignatureCapture
+          <SignatureCanvas
+            enhanced
+            requireAcknowledgment
+            lockBodyScroll
             slot={activeSlot}
             documentType="tm_ticket"
             documentTitle="T&M Ticket"
@@ -1211,7 +1214,10 @@ export default function SignaturePage({ signatureToken }) {
 
       {/* Signature modal */}
       {showSignatureModal && activeSlot && (
-        <EnhancedSignatureCapture
+        <SignatureCanvas
+          enhanced
+          requireAcknowledgment
+          lockBodyScroll
           slot={activeSlot}
           documentType={signatureRequest.document_type}
           documentTitle={`${document.cor_number} - ${document.title}`}

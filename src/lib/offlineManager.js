@@ -3,6 +3,8 @@
  * Handles offline data storage, pending actions queue, and sync
  */
 
+import { detectConflict, stampForOffline, buildConflictSummary, RESOLUTION_STRATEGIES } from './conflictDetection'
+
 const DB_NAME = 'fieldsync-offline'
 const DB_VERSION = 2  // Bumped to add T&M tickets, daily reports, messages stores
 
@@ -275,9 +277,10 @@ export const getCachedProjects = async (companyId) => {
   return getAllFromStore(STORES.PROJECTS)
 }
 
-// Cache areas for a project
+// Cache areas for a project (stamped for conflict detection)
 export const cacheAreas = async (areas) => {
-  return saveAllToStore(STORES.AREAS, areas)
+  const stamped = areas.map(a => stampForOffline(a, ['status', 'weight', 'name']))
+  return saveAllToStore(STORES.AREAS, stamped)
 }
 
 // Get cached areas for a project
@@ -285,12 +288,13 @@ export const getCachedAreas = async (projectId) => {
   return getByIndex(STORES.AREAS, 'project_id', projectId)
 }
 
-// Update cached area status (optimistic update)
+// Update cached area status (optimistic update with offline tracking)
 export const updateCachedAreaStatus = async (areaId, status) => {
   const area = await getFromStore(STORES.AREAS, areaId)
   if (area) {
     area.status = status
     area.updated_at = new Date().toISOString()
+    area._offlineModifiedAt = new Date().toISOString()
     await saveToStore(STORES.AREAS, area)
   }
   return area
@@ -400,23 +404,50 @@ if (typeof window !== 'undefined') {
 
 let isSyncing = false
 
-// Process pending actions queue
-export const syncPendingActions = async (db) => {
-  if (isSyncing || !isOnline) return { synced: 0, failed: 0 }
+// Process pending actions queue with conflict detection
+export const syncPendingActions = async (db, options = {}) => {
+  if (isSyncing || !isOnline) return { synced: 0, failed: 0, conflicts: [] }
 
+  const { onConflict } = options
   isSyncing = true
-  const results = { synced: 0, failed: 0 }
+  const results = { synced: 0, failed: 0, conflicts: [] }
 
   try {
     const actions = await getPendingActions()
 
     for (const action of actions) {
       try {
+        // Check for conflicts on update actions (not creates)
+        if (action.payload?.id && action.type === ACTION_TYPES.UPDATE_AREA_STATUS) {
+          const serverRecord = await fetchServerRecord(db, action.type, action.payload)
+          if (serverRecord) {
+            const cachedRecord = await getFromStore(STORES.AREAS, action.payload.areaId || action.payload.id)
+            if (cachedRecord) {
+              const conflict = detectConflict(cachedRecord, serverRecord, ['status'])
+              if (conflict.hasConflict) {
+                const summary = buildConflictSummary(conflict, 'area')
+                results.conflicts.push({ action, conflict, summary })
+
+                // Notify caller of conflict
+                if (onConflict) {
+                  const resolution = await onConflict({ action, conflict, summary })
+                  if (resolution === RESOLUTION_STRATEGIES.KEEP_SERVER) {
+                    // Skip this action, accept server version
+                    await removePendingAction(action.id)
+                    continue
+                  }
+                  // KEEP_LOCAL: proceed with processAction below
+                }
+                // Default: proceed with local change (keep_local)
+              }
+            }
+          }
+        }
+
         await processAction(action, db)
         await removePendingAction(action.id)
         results.synced++
       } catch (error) {
-        console.error(`Failed to sync action ${action.type}:`, error)
         results.failed++
 
         // Update attempt count
@@ -432,6 +463,20 @@ export const syncPendingActions = async (db) => {
   }
 
   return results
+}
+
+// Fetch a server record for conflict comparison
+const fetchServerRecord = async (db, actionType, payload) => {
+  try {
+    switch (actionType) {
+      case ACTION_TYPES.UPDATE_AREA_STATUS:
+        return db.getArea ? await db.getArea(payload.areaId) : null
+      default:
+        return null
+    }
+  } catch {
+    return null
+  }
 }
 
 // Process individual action

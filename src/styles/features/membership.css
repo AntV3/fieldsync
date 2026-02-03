@@ -1,0 +1,515 @@
+/* ============================================
+   MEMBERSHIP APPROVAL STYLES
+   ============================================ */
+
+/* Pending Approval Screen */
+.pending-approval-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  background: var(--bg-primary);
+}
+
+.pending-approval-screen .pending-logo {
+  width: 120px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.pending-approval-screen h2 {
+  color: var(--accent-amber);
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.75rem;
+}
+
+.pending-approval-screen p {
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.pending-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* Pending Alert Banner */
+.pending-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--accent-amber);
+  border-radius: 8px;
+  color: var(--accent-amber);
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+/* Membership Manager */
+.membership-manager {
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.membership-header {
+  margin-bottom: 1.5rem;
+}
+
+.membership-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.membership-subtitle {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Member List */
+.member-list {
+  margin-top: 1.5rem;
+}
+
+.member-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+/* Member Cards */
+.member-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: border-color 0.15s;
+}
+
+.member-card:hover {
+  border-color: var(--text-muted);
+}
+
+.member-card.pending {
+  border-left: 4px solid var(--accent-amber);
+}
+
+.member-card.active {
+  border-left: 4px solid var(--accent-green);
+}
+
+.member-card.removed {
+  border-left: 4px solid var(--text-muted);
+  opacity: 0.6;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.member-you {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.member-email {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+}
+
+.member-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.375rem;
+}
+
+.member-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.member-role-value {
+  text-transform: capitalize;
+  color: var(--text-secondary);
+}
+
+.member-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-left: 1rem;
+  align-items: center;
+}
+
+/* Role Selector for Membership Approval */
+.role-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.role-select {
+  appearance: none;
+  background: var(--surface-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.role-select:hover {
+  border-color: var(--accent-blue);
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.role-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.role-select-icon {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+/* Nav Tab Badge */
+.nav-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--accent-red);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 9px;
+  margin-left: 0.5rem;
+}
+
+/* Light mode adjustments */
+[data-theme="light"] .pending-approval-screen {
+  background: var(--bg-secondary);
+}
+
+[data-theme="light"] .pending-alert {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+[data-theme="light"] .member-card {
+  background: #ffffff;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .member-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .member-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .member-actions button {
+    flex: 1;
+  }
+
+  .pending-actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .pending-actions button {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   Access Level Badges
+   ============================================ */
+
+.member-access-level,
+.member-badges {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.access-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.access-badge.admin {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.access-badge.member {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.access-badge.role {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+[data-theme="light"] .access-badge.admin {
+  background: rgba(139, 92, 246, 0.12);
+  color: #7c3aed;
+}
+
+[data-theme="light"] .access-badge.member {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+[data-theme="light"] .access-badge.role {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+/* ============================================
+   Project Team Component
+   ============================================ */
+
+.project-team {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.project-team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.project-team-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.project-team-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.project-team-empty p {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.project-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-team-member {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.team-member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-member-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-member-email {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-member-role {
+  flex-shrink: 0;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.role-selector.compact {
+  min-width: 120px;
+}
+
+.role-selector.compact .role-select {
+  padding: 0.35rem 1.75rem 0.35rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-icon.btn-danger-subtle {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.btn-icon.btn-danger-subtle:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Add Modal Styles */
+.modal-content.small {
+  max-width: 400px;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.form-hint {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.loading-small {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* ============================================
+   Responsive for Project Team
+   ============================================ */
+
+@media (max-width: 600px) {
+  .project-team-member {
+    flex-wrap: wrap;
+  }
+
+  .team-member-info {
+    width: 100%;
+  }
+
+  .team-member-role {
+    margin-left: auto;
+  }
+}
+

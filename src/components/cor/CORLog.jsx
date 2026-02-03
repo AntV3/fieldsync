@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileSpreadsheet, Download, FileText, Loader2, RefreshCw, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { FileSpreadsheet, Download, FileText, Loader2, RefreshCw, Clock, CheckCircle, XCircle, Search, X } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { useFilteredPagination } from '../../hooks/useFilteredPagination'
+import Pagination from '../ui/Pagination'
 import CORLogRow from './CORLogRow'
 
 // Status display mapping for client presentation
@@ -95,14 +97,42 @@ export default function CORLog({ project, company, onShowToast }) {
     }
   }
 
-  // Group entries by status category
+  // Flatten nested changeOrder fields for search
+  const searchableEntries = useMemo(() =>
+    logEntries.map(entry => ({
+      ...entry,
+      _title: entry.changeOrder?.title || '',
+      _cor_number: entry.changeOrder?.corNumber || '',
+      _status: entry.changeOrder?.status || '',
+      _scope: entry.changeOrder?.scopeOfWork || ''
+    })),
+    [logEntries]
+  )
+
+  // Pagination
+  const {
+    paginatedItems: paginatedEntries,
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    totalPages,
+    goToPage,
+    pageSize,
+    setPageSize,
+    totalItems: paginatedTotalItems
+  } = useFilteredPagination(searchableEntries, {
+    pageSize: 25,
+    searchFields: ['_title', '_cor_number', '_status', '_scope', 'ceNumber', 'comments']
+  })
+
+  // Group paginated entries by status category
   const groupedEntries = useMemo(() => {
-    const pending = logEntries.filter(e => STATUS_CATEGORIES.pending.includes(e.changeOrder.status))
-    const approved = logEntries.filter(e => STATUS_CATEGORIES.approved.includes(e.changeOrder.status))
-    const voided = logEntries.filter(e => STATUS_CATEGORIES.void.includes(e.changeOrder.status))
+    const pending = paginatedEntries.filter(e => STATUS_CATEGORIES.pending.includes(e.changeOrder.status))
+    const approved = paginatedEntries.filter(e => STATUS_CATEGORIES.approved.includes(e.changeOrder.status))
+    const voided = paginatedEntries.filter(e => STATUS_CATEGORIES.void.includes(e.changeOrder.status))
 
     return { pending, approved, voided }
-  }, [logEntries])
+  }, [paginatedEntries])
 
   // Calculate summary statistics
   const summary = useMemo(() => {
@@ -384,6 +414,23 @@ export default function CORLog({ project, company, onShowToast }) {
         </div>
       </div>
 
+      {/* Search Input */}
+      <div className="cor-search" style={{ margin: '0 0 12px 0' }}>
+        <Search size={14} className="cor-search-icon" />
+        <input
+          type="text"
+          className="cor-search-input"
+          placeholder="Search log entries by title, COR #, status, or comments..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <button className="cor-search-clear" onClick={() => setSearchTerm('')}>
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
       {/* Summary Cards */}
       <div className="cor-log-summary-cards">
         <div className="summary-card pending">
@@ -474,6 +521,18 @@ export default function CORLog({ project, company, onShowToast }) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+          totalItems={paginatedTotalItems}
+        />
       )}
     </div>
   )
