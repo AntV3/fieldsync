@@ -9,7 +9,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/((?!assets|sw\\.js|favicon\\.ico|robots\\.txt|.*\\..*).*)",
+      "source": "/((?!assets|sw\\.js|favicon\\.ico|robots\\.txt|manifest\\.json|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
@@ -20,6 +20,15 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
         }
       ]
     }

@@ -12,6 +12,7 @@ import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
 import { ProjectHealthBadge } from './dashboard/AccessibleStatusBadge'
 import OverviewProgressGauge from './overview/OverviewProgressGauge'
+import OverviewFinancialCard from './overview/OverviewFinancialCard'
 import { TicketSkeleton } from './ui'
 
 // Tab components
