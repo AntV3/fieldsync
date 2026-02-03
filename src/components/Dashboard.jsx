@@ -8,6 +8,8 @@ import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financial
 import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
+import { AlertPreferences, AlertFilterSummary } from './dashboard/AlertPreferences'
+import { useAlertPreferences, SNOOZE_DURATIONS } from '../hooks/useAlertPreferences'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
 import { ProjectHealthBadge } from './dashboard/AccessibleStatusBadge'
@@ -87,6 +89,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   // Universal Search (Cmd+K)
   const { isOpen: isSearchOpen, setIsOpen: setSearchOpen, close: closeSearch } = useUniversalSearch()
+
+  // Alert preferences (category filters, severity, snooze)
+  const alertPrefs = useAlertPreferences()
 
   // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
   // When multiple real-time events fire rapidly, this coalesces them into a single refresh
@@ -1014,13 +1019,17 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         return priority[a.type] - priority[b.type]
       })
 
+    // Apply user's alert preferences (category, severity, snooze filters)
+    const filteredAlerts = alertPrefs.filterAlerts(allAlerts)
+
     return {
       projectRisks,
       allAlerts,
-      criticalCount: allAlerts.filter(a => a.type === 'critical').length,
-      warningCount: allAlerts.filter(a => a.type === 'warning').length
+      filteredAlerts,
+      criticalCount: filteredAlerts.filter(a => a.type === 'critical').length,
+      warningCount: filteredAlerts.filter(a => a.type === 'warning').length
     }
-  }, [projectsData])
+  }, [projectsData, alertPrefs.filterAlerts])
 
   // Handler for alert actions
   const handleAlertAction = useCallback(({ target, projectId, alert }) => {
@@ -2799,12 +2808,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               fontSize: 'var(--font-size-md, 1rem)',
               fontWeight: 'var(--font-weight-semibold, 600)',
               color: 'var(--text-primary)',
-              margin: 0
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
             }}>
               Needs Attention
               {riskAnalysis.criticalCount > 0 && (
                 <span style={{
-                  marginLeft: '0.5rem',
                   padding: '2px 8px',
                   fontSize: '0.75rem',
                   fontWeight: 600,
@@ -2815,12 +2826,28 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   {riskAnalysis.criticalCount} critical
                 </span>
               )}
+              <AlertFilterSummary
+                preferences={alertPrefs.preferences}
+                snoozedCount={alertPrefs.snoozedCount}
+              />
             </h3>
+            <AlertPreferences
+              preferences={alertPrefs.preferences}
+              onToggleCategory={alertPrefs.toggleCategory}
+              onSetSeverity={alertPrefs.setMinimumSeverity}
+              onSetSnoozeDuration={alertPrefs.setSnoozeDuration}
+              onResetDefaults={alertPrefs.resetToDefaults}
+              onClearSnoozes={alertPrefs.clearAllSnoozes}
+              snoozedCount={alertPrefs.snoozedCount}
+            />
           </div>
           <SmartAlerts
-            alerts={riskAnalysis.allAlerts}
+            alerts={riskAnalysis.filteredAlerts}
+            totalUnfiltered={riskAnalysis.allAlerts.length}
             onAction={handleAlertAction}
-            maxVisible={3}
+            onSnooze={alertPrefs.snoozeAlert}
+            snoozeDurationLabel={SNOOZE_DURATIONS[alertPrefs.preferences.snoozeDuration]?.label}
+            maxVisible={5}
           />
         </div>
       )}

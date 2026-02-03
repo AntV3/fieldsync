@@ -1,22 +1,27 @@
 import React, { useState, useCallback } from 'react'
-import { AlertTriangle, XCircle, Info, X, ArrowRight } from 'lucide-react'
+import { AlertTriangle, XCircle, Info, X, ArrowRight, Clock } from 'lucide-react'
 
 /**
  * SmartAlerts
  *
  * Container for displaying prioritized actionable alerts.
- * Alerts can be dismissed and are sorted by priority.
+ * Alerts can be dismissed (snoozed) and are sorted by priority.
  *
- * @param {array} alerts - Array of alert objects
+ * @param {array} alerts - Array of alert objects (already filtered by preferences)
  * @param {function} onAction - Callback when alert action is clicked
- * @param {function} onDismiss - Callback when alert is dismissed
- * @param {number} maxVisible - Maximum alerts to show (default: 3)
+ * @param {function} onSnooze - Callback when alert is snoozed/dismissed
+ * @param {string} snoozeDurationLabel - Label for snooze duration (e.g., "1 day")
+ * @param {number} totalUnfiltered - Total alert count before filtering (for context)
+ * @param {number} maxVisible - Maximum alerts to show (default: 5)
  */
 export function SmartAlerts({
   alerts = [],
   onAction,
+  onSnooze,
   onDismiss,
-  maxVisible = 3,
+  snoozeDurationLabel,
+  totalUnfiltered = 0,
+  maxVisible = 5,
   className = ''
 }) {
   const [dismissedIds, setDismissedIds] = useState(new Set())
@@ -28,12 +33,19 @@ export function SmartAlerts({
   const handleDismiss = useCallback((alert) => {
     const alertId = alert.id || `${alert.projectId}-${alert.type}-${alert.title}`
     setDismissedIds(prev => new Set([...prev, alertId]))
-    onDismiss?.(alert)
-  }, [onDismiss])
+    // Use snooze if available, otherwise fall back to plain dismiss
+    if (onSnooze) {
+      onSnooze(alert)
+    } else {
+      onDismiss?.(alert)
+    }
+  }, [onSnooze, onDismiss])
 
   if (visibleAlerts.length === 0) {
     return null
   }
+
+  const hiddenByFilter = totalUnfiltered > 0 ? totalUnfiltered - alerts.length : 0
 
   return (
     <div
@@ -48,13 +60,22 @@ export function SmartAlerts({
           alert={alert}
           onAction={onAction}
           onDismiss={() => handleDismiss(alert)}
+          snoozeDurationLabel={snoozeDurationLabel}
         />
       ))}
 
       {alerts.length > maxVisible && (
         <div className="smart-alerts__overflow">
           <span className="smart-alerts__overflow-text">
-            +{alerts.length - maxVisible} more alerts
+            +{alerts.length - maxVisible} more alert{alerts.length - maxVisible !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+
+      {hiddenByFilter > 0 && (
+        <div className="smart-alerts__filtered-note">
+          <span className="smart-alerts__filtered-text">
+            {hiddenByFilter} alert{hiddenByFilter !== 1 ? 's' : ''} hidden by filters
           </span>
         </div>
       )}
@@ -74,7 +95,8 @@ export function SmartAlerts({
 export function SmartAlertCard({
   alert,
   onAction,
-  onDismiss
+  onDismiss,
+  snoozeDurationLabel
 }) {
   const {
     type = 'info',
@@ -101,6 +123,10 @@ export function SmartAlertCard({
       alert
     })
   }
+
+  const dismissLabel = snoozeDurationLabel
+    ? `Snooze for ${snoozeDurationLabel}`
+    : 'Dismiss alert'
 
   return (
     <div
@@ -139,9 +165,14 @@ export function SmartAlertCard({
           type="button"
           className="smart-alert__dismiss"
           onClick={onDismiss}
-          aria-label="Dismiss alert"
+          aria-label={dismissLabel}
+          title={dismissLabel}
         >
-          <X size={18} aria-hidden="true" />
+          {snoozeDurationLabel ? (
+            <Clock size={16} aria-hidden="true" />
+          ) : (
+            <X size={18} aria-hidden="true" />
+          )}
         </button>
       )}
     </div>
