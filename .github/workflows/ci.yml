@@ -129,7 +129,8 @@ jobs:
         run: |
           # Re-run build and capture output
           npm run build 2>&1 | tee build-output.txt
-          if grep -i "error" build-output.txt; then
+          # Check for actual build errors (not CSS minifier warnings which contain "css-syntax-error")
+          if grep -i "error" build-output.txt | grep -v "css-syntax-error" | grep -v "warning"; then
             echo "::error::Build produced errors"
             exit 1
           fi
