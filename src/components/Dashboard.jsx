@@ -11,6 +11,7 @@ import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
 import { TrendIndicator } from './dashboard/TrendIndicator'
 import { ProjectHealthBadge } from './dashboard/AccessibleStatusBadge'
+import OverviewProgressGauge from './overview/OverviewProgressGauge'
 import { TicketSkeleton } from './ui'
 
 // Tab components
