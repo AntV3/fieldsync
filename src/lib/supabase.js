@@ -2085,7 +2085,10 @@ export const db = {
 
   async getTMTicketsByStatus(projectId, status) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .select(`
           *,
@@ -2107,7 +2110,10 @@ export const db = {
   // Get T&M tickets associated with a COR (for backup documentation)
   async getCORTickets(corId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) return []
+
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .select(`
           *,
@@ -2328,7 +2334,11 @@ export const db = {
 
   async updateTMTicketStatus(ticketId, status) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .update({ status })
         .eq('id', ticketId)
@@ -2360,7 +2370,11 @@ export const db = {
         updateData.change_order_value = parseFloat(changeOrderValue) || 0
       }
 
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .update(updateData)
         .eq('id', ticketId)
@@ -2375,9 +2389,13 @@ export const db = {
   // Reject T&M ticket (with reason)
   async rejectTMTicket(ticketId, userId, userName, reason = '') {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { data, error } = await client
         .from('t_and_m_tickets')
-        .update({ 
+        .update({
           status: 'rejected',
           rejected_by_user_id: userId,
           rejected_by_name: userName,
@@ -2450,8 +2468,12 @@ export const db = {
 
   async deleteTMTicket(ticketId) {
     if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
       // Workers and items cascade delete automatically
-      const { error } = await supabase
+      const { error } = await client
         .from('t_and_m_tickets')
         .delete()
         .eq('id', ticketId)
@@ -2872,9 +2894,12 @@ export const db = {
   async getDisposalLoads(projectId, date) {
     if (!isSupabaseConfigured) return []
 
+    const client = getClient()
+    if (!client) return []
+
     const start = performance.now()
     try {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('disposal_loads')
         .select('*')
         .eq('project_id', projectId)
@@ -2896,6 +2921,9 @@ export const db = {
   async getDisposalLoadsHistory(projectId, days = 14) {
     if (!isSupabaseConfigured) return []
 
+    const client = getClient()
+    if (!client) return []
+
     const start = performance.now()
     try {
       // Calculate date range
@@ -2903,7 +2931,7 @@ export const db = {
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - days)
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('disposal_loads')
         .select('*')
         .eq('project_id', projectId)
@@ -2927,7 +2955,12 @@ export const db = {
   async addDisposalLoad(projectId, userId, workDate, loadType, loadCount, notes = null) {
     if (!isSupabaseConfigured) return null
 
-    const { data, error } = await supabase
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { data, error } = await client
       .from('disposal_loads')
       .insert({
         project_id: projectId,
@@ -2951,7 +2984,12 @@ export const db = {
   async updateDisposalLoad(id, loadType, loadCount, notes = null) {
     if (!isSupabaseConfigured) return null
 
-    const { data, error } = await supabase
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { data, error } = await client
       .from('disposal_loads')
       .update({
         load_type: loadType,
@@ -2973,7 +3011,12 @@ export const db = {
   async deleteDisposalLoad(id) {
     if (!isSupabaseConfigured) return false
 
-    const { error } = await supabase
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { error } = await client
       .from('disposal_loads')
       .delete()
       .eq('id', id)
@@ -2989,10 +3032,13 @@ export const db = {
   async getDisposalSummary(projectId, startDate = null, endDate = null) {
     if (!isSupabaseConfigured) return []
 
+    const client = getClient()
+    if (!client) return []
+
     const start = performance.now()
     try {
       // Use RPC function for efficient aggregation
-      const { data, error } = await supabase.rpc('get_disposal_summary', {
+      const { data, error } = await client.rpc('get_disposal_summary', {
         p_project_id: projectId,
         p_start_date: startDate,
         p_end_date: endDate
@@ -3012,7 +3058,8 @@ export const db = {
 
   // Fallback aggregation (if RPC not available)
   async getDisposalSummaryFallback(projectId, startDate, endDate) {
-    let query = supabase
+    const client = getClient() || supabase
+    let query = client
       .from('disposal_loads')
       .select('load_type, load_count, work_date')
       .eq('project_id', projectId)
@@ -3048,11 +3095,14 @@ export const db = {
   async getWeeklyDisposalSummary(projectId, weeks = 4) {
     if (!isSupabaseConfigured) return []
 
+    const client = getClient()
+    if (!client) return []
+
     const endDate = new Date()
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - (weeks * 7))
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('disposal_loads')
       .select('load_type, load_count, work_date')
       .eq('project_id', projectId)
@@ -4044,7 +4094,12 @@ export const db = {
     // First compile latest data
     const compiled = await this.compileDailyReport(projectId, reportDate)
 
-    const { data, error } = await supabase
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { data, error } = await client
       .from('daily_reports')
       .upsert({
         project_id: projectId,

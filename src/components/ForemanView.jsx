@@ -60,9 +60,10 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // Load crew check-in for today
+      // Load crew check-in for today (returns single object with .workers array, or null)
       const crew = await db.getCrewCheckin(project.id, today)
-      const crewCheckedIn = crew && crew.length > 0
+      const crewWorkers = crew?.workers || []
+      const crewCheckedIn = crewWorkers.length > 0
 
       // Load T&M tickets for today
       const tickets = await db.getTMTickets?.(project.id) || []
@@ -73,10 +74,10 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
 
       setTodayStatus({
         crewCheckedIn,
-        crewCount: crew?.length || 0,
+        crewCount: crewWorkers.length,
         tmTicketsToday: todayTickets.length,
         dailyReportDone: false, // We'll track this separately
-        disposalLoadsToday: disposal.length
+        disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
       })
     } catch (error) {
       console.error('Error loading today status:', error)

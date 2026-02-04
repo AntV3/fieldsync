@@ -39,10 +39,11 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       const startStr = startDate.toISOString().split('T')[0]
 
       // Load all data in parallel
+      const days = timeRange === 'week' ? 7 : 30
       const [areas, tickets, disposalLoads, dailyReports] = await Promise.all([
         db.getAreas(project.id),
         db.getTMTickets?.(project.id) || [],
-        db.getDisposalLoads?.(project.id) || [],
+        db.getDisposalLoadsHistory?.(project.id, days) || [],
         db.getDailyReports?.(project.id) || []
       ])
 
@@ -55,7 +56,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           const crew = await db.getCrewCheckin(project.id, dateStr)
           crewHistory.push({
             date: dateStr,
-            count: crew?.length || 0,
+            count: crew?.workers?.length || 0,
             dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
           })
         } catch {
@@ -68,7 +69,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         areas,
         tickets: tickets.filter(t => t.work_date >= startStr),
         crewHistory,
-        disposalLoads: disposalLoads.filter(d => d.created_at >= startStr),
+        disposalLoads: disposalLoads,
         dailyReports: dailyReports.filter(r => r.report_date >= startStr)
       })
     } catch (error) {
@@ -137,8 +138,8 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const totalTicketValue = tickets.reduce((sum, t) => sum + (t.total_amount || 0), 0)
 
     // Disposal stats
-    const totalLoads = disposalLoads.length
-    const totalTonnage = disposalLoads.reduce((sum, d) => sum + (d.tonnage || d.weight || 0), 0)
+    const totalLoads = disposalLoads.reduce((sum, d) => sum + (d.load_count || 0), 0)
+    const totalTonnage = 0 // tonnage not tracked in disposal_loads
 
     // Daily reports
     const reportsSubmitted = dailyReports.filter(r => r.submitted).length
