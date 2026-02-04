@@ -5,7 +5,7 @@ import { formatCurrency, calculateProgress, calculateValueProgress, getOverallSt
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financialExport'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, Menu, AlertTriangle, Package, Users, Shield, TrendingUp, TrendingDown, CheckCircle2, Camera, MapPin, Building2, Phone } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
@@ -26,6 +26,7 @@ import DisposalSummary from './DisposalSummary'
 import ProjectEquipmentCard from './equipment/ProjectEquipmentCard'
 import ProgressBillingCard from './billing/ProgressBillingCard'
 import ManDayCosts from './ManDayCosts'
+import BurnRateCard from './BurnRateCard'
 
 // Reports components
 import DailyReportsList from './DailyReportsList'
@@ -51,6 +52,10 @@ const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
 const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
 const AddCostModal = lazy(() => import('./AddCostModal'))
 const DocumentsTab = lazy(() => import('./documents/DocumentsTab'))
+const CORLogPreview = lazy(() => import('./cor/CORLogPreview'))
+const CORList = lazy(() => import('./cor/CORList'))
+const TMList = lazy(() => import('./TMList'))
+const BillingCenter = lazy(() => import('./billing/BillingCenter'))
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
