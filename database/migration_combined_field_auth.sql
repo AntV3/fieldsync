@@ -120,19 +120,15 @@ BEGIN
     RETURN false;
   END IF;
 
+  -- NOTE: Do NOT update last_activity here. This function is STABLE (required by
+  -- PostgreSQL for RLS policies) and STABLE functions cannot perform writes.
+  -- Session activity is tracked via extend_field_session() called from the client.
   SELECT EXISTS (
     SELECT 1 FROM field_sessions fs
     WHERE fs.session_token = v_session_token
       AND fs.project_id = p_project_id
       AND fs.expires_at > NOW()
   ) INTO valid_session;
-
-  IF valid_session THEN
-    UPDATE field_sessions
-    SET last_activity = NOW()
-    WHERE session_token = v_session_token
-      AND project_id = p_project_id;
-  END IF;
 
   RETURN valid_session;
 END;

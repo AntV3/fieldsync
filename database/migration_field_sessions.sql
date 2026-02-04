@@ -76,14 +76,6 @@ BEGIN
       AND fs.expires_at > NOW()
   ) INTO valid_session;
 
-  -- Update last activity if valid
-  IF valid_session THEN
-    UPDATE field_sessions
-    SET last_activity = NOW()
-    WHERE session_token = v_session_token
-      AND project_id = p_project_id;
-  END IF;
-
   RETURN valid_session;
 END;
 $$;
