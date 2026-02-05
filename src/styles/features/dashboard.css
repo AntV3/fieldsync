@@ -1472,3 +1472,212 @@
 .benchmark-indicator__label {
   font-weight: var(--font-weight-medium);
 }
+
+/* ============================================
+   DASHBOARD VISUAL ENHANCEMENTS
+   Zero-risk, high-impact improvements
+   ============================================ */
+
+/* ---- Hover Lift Effects ---- */
+/* Apply subtle lift on hover to all dashboard cards */
+.overview-section-card,
+.overview-insight-card,
+.reports-insight-card,
+.reports-section-card,
+.crew-metrics-card,
+.metric-card,
+.quick-stat-card,
+.financials-card,
+.financials-section-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.overview-section-card:hover,
+.overview-insight-card:hover,
+.reports-insight-card:hover,
+.reports-section-card:hover,
+.crew-metrics-card:hover,
+.metric-card:hover,
+.quick-stat-card:hover,
+.financials-card:hover,
+.financials-section-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Light mode hover shadows */
+[data-theme="light"] .overview-section-card:hover,
+[data-theme="light"] .overview-insight-card:hover,
+[data-theme="light"] .reports-insight-card:hover,
+[data-theme="light"] .reports-section-card:hover,
+[data-theme="light"] .crew-metrics-card:hover,
+[data-theme="light"] .metric-card:hover,
+[data-theme="light"] .quick-stat-card:hover,
+[data-theme="light"] .financials-card:hover,
+[data-theme="light"] .financials-section-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* ---- Accent Color Borders on Key Metrics ---- */
+/* Primary metrics get a left accent border */
+.reports-metric.primary,
+.overview-metric.primary {
+  border-left: 3px solid var(--accent-primary);
+  padding-left: 12px;
+}
+
+/* Financial metrics with color-coded borders */
+.financial-metric-value.green {
+  border-left: 3px solid #10b981;
+  padding-left: 8px;
+}
+
+.financial-metric-value.amber {
+  border-left: 3px solid #f59e0b;
+  padding-left: 8px;
+}
+
+.financial-metric-value.red {
+  border-left: 3px solid #ef4444;
+  padding-left: 8px;
+}
+
+/* Stat cards with subtle top accent */
+.reports-stat:first-child,
+.crew-stat.total {
+  border-top: 2px solid var(--accent-primary);
+}
+
+/* ---- Progress Bar Animations ---- */
+/* Ensure all progress bars animate from 0 on mount */
+.reports-metric-fill,
+.overview-metric-fill,
+.work-area-fill,
+.cost-segment,
+.crew-bar-segment,
+.progress-bar-v2__fill,
+.reports-disposal-seg {
+  animation: progressGrow 0.8s ease-out forwards;
+}
+
+@keyframes progressGrow {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+/* Gauge fill animation */
+.gauge-fill {
+  animation: gaugeStroke 1s ease-out forwards;
+}
+
+@keyframes gaugeStroke {
+  from {
+    stroke-dashoffset: 440;
+  }
+}
+
+/* ---- Subtle Gradient Backgrounds on Hero Sections ---- */
+/* Overview hero with blue-green gradient tint */
+.overview-hero-split {
+  background: linear-gradient(
+    135deg,
+    var(--bg-card) 0%,
+    rgba(59, 130, 246, 0.03) 50%,
+    rgba(16, 185, 129, 0.03) 100%
+  );
+}
+
+/* Reports hero with blue-purple gradient tint */
+.reports-hero {
+  background: linear-gradient(
+    135deg,
+    var(--bg-card) 0%,
+    rgba(59, 130, 246, 0.04) 50%,
+    rgba(139, 92, 246, 0.03) 100%
+  );
+}
+
+/* Light mode gradient adjustments */
+[data-theme="light"] .overview-hero-split {
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(59, 130, 246, 0.05) 50%,
+    rgba(16, 185, 129, 0.05) 100%
+  );
+}
+
+[data-theme="light"] .reports-hero {
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(59, 130, 246, 0.06) 50%,
+    rgba(139, 92, 246, 0.04) 100%
+  );
+}
+
+/* ---- Enhanced Card Headers ---- */
+/* Add subtle bottom border to card headers */
+.reports-insight-header,
+.section-card-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
+
+/* ---- Improved Badge Styling ---- */
+/* Make status badges more prominent */
+.reports-section-badge,
+.section-badge {
+  transition: transform 0.15s ease;
+}
+
+.reports-section-badge:hover,
+.section-badge:hover {
+  transform: scale(1.05);
+}
+
+/* ---- Reduced Motion Support ---- */
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .overview-section-card,
+  .overview-insight-card,
+  .reports-insight-card,
+  .reports-section-card,
+  .crew-metrics-card,
+  .metric-card,
+  .quick-stat-card,
+  .financials-card,
+  .financials-section-card {
+    transition: none;
+  }
+
+  .overview-section-card:hover,
+  .overview-insight-card:hover,
+  .reports-insight-card:hover,
+  .reports-section-card:hover,
+  .crew-metrics-card:hover,
+  .metric-card:hover,
+  .quick-stat-card:hover,
+  .financials-card:hover,
+  .financials-section-card:hover {
+    transform: none;
+  }
+
+  .reports-metric-fill,
+  .overview-metric-fill,
+  .work-area-fill,
+  .cost-segment,
+  .crew-bar-segment,
+  .progress-bar-v2__fill,
+  .reports-disposal-seg,
+  .gauge-fill {
+    animation: none;
+  }
+}
