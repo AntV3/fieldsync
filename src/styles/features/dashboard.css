@@ -1607,19 +1607,21 @@
 [data-theme="light"] .overview-hero-split {
   background: linear-gradient(
     135deg,
-    #ffffff 0%,
-    rgba(59, 130, 246, 0.05) 50%,
-    rgba(16, 185, 129, 0.05) 100%
+    #f8fafc 0%,
+    rgba(59, 130, 246, 0.08) 50%,
+    rgba(16, 185, 129, 0.08) 100%
   );
+  border-color: rgba(59, 130, 246, 0.15);
 }
 
 [data-theme="light"] .reports-hero {
   background: linear-gradient(
     135deg,
-    #ffffff 0%,
-    rgba(59, 130, 246, 0.06) 50%,
-    rgba(139, 92, 246, 0.04) 100%
+    #f8fafc 0%,
+    rgba(59, 130, 246, 0.1) 50%,
+    rgba(139, 92, 246, 0.08) 100%
   );
+  border-color: rgba(99, 102, 241, 0.15);
 }
 
 /* ---- Enhanced Card Headers ---- */
@@ -1680,4 +1682,181 @@
   .gauge-fill {
     animation: none;
   }
+}
+
+/* ============================================
+   LIGHT MODE COLOR ENHANCEMENTS
+   Adding warmth and subtle color for better UX
+   ============================================ */
+
+/* ---- Tinted Card Backgrounds ---- */
+/* Give cards a subtle warm tint instead of pure white */
+[data-theme="light"] .overview-section-card,
+[data-theme="light"] .reports-insight-card,
+[data-theme="light"] .reports-section-card,
+[data-theme="light"] .crew-metrics-card,
+[data-theme="light"] .financials-card,
+[data-theme="light"] .financials-section-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-color: #e2e8f0;
+}
+
+/* ---- Colorful Stat Cards ---- */
+/* Add subtle background tints to stat grids */
+[data-theme="light"] .reports-stat {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+[data-theme="light"] .crew-stat {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #e2e8f0;
+}
+
+/* Color-tinted first stat in each grid */
+[data-theme="light"] .reports-stat:first-child {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+  border-top: 2px solid #3b82f6;
+}
+
+[data-theme="light"] .crew-stat.total {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+  border-top: 2px solid #3b82f6;
+}
+
+/* ---- Enhanced Metric Cards ---- */
+/* Primary metrics with stronger blue tint */
+[data-theme="light"] .reports-metric.primary {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #93c5fd;
+  border-left: 4px solid #3b82f6;
+  border-radius: 10px;
+}
+
+[data-theme="light"] .reports-metric {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* ---- Safety Dashboard Colors ---- */
+/* Make safety status more visually distinct */
+[data-theme="light"] .reports-safety-days.excellent {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border: 1px solid #6ee7b7;
+}
+
+[data-theme="light"] .reports-safety-days.good {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1px solid #93c5fd;
+}
+
+[data-theme="light"] .reports-safety-days.caution {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fcd34d;
+}
+
+/* ---- Work Area Status Colors ---- */
+/* More vibrant status indicators */
+[data-theme="light"] .work-area-item.done {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-left: 3px solid #10b981;
+}
+
+[data-theme="light"] .work-area-item.working {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left: 3px solid #3b82f6;
+}
+
+[data-theme="light"] .work-area-item.not_started {
+  background: #f8fafc;
+  border-left: 3px solid #cbd5e1;
+}
+
+/* ---- Trend Badges ---- */
+/* More colorful trend indicators */
+[data-theme="light"] .reports-trend-badge.up {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #6ee7b7;
+  color: #059669;
+}
+
+[data-theme="light"] .reports-trend-badge.down {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+}
+
+/* ---- Section Headers ---- */
+/* Warmer section title styling */
+[data-theme="light"] .reports-insight-header {
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, transparent 0%, rgba(241, 245, 249, 0.5) 100%);
+  margin: -12px -14px 12px -14px;
+  padding: 12px 14px;
+  border-radius: 12px 12px 0 0;
+}
+
+/* ---- Attention Chips ---- */
+/* More visible warning/info chips */
+[data-theme="light"] .attention-chip.warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fbbf24;
+  color: #b45309;
+}
+
+[data-theme="light"] .attention-chip.info {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1px solid #60a5fa;
+  color: #1d4ed8;
+}
+
+/* ---- Quick Action Buttons ---- */
+/* More colorful action buttons */
+[data-theme="light"] .overview-action-btn:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+[data-theme="light"] .overview-action-btn.export:hover {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: #10b981;
+  color: #059669;
+}
+
+/* ---- Mini Chart Bars ---- */
+/* More colorful crew size chart */
+[data-theme="light"] .reports-mini-bar {
+  background: linear-gradient(180deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+/* ---- Disposal Chart Colors ---- */
+/* Brighter disposal segments */
+[data-theme="light"] .reports-disposal-seg.concrete {
+  background: #64748b;
+}
+
+[data-theme="light"] .reports-disposal-seg.trash {
+  background: #f59e0b;
+}
+
+[data-theme="light"] .reports-disposal-seg.metals {
+  background: #3b82f6;
+}
+
+[data-theme="light"] .reports-disposal-seg.hazardous {
+  background: #ef4444;
+}
+
+/* ---- Bottom Strip ---- */
+/* Warmer bottom action strip */
+[data-theme="light"] .overview-bottom-strip {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-color: #e2e8f0;
 }
