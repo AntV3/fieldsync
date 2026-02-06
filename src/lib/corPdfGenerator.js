@@ -476,7 +476,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(71, 85, 105)
 
-    doc.text('T&M Tickets:', summaryCol1, summaryY)
+    doc.text('Time & Materials:', summaryCol1, summaryY)
     doc.setFont('helvetica', 'bold')
     doc.text(String(tickets.length), summaryCol2, summaryY)
     doc.setFont('helvetica', 'normal')
@@ -542,7 +542,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(30, 41, 59)
-      doc.text(`T&M TICKET — ${formatDate(ticket.work_date || ticket.ticket_date)}`, margin + 10, yPos + 8)
+      doc.text(`TIME & MATERIALS — ${formatDate(ticket.work_date || ticket.ticket_date)}`, margin + 10, yPos + 8)
 
       if (ticket.ce_pco_number) {
         doc.setFontSize(9)
@@ -619,7 +619,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         doc.setFontSize(7)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(100, 116, 139)
-        doc.text('Source: T&M Ticket', margin + 55, yPos)
+        doc.text('Source: Time & Materials', margin + 55, yPos)
         yPos += 6
 
         autoTable(doc, {
@@ -840,7 +840,7 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(30, 41, 59)
-  doc.text('T&M TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
+  doc.text('TIME & MATERIALS TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
 
   yPos += 25
 
