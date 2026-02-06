@@ -7188,8 +7188,12 @@ export const db = {
         throw new Error('Database client not available')
       }
 
-      // Increment view count
-      await client.rpc('increment_signature_view_count', { token })
+      // Increment view count (non-critical - don't block on failure)
+      try {
+        await client.rpc('increment_signature_view_count', { token })
+      } catch (viewCountErr) {
+        console.warn('Failed to increment signature view count:', viewCountErr)
+      }
 
       const { data, error } = await client
         .from('signature_requests')

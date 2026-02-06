@@ -11,11 +11,14 @@ import {
   formatDateRange
 } from '../../lib/corCalculations'
 import { executeExport, ExportStatus } from '../../lib/corExportPipeline'
+import { exportCORToPDF } from '../../lib/corPdfExport'
 import { exportCORDetail } from '../../lib/financialExport'
 import SignatureCanvas from '../ui/SignatureCanvas'
 import SignatureLinkGenerator from '../SignatureLinkGenerator'
+import { useBranding } from '../../lib/BrandingContext'
 
 export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
+  const { branding } = useBranding()
   const [loading, setLoading] = useState(true)
   const [corData, setCORData] = useState(cor)
   const [showSignature, setShowSignature] = useState(false)
@@ -204,24 +207,33 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     try {
       onShowToast?.('Generating PDF with backup...', 'info')
 
-      // Use new snapshot-based export pipeline (idempotent, reliable)
-      const result = await executeExport(corData.id, {
-        cor: corData,
-        tickets: associatedTickets,
-        project,
-        company,
-        branding: {
-          logoUrl: company?.logo_url,
-          primaryColor: company?.branding_color
-        },
-        options: {
-          includeBackup: true
-        }
-      })
+      const brandingInfo = {
+        logoUrl: branding?.logo_url || company?.logo_url,
+        primaryColor: branding?.primary_color
+      }
 
-      if (result.cached) {
-        onShowToast?.('PDF downloaded (cached)', 'success')
-      } else {
+      try {
+        // Try the snapshot-based export pipeline first (idempotent, reliable)
+        const result = await executeExport(corData.id, {
+          cor: corData,
+          tickets: associatedTickets,
+          project,
+          company,
+          branding: brandingInfo,
+          options: {
+            includeBackup: true
+          }
+        })
+
+        if (result.cached) {
+          onShowToast?.('PDF downloaded (cached)', 'success')
+        } else {
+          onShowToast?.('PDF downloaded', 'success')
+        }
+      } catch (pipelineError) {
+        // Fallback to legacy PDF export if pipeline fails (e.g., missing DB functions)
+        console.warn('Export pipeline failed, falling back to direct PDF export:', pipelineError)
+        await exportCORToPDF(corData, project, company, brandingInfo, associatedTickets)
         onShowToast?.('PDF downloaded', 'success')
       }
     } catch (error) {

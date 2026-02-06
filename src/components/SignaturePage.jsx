@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download, Camera, HardHat, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
-import { db } from '../lib/supabase'
+import { db, supabase, isSupabaseConfigured } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
 import SignatureCanvas from './ui/SignatureCanvas'
@@ -62,6 +62,9 @@ export default function SignaturePage({ signatureToken }) {
   const [backupExpanded, setBackupExpanded] = useState(false)
   const [expandedTickets, setExpandedTickets] = useState(new Set())
 
+  // Company branding state
+  const [companyBranding, setCompanyBranding] = useState(null)
+
   // Load signature request and document
   useEffect(() => {
     loadData()
@@ -112,6 +115,23 @@ export default function SignaturePage({ signatureToken }) {
           setBackupTickets(tickets || [])
         } catch (err) {
           console.warn('Failed to load backup tickets:', err)
+        }
+      }
+
+      // Load company branding for PDF exports
+      const companyId = docData?.projects?.companies?.id
+      if (companyId && isSupabaseConfigured) {
+        try {
+          const { data: brandingData } = await supabase
+            .from('company_branding')
+            .select('primary_color, logo_url')
+            .eq('company_id', companyId)
+            .single()
+          if (brandingData) {
+            setCompanyBranding(brandingData)
+          }
+        } catch (err) {
+          console.warn('Failed to load company branding:', err)
         }
       }
     } catch (err) {
@@ -198,12 +218,15 @@ export default function SignaturePage({ signatureToken }) {
   const handleDownload = async () => {
     if (!document || !signatureRequest) return
 
+    const docCompany = document?.projects?.companies
+    const docProject = document?.projects
+
     try {
       setDownloading(true)
 
       // Fetch associated T&M tickets if this is a COR
       let tmTickets = null
-      if (isCOR) {
+      if (signatureRequest?.document_type === 'cor') {
         try {
           tmTickets = await db.getCORTickets(document.id)
         } catch (err) {
@@ -212,14 +235,14 @@ export default function SignaturePage({ signatureToken }) {
         }
       }
 
-      // Get branding from company
+      // Get branding from company branding data or company logo
       const branding = {
-        logoUrl: company?.logo_url,
-        primaryColor: company?.branding_color
+        logoUrl: companyBranding?.logo_url || docCompany?.logo_url,
+        primaryColor: companyBranding?.primary_color
       }
 
       // Export PDF with T&M backup
-      await exportCORToPDF(document, project, company, branding, tmTickets)
+      await exportCORToPDF(document, docProject, docCompany, branding, tmTickets)
 
       setSuccessMessage('PDF downloaded successfully!')
       setTimeout(() => setSuccessMessage(null), 3000)
@@ -235,20 +258,20 @@ export default function SignaturePage({ signatureToken }) {
   const handleDownloadTMTicket = async () => {
     if (!document || !signatureRequest) return
 
+    const docCompany = document?.projects?.companies
+    const docProject = document?.projects
+
     try {
       setDownloading(true)
 
-      const company = document?.projects?.companies
-      const project = document?.projects
-
-      // Get branding from company
+      // Get branding from company branding data or company logo
       const branding = {
-        logoUrl: company?.logo_url,
-        primaryColor: company?.branding_color
+        logoUrl: companyBranding?.logo_url || docCompany?.logo_url,
+        primaryColor: companyBranding?.primary_color
       }
 
       // Export T&M Ticket PDF
-      await exportTMTicketToPDF(document, project, company, branding)
+      await exportTMTicketToPDF(document, docProject, docCompany, branding)
 
       setSuccessMessage('PDF downloaded successfully!')
       setTimeout(() => setSuccessMessage(null), 3000)
