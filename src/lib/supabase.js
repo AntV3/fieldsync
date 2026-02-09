@@ -19,8 +19,11 @@ import {
   addPendingAction,
   getPendingActionCount,
   syncPendingActions,
-  ACTION_TYPES
+  ACTION_TYPES,
+  saveToStore,
+  STORES
 } from './offlineManager'
+import { stampForOffline } from './conflictDetection'
 // Import supabase client from separate file to avoid circular dependency with observability
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { observe } from './observability'
@@ -84,6 +87,32 @@ const withRetry = async (fn, maxRetries = 3, baseDelay = 1000) => {
     }
   }
   throw lastError
+}
+
+// Robust network error detection (not just string matching)
+const isNetworkError = (error) => {
+  if (!error) return false
+  // TypeError from fetch() when network is unavailable
+  if (error instanceof TypeError && error.message?.includes('fetch')) return true
+  // Check common network error patterns across browsers
+  const msg = (error.message || '').toLowerCase()
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('load failed') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed') ||
+    msg.includes('network error') ||
+    msg.includes('timeout') ||
+    msg.includes('econnrefused') ||
+    msg.includes('econnreset') ||
+    msg.includes('enotfound') ||
+    msg.includes('abort') ||
+    error.code === 'NETWORK_ERROR' ||
+    // Supabase wraps fetch errors
+    (error.name === 'FetchError') ||
+    // Navigator is offline
+    (typeof navigator !== 'undefined' && !navigator.onLine)
+  )
 }
 
 // Input validation helpers
@@ -1103,9 +1132,9 @@ export const db = {
         throw error
       }
 
-      // Cache areas for offline use
+      // Cache areas for offline use (awaited to prevent stale reads)
       if (data?.length > 0) {
-        cacheAreas(data).catch(err => console.error('Failed to cache areas:', err))
+        await cacheAreas(data).catch(err => console.error('Failed to cache areas:', err))
       }
 
       return data
@@ -1140,10 +1169,10 @@ export const db = {
   // Update area status - projectId optional for cross-tenant security
   async updateAreaStatus(id, status, projectId = null) {
     if (isSupabaseConfigured) {
-      // If offline, update cache and queue action
+      // If offline, update cache and queue action atomically
       if (!getConnectionStatus()) {
         const area = await updateCachedAreaStatus(id, status)
-        await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
+        await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status, projectId })
         return area
       }
 
@@ -1162,17 +1191,17 @@ export const db = {
 
       if (error) {
         // If network error, queue for later
-        if (error.message?.includes('fetch') || error.message?.includes('network')) {
+        if (isNetworkError(error)) {
           const area = await updateCachedAreaStatus(id, status)
-          await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
+          await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status, projectId })
           return area
         }
         throw error
       }
 
-      // Update cache with server response
+      // Update cache with server response (awaited to prevent stale reads)
       if (data) {
-        updateCachedAreaStatus(id, status).catch(err => console.error('Failed to update cached area status:', err))
+        await updateCachedAreaStatus(id, status).catch(err => console.error('Failed to update cached area status:', err))
       }
 
       return data
@@ -1245,7 +1274,14 @@ export const db = {
         .channel(`areas:${projectId}`)
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'areas', filter: `project_id=eq.${projectId}` },
-          callback
+          (payload) => {
+            // Cache real-time updates to IndexedDB for offline resilience
+            if (payload.new && (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE')) {
+              saveToStore(STORES.AREAS, stampForOffline(payload.new, ['status', 'weight', 'name']))
+                .catch(err => console.error('Failed to cache realtime area update:', err))
+            }
+            callback(payload)
+          }
         )
         .subscribe()
     }

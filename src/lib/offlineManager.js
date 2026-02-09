@@ -402,67 +402,133 @@ if (typeof window !== 'undefined') {
 // Sync Manager
 // ============================================
 
-let isSyncing = false
+// Promise-based mutex to prevent concurrent syncs
+let syncPromise = null
+
+// Max retry attempts before moving action to dead letter
+const MAX_SYNC_ATTEMPTS = 10
+
+// Classify errors as retryable (network) vs permanent (validation)
+const isRetryableError = (error) => {
+  const msg = (error?.message || '').toLowerCase()
+  const code = error?.code || ''
+  // Network / timeout / connection errors are retryable
+  if (msg.includes('fetch') || msg.includes('network') || msg.includes('timeout') ||
+      msg.includes('failed to fetch') || msg.includes('load failed') ||
+      msg.includes('networkerror') || msg.includes('econnrefused') ||
+      msg.includes('econnreset') || msg.includes('enotfound') ||
+      code === 'NETWORK_ERROR') {
+    return true
+  }
+  // Auth, permission, constraint errors are permanent
+  if (code === 'PGRST301' || code === '42501' || code === '23514' ||
+      code === '23505' || code === '23503' || code === '42P01') {
+    return false
+  }
+  // Default: treat as retryable
+  return true
+}
+
+// Reset sync state (for testing only)
+export const _resetSyncState = () => { syncPromise = null }
 
 // Process pending actions queue with conflict detection
-export const syncPendingActions = async (db, options = {}) => {
-  if (isSyncing || !isOnline) return { synced: 0, failed: 0, conflicts: [] }
+// Not async — returns syncPromise directly so concurrent callers get the same reference
+export const syncPendingActions = (db, options = {}) => {
+  if (!isOnline) return Promise.resolve({ synced: 0, failed: 0, conflicts: [], deadLettered: 0 })
+
+  // Async mutex: if a sync is already running, wait for it and return its results
+  if (syncPromise) {
+    return syncPromise
+  }
 
   const { onConflict } = options
-  isSyncing = true
-  const results = { synced: 0, failed: 0, conflicts: [] }
+  const results = { synced: 0, failed: 0, conflicts: [], deadLettered: 0 }
 
-  try {
-    const actions = await getPendingActions()
+  syncPromise = (async () => {
+    try {
+      const actions = await getPendingActions()
 
-    for (const action of actions) {
-      try {
-        // Check for conflicts on update actions (not creates)
-        if (action.payload?.id && action.type === ACTION_TYPES.UPDATE_AREA_STATUS) {
-          const serverRecord = await fetchServerRecord(db, action.type, action.payload)
-          if (serverRecord) {
-            const cachedRecord = await getFromStore(STORES.AREAS, action.payload.areaId || action.payload.id)
-            if (cachedRecord) {
-              const conflict = detectConflict(cachedRecord, serverRecord, ['status'])
-              if (conflict.hasConflict) {
-                const summary = buildConflictSummary(conflict, 'area')
-                results.conflicts.push({ action, conflict, summary })
+      for (const action of actions) {
+        // Skip actions that have exceeded max retries
+        if ((action.attempts || 0) >= MAX_SYNC_ATTEMPTS) {
+          results.deadLettered++
+          // Mark as dead-lettered so it stops being retried
+          await updatePendingAction(action.id, {
+            dead_lettered: true,
+            dead_lettered_at: new Date().toISOString()
+          })
+          continue
+        }
 
-                // Notify caller of conflict
-                if (onConflict) {
-                  const resolution = await onConflict({ action, conflict, summary })
-                  if (resolution === RESOLUTION_STRATEGIES.KEEP_SERVER) {
-                    // Skip this action, accept server version
-                    await removePendingAction(action.id)
-                    continue
+        try {
+          // Check for conflicts on update actions (not creates)
+          if (action.payload?.id && action.type === ACTION_TYPES.UPDATE_AREA_STATUS) {
+            const serverRecord = await fetchServerRecord(db, action.type, action.payload)
+            if (serverRecord) {
+              const cachedRecord = await getFromStore(STORES.AREAS, action.payload.areaId || action.payload.id)
+              if (cachedRecord) {
+                const conflict = detectConflict(cachedRecord, serverRecord, ['status'])
+                if (conflict.hasConflict) {
+                  const summary = buildConflictSummary(conflict, 'area')
+                  results.conflicts.push({ action, conflict, summary })
+
+                  // Notify caller of conflict
+                  if (onConflict) {
+                    try {
+                      const resolution = await onConflict({ action, conflict, summary })
+                      if (resolution === RESOLUTION_STRATEGIES.KEEP_SERVER) {
+                        // Skip this action, accept server version
+                        await removePendingAction(action.id)
+                        continue
+                      }
+                    } catch (callbackErr) {
+                      console.error('Conflict resolution callback failed:', callbackErr)
+                      // Default: proceed with local change
+                    }
+                    // KEEP_LOCAL: proceed with processAction below
                   }
-                  // KEEP_LOCAL: proceed with processAction below
+                  // Default: proceed with local change (keep_local)
                 }
-                // Default: proceed with local change (keep_local)
               }
             }
           }
+
+          await processAction(action, db)
+          await removePendingAction(action.id)
+          results.synced++
+        } catch (error) {
+          results.failed++
+
+          const attempts = (action.attempts || 0) + 1
+          const retryable = isRetryableError(error)
+
+          await updatePendingAction(action.id, {
+            attempts,
+            last_error: error.message,
+            last_attempt: new Date().toISOString(),
+            retryable,
+            // Dead-letter permanently failed actions immediately
+            ...((!retryable) ? {
+              dead_lettered: true,
+              dead_lettered_at: new Date().toISOString()
+            } : {})
+          })
+
+          // If non-retryable, count as dead-lettered
+          if (!retryable) {
+            results.deadLettered++
+          }
         }
-
-        await processAction(action, db)
-        await removePendingAction(action.id)
-        results.synced++
-      } catch (error) {
-        results.failed++
-
-        // Update attempt count
-        await updatePendingAction(action.id, {
-          attempts: (action.attempts || 0) + 1,
-          last_error: error.message,
-          last_attempt: new Date().toISOString()
-        })
       }
+    } finally {
+      syncPromise = null
     }
-  } finally {
-    isSyncing = false
-  }
 
-  return results
+    return results
+  })()
+
+  return syncPromise
 }
 
 // Fetch a server record for conflict comparison
@@ -485,18 +551,30 @@ const processAction = async (action, db) => {
 
   switch (type) {
     case ACTION_TYPES.UPDATE_AREA_STATUS:
-      return db.updateAreaStatus(payload.areaId, payload.status)
+      return db.updateAreaStatus(payload.areaId, payload.status, payload.projectId)
 
     case ACTION_TYPES.CREATE_TM_TICKET: {
-      // Complex action - create ticket, upload photos, add workers/items
-      const ticket = await db.createTMTicket(payload.ticket)
+      // Complex action - create ticket, then add workers/items
+      // Use idempotency check to prevent duplicates on retry
+      let ticket
+      if (payload._syncedTicketId) {
+        // Retry path: ticket was already created, skip to sub-items
+        ticket = { id: payload._syncedTicketId }
+      } else {
+        ticket = await db.createTMTicket(payload.ticket)
+        // Persist the server-assigned ticket ID so retries don't duplicate
+        if (action.id) {
+          await updatePendingAction(action.id, {
+            payload: { ...payload, _syncedTicketId: ticket.id }
+          }).catch(() => {}) // Best-effort; worst case we duplicate on retry
+        }
+      }
       if (payload.workers?.length > 0) {
         await db.addTMWorkers(ticket.id, payload.workers)
       }
       if (payload.items?.length > 0) {
         await db.addTMItems(ticket.id, payload.items)
       }
-      // Note: Photos would need separate handling
       return ticket
     }
 
