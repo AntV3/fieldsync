@@ -827,15 +827,15 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
               </button>
             )}
 
-            {/* Show signature link button for approved/pending CORs */}
-            {(corData.status === 'approved' || corData.status === 'pending_approval') && (
+            {/* Send to Client for Signature - available for draft, pending, and approved CORs */}
+            {['draft', 'pending_approval', 'approved'].includes(corData.status) && (
               <button
-                className="btn btn-secondary"
+                className="btn btn-primary"
                 onClick={() => setShowSignatureLink(true)}
                 disabled={loading}
-                aria-label="Get shareable signature link"
+                aria-label="Send to client for signature"
               >
-                <Link size={16} aria-hidden="true" /> Get Signature Link
+                <Send size={16} aria-hidden="true" /> Send to Client
               </button>
             )}
 

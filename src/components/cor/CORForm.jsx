@@ -20,6 +20,7 @@ import TicketSelector from './TicketSelector'
 
 export default function CORForm({ project, company, areas, existingCOR, onClose, onSaved, onShowToast }) {
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(!!existingCOR?.id)
   const [laborRates, setLaborRates] = useState([])
   const [showTicketSelector, setShowTicketSelector] = useState(false)
   const [importedTicketIds, setImportedTicketIds] = useState([]) // Track tickets imported for backup docs
@@ -84,6 +85,52 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const [licenseFeePercent, setLicenseFeePercent] = useState(
     existingCOR?.license_fee_percent ?? DEFAULT_PERCENTAGES.license_fee
   )
+
+  // When editing, fetch full COR data if line items are missing (e.g., opened from list view)
+  useEffect(() => {
+    const fetchFullCOR = async () => {
+      if (!existingCOR?.id) {
+        setInitialLoading(false)
+        return
+      }
+      // Check if we already have line items loaded (e.g., opened from CORDetail)
+      const hasLineItems = existingCOR.change_order_labor?.length > 0 ||
+                           existingCOR.change_order_materials?.length > 0 ||
+                           existingCOR.change_order_equipment?.length > 0 ||
+                           existingCOR.change_order_subcontractors?.length > 0
+      // If we have line item counts but no actual data, fetch the full COR
+      const hasCountsOnly = !hasLineItems && (
+        existingCOR.labor_count?.[0]?.count > 0 ||
+        existingCOR.materials_count?.[0]?.count > 0 ||
+        existingCOR.equipment_count?.[0]?.count > 0 ||
+        existingCOR.subcontractors_count?.[0]?.count > 0
+      )
+
+      if (hasCountsOnly) {
+        try {
+          const fullCOR = await db.getCORById(existingCOR.id)
+          if (fullCOR) {
+            setLaborItems(fullCOR.change_order_labor || [])
+            setMaterialsItems(fullCOR.change_order_materials || [])
+            setEquipmentItems(fullCOR.change_order_equipment || [])
+            setSubcontractorsItems(fullCOR.change_order_subcontractors || [])
+            setExpandedSections({
+              labor: fullCOR.change_order_labor?.length > 0,
+              materials: fullCOR.change_order_materials?.length > 0,
+              equipment: fullCOR.change_order_equipment?.length > 0,
+              subcontractors: fullCOR.change_order_subcontractors?.length > 0,
+              markups: false
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching full COR data for editing:', error)
+          onShowToast?.('Error loading COR details for editing', 'error')
+        }
+      }
+      setInitialLoading(false)
+    }
+    fetchFullCOR()
+  }, [existingCOR?.id])
 
   // Load labor rates and company materials on mount
   useEffect(() => {
@@ -394,7 +441,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     ...totals
   })
 
-  // Save as draft
+  // Save COR - preserves current status when editing, defaults to draft for new
   const handleSave = async () => {
     if (!canSave) {
       onShowToast?.('Title is required', 'error')
@@ -403,15 +450,15 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
     setLoading(true)
     try {
-      const corPayload = {
-        ...buildPayload(),
-        status: 'draft'
-      }
+      const corPayload = buildPayload()
 
       let savedCOR
       if (existingCOR?.id) {
+        // Preserve existing status when editing - don't reset to draft
         savedCOR = await db.updateCOR(existingCOR.id, corPayload)
       } else {
+        // New CORs start as draft
+        corPayload.status = 'draft'
         savedCOR = await db.createCOR(corPayload)
       }
 
@@ -435,7 +482,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         }
       }
 
-      onShowToast?.('COR saved as draft', 'success')
+      onShowToast?.(existingCOR?.id ? 'COR saved' : 'COR saved as draft', 'success')
       onSaved?.(savedCOR)
       onClose?.()
     } catch (error) {
@@ -456,14 +503,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
     setLoading(true)
     try {
-      const corPayload = {
-        ...buildPayload(),
-        status: 'draft'
-      }
+      const corPayload = buildPayload()
 
       let savedCOR
       let corIdToUse
       if (existingCOR?.id) {
+        // Save line items and then submit for approval
         savedCOR = await db.updateCOR(existingCOR.id, corPayload)
         corIdToUse = existingCOR.id
         await db.saveCORLineItems(existingCOR.id, {
@@ -474,6 +519,8 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         })
         await db.submitCORForApproval(existingCOR.id)
       } else {
+        // New COR - create as draft then submit
+        corPayload.status = 'draft'
         savedCOR = await db.createCOR(corPayload)
         if (savedCOR?.id) {
           corIdToUse = savedCOR.id
@@ -525,6 +572,22 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       )}
     </div>
   )
+
+  if (initialLoading) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content cor-form-modal cor-form-simplified" onClick={e => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Loading COR...</h2>
+            <button className="close-btn" onClick={onClose}><X size={20} /></button>
+          </div>
+          <div className="modal-body cor-form-body" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            Loading change order data for editing...
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>

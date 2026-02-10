@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
-  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2
+  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, Receipt
 } from 'lucide-react'
 
 /**
@@ -53,6 +53,12 @@ const ALL_ACTIONS = {
     icon: FolderOpen,
     description: 'View project files'
   },
+  cors: {
+    id: 'cors',
+    label: 'Change Orders',
+    icon: Receipt,
+    description: 'View CORs & link tickets'
+  },
   metrics: {
     id: 'metrics',
     label: 'Project Metrics',
@@ -69,7 +75,7 @@ const ALL_ACTIONS = {
 }
 
 // Default pinned actions (sensible defaults for new users)
-const DEFAULT_PINNED = ['crew', 'tm', 'report', 'progress']
+const DEFAULT_PINNED = ['crew', 'tm', 'cors', 'report', 'progress']
 
 // Storage key generator
 const getPinStorageKey = (projectId) => `fm_pinned_${projectId}`

@@ -14,6 +14,7 @@ import DisposalLoadInput from './DisposalLoadInput'
 import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
+import ForemanCORList from './cor/ForemanCORList'
 
 export default function ForemanView({ project, companyId, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
@@ -300,6 +301,18 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </div>
         <FolderGrid projectId={project.id} onShowToast={onShowToast} />
       </div>
+    )
+  }
+
+  // COR View - Foremen can see all CORs and link tickets
+  if (activeView === 'cors') {
+    return (
+      <ForemanCORList
+        project={project}
+        companyId={companyId}
+        onBack={() => setActiveView('home')}
+        onShowToast={onShowToast}
+      />
     )
   }
 

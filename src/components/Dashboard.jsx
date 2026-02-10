@@ -1040,6 +1040,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       } else if (target === 'cors') {
         setActiveProjectTab('financials')
         setFinancialsSection('cors')
+        setCORListExpanded(true)
       } else {
         setActiveProjectTab('overview')
       }
@@ -2538,7 +2539,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               }}
               onShowToast={onShowToast}
               onStatusChange={() => {
-                // Trigger a refresh of the COR list
+                setCORRefreshKey(prev => prev + 1)
               }}
             />
           </Suspense>
