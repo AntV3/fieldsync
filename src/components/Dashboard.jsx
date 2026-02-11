@@ -57,6 +57,9 @@ const CORLogPreview = lazy(() => import('./cor/CORLogPreview'))
 const CORList = lazy(() => import('./cor/CORList'))
 const TMList = lazy(() => import('./TMList'))
 const BillingCenter = lazy(() => import('./billing/BillingCenter'))
+const PhotoTimeline = lazy(() => import('./PhotoTimeline'))
+const PunchList = lazy(() => import('./PunchList'))
+import EarnedValueCard from './charts/EarnedValueCard'
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -1250,7 +1253,39 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </div>
               </div>
 
-              {/* Row 3: Bottom strip - Attention + Quick Nav + Exports */}
+              {/* Row 3: Earned Value Analysis */}
+              {selectedProject?.contract_value > 0 && (
+                <EarnedValueCard
+                  contractValue={selectedProject.contract_value}
+                  changeOrderValue={changeOrderValue}
+                  progressPercent={progress}
+                  actualCosts={projectData?.allCostsTotal || 0}
+                  startDate={selectedProject.start_date}
+                  endDate={selectedProject.end_date}
+                  areas={areas}
+                />
+              )}
+
+              {/* Row 4: Photo Timeline + Punch List */}
+              <div className="overview-two-col">
+                <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading photos...</div>}>
+                  <PhotoTimeline
+                    projectId={selectedProject?.id}
+                    areas={areas}
+                    onShowToast={onShowToast}
+                  />
+                </Suspense>
+                <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading punch list...</div>}>
+                  <PunchList
+                    projectId={selectedProject?.id}
+                    areas={areas}
+                    companyId={company?.id}
+                    onShowToast={onShowToast}
+                  />
+                </Suspense>
+              </div>
+
+              {/* Row 5: Bottom strip - Attention + Quick Nav + Exports */}
               <div className="overview-bottom-strip">
                 {/* Attention items inline */}
                 {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (
