@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { db } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
-import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
+import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
+import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financialExport'
 import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, Menu, AlertTriangle, Package, Users, Shield, TrendingUp, TrendingDown, CheckCircle2, Camera, MapPin, Building2, Phone } from 'lucide-react'
@@ -56,6 +57,9 @@ const CORLogPreview = lazy(() => import('./cor/CORLogPreview'))
 const CORList = lazy(() => import('./cor/CORList'))
 const TMList = lazy(() => import('./TMList'))
 const BillingCenter = lazy(() => import('./billing/BillingCenter'))
+const PhotoTimeline = lazy(() => import('./PhotoTimeline'))
+const PunchList = lazy(() => import('./PunchList'))
+import EarnedValueCard from './charts/EarnedValueCard'
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -63,9 +67,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [selectedProject, setSelectedProject] = useState(null)
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
-  const [editMode, setEditMode] = useState(false)
-  const [editData, setEditData] = useState(null)
-  const [saving, setSaving] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
@@ -92,6 +93,17 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   // Universal Search (Cmd+K)
   const { isOpen: isSearchOpen, setIsOpen: setSearchOpen, close: closeSearch } = useUniversalSearch()
+
+  // Portfolio metrics (extracted hook)
+  const { portfolioMetrics, projectHealth, scheduleMetrics, riskAnalysis } = usePortfolioMetrics(projectsData)
+
+  // Project edit mode (extracted hook)
+  const {
+    editMode, editData, saving,
+    handleEditClick, handleCancelEdit, handleEditChange,
+    handleAreaEditChange, handleAddArea, handleRemoveArea,
+    handleSaveEdit, handleDeleteProject
+  } = useProjectEdit({ selectedProject, areas, company, onShowToast, loadAreas, setSelectedProject })
 
   // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
   // When multiple real-time events fire rapidly, this coalesces them into a single refresh
@@ -658,189 +670,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const handleBack = () => {
     setSelectedProject(null)
     setAreas([])
-    setEditMode(false)
-    setEditData(null)
+    handleCancelEdit()
     setActiveProjectTab('overview')
     loadProjects()
   }
 
-  const handleEditClick = () => {
-    setEditData({
-      name: selectedProject.name,
-      job_number: selectedProject.job_number || '',
-      address: selectedProject.address || '',
-      general_contractor: selectedProject.general_contractor || '',
-      client_contact: selectedProject.client_contact || '',
-      client_phone: selectedProject.client_phone || '',
-      contract_value: selectedProject.contract_value,
-      work_type: selectedProject.work_type || 'demolition',
-      job_type: selectedProject.job_type || 'standard',
-      pin: selectedProject.pin || '',
-      default_dump_site_id: selectedProject.default_dump_site_id || '',
-      areas: areas.map(a => ({
-        id: a.id,
-        name: a.name,
-        weight: a.weight,
-        isNew: false
-      }))
-    })
-    setEditMode(true)
-  }
-
-  const handleCancelEdit = () => {
-    setEditMode(false)
-    setEditData(null)
-  }
-
-  const handleEditChange = (field, value) => {
-    setEditData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const handleAreaEditChange = (index, field, value) => {
-    setEditData(prev => ({
-      ...prev,
-      areas: prev.areas.map((area, i) => 
-        i === index ? { ...area, [field]: value } : area
-      )
-    }))
-  }
-
-  const handleAddArea = () => {
-    setEditData(prev => ({
-      ...prev,
-      areas: [...prev.areas, { id: null, name: '', weight: '', isNew: true }]
-    }))
-  }
-
-  const handleRemoveArea = (index) => {
-    if (editData.areas.length > 1) {
-      setEditData(prev => ({
-        ...prev,
-        areas: prev.areas.filter((_, i) => i !== index)
-      }))
-    }
-  }
-
-  const handleSaveEdit = async () => {
-    // Validation
-    if (!editData.name.trim()) {
-      onShowToast('Please enter a project name', 'error')
-      return
-    }
-
-    const contractVal = parseFloat(editData.contract_value)
-    if (!contractVal || contractVal <= 0) {
-      onShowToast('Please enter a valid contract value', 'error')
-      return
-    }
-
-    if (editData.pin && editData.pin.length !== 4) {
-      onShowToast('PIN must be 4 digits', 'error')
-      return
-    }
-
-    // Check PIN availability if changed
-    if (editData.pin && editData.pin !== selectedProject.pin) {
-      const pinAvailable = await db.isPinAvailable(editData.pin, selectedProject.id)
-      if (!pinAvailable) {
-        onShowToast('This PIN is already in use', 'error')
-        return
-      }
-    }
-
-    const validAreas = editData.areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
-    if (validAreas.length === 0) {
-      onShowToast('Please add at least one area', 'error')
-      return
-    }
-
-    const totalWeight = validAreas.reduce((sum, a) => sum + parseFloat(a.weight), 0)
-    if (totalWeight !== 100) {
-      onShowToast('Area weights must total 100%', 'error')
-      return
-    }
-
-    setSaving(true)
-
-    try {
-      // Update project - include company.id for cross-tenant security
-      await db.updateProject(selectedProject.id, {
-        name: editData.name.trim(),
-        job_number: editData.job_number?.trim() || null,
-        address: editData.address?.trim() || null,
-        general_contractor: editData.general_contractor?.trim() || null,
-        client_contact: editData.client_contact?.trim() || null,
-        client_phone: editData.client_phone?.trim() || null,
-        contract_value: contractVal,
-        work_type: editData.work_type || 'demolition',
-        job_type: editData.job_type || 'standard',
-        pin: editData.pin || null,
-        default_dump_site_id: editData.default_dump_site_id || null
-      }, company?.id)
-
-      // Handle areas
-      const existingAreaIds = areas.map(a => a.id)
-      const editAreaIds = editData.areas.filter(a => a.id).map(a => a.id)
-
-      // Delete removed areas
-      for (const areaId of existingAreaIds) {
-        if (!editAreaIds.includes(areaId)) {
-          await db.deleteArea(areaId)
-        }
-      }
-
-      // Update or create areas
-      for (let i = 0; i < validAreas.length; i++) {
-        const area = validAreas[i]
-        if (area.id) {
-          // Update existing
-          await db.updateArea(area.id, {
-            name: area.name.trim(),
-            weight: parseFloat(area.weight),
-            sort_order: i
-          })
-        } else {
-          // Create new
-          await db.createArea({
-            project_id: selectedProject.id,
-            name: area.name.trim(),
-            weight: parseFloat(area.weight),
-            status: 'not_started',
-            sort_order: i
-          })
-        }
-      }
-
-      // Reload data
-      const updatedProject = await db.getProject(selectedProject.id)
-      setSelectedProject(updatedProject)
-      await loadAreas(selectedProject.id)
-      
-      setEditMode(false)
-      setEditData(null)
-      onShowToast('Project updated!', 'success')
-    } catch (error) {
-      console.error('Error saving project:', error?.message || error)
-      onShowToast(error?.message || 'Error saving changes', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDeleteProject = async () => {
-    if (!confirm('Are you sure you want to delete this project? This cannot be undone.')) {
-      return
-    }
-
-    try {
-      await db.deleteProject(selectedProject.id)
-      onShowToast('Project deleted', 'success')
-      handleBack()
-    } catch (error) {
-      console.error('Error deleting project:', error)
-      onShowToast('Error deleting project', 'error')
-    }
-  }
+  // Edit handlers provided by useProjectEdit hook
 
   // Memoize selected project data lookup to avoid repeated finds
   // NOTE: All hooks must be before any conditional returns (React rules of hooks)
@@ -879,153 +714,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [selectedProject, areas, projectData])
 
-  // Memoize portfolio-level metrics to avoid recalculating on every render
-  // These only change when projectsData changes (after data loads or real-time updates)
-  const portfolioMetrics = useMemo(() => {
-    const totalOriginalContract = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
-    const totalChangeOrders = projectsData.reduce((sum, p) => sum + (p.changeOrderValue || 0), 0)
-    const totalPortfolioValue = totalOriginalContract + totalChangeOrders
-    const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
-    const totalRemaining = totalPortfolioValue - totalEarned
-
-    // Weighted completion (by contract value, not simple average)
-    const weightedCompletion = totalPortfolioValue > 0
-      ? Math.round((totalEarned / totalPortfolioValue) * 100)
-      : 0
-
-    // Pending COR metrics (unapproved extra work value)
-    const totalPendingCORValue = projectsData.reduce((sum, p) => sum + (p.corPendingValue || 0), 0)
-    const totalPendingCORCount = projectsData.reduce((sum, p) => sum + (p.corPendingCount || 0), 0)
-
-    return {
-      totalOriginalContract,
-      totalChangeOrders,
-      totalPortfolioValue,
-      totalEarned,
-      totalRemaining,
-      weightedCompletion,
-      totalPendingCORValue,
-      totalPendingCORCount
-    }
-  }, [projectsData])
-
-  // Memoize project health breakdown separately (still derived from projectsData)
-  // Single pass through array instead of 5 separate filter operations
-  const projectHealth = useMemo(() => {
-    let complete = 0
-    let onTrack = 0
-    let atRisk = 0
-    let overBudget = 0
-    let withChangeOrders = 0
-
-    for (const p of projectsData) {
-      const contractVal = p.revisedContractValue || p.contract_value
-      if (p.progress >= 100) complete++
-      if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
-      if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
-      if (p.billable > contractVal) overBudget++
-      if ((p.changeOrderValue || 0) > 0) withChangeOrders++
-    }
-
-    return {
-      projectsComplete: complete,
-      projectsOnTrack: onTrack,
-      projectsAtRisk: atRisk,
-      projectsOverBudget: overBudget,
-      projectsWithChangeOrders: withChangeOrders
-    }
-  }, [projectsData])
-
-  // Memoize schedule performance metrics
-  const scheduleMetrics = useMemo(() => {
-    let ahead = 0
-    let onTrack = 0
-    let behind = 0
-    let overLabor = 0
-    let underLabor = 0
-    let onTrackLabor = 0
-
-    for (const p of projectsData) {
-      if (p.hasScheduleData) {
-        if (p.scheduleStatus === 'ahead') ahead++
-        else if (p.scheduleStatus === 'behind') behind++
-        else onTrack++
-      }
-      if (p.hasLaborData) {
-        if (p.laborStatus === 'over') overLabor++
-        else if (p.laborStatus === 'under') underLabor++
-        else onTrackLabor++
-      }
-    }
-
-    return {
-      scheduleAhead: ahead,
-      scheduleOnTrack: onTrack,
-      scheduleBehind: behind,
-      laborOver: overLabor,
-      laborUnder: underLabor,
-      laborOnTrack: onTrackLabor,
-      hasAnyScheduleData: ahead + onTrack + behind > 0,
-      hasAnyLaborData: overLabor + underLabor + onTrackLabor > 0
-    }
-  }, [projectsData])
-
-  // Calculate risk scores and smart alerts for all projects
-  const riskAnalysis = useMemo(() => {
-    const projectRisks = projectsData.map(p => {
-      // Map project data to risk calculation format
-      const riskInput = {
-        id: p.id,
-        name: p.name,
-        totalCosts: p.totalCosts || 0,
-        earnedRevenue: p.billable || 0,
-        actualProgress: p.progress || 0,
-        expectedProgress: p.expectedProgress || p.progress, // Use actual if no planned
-        pendingCORValue: p.corPendingValue || 0,
-        contractValue: p.revisedContractValue || p.contract_value || 0,
-        lastReportDate: p.lastDailyReport,
-        recentInjuryCount: p.recentInjuryCount || 0,
-        startDate: p.start_date
-      }
-
-      const riskResult = calculateRiskScore(riskInput)
-      const alerts = generateSmartAlerts(riskResult, { ...riskInput, name: p.name })
-      const projections = calculateProjections(riskInput)
-
-      // Add project name to each alert
-      const alertsWithProject = alerts.map(a => ({
-        ...a,
-        projectName: p.name,
-        projectId: p.id
-      }))
-
-      return {
-        projectId: p.id,
-        projectName: p.name,
-        riskScore: riskResult.score,
-        riskStatus: riskResult.status,
-        riskLabel: riskResult.label,
-        factors: riskResult.factors,
-        alerts: alertsWithProject,
-        projections
-      }
-    })
-
-    // Aggregate all alerts across projects, sorted by priority
-    const allAlerts = projectRisks
-      .flatMap(p => p.alerts)
-      .sort((a, b) => {
-        const priority = { critical: 0, warning: 1, info: 2 }
-        return priority[a.type] - priority[b.type]
-      })
-
-    return {
-      projectRisks,
-      allAlerts,
-      criticalCount: allAlerts.filter(a => a.type === 'critical').length,
-      warningCount: allAlerts.filter(a => a.type === 'warning').length
-    }
-  }, [projectsData])
+  // Portfolio metrics, project health, schedule metrics, and risk analysis
+  // provided by usePortfolioMetrics hook
 
   // Handler for alert actions
   const handleAlertAction = useCallback(({ target, projectId, alert }) => {
@@ -1563,7 +1253,39 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </div>
               </div>
 
-              {/* Row 3: Bottom strip - Attention + Quick Nav + Exports */}
+              {/* Row 3: Earned Value Analysis */}
+              {selectedProject?.contract_value > 0 && (
+                <EarnedValueCard
+                  contractValue={selectedProject.contract_value}
+                  changeOrderValue={changeOrderValue}
+                  progressPercent={progress}
+                  actualCosts={projectData?.allCostsTotal || 0}
+                  startDate={selectedProject.start_date}
+                  endDate={selectedProject.end_date}
+                  areas={areas}
+                />
+              )}
+
+              {/* Row 4: Photo Timeline + Punch List */}
+              <div className="overview-two-col">
+                <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading photos...</div>}>
+                  <PhotoTimeline
+                    projectId={selectedProject?.id}
+                    areas={areas}
+                    onShowToast={onShowToast}
+                  />
+                </Suspense>
+                <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading punch list...</div>}>
+                  <PunchList
+                    projectId={selectedProject?.id}
+                    areas={areas}
+                    companyId={company?.id}
+                    onShowToast={onShowToast}
+                  />
+                </Suspense>
+              </div>
+
+              {/* Row 5: Bottom strip - Attention + Quick Nav + Exports */}
               <div className="overview-bottom-strip">
                 {/* Attention items inline */}
                 {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (

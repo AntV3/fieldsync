@@ -55,3 +55,6 @@
 @import './features/schedule.css';
 @import './features/signature.css';
 @import './features/tm-tickets.css';
+@import './features/earned-value.css';
+@import './features/photo-timeline.css';
+@import './features/punch-list.css';

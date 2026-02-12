@@ -1,7 +1,11 @@
-import { Suspense } from 'react'
+import { Suspense, lazy } from 'react'
 import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
+import EarnedValueCard from '../../charts/EarnedValueCard'
+
+const PhotoTimeline = lazy(() => import('../../PhotoTimeline'))
+const PunchList = lazy(() => import('../../PunchList'))
 
 export default function OverviewTab({
   selectedProject,
@@ -9,10 +13,12 @@ export default function OverviewTab({
   progress,
   billable,
   revisedContractValue,
+  changeOrderValue,
   areas,
   areasComplete,
   areasWorking,
   areasNotStarted,
+  companyId,
   onShowToast,
   onSetActiveTab,
   onExportFieldDocuments
@@ -83,7 +89,39 @@ export default function OverviewTab({
         </div>
       </div>
 
-      {/* Row 3: Bottom strip - Attention + Quick Nav + Exports */}
+      {/* Row 3: Earned Value Analysis */}
+      {selectedProject?.contract_value > 0 && (
+        <EarnedValueCard
+          contractValue={selectedProject.contract_value}
+          changeOrderValue={changeOrderValue || 0}
+          progressPercent={progress}
+          actualCosts={projectData?.allCostsTotal || 0}
+          startDate={selectedProject.start_date}
+          endDate={selectedProject.end_date}
+          areas={areas}
+        />
+      )}
+
+      {/* Row 4: Photo Timeline + Punch List side by side */}
+      <div className="overview-two-col">
+        <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
+          <PhotoTimeline
+            projectId={selectedProject?.id}
+            areas={areas}
+            onShowToast={onShowToast}
+          />
+        </Suspense>
+        <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
+          <PunchList
+            projectId={selectedProject?.id}
+            areas={areas}
+            companyId={companyId}
+            onShowToast={onShowToast}
+          />
+        </Suspense>
+      </div>
+
+      {/* Row 5: Bottom strip - Attention + Quick Nav + Exports */}
       <div className="overview-bottom-strip">
         {/* Attention items inline */}
         {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (
