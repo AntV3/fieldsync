@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Plus, Trash2, Save, Send, AlertCircle, FileText, Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
-  formatPercent,
   basisPointsToPercent,
   percentToBasisPoints,
   calculateLaborItemTotal,
@@ -13,7 +12,6 @@ import {
   DEFAULT_PERCENTAGES,
   LABOR_CLASSES,
   WAGE_TYPES,
-  SOURCE_TYPES,
   COMMON_UNITS
 } from '../../lib/corCalculations'
 import TicketSelector from './TicketSelector'

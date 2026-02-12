@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
-import { Truck, Plus, Calendar, DollarSign, RotateCcw, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
+import { Truck, Plus, Calendar, RotateCcw, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 

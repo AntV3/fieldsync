@@ -13,7 +13,6 @@ import autoTable from 'jspdf-autotable'
 import {
   formatCurrency,
   formatPercent,
-  centsToDollars,
   formatDate,
   formatDateRange
 } from './corCalculations'

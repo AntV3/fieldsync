@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Check, Search, FileText, Users, Package, Truck, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
-import { formatCurrency, dollarsToCents } from '../../lib/corCalculations'
+import { dollarsToCents } from '../../lib/corCalculations'
 
 // Generate secure random ID suffix
 const generateRandomId = () => {

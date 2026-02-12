@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { X, Edit3, Download, CheckCircle, XCircle, Send, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
+import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -10,7 +10,7 @@ import {
   formatDate,
   formatDateRange
 } from '../../lib/corCalculations'
-import { executeExport, ExportStatus } from '../../lib/corExportPipeline'
+import { executeExport } from '../../lib/corExportPipeline'
 import { exportCORDetail } from '../../lib/financialExport'
 import SignatureCanvas from '../ui/SignatureCanvas'
 import SignatureLinkGenerator from '../SignatureLinkGenerator'

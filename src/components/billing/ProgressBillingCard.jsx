@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
-import { FileSpreadsheet, Plus, ChevronRight, Clock, CheckCircle2, DollarSign, TrendingUp } from 'lucide-react'
+import { FileSpreadsheet, Plus, ChevronRight } from 'lucide-react'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 

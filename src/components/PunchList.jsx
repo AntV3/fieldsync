@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { CheckCircle2, Circle, Clock, Plus, X, Camera, MapPin, User, Filter, AlertTriangle, ChevronDown, ChevronUp, Trash2, Edit3, Save } from 'lucide-react'
+import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const PRIORITY_OPTIONS = [

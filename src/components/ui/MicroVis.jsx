@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, useRef } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown, Minus, Check, AlertTriangle, Clock } from 'lucide-react'
 
 /**

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Camera, ChevronDown, ChevronUp, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react'
-import { db, supabase, isSupabaseConfigured } from '../lib/supabase'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 /**
  * PhotoTimeline - Visual progress photo timeline organized by area and date.

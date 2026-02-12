@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   AreaChart, Area
 } from 'recharts'
 import {
   ClipboardList, Clock, DollarSign, Users, TrendingUp,
-  CheckCircle, AlertCircle, XCircle, FileText
+  CheckCircle, AlertCircle, FileText
 } from 'lucide-react'
 
 /**

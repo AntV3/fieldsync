@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react'
+import { TrendingDown, AlertCircle, CheckCircle } from 'lucide-react'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
