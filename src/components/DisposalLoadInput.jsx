@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Truck, Plus, Minus, Trash2, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
+import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 const LOAD_TYPES = [

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
-import { X, FileSpreadsheet, Calendar, Percent, Save, Download, ChevronDown } from 'lucide-react'
+import { X, FileSpreadsheet, Calendar, Percent, Save, Download } from 'lucide-react'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 

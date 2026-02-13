@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileSpreadsheet, Download, FileText, Loader2, RefreshCw, Clock, CheckCircle, XCircle, Search, X } from 'lucide-react'
+import { FileSpreadsheet, FileText, Loader2, RefreshCw, Clock, CheckCircle, XCircle, Search, X } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { useFilteredPagination } from '../../hooks/useFilteredPagination'

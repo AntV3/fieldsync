@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Receipt, Plus, Trash2, Download, FileText, Loader2 } from 'lucide-react'
+import { X, Receipt, Plus, Trash2, FileText, Loader2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
-import { formatCurrency, dollarsToCents, centsToDollars } from '../../lib/corCalculations'
+import { formatCurrency, dollarsToCents } from '../../lib/corCalculations'
 
 export default function InvoiceModal({
   project,

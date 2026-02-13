@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { Truck, Plus, Edit2, Trash2, Check, X, DollarSign, Building2, Package } from 'lucide-react'
+import { Truck, Plus, Edit2, Trash2, Check, X, Building2, Package } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 
 /**

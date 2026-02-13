@@ -1,5 +1,4 @@
-import { memo, useEffect, useState, useRef } from 'react'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { memo } from 'react'
 import { chartColors } from '../charts/chartConfig'
 
 /**

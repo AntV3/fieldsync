@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
-import { formatCurrency, getStatusInfo, formatDate, formatDateRange, calculateCORTotals } from '../../lib/corCalculations'
+import { formatCurrency } from '../../lib/corCalculations'
 import { hexToRgb, loadImageAsBase64 } from '../../lib/imageUtils'
 import { CardSkeleton, CountBadge } from '../ui'
 import { useBranding } from '../../lib/BrandingContext'

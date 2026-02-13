@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { X, Upload, CloudUpload, File, AlertCircle, Loader2, CheckCircle } from 'lucide-react'
+import { X, Upload, CloudUpload, File, AlertCircle, Loader2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { DOCUMENT_CATEGORIES, ALLOWED_FILE_TYPES, DOCUMENT_VISIBILITY_LABELS, APPROVAL_REQUIRED_CATEGORIES } from '../../lib/constants'
 

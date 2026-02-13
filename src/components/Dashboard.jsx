@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { db } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
-import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, formatStatus, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
+import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
@@ -9,9 +9,6 @@ import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financial
 import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, Menu, AlertTriangle, Package, Users, Shield, TrendingUp, TrendingDown, CheckCircle2, Camera, MapPin, Building2, Phone } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
-import { RiskScoreBadge } from './dashboard/RiskScoreGauge'
-import { TrendIndicator } from './dashboard/TrendIndicator'
-import { ProjectHealthBadge } from './dashboard/AccessibleStatusBadge'
 import OverviewProgressGauge from './overview/OverviewProgressGauge'
 import OverviewFinancialCard from './overview/OverviewFinancialCard'
 import OverviewCrewMetrics from './overview/OverviewCrewMetrics'
@@ -36,12 +33,6 @@ import InjuryReportsList from './InjuryReportsList'
 // Settings components
 import ProjectTeam from './ProjectTeam'
 import MFASetup from './MFASetup'
-
-// Tab components
-import OverviewTab from './dashboard/tabs/OverviewTab'
-import FinancialsTab from './dashboard/tabs/FinancialsTab'
-import ReportsTab from './dashboard/tabs/ReportsTab'
-import SettingsTab from './dashboard/tabs/SettingsTab'
 
 // Lazy load modals and conditionally rendered heavy components
 const ShareModal = lazy(() => import('./ShareModal'))

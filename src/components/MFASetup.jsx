@@ -37,6 +37,7 @@ export default function MFASetup({ onShowToast, onClose }) {
         friendlyName: 'FieldSync Authenticator'
       })
       if (error) throw error
+      if (!data?.totp) throw new Error('MFA enrollment response missing TOTP data')
       setQrCode(data.totp.qr_code)
       setSecret(data.totp.secret)
       setFactorId(data.id)

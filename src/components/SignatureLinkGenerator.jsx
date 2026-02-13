@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Link, Copy, Check, Clock, ExternalLink, AlertCircle, Trash2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 

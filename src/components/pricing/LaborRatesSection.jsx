@@ -44,7 +44,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
 
       // Expand all categories by default
       const expanded = {}
-      data.categories.forEach(cat => {
+      ;(data.categories || []).forEach(cat => {
         expanded[cat.id] = true
       })
       setExpandedCategories(expanded)

@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
-  FileText, ClipboardList, AlertTriangle, Info, CheckSquare,
-  Truck, FolderOpen, ArrowLeft, ChevronDown, ChevronRight,
-  Users, Clock, CheckCircle2, Moon, Sun, Check, BarChart2
+  Info, CheckSquare,
+  ArrowLeft, ChevronDown, ChevronRight,
+  Clock, CheckCircle2, Moon, Sun
 } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'

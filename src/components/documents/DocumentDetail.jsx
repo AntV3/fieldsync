@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Download, Upload, Edit2, Archive, CheckCircle, XCircle, Clock, FileText, User, Calendar, Folder, Eye, Link2, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Download, Archive, CheckCircle, XCircle, Clock, FileText, User, Calendar, Folder, Eye, Link2, Loader2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { DOCUMENT_CATEGORIES, DOCUMENT_VISIBILITY_LABELS } from '../../lib/constants'
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { Receipt, Plus, Check, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, Clock, AlertCircle, Eye, X } from 'lucide-react'
+import { Receipt, Plus, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, AlertCircle, Eye, X } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { downloadInvoicePDF } from '../../lib/invoicePdfGenerator'
