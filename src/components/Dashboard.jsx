@@ -631,7 +631,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }
 
-  const loadAreas = async (projectId) => {
+  async function loadAreas(projectId) {
     try {
       const data = await db.getAreas(projectId)
       setAreas(data)
