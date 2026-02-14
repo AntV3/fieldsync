@@ -786,6 +786,9 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     doc.setFontSize(8)
     doc.setTextColor(150, 150, 150)
     doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.setTextColor(180, 180, 180)
+    doc.text('Generated with FieldSync', pageWidth / 2, footerY, { align: 'center' })
+    doc.setTextColor(150, 150, 150)
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
   }
 
@@ -888,6 +891,9 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
     doc.setFontSize(8)
     doc.setTextColor(150, 150, 150)
     doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.setTextColor(180, 180, 180)
+    doc.text('Generated with FieldSync', pageWidth / 2, footerY, { align: 'center' })
+    doc.setTextColor(150, 150, 150)
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
   }
 

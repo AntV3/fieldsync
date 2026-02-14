@@ -33,8 +33,11 @@ const addFooter = (doc, pageNum, totalPages) => {
   const y = doc.internal.pageSize.height - 8
   doc.setFontSize(7)
   doc.setTextColor(128, 128, 128)
-  doc.text(`Page ${pageNum} of ${totalPages}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  doc.text(`Generated ${new Date().toLocaleString()} — FieldSync`, PAGE_WIDTH - MARGIN, y, { align: 'right' })
+  doc.text(`Page ${pageNum} of ${totalPages}`, MARGIN, y)
+  doc.setTextColor(180, 180, 180)
+  doc.text('Generated with FieldSync', PAGE_WIDTH / 2, y, { align: 'center' })
+  doc.setTextColor(128, 128, 128)
+  doc.text(`Generated ${new Date().toLocaleString()}`, PAGE_WIDTH - MARGIN, y, { align: 'right' })
 }
 
 /**

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { Receipt, Plus, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, AlertCircle, Eye, X } from 'lucide-react'
+import { Receipt, Plus, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, AlertCircle, Eye, X, Package, Users } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { downloadInvoicePDF } from '../../lib/invoicePdfGenerator'
 import InvoiceModal from './InvoiceModal'
+import UnbilledWorkAlert from './UnbilledWorkAlert'
+import PayrollExportModal from './PayrollExportModal'
 
 // Status display configuration
 const STATUS_CONFIG = {
@@ -24,6 +26,8 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [viewingInvoice, setViewingInvoice] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [showPayrollModal, setShowPayrollModal] = useState(false)
+  const [generatingPackage, setGeneratingPackage] = useState(false)
   const dropdownRef = useRef(null)
 
   // Load billable items and invoices
@@ -136,6 +140,47 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
     }
   }, []) // onShowToast is stable
 
+  // Generate certified billing package
+  const handleGenerateBillingPackage = useCallback(async () => {
+    setGeneratingPackage(true)
+    try {
+      const { generateBillingPackage } = await import('../../lib/billingPackageGenerator')
+
+      // Fetch full COR data with line items
+      const corIds = billableItems.cors.map(c => c.id)
+      const fullCORs = []
+      for (const corId of corIds) {
+        const cor = await db.getChangeOrderDetail(corId)
+        if (cor) fullCORs.push(cor)
+      }
+
+      // Fetch full T&M ticket data
+      const ticketIds = billableItems.tickets.map(t => t.id)
+      const fullTickets = []
+      for (const ticketId of ticketIds) {
+        const ticket = await db.getTMTicketDetail?.(ticketId)
+        if (ticket) fullTickets.push(ticket)
+      }
+
+      const result = await generateBillingPackage({
+        cors: fullCORs,
+        tickets: fullTickets.length > 0 ? fullTickets : billableItems.tickets,
+        project,
+        company,
+        branding: company
+      })
+
+      if (result.success) {
+        onShowToast?.(`Billing package generated: ${result.fileName}`, 'success')
+      }
+    } catch (error) {
+      console.error('Error generating billing package:', error)
+      onShowToast?.('Error generating billing package', 'error')
+    } finally {
+      setGeneratingPackage(false)
+    }
+  }, [billableItems, project, company])
+
   // Calculate totals
   const totals = useMemo(() => {
     const selectedCORsTotal = billableItems.cors
@@ -241,6 +286,33 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
 
   return (
     <div className="billing-center">
+      {/* Unbilled Work Alert */}
+      <UnbilledWorkAlert
+        companyId={company?.id}
+        projectId={project?.id}
+      />
+
+      {/* Quick Actions Bar */}
+      <div className="billing-quick-actions">
+        <button
+          className="btn btn-secondary"
+          onClick={handleGenerateBillingPackage}
+          disabled={generatingPackage || !hasBillableItems}
+          title="Generate a complete billing package with COR details, T&M backup, and photos"
+        >
+          <Package size={16} />
+          {generatingPackage ? 'Generating...' : 'Billing Package'}
+        </button>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowPayrollModal(true)}
+          title="Export crew hours for payroll"
+        >
+          <Users size={16} />
+          Payroll Export
+        </button>
+      </div>
+
       {/* Ready to Bill Section */}
       <div className="billing-section">
         <div className="billing-section-header">
@@ -480,6 +552,15 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
           selectedItems={getSelectedItemsForInvoice()}
           onClose={() => setShowInvoiceModal(false)}
           onSuccess={handleInvoiceCreated}
+        />
+      )}
+
+      {/* Payroll Export Modal */}
+      {showPayrollModal && (
+        <PayrollExportModal
+          company={company}
+          onClose={() => setShowPayrollModal(false)}
+          onShowToast={onShowToast}
         />
       )}
 

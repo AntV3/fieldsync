@@ -240,10 +240,13 @@ export async function generateInvoicePDF(invoice, project, company) {
   doc.setTextColor(...lightGray)
   doc.text(
     `Invoice ${invoice.invoice_number} | Generated ${new Date().toLocaleDateString()}`,
-    pageWidth / 2,
-    footerY,
-    { align: 'center' }
+    margin,
+    footerY
   )
+  doc.setTextColor(180, 180, 180)
+  doc.text('Generated with FieldSync', pageWidth / 2, footerY, { align: 'center' })
+  doc.setTextColor(...lightGray)
+  doc.text(`Page 1 of 1`, pageWidth - margin, footerY, { align: 'right' })
 
   return doc
 }

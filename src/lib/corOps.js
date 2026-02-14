@@ -2214,4 +2214,156 @@ export const corOps = {
       }
     }
   },
+
+  // ============================================
+  // UNBILLED WORK ALERTS
+  // ============================================
+
+  // Get unbilled approved work across all projects for a company
+  async getUnbilledWork(companyId) {
+    if (!isSupabaseConfigured) return { cors: [], tickets: [], totalUnbilled: 0 }
+
+    // Get approved CORs not yet on any invoice
+    const { data: cors, error: corsError } = await supabase
+      .from('change_orders')
+      .select('id, cor_number, title, cor_total, status, approved_at, project_id, projects(name, job_number)')
+      .eq('company_id', companyId)
+      .eq('status', 'approved')
+      .order('approved_at', { ascending: true })
+
+    if (corsError) console.error('Error fetching unbilled CORs:', corsError)
+
+    // Filter out CORs that have been invoiced
+    const { data: invoicedCORIds } = await supabase
+      .from('invoice_items')
+      .select('reference_id')
+      .eq('item_type', 'cor')
+
+    const invoicedSet = new Set((invoicedCORIds || []).map(i => i.reference_id))
+    const unbilledCORs = (cors || []).filter(c => !invoicedSet.has(c.id))
+
+    // Get signed T&M tickets not yet on any invoice
+    const { data: tickets, error: ticketsError } = await supabase
+      .from('t_and_m_tickets')
+      .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date, project_id, projects(name, job_number)')
+      .eq('company_id', companyId)
+      .in('status', ['approved', 'signed'])
+      .not('client_signature_data', 'is', null)
+      .order('work_date', { ascending: true })
+
+    if (ticketsError) console.error('Error fetching unbilled tickets:', ticketsError)
+
+    const { data: invoicedTicketIds } = await supabase
+      .from('invoice_items')
+      .select('reference_id')
+      .eq('item_type', 'tm_ticket')
+
+    const invoicedTicketSet = new Set((invoicedTicketIds || []).map(i => i.reference_id))
+    const unbilledTickets = (tickets || []).filter(t => !invoicedTicketSet.has(t.id))
+
+    const corTotal = unbilledCORs.reduce((sum, c) => sum + (c.cor_total || 0), 0)
+    const ticketTotal = unbilledTickets.reduce((sum, t) => sum + ((parseFloat(t.change_order_value) || 0) * 100), 0)
+
+    return {
+      cors: unbilledCORs,
+      tickets: unbilledTickets,
+      totalUnbilled: corTotal + ticketTotal,
+      corCount: unbilledCORs.length,
+      ticketCount: unbilledTickets.length
+    }
+  },
+
+  // Get unbilled work for a single project
+  async getProjectUnbilledWork(projectId) {
+    if (!isSupabaseConfigured) return { cors: [], tickets: [], totalUnbilled: 0 }
+
+    const { data: cors } = await supabase
+      .from('change_orders')
+      .select('id, cor_number, title, cor_total, approved_at')
+      .eq('project_id', projectId)
+      .eq('status', 'approved')
+
+    const { data: invoicedCORIds } = await supabase
+      .from('invoice_items')
+      .select('reference_id')
+      .eq('item_type', 'cor')
+
+    const invoicedSet = new Set((invoicedCORIds || []).map(i => i.reference_id))
+    const unbilledCORs = (cors || []).filter(c => !invoicedSet.has(c.id))
+
+    const { data: tickets } = await supabase
+      .from('t_and_m_tickets')
+      .select('id, work_date, ce_pco_number, change_order_value, client_signature_date')
+      .eq('project_id', projectId)
+      .in('status', ['approved', 'signed'])
+      .not('client_signature_data', 'is', null)
+
+    const { data: invoicedTicketIds } = await supabase
+      .from('invoice_items')
+      .select('reference_id')
+      .eq('item_type', 'tm_ticket')
+
+    const invoicedTicketSet = new Set((invoicedTicketIds || []).map(i => i.reference_id))
+    const unbilledTickets = (tickets || []).filter(t => !invoicedTicketSet.has(t.id))
+
+    const corTotal = unbilledCORs.reduce((sum, c) => sum + (c.cor_total || 0), 0)
+    const ticketTotal = unbilledTickets.reduce((sum, t) => sum + ((parseFloat(t.change_order_value) || 0) * 100), 0)
+
+    return {
+      cors: unbilledCORs,
+      tickets: unbilledTickets,
+      totalUnbilled: corTotal + ticketTotal
+    }
+  },
+
+  // ============================================
+  // PAYROLL DATA QUERIES
+  // ============================================
+
+  // Get crew hours aggregated for payroll export
+  async getPayrollData(companyId, startDate, endDate) {
+    if (!isSupabaseConfigured) return []
+
+    const { data: checkins, error } = await supabase
+      .from('crew_check_ins')
+      .select(`
+        id, check_in_date, workers,
+        project_id, projects(name, job_number)
+      `)
+      .eq('company_id', companyId)
+      .gte('check_in_date', startDate)
+      .lte('check_in_date', endDate)
+      .order('check_in_date', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching payroll data:', error)
+      throw error
+    }
+
+    return checkins || []
+  },
+
+  // Get T&M worker hours for payroll (more detailed than check-ins)
+  async getPayrollTMData(companyId, startDate, endDate) {
+    if (!isSupabaseConfigured) return []
+
+    const { data: tickets, error } = await supabase
+      .from('t_and_m_tickets')
+      .select(`
+        id, work_date,
+        t_and_m_workers(name, role, labor_class, hours, overtime_hours, time_started, time_ended),
+        project_id, projects(name, job_number)
+      `)
+      .eq('company_id', companyId)
+      .gte('work_date', startDate)
+      .lte('work_date', endDate)
+      .order('work_date', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching payroll T&M data:', error)
+      throw error
+    }
+
+    return tickets || []
+  },
 }

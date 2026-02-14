@@ -383,6 +383,20 @@ export function generateSmartAlerts(riskResult, project) {
     })
   }
 
+  // Unbilled work alert (priority 2)
+  if (project.unbilledAmount && project.unbilledAmount > 0) {
+    const unbilledFormatted = `$${formatNumber(project.unbilledAmount / 100)}`
+    const itemCount = (project.unbilledCORCount || 0) + (project.unbilledTicketCount || 0)
+    alerts.push({
+      type: project.unbilledAmount > 500000 ? 'warning' : 'info', // Warning if over $5,000
+      title: 'Unbilled Work',
+      description: `${unbilledFormatted} in approved work not yet invoiced (${itemCount} items)`,
+      action: 'Create invoice',
+      actionTarget: 'billing',
+      projectId: project.id
+    })
+  }
+
   // Info alerts (priority 3)
   if (factors.activity.status === 'warning') {
     alerts.push({
