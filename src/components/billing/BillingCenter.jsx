@@ -154,13 +154,10 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
         if (cor) fullCORs.push(cor)
       }
 
-      // Fetch full T&M ticket data
-      const ticketIds = billableItems.tickets.map(t => t.id)
-      const fullTickets = []
-      for (const ticketId of ticketIds) {
-        const ticket = await db.getTMTicketDetail?.(ticketId)
-        if (ticket) fullTickets.push(ticket)
-      }
+      // Fetch full T&M ticket data (with workers, items, photos)
+      const ticketIds = new Set(billableItems.tickets.map(t => t.id))
+      const allTickets = await db.getTMTickets(project.id)
+      const fullTickets = (allTickets || []).filter(t => ticketIds.has(t.id))
 
       const result = await generateBillingPackage({
         cors: fullCORs,
@@ -290,6 +287,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       <UnbilledWorkAlert
         companyId={company?.id}
         projectId={project?.id}
+        onDismiss={() => {}}
       />
 
       {/* Quick Actions Bar */}

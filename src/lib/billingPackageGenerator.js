@@ -12,7 +12,7 @@
  * Uses snapshot-based approach for determinism.
  */
 
-import { formatCurrency, formatPercent, formatDate, formatDateRange } from './corCalculations'
+import { formatCurrency, formatDate, formatDateRange } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
 
 const formatTime = (timeStr) => {
@@ -70,7 +70,7 @@ export async function generateBillingPackage({
       if (logoData) {
         doc.addImage(logoData, 'PNG', margin, yPos, 45, 17)
       }
-    } catch (e) {
+    } catch (_e) {
       if (company?.name) {
         doc.setFontSize(16)
         doc.setFont('helvetica', 'bold')
@@ -621,7 +621,7 @@ export async function generateBillingPackage({
 
         try {
           doc.addImage(ticket.client_signature_data, 'PNG', pageWidth - margin - 55, yPos + 3, 50, 19)
-        } catch (e) {
+        } catch (_e) {
           // Signature image failed to load - text info is sufficient
         }
       }

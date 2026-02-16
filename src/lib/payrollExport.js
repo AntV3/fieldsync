@@ -6,7 +6,7 @@
  * Uses T&M ticket worker data (most accurate) with crew check-in fallback.
  */
 
-import { escapeCSV, toCSV } from './financialExport'
+import { toCSV } from './financialExport'
 
 // Trigger file download in browser
 function downloadFile(content, filename, mimeType = 'text/csv') {

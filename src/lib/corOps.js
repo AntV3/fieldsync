@@ -2325,7 +2325,7 @@ export const corOps = {
     if (!isSupabaseConfigured) return []
 
     const { data: checkins, error } = await supabase
-      .from('crew_check_ins')
+      .from('crew_checkins')
       .select(`
         id, check_in_date, workers,
         project_id, projects(name, job_number)
