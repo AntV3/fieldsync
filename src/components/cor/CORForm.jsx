@@ -423,12 +423,23 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
         // Link imported tickets to this COR as backup documentation
         if (importedTicketIds.length > 0) {
+          const failedLinks = []
           for (const ticketId of importedTicketIds) {
             try {
               await db.assignTicketToCOR(ticketId, savedCOR.id)
             } catch (linkError) {
               console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
+              failedLinks.push(ticketId)
             }
+          }
+          if (failedLinks.length > 0) {
+            onShowToast?.(
+              `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
+              'warning'
+            )
+            onSaved?.(savedCOR)
+            onClose?.()
+            return
           }
         }
       }
