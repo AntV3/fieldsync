@@ -2245,8 +2245,8 @@ export const corOps = {
     // Get signed T&M tickets not yet on any invoice
     const { data: tickets, error: ticketsError } = await supabase
       .from('t_and_m_tickets')
-      .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date, project_id, projects(name, job_number)')
-      .eq('company_id', companyId)
+      .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date, project_id, projects!inner(name, job_number)')
+      .eq('projects.company_id', companyId)
       .in('status', ['approved', 'signed'])
       .not('client_signature_data', 'is', null)
       .order('work_date', { ascending: true })
@@ -2328,9 +2328,9 @@ export const corOps = {
       .from('crew_checkins')
       .select(`
         id, check_in_date, workers,
-        project_id, projects(name, job_number)
+        project_id, projects!inner(name, job_number)
       `)
-      .eq('company_id', companyId)
+      .eq('projects.company_id', companyId)
       .gte('check_in_date', startDate)
       .lte('check_in_date', endDate)
       .order('check_in_date', { ascending: true })
@@ -2352,9 +2352,9 @@ export const corOps = {
       .select(`
         id, work_date,
         t_and_m_workers(name, role, labor_class, hours, overtime_hours, time_started, time_ended),
-        project_id, projects(name, job_number)
+        project_id, projects!inner(name, job_number)
       `)
-      .eq('company_id', companyId)
+      .eq('projects.company_id', companyId)
       .gte('work_date', startDate)
       .lte('work_date', endDate)
       .order('work_date', { ascending: true })
