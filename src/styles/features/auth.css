@@ -1518,3 +1518,462 @@
   margin-top: 1rem;
 }
 
+/* =============================================
+   ENTRY BACK BUTTON - Lucide icon alignment
+   ============================================= */
+
+.entry-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =============================================
+   ENHANCED SIGNUP OPTIONS
+   ============================================= */
+
+.entry-signup-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.entry-join-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.entry-join-link:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.entry-join-link svg {
+  flex-shrink: 0;
+}
+
+/* =============================================
+   ONBOARDING STEP INDICATOR
+   ============================================= */
+
+.onboarding-step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 1.5rem;
+}
+
+.onboarding-step-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+
+.onboarding-step-line {
+  width: 32px;
+  height: 2px;
+  background: var(--border-color);
+  transition: background 0.3s ease;
+}
+
+.onboarding-step-line.completed {
+  background: var(--accent-green);
+}
+
+.onboarding-step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.onboarding-step-circle.active {
+  background: var(--accent-blue);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.onboarding-step-circle.completed {
+  background: var(--accent-green);
+  color: white;
+  border-color: var(--accent-green);
+}
+
+.onboarding-step-label {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+/* Adjust label position for items with preceding line */
+.onboarding-step-wrapper:first-child .onboarding-step-label {
+  left: 50%;
+}
+
+.onboarding-step-label.active {
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.onboarding-step-label.completed {
+  color: var(--accent-green);
+}
+
+/* =============================================
+   PASSWORD FIELD
+   ============================================= */
+
+.password-field {
+  width: 100%;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding: 1rem;
+  padding-right: 3rem;
+  font-size: 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.password-input-wrapper input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.password-toggle:hover {
+  color: var(--text-primary);
+}
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.password-strength-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.password-strength-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.password-strength-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+/* =============================================
+   INPUT ERROR STATE
+   ============================================= */
+
+.entry-form input.input-error {
+  border-color: var(--accent-red);
+}
+
+.entry-form input.input-error:focus {
+  border-color: var(--accent-red);
+}
+
+/* =============================================
+   BUTTON LOADING STATE
+   ============================================= */
+
+.btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Spinner inside submit buttons */
+.entry-submit-btn .spinner-small {
+  width: 18px;
+  height: 18px;
+}
+
+/* =============================================
+   ENTRY SUCCESS SCREEN
+   ============================================= */
+
+.entry-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  animation: scaleIn 0.3s ease-out, successPulse 0.6s ease-out 0.3s;
+}
+
+.entry-success-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.entry-success-message {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+}
+
+.entry-success-detail {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* =============================================
+   COMPANY REGISTRATION CODES
+   ============================================= */
+
+.entry-card-wide {
+  max-width: 440px;
+}
+
+.entry-codes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.entry-code-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem 1rem;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.entry-code-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.entry-code-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.15em;
+  color: var(--accent-blue);
+  margin-bottom: 0.5rem;
+  user-select: all;
+}
+
+.entry-code-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.entry-codes-warning {
+  font-size: 0.8rem;
+  color: var(--accent-amber);
+  text-align: center;
+  margin: 0;
+}
+
+/* =============================================
+   ENTRY HINT
+   ============================================= */
+
+.entry-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.entry-join-note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* =============================================
+   ENHANCED PENDING APPROVAL SCREEN
+   ============================================= */
+
+.pending-pulse-ring {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin: 1rem auto 0.5rem;
+}
+
+.pending-pulse-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+}
+
+.pending-pulse-dot::before,
+.pending-pulse-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid var(--accent-amber);
+  animation: pendingRing 2s ease-out infinite;
+}
+
+.pending-pulse-dot::before {
+  width: 28px;
+  height: 28px;
+}
+
+.pending-pulse-dot::after {
+  width: 44px;
+  height: 44px;
+  animation-delay: 0.5s;
+}
+
+@keyframes pendingRing {
+  0% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+.pending-company-name {
+  display: inline-block;
+  background: var(--accent-blue);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.pending-message {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 320px;
+}
+
+.pending-auto-check {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* =============================================
+   RESPONSIVE - ENTRY ENHANCEMENTS
+   ============================================= */
+
+@media (max-width: 400px) {
+  .entry-codes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-code-value {
+    font-size: 1.25rem;
+  }
+
+  .onboarding-step-line {
+    width: 20px;
+  }
+
+  .onboarding-step-label {
+    font-size: 0.6rem;
+  }
+}
+

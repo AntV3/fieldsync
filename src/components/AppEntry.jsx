@@ -1,10 +1,112 @@
 import { useState, useEffect, useRef } from 'react'
-import { HardHat, Briefcase } from 'lucide-react'
+import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
 
+// Password strength calculator
+function getPasswordStrength(pwd) {
+  if (!pwd) return { score: 0, label: '', color: '' }
+  let score = 0
+  if (pwd.length >= 6) score++
+  if (pwd.length >= 8) score++
+  if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++
+  if (/\d/.test(pwd)) score++
+  if (/[^A-Za-z0-9]/.test(pwd)) score++
+
+  if (score <= 1) return { score: 1, label: 'Weak', color: 'var(--accent-red)' }
+  if (score <= 2) return { score: 2, label: 'Fair', color: 'var(--accent-orange)' }
+  if (score <= 3) return { score: 3, label: 'Good', color: 'var(--accent-amber)' }
+  if (score <= 4) return { score: 4, label: 'Strong', color: 'var(--accent-green)' }
+  return { score: 5, label: 'Very strong', color: 'var(--accent-green)' }
+}
+
+// Generate random alphanumeric code
+function generateCode(length = 6) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Excluding confusing chars (0/O, 1/I/L)
+  const array = new Uint32Array(length)
+  crypto.getRandomValues(array)
+  return Array.from(array, v => chars[v % chars.length]).join('')
+}
+
+// Email validation
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+// Step indicator component
+function StepIndicator({ steps, currentStep }) {
+  return (
+    <div className="onboarding-step-indicator">
+      {steps.map((label, i) => {
+        const stepNum = i + 1
+        const isActive = stepNum === currentStep
+        const isCompleted = stepNum < currentStep
+        return (
+          <div key={i} className="onboarding-step-wrapper">
+            {i > 0 && (
+              <div className={`onboarding-step-line ${isCompleted ? 'completed' : ''}`} />
+            )}
+            <div className={`onboarding-step-circle ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
+              {isCompleted ? <Check size={14} /> : stepNum}
+            </div>
+            <span className={`onboarding-step-label ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
+              {label}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Password input with strength bar and visibility toggle
+function PasswordInput({ value, onChange, placeholder, onKeyDown, autoFocus, showStrength }) {
+  const [visible, setVisible] = useState(false)
+  const strength = getPasswordStrength(value)
+
+  return (
+    <div className="password-field">
+      <div className="password-input-wrapper">
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder || 'Password'}
+          onKeyDown={onKeyDown}
+          autoFocus={autoFocus}
+        />
+        <button
+          type="button"
+          className="password-toggle"
+          onClick={() => setVisible(!visible)}
+          tabIndex={-1}
+          aria-label={visible ? 'Hide password' : 'Show password'}
+        >
+          {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+      {showStrength && value && (
+        <div className="password-strength">
+          <div className="password-strength-bar">
+            <div
+              className="password-strength-fill"
+              style={{
+                width: `${(strength.score / 5) * 100}%`,
+                background: strength.color
+              }}
+            />
+          </div>
+          <span className="password-strength-label" style={{ color: strength.color }}>
+            {strength.label}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
-  const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join'
+  const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join', 'register'
 
   // Foreman state
   const [companyCode, setCompanyCode] = useState('')
@@ -36,6 +138,15 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const [joinName, setJoinName] = useState('')
   const [joinEmail, setJoinEmail] = useState('')
   const [joinPassword, setJoinPassword] = useState('')
+  const [joinSuccess, setJoinSuccess] = useState(false) // Show success screen after join
+
+  // Register state
+  const [registerStep, setRegisterStep] = useState(1) // 1: company info, 2: admin account, 3: success
+  const [registerCompanyName, setRegisterCompanyName] = useState('')
+  const [registerName, setRegisterName] = useState('')
+  const [registerEmail, setRegisterEmail] = useState('')
+  const [registerPassword, setRegisterPassword] = useState('')
+  const [createdCompany, setCreatedCompany] = useState(null) // Stores created company info
 
   // Handle company code
   const handleCompanyCodeChange = (value) => {
@@ -220,8 +331,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       onShowToast('Enter your name', 'error')
       return
     }
-    if (!joinEmail.trim() || !joinEmail.includes('@')) {
-      onShowToast('Enter valid email', 'error')
+    if (!joinEmail.trim() || !isValidEmail(joinEmail)) {
+      onShowToast('Enter a valid email address', 'error')
       return
     }
     if (joinPassword.length < 6) {
@@ -301,7 +412,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
         // Sign out so they see the pending screen on next login
         await supabase.auth.signOut()
-        onShowToast('Request to join submitted! Awaiting admin approval.', 'success')
+        setJoinSuccess(true)
 
       } else if (authError) {
         // Some other signup error
@@ -344,7 +455,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
         // Sign out - they need admin approval first
         await supabase.auth.signOut()
-        onShowToast('Account created! Awaiting admin approval.', 'success')
+        setJoinSuccess(true)
       }
 
     } catch (err) {
@@ -355,15 +466,144 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     }
   }
 
+  // Handle company registration
+  const handleRegisterCompany = async () => {
+    if (!registerName.trim()) {
+      onShowToast('Enter your name', 'error')
+      return
+    }
+    if (!registerEmail.trim() || !isValidEmail(registerEmail)) {
+      onShowToast('Enter a valid email address', 'error')
+      return
+    }
+    if (registerPassword.length < 6) {
+      onShowToast('Password must be 6+ characters', 'error')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const normalizedEmail = registerEmail.toLowerCase().trim()
+      const companyCodeGenerated = generateCode(6)
+      const officeCodeGenerated = generateCode(6)
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password: registerPassword
+      })
+
+      if (authError) {
+        if (authError.message?.includes('already registered')) {
+          onShowToast('An account with this email already exists. Sign in instead.', 'error')
+        } else {
+          throw authError
+        }
+        return
+      }
+
+      const userId = authData.user?.id
+      if (!userId) throw new Error('Failed to create account')
+
+      // Create company
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: registerCompanyName.trim(),
+          code: companyCodeGenerated,
+          office_code: officeCodeGenerated,
+          subscription_tier: 'free',
+          owner_user_id: userId
+        })
+        .select()
+        .single()
+
+      if (companyError) {
+        console.error('Company creation error:', companyError)
+        throw new Error('Failed to create company. Please try again.')
+      }
+
+      // Create user record
+      const { error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: normalizedEmail,
+          password_hash: 'managed_by_supabase_auth',
+          name: registerName.trim(),
+          company_id: companyData.id,
+          role: 'admin',
+          is_active: true
+        })
+
+      if (userError) {
+        console.error('User record error:', userError)
+        throw new Error('Failed to set up user profile')
+      }
+
+      // Add to user_companies as active administrator
+      const { error: ucError } = await supabase
+        .from('user_companies')
+        .insert({
+          user_id: userId,
+          company_id: companyData.id,
+          role: 'admin',
+          access_level: 'administrator',
+          status: 'active'
+        })
+
+      if (ucError) {
+        console.error('User-company link error:', ucError)
+        throw new Error('Failed to link account to company')
+      }
+
+      // Store the created company info for the success screen
+      setCreatedCompany({
+        name: companyData.name,
+        code: companyCodeGenerated,
+        officeCode: officeCodeGenerated
+      })
+      setRegisterStep(3) // Go to success screen
+
+    } catch (err) {
+      console.error('Registration error:', err)
+      onShowToast(err.message || 'Error creating company', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Reset all join state when switching modes
+  const resetJoinState = () => {
+    setJoinStep(1)
+    setJoinCompany(null)
+    setOfficeCode('')
+    setJoinName('')
+    setJoinEmail('')
+    setJoinPassword('')
+    setJoinSuccess(false)
+    setCompanyCode('')
+  }
+
+  // Reset all register state when switching modes
+  const resetRegisterState = () => {
+    setRegisterStep(1)
+    setRegisterCompanyName('')
+    setRegisterName('')
+    setRegisterEmail('')
+    setRegisterPassword('')
+    setCreatedCompany(null)
+  }
+
   // Initial selection screen
   if (mode === null) {
     return (
       <div className="entry-container">
-        <div className="entry-card">
+        <div className="entry-card animate-fade-in-up">
           <Logo className="entry-logo" showPoweredBy={false} />
 
-          <div className="entry-buttons">
-            <button 
+          <div className="entry-buttons stagger-children">
+            <button
               className="entry-mode-btn foreman"
               onClick={() => setMode('foreman')}
             >
@@ -371,8 +611,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               <span className="entry-mode-title">Foreman</span>
               <span className="entry-mode-desc">Enter project PIN</span>
             </button>
-            
-            <button 
+
+            <button
               className="entry-mode-btn office"
               onClick={() => setMode('office')}
             >
@@ -392,9 +632,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     if (!company) {
       return (
         <div className="entry-container">
-          <div className="entry-card">
+          <div className="entry-card animate-fade-in">
             <button className="entry-back" onClick={() => setMode(null)}>
-              ←
+              <ArrowLeft size={20} />
             </button>
 
             <Logo className="entry-logo" showPoweredBy={false} />
@@ -417,7 +657,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
                 onClick={submitCompanyCode}
                 disabled={loading || companyCode.length < 2}
               >
-                {loading ? '...' : '→'}
+                {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
               </button>
             </div>
           </div>
@@ -428,9 +668,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     // Step 2: PIN entry
     return (
       <div className="entry-container">
-        <div className="entry-card">
+        <div className="entry-card animate-fade-in">
           <button className="entry-back" onClick={handleBackToCompany}>
-            ←
+            <ArrowLeft size={20} />
           </button>
 
           <Logo className="entry-logo" showPoweredBy={false} />
@@ -474,7 +714,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               onClick={handleBackspace}
               disabled={loading || pin.length === 0}
             >
-              ←
+              <ArrowLeft size={18} />
             </button>
           </div>
 
@@ -492,9 +732,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   if (mode === 'office') {
     return (
       <div className="entry-container">
-        <div className="entry-card">
+        <div className="entry-card animate-fade-in">
           <button className="entry-back" onClick={() => setMode(null)}>
-            ←
+            <ArrowLeft size={20} />
           </button>
 
           <Logo className="entry-logo" showPoweredBy={false} />
@@ -529,10 +769,16 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           </div>
 
           <div className="entry-signup-hint">
-            <p>New employee?</p>
-            <button className="entry-join-link" onClick={() => setMode('join')}>
-              Join your company
-            </button>
+            <div className="entry-signup-options">
+              <button className="entry-join-link" onClick={() => { resetJoinState(); setMode('join') }}>
+                <UserPlus size={16} />
+                <span>Join your company</span>
+              </button>
+              <button className="entry-join-link" onClick={() => { resetRegisterState(); setMode('register') }}>
+                <Building2 size={16} />
+                <span>Register a new company</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -541,16 +787,48 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
   // Join Company flow
   if (mode === 'join') {
+    // Success screen after joining
+    if (joinSuccess) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card animate-scale-in">
+            <div className="entry-success-icon">
+              <Check size={32} />
+            </div>
+            <h2 className="entry-success-title">Request Submitted</h2>
+            <p className="entry-success-message">
+              Your request to join <strong>{joinCompany?.name}</strong> has been submitted.
+              A company admin will review and approve your access.
+            </p>
+            <p className="entry-success-detail">
+              You'll be able to sign in once approved.
+            </p>
+            <button
+              className="entry-login-btn"
+              onClick={() => {
+                resetJoinState()
+                setMode('office')
+              }}
+              style={{ marginTop: '1.5rem' }}
+            >
+              Back to Sign In
+            </button>
+          </div>
+        </div>
+      )
+    }
+
     // Step 1: Enter company code
     if (joinStep === 1) {
       return (
         <div className="entry-container">
-          <div className="entry-card">
-            <button className="entry-back" onClick={() => setMode('office')}>
-              ←
+          <div className="entry-card animate-fade-in">
+            <button className="entry-back" onClick={() => { resetJoinState(); setMode('office') }}>
+              <ArrowLeft size={20} />
             </button>
 
             <Logo className="entry-logo" showPoweredBy={false} />
+            <StepIndicator steps={['Company', 'Verify', 'Account']} currentStep={1} />
             <p className="entry-subtitle">Enter your company code</p>
             <p className="entry-hint">Ask your manager or admin for the code</p>
 
@@ -571,7 +849,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
                 onClick={verifyJoinCode}
                 disabled={loading || companyCode.length < 2}
               >
-                {loading ? '...' : '→'}
+                {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
               </button>
             </div>
           </div>
@@ -583,15 +861,16 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     if (joinStep === 2) {
       return (
         <div className="entry-container">
-          <div className="entry-card">
+          <div className="entry-card animate-fade-in">
             <button className="entry-back" onClick={() => { setJoinStep(1); setJoinCompany(null); setOfficeCode(''); }}>
-              ←
+              <ArrowLeft size={20} />
             </button>
 
             <Logo className="entry-logo" showPoweredBy={false} />
+            <StepIndicator steps={['Company', 'Verify', 'Account']} currentStep={2} />
             <div className="entry-company-badge">{joinCompany?.name}</div>
             <p className="entry-subtitle">Enter office code</p>
-            <p className="entry-hint">This code is only for office staff</p>
+            <p className="entry-hint">This verifies your office access</p>
 
             <div className="entry-input-group">
               <input
@@ -610,7 +889,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
                 onClick={verifyOfficeCode}
                 disabled={loading || !officeCode.trim()}
               >
-                {loading ? '...' : '→'}
+                {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
               </button>
             </div>
           </div>
@@ -621,12 +900,13 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     // Step 3: Create account
     return (
       <div className="entry-container">
-        <div className="entry-card">
+        <div className="entry-card animate-fade-in">
           <button className="entry-back" onClick={() => { setJoinStep(2); setOfficeCode(''); }}>
-            ←
+            <ArrowLeft size={20} />
           </button>
 
           <Logo className="entry-logo" showPoweredBy={false} />
+          <StepIndicator steps={['Company', 'Verify', 'Account']} currentStep={3} />
           <div className="entry-company-badge">{joinCompany?.name}</div>
           <p className="entry-subtitle">Create your account</p>
 
@@ -643,22 +923,28 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               value={joinEmail}
               onChange={(e) => setJoinEmail(e.target.value)}
               placeholder="Email"
+              className={joinEmail && !isValidEmail(joinEmail) ? 'input-error' : ''}
             />
-            <input
-              type="password"
+            <PasswordInput
               value={joinPassword}
               onChange={(e) => setJoinPassword(e.target.value)}
               placeholder="Password (6+ characters)"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleJoinSubmit()
               }}
+              showStrength={true}
             />
             <button
               className="entry-login-btn"
               onClick={handleJoinSubmit}
-              disabled={loading}
+              disabled={loading || !joinName.trim() || !isValidEmail(joinEmail) || joinPassword.length < 6}
             >
-              {loading ? 'Creating...' : 'Join Company'}
+              {loading ? (
+                <span className="btn-loading">
+                  <div className="spinner-small" />
+                  Creating account...
+                </span>
+              ) : 'Join Company'}
             </button>
           </div>
 
@@ -668,5 +954,154 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         </div>
       </div>
     )
+  }
+
+  // Register Company flow
+  if (mode === 'register') {
+    // Step 3: Success
+    if (registerStep === 3 && createdCompany) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card entry-card-wide animate-scale-in">
+            <div className="entry-success-icon">
+              <Check size={32} />
+            </div>
+            <h2 className="entry-success-title">Company Created</h2>
+            <p className="entry-success-message">
+              <strong>{createdCompany.name}</strong> is ready to go.
+              Save these codes to share with your team.
+            </p>
+
+            <div className="entry-codes-grid">
+              <div className="entry-code-card">
+                <span className="entry-code-label">Company Code</span>
+                <span className="entry-code-value">{createdCompany.code}</span>
+                <span className="entry-code-hint">Share with all employees</span>
+              </div>
+              <div className="entry-code-card">
+                <span className="entry-code-label">Office Code</span>
+                <span className="entry-code-value">{createdCompany.officeCode}</span>
+                <span className="entry-code-hint">Office staff only</span>
+              </div>
+            </div>
+
+            <p className="entry-codes-warning">
+              Save these codes now. You can also find them in your company settings later.
+            </p>
+
+            <button
+              className="entry-login-btn"
+              onClick={() => {
+                // Reload the app to sign them in
+                window.location.reload()
+              }}
+              style={{ marginTop: '0.5rem' }}
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // Step 1: Company info
+    if (registerStep === 1) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card animate-fade-in">
+            <button className="entry-back" onClick={() => { resetRegisterState(); setMode('office') }}>
+              <ArrowLeft size={20} />
+            </button>
+
+            <Logo className="entry-logo" showPoweredBy={false} />
+            <StepIndicator steps={['Company', 'Your Account']} currentStep={1} />
+            <p className="entry-subtitle">Register your company</p>
+            <p className="entry-hint">Set up your company on FieldSync</p>
+
+            <div className="entry-form">
+              <input
+                type="text"
+                value={registerCompanyName}
+                onChange={(e) => setRegisterCompanyName(e.target.value)}
+                placeholder="Company Name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && registerCompanyName.trim()) {
+                    setRegisterStep(2)
+                  }
+                }}
+              />
+              <button
+                className="entry-login-btn"
+                onClick={() => setRegisterStep(2)}
+                disabled={!registerCompanyName.trim()}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Step 2: Admin account
+    if (registerStep === 2) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card animate-fade-in">
+            <button className="entry-back" onClick={() => setRegisterStep(1)}>
+              <ArrowLeft size={20} />
+            </button>
+
+            <Logo className="entry-logo" showPoweredBy={false} />
+            <StepIndicator steps={['Company', 'Your Account']} currentStep={2} />
+            <div className="entry-company-badge">{registerCompanyName}</div>
+            <p className="entry-subtitle">Create your admin account</p>
+
+            <div className="entry-form">
+              <input
+                type="text"
+                value={registerName}
+                onChange={(e) => setRegisterName(e.target.value)}
+                placeholder="Your Name"
+                autoFocus
+              />
+              <input
+                type="email"
+                value={registerEmail}
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                placeholder="Email"
+                className={registerEmail && !isValidEmail(registerEmail) ? 'input-error' : ''}
+              />
+              <PasswordInput
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                placeholder="Password (6+ characters)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRegisterCompany()
+                }}
+                showStrength={true}
+              />
+              <button
+                className="entry-login-btn"
+                onClick={handleRegisterCompany}
+                disabled={loading || !registerName.trim() || !isValidEmail(registerEmail) || registerPassword.length < 6}
+              >
+                {loading ? (
+                  <span className="btn-loading">
+                    <div className="spinner-small" />
+                    Setting up company...
+                  </span>
+                ) : 'Create Company'}
+              </button>
+            </div>
+
+            <p className="entry-join-note">
+              You'll be the administrator. Company and office codes will be generated for you.
+            </p>
+          </div>
+        </div>
+      )
+    }
   }
 }
