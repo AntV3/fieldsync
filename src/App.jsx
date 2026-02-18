@@ -33,6 +33,68 @@ function PageLoader() {
   )
 }
 
+// Pending approval screen with auto-polling
+function PendingApprovalScreen({ pendingCompanyName, userName, onCheckStatus, onLogout }) {
+  const [checking, setChecking] = useState(false)
+  const [autoCheckCount, setAutoCheckCount] = useState(0)
+
+  // Auto-check status every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAutoCheckCount(c => c + 1)
+      onCheckStatus()
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [onCheckStatus])
+
+  const handleManualCheck = async () => {
+    setChecking(true)
+    await onCheckStatus()
+    // Brief delay so the user sees the checking state
+    setTimeout(() => setChecking(false), 1000)
+  }
+
+  return (
+    <div className="pending-approval-screen">
+      <Logo className="pending-logo" />
+
+      <div className="pending-pulse-ring">
+        <div className="pending-pulse-dot" />
+      </div>
+
+      <h2>Awaiting Approval</h2>
+
+      {pendingCompanyName && (
+        <div className="pending-company-name">
+          {pendingCompanyName}
+        </div>
+      )}
+
+      <p className="pending-message">
+        {userName ? `Hi ${userName.split(' ')[0]}, your` : 'Your'} membership request has been submitted.
+        A company administrator will review and approve your access.
+      </p>
+
+      <p className="pending-auto-check">
+        We'll automatically check for updates
+      </p>
+
+      <div className="pending-actions">
+        <button className="btn btn-secondary" onClick={onLogout}>
+          Sign Out
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={handleManualCheck}
+          disabled={checking}
+        >
+          {checking ? 'Checking...' : 'Check Status'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature', 'pending'
   const [user, setUser] = useState(null)
@@ -51,6 +113,7 @@ export default function App() {
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
   const [mfaPending, setMfaPending] = useState(false)
   const [mfaFactorId, setMfaFactorId] = useState(null)
+  const [pendingCompanyName, setPendingCompanyName] = useState('') // Company name for pending screen
 
   // checkAuth defined before useEffect to avoid ESLint warning
   const checkAuth = useCallback(async () => {
@@ -102,6 +165,20 @@ export default function App() {
         if (companies.length === 0) {
           const pendingCount = await db.getUserPendingMemberships(authUser.id)
           if (pendingCount > 0) {
+            // Try to get the pending company name for context
+            try {
+              const { data: pendingMemberships } = await supabase
+                .from('user_companies')
+                .select('company_id, companies(name)')
+                .eq('user_id', authUser.id)
+                .eq('status', 'pending')
+                .limit(1)
+              if (pendingMemberships?.[0]?.companies?.name) {
+                setPendingCompanyName(pendingMemberships[0].companies.name)
+              }
+            } catch (e) {
+              // Non-critical, continue without company name
+            }
             setView('pending')
             return
           }
@@ -282,6 +359,20 @@ export default function App() {
           // Check if there are pending memberships
           const pendingCount = await db.getUserPendingMemberships(data.user.id)
           if (pendingCount > 0) {
+            // Try to get the pending company name for context
+            try {
+              const { data: pendingMemberships } = await supabase
+                .from('user_companies')
+                .select('company_id, companies(name)')
+                .eq('user_id', data.user.id)
+                .eq('status', 'pending')
+                .limit(1)
+              if (pendingMemberships?.[0]?.companies?.name) {
+                setPendingCompanyName(pendingMemberships[0].companies.name)
+              }
+            } catch (e) {
+              // Non-critical
+            }
             setView('pending')
           } else {
             showToast('No company access. Please contact admin.', 'error')
@@ -511,20 +602,12 @@ export default function App() {
       <ThemeProvider>
         <BrandingProvider>
           <ErrorBoundary>
-            <div className="pending-approval-screen">
-              <Logo className="pending-logo" />
-              <h2>Awaiting Approval</h2>
-              <p>Your membership request has been submitted.</p>
-              <p>A company admin will review your request.</p>
-              <div className="pending-actions">
-                <button className="btn btn-secondary" onClick={handleLogout}>
-                  Sign Out
-                </button>
-                <button className="btn btn-primary" onClick={checkAuth}>
-                  Check Status
-                </button>
-              </div>
-            </div>
+            <PendingApprovalScreen
+              pendingCompanyName={pendingCompanyName}
+              userName={user?.name}
+              onCheckStatus={checkAuth}
+              onLogout={handleLogout}
+            />
           </ErrorBoundary>
           {toast && (
             <Toast
