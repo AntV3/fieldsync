@@ -18,7 +18,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const [saving, setSaving] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const [newLoad, setNewLoad] = useState({ type: 'concrete', count: 1 })
+  const [newLoad, setNewLoad] = useState({ type: 'concrete', count: 1, vendor: '', photo: null, photoPreview: null })
 
   // Format date for display
   const displayDate = new Date(date).toLocaleDateString('en-US', {
@@ -73,20 +73,43 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
     }
   }
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setNewLoad(prev => ({
+      ...prev,
+      photo: file,
+      photoPreview: URL.createObjectURL(file)
+    }))
+  }
+
   const handleAddLoad = async () => {
     if (newLoad.count < 1) return
 
     setSaving(true)
     try {
+      // Upload photo first if provided
+      let photoUrl = null
+      if (newLoad.photo) {
+        try {
+          photoUrl = await db.uploadDisposalPhoto?.(project.id, newLoad.photo)
+        } catch (uploadErr) {
+          console.error('Photo upload failed, continuing without photo:', uploadErr)
+        }
+      }
+
       await db.addDisposalLoad(
         project.id,
         user?.id || null,
         date,
         newLoad.type,
-        newLoad.count
+        newLoad.count,
+        newLoad.vendor || null,
+        photoUrl
       )
       await loadDisposalData()
-      setNewLoad({ type: 'concrete', count: 1 })
+      if (newLoad.photoPreview) URL.revokeObjectURL(newLoad.photoPreview)
+      setNewLoad({ type: 'concrete', count: 1, vendor: '', photo: null, photoPreview: null })
       setShowAddForm(false)
       onShowToast?.('Disposal load added', 'success')
     } catch (err) {
@@ -286,10 +309,43 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
               </button>
             </div>
           </div>
+
+          {/* Vendor + Haul Slip Photo */}
+          <div className="add-form-extras">
+            <input
+              type="text"
+              value={newLoad.vendor}
+              onChange={(e) => setNewLoad({ ...newLoad, vendor: e.target.value })}
+              placeholder="Hauler / vendor (optional)"
+              className="disposal-vendor-input"
+            />
+            <label className="disposal-photo-label">
+              {newLoad.photoPreview ? (
+                <div className="disposal-photo-preview-row">
+                  <img src={newLoad.photoPreview} alt="Haul slip" className="disposal-photo-thumb" />
+                  <span className="disposal-photo-replace">Tap to replace</span>
+                </div>
+              ) : (
+                <span className="disposal-photo-add">+ Haul slip photo</span>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </div>
+
           <div className="add-form-actions">
             <button
               className="btn btn-secondary btn-small"
-              onClick={() => setShowAddForm(false)}
+              onClick={() => {
+                if (newLoad.photoPreview) URL.revokeObjectURL(newLoad.photoPreview)
+                setShowAddForm(false)
+                setNewLoad({ type: 'concrete', count: 1, vendor: '', photo: null, photoPreview: null })
+              }}
             >
               <X size={16} /> Cancel
             </button>

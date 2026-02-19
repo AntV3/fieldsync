@@ -4,7 +4,7 @@ import { calculateProgress } from '../lib/utils'
 import {
   Info, CheckSquare,
   ArrowLeft, ChevronDown, ChevronRight,
-  Clock, CheckCircle2, Moon, Sun
+  Clock, CheckCircle2, Moon, Sun, AlertTriangle, X
 } from 'lucide-react'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
@@ -20,6 +20,8 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
+  const [blockerAreaId, setBlockerAreaId] = useState(null) // which area has blocker input open
+  const [blockerDraft, setBlockerDraft] = useState('') // draft blocker note text
 
   // View states
   const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress
@@ -31,7 +33,8 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     crewCount: 0,
     tmTicketsToday: 0,
     dailyReportDone: false,
-    disposalLoadsToday: 0
+    disposalLoadsToday: 0,
+    rejectedTickets: []
   })
 
   // Theme
@@ -72,12 +75,16 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
       // Load disposal loads for today
       const disposal = await db.getDisposalLoads?.(project.id, today) || []
 
+      // Collect rejected tickets that the foreman needs to address
+      const rejectedTickets = tickets.filter(t => t.status === 'rejected')
+
       setTodayStatus({
         crewCheckedIn,
         crewCount: crewWorkers.length,
         tmTicketsToday: todayTickets.length,
         dailyReportDone: false, // We'll track this separately
-        disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
+        disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0),
+        rejectedTickets
       })
     } catch (error) {
       console.error('Error loading today status:', error)
@@ -171,6 +178,29 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     } finally {
       setUpdating(null)
     }
+  }
+
+  const handleToggleBlocker = (areaId) => {
+    const area = areas.find(a => a.id === areaId)
+    if (!area) return
+    if (area.blocker) {
+      // Clear blocker
+      setAreas(prev => prev.map(a => a.id === areaId ? { ...a, blocker: false, blocker_note: '' } : a))
+      db.updateAreaBlocker?.(areaId, false, '')
+      onShowToast?.('Blocker cleared', 'success')
+    } else {
+      // Open blocker note input
+      setBlockerAreaId(areaId)
+      setBlockerDraft(area.blocker_note || '')
+    }
+  }
+
+  const handleSaveBlocker = async (areaId) => {
+    setAreas(prev => prev.map(a => a.id === areaId ? { ...a, blocker: true, blocker_note: blockerDraft } : a))
+    await db.updateAreaBlocker?.(areaId, true, blockerDraft)
+    setBlockerAreaId(null)
+    setBlockerDraft('')
+    onShowToast?.('Blocker flagged — office notified', 'info')
   }
 
   const toggleGroup = (group) => {
@@ -351,24 +381,51 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
                 {expandedGroups[group] && (
                   <div className="fm-group-items">
                     {groupAreas.map(area => (
-                      <div key={area.id} className={`fm-task ${area.status}`}>
-                        <span className="fm-task-name">{area.name}</span>
-                        <div className="fm-task-btns">
-                          <button
-                            className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(area.id, 'working')}
-                            disabled={updating === area.id}
-                          >
-                            <Clock size={14} />
-                          </button>
-                          <button
-                            className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(area.id, 'done')}
-                            disabled={updating === area.id}
-                          >
-                            <CheckCircle2 size={14} />
-                          </button>
+                      <div key={area.id} className={`fm-task ${area.status} ${area.blocker ? 'blocked' : ''}`}>
+                        <div className="fm-task-main">
+                          <span className="fm-task-name">{area.name}</span>
+                          <div className="fm-task-btns">
+                            <button
+                              className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
+                              onClick={() => handleStatusUpdate(area.id, 'working')}
+                              disabled={updating === area.id}
+                            >
+                              <Clock size={14} />
+                            </button>
+                            <button
+                              className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
+                              onClick={() => handleStatusUpdate(area.id, 'done')}
+                              disabled={updating === area.id}
+                            >
+                              <CheckCircle2 size={14} />
+                            </button>
+                            <button
+                              className={`fm-status-btn blocker ${area.blocker ? 'active' : ''}`}
+                              onClick={() => handleToggleBlocker(area.id)}
+                              disabled={updating === area.id}
+                              title={area.blocker ? 'Clear blocker' : 'Flag blocker'}
+                            >
+                              <AlertTriangle size={14} />
+                            </button>
+                          </div>
                         </div>
+                        {area.blocker && area.blocker_note && (
+                          <div className="fm-task-blocker-note">{area.blocker_note}</div>
+                        )}
+                        {blockerAreaId === area.id && (
+                          <div className="fm-blocker-input">
+                            <input
+                              type="text"
+                              value={blockerDraft}
+                              onChange={(e) => setBlockerDraft(e.target.value)}
+                              placeholder="What's blocking? (optional)"
+                              autoFocus
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveBlocker(area.id) }}
+                            />
+                            <button className="fm-blocker-save" onClick={() => handleSaveBlocker(area.id)}>Flag</button>
+                            <button className="fm-blocker-cancel" onClick={() => setBlockerAreaId(null)}><X size={14} /></button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -378,24 +435,51 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           ) : (
             <div className="fm-task-list">
               {areas.map(area => (
-                <div key={area.id} className={`fm-task ${area.status}`}>
-                  <span className="fm-task-name">{area.name}</span>
-                  <div className="fm-task-btns">
-                    <button
-                      className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
-                      onClick={() => handleStatusUpdate(area.id, 'working')}
-                      disabled={updating === area.id}
-                    >
-                      <Clock size={14} />
-                    </button>
-                    <button
-                      className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
-                      onClick={() => handleStatusUpdate(area.id, 'done')}
-                      disabled={updating === area.id}
-                    >
-                      <CheckCircle2 size={14} />
-                    </button>
+                <div key={area.id} className={`fm-task ${area.status} ${area.blocker ? 'blocked' : ''}`}>
+                  <div className="fm-task-main">
+                    <span className="fm-task-name">{area.name}</span>
+                    <div className="fm-task-btns">
+                      <button
+                        className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
+                        onClick={() => handleStatusUpdate(area.id, 'working')}
+                        disabled={updating === area.id}
+                      >
+                        <Clock size={14} />
+                      </button>
+                      <button
+                        className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
+                        onClick={() => handleStatusUpdate(area.id, 'done')}
+                        disabled={updating === area.id}
+                      >
+                        <CheckCircle2 size={14} />
+                      </button>
+                      <button
+                        className={`fm-status-btn blocker ${area.blocker ? 'active' : ''}`}
+                        onClick={() => handleToggleBlocker(area.id)}
+                        disabled={updating === area.id}
+                        title={area.blocker ? 'Clear blocker' : 'Flag blocker'}
+                      >
+                        <AlertTriangle size={14} />
+                      </button>
+                    </div>
                   </div>
+                  {area.blocker && area.blocker_note && (
+                    <div className="fm-task-blocker-note">{area.blocker_note}</div>
+                  )}
+                  {blockerAreaId === area.id && (
+                    <div className="fm-blocker-input">
+                      <input
+                        type="text"
+                        value={blockerDraft}
+                        onChange={(e) => setBlockerDraft(e.target.value)}
+                        placeholder="What's blocking? (optional)"
+                        autoFocus
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveBlocker(area.id) }}
+                      />
+                      <button className="fm-blocker-save" onClick={() => handleSaveBlocker(area.id)}>Flag</button>
+                      <button className="fm-blocker-cancel" onClick={() => setBlockerAreaId(null)}><X size={14} /></button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -447,6 +531,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         areasWorking={areasWorking}
         areasDone={areasDone}
         areasRemaining={areasRemaining}
+        rejectedTickets={todayStatus.rejectedTickets}
         onNavigate={handleNavigate}
         onShowToast={onShowToast}
       />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { HardHat, FileText, AlertTriangle, CheckCircle, Upload } from 'lucide-react'
+import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, GitPullRequestArrow } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
+import { getFieldSession } from '../lib/fieldSession'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -8,6 +9,12 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const [report, setReport] = useState(null)
   const [fieldNotes, setFieldNotes] = useState('')
   const [issues, setIssues] = useState('')
+
+  // COR request from field
+  const [showCORForm, setShowCORForm] = useState(false)
+  const [corDescription, setCorDescription] = useState('')
+  const [submittingCOR, setSubmittingCOR] = useState(false)
+  const [corSubmitted, setCorSubmitted] = useState(false)
 
   useEffect(() => {
     if (project?.id) {
@@ -73,9 +80,31 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     }
   }
 
-  const today = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'long', 
+  const handleSubmitCOR = async () => {
+    if (!corDescription.trim()) {
+      onShowToast('Describe the scope change', 'error')
+      return
+    }
+    setSubmittingCOR(true)
+    try {
+      const session = getFieldSession()
+      const foremanName = session?.foremanName || 'Field'
+      await db.createFieldCORRequest?.(project.id, corDescription.trim(), foremanName)
+      setCorSubmitted(true)
+      setShowCORForm(false)
+      setCorDescription('')
+      onShowToast('Change order flagged — office will review', 'success')
+    } catch (err) {
+      console.error('Error submitting COR request:', err)
+      onShowToast('Error flagging change order', 'error')
+    } finally {
+      setSubmittingCOR(false)
+    }
+  }
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
     day: 'numeric',
     year: 'numeric'
   })
@@ -200,12 +229,57 @@ export default function DailyReport({ project, onShowToast, onClose }) {
             disabled={isSubmitted}
           />
         </div>
+
+        {/* Flag a Change Order */}
+        <div className="daily-report-section">
+          <h3><GitPullRequestArrow size={18} className="inline-icon" /> Change Order</h3>
+          {corSubmitted ? (
+            <div className="daily-report-cor-submitted">
+              <CheckCircle size={16} />
+              <span>Change order flagged — office will price &amp; formalize</span>
+            </div>
+          ) : showCORForm ? (
+            <div className="daily-report-cor-form">
+              <textarea
+                value={corDescription}
+                onChange={(e) => setCorDescription(e.target.value)}
+                placeholder="Describe the scope change (e.g. found buried utilities, extra demo area added by GC...)"
+                rows={3}
+                autoFocus
+              />
+              <div className="daily-report-cor-actions">
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={() => { setShowCORForm(false); setCorDescription('') }}
+                  disabled={submittingCOR}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary btn-small"
+                  onClick={handleSubmitCOR}
+                  disabled={submittingCOR || !corDescription.trim()}
+                >
+                  {submittingCOR ? 'Sending...' : 'Flag for COR'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              className="daily-report-cor-btn"
+              onClick={() => setShowCORForm(true)}
+            >
+              <GitPullRequestArrow size={16} />
+              Flag a scope change for office
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Submit Button */}
       {!isSubmitted && (
         <div className="daily-report-footer">
-          <button 
+          <button
             className="btn btn-primary daily-report-submit"
             onClick={handleSubmit}
             disabled={submitting}

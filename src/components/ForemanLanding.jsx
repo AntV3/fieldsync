@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
-  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2
+  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, AlertCircle
 } from 'lucide-react'
 
 /**
@@ -81,6 +81,7 @@ export default function ForemanLanding({
   areasWorking,
   areasDone,
   areasRemaining,
+  rejectedTickets = [],
   onNavigate,
   onShowToast
 }) {
@@ -131,6 +132,32 @@ export default function ForemanLanding({
       }
     })
   }, [onShowToast])
+
+  // Smart reordering: surface the most relevant action first based on time + state
+  const smartPinnedIds = useMemo(() => {
+    const hour = new Date().getHours()
+    const isMorning = hour >= 5 && hour < 12
+    const isAfternoon = hour >= 12 && hour < 17
+
+    // Determine the highest-priority action to surface
+    let priorityId = null
+
+    if (isMorning && !todayStatus.crewCheckedIn && pinnedIds.includes('crew')) {
+      // Morning with no crew yet: surface crew check-in
+      priorityId = 'crew'
+    } else if (isAfternoon && !todayStatus.dailyReportDone && pinnedIds.includes('report')) {
+      // Afternoon with no report yet: surface daily report
+      priorityId = 'report'
+    } else if (todayStatus.tmTicketsToday === 0 && pinnedIds.includes('tm')) {
+      // No T&M ticket yet today: surface it (gentle nudge)
+      priorityId = 'tm'
+    }
+
+    if (!priorityId) return pinnedIds
+
+    // Move priorityId to front without changing the rest of the order
+    return [priorityId, ...pinnedIds.filter(id => id !== priorityId)]
+  }, [pinnedIds, todayStatus])
 
   // Get unpinned actions (for "More Actions" section)
   const unpinnedActions = useMemo(() => {
@@ -252,6 +279,25 @@ export default function ForemanLanding({
 
   return (
     <div className="fm-landing">
+      {/* Rejected T&M ticket alert */}
+      {rejectedTickets.length > 0 && (
+        <button
+          className="fm-rejection-alert"
+          onClick={() => onNavigate('tm')}
+        >
+          <AlertCircle size={18} />
+          <div className="fm-rejection-alert-text">
+            <span className="fm-rejection-alert-title">
+              {rejectedTickets.length} T&M {rejectedTickets.length === 1 ? 'ticket' : 'tickets'} need attention
+            </span>
+            <span className="fm-rejection-alert-sub">
+              Office sent back — tap to review &amp; resubmit
+            </span>
+          </div>
+          <ChevronDown size={16} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }} />
+        </button>
+      )}
+
       {/* Metrics Snapshot - Tappable */}
       <button
         className="fm-metrics-snapshot"
@@ -306,9 +352,9 @@ export default function ForemanLanding({
         <p className="fm-edit-hint">Tap icons to pin/unpin actions</p>
       )}
 
-      {/* Pinned Actions Grid */}
+      {/* Pinned Actions Grid — smart-ordered by time + completion state */}
       <div className="fm-pinned-grid">
-        {pinnedIds.map(renderPinnedAction)}
+        {(isEditMode ? pinnedIds : smartPinnedIds).map(renderPinnedAction)}
       </div>
 
       {/* More Actions Section */}
@@ -334,6 +380,50 @@ export default function ForemanLanding({
       <style>{`
         .fm-landing {
           padding: 0 1rem 2rem;
+        }
+
+        /* Rejection Alert Banner */
+        .fm-rejection-alert {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.875rem 1rem;
+          margin-bottom: 1rem;
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.35);
+          border-radius: 12px;
+          color: #dc2626;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.15s ease;
+        }
+
+        .fm-rejection-alert:active {
+          background: rgba(239, 68, 68, 0.15);
+        }
+
+        .fm-rejection-alert-text {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 0.1rem;
+        }
+
+        .fm-rejection-alert-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+        }
+
+        .fm-rejection-alert-sub {
+          font-size: 0.75rem;
+          opacity: 0.8;
+        }
+
+        [data-theme="dark"] .fm-rejection-alert {
+          background: rgba(239, 68, 68, 0.12);
+          border-color: rgba(239, 68, 68, 0.4);
+          color: #f87171;
         }
 
         /* Metrics Snapshot */

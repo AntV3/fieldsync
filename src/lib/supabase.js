@@ -1153,6 +1153,36 @@ export const db = {
     }
   },
 
+  // Update area blocker flag and note (field foreman use)
+  async updateAreaBlocker(id, blocker, blockerNote = '') {
+    if (isSupabaseConfigured) {
+      const client = getClient()
+      const { data, error } = await client
+        .from('areas')
+        .update({ blocker, blocker_note: blockerNote, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating area blocker:', error)
+        throw error
+      }
+      return data
+    } else {
+      // Demo mode
+      const localData = getLocalData()
+      const area = localData.areas?.find(a => a.id === id)
+      if (area) {
+        area.blocker = blocker
+        area.blocker_note = blockerNote
+        area.updated_at = new Date().toISOString()
+        setLocalData(localData)
+      }
+      return area
+    }
+  },
+
   // Update area (name, weight, sort_order) - projectId optional for security
   async updateArea(id, updates, projectId = null) {
     if (isSupabaseConfigured) {
@@ -1280,6 +1310,20 @@ export const db = {
         .channel(`injury_reports:${companyId}`)
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to injury reports scoped to a single project (field use)
+  subscribeToProjectInjuryReports(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`injury_reports_project:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'injury_reports', filter: `project_id=eq.${projectId}` },
           callback
         )
         .subscribe()
@@ -2070,6 +2114,48 @@ export const db = {
       return data
     }
     return []
+  },
+
+  // Create a lightweight COR request from the field (foreman flags scope change, office formalizes)
+  async createFieldCORRequest(projectId, description, submittedBy = 'Field') {
+    if (!isSupabaseConfigured) {
+      // Demo mode — store locally
+      const localData = getLocalData()
+      if (!localData.fieldCORRequests) localData.fieldCORRequests = []
+      localData.fieldCORRequests.push({
+        id: crypto.randomUUID(),
+        project_id: projectId,
+        description,
+        submitted_by: submittedBy,
+        status: 'field_request',
+        created_at: new Date().toISOString()
+      })
+      setLocalData(localData)
+      return { success: true }
+    }
+
+    const client = getClient()
+    if (!client) throw new Error('Database client not available')
+
+    const { data, error } = await client
+      .from('change_orders')
+      .insert({
+        project_id: projectId,
+        title: `Field Request: ${description.substring(0, 80)}`,
+        description,
+        status: 'field_request',
+        submitted_by_name: submittedBy,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) {
+      // Graceful fallback: log but don't throw (status column may not exist yet)
+      console.error('Error creating field COR request:', error)
+      throw error
+    }
+    return data
   },
 
   // Get T&M tickets associated with a COR (for backup documentation)
@@ -2917,7 +3003,7 @@ export const db = {
   },
 
   // Add a new disposal load entry
-  async addDisposalLoad(projectId, userId, workDate, loadType, loadCount, notes = null) {
+  async addDisposalLoad(projectId, userId, workDate, loadType, loadCount, vendor = null, photoUrl = null, notes = null) {
     if (!isSupabaseConfigured) return null
 
     const client = getClient()
@@ -2933,6 +3019,8 @@ export const db = {
         work_date: workDate,
         load_type: loadType,
         load_count: loadCount,
+        vendor: vendor || null,
+        photo_url: photoUrl || null,
         notes
       })
       .select()
@@ -2943,6 +3031,19 @@ export const db = {
       throw error
     }
     return data
+  },
+
+  // Upload a disposal load haul slip photo to storage
+  async uploadDisposalPhoto(projectId, file) {
+    if (!isSupabaseConfigured) return null
+    const ext = file.name.split('.').pop() || 'jpg'
+    const path = `disposal/${projectId}/${Date.now()}.${ext}`
+    const { data, error } = await supabase.storage
+      .from('project-photos')
+      .upload(path, file, { upsert: false, contentType: file.type })
+    if (error) throw error
+    const { data: urlData } = supabase.storage.from('project-photos').getPublicUrl(data.path)
+    return urlData?.publicUrl || null
   },
 
   // Update an existing disposal load entry

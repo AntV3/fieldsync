@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
+import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft, User } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
+import { setFieldSession, getFieldSession } from '../lib/fieldSession'
 import Logo from './Logo'
 
 // Password strength calculator
@@ -107,6 +108,8 @@ function PasswordInput({ value, onChange, placeholder, onKeyDown, autoFocus, sho
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join', 'register'
+  const [pinValidatedProject, setPinValidatedProject] = useState(null) // project after PIN success, before name entry
+  const [foremanName, setForemanName] = useState('')
 
   // Foreman state
   const [companyCode, setCompanyCode] = useState('')
@@ -200,7 +203,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       }
 
       if (result.success && result.project) {
-        onForemanAccess(result.project)
+        setPinValidatedProject(result.project)
         return
       }
 
@@ -209,7 +212,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (result.error) {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
-          onForemanAccess(fallbackProject)
+          setPinValidatedProject(fallbackProject)
           return
         }
       }
@@ -221,7 +224,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       try {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
-          onForemanAccess(fallbackProject)
+          setPinValidatedProject(fallbackProject)
           return
         }
       } catch (fallbackErr) {
@@ -260,6 +263,23 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     setCompany(null)
     setPin('')
     setPinState('')
+    setPinValidatedProject(null)
+    setForemanName('')
+  }
+
+  // Submit foreman name and enter the dashboard
+  const handleForemanNameSubmit = () => {
+    const trimmed = foremanName.trim()
+    if (!trimmed) {
+      onShowToast('Enter your name', 'error')
+      return
+    }
+    // Persist name into the active field session so components can read it
+    const session = getFieldSession()
+    if (session) {
+      setFieldSession({ ...session, foremanName: trimmed })
+    }
+    onForemanAccess(pinValidatedProject)
   }
 
   // Handle office login
@@ -628,6 +648,48 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
   // Foreman flow
   if (mode === 'foreman') {
+    // Step 3: Name entry (after PIN validated)
+    if (pinValidatedProject) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card animate-fade-in">
+            <button className="entry-back" onClick={() => { setPinValidatedProject(null); setPin(''); setPinState('') }}>
+              <ArrowLeft size={20} />
+            </button>
+
+            <Logo className="entry-logo" showPoweredBy={false} />
+            <div className="entry-company-badge">{pinValidatedProject.name}</div>
+            <p className="entry-subtitle">What's your name?</p>
+
+            <div className="entry-input-group" style={{ position: 'relative' }}>
+              <User size={18} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                value={foremanName}
+                onChange={(e) => setForemanName(e.target.value)}
+                placeholder="Your name"
+                autoFocus
+                style={{ paddingLeft: '2.5rem' }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleForemanNameSubmit()
+                }}
+              />
+              <button
+                className="entry-submit-btn"
+                onClick={handleForemanNameSubmit}
+                disabled={!foremanName.trim()}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>
+              Used to label your submissions
+            </p>
+          </div>
+        </div>
+      )
+    }
+
     // Step 1: Company code
     if (!company) {
       return (

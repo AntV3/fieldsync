@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { HardHat, UserPlus } from 'lucide-react'
+import { HardHat, UserPlus, Copy } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function CrewCheckin({ project, companyId, onShowToast }) {
@@ -12,6 +12,8 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   // Recent workers for quick-add
   const [recentWorkers, setRecentWorkers] = useState([])
   const [loadingRecent, setLoadingRecent] = useState(true)
+  const [yesterdaysCrew, setYesterdaysCrew] = useState([])
+  const [copyingYesterday, setCopyingYesterday] = useState(false)
 
   // Labor classes from company pricing setup
   const [laborCategories, setLaborCategories] = useState([])
@@ -45,6 +47,18 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     }
   }, [project?.id])
 
+  const loadYesterdaysCrew = useCallback(async () => {
+    try {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      const checkin = await db.getCrewCheckin(project.id, yesterdayStr)
+      setYesterdaysCrew(checkin?.workers || [])
+    } catch (err) {
+      console.error('Error loading yesterday\'s crew:', err)
+    }
+  }, [project?.id])
+
   const loadLaborClasses = useCallback(async () => {
     try {
       // Use field-safe function that doesn't expose labor rates
@@ -73,13 +87,14 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     if (project?.id) {
       loadTodaysCrew()
       loadRecentWorkers()
+      loadYesterdaysCrew()
       if (companyId) {
         loadLaborClasses()
       } else {
         setLoadingClasses(false)
       }
     }
-  }, [project?.id, companyId, loadTodaysCrew, loadRecentWorkers, loadLaborClasses])
+  }, [project?.id, companyId, loadTodaysCrew, loadRecentWorkers, loadYesterdaysCrew, loadLaborClasses])
 
   const handleRoleChange = (value) => {
     // Check if it's a labor class ID (UUID format)
@@ -183,6 +198,30 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     }
   }
 
+  // Copy yesterday's crew into today (skipping anyone already checked in)
+  const handleCopyYesterday = async () => {
+    if (yesterdaysCrew.length === 0) return
+    const toAdd = yesterdaysCrew.filter(
+      yw => !workers.find(w => w.name.toLowerCase() === yw.name.toLowerCase())
+    )
+    if (toAdd.length === 0) {
+      onShowToast('Yesterday\'s crew already checked in', 'info')
+      return
+    }
+    setCopyingYesterday(true)
+    try {
+      const updatedWorkers = [...workers, ...toAdd]
+      await db.saveCrewCheckin(project.id, updatedWorkers)
+      setWorkers(updatedWorkers)
+      onShowToast(`${toAdd.length} worker${toAdd.length !== 1 ? 's' : ''} copied from yesterday`, 'success')
+    } catch (err) {
+      console.error('Error copying yesterday\'s crew:', err)
+      onShowToast('Error copying crew', 'error')
+    } finally {
+      setCopyingYesterday(false)
+    }
+  }
+
   // Get recent workers not already checked in today
   const availableRecentWorkers = recentWorkers.filter(
     rw => !workers.find(w => w.name.toLowerCase() === rw.name.toLowerCase())
@@ -260,6 +299,18 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Copy yesterday's crew - only show when today's crew is empty and yesterday had people */}
+      {workers.length === 0 && yesterdaysCrew.length > 0 && (
+        <button
+          className="crew-copy-yesterday"
+          onClick={handleCopyYesterday}
+          disabled={copyingYesterday || saving}
+        >
+          <Copy size={16} />
+          <span>{copyingYesterday ? 'Copying...' : `Copy Yesterday's Crew (${yesterdaysCrew.length})`}</span>
+        </button>
       )}
 
       {/* Quick-add recent workers */}

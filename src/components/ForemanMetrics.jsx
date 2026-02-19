@@ -12,6 +12,7 @@ import {
 export default function ForemanMetrics({ project, companyId, onBack }) {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('week') // week, month
+  const [drilldown, setDrilldown] = useState(null) // null | 'tickets' | 'crew' | 'disposal'
   const [metrics, setMetrics] = useState({
     areas: [],
     tickets: [],
@@ -248,7 +249,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards — tappable for drill-down */}
       <div className="summary-cards">
         <div className="summary-card progress-card">
           <div className="card-icon">
@@ -263,7 +264,10 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           </div>
         </div>
 
-        <div className="summary-card crew-card">
+        <button
+          className="summary-card crew-card tappable"
+          onClick={() => setDrilldown(drilldown === 'crew' ? null : 'crew')}
+        >
           <div className="card-icon">
             <Users size={24} />
           </div>
@@ -274,9 +278,12 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           <div className="card-detail">
             Avg {derivedMetrics.crew.avgCrewSize} workers/day
           </div>
-        </div>
+        </button>
 
-        <div className="summary-card tickets-card">
+        <button
+          className="summary-card tickets-card tappable"
+          onClick={() => setDrilldown(drilldown === 'tickets' ? null : 'tickets')}
+        >
           <div className="card-icon">
             <FileText size={24} />
           </div>
@@ -287,9 +294,12 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           <div className="card-detail">
             {derivedMetrics.tickets.signed} signed, {derivedMetrics.tickets.pending} pending
           </div>
-        </div>
+        </button>
 
-        <div className="summary-card disposal-card">
+        <button
+          className="summary-card disposal-card tappable"
+          onClick={() => setDrilldown(drilldown === 'disposal' ? null : 'disposal')}
+        >
           <div className="card-icon">
             <Truck size={24} />
           </div>
@@ -298,10 +308,65 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
             <span className="card-label">Disposal Loads</span>
           </div>
           <div className="card-detail">
-            {derivedMetrics.disposal.totalTonnage.toFixed(1)} tons
+            {timeRange === 'week' ? '7' : '30'} days
+          </div>
+        </button>
+      </div>
+
+      {/* Drill-down panels */}
+      {drilldown === 'tickets' && (
+        <div className="metrics-drilldown">
+          <h3>T&M Tickets <span className="drilldown-range">({timeRange === 'week' ? '7' : '30'} days)</span></h3>
+          {metrics.tickets.length === 0 ? (
+            <p className="drilldown-empty">No tickets in this period</p>
+          ) : (
+            <div className="drilldown-list">
+              {[...metrics.tickets].sort((a, b) => b.work_date.localeCompare(a.work_date)).map(t => (
+                <div key={t.id} className="drilldown-item">
+                  <div className="drilldown-item-left">
+                    <span className="drilldown-item-date">{new Date(t.work_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    <span className="drilldown-item-name">{t.description || t.work_description || 'T&M Ticket'}</span>
+                  </div>
+                  <span className={`drilldown-item-status status-${t.status}`}>{t.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {drilldown === 'crew' && (
+        <div className="metrics-drilldown">
+          <h3>Daily Crew Counts <span className="drilldown-range">({timeRange === 'week' ? '7' : '30'} days)</span></h3>
+          <div className="drilldown-list">
+            {[...derivedMetrics.crew.history].reverse().map(d => (
+              <div key={d.date} className={`drilldown-item ${d.count === 0 ? 'drilldown-item-muted' : ''}`}>
+                <span className="drilldown-item-date">{new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                <span className="drilldown-item-value">{d.count > 0 ? `${d.count} workers` : 'No crew'}</span>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
+
+      {drilldown === 'disposal' && (
+        <div className="metrics-drilldown">
+          <h3>Disposal Loads <span className="drilldown-range">({timeRange === 'week' ? '7' : '30'} days)</span></h3>
+          {metrics.disposalLoads.length === 0 ? (
+            <p className="drilldown-empty">No disposal loads in this period</p>
+          ) : (
+            <div className="drilldown-list">
+              {[...metrics.disposalLoads].sort((a, b) => (b.load_date || b.work_date || '').localeCompare(a.load_date || a.work_date || '')).map((d, i) => (
+                <div key={d.id || i} className="drilldown-item">
+                  <span className="drilldown-item-date">{new Date((d.load_date || d.work_date || '') + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span className="drilldown-item-name">{d.load_type}</span>
+                  <span className="drilldown-item-value">{d.load_count} load{d.load_count !== 1 ? 's' : ''}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Charts Section */}
       <div className="charts-grid">
@@ -516,7 +581,98 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          text-align: left;
         }
+
+        .summary-card.tappable {
+          cursor: pointer;
+          transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .summary-card.tappable:active {
+          transform: scale(0.97);
+        }
+
+        .metrics-drilldown {
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .metrics-drilldown h3 {
+          margin: 0 0 0.75rem;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .drilldown-range {
+          font-weight: 400;
+          color: var(--text-secondary);
+          font-size: 0.8rem;
+        }
+
+        .drilldown-empty {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+          margin: 0;
+        }
+
+        .drilldown-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .drilldown-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.5rem 0.75rem;
+          background: var(--bg-elevated);
+          border-radius: 8px;
+          font-size: 0.82rem;
+        }
+
+        .drilldown-item-muted {
+          opacity: 0.5;
+        }
+
+        .drilldown-item-date {
+          color: var(--text-secondary);
+          white-space: nowrap;
+          min-width: 60px;
+        }
+
+        .drilldown-item-name {
+          flex: 1;
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .drilldown-item-value {
+          color: var(--text-primary);
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .drilldown-item-status {
+          font-size: 0.72rem;
+          font-weight: 600;
+          padding: 0.2rem 0.5rem;
+          border-radius: 6px;
+          text-transform: capitalize;
+          white-space: nowrap;
+        }
+
+        .status-pending { background: rgba(245,158,11,0.15); color: #b45309; }
+        .status-draft { background: rgba(107,114,128,0.15); color: var(--text-secondary); }
+        .status-approved, .status-signed { background: rgba(34,197,94,0.15); color: #15803d; }
+        .status-rejected { background: rgba(239,68,68,0.15); color: #dc2626; }
 
         .card-icon {
           width: 40px;
