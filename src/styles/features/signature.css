@@ -1008,9 +1008,101 @@
 }
 
 .link-options {
+  margin-bottom: 1rem;
+}
+
+.link-option-row {
   display: flex;
-  gap: 0.75rem;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.link-option-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.link-option-select {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* Email delivery section */
+.signature-email-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.signature-email-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.email-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.email-fields .link-input {
+  font-family: inherit;
+}
+
+.email-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.link-generate-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* New link result */
+.new-link-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.link-expires-note {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.email-sent-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--color-success-bg, #d1fae5);
+  color: var(--color-success, #059669);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 .link-options .form-group {
@@ -1214,6 +1306,25 @@
 
   .signature-fields-row {
     grid-template-columns: 1fr;
+  }
+
+  .link-option-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .link-generate-row {
+    justify-content: stretch;
+  }
+
+  .link-generate-row .btn {
+    width: 100%;
+  }
+
+  .new-link-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 
   .link-options {
