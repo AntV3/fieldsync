@@ -886,6 +886,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
           documentId={corData.id}
           companyId={company?.id}
           projectId={project?.id}
+          project={project}
           documentTitle={`COR ${corData.cor_number}: ${corData.title || 'Untitled'}`}
           onClose={() => setShowSignatureLink(false)}
           onShowToast={onShowToast}

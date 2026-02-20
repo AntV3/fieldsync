@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Link, Copy, Check, Clock, ExternalLink, AlertCircle, Trash2 } from 'lucide-react'
+import { X, Link, Copy, Check, Clock, ExternalLink, AlertCircle, Trash2, Mail } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 // Hook to lock body scroll when modal is open
@@ -33,11 +33,20 @@ const formatDate = (dateString) => {
   })
 }
 
+const DEADLINE_OPTIONS = [
+  { value: '7', label: '7 days' },
+  { value: '14', label: '14 days' },
+  { value: '30', label: '30 days' },
+  { value: '60', label: '60 days' },
+  { value: 'never', label: 'No expiration' },
+]
+
 export default function SignatureLinkGenerator({
   documentType, // 'cor' or 'tm_ticket'
   documentId,
   companyId,
   projectId,
+  project,
   documentTitle = '',
   onClose,
   onShowToast
@@ -47,7 +56,10 @@ export default function SignatureLinkGenerator({
   const [existingRequests, setExistingRequests] = useState([])
   const [newLink, setNewLink] = useState(null)
   const [copied, setCopied] = useState(false)
-  const expiresIn = '7' // Always 7 days - clients have 7 days to sign
+  const [expiresIn, setExpiresIn] = useState('30')
+  const [clientEmail, setClientEmail] = useState('')
+  const [clientName, setClientName] = useState(project?.general_contractor || '')
+  const [emailSent, setEmailSent] = useState(false)
 
   // Lock body scroll when modal is open
   useBodyScrollLock()
@@ -73,6 +85,7 @@ export default function SignatureLinkGenerator({
   const generateLink = async () => {
     try {
       setGenerating(true)
+      setEmailSent(false)
 
       // Calculate expiration date
       let expiresAt = null
@@ -96,7 +109,34 @@ export default function SignatureLinkGenerator({
         const link = `${window.location.origin}/sign/${request.signature_token}`
         setNewLink(link)
         await loadExistingRequests()
-        onShowToast?.('Signature link created', 'success')
+
+        // Open Outlook with pre-filled email if address was provided
+        const email = clientEmail.trim()
+        if (email) {
+          const name = clientName.trim()
+          const docTypeLabel = documentType === 'cor' ? 'Change Order' : 'T&M Ticket'
+          const subject = `Signature required: ${docTypeLabel} — ${documentTitle}`
+          const expiryLine = expiresAt
+            ? `\nThis link expires on ${new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`
+            : ''
+          const body = [
+            name ? `Hi ${name},` : 'To Whom It May Concern,',
+            '',
+            `Please review and sign the ${docTypeLabel} "${documentTitle}".`,
+            '',
+            'Click the link below to view and sign the document:',
+            link,
+            expiryLine,
+            '',
+            'Thank you',
+          ].join('\n')
+
+          window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+          setEmailSent(true)
+          onShowToast?.('Outlook opened — review and send the email', 'success')
+        } else {
+          onShowToast?.('Signature link created', 'success')
+        }
       }
     } catch (err) {
       console.error('Error generating signature link:', err)
@@ -152,6 +192,7 @@ export default function SignatureLinkGenerator({
     }
   }
 
+  const deadlineLabel = DEADLINE_OPTIONS.find(o => o.value === expiresIn)?.label ?? `${expiresIn} days`
   const docTypeLabel = documentType === 'cor' ? 'Change Order' : 'T&M Ticket'
 
   return (
@@ -178,24 +219,76 @@ export default function SignatureLinkGenerator({
               Generate a secure link that allows GC/Client to sign this {docTypeLabel} without logging in.
             </p>
 
+            {/* Deadline selector */}
             <div className="link-options">
-              <div className="link-expiration-info">
-                <Clock size={14} />
-                <span>Link expires in 7 days</span>
+              <div className="link-option-row">
+                <label htmlFor="sig-deadline" className="link-option-label">
+                  <Clock size={14} />
+                  Signing deadline
+                </label>
+                <select
+                  id="sig-deadline"
+                  className="link-option-select"
+                  value={expiresIn}
+                  onChange={e => setExpiresIn(e.target.value)}
+                >
+                  {DEADLINE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
+            </div>
 
+            {/* Optional email delivery */}
+            <div className="signature-email-section">
+              <h4>
+                <Mail size={14} />
+                Send directly to client (optional)
+              </h4>
+              <div className="email-fields">
+                <input
+                  type="text"
+                  className="link-input"
+                  placeholder="Client name"
+                  value={clientName}
+                  onChange={e => setClientName(e.target.value)}
+                  autoComplete="off"
+                />
+                <input
+                  type="email"
+                  className="link-input"
+                  placeholder="client@example.com"
+                  value={clientEmail}
+                  onChange={e => setClientEmail(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <p className="email-hint">
+                If provided, Outlook will open with the email pre-filled — just hit Send.
+              </p>
+            </div>
+
+            <div className="link-generate-row">
               <button
                 className="btn btn-primary"
                 onClick={generateLink}
                 disabled={generating}
               >
-                {generating ? 'Generating...' : 'Generate Link'}
+                {generating
+                  ? 'Generating...'
+                  : (clientEmail.trim() ? 'Generate & Open in Outlook' : 'Generate Link')}
               </button>
             </div>
 
             {/* Newly generated link */}
             {newLink && (
               <div className="new-link-box">
+                {emailSent && (
+                  <div className="email-sent-banner">
+                    <Mail size={14} />
+                    Outlook opened — review and send to {clientEmail}
+                  </div>
+                )}
                 <div className="link-display">
                   <input
                     type="text"
@@ -211,15 +304,21 @@ export default function SignatureLinkGenerator({
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                <a
-                  href={newLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="preview-link"
-                >
-                  <ExternalLink size={14} />
-                  Preview link
-                </a>
+                <div className="new-link-meta">
+                  <span className="link-expires-note">
+                    <Clock size={12} />
+                    {expiresIn === 'never' ? 'No expiration' : `Expires in ${deadlineLabel}`}
+                  </span>
+                  <a
+                    href={newLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="preview-link"
+                  >
+                    <ExternalLink size={14} />
+                    Preview link
+                  </a>
+                </div>
               </div>
             )}
           </div>
@@ -326,7 +425,7 @@ export default function SignatureLinkGenerator({
             <div>
               <strong>How it works:</strong>
               <ul>
-                <li>Share the link with your GC or Client</li>
+                <li>Share the link with your GC or Client (or enter their email above to open Outlook with the email pre-filled)</li>
                 <li>They can view the document and sign without logging in</li>
                 <li>Supports 2 signatures (GC + Client)</li>
                 <li>Signatures are recorded with name, title, company, date, and IP</li>
