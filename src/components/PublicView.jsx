@@ -8,7 +8,7 @@ export default function PublicView({ shareToken }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [data, setData] = useState(null)
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0)
+
   const { branding } = useBranding()
 
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function PublicView({ shareToken }) {
     )
   }
 
-  const { share, project, progress, areas, photos, dailyReports, tmTickets } = data
+  const { share, project, progress, areas, dailyReports, tmTickets } = data
 
   return (
     <div className="public-view">
@@ -165,61 +165,6 @@ export default function PublicView({ shareToken }) {
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Photos Section */}
-          {share.permissions.photos && photos && photos.length > 0 && (
-            <div className="public-card photos-card">
-              <h2>Recent Photos</h2>
-              <div className="photos-carousel">
-                <div className="carousel-main">
-                  {photos[selectedPhotoIndex] && (
-                    <img
-                      src={photos[selectedPhotoIndex].url}
-                      alt={`Project photo from ${formatDate(photos[selectedPhotoIndex].date)}`}
-                      className="carousel-image"
-                    />
-                  )}
-                  <div className="carousel-date">
-                    {formatDate(photos[selectedPhotoIndex]?.date)}
-                  </div>
-                </div>
-                <div className="carousel-thumbnails">
-                  {photos.slice(0, 10).map((photo, index) => (
-                    <div
-                      key={index}
-                      className={`thumbnail ${index === selectedPhotoIndex ? 'active' : ''}`}
-                      onClick={() => setSelectedPhotoIndex(index)}
-                    >
-                      <img src={photo.url} alt={`Thumbnail ${index + 1}`} />
-                    </div>
-                  ))}
-                </div>
-                {photos.length > 1 && (
-                  <div className="carousel-controls">
-                    <button
-                      onClick={() => setSelectedPhotoIndex(prev =>
-                        prev > 0 ? prev - 1 : photos.length - 1
-                      )}
-                      className="carousel-btn"
-                    >
-                      ←
-                    </button>
-                    <span className="carousel-counter">
-                      {selectedPhotoIndex + 1} / {photos.length}
-                    </span>
-                    <button
-                      onClick={() => setSelectedPhotoIndex(prev =>
-                        prev < photos.length - 1 ? prev + 1 : 0
-                      )}
-                      className="carousel-btn"
-                    >
-                      →
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
           )}
 
