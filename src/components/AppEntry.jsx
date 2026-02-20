@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
+import { TRADE_PROFILES, COMPANY_TYPES } from '../lib/constants'
 
 // Password strength calculator
 function getPasswordStrength(pwd) {
@@ -143,6 +144,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   // Register state
   const [registerStep, setRegisterStep] = useState(1) // 1: company info, 2: admin account, 3: success
   const [registerCompanyName, setRegisterCompanyName] = useState('')
+  const [registerTrade, setRegisterTrade] = useState('')
+  const [registerCompanyType, setRegisterCompanyType] = useState('')
   const [registerName, setRegisterName] = useState('')
   const [registerEmail, setRegisterEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
@@ -513,7 +516,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           code: companyCodeGenerated,
           office_code: officeCodeGenerated,
           subscription_tier: 'free',
-          owner_user_id: userId
+          owner_user_id: userId,
+          trade: registerTrade || 'general',
+          company_type: registerCompanyType || 'subcontractor'
         })
         .select()
         .single()
@@ -589,6 +594,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const resetRegisterState = () => {
     setRegisterStep(1)
     setRegisterCompanyName('')
+    setRegisterTrade('')
+    setRegisterCompanyType('')
     setRegisterName('')
     setRegisterEmail('')
     setRegisterPassword('')
@@ -1006,6 +1013,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
     // Step 1: Company info
     if (registerStep === 1) {
+      const canContinue = registerCompanyName.trim() && registerTrade && registerCompanyType
       return (
         <div className="entry-container">
           <div className="entry-card animate-fade-in">
@@ -1025,16 +1033,31 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
                 onChange={(e) => setRegisterCompanyName(e.target.value)}
                 placeholder="Company Name"
                 autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && registerCompanyName.trim()) {
-                    setRegisterStep(2)
-                  }
-                }}
               />
+              <select
+                value={registerTrade}
+                onChange={(e) => setRegisterTrade(e.target.value)}
+                className={!registerTrade ? 'entry-select-placeholder' : ''}
+              >
+                <option value="" disabled>Select your trade</option>
+                {Object.entries(TRADE_PROFILES).map(([key, profile]) => (
+                  <option key={key} value={key}>{profile.icon} {profile.label}</option>
+                ))}
+              </select>
+              <select
+                value={registerCompanyType}
+                onChange={(e) => setRegisterCompanyType(e.target.value)}
+                className={!registerCompanyType ? 'entry-select-placeholder' : ''}
+              >
+                <option value="" disabled>Company type</option>
+                {COMPANY_TYPES.map(ct => (
+                  <option key={ct.value} value={ct.value}>{ct.label}</option>
+                ))}
+              </select>
               <button
                 className="entry-login-btn"
                 onClick={() => setRegisterStep(2)}
-                disabled={!registerCompanyName.trim()}
+                disabled={!canContinue}
               >
                 Continue
               </button>
