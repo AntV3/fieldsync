@@ -653,14 +653,16 @@ export const db = {
     // 2. Delete all photos from storage
     if (photoUrls.length > 0) {
       const filePaths = photoUrls
-        .map(url => {
-          try {
-            const urlObj = new URL(url)
-            const match = urlObj.pathname.match(/\/tm-photos\/(.+)$/)
-            return match ? match[1] : null
-          } catch {
-            return null
+        .map(urlOrPath => {
+          if (!urlOrPath) return null
+          if (urlOrPath.startsWith('http')) {
+            try {
+              const urlObj = new URL(urlOrPath)
+              const match = urlObj.pathname.match(/\/tm-photos\/(.+)$/)
+              return match ? match[1] : null
+            } catch { return null }
           }
+          return urlOrPath // already a storage path
         })
         .filter(Boolean)
 
@@ -3275,23 +3277,33 @@ export const db = {
   // Photo Verification & Reliability
   // ============================================
 
-  // Verify that a photo URL is accessible (exists in storage)
-  async verifyPhotoAccessible(photoUrl) {
-    if (!isSupabaseConfigured || !photoUrl) return { accessible: false, error: 'Invalid URL' }
+  // Verify that a photo path/URL exists in storage.
+  // Uses createSignedUrl (works with private bucket) instead of a HEAD request.
+  async verifyPhotoAccessible(photoUrlOrPath) {
+    if (!isSupabaseConfigured || !photoUrlOrPath) return { accessible: false, error: 'Invalid input' }
+
+    let filePath
+    if (photoUrlOrPath.startsWith('http')) {
+      try {
+        const urlObj = new URL(photoUrlOrPath)
+        const match = urlObj.pathname.match(/\/(?:public\/)?tm-photos\/(.+)$/)
+        if (!match) return { accessible: false, error: 'Not a tm-photos URL' }
+        filePath = decodeURIComponent(match[1])
+      } catch {
+        return { accessible: false, error: 'Invalid URL' }
+      }
+    } else {
+      filePath = photoUrlOrPath
+    }
 
     try {
-      // Try a HEAD request to check if the photo exists
-      const response = await fetch(photoUrl, { method: 'HEAD' })
-      return {
-        accessible: response.ok,
-        status: response.status,
-        error: response.ok ? null : `HTTP ${response.status}`
-      }
+      const { data, error } = await supabase.storage
+        .from('tm-photos')
+        .createSignedUrl(filePath, 60)
+      if (error) return { accessible: false, error: error.message }
+      return { accessible: !!data?.signedUrl, status: 200 }
     } catch (error) {
-      return {
-        accessible: false,
-        error: error.message || 'Network error'
-      }
+      return { accessible: false, error: error.message || 'Verification failed' }
     }
   },
 

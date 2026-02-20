@@ -15,10 +15,14 @@ export default function ProjectMessages({ project, company, userName, onShowToas
     loadMessages()
 
     // Subscribe to new messages
-    const subscription = db.subscribeToMessages?.(project.id, (payload) => {
+    const subscription = db.subscribeToMessages?.(project.id, async (payload) => {
       if (payload.new) {
-        setMessages(prev => [...prev, payload.new])
-        if (payload.new.sender_type === 'field') {
+        const msg = { ...payload.new }
+        if (msg.photo_url) {
+          msg.photo_url = await db.resolvePhotoUrl(msg.photo_url)
+        }
+        setMessages(prev => [...prev, msg])
+        if (msg.sender_type === 'field') {
           setUnreadCount(prev => prev + 1)
         }
       }
@@ -41,9 +45,15 @@ export default function ProjectMessages({ project, company, userName, onShowToas
   const loadMessages = async () => {
     try {
       const data = await db.getMessages(project.id, 50)
-      const sortedMessages = (data || []).sort((a, b) =>
+      let sortedMessages = (data || []).sort((a, b) =>
         new Date(a.created_at) - new Date(b.created_at)
       )
+      // Resolve message photo attachments to signed URLs (bucket is private)
+      const rawUrls = sortedMessages.map(m => m.photo_url)
+      if (rawUrls.some(Boolean)) {
+        const signed = await db.resolvePhotoUrls(rawUrls)
+        sortedMessages = sortedMessages.map((m, i) => ({ ...m, photo_url: signed[i] }))
+      }
       setMessages(sortedMessages)
 
       // Count unread from field
