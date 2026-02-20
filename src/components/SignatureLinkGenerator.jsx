@@ -46,6 +46,7 @@ export default function SignatureLinkGenerator({
   documentId,
   companyId,
   projectId,
+  project,
   documentTitle = '',
   onClose,
   onShowToast
@@ -57,7 +58,7 @@ export default function SignatureLinkGenerator({
   const [copied, setCopied] = useState(false)
   const [expiresIn, setExpiresIn] = useState('30')
   const [clientEmail, setClientEmail] = useState('')
-  const [clientName, setClientName] = useState('')
+  const [clientName, setClientName] = useState(project?.general_contractor || '')
   const [emailSent, setEmailSent] = useState(false)
 
   // Lock body scroll when modal is open
@@ -119,7 +120,7 @@ export default function SignatureLinkGenerator({
             ? `\nThis link expires on ${new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`
             : ''
           const body = [
-            name ? `Hi ${name},` : 'Hi,',
+            name ? `Hi ${name},` : 'To Whom It May Concern,',
             '',
             `Please review and sign the ${docTypeLabel} "${documentTitle}".`,
             '',

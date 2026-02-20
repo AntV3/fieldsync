@@ -1415,6 +1415,7 @@ export default function TMList({
           documentId={signatureLinkTicket.id}
           companyId={company?.id}
           projectId={project?.id}
+          project={project}
           documentTitle={`T&M Ticket - ${new Date(signatureLinkTicket.work_date).toLocaleDateString()}${signatureLinkTicket.ce_pco_number ? ` (${signatureLinkTicket.ce_pco_number})` : ''}`}
           onClose={() => {
             setShowSignatureLink(false)
