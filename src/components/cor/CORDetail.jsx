@@ -30,6 +30,21 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     try {
       const fullCOR = await db.getCORById(cor.id)
       if (fullCOR) {
+        // Resolve all ticket photos to signed URLs in one batch (bucket is private)
+        if (fullCOR.tickets?.length) {
+          const photoGroups = fullCOR.tickets.map(t => t.photos || [])
+          const allPhotos = photoGroups.flat()
+          if (allPhotos.length) {
+            const signed = await db.resolvePhotoUrls(allPhotos)
+            let offset = 0
+            fullCOR.tickets = fullCOR.tickets.map((t, i) => {
+              const len = photoGroups[i].length
+              const resolved = signed.slice(offset, offset + len)
+              offset += len
+              return { ...t, photos: resolved }
+            })
+          }
+        }
         setCORData(fullCOR)
       }
     } catch (error) {

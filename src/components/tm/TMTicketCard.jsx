@@ -1,6 +1,7 @@
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
 import { CountBadge } from '../ui'
+import { db } from '../../lib/supabase'
 
 /**
  * Memoized T&M Ticket Card component
@@ -28,6 +29,17 @@ const TMTicketCard = memo(function TMTicketCard({
 }) {
   const totalHours = calculateTotalHours(ticket)
   const totalCost = calculateTicketTotal(ticket)
+
+  // Resolve stored photo paths/public URLs to signed URLs (bucket is private)
+  const [signedPhotoUrls, setSignedPhotoUrls] = useState([])
+  useEffect(() => {
+    if (!ticket.photos?.length) { setSignedPhotoUrls([]); return }
+    let cancelled = false
+    db.resolvePhotoUrls(ticket.photos).then(resolved => {
+      if (!cancelled) setSignedPhotoUrls(resolved)
+    })
+    return () => { cancelled = true }
+  }, [ticket.photos])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -157,11 +169,11 @@ const TMTicketCard = memo(function TMTicketCard({
             </div>
           )}
 
-          {ticket.photos && ticket.photos.length > 0 && (
+          {ticket.photos && ticket.photos.length > 0 && signedPhotoUrls.length > 0 && (
             <div className="tm-detail-section">
               <h4><Camera size={16} className="inline-icon" /> Photos ({ticket.photos.length})</h4>
               <div className="tm-photos-grid">
-                {ticket.photos.map((photo, idx) => (
+                {signedPhotoUrls.map((photo, idx) => (
                   <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">
                     <img
                       src={photo}

@@ -95,9 +95,12 @@ That's it. Under 15 seconds to update.
 
 ## Tech Stack
 
-- **Frontend**: React + Vite
-- **Backend**: Supabase (PostgreSQL + Realtime)
-- **Styling**: Custom CSS (no frameworks)
+- **Frontend**: React 19 + Vite 7
+- **Backend**: Supabase (PostgreSQL + Realtime + Storage)
+- **Styling**: Custom CSS with CSS variables (light/dark theme)
+- **Icons**: Lucide React
+- **PDF Export**: jsPDF + jspdf-autotable
+- **Charts**: Recharts
 - **Hosting**: Vercel (recommended)
 
 ## Project Structure
@@ -106,28 +109,32 @@ That's it. Under 15 seconds to update.
 fieldsync/
 ├── src/
 │   ├── components/
-│   │   ├── Dashboard.jsx      # Office view with financials
-│   │   ├── Field.jsx          # Field crew view
-│   │   ├── Setup.jsx          # New project form
-│   │   ├── HeroMetrics.jsx    # Financial metrics display
-│   │   ├── FinancialsNav.jsx  # Financials tab navigation
-│   │   ├── TMList.jsx         # T&M ticket management
-│   │   ├── cor/               # Change Order Request components
-│   │   │   ├── CORList.jsx
-│   │   │   ├── CORForm.jsx
-│   │   │   └── CORDetail.jsx
-│   │   └── ui/                # Reusable UI components
-│   │       ├── Skeleton.jsx   # Loading skeletons
-│   │       ├── MicroVis.jsx   # Micro-visualizations
-│   │       └── index.js       # Component exports
+│   │   ├── AppEntry.jsx           # Login / join / register flows
+│   │   ├── Dashboard.jsx          # Office dashboard
+│   │   ├── ForemanView.jsx        # Field crew view
+│   │   ├── Setup.jsx              # New project form
+│   │   ├── TMList.jsx             # T&M ticket list
+│   │   ├── TMForm.jsx             # T&M ticket creation
+│   │   ├── billing/               # Invoices, draw requests
+│   │   ├── cor/                   # Change Order Request workflow
+│   │   ├── dashboard/             # Dashboard sub-components & tabs
+│   │   ├── documents/             # Document management
+│   │   ├── equipment/             # Equipment tracking
+│   │   ├── tm/                    # T&M step components
+│   │   └── ui/                    # Shared UI primitives
+│   ├── hooks/                     # Custom React hooks
 │   ├── lib/
-│   │   ├── supabase.js        # Database client
-│   │   └── utils.js           # Helper functions
-│   ├── App.jsx                # Main app
-│   ├── main.jsx               # Entry point
-│   └── index.css              # Styles
-├── database/
-│   └── schema.sql             # Database setup
+│   │   ├── supabase.js            # Database facade (100+ methods)
+│   │   ├── offlineManager.js      # IndexedDB offline queue
+│   │   ├── corExportPipeline.js   # COR PDF export orchestrator
+│   │   └── ...                    # Other utilities
+│   ├── styles/                    # Feature-scoped CSS modules
+│   ├── test/                      # Vitest unit tests
+│   ├── App.jsx                    # Root component & view router
+│   └── main.jsx                   # Entry point
+├── database/                      # SQL migrations (manual)
+├── supabase/migrations/           # Supabase CLI migrations
+├── docs/                          # Architecture & developer guides
 └── index.html
 ```
 

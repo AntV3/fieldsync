@@ -40,6 +40,7 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
       setTeamMembers(data)
     } catch (error) {
       console.error('Error loading project team:', error)
+      onShowToast('Error loading project team', 'error')
     } finally {
       setLoading(false)
     }
@@ -54,6 +55,7 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
       setCompanyMembers(available)
     } catch (error) {
       console.error('Error loading company members:', error)
+      onShowToast('Error loading company members', 'error')
     }
   }
 

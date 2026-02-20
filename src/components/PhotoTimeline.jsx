@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Camera, ChevronDown, ChevronUp, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
 
 /**
  * PhotoTimeline - Visual progress photo timeline organized by area and date.
@@ -77,6 +77,11 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
           }
         }
       }
+
+      // Resolve stored paths/public URLs to signed URLs (bucket is now private)
+      const rawUrls = allPhotos.map(p => p.url)
+      const signedUrls = await db.resolvePhotoUrls(rawUrls)
+      signedUrls.forEach((signed, i) => { allPhotos[i].url = signed })
 
       setPhotos(allPhotos)
 

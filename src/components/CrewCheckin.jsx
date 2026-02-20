@@ -29,10 +29,11 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       }
     } catch (err) {
       console.error('Error loading crew:', err)
+      onShowToast?.('Error loading today\'s crew', 'error')
     } finally {
       setLoading(false)
     }
-  }, [project?.id])
+  }, [project?.id, onShowToast])
 
   const loadRecentWorkers = useCallback(async () => {
     try {
@@ -40,6 +41,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       setRecentWorkers(recent)
     } catch (err) {
       console.error('Error loading recent workers:', err)
+      // Non-critical — quick-add still works without recent worker list
     } finally {
       setLoadingRecent(false)
     }

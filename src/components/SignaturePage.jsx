@@ -109,7 +109,26 @@ export default function SignaturePage({ signatureToken }) {
       if (request.document_type === 'cor' && docData?.id) {
         try {
           const tickets = await db.getCORTickets(docData.id)
-          setBackupTickets(tickets || [])
+          // Resolve ticket photos to signed URLs in one batch (bucket is private)
+          if (tickets?.length) {
+            const photoGroups = tickets.map(t => t.photos || [])
+            const allPhotos = photoGroups.flat()
+            if (allPhotos.length) {
+              const signed = await db.resolvePhotoUrls(allPhotos)
+              let offset = 0
+              const resolved = tickets.map((t, i) => {
+                const len = photoGroups[i].length
+                const photos = signed.slice(offset, offset + len)
+                offset += len
+                return { ...t, photos }
+              })
+              setBackupTickets(resolved)
+            } else {
+              setBackupTickets(tickets)
+            }
+          } else {
+            setBackupTickets(tickets || [])
+          }
         } catch (err) {
           console.warn('Failed to load backup tickets:', err)
         }

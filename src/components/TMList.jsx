@@ -86,7 +86,7 @@ export default function TMList({
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
-  }, [project.id])
+  }, [project.id, loadTickets])
 
   // Save user preference when displayMode changes
   useEffect(() => {
@@ -104,8 +104,9 @@ export default function TMList({
     }
   }, [compact])
 
-  // Load tickets with pagination
-  const loadTickets = async (pageNum = 0, reset = false) => {
+  // Load tickets with pagination - wrapped in useCallback so the subscription
+  // callback always references the same function and doesn't cause leak/resubscribe cycles
+  const loadTickets = useCallback(async (pageNum = 0, reset = false) => {
     try {
       if (reset) {
         setLoading(true)
@@ -167,7 +168,7 @@ export default function TMList({
       setLoading(false)
       setLoadingMore(false)
     }
-  }
+  }, [project.id, filter, onShowToast])
 
   // Load more tickets (next page)
   const loadMore = () => {

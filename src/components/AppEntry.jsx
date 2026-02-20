@@ -341,6 +341,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
   // Handle join submit - supports both new users and existing users joining additional companies
   const handleJoinSubmit = async () => {
+    if (loading) return
     if (!joinName.trim()) {
       onShowToast('Enter your name', 'error')
       return
@@ -482,6 +483,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
   // Handle company registration
   const handleRegisterCompany = async () => {
+    if (loading) return
     if (!registerName.trim()) {
       onShowToast('Enter your name', 'error')
       return
@@ -755,22 +757,24 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           </div>
 
           {/* Number Pad */}
-          <div className="number-pad">
+          <div className="number-pad" role="group" aria-label="PIN entry keypad">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
               <button
                 key={num}
                 className="num-btn"
                 onClick={() => handleNumberPad(num.toString())}
                 disabled={loading}
+                aria-label={String(num)}
               >
                 {num}
               </button>
             ))}
-            <button className="num-btn empty" disabled></button>
+            <button className="num-btn empty" disabled aria-hidden="true"></button>
             <button
               className="num-btn"
               onClick={() => handleNumberPad('0')}
               disabled={loading}
+              aria-label="0"
             >
               0
             </button>
@@ -778,6 +782,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               className="num-btn backspace"
               onClick={handleBackspace}
               disabled={loading || pin.length === 0}
+              aria-label="Delete last digit"
             >
               <ArrowLeft size={18} />
             </button>
