@@ -47,21 +47,22 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         db.getDailyReports?.(project.id) || []
       ])
 
-      // Load crew history for each day
+      // Load crew history in one batch query, then map to date range
+      const crewCheckinHistory = await (db.getCrewCheckinHistory?.(project.id, days) || Promise.resolve([]))
+      const crewByDate = {}
+      crewCheckinHistory.forEach(c => {
+        crewByDate[c.check_in_date] = c.workers?.length || 0
+      })
+
       const crewHistory = []
       const currentDate = new Date(startDate)
       while (currentDate <= now) {
         const dateStr = currentDate.toISOString().split('T')[0]
-        try {
-          const crew = await db.getCrewCheckin(project.id, dateStr)
-          crewHistory.push({
-            date: dateStr,
-            count: crew?.workers?.length || 0,
-            dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
-          })
-        } catch {
-          crewHistory.push({ date: dateStr, count: 0, dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' }) })
-        }
+        crewHistory.push({
+          date: dateStr,
+          count: crewByDate[dateStr] || 0,
+          dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
+        })
         currentDate.setDate(currentDate.getDate() + 1)
       }
 
@@ -139,7 +140,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
     // Disposal stats
     const totalLoads = disposalLoads.reduce((sum, d) => sum + (d.load_count || 0), 0)
-    const totalTonnage = 0 // tonnage not tracked in disposal_loads
 
     // Daily reports
     const reportsSubmitted = dailyReports.filter(r => r.submitted).length
@@ -150,7 +150,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       progress: { totalAreas, completedAreas, inProgressAreas, notStartedAreas, progressPercent },
       crew: { totalManDays, avgCrewSize, daysWithCrew, history: crewHistory },
       tickets: { total: tickets.length, pending: pendingTickets, signed: signedTickets, totalValue: totalTicketValue },
-      disposal: { totalLoads, totalTonnage },
+      disposal: { totalLoads },
       reports: { submitted: reportsSubmitted, due: reportsDue, streak: reportStreak }
     }
   }, [metrics, timeRange])
@@ -298,7 +298,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
             <span className="card-label">Disposal Loads</span>
           </div>
           <div className="card-detail">
-            {derivedMetrics.disposal.totalTonnage.toFixed(1)} tons
+            {timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
           </div>
         </div>
       </div>

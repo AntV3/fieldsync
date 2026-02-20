@@ -509,11 +509,12 @@ export default function ForemanLanding({
         }
 
         .fm-pinned-card.danger {
-          border-color: #f59e0b;
+          border-color: #ef4444;
+          background: rgba(239, 68, 68, 0.05);
         }
 
         .fm-pinned-card.danger .fm-pinned-icon {
-          color: #f59e0b;
+          color: #ef4444;
         }
 
         .fm-pinned-icon {
@@ -646,7 +647,7 @@ export default function ForemanLanding({
         }
 
         .fm-action-row.danger {
-          color: #f59e0b;
+          color: #ef4444;
         }
 
         .fm-action-label {

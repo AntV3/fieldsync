@@ -72,11 +72,14 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
       // Load disposal loads for today
       const disposal = await db.getDisposalLoads?.(project.id, today) || []
 
+      // Load today's daily report status
+      const dailyReport = await db.getDailyReport?.(project.id, today)
+
       setTodayStatus({
         crewCheckedIn,
         crewCount: crewWorkers.length,
         tmTicketsToday: todayTickets.length,
-        dailyReportDone: false, // We'll track this separately
+        dailyReportDone: !!dailyReport,
         disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
       })
     } catch (error) {
@@ -414,7 +417,12 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           <ArrowLeft size={20} />
         </button>
         <div className="fm-header-center">
-          <h1 className="fm-project-name">{project.name}</h1>
+          <div className="fm-header-text">
+            <span className="fm-greeting">
+              {isMorning ? 'Good morning' : isAfternoon ? 'Good afternoon' : 'Good evening'}
+            </span>
+            <h1 className="fm-project-name">{project.name}</h1>
+          </div>
           <button className="fm-info-toggle" onClick={() => setShowProjectInfo(!showProjectInfo)}>
             <Info size={16} />
           </button>
