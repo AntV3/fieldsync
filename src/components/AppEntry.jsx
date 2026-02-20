@@ -114,6 +114,10 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
   const [pinState, setPinState] = useState('') // '', 'error', 'success'
+  const [foundProject, setFoundProject] = useState(null) // Project after PIN success, waiting for name
+  const [foremanName, setForemanName] = useState(() => {
+    try { return localStorage.getItem('fieldsync_foreman_name') || '' } catch { return '' }
+  })
 
   // Refs for timeout cleanup to prevent memory leaks
   const pinResetTimeoutRef = useRef(null)
@@ -200,7 +204,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       }
 
       if (result.success && result.project) {
-        onForemanAccess(result.project)
+        setFoundProject(result.project)
         return
       }
 
@@ -209,7 +213,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (result.error) {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
-          onForemanAccess(fallbackProject)
+          setFoundProject(fallbackProject)
           return
         }
       }
@@ -221,7 +225,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       try {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
-          onForemanAccess(fallbackProject)
+          setFoundProject(fallbackProject)
           return
         }
       } catch (fallbackErr) {
@@ -232,6 +236,16 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     } finally {
       setLoading(false)
     }
+  }
+
+  // Submit foreman name and enter the project
+  const handleForemanNameSubmit = () => {
+    if (!foremanName.trim()) {
+      onShowToast('Enter your name to continue', 'error')
+      return
+    }
+    try { localStorage.setItem('fieldsync_foreman_name', foremanName.trim()) } catch { /* ignore */ }
+    onForemanAccess(foundProject, foremanName.trim())
   }
 
   // Number pad handler
@@ -628,6 +642,57 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
   // Foreman flow
   if (mode === 'foreman') {
+    // Step 3: Name entry (after PIN success)
+    if (foundProject) {
+      return (
+        <div className="entry-container">
+          <div className="entry-card animate-fade-in">
+            <Logo className="entry-logo" showPoweredBy={false} />
+            <div className="entry-company-badge">{foundProject.name}</div>
+            <p className="entry-subtitle">Who's checking in?</p>
+
+            <div className="entry-form">
+              <input
+                type="text"
+                value={foremanName}
+                onChange={(e) => setForemanName(e.target.value)}
+                placeholder="Your name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleForemanNameSubmit()
+                }}
+                style={{ fontSize: '1.1rem', textAlign: 'center' }}
+              />
+              <button
+                className="entry-login-btn"
+                onClick={handleForemanNameSubmit}
+                disabled={!foremanName.trim()}
+              >
+                Enter Site
+              </button>
+            </div>
+
+            <p className="entry-hint" style={{ marginTop: '0.75rem' }}>
+              Your name will appear on reports and submissions
+            </p>
+
+            <button
+              className="entry-join-link"
+              style={{ marginTop: '0.5rem', display: 'flex', alignSelf: 'center' }}
+              onClick={() => {
+                setFoundProject(null)
+                setPin('')
+                setPinState('')
+              }}
+            >
+              <ArrowLeft size={16} />
+              <span>Back</span>
+            </button>
+          </div>
+        </div>
+      )
+    }
+
     // Step 1: Company code
     if (!company) {
       return (

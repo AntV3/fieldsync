@@ -102,6 +102,7 @@ export default function App() {
   const [userCompanies, setUserCompanies] = useState([]) // All companies user can access
   const [projects, setProjects] = useState([]) // For notification subscriptions
   const [foremanProject, setForemanProject] = useState(null)
+  const [foremanName, setForemanName] = useState('')
   const [shareToken, setShareToken] = useState(null)
   const [signatureToken, setSignatureToken] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -269,9 +270,10 @@ export default function App() {
     }
   }, [user, checkAuth])
 
-  // Foreman accessed project via PIN
-  const handleForemanAccess = (project) => {
+  // Foreman accessed project via PIN (and entered their name)
+  const handleForemanAccess = (project, name = '') => {
     setForemanProject(project)
+    setForemanName(name)
     setView('foreman')
   }
 
@@ -428,6 +430,7 @@ export default function App() {
     // Clear the field session token
     await clearFieldSession()
     setForemanProject(null)
+    setForemanName('')
     setView('entry')
   }
 
@@ -630,6 +633,7 @@ export default function App() {
             <ForemanView
               project={foremanProject}
               companyId={foremanProject.company_id}
+              foremanName={foremanName}
               onShowToast={showToast}
               onExit={handleExitForeman}
             />

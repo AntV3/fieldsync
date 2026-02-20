@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
-  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2
+  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck
 } from 'lucide-react'
 
 /**
@@ -59,6 +59,12 @@ const ALL_ACTIONS = {
     icon: BarChart2,
     description: 'View charts & trends'
   },
+  punchlist: {
+    id: 'punchlist',
+    label: 'Punch List',
+    icon: ClipboardCheck,
+    description: 'View & resolve punch items'
+  },
   injury: {
     id: 'injury',
     label: 'Report Injury',
@@ -81,6 +87,7 @@ export default function ForemanLanding({
   areasWorking,
   areasDone,
   areasRemaining,
+  punchListOpenCount,
   onNavigate,
   onShowToast
 }) {
@@ -169,6 +176,12 @@ export default function ForemanLanding({
           done: false,
           badge: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} today` : null,
           status: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} logged` : 'Log loads'
+        }
+      case 'punchlist':
+        return {
+          done: punchListOpenCount === 0 && punchListOpenCount !== undefined,
+          badge: punchListOpenCount > 0 ? `${punchListOpenCount} open` : null,
+          status: punchListOpenCount > 0 ? `${punchListOpenCount} items open` : 'All clear'
         }
       default:
         return { done: false, badge: null, status: null }
