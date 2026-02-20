@@ -109,25 +109,30 @@ export default function SignatureLinkGenerator({
         setNewLink(link)
         await loadExistingRequests()
 
-        // Send email to client if address was provided
+        // Open Outlook with pre-filled email if address was provided
         const email = clientEmail.trim()
         if (email) {
-          try {
-            await db.sendSignatureEmail({
-              to: email,
-              clientName: clientName.trim() || undefined,
-              documentTitle,
-              documentType,
-              signingLink: link,
-              expiresAt,
-              expiresInDays: expiresIn === 'never' ? null : parseInt(expiresIn),
-            })
-            setEmailSent(true)
-            onShowToast?.(`Signature link sent to ${email}`, 'success')
-          } catch (emailErr) {
-            console.error('Email send failed:', emailErr)
-            onShowToast?.('Link created — email failed to send. Copy the link manually.', 'error')
-          }
+          const name = clientName.trim()
+          const docTypeLabel = documentType === 'cor' ? 'Change Order' : 'T&M Ticket'
+          const subject = `Signature required: ${docTypeLabel} — ${documentTitle}`
+          const expiryLine = expiresAt
+            ? `\nThis link expires on ${new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`
+            : ''
+          const body = [
+            name ? `Hi ${name},` : 'Hi,',
+            '',
+            `Please review and sign the ${docTypeLabel} "${documentTitle}".`,
+            '',
+            'Click the link below to view and sign the document:',
+            link,
+            expiryLine,
+            '',
+            'Thank you',
+          ].join('\n')
+
+          window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+          setEmailSent(true)
+          onShowToast?.('Outlook opened — review and send the email', 'success')
         } else {
           onShowToast?.('Signature link created', 'success')
         }
@@ -258,7 +263,7 @@ export default function SignatureLinkGenerator({
                 />
               </div>
               <p className="email-hint">
-                If provided, an email with the signing link will be sent automatically.
+                If provided, Outlook will open with the email pre-filled — just hit Send.
               </p>
             </div>
 
@@ -269,8 +274,8 @@ export default function SignatureLinkGenerator({
                 disabled={generating}
               >
                 {generating
-                  ? (clientEmail.trim() ? 'Generating & Sending...' : 'Generating...')
-                  : (clientEmail.trim() ? 'Generate & Email Client' : 'Generate Link')}
+                  ? 'Generating...'
+                  : (clientEmail.trim() ? 'Generate & Open in Outlook' : 'Generate Link')}
               </button>
             </div>
 
@@ -280,7 +285,7 @@ export default function SignatureLinkGenerator({
                 {emailSent && (
                   <div className="email-sent-banner">
                     <Mail size={14} />
-                    Email sent to {clientEmail}
+                    Outlook opened — review and send to {clientEmail}
                   </div>
                 )}
                 <div className="link-display">
@@ -419,7 +424,7 @@ export default function SignatureLinkGenerator({
             <div>
               <strong>How it works:</strong>
               <ul>
-                <li>Share the link with your GC or Client (or enter their email above to send it directly)</li>
+                <li>Share the link with your GC or Client (or enter their email above to open Outlook with the email pre-filled)</li>
                 <li>They can view the document and sign without logging in</li>
                 <li>Supports 2 signatures (GC + Client)</li>
                 <li>Signatures are recorded with name, title, company, date, and IP</li>

@@ -1685,18 +1685,6 @@ export const corOps = {
     return null
   },
 
-  // Send signature request email to client via Supabase Edge Function
-  async sendSignatureEmail({ to, clientName, documentTitle, documentType, signingLink, expiresAt, expiresInDays }) {
-    if (!isSupabaseConfigured) throw new Error('Supabase not configured')
-
-    const { data, error } = await supabase.functions.invoke('send-signature-email', {
-      body: { to, clientName, documentTitle, documentType, signingLink, expiresAt, expiresInDays }
-    })
-
-    if (error) throw error
-    return data
-  },
-
   // Get document data for signature page (COR or T&M with project info)
   async getDocumentForSigning(documentType, documentId) {
     if (!isSupabaseConfigured) return null
