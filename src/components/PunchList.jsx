@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save } from 'lucide-react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: '#ef4444' },
@@ -42,7 +42,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseClient()
         .from('punch_list_items')
         .select('*')
         .eq('project_id', projectId)
@@ -110,7 +110,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     setSaving(true)
     try {
       if (editingItem) {
-        const { error } = await supabase
+        const { error } = await getSupabaseClient()
           .from('punch_list_items')
           .update({
             description: formData.description.trim(),
@@ -126,7 +126,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
         if (error) throw error
         onShowToast?.('Punch item updated', 'success')
       } else {
-        const { error } = await supabase
+        const { error } = await getSupabaseClient()
           .from('punch_list_items')
           .insert({
             project_id: projectId,
@@ -166,7 +166,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
         updates.completed_at = null
       }
 
-      const { error } = await supabase
+      const { error } = await getSupabaseClient()
         .from('punch_list_items')
         .update(updates)
         .eq('id', itemId)
@@ -183,7 +183,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     if (!confirm('Delete this punch item?')) return
 
     try {
-      const { error } = await supabase
+      const { error } = await getSupabaseClient()
         .from('punch_list_items')
         .delete()
         .eq('id', itemId)
