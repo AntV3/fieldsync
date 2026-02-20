@@ -72,29 +72,10 @@ END $$;
 -- ============================================
 
 CREATE OR REPLACE FUNCTION get_company_settings(p_company_id UUID)
-RETURNS TABLE (
-  id UUID,
-  name TEXT,
-  code VARCHAR,
-  office_code TEXT,
-  subscription_tier TEXT,
-  trade TEXT,
-  company_type TEXT,
-  field_supervisor_label TEXT
-) AS $$
+RETURNS TABLE (id UUID, name TEXT, code VARCHAR, office_code TEXT, subscription_tier TEXT, trade TEXT, company_type TEXT, field_supervisor_label TEXT)
+AS $$
 BEGIN
-  RETURN QUERY
-  SELECT
-    c.id,
-    c.name,
-    c.code,
-    c.office_code,
-    c.subscription_tier,
-    c.trade,
-    c.company_type,
-    c.field_supervisor_label
-  FROM companies c
-  WHERE c.id = p_company_id;
+  RETURN QUERY SELECT companies.id, companies.name, companies.code, companies.office_code, companies.subscription_tier, companies.trade, companies.company_type, companies.field_supervisor_label FROM companies WHERE companies.id = p_company_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
