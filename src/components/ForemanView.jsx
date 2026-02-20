@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db } from '../lib/supabase'
+import { db, supabase, isSupabaseConfigured } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
   Info, CheckSquare,
@@ -14,16 +14,20 @@ import DisposalLoadInput from './DisposalLoadInput'
 import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
+import PunchList from './PunchList'
 
-export default function ForemanView({ project, companyId, onShowToast, onExit }) {
+export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
 
   // View states
-  const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress
+  const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress, punchlist
   const [showProjectInfo, setShowProjectInfo] = useState(false)
+
+  // Punch list open count for badge
+  const [punchListOpenCount, setPunchListOpenCount] = useState(0)
 
   // Today's activity status (for smart cards)
   const [todayStatus, setTodayStatus] = useState({
@@ -52,6 +56,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     if (project?.id) {
       loadAreas()
       loadTodayStatus()
+      loadPunchListCount()
     }
   }, [project?.id])
 
@@ -81,6 +86,21 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
       })
     } catch (error) {
       console.error('Error loading today status:', error)
+    }
+  }
+
+  // Load open punch list item count for badge
+  const loadPunchListCount = async () => {
+    if (!project?.id || !isSupabaseConfigured) return
+    try {
+      const { count } = await supabase
+        .from('punch_list_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', project.id)
+        .eq('status', 'open')
+      setPunchListOpenCount(count || 0)
+    } catch {
+      // Table may not exist yet
     }
   }
 
@@ -314,6 +334,26 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
+  // Punch List View
+  if (activeView === 'punchlist') {
+    return (
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => { setActiveView('home'); loadPunchListCount() }}>
+            <ArrowLeft size={20} />
+          </button>
+          <h2>Punch List</h2>
+        </div>
+        <PunchList
+          projectId={project.id}
+          areas={areas}
+          companyId={companyId}
+          onShowToast={onShowToast}
+        />
+      </div>
+    )
+  }
+
   // Progress View
   if (activeView === 'progress') {
     return (
@@ -415,6 +455,9 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         </button>
         <div className="fm-header-center">
           <h1 className="fm-project-name">{project.name}</h1>
+          {foremanName && (
+            <span className="fm-foreman-name">{foremanName}</span>
+          )}
           <button className="fm-info-toggle" onClick={() => setShowProjectInfo(!showProjectInfo)}>
             <Info size={16} />
           </button>
@@ -447,6 +490,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         areasWorking={areasWorking}
         areasDone={areasDone}
         areasRemaining={areasRemaining}
+        punchListOpenCount={punchListOpenCount}
         onNavigate={handleNavigate}
         onShowToast={onShowToast}
       />

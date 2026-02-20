@@ -602,6 +602,15 @@
   margin: 0;
 }
 
+.fm-foreman-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
 .fm-info-toggle {
   display: flex;
   align-items: center;
