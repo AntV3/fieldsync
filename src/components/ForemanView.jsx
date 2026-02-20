@@ -214,42 +214,51 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     setActiveView(viewId)
   }, [])
 
-  // T&M Form View
+  // Shared back navigation
+  const goHome = useCallback(() => setActiveView('home'), [])
+
+  // Shared sub-view header with project breadcrumb
+  const subHeader = (title, badge) => (
+    <div className="fm-subheader">
+      <button className="fm-back" onClick={goHome} aria-label={`Back to ${project.name}`}>
+        <ArrowLeft size={20} />
+      </button>
+      <div className="fm-subheader-text">
+        <span className="fm-subheader-project">{project.name}</span>
+        <h2>{title}</h2>
+      </div>
+      {badge && <span className="fm-subheader-badge">{badge}</span>}
+    </div>
+  )
+
+  // Views that delegate rendering to their own full-screen components
   if (activeView === 'tm') {
     return (
       <div className="fm-view">
         <TMForm
           project={project}
           companyId={companyId}
-          onSubmit={() => setActiveView('home')}
-          onCancel={() => setActiveView('home')}
+          onSubmit={goHome}
+          onCancel={goHome}
           onShowToast={onShowToast}
         />
       </div>
     )
   }
 
-  // Daily Report View
   if (activeView === 'report') {
-    return (
-      <DailyReport
-        project={project}
-        onShowToast={onShowToast}
-        onClose={() => setActiveView('home')}
-      />
-    )
+    return <DailyReport project={project} onShowToast={onShowToast} onClose={goHome} />
   }
 
-  // Injury Report View
   if (activeView === 'injury') {
     return (
       <div className="fm-view">
         <InjuryReportForm
           project={project}
           companyId={companyId}
-          onClose={() => setActiveView('home')}
+          onClose={goHome}
           onReportCreated={() => {
-            setActiveView('home')
+            goHome()
             onShowToast?.('Injury report submitted', 'success')
           }}
         />
@@ -257,31 +266,24 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
-  // Crew Check-in View
+  if (activeView === 'metrics') {
+    return <ForemanMetrics project={project} companyId={companyId} onBack={goHome} />
+  }
+
+  // Views that use the standard sub-view wrapper with breadcrumb
   if (activeView === 'crew') {
     return (
       <div className="fm-view">
-        <div className="fm-subheader">
-          <button className="fm-back" onClick={() => setActiveView('home')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2>Crew Check-in</h2>
-        </div>
+        {subHeader('Crew Check-in')}
         <CrewCheckin project={project} companyId={companyId} onShowToast={onShowToast} />
       </div>
     )
   }
 
-  // Disposal Loads View
   if (activeView === 'disposal') {
     return (
       <div className="fm-view">
-        <div className="fm-subheader">
-          <button className="fm-back" onClick={() => setActiveView('home')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2>Disposal Loads</h2>
-        </div>
+        {subHeader('Disposal Loads')}
         <DisposalLoadInput
           project={project}
           date={new Date().toISOString().split('T')[0]}
@@ -291,43 +293,53 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
-  // Documents View
   if (activeView === 'docs') {
     return (
       <div className="fm-view">
-        <div className="fm-subheader">
-          <button className="fm-back" onClick={() => setActiveView('home')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2>Documents</h2>
-        </div>
+        {subHeader('Documents')}
         <FolderGrid projectId={project.id} onShowToast={onShowToast} />
       </div>
     )
   }
 
-  // Metrics View
-  if (activeView === 'metrics') {
-    return (
-      <ForemanMetrics
-        project={project}
-        companyId={companyId}
-        onBack={() => setActiveView('home')}
-      />
-    )
-  }
+  // Task row helper used in the progress view
+  const renderTaskRow = (area) => (
+    <div key={area.id} className={`fm-task ${area.status}`}>
+      <div className="fm-task-info">
+        <span className="fm-task-name">{area.name}</span>
+        {area.status !== 'not_started' && (
+          <span className={`fm-task-status-label ${area.status}`}>
+            {area.status === 'working' ? 'In Progress' : 'Done'}
+          </span>
+        )}
+      </div>
+      <div className="fm-task-btns">
+        <button
+          className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
+          onClick={() => handleStatusUpdate(area.id, 'working')}
+          disabled={updating === area.id}
+          aria-label={`Mark ${area.name} as in progress`}
+          title="In Progress"
+        >
+          <Clock size={14} />
+        </button>
+        <button
+          className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
+          onClick={() => handleStatusUpdate(area.id, 'done')}
+          disabled={updating === area.id}
+          aria-label={`Mark ${area.name} as done`}
+          title="Done"
+        >
+          <CheckCircle2 size={14} />
+        </button>
+      </div>
+    </div>
+  )
 
-  // Progress View
   if (activeView === 'progress') {
     return (
       <div className="fm-view">
-        <div className="fm-subheader">
-          <button className="fm-back" onClick={() => setActiveView('home')}>
-            <ArrowLeft size={20} />
-          </button>
-          <h2>Progress</h2>
-          <span className="fm-subheader-badge">{progress}%</span>
-        </div>
+        {subHeader('Progress', `${progress}%`)}
 
         <div className="fm-progress-content">
           {loading ? (
@@ -344,7 +356,11 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
           ) : hasGroups ? (
             Object.entries(groupedAreas).map(([group, groupAreas]) => (
               <div key={group} className="fm-group">
-                <button className="fm-group-header" onClick={() => toggleGroup(group)}>
+                <button
+                  className="fm-group-header"
+                  onClick={() => toggleGroup(group)}
+                  aria-expanded={!!expandedGroups[group]}
+                >
                   <div className="fm-group-left">
                     {expandedGroups[group] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                     <span>{group}</span>
@@ -353,54 +369,14 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
                 </button>
                 {expandedGroups[group] && (
                   <div className="fm-group-items">
-                    {groupAreas.map(area => (
-                      <div key={area.id} className={`fm-task ${area.status}`}>
-                        <span className="fm-task-name">{area.name}</span>
-                        <div className="fm-task-btns">
-                          <button
-                            className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(area.id, 'working')}
-                            disabled={updating === area.id}
-                          >
-                            <Clock size={14} />
-                          </button>
-                          <button
-                            className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(area.id, 'done')}
-                            disabled={updating === area.id}
-                          >
-                            <CheckCircle2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    {groupAreas.map(renderTaskRow)}
                   </div>
                 )}
               </div>
             ))
           ) : (
             <div className="fm-task-list">
-              {areas.map(area => (
-                <div key={area.id} className={`fm-task ${area.status}`}>
-                  <span className="fm-task-name">{area.name}</span>
-                  <div className="fm-task-btns">
-                    <button
-                      className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
-                      onClick={() => handleStatusUpdate(area.id, 'working')}
-                      disabled={updating === area.id}
-                    >
-                      <Clock size={14} />
-                    </button>
-                    <button
-                      className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
-                      onClick={() => handleStatusUpdate(area.id, 'done')}
-                      disabled={updating === area.id}
-                    >
-                      <CheckCircle2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {areas.map(renderTaskRow)}
             </div>
           )}
         </div>
@@ -413,7 +389,7 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     <div className="fm-view">
       {/* Header */}
       <div className="fm-header">
-        <button className="fm-exit" onClick={onExit}>
+        <button className="fm-exit" onClick={onExit} aria-label="Exit project">
           <ArrowLeft size={20} />
         </button>
         <div className="fm-header-center">
@@ -423,11 +399,20 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
             </span>
             <h1 className="fm-project-name">{project.name}</h1>
           </div>
-          <button className="fm-info-toggle" onClick={() => setShowProjectInfo(!showProjectInfo)}>
+          <button
+            className="fm-info-toggle"
+            onClick={() => setShowProjectInfo(!showProjectInfo)}
+            aria-label={showProjectInfo ? 'Hide project info' : 'Show project info'}
+            aria-expanded={showProjectInfo}
+          >
             <Info size={16} />
           </button>
         </div>
-        <button className="fm-theme" onClick={toggleTheme}>
+        <button
+          className="fm-theme"
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>
       </div>
