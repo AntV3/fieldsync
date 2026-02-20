@@ -313,7 +313,7 @@ export default function TMList({
         ticket.id,
         ticket.assigned_cor_id,
         company.id,
-        project.work_type || 'demolition',
+        project.work_type || null,
         project.job_type || 'standard'
       )
       onShowToast('COR data import successful!', 'success')

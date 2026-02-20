@@ -1,5 +1,6 @@
 import { DollarSign, HardHat, FileText, LayoutGrid, Building2, Phone, MapPin, Info } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
+import { getTradeProfile, JOB_TYPES } from '../../../lib/constants'
 import ProjectTeam from '../../ProjectTeam'
 import MFASetup from '../../MFASetup'
 
@@ -50,7 +51,9 @@ export default function SettingsTab({
           </div>
           <div className="info-quick-content">
             <span className="info-quick-value">
-              {selectedProject.work_type === 'environmental' ? 'Environmental' : 'Demolition'}
+              {selectedProject.work_type
+                ? (getTradeProfile(company?.trade).workTypes.find(wt => wt.value === selectedProject.work_type)?.label || selectedProject.work_type)
+                : 'Not Set'}
             </span>
             <span className="info-quick-label">Work Type</span>
           </div>
@@ -61,7 +64,7 @@ export default function SettingsTab({
           </div>
           <div className="info-quick-content">
             <span className="info-quick-value">
-              {selectedProject.job_type === 'prevailing_wage' ? 'Prevailing Wage' : 'Standard'}
+              {JOB_TYPES.find(jt => jt.value === selectedProject.job_type)?.label || selectedProject.job_type || 'Standard'}
             </span>
             <span className="info-quick-label">Job Type</span>
           </div>

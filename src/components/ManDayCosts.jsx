@@ -27,7 +27,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
       const data = await db.calculateManDayCosts(
         project.id,
         company.id,
-        project.work_type || 'demolition',
+        project.work_type || null,
         project.job_type || 'standard'
       )
       setCostData(data)

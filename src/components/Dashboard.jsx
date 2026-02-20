@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { db } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
+import { getTradeProfile, JOB_TYPES } from '../lib/constants'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
@@ -309,7 +310,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getChangeOrderTotals(project.id), { fallback: null, context: { operation: 'getChangeOrderTotals', projectId: project.id } }),
         safeAsync(() => db.getDailyReports(project.id, 100), { fallback: [], context: { operation: 'getDailyReports', projectId: project.id } }),
         safeAsync(() => db.getInjuryReports(project.id), { fallback: [], context: { operation: 'getInjuryReports', projectId: project.id } }),
-        safeAsync(() => db.calculateManDayCosts(project.id, company?.id, project.work_type || 'demolition', project.job_type || 'standard'), { fallback: null, context: { operation: 'calculateManDayCosts', projectId: project.id } }),
+        safeAsync(() => db.calculateManDayCosts(project.id, company?.id, project.work_type || getTradeProfile(company?.trade).workTypes[0]?.value || 'demolition', project.job_type || 'standard'), { fallback: null, context: { operation: 'calculateManDayCosts', projectId: project.id } }),
         safeAsync(() => db.calculateHaulOffCosts(project.id), { fallback: null, context: { operation: 'calculateHaulOffCosts', projectId: project.id } }),
         safeAsync(() => db.getProjectCosts(project.id), { fallback: [], context: { operation: 'getProjectCosts', projectId: project.id } }),
         safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } }),
@@ -1000,8 +1001,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   value={editData.work_type}
                   onChange={(e) => handleEditChange('work_type', e.target.value)}
                 >
-                  <option value="demolition">Demolition</option>
-                  <option value="environmental">Environmental</option>
+                  {getTradeProfile(company?.trade || 'demolition').workTypes.map(wt => (
+                    <option key={wt.value} value={wt.value}>{wt.label}</option>
+                  ))}
                 </select>
                 <span className="form-hint">Affects labor rate calculations</span>
               </div>
@@ -1011,8 +1013,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   value={editData.job_type}
                   onChange={(e) => handleEditChange('job_type', e.target.value)}
                 >
-                  <option value="standard">Standard</option>
-                  <option value="prevailing_wage">Prevailing Wage</option>
+                  {JOB_TYPES.map(jt => (
+                    <option key={jt.value} value={jt.value}>{jt.label}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -2022,7 +2025,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   </div>
                   <div className="info-quick-content">
                     <span className="info-quick-value">
-                      {selectedProject.work_type === 'environmental' ? 'Environmental' : 'Demolition'}
+                      {selectedProject.work_type ? (
+                        getTradeProfile(company?.trade).workTypes.find(wt => wt.value === selectedProject.work_type)?.label || selectedProject.work_type
+                      ) : 'Not Set'}
                     </span>
                     <span className="info-quick-label">Work Type</span>
                   </div>

@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { db } from '../lib/supabase'
+import { getTradeProfile, JOB_TYPES } from '../lib/constants'
 // Dynamic import for XLSX (loaded on-demand to reduce initial bundle)
 const loadXLSX = () => import('xlsx')
 
@@ -25,13 +26,17 @@ const parseCurrencyInput = (value) => {
 }
 
 export default function Setup({ company, user, onProjectCreated, onShowToast }) {
+  // Trade profile drives work type options and field supervisor label
+  const tradeProfile = useMemo(() => getTradeProfile(company?.trade || 'demolition'), [company?.trade])
+  const fieldSupervisorLabel = company?.field_supervisor_label?.trim() || tradeProfile.fieldSupervisorLabel
+
   const [projectName, setProjectName] = useState('')
   const [jobNumber, setJobNumber] = useState('')
   const [address, setAddress] = useState('')
   const [generalContractor, setGeneralContractor] = useState('')
   const [contractValue, setContractValue] = useState('')
   const [pin, setPin] = useState('')
-  const [workType, setWorkType] = useState('demolition')
+  const [workType, setWorkType] = useState(() => tradeProfile.workTypes[0]?.value || 'general')
   const [jobType, setJobType] = useState('standard')
   const [areas, setAreas] = useState([
     { name: '', weight: '', group: '', scheduledValue: null },
@@ -150,7 +155,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     setGeneralContractor('')
     setContractValue('')
     setPin('')
-    setWorkType('demolition')
+    setWorkType(tradeProfile.workTypes[0]?.value || 'general')
     setJobType('standard')
     setStartDate('')
     setEndDate('')
@@ -721,49 +726,33 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         <div className="form-row-2">
           <div className="form-group">
             <label>Work Type</label>
-            <div className="project-type-toggle">
-              <button
-                type="button"
-                className={`toggle-btn ${workType === 'demolition' ? 'active' : ''}`}
-                onClick={() => setWorkType('demolition')}
-              >
-                Demolition
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${workType === 'abatement' ? 'active' : ''}`}
-                onClick={() => setWorkType('abatement')}
-              >
-                Abatement
-              </button>
-            </div>
+            <select
+              value={workType}
+              onChange={(e) => setWorkType(e.target.value)}
+            >
+              {tradeProfile.workTypes.map(wt => (
+                <option key={wt.value} value={wt.value}>{wt.label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
             <label>Job Type</label>
-            <div className="project-type-toggle">
-              <button
-                type="button"
-                className={`toggle-btn ${jobType === 'standard' ? 'active' : ''}`}
-                onClick={() => setJobType('standard')}
-              >
-                Standard
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${jobType === 'pla' ? 'active' : ''}`}
-                onClick={() => setJobType('pla')}
-              >
-                PLA
-              </button>
-            </div>
+            <select
+              value={jobType}
+              onChange={(e) => setJobType(e.target.value)}
+            >
+              {JOB_TYPES.map(jt => (
+                <option key={jt.value} value={jt.value}>{jt.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
         <div className="form-group">
-          <label>Foreman PIN (4 digits)</label>
+          <label>{fieldSupervisorLabel} PIN (4 digits)</label>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-            Foremen will enter this PIN to access this project
+            Field staff will enter this PIN to access this project
           </p>
           <div className="pin-input-row">
             <input

@@ -82,13 +82,24 @@ export default function ForemanLanding({
   areasDone,
   areasRemaining,
   onNavigate,
-  onShowToast
+  onShowToast,
+  showDisposal = true,
+  fieldSupervisorLabel = 'Foreman'
 }) {
+  // Build the available actions list based on trade profile modules
+  const availableActions = useMemo(() => {
+    if (showDisposal) return ALL_ACTIONS
+    const { disposal: _removed, ...rest } = ALL_ACTIONS
+    return rest
+  }, [showDisposal])
+
   // Pinned actions state
   const [pinnedIds, setPinnedIds] = useState(() => {
     try {
       const stored = localStorage.getItem(getPinStorageKey(project?.id))
-      return stored ? JSON.parse(stored) : DEFAULT_PINNED
+      if (stored) return JSON.parse(stored)
+      // Default pinned: skip disposal if not in this trade
+      return showDisposal ? DEFAULT_PINNED : DEFAULT_PINNED.filter(id => id !== 'disposal')
     } catch {
       return DEFAULT_PINNED
     }
@@ -134,8 +145,8 @@ export default function ForemanLanding({
 
   // Get unpinned actions (for "More Actions" section)
   const unpinnedActions = useMemo(() => {
-    return Object.keys(ALL_ACTIONS).filter(id => !pinnedIds.includes(id))
-  }, [pinnedIds])
+    return Object.keys(availableActions).filter(id => !pinnedIds.includes(id))
+  }, [pinnedIds, availableActions])
 
   // Get status info for an action
   const getActionStatus = useCallback((actionId) => {
@@ -177,7 +188,7 @@ export default function ForemanLanding({
 
   // Render a pinned action card
   const renderPinnedAction = (actionId) => {
-    const action = ALL_ACTIONS[actionId]
+    const action = availableActions[actionId]
     if (!action) return null
 
     const Icon = action.icon
@@ -218,7 +229,7 @@ export default function ForemanLanding({
 
   // Render an unpinned action row
   const renderUnpinnedAction = (actionId) => {
-    const action = ALL_ACTIONS[actionId]
+    const action = availableActions[actionId]
     if (!action) return null
 
     const Icon = action.icon

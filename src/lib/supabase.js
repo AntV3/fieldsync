@@ -434,7 +434,7 @@ export const db = {
           end_date: p.end_date,
           // Financial fields
           contract_value: Number(p.contract_value) || 0,
-          work_type: p.work_type || 'demolition',
+          work_type: p.work_type || null,
           job_type: p.job_type || 'standard',
           general_contractor: p.general_contractor || '',
           // Metrics

@@ -863,7 +863,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       if (selectedCorId) {
         setSubmitProgress('Importing to COR...')
         try {
-          await db.importTicketDataToCOR(ticket.id, selectedCorId, companyId, project.work_type || 'demolition', project.job_type || 'standard')
+          await db.importTicketDataToCOR(ticket.id, selectedCorId, companyId, project.work_type || null, project.job_type || 'standard')
         } catch (importError) {
           console.error('Error importing to COR:', importError)
           try {

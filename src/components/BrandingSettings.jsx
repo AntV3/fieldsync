@@ -1,12 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBranding } from '../lib/BrandingContext'
 import { supabase } from '../lib/supabase'
+import { TRADE_PROFILES, COMPANY_TYPES, getTradeProfile } from '../lib/constants'
 
-export default function BrandingSettings({ company, onShowToast }) {
+export default function BrandingSettings({ company, onShowToast, onCompanyUpdated }) {
   const { branding, updateBranding, uploadBrandingImage, loading } = useBranding()
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [localBranding, setLocalBranding] = useState(branding)
+
+  // Company profile state (trade, type, supervisor label)
+  const [trade, setTrade] = useState(company?.trade || 'demolition')
+  const [companyType, setCompanyType] = useState(company?.company_type || 'subcontractor')
+  const [fieldSupervisorLabel, setFieldSupervisorLabel] = useState(
+    company?.field_supervisor_label || ''
+  )
+  const [savingProfile, setSavingProfile] = useState(false)
 
   // Office code state
   const [officeCode, setOfficeCode] = useState('')
@@ -36,6 +45,30 @@ export default function BrandingSettings({ company, onShowToast }) {
       }
     } catch (err) {
       console.error('Error loading office code:', err)
+    }
+  }
+
+  const saveCompanyProfile = async () => {
+    setSavingProfile(true)
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          trade,
+          company_type: companyType,
+          field_supervisor_label: fieldSupervisorLabel.trim() || null
+        })
+        .eq('id', company.id)
+
+      if (error) throw error
+
+      onShowToast?.('Company profile saved', 'success')
+      onCompanyUpdated?.({ ...company, trade, company_type: companyType, field_supervisor_label: fieldSupervisorLabel.trim() || null })
+    } catch (err) {
+      console.error('Error saving company profile:', err)
+      onShowToast?.('Error saving company profile', 'error')
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -182,6 +215,80 @@ export default function BrandingSettings({ company, onShowToast }) {
         {tier === 'enterprise' && (
           <div className="tier-badge tier-enterprise">Enterprise Plan</div>
         )}
+      </div>
+
+      {/* Company Profile Section */}
+      <div className="settings-section">
+        <h3>Company Profile</h3>
+        <p className="help-text" style={{ marginBottom: '1rem' }}>
+          Tell FieldSync what trade you work in. This customizes terminology, work type options, and field modules to match your business.
+        </p>
+
+        <div className="setting-item">
+          <label htmlFor="company-type">Company Type</label>
+          <select
+            id="company-type"
+            className="input"
+            value={companyType}
+            onChange={(e) => setCompanyType(e.target.value)}
+          >
+            {COMPANY_TYPES.map(ct => (
+              <option key={ct.value} value={ct.value}>{ct.label}</option>
+            ))}
+          </select>
+          <p className="help-text">
+            {COMPANY_TYPES.find(ct => ct.value === companyType)?.description}
+          </p>
+        </div>
+
+        <div className="setting-item">
+          <label htmlFor="trade-profile">Trade / Specialty</label>
+          <select
+            id="trade-profile"
+            className="input"
+            value={trade}
+            onChange={(e) => {
+              setTrade(e.target.value)
+              // Auto-fill supervisor label placeholder from trade profile
+              const profile = getTradeProfile(e.target.value)
+              if (!fieldSupervisorLabel) {
+                setFieldSupervisorLabel(profile.fieldSupervisorLabel)
+              }
+            }}
+          >
+            {Object.entries(TRADE_PROFILES).map(([key, profile]) => (
+              <option key={key} value={key}>{profile.icon} {profile.label}</option>
+            ))}
+          </select>
+          <p className="help-text">
+            Sets default work types, material categories, and field modules for your trade.
+          </p>
+        </div>
+
+        <div className="setting-item">
+          <label htmlFor="supervisor-label">Field Supervisor Title</label>
+          <input
+            id="supervisor-label"
+            type="text"
+            className="input"
+            value={fieldSupervisorLabel}
+            onChange={(e) => setFieldSupervisorLabel(e.target.value)}
+            placeholder={getTradeProfile(trade).fieldSupervisorLabel}
+            maxLength={40}
+          />
+          <p className="help-text">
+            What do you call your field leads? (e.g., Foreman, Lead, Super, PM).
+            Defaults to "{getTradeProfile(trade).fieldSupervisorLabel}" for {TRADE_PROFILES[trade]?.label}.
+          </p>
+        </div>
+
+        <button
+          className="btn btn-primary"
+          onClick={saveCompanyProfile}
+          disabled={savingProfile}
+        >
+          {savingProfile ? 'Saving...' : 'Save Company Profile'}
+        </button>
       </div>
 
       {/* Security Section - Office Code */}

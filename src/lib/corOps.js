@@ -855,12 +855,14 @@ export const corOps = {
       if (ticketError) throw ticketError
 
       // 2. Get labor rates for this company/work type/job type
-      const { data: rates, error: ratesError } = await client
+      // workType may be null for companies that haven't configured a trade yet
+      let ratesQuery = client
         .from('labor_rates')
         .select('*')
         .eq('company_id', companyId)
-        .eq('work_type', workType || 'demolition')
-        .eq('job_type', jobType || 'standard')
+      if (workType) ratesQuery = ratesQuery.eq('work_type', workType)
+      if (jobType) ratesQuery = ratesQuery.eq('job_type', jobType || 'standard')
+      const { data: rates, error: ratesError } = await ratesQuery
       if (ratesError) throw ratesError
 
       // Create rate lookup

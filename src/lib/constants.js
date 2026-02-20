@@ -86,7 +86,7 @@ export const TICKET_STATUS = {
 }
 
 // ============================================
-// WORKER ROLES
+// WORKER ROLES (generic fallback defaults)
 // ============================================
 export const WORKER_ROLES = {
   FOREMAN: 'Foreman',
@@ -101,6 +101,264 @@ export const DEFAULT_LABOR_RATES = {
   Operator: 75,
   Laborer: 55
 }
+
+// ============================================
+// COMPANY TYPES
+// ============================================
+export const COMPANY_TYPES = [
+  { value: 'subcontractor', label: 'Subcontractor', description: 'Works under a general contractor on projects' },
+  { value: 'general_contractor', label: 'General Contractor', description: 'Manages multiple subcontractors and projects' },
+  { value: 'owner_builder', label: 'Owner / Self-Perform', description: 'Directly manages all construction work' }
+]
+
+// ============================================
+// TRADE PROFILES
+// Each trade defines its own work types, job types,
+// default roles, field terminology, and which
+// field modules are relevant.
+// ============================================
+
+export const JOB_TYPES = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'pla', label: 'PLA (Union)' },
+  { value: 'prevailing_wage', label: 'Prevailing Wage' },
+  { value: 'time_and_material', label: 'Time & Material' },
+  { value: 'design_build', label: 'Design-Build' },
+  { value: 'lump_sum', label: 'Lump Sum' }
+]
+
+export const TRADE_PROFILES = {
+  demolition: {
+    label: 'Demolition',
+    icon: '🏗️',
+    fieldSupervisorLabel: 'Foreman',
+    workTypes: [
+      { value: 'demolition', label: 'Demolition' },
+      { value: 'abatement', label: 'Abatement' },
+      { value: 'environmental', label: 'Environmental' },
+      { value: 'selective_demo', label: 'Selective Demo' }
+    ],
+    defaultRoles: ['Foreman', 'Operator', 'Laborer', 'Superintendent'],
+    materialCategories: [
+      { value: 'concrete', label: 'Concrete', icon: '🧱' },
+      { value: 'trash', label: 'Trash / Debris', icon: '🗑️' },
+      { value: 'metals', label: 'Metals / Scrap', icon: '🔩' },
+      { value: 'hazardous_waste', label: 'Hazardous Waste', icon: '☣️' },
+      { value: 'dirt', label: 'Dirt / Fill', icon: '⛏️' }
+    ],
+    modules: ['crew', 'tm', 'disposal', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  electrical: {
+    label: 'Electrical',
+    icon: '⚡',
+    fieldSupervisorLabel: 'Lead Electrician',
+    workTypes: [
+      { value: 'rough_in', label: 'Rough-In' },
+      { value: 'finish', label: 'Finish / Trim-Out' },
+      { value: 'service', label: 'Service / Panel Work' },
+      { value: 'low_voltage', label: 'Low Voltage' },
+      { value: 'underground', label: 'Underground / Conduit' }
+    ],
+    defaultRoles: ['Lead Electrician', 'Journeyman', 'Apprentice', 'Foreman'],
+    materialCategories: [
+      { value: 'conduit_scrap', label: 'Conduit Scrap', icon: '🔧' },
+      { value: 'wire_scrap', label: 'Wire Scrap', icon: '🔌' },
+      { value: 'packaging', label: 'Packaging / Cardboard', icon: '📦' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  plumbing: {
+    label: 'Plumbing',
+    icon: '🔧',
+    fieldSupervisorLabel: 'Lead Plumber',
+    workTypes: [
+      { value: 'rough_in', label: 'Rough-In' },
+      { value: 'finish', label: 'Finish / Trim-Out' },
+      { value: 'underground', label: 'Underground' },
+      { value: 'hydronics', label: 'Hydronics / Radiant' },
+      { value: 'service_repair', label: 'Service & Repair' }
+    ],
+    defaultRoles: ['Lead Plumber', 'Journeyman', 'Apprentice', 'Foreman'],
+    materialCategories: [
+      { value: 'pipe_scrap', label: 'Pipe Scrap', icon: '🔧' },
+      { value: 'packaging', label: 'Packaging', icon: '📦' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  hvac: {
+    label: 'HVAC & Mechanical',
+    icon: '🌬️',
+    fieldSupervisorLabel: 'Lead Mechanic',
+    workTypes: [
+      { value: 'ductwork', label: 'Ductwork' },
+      { value: 'piping', label: 'Piping / Refrigerant' },
+      { value: 'equipment', label: 'Equipment Install' },
+      { value: 'controls', label: 'Controls & BAS' },
+      { value: 'service', label: 'Service & Maintenance' }
+    ],
+    defaultRoles: ['Lead Mechanic', 'Sheet Metal Worker', 'Pipefitter', 'Apprentice', 'Foreman'],
+    materialCategories: [
+      { value: 'sheet_metal_scrap', label: 'Sheet Metal Scrap', icon: '🔩' },
+      { value: 'insulation', label: 'Insulation Waste', icon: '🧱' },
+      { value: 'packaging', label: 'Packaging / Cardboard', icon: '📦' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  concrete: {
+    label: 'Concrete & Masonry',
+    icon: '🧱',
+    fieldSupervisorLabel: 'Foreman',
+    workTypes: [
+      { value: 'foundations', label: 'Foundations / Footings' },
+      { value: 'flatwork', label: 'Flatwork / Slabs' },
+      { value: 'structural', label: 'Structural / Elevated' },
+      { value: 'masonry', label: 'Masonry / Block' },
+      { value: 'tilt_up', label: 'Tilt-Up' }
+    ],
+    defaultRoles: ['Foreman', 'Finisher', 'Carpenter (Form)', 'Laborer', 'Superintendent'],
+    materialCategories: [
+      { value: 'concrete', label: 'Concrete Waste', icon: '🧱' },
+      { value: 'forming_scrap', label: 'Forming Scrap', icon: '🪵' },
+      { value: 'rebar_scrap', label: 'Rebar Scrap', icon: '🔩' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'disposal', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  framing: {
+    label: 'Framing & Carpentry',
+    icon: '🪵',
+    fieldSupervisorLabel: 'Lead Carpenter',
+    workTypes: [
+      { value: 'rough_framing', label: 'Rough Framing' },
+      { value: 'finish_carpentry', label: 'Finish Carpentry' },
+      { value: 'casework', label: 'Casework & Millwork' },
+      { value: 'doors_windows', label: 'Doors & Windows' },
+      { value: 'sheathing', label: 'Sheathing & Decking' }
+    ],
+    defaultRoles: ['Lead Carpenter', 'Journeyman Carpenter', 'Apprentice', 'Laborer'],
+    materialCategories: [
+      { value: 'wood_scrap', label: 'Wood Scrap / Cutoffs', icon: '🪵' },
+      { value: 'drywall_scrap', label: 'Drywall Scrap', icon: '⬜' },
+      { value: 'packaging', label: 'Packaging', icon: '📦' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  roofing: {
+    label: 'Roofing',
+    icon: '🏠',
+    fieldSupervisorLabel: 'Foreman',
+    workTypes: [
+      { value: 'tear_off', label: 'Tear-Off / Removal' },
+      { value: 'flat_roofing', label: 'Flat / Low-Slope' },
+      { value: 'steep_slope', label: 'Steep Slope / Shingles' },
+      { value: 'metal_roofing', label: 'Metal Roofing' },
+      { value: 'waterproofing', label: 'Waterproofing / Flashing' }
+    ],
+    defaultRoles: ['Foreman', 'Roofer', 'Laborer', 'Superintendent'],
+    materialCategories: [
+      { value: 'shingles', label: 'Shingles / Roofing Material', icon: '🏠' },
+      { value: 'underlayment', label: 'Underlayment / Felt', icon: '📄' },
+      { value: 'metal_scrap', label: 'Metal Scrap / Flashing', icon: '🔩' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'disposal', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  painting: {
+    label: 'Painting & Finishes',
+    icon: '🎨',
+    fieldSupervisorLabel: 'Lead Painter',
+    workTypes: [
+      { value: 'interior', label: 'Interior' },
+      { value: 'exterior', label: 'Exterior' },
+      { value: 'industrial', label: 'Industrial / Protective' },
+      { value: 'specialty', label: 'Specialty / Epoxy' }
+    ],
+    defaultRoles: ['Lead Painter', 'Journeyman Painter', 'Apprentice', 'Laborer'],
+    materialCategories: [
+      { value: 'paint_waste', label: 'Paint / Solvent Waste', icon: '🎨' },
+      { value: 'packaging', label: 'Packaging / Cans', icon: '📦' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  civil: {
+    label: 'Civil & Earthwork',
+    icon: '🚜',
+    fieldSupervisorLabel: 'Superintendent',
+    workTypes: [
+      { value: 'grading', label: 'Grading & Excavation' },
+      { value: 'utilities', label: 'Underground Utilities' },
+      { value: 'paving', label: 'Paving & Asphalt' },
+      { value: 'site_work', label: 'Site Work' },
+      { value: 'landscaping', label: 'Landscaping' }
+    ],
+    defaultRoles: ['Superintendent', 'Operator', 'Laborer', 'Foreman'],
+    materialCategories: [
+      { value: 'dirt', label: 'Dirt / Fill Export', icon: '⛏️' },
+      { value: 'concrete', label: 'Concrete / Asphalt', icon: '🧱' },
+      { value: 'rock', label: 'Rock / Debris', icon: '🪨' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'disposal', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  general_contractor: {
+    label: 'General Contractor',
+    icon: '🏢',
+    fieldSupervisorLabel: 'Superintendent',
+    workTypes: [
+      { value: 'commercial', label: 'Commercial' },
+      { value: 'residential', label: 'Residential' },
+      { value: 'industrial', label: 'Industrial' },
+      { value: 'renovation', label: 'Renovation / TI' },
+      { value: 'new_construction', label: 'New Construction' }
+    ],
+    defaultRoles: ['Superintendent', 'Project Manager', 'Foreman', 'Laborer'],
+    materialCategories: [
+      { value: 'concrete', label: 'Concrete', icon: '🧱' },
+      { value: 'wood_scrap', label: 'Wood Scrap', icon: '🪵' },
+      { value: 'metals', label: 'Metals / Scrap', icon: '🔩' },
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' }
+    ],
+    modules: ['crew', 'tm', 'disposal', 'daily_report', 'injury', 'docs', 'progress']
+  },
+
+  custom: {
+    label: 'Other / Custom',
+    icon: '🔨',
+    fieldSupervisorLabel: 'Foreman',
+    workTypes: [
+      { value: 'general', label: 'General Work' },
+      { value: 'specialty', label: 'Specialty Work' }
+    ],
+    defaultRoles: ['Foreman', 'Journeyman', 'Apprentice', 'Laborer'],
+    materialCategories: [
+      { value: 'general_trash', label: 'General Trash', icon: '🗑️' },
+      { value: 'recyclables', label: 'Recyclables', icon: '♻️' }
+    ],
+    modules: ['crew', 'tm', 'daily_report', 'injury', 'docs', 'progress']
+  }
+}
+
+// Helper: get a trade profile (falls back to 'custom' if unknown)
+export const getTradeProfile = (trade) =>
+  TRADE_PROFILES[trade] || TRADE_PROFILES.custom
+
+// Helper: get a trade's field supervisor label
+export const getFieldSupervisorLabel = (trade) =>
+  getTradeProfile(trade).fieldSupervisorLabel
 
 // ============================================
 // FILE UPLOAD LIMITS

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
+import { getTradeProfile } from '../lib/constants'
 import {
   Info, CheckSquare,
   ArrowLeft, ChevronDown, ChevronRight,
@@ -15,7 +16,24 @@ import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
 
-export default function ForemanView({ project, companyId, onShowToast, onExit }) {
+export default function ForemanView({ project, companyId, onShowToast, onExit, company = null }) {
+  // Load company trade profile to drive module visibility and terminology
+  const [companyProfile, setCompanyProfile] = useState(company)
+
+  useEffect(() => {
+    if (company) {
+      setCompanyProfile(company)
+    } else if (companyId) {
+      // Load minimal company info for trade/type info
+      db.getCompanyById?.(companyId)
+        .then(data => { if (data) setCompanyProfile(data) })
+        .catch(() => {})
+    }
+  }, [company, companyId])
+
+  const tradeProfile = getTradeProfile(companyProfile?.trade || project?.work_type || 'demolition')
+  const fieldSupervisorLabel = companyProfile?.field_supervisor_label?.trim() || tradeProfile.fieldSupervisorLabel
+  const showDisposal = tradeProfile.modules.includes('disposal')
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
@@ -269,18 +287,19 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
     )
   }
 
-  // Disposal Loads View
-  if (activeView === 'disposal') {
+  // Disposal / Material Tracking View (only shown for trades that use it)
+  if (activeView === 'disposal' && showDisposal) {
     return (
       <div className="fm-view">
         <div className="fm-subheader">
           <button className="fm-back" onClick={() => setActiveView('home')}>
             <ArrowLeft size={20} />
           </button>
-          <h2>Disposal Loads</h2>
+          <h2>Material Loads</h2>
         </div>
         <DisposalLoadInput
           project={project}
+          company={companyProfile}
           date={new Date().toISOString().split('T')[0]}
           onShowToast={onShowToast}
         />
@@ -449,6 +468,8 @@ export default function ForemanView({ project, companyId, onShowToast, onExit })
         areasRemaining={areasRemaining}
         onNavigate={handleNavigate}
         onShowToast={onShowToast}
+        showDisposal={showDisposal}
+        fieldSupervisorLabel={fieldSupervisorLabel}
       />
     </div>
   )

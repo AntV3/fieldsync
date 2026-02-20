@@ -19,7 +19,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
       client_contact: selectedProject.client_contact || '',
       client_phone: selectedProject.client_phone || '',
       contract_value: selectedProject.contract_value,
-      work_type: selectedProject.work_type || 'demolition',
+      work_type: selectedProject.work_type || null,
       job_type: selectedProject.job_type || 'standard',
       pin: selectedProject.pin || '',
       default_dump_site_id: selectedProject.default_dump_site_id || '',
@@ -115,7 +115,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
         client_contact: editData.client_contact?.trim() || null,
         client_phone: editData.client_phone?.trim() || null,
         contract_value: contractVal,
-        work_type: editData.work_type || 'demolition',
+        work_type: editData.work_type || null,
         job_type: editData.job_type || 'standard',
         pin: editData.pin || null,
         default_dump_site_id: editData.default_dump_site_id || null

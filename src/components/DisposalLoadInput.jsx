@@ -1,24 +1,29 @@
 import { useState, useEffect } from 'react'
 import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { getTradeProfile } from '../lib/constants'
 
-const LOAD_TYPES = [
+// Default fallback load types (used when no company/trade config is available)
+const DEFAULT_LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', icon: '🧱' },
   { value: 'trash', label: 'Trash', icon: '🗑️' },
   { value: 'metals', label: 'Metals', icon: '🔩' },
   { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' }
 ]
 
-const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
+export default function DisposalLoadInput({ project, user = null, date, onShowToast, company = null }) {
+  // Resolve material categories from company's trade profile (or branding override)
+  const tradeProfile = getTradeProfile(company?.trade || project?.trade || 'demolition')
+  const LOAD_TYPES = company?.branding?.material_categories || tradeProfile.materialCategories || DEFAULT_LOAD_TYPES
 
-export default function DisposalLoadInput({ project, user = null, date, onShowToast }) {
+  const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
   const [loads, setLoads] = useState([])
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const [newLoad, setNewLoad] = useState({ type: 'concrete', count: 1 })
+  const [newLoad, setNewLoad] = useState({ type: LOAD_TYPES[0]?.value || 'trash', count: 1 })
 
   // Format date for display
   const displayDate = new Date(date).toLocaleDateString('en-US', {
@@ -86,7 +91,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
         newLoad.count
       )
       await loadDisposalData()
-      setNewLoad({ type: 'concrete', count: 1 })
+      setNewLoad({ type: LOAD_TYPES[0]?.value || 'trash', count: 1 })
       setShowAddForm(false)
       onShowToast?.('Disposal load added', 'success')
     } catch (err) {

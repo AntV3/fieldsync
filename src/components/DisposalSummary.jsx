@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react'
 import { Truck, ChevronDown, ChevronUp } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { getTradeProfile } from '../lib/constants'
 
-const LOAD_TYPES = [
+const DEFAULT_LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', icon: '🧱' },
   { value: 'trash', label: 'Trash', icon: '🗑️' },
   { value: 'metals', label: 'Metals', icon: '🔩' },
   { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' }
 ]
 
-const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
-
-export default function DisposalSummary({ project, period = 'week' }) {
+export default function DisposalSummary({ project, period = 'week', company = null }) {
+  const tradeProfile = getTradeProfile(company?.trade || project?.trade || 'demolition')
+  const LOAD_TYPES = company?.branding?.material_categories || tradeProfile.materialCategories || DEFAULT_LOAD_TYPES
+  const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
   const [loads, setLoads] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
