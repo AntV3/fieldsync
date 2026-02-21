@@ -1,11 +1,19 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ClipboardList, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { ClipboardList, ChevronDown, ChevronRight, Calendar, Truck, Camera } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import { ErrorState, EmptyState } from './ui'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
+
+const LOAD_TYPE_LABELS = {
+  concrete: 'Concrete',
+  trash: 'Trash',
+  metals: 'Metals',
+  hazardous_waste: 'Hazardous Waste'
+}
+const getLoadLabel = (type) => LOAD_TYPE_LABELS[type] || type
 
 export default function DailyReportsList({ project, company, onShowToast }) {
   const { branding } = useBranding()
@@ -289,7 +297,11 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       doc.setTextColor(50, 50, 50)
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
-      const stats = `Crew: ${report.crew_count || 0}  |  Tasks: ${report.tasks_completed || 0}  |  T&M: ${report.tm_tickets_count || 0}  |  Photos: ${report.photos_count || 0}`
+      const disposalSummaryPdf = Array.isArray(report.disposal_loads_summary) ? report.disposal_loads_summary : []
+      const totalLoadsPdf = disposalSummaryPdf.reduce((s, d) => s + d.count, 0)
+      const photoUrlsPdf = Array.isArray(report.photo_urls) ? report.photo_urls : []
+      const photoCount = photoUrlsPdf.length || report.photos_count || 0
+      const stats = `Manpower: ${report.crew_count || 0}  |  Tasks: ${report.tasks_completed || 0}  |  Loads: ${totalLoadsPdf}  |  Photos: ${photoCount}`
       doc.text(stats, margin + 5, yPos)
       yPos += 8
 
@@ -302,6 +314,29 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         const crewLines = doc.splitTextToSize(crewNames, pageWidth - margin * 2 - 30)
         doc.text(crewLines, margin + 25, yPos)
         yPos += crewLines.length * 5 + 3
+      }
+
+      // Loads hauled
+      if (disposalSummaryPdf.length > 0) {
+        doc.setTextColor(50, 50, 50)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Loads Hauled:', margin + 5, yPos)
+        doc.setFont('helvetica', 'normal')
+        const loadsText = disposalSummaryPdf.map(d => `${d.count} ${getLoadLabel(d.type)}`).join(', ')
+        const loadsLines = doc.splitTextToSize(loadsText, pageWidth - margin * 2 - 45)
+        doc.text(loadsLines, margin + 45, yPos)
+        yPos += loadsLines.length * 5 + 3
+      }
+
+      // Work description
+      if (report.work_description) {
+        doc.setTextColor(50, 50, 50)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Work Done:', margin + 5, yPos)
+        doc.setFont('helvetica', 'normal')
+        const workLines = doc.splitTextToSize(report.work_description, pageWidth - margin * 2 - 40)
+        doc.text(workLines, margin + 40, yPos)
+        yPos += workLines.length * 5 + 3
       }
 
       // Field notes
@@ -324,6 +359,18 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         doc.text(issueLines, margin + 25, yPos)
         doc.setTextColor(50, 50, 50)
         yPos += issueLines.length * 5 + 3
+      }
+
+      // Photo documentation note
+      if (photoCount > 0) {
+        doc.setTextColor(50, 100, 180)
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(9)
+        doc.text(`${photoCount} photo${photoCount !== 1 ? 's' : ''} attached to this report (view in FieldSync)`, margin + 5, yPos)
+        doc.setTextColor(50, 50, 50)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(10)
+        yPos += 6
       }
 
       yPos += 10
@@ -378,82 +425,126 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         </div>
       </div>
 
-      {expandedReport === report.id && (
-        <div className="daily-report-details">
-          {/* Summary Stats */}
-          <div className="report-stats-grid">
-            <div className="report-stat">
-              <span className="stat-value">{report.crew_count || 0}</span>
-              <span className="stat-label">Crew on Site</span>
-            </div>
-            <div className="report-stat">
-              <span className="stat-value">{report.tasks_completed || 0}</span>
-              <span className="stat-label">Tasks Done</span>
-            </div>
-            <div className="report-stat">
-              <span className="stat-value">{report.tm_tickets_count || 0}</span>
-              <span className="stat-label">T&M Tickets</span>
-            </div>
-            <div className="report-stat">
-              <span className="stat-value">{report.photos_count || 0}</span>
-              <span className="stat-label">Photos</span>
-            </div>
-          </div>
-
-          {/* Crew List */}
-          {report.crew_list?.length > 0 && (
-            <div className="report-section">
-              <h4>Crew</h4>
-              <div className="report-crew-list">
-                {report.crew_list.map((worker, i) => (
-                  <div key={i} className="crew-member">
-                    <span className="crew-name">{worker.name}</span>
-                    <span className="crew-role">{worker.role}</span>
-                  </div>
-                ))}
+      {expandedReport === report.id && (() => {
+        const disposalSummary = Array.isArray(report.disposal_loads_summary) ? report.disposal_loads_summary : []
+        const totalLoads = disposalSummary.reduce((s, d) => s + d.count, 0)
+        const photoUrls = Array.isArray(report.photo_urls) ? report.photo_urls : []
+        const photoCount = photoUrls.length || report.photos_count || 0
+        return (
+          <div className="daily-report-details">
+            {/* Summary Stats */}
+            <div className="report-stats-grid">
+              <div className="report-stat">
+                <span className="stat-value">{report.crew_count || 0}</span>
+                <span className="stat-label">Total Manpower</span>
+              </div>
+              <div className="report-stat">
+                <span className="stat-value">{report.tasks_completed || 0}</span>
+                <span className="stat-label">Tasks Done</span>
+              </div>
+              <div className="report-stat">
+                <span className="stat-value">{totalLoads}</span>
+                <span className="stat-label">Loads Hauled</span>
+              </div>
+              <div className="report-stat">
+                <span className="stat-value">{photoCount}</span>
+                <span className="stat-label">Photos</span>
               </div>
             </div>
-          )}
 
-          {/* Completed Tasks */}
-          {report.completed_tasks?.length > 0 && (
-            <div className="report-section">
-              <h4>Completed Today</h4>
-              <ul className="report-tasks-list">
-                {report.completed_tasks.map((task, i) => (
-                  <li key={i}>
-                    {task.name}
-                    {task.group && <span className="task-group">{task.group}</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {/* Crew List */}
+            {report.crew_list?.length > 0 && (
+              <div className="report-section">
+                <h4>Crew on Site ({report.crew_count})</h4>
+                <div className="report-crew-list">
+                  {report.crew_list.map((worker, i) => (
+                    <div key={i} className="crew-member">
+                      <span className="crew-name">{worker.name}</span>
+                      <span className="crew-role">{worker.role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {/* Field Notes */}
-          {report.field_notes && (
-            <div className="report-section">
-              <h4>Field Notes</h4>
-              <p className="report-notes">{report.field_notes}</p>
-            </div>
-          )}
+            {/* Disposal Loads */}
+            {disposalSummary.length > 0 && (
+              <div className="report-section">
+                <h4><Truck size={14} className="inline-icon" /> Loads Hauled</h4>
+                <div className="report-loads-list">
+                  {disposalSummary.map((d, i) => (
+                    <div key={i} className="report-load-row">
+                      <span className="load-type-label">{getLoadLabel(d.type)}</span>
+                      <span className="load-count-badge">{d.count} load{d.count !== 1 ? 's' : ''}</span>
+                    </div>
+                  ))}
+                  <div className="report-load-total">Total: {totalLoads} load{totalLoads !== 1 ? 's' : ''}</div>
+                </div>
+              </div>
+            )}
 
-          {/* Issues */}
-          {report.issues && (
-            <div className="report-section issues">
-              <h4>Issues / Concerns</h4>
-              <p className="report-issues">{report.issues}</p>
-            </div>
-          )}
+            {/* Completed Tasks */}
+            {report.completed_tasks?.length > 0 && (
+              <div className="report-section">
+                <h4>Completed Today</h4>
+                <ul className="report-tasks-list">
+                  {report.completed_tasks.map((task, i) => (
+                    <li key={i}>
+                      {task.name}
+                      {task.group && <span className="task-group">{task.group}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-          {/* Submitted Info */}
-          {report.submitted_at && (
-            <div className="report-meta">
-              <span>Submitted by {report.submitted_by || 'Field'} at {formatTime(report.submitted_at)}</span>
-            </div>
-          )}
-        </div>
-      )}
+            {/* Work Description */}
+            {report.work_description && (
+              <div className="report-section">
+                <h4>Work Completed</h4>
+                <p className="report-notes">{report.work_description}</p>
+              </div>
+            )}
+
+            {/* Field Notes */}
+            {report.field_notes && (
+              <div className="report-section">
+                <h4>Additional Notes</h4>
+                <p className="report-notes">{report.field_notes}</p>
+              </div>
+            )}
+
+            {/* Issues */}
+            {report.issues && (
+              <div className="report-section issues">
+                <h4>Issues / Concerns</h4>
+                <p className="report-issues">{report.issues}</p>
+              </div>
+            )}
+
+            {/* Photo Documentation */}
+            {photoUrls.length > 0 && (
+              <div className="report-section">
+                <h4><Camera size={14} className="inline-icon" /> Photo Documentation ({photoUrls.length})</h4>
+                <div className="report-photos-grid">
+                  {photoUrls.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="report-photo-thumb">
+                      <img src={url} alt={`Site photo ${i + 1}`} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Submitted Info */}
+            {report.submitted_at && (
+              <div className="report-meta">
+                <span>Submitted by {report.submitted_by || 'Field'} at {formatTime(report.submitted_at)}</span>
+              </div>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 

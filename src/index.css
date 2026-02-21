@@ -10269,6 +10269,77 @@ END MIGRATED */
   margin-top: 0.5rem;
 }
 
+/* Shift Date section */
+.daily-report-shift-date {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.shift-date-value {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Loads Hauled section (foreman form) */
+.daily-report-loads {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.daily-report-load-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.daily-report-load-total {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.daily-report-empty-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Photo grid (foreman form) */
+.daily-report-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.daily-report-photo-thumb {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 2px solid var(--border-color);
+}
+
+.daily-report-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.daily-report-photos-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
 /* ============================================
    Messages Styles
    ============================================ */
@@ -15663,6 +15734,67 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-top: 1px solid var(--border-color);
   font-size: 0.8rem;
   color: var(--text-tertiary);
+}
+
+/* Loads Hauled (office view) */
+.report-loads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.report-load-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 5px;
+}
+
+.load-type-label {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.load-count-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.report-load-total {
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Photo grid (office view) */
+.report-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.5rem;
+}
+
+.report-photo-thumb {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 2px solid var(--border-color);
+  transition: border-color 0.15s;
+}
+
+.report-photo-thumb:hover {
+  border-color: var(--accent-blue);
+}
+
+.report-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Daily Reports - Selection & View Mode */

@@ -4010,21 +4010,36 @@ export const db = {
     const client = getClient()
 
     // Run all queries in parallel for faster loading
-    const [crew, areasResult, ticketsResult] = await Promise.all([
+    const [crew, areasResult, ticketsResult, disposalResult] = await Promise.all([
       this.getCrewCheckin(projectId, reportDate),
       client.from('areas').select('*').eq('project_id', projectId),
-      client.from('t_and_m_tickets').select('*').eq('project_id', projectId).eq('work_date', reportDate)
+      client.from('t_and_m_tickets').select('*').eq('project_id', projectId).eq('work_date', reportDate),
+      client.from('disposal_loads').select('load_type,load_count').eq('project_id', projectId).eq('work_date', reportDate)
     ])
 
     const areas = areasResult?.data || []
     const tickets = ticketsResult?.data || []
+    const disposalLoads = disposalResult?.data || []
 
     const completedToday = areas.filter(a =>
       a.status === 'done' &&
       a.completed_at?.startsWith(reportDate)
     )
 
-    const photosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+    // Collect all photo URLs from T&M tickets for the day
+    const photoUrls = tickets.flatMap(t => Array.isArray(t.photos) ? t.photos : [])
+    const photosCount = photoUrls.length
+
+    // Summarise disposal loads by type: [{ type, count }]
+    const disposalByType = disposalLoads.reduce((acc, load) => {
+      const existing = acc.find(e => e.type === load.load_type)
+      if (existing) {
+        existing.count += load.load_count
+      } else {
+        acc.push({ type: load.load_type, count: load.load_count })
+      }
+      return acc
+    }, [])
 
     return {
       crew_count: crew?.workers?.length || 0,
@@ -4033,7 +4048,9 @@ export const db = {
       tasks_total: areas.length,
       completed_tasks: completedToday.map(a => ({ name: a.name, group: a.group_name })),
       tm_tickets_count: tickets.length,
-      photos_count: photosCount
+      photos_count: photosCount,
+      photo_urls: photoUrls,
+      disposal_loads_summary: disposalByType
     }
   },
 
