@@ -485,6 +485,102 @@
   margin-top: 0.5rem;
 }
 
+/* Daily Report - Photo Upload */
+.dr-photo-required-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  vertical-align: middle;
+}
+
+.dr-photo-error {
+  font-size: 0.8rem;
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dr-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.dr-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.dr-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dr-photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.dr-photo-add {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 2px dashed var(--border-color);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.dr-photo-add:hover {
+  border-color: var(--accent-blue, #3b82f6);
+  color: var(--accent-blue, #3b82f6);
+}
+
+.dr-photo-add.dr-photo-add-error {
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+}
+
+.dr-photo-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
 /* ============================================
    Messages Styles
    ============================================ */

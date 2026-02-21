@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ClipboardList, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { ClipboardList, ChevronDown, ChevronRight, Calendar, Camera } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
@@ -374,6 +374,12 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         <div className="daily-report-summary">
           <span className="report-crew">{report.crew_count || 0} crew</span>
           <span className="report-tasks">{report.tasks_completed || 0} tasks</span>
+          {report.photos_count > 0 && (
+            <span className="report-photos-badge" title={`${report.photos_count} photo${report.photos_count !== 1 ? 's' : ''}`}>
+              <Camera size={13} />
+              {report.photos_count}
+            </span>
+          )}
           <span className="report-expand">{expandedReport === report.id ? '▼' : '▶'}</span>
         </div>
       </div>
