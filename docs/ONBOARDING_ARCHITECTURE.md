@@ -2519,7 +2519,7 @@ async function createPortalSession(req) {
 |------|----------|------------|
 | Add `company_invites` table | P4 | Low |
 | Admin invite UI (send invite by email) | P4 | Medium |
-| Invite email templates (SendGrid/Resend) | P4 | Low |
+| Invite email templates (Supabase Auth emails) | P4 | Low |
 | Invite acceptance flow (token validation) | P4 | Medium |
 | Pending request notifications (in-app) | P4 | Medium |
 | Email notifications for pending requests | P4 | Low |

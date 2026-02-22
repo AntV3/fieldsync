@@ -781,8 +781,8 @@ LIMIT 20;
 │                                                                  │
 │  + Add:                                                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │  Supabase   │  │  pg_cron    │  │  Resend/    │             │
-│  │  Edge Func  │  │  (Scheduled)│  │  SendGrid   │             │
+│  │  Supabase   │  │  pg_cron    │  │  Supabase   │             │
+│  │  Edge Func  │  │  (Scheduled)│  │  Auth Email │             │
 │  └─────────────┘  └─────────────┘  └─────────────┘             │
 │                                                                  │
 │  Scale Path:                                                     │
