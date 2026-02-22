@@ -974,8 +974,46 @@
 }
 
 [data-theme="light"] .project-card:hover {
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
   border-color: #93c5fd;
+}
+
+/* Business overview - light mode */
+[data-theme="light"] .business-overview {
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .bo-financial-row {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .bo-metric.highlight {
+  background: rgba(5, 150, 105, 0.05);
+  border-color: rgba(5, 150, 105, 0.2);
+}
+
+/* Smart alerts section - light mode */
+[data-theme="light"] .smart-alerts-section {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Needs Attention card on project overview - light mode */
+[data-theme="light"] .overview-needs-attention {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .overview-needs-attention__header {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .overview-needs-attention__count {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 /* Overview cards */

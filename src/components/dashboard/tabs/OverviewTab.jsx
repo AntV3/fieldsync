@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download } from 'lucide-react'
+import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import EarnedValueCard from '../../charts/EarnedValueCard'
@@ -23,6 +23,43 @@ export default function OverviewTab({
   onSetActiveTab,
   onExportFieldDocuments
 }) {
+  const attentionItems = []
+  if (projectData?.urgentMaterialRequests > 0) {
+    attentionItems.push({
+      id: 'urgent-materials',
+      type: 'warning',
+      icon: AlertTriangle,
+      label: `${projectData.urgentMaterialRequests} urgent material request${projectData.urgentMaterialRequests !== 1 ? 's' : ''}`,
+      tab: 'reports'
+    })
+  } else if (projectData?.pendingMaterialRequests > 0) {
+    attentionItems.push({
+      id: 'pending-materials',
+      type: 'info',
+      icon: Package,
+      label: `${projectData.pendingMaterialRequests} material request${projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending`,
+      tab: 'reports'
+    })
+  }
+  if (projectData?.pendingTickets > 0) {
+    attentionItems.push({
+      id: 'pending-tm',
+      type: 'warning',
+      icon: ClipboardList,
+      label: `${projectData.pendingTickets} T&M ticket${projectData.pendingTickets !== 1 ? 's' : ''} need approval`,
+      tab: 'financials'
+    })
+  }
+  if (projectData?.changeOrderPending > 0) {
+    attentionItems.push({
+      id: 'pending-co',
+      type: 'info',
+      icon: FileText,
+      label: `${projectData.changeOrderPending} change order${projectData.changeOrderPending !== 1 ? 's' : ''} pending`,
+      tab: 'financials'
+    })
+  }
+
   return (
     <div className="pv-tab-panel overview-tab animate-fade-in">
       {/* Row 1: Hero - Progress + Financials */}
@@ -102,7 +139,34 @@ export default function OverviewTab({
         />
       )}
 
-      {/* Row 4: Photo Timeline + Punch List side by side */}
+      {/* Row 4: Needs Attention (only shown when there are items) */}
+      {attentionItems.length > 0 && (
+        <div className="overview-needs-attention">
+          <div className="overview-needs-attention__header">
+            <AlertTriangle size={15} className="overview-needs-attention__icon" />
+            <span className="overview-needs-attention__title">Needs Attention</span>
+            <span className="overview-needs-attention__count">{attentionItems.length}</span>
+          </div>
+          <div className="overview-needs-attention__items">
+            {attentionItems.map(item => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={item.id}
+                  className={`overview-needs-attention__item overview-needs-attention__item--${item.type}`}
+                  onClick={() => onSetActiveTab(item.tab)}
+                >
+                  <Icon size={14} className="overview-needs-attention__item-icon" />
+                  <span className="overview-needs-attention__item-label">{item.label}</span>
+                  <ArrowRight size={13} className="overview-needs-attention__item-arrow" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Row 5: Photo Timeline + Punch List side by side */}
       <div className="overview-two-col">
         <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
           <PhotoTimeline
@@ -121,39 +185,8 @@ export default function OverviewTab({
         </Suspense>
       </div>
 
-      {/* Row 5: Bottom strip - Attention + Quick Nav + Exports */}
+      {/* Row 6: Quick Nav + Exports */}
       <div className="overview-bottom-strip">
-        {/* Attention items inline */}
-        {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (
-          <div className="overview-attention-inline">
-            {projectData?.urgentMaterialRequests > 0 && (
-              <div className="attention-chip warning" onClick={() => onSetActiveTab('reports')}>
-                <AlertTriangle size={14} />
-                <span>{projectData.urgentMaterialRequests} urgent material request{projectData.urgentMaterialRequests !== 1 ? 's' : ''}</span>
-              </div>
-            )}
-            {projectData?.pendingMaterialRequests > 0 && !projectData?.urgentMaterialRequests && (
-              <div className="attention-chip info" onClick={() => onSetActiveTab('reports')}>
-                <Package size={14} />
-                <span>{projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending</span>
-              </div>
-            )}
-            {projectData?.pendingTickets > 0 && (
-              <div className="attention-chip warning" onClick={() => onSetActiveTab('financials')}>
-                <ClipboardList size={14} />
-                <span>{projectData.pendingTickets} T&M pending</span>
-              </div>
-            )}
-            {projectData?.changeOrderPending > 0 && (
-              <div className="attention-chip info" onClick={() => onSetActiveTab('financials')}>
-                <FileText size={14} />
-                <span>{projectData.changeOrderPending} CO pending</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Quick nav + export buttons */}
         <div className="overview-quick-actions">
           <button className="overview-action-btn" onClick={() => onSetActiveTab('reports')}>
             <ClipboardList size={15} />
@@ -166,7 +199,7 @@ export default function OverviewTab({
           <span className="overview-action-divider" />
           <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('all')}>
             <Download size={15} />
-            <span>Export All Docs</span>
+            <span>Export All</span>
           </button>
           <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('daily')}>
             <Download size={14} />

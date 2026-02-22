@@ -107,6 +107,83 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* ---- Needs Attention Section (Portfolio View) ---- */
+.smart-alerts-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.smart-alerts-section--has-critical {
+  border-left: 3px solid var(--status-danger);
+}
+
+.smart-alerts-section--has-warning {
+  border-left: 3px solid var(--status-warning);
+}
+
+.smart-alerts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.smart-alerts-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.smart-alerts-header__icon {
+  width: 18px;
+  height: 18px;
+  color: var(--status-warning);
+  flex-shrink: 0;
+}
+
+.smart-alerts-header__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.smart-alerts-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+
+.smart-alerts-count-badge--critical {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+.smart-alerts-count-badge--warning {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+/* Refine individual smart alerts for a tighter look within the section */
+.smart-alerts-section .smart-alert {
+  border-radius: var(--radius-md);
+  border-left-width: 3px;
+}
+
+.smart-alerts-section .smart-alert + .smart-alert {
+  margin-top: var(--space-xs);
+}
+
 /* ---- Smart Alerts ---- */
 .smart-alerts {
   display: flex;

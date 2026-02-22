@@ -35,15 +35,16 @@
 .project-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem 1rem;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .project-card:hover {
   border-color: var(--accent-blue);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
 }
 
 .project-card-header {
@@ -51,22 +52,27 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: var(--space-xs);
+  gap: var(--space-sm);
 }
 
 .project-card-name {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
 }
 
 .project-card-value {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
+  margin-top: 0.2rem;
+  font-weight: 500;
 }
 
 /* Enhanced Project Card */
 .project-card.enhanced {
-  padding: var(--space-sm);
+  padding: 0.875rem 1rem;
 }
 
 .project-card.enhanced.at-risk {
@@ -77,10 +83,11 @@
 .project-stats-row {
   display: flex;
   justify-content: space-between;
-  margin: var(--space-xs) 0;
-  padding: var(--space-xs) 0;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0;
   border-top: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
+  gap: var(--space-xs);
 }
 
 .project-stat {
@@ -91,8 +98,9 @@
 .project-stat .stat-value {
   display: block;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .project-stat .stat-value.negative {
@@ -101,25 +109,28 @@
 
 .project-stat .stat-label {
   display: block;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   color: var(--text-muted);
   margin-top: 0.15rem;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
 }
 
 /* Mini Progress Bar (used in project cards) */
 .mini-progress-bar {
-  height: 6px;
+  height: 5px;
   background: var(--progress-bg, var(--bg-elevated));
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   overflow: hidden;
-  margin-top: var(--space-xs);
+  margin-top: 0.5rem;
 }
 
 .mini-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
 }
 
 /* Dashboard Analytics Cards */
