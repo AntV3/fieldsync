@@ -10,20 +10,38 @@ export default defineConfig({
   build: {
     // Generate source maps for better debugging
     sourcemap: true,
+    // Raise threshold since pdf/xlsx are intentionally large vendor chunks
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        // Improve code splitting by separating vendor chunks
-        manualChunks: {
+        // Use function form to handle recharts circular dependency warning:
+        // Recharts re-exports from its index create circular chunk refs when split.
+        // Keeping recharts in its own named chunk resolves this.
+        manualChunks(id) {
           // React core - rarely changes, can be cached long-term
-          react: ['react', 'react-dom'],
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'react'
+          }
           // Supabase client - separate chunk for API layer
-          supabase: ['@supabase/supabase-js'],
+          if (id.includes('node_modules/@supabase/')) {
+            return 'supabase'
+          }
           // PDF generation - only loaded when user exports PDFs
-          pdf: ['jspdf', 'jspdf-autotable'],
+          if (id.includes('node_modules/jspdf') || id.includes('node_modules/jspdf-autotable')) {
+            return 'pdf'
+          }
           // Excel parsing - only loaded during Excel import
-          xlsx: ['xlsx'],
-          // Icons - separate chunk to avoid bundling issues
-          icons: ['lucide-react']
+          if (id.includes('node_modules/xlsx')) {
+            return 'xlsx'
+          }
+          // Recharts - kept as single chunk to avoid circular re-export warnings
+          if (id.includes('node_modules/recharts')) {
+            return 'recharts'
+          }
+          // Icons - separate chunk
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons'
+          }
         }
       },
       // Exclude unused jspdf optional dependencies from bundle
