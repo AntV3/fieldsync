@@ -6,7 +6,7 @@ import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financialExport'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, Menu, AlertTriangle, Package, Users, Shield, TrendingUp, TrendingDown, CheckCircle2, Camera, MapPin, Building2, Phone } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, Menu, AlertTriangle, Package, Users, Shield, TrendingUp, TrendingDown, CheckCircle2, Camera, MapPin, Building2, Phone, ArrowRight } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import OverviewProgressGauge from './overview/OverviewProgressGauge'
@@ -1257,7 +1257,50 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 />
               )}
 
-              {/* Row 4: Photo Timeline + Punch List */}
+              {/* Row 4: Needs Attention (only shown when there are items) */}
+              {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (
+                <div className="overview-needs-attention">
+                  <div className="overview-needs-attention__header">
+                    <AlertTriangle size={15} className="overview-needs-attention__icon" />
+                    <span className="overview-needs-attention__title">Needs Attention</span>
+                    <span className="overview-needs-attention__count">
+                      {[projectData?.urgentMaterialRequests > 0, !projectData?.urgentMaterialRequests && projectData?.pendingMaterialRequests > 0, projectData?.pendingTickets > 0, projectData?.changeOrderPending > 0].filter(Boolean).length}
+                    </span>
+                  </div>
+                  <div className="overview-needs-attention__items">
+                    {projectData?.urgentMaterialRequests > 0 && (
+                      <button className="overview-needs-attention__item overview-needs-attention__item--warning" onClick={() => setActiveProjectTab('reports')}>
+                        <AlertTriangle size={14} className="overview-needs-attention__item-icon" />
+                        <span className="overview-needs-attention__item-label">{projectData.urgentMaterialRequests} urgent material request{projectData.urgentMaterialRequests !== 1 ? 's' : ''}</span>
+                        <ArrowRight size={13} className="overview-needs-attention__item-arrow" />
+                      </button>
+                    )}
+                    {projectData?.pendingMaterialRequests > 0 && !projectData?.urgentMaterialRequests && (
+                      <button className="overview-needs-attention__item overview-needs-attention__item--info" onClick={() => setActiveProjectTab('reports')}>
+                        <Package size={14} className="overview-needs-attention__item-icon" />
+                        <span className="overview-needs-attention__item-label">{projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending</span>
+                        <ArrowRight size={13} className="overview-needs-attention__item-arrow" />
+                      </button>
+                    )}
+                    {projectData?.pendingTickets > 0 && (
+                      <button className="overview-needs-attention__item overview-needs-attention__item--warning" onClick={() => setActiveProjectTab('financials')}>
+                        <ClipboardList size={14} className="overview-needs-attention__item-icon" />
+                        <span className="overview-needs-attention__item-label">{projectData.pendingTickets} T&M ticket{projectData.pendingTickets !== 1 ? 's' : ''} need approval</span>
+                        <ArrowRight size={13} className="overview-needs-attention__item-arrow" />
+                      </button>
+                    )}
+                    {projectData?.changeOrderPending > 0 && (
+                      <button className="overview-needs-attention__item overview-needs-attention__item--info" onClick={() => setActiveProjectTab('financials')}>
+                        <FileText size={14} className="overview-needs-attention__item-icon" />
+                        <span className="overview-needs-attention__item-label">{projectData.changeOrderPending} change order{projectData.changeOrderPending !== 1 ? 's' : ''} pending</span>
+                        <ArrowRight size={13} className="overview-needs-attention__item-arrow" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Row 5: Photo Timeline + Punch List */}
               <div className="overview-two-col">
                 <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading photos...</div>}>
                   <PhotoTimeline
@@ -1276,39 +1319,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </Suspense>
               </div>
 
-              {/* Row 5: Bottom strip - Attention + Quick Nav + Exports */}
+              {/* Row 6: Quick Nav + Exports */}
               <div className="overview-bottom-strip">
-                {/* Attention items inline */}
-                {(projectData?.pendingTickets > 0 || projectData?.changeOrderPending > 0 || projectData?.pendingMaterialRequests > 0 || projectData?.urgentMaterialRequests > 0) && (
-                  <div className="overview-attention-inline">
-                    {projectData?.urgentMaterialRequests > 0 && (
-                      <div className="attention-chip warning" onClick={() => setActiveProjectTab('reports')}>
-                        <AlertTriangle size={14} />
-                        <span>{projectData.urgentMaterialRequests} urgent material request{projectData.urgentMaterialRequests !== 1 ? 's' : ''}</span>
-                      </div>
-                    )}
-                    {projectData?.pendingMaterialRequests > 0 && !projectData?.urgentMaterialRequests && (
-                      <div className="attention-chip info" onClick={() => setActiveProjectTab('reports')}>
-                        <Package size={14} />
-                        <span>{projectData.pendingMaterialRequests} material request{projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending</span>
-                      </div>
-                    )}
-                    {projectData?.pendingTickets > 0 && (
-                      <div className="attention-chip warning" onClick={() => setActiveProjectTab('financials')}>
-                        <ClipboardList size={14} />
-                        <span>{projectData.pendingTickets} T&M pending</span>
-                      </div>
-                    )}
-                    {projectData?.changeOrderPending > 0 && (
-                      <div className="attention-chip info" onClick={() => setActiveProjectTab('financials')}>
-                        <FileText size={14} />
-                        <span>{projectData.changeOrderPending} CO pending</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Quick nav + export buttons */}
                 <div className="overview-quick-actions">
                   <button className="overview-action-btn" onClick={() => setActiveProjectTab('reports')}>
                     <ClipboardList size={15} />
@@ -1321,7 +1333,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   <span className="overview-action-divider" />
                   <button className="overview-action-btn export" onClick={() => handleExportFieldDocuments('all')}>
                     <Download size={15} />
-                    <span>Export All Docs</span>
+                    <span>Export All</span>
                   </button>
                   <button className="overview-action-btn export" onClick={() => handleExportFieldDocuments('daily')}>
                     <Download size={14} />
@@ -2506,34 +2518,21 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
       {/* Smart Alerts - Actionable insights requiring attention */}
       {riskAnalysis.allAlerts.length > 0 && (
-        <div className="smart-alerts-section" style={{ marginBottom: 'var(--space-lg, 1.5rem)' }}>
-          <div className="smart-alerts-header" style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 'var(--space-sm, 0.5rem)'
-          }}>
-            <h3 style={{
-              fontSize: 'var(--font-size-md, 1rem)',
-              fontWeight: 'var(--font-weight-semibold, 600)',
-              color: 'var(--text-primary)',
-              margin: 0
-            }}>
-              Needs Attention
-              {riskAnalysis.criticalCount > 0 && (
-                <span style={{
-                  marginLeft: '0.5rem',
-                  padding: '2px 8px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: '9999px',
-                  background: 'var(--status-danger-bg, #7f1d1d)',
-                  color: 'var(--status-danger, #dc2626)'
-                }}>
-                  {riskAnalysis.criticalCount} critical
-                </span>
-              )}
-            </h3>
+        <div className={`smart-alerts-section${riskAnalysis.criticalCount > 0 ? ' smart-alerts-section--has-critical' : riskAnalysis.allAlerts.some(a => a.type === 'warning') ? ' smart-alerts-section--has-warning' : ''}`}>
+          <div className="smart-alerts-header">
+            <div className="smart-alerts-header__left">
+              <AlertTriangle className="smart-alerts-header__icon" size={18} />
+              <h3 className="smart-alerts-header__title">Needs Attention</h3>
+            </div>
+            {riskAnalysis.criticalCount > 0 ? (
+              <span className="smart-alerts-count-badge smart-alerts-count-badge--critical">
+                {riskAnalysis.criticalCount} critical
+              </span>
+            ) : (
+              <span className="smart-alerts-count-badge smart-alerts-count-badge--warning">
+                {riskAnalysis.allAlerts.length} item{riskAnalysis.allAlerts.length !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
           <SmartAlerts
             alerts={riskAnalysis.allAlerts}
