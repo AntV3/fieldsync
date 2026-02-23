@@ -70,40 +70,6 @@ export default function TMList({
   const [failedImports, setFailedImports] = useState({})
   const [retryingImport, setRetryingImport] = useState(null)
 
-  useEffect(() => {
-    // Reset pagination when project changes
-    setTickets([])
-    setPage(0)
-    setHasMore(true)
-    loadTickets(0, true)
-
-    // Subscribe to real-time updates for T&M tickets
-    const subscription = db.subscribeToTMTickets?.(project.id, () => {
-      // On real-time update, refresh the first page
-      loadTickets(0, true)
-    })
-
-    return () => {
-      if (subscription) db.unsubscribe?.(subscription)
-    }
-  }, [project.id, loadTickets])
-
-  // Save user preference when displayMode changes
-  useEffect(() => {
-    if (!compact) {
-      localStorage.setItem('fieldsync-tm-default-view', displayMode)
-    }
-  }, [displayMode, compact])
-
-  // Reset to preferred view when switching to full mode
-  useEffect(() => {
-    if (!compact) {
-      const saved = localStorage.getItem('fieldsync-tm-default-view')
-      const preferredView = saved === 'list' || saved === 'dashboard' ? saved : 'dashboard'
-      setDisplayMode(preferredView)
-    }
-  }, [compact])
-
   // Load tickets with pagination - wrapped in useCallback so the subscription
   // callback always references the same function and doesn't cause leak/resubscribe cycles
   const loadTickets = useCallback(async (pageNum = 0, reset = false) => {
@@ -169,6 +135,40 @@ export default function TMList({
       setLoadingMore(false)
     }
   }, [project.id, filter, onShowToast])
+
+  useEffect(() => {
+    // Reset pagination when project changes
+    setTickets([])
+    setPage(0)
+    setHasMore(true)
+    loadTickets(0, true)
+
+    // Subscribe to real-time updates for T&M tickets
+    const subscription = db.subscribeToTMTickets?.(project.id, () => {
+      // On real-time update, refresh the first page
+      loadTickets(0, true)
+    })
+
+    return () => {
+      if (subscription) db.unsubscribe?.(subscription)
+    }
+  }, [project.id, loadTickets])
+
+  // Save user preference when displayMode changes
+  useEffect(() => {
+    if (!compact) {
+      localStorage.setItem('fieldsync-tm-default-view', displayMode)
+    }
+  }, [displayMode, compact])
+
+  // Reset to preferred view when switching to full mode
+  useEffect(() => {
+    if (!compact) {
+      const saved = localStorage.getItem('fieldsync-tm-default-view')
+      const preferredView = saved === 'list' || saved === 'dashboard' ? saved : 'dashboard'
+      setDisplayMode(preferredView)
+    }
+  }, [compact])
 
   // Load more tickets (next page)
   const loadMore = () => {
