@@ -30,7 +30,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   useEffect(() => {
     loadDisposalData()
     loadHistory()
-  }, [project.id, date])
+  }, [project?.id, date])
 
   const loadDisposalData = async () => {
     try {

@@ -52,7 +52,7 @@ const PhotoTimeline = lazy(() => import('./PhotoTimeline'))
 const PunchList = lazy(() => import('./PunchList'))
 import EarnedValueCard from './charts/EarnedValueCard'
 
-export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
+export default function Dashboard({ company, user, isAdmin, userAccessLevel, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
   const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
@@ -1995,7 +1995,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   project={selectedProject}
                   companyId={company?.id || selectedProject?.company_id}
                   onShowToast={onShowToast}
-                  userRole={user?.access_level || 'office'}
+                  userRole={userAccessLevel || 'office'}
                 />
               </Suspense>
             </div>

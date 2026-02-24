@@ -51,7 +51,7 @@ const ALL_ACTIONS = {
     id: 'docs',
     label: 'Documents',
     icon: FolderOpen,
-    description: 'View project files'
+    description: 'View & upload project files'
   },
   metrics: {
     id: 'metrics',

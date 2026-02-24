@@ -6425,6 +6425,32 @@ export const db = {
       triggered_by: 'user',
       user_id: (await client.auth.getUser()).data?.user?.id
     })
+  },
+
+  /**
+   * Subscribe to real-time document folder changes for a project
+   */
+  subscribeToDocumentFolders(projectId, callback) {
+    if (!isSupabaseConfigured || !projectId) return null
+    const channel = supabase.channel(`document_folders:${projectId}`)
+    channel.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'document_folders', filter: `project_id=eq.${projectId}` },
+      () => callback?.()
+    )
+    return channel.subscribe()
+  },
+
+  /**
+   * Subscribe to real-time document changes for a project
+   */
+  subscribeToDocuments(projectId, callback) {
+    if (!isSupabaseConfigured || !projectId) return null
+    const channel = supabase.channel(`documents:${projectId}`)
+    channel.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'documents', filter: `project_id=eq.${projectId}` },
+      () => callback?.()
+    )
+    return channel.subscribe()
   }
 }
 

@@ -2001,6 +2001,48 @@
   flex-shrink: 0;
 }
 
+/* Field upload button (foreman view) */
+.field-docs-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--primary-color, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+}
+
+.field-docs-upload-btn:active {
+  opacity: 0.85;
+}
+
+/* Upload CTA in empty state */
+.field-docs-upload-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--primary-color, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.field-docs-upload-cta:active {
+  opacity: 0.85;
+}
+
 /* Mobile responsive for docs */
 @media (max-width: 640px) {
   .docs-header {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Download, ArrowLeft, Loader2, File, Image, FileSpreadsheet, ChevronRight } from 'lucide-react'
+import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Download, ArrowLeft, Loader2, File, Image, FileSpreadsheet, ChevronRight, Upload, Plus } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import DocumentUploadModal from './DocumentUploadModal'
 
 // Icon mapping
 const FOLDER_ICONS = {
@@ -49,12 +50,13 @@ const formatFileSize = (bytes) => {
   return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`
 }
 
-export default function FolderGrid({ projectId, onShowToast }) {
+export default function FolderGrid({ projectId, companyId, onShowToast, allowUpload = false }) {
   const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedFolder, setSelectedFolder] = useState(null)
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
 
   // Use ref to track selected folder for real-time updates
   const selectedFolderRef = useRef(null)
@@ -130,6 +132,15 @@ export default function FolderGrid({ projectId, onShowToast }) {
     setDocuments([])
   }
 
+  const handleUploadComplete = () => {
+    setShowUploadModal(false)
+    loadFolders()
+    if (selectedFolder) {
+      loadDocuments(selectedFolder.id)
+    }
+    onShowToast?.('Document uploaded successfully', 'success')
+  }
+
   // Loading
   if (loading) {
     return (
@@ -163,6 +174,16 @@ export default function FolderGrid({ projectId, onShowToast }) {
               <span>{documents.length} files</span>
             </div>
           </div>
+          {allowUpload && (
+            <button
+              className="field-docs-upload-btn"
+              onClick={() => setShowUploadModal(true)}
+              title="Upload document"
+            >
+              <Upload size={18} />
+              <span>Upload</span>
+            </button>
+          )}
         </div>
 
         {/* Documents */}
@@ -176,6 +197,12 @@ export default function FolderGrid({ projectId, onShowToast }) {
             <div className="field-docs-empty">
               <Folder size={48} style={{ color: folderColor, opacity: 0.3 }} />
               <p>No documents yet</p>
+              {allowUpload && (
+                <button className="field-docs-upload-cta" onClick={() => setShowUploadModal(true)}>
+                  <Upload size={16} />
+                  Upload First Document
+                </button>
+              )}
             </div>
           ) : (
             documents.map(doc => {
@@ -195,6 +222,19 @@ export default function FolderGrid({ projectId, onShowToast }) {
             })
           )}
         </div>
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <DocumentUploadModal
+            projectId={projectId}
+            companyId={companyId}
+            folderId={selectedFolder?.id}
+            folderName={selectedFolder?.name}
+            onClose={() => setShowUploadModal(false)}
+            onUploadComplete={handleUploadComplete}
+            onShowToast={onShowToast}
+          />
+        )}
       </div>
     )
   }

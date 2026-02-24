@@ -248,12 +248,14 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     setShowUploadModal(true)
   }
 
-  // Field user view - clean folder grid
+  // Field user view - clean folder grid with upload capability
   if (isFieldUser) {
     return (
       <FolderGrid
         projectId={project.id}
+        companyId={companyId}
         onShowToast={onShowToast}
+        allowUpload={true}
       />
     )
   }

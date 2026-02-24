@@ -318,7 +318,12 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           </button>
           <h2>Documents</h2>
         </div>
-        <FolderGrid projectId={project.id} onShowToast={onShowToast} />
+        <FolderGrid
+          projectId={project.id}
+          companyId={companyId}
+          onShowToast={onShowToast}
+          allowUpload={true}
+        />
       </div>
     )
   }

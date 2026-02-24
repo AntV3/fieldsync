@@ -920,6 +920,7 @@ export default function App() {
                   company={company}
                   user={user}
                   isAdmin={isAdmin}
+                  userAccessLevel={accessLevel}
                   onShowToast={showToast}
                   navigateToProjectId={navigateToProjectId}
                   onProjectNavigated={handleProjectNavigated}
