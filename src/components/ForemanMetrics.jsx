@@ -20,13 +20,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     dailyReports: []
   })
 
-  useEffect(() => {
-    if (project?.id) {
-      loadMetrics()
-    }
-  }, [project?.id, timeRange])
-
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     setLoading(true)
     try {
       const now = new Date()
@@ -77,7 +71,13 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [project?.id, timeRange])
+
+  useEffect(() => {
+    if (project?.id) {
+      loadMetrics()
+    }
+  }, [loadMetrics])
 
   // Real-time subscriptions - reload metrics when underlying data changes
   const refreshTimeoutRef = useRef(null)
@@ -87,7 +87,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     refreshTimeoutRef.current = setTimeout(() => {
       loadMetrics()
     }, 300)
-  }, [project?.id, timeRange])
+  }, [loadMetrics])
 
   useEffect(() => {
     if (!project?.id) return
