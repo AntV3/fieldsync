@@ -26,7 +26,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       const [tmResult, reportResult] = await Promise.all([
         supabase
           .from('t_and_m_tickets')
-          .select('id, work_date, description, photos, area_id')
+          .select('id, work_date, description, photos')
           .eq('project_id', projectId)
           .not('photos', 'is', null)
           .order('work_date', { ascending: false }),
