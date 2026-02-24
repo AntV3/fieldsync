@@ -1353,6 +1353,24 @@ export const db = {
         { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
         (payload) => callbacks.onProjectChange?.(payload)
       )
+
+      // Daily reports - foreman submissions visible to office portfolio
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'daily_reports', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onDailyReport?.(payload)
+      )
+
+      // Haul-off / disposal loads - foreman submissions visible to office
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'haul_offs', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onHaulOff?.(payload)
+      )
+
+      // Punch list items - foreman resolves / office adds items
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onPunchListUpdate?.(payload)
+      )
     })
 
     // Subscribe to injury reports company-wide (INSERT, UPDATE, and DELETE)
@@ -5668,6 +5686,20 @@ export const db = {
         .channel(`haul_offs:${projectId}`)
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'haul_offs', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to punch list item changes for a project
+  subscribeToPunchListItems(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`punch_list_items:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
           callback
         )
         .subscribe()

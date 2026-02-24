@@ -179,7 +179,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       onInjuryReport: () => debouncedRefresh(),
       onProjectChange: () => debouncedRefresh(), // Project details changed
       onMaterialsEquipmentChange: () => debouncedRefresh(), // Pricing updates
-      onLaborRateChange: () => debouncedRefresh() // Labor rate updates
+      onLaborRateChange: () => debouncedRefresh(), // Labor rate updates
+      onDailyReport: () => debouncedRefresh(), // Daily report submitted by foreman
+      onHaulOff: () => debouncedRefresh(), // Disposal load logged by foreman
+      onPunchListUpdate: () => debouncedRefresh() // Punch list item added/resolved
     })
 
     return () => {

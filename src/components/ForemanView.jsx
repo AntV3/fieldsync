@@ -17,6 +17,8 @@ import ForemanLanding from './ForemanLanding'
 import PunchList from './PunchList'
 
 export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
+  // Local project state - starts from prop, refreshed when office updates project details
+  const [projectDetails, setProjectDetails] = useState(project)
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
@@ -104,6 +106,17 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     }
   }
 
+  // Fetch fresh project details (e.g. when office updates name, dates, budget)
+  const loadProjectDetails = useCallback(async () => {
+    if (!project?.id) return
+    try {
+      const fresh = await db.getProject(project.id)
+      if (fresh) setProjectDetails(fresh)
+    } catch (error) {
+      console.error('Error refreshing project details:', error)
+    }
+  }, [project?.id])
+
   // Real-time subscriptions for live updates
   const refreshTimeoutRef = useRef(null)
 
@@ -112,6 +125,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     refreshTimeoutRef.current = setTimeout(() => {
       loadAreas()
       loadTodayStatus()
+      loadPunchListCount()
     }, 300)
   }, [project?.id])
 
@@ -142,9 +156,18 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     const matReqSub = db.subscribeToMaterialRequests?.(project.id, debouncedRefresh)
     if (matReqSub) subs.push(matReqSub)
 
-    // Project-level changes from office (name, dates, budget)
-    const projectSub = db.subscribeToProject?.(project.id, debouncedRefresh)
+    // Project-level changes from office (name, dates, budget) - also refreshes project details display
+    const projectSub = db.subscribeToProject?.(project.id, () => {
+      debouncedRefresh()
+      loadProjectDetails()
+    })
     if (projectSub) subs.push(projectSub)
+
+    // Punch list item changes (office adds items, foreman resolves them)
+    const punchSub = db.subscribeToPunchListItems?.(project.id, () => {
+      loadPunchListCount()
+    })
+    if (punchSub) subs.push(punchSub)
 
     // Materials/equipment pricing changes from office
     if (companyId) {
@@ -454,7 +477,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           <ArrowLeft size={20} />
         </button>
         <div className="fm-header-center">
-          <h1 className="fm-project-name">{project.name}</h1>
+          <h1 className="fm-project-name">{projectDetails.name}</h1>
           {foremanName && (
             <span className="fm-foreman-name">{foremanName}</span>
           )}
@@ -470,13 +493,13 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       {/* Project Info (collapsible) */}
       {showProjectInfo && (
         <div className="fm-project-info">
-          {project.job_number && <div className="fm-info-item"><span>Job #</span><span>{project.job_number}</span></div>}
-          {project.address && <div className="fm-info-item"><span>Address</span><span>{project.address}</span></div>}
-          {project.general_contractor && <div className="fm-info-item"><span>GC</span><span>{project.general_contractor}</span></div>}
-          {project.client_phone && (
+          {projectDetails.job_number && <div className="fm-info-item"><span>Job #</span><span>{projectDetails.job_number}</span></div>}
+          {projectDetails.address && <div className="fm-info-item"><span>Address</span><span>{projectDetails.address}</span></div>}
+          {projectDetails.general_contractor && <div className="fm-info-item"><span>GC</span><span>{projectDetails.general_contractor}</span></div>}
+          {projectDetails.client_phone && (
             <div className="fm-info-item">
               <span>Phone</span>
-              <a href={`tel:${project.client_phone}`}>{project.client_phone}</a>
+              <a href={`tel:${projectDetails.client_phone}`}>{projectDetails.client_phone}</a>
             </div>
           )}
         </div>
