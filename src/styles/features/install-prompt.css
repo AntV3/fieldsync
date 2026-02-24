@@ -4,6 +4,6 @@
 .install-prompt-text strong { font-size: 14px; }
 .install-prompt-text span { color: var(--text-muted, #64748b); }
 .install-prompt-actions { display: flex; align-items: center; gap: 8px; }
-.install-prompt-dismiss { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; }
+.install-prompt-dismiss { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: var(--radius-sm); }
 .install-prompt-dismiss:hover { background: var(--bg-secondary); }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }

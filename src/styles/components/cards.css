@@ -66,8 +66,8 @@
 .project-card-value {
   color: var(--text-muted);
   font-size: var(--font-size-xs);
-  margin-top: 0.2rem;
-  font-weight: 500;
+  margin-top: var(--space-xs);
+  font-weight: var(--font-weight-medium);
 }
 
 /* Enhanced Project Card */
@@ -109,12 +109,12 @@
 
 .project-stat .stat-label {
   display: block;
-  font-size: 0.58rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-top: 0.15rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 /* Mini Progress Bar (used in project cards) */
@@ -130,7 +130,7 @@
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
   border-radius: var(--radius-full);
-  transition: width 0.4s ease;
+  transition: width var(--transition-slow);
 }
 
 /* Dashboard Analytics Cards */

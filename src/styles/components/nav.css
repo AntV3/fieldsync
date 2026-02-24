@@ -48,7 +48,7 @@
 .login-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   padding: 2.5rem;
   width: 100%;
   max-width: 400px;
@@ -78,10 +78,10 @@
 .selected-role {
   display: inline-block;
   background: var(--bg-elevated);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  margin: 1rem 0;
-  font-weight: 500;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  margin: var(--space-md) 0;
+  font-weight: var(--font-weight-medium);
 }
 
 .back-btn {
@@ -114,9 +114,9 @@
   padding: 1.5rem;
   background: var(--bg-elevated);
   border: 2px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
   text-align: left;
 }
 
@@ -188,10 +188,10 @@
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
   padding: 0.5rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .nav-logout:hover {
@@ -212,13 +212,13 @@
   color: var(--text-primary);
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 1.25rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .mobile-menu-btn:hover {
@@ -232,7 +232,7 @@
   right: 0;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
   z-index: 1000;
@@ -266,7 +266,7 @@
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .mobile-menu-logout:hover {

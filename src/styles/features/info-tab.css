@@ -10,7 +10,7 @@
 /* Info Hero */
 .info-hero {
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
   border: 1px solid var(--border-color);
 }
@@ -72,7 +72,7 @@
   padding: 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .info-quick-card.highlight {
@@ -84,7 +84,7 @@
   width: 40px;
   height: 40px;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,7 +124,7 @@
 .info-section-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -152,19 +152,19 @@
 
 .info-badge {
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.7rem;
   font-weight: 600;
 }
 
 .info-badge.done {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--status-success-bg);
+  color: var(--status-success);
 }
 
 .info-badge.working {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--status-info-bg);
+  color: var(--status-info);
 }
 
 .info-badge.pending {
@@ -199,7 +199,7 @@
 
 .info-detail-row.clickable {
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-normal);
 }
 
 .info-detail-row.clickable:hover {
@@ -233,7 +233,7 @@
 }
 
 .info-detail-value.positive {
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 /* Info Areas List */
@@ -265,11 +265,11 @@
 }
 
 .status-dot.done {
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 .status-dot.working {
-  color: #3b82f6;
+  color: var(--accent-blue);
 }
 
 .status-dot.pending {
@@ -294,11 +294,11 @@
 }
 
 .info-area-status-label.done {
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 .info-area-status-label.working {
-  color: #3b82f6;
+  color: var(--accent-blue);
 }
 
 .info-area-status-label.not_started {
@@ -317,7 +317,7 @@
 .info-details-section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 

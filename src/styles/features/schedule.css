@@ -60,7 +60,7 @@
 .bo-labor-badge {
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-weight: 500;
 }
 
@@ -93,7 +93,7 @@
 .labor-indicator {
   font-size: 0.75rem;
   padding: 0.25rem 0.6rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-weight: 500;
 }
 
@@ -131,7 +131,7 @@
 input[type="date"] {
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -187,7 +187,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 1rem 0;
   padding: 0.75rem 1rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 3px solid var(--accent-green);
 }
 
@@ -218,7 +218,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--accent-blue);
   border: 1px solid rgba(59, 130, 246, 0.3);
   padding: 0.2rem 0.5rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -232,7 +232,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--accent-green);
   border: 1px solid rgba(16, 185, 129, 0.3);
   padding: 0.2rem 0.5rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -257,7 +257,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 0.75rem;
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.2);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--accent-warning);
   font-size: 0.85rem;
 }
@@ -275,7 +275,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 0.75rem;
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .tm-co-label {
@@ -362,7 +362,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -448,7 +448,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .project-badges .badge {
   padding: 0.2rem 0.45rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.65rem;
   font-weight: 500;
 }
@@ -515,7 +515,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (max-width: 480px) {
   .business-overview {
     padding: 1rem;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
   }
 
   .bo-header {

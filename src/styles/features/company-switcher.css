@@ -14,12 +14,12 @@
   padding: 0.5rem 1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .company-switcher-btn:hover {
@@ -30,7 +30,7 @@
 .switcher-arrow {
   font-size: 0.7rem;
   color: var(--text-muted);
-  transition: transform 0.2s;
+  transition: transform var(--transition-normal);
 }
 
 .company-dropdown {
@@ -40,7 +40,7 @@
   min-width: 200px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   overflow: hidden;
@@ -58,7 +58,7 @@
   font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .company-option:hover {
@@ -78,7 +78,7 @@
 .nav-company-name {
   padding: 0.5rem 1rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.85rem;
   color: var(--text-secondary);
   margin-right: 1rem;

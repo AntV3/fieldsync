@@ -126,6 +126,17 @@
   --threshold-cost-healthy: 0.60;
   --threshold-cost-warning: 0.75;
   --threshold-cost-critical: 0.85;
+
+  /* ---- Semantic Aliases ---- */
+  /* These are shorthand aliases used across feature styles.
+     They resolve to the canonical design tokens above. */
+  --bg-hover: var(--bg-elevated);   /* hover state background */
+  --hover-bg: var(--bg-elevated);   /* alias for --bg-hover */
+  --text-color: var(--text-primary); /* generic text color alias */
+  --accent-yellow: var(--accent-amber); /* yellow is amber in this system */
+  --warning: var(--accent-amber);    /* semantic warning color */
+  --success: var(--accent-green);    /* semantic success color */
+  --error: var(--accent-red);        /* semantic error/danger color */
 }
 
 /* ============================================
@@ -179,4 +190,9 @@
   /* ---- Branding ---- */
   --primary-color: #2563eb;
   --secondary-color: #1e40af;
+
+  /* ---- Semantic Aliases (light mode overrides) ---- */
+  /* In light mode, --bg-elevated is white, so hover needs a grey tone */
+  --bg-hover: var(--bg-secondary);
+  --hover-bg: var(--bg-secondary);
 }

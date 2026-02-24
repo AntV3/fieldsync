@@ -45,7 +45,7 @@
   height: 2px;
   background: var(--text-primary);
   border-radius: 1px;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 
 /* ============================================

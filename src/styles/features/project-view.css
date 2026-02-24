@@ -61,7 +61,7 @@
   gap: 1.5rem;
   padding: 0.75rem 1rem;
   background: var(--bg-card);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.75rem;
 }
 
@@ -122,7 +122,7 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .pv-tab:hover {
@@ -151,11 +151,11 @@
   height: 18px;
   padding: 0 0.375rem;
   margin-left: 0.25rem;
-  background: #f59e0b;
+  background: var(--accent-amber);
   color: white;
   font-size: 0.6875rem;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   line-height: 1;
 }
 
@@ -179,7 +179,7 @@
 .pv-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
 }
 
@@ -214,7 +214,7 @@
 .financials-hero {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
@@ -287,7 +287,7 @@
   height: 100%;
   background: var(--accent-blue);
   border-radius: 2px;
-  transition: width 0.3s ease;
+  transition: width var(--transition-slow);
 }
 
 /* Enhanced Hero Metrics */
@@ -312,7 +312,7 @@
 .hero-metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 0.875rem;
   display: flex;
   flex-direction: column;
@@ -331,7 +331,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: currentColor;
   background: rgba(var(--icon-bg-rgb, 59, 130, 246), 0.12);
 }
@@ -462,10 +462,10 @@
   padding: 0.75rem 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
   color: var(--text-secondary);
 }
 
@@ -498,7 +498,7 @@
   width: 32px;
   height: 32px;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   flex-shrink: 0;
 }
 
@@ -534,7 +534,7 @@
 .financials-nav-arrow {
   color: var(--text-muted);
   opacity: 0;
-  transition: opacity 0.2s, transform 0.2s;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
 .financials-nav-item:hover .financials-nav-arrow,
@@ -558,7 +558,7 @@
   margin-top: 0.5rem;
   padding: 0.75rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -593,7 +593,7 @@
 .financials-pipeline {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -623,7 +623,7 @@
 .pipeline-step {
   padding: 0.25rem 0.5rem;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
 }
 
@@ -669,14 +669,14 @@
   color: var(--text-muted);
   padding: 0.2rem 0.5rem;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* Details Section - Collapsible */
 .financials-details {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -701,7 +701,7 @@
   content: '▶';
   font-size: 0.6rem;
   color: var(--text-muted);
-  transition: transform 0.2s;
+  transition: transform var(--transition-normal);
 }
 
 .financials-details[open] .financials-details-summary::before {
@@ -783,7 +783,7 @@
 .pv-health-bar {
   height: 8px;
   background: var(--progress-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 0.75rem;
 }
@@ -791,7 +791,7 @@
 .pv-health-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.5s ease;
 }
 
@@ -828,9 +828,9 @@
   gap: 0.75rem;
   padding: 0.75rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 
 .pv-attention-item:hover {
@@ -848,7 +848,7 @@
   color: #000;
   font-size: 0.85rem;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .pv-attention-label {
@@ -860,7 +860,7 @@
 .pv-attention-arrow {
   color: var(--text-muted);
   font-size: 1.1rem;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-normal);
 }
 
 .pv-attention-item:hover .pv-attention-arrow {
@@ -877,7 +877,7 @@
 .pv-count {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .pv-count.done {
@@ -906,15 +906,15 @@
   flex: 1;
   height: 12px;
   background: var(--progress-bg);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .pv-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
-  border-radius: 6px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-md);
+  transition: width var(--transition-slow);
 }
 
 .pv-progress-stats {
@@ -941,7 +941,7 @@
   text-align: center;
   padding: 0.75rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .pv-qs-value {
@@ -977,7 +977,7 @@
   text-align: center;
   padding: 1rem 0.5rem;
   background: var(--bg-elevated);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .pv-report-stat.injury {
@@ -1026,7 +1026,7 @@
   text-align: center;
   padding: 1rem 0.5rem;
   background: var(--bg-elevated);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .pv-activity-stat.has-pending {
@@ -1083,7 +1083,7 @@
 
 .pv-info-section {
   background: var(--bg-elevated);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
@@ -1143,7 +1143,7 @@
 .pv-info-badge {
   background: var(--bg-card);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
 }
 
@@ -1151,7 +1151,7 @@
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   background: var(--bg-card);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   letter-spacing: 0.1em;
 }
 
@@ -1200,7 +1200,7 @@
   gap: 1rem;
   padding: 0.75rem 1rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 3px solid var(--text-muted);
 }
 
@@ -1255,7 +1255,7 @@
   padding: 0.25rem 0.5rem;
   background: rgba(239, 68, 68, 0.15);
   color: var(--accent-red);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1271,7 +1271,7 @@
   text-align: center;
   padding: 0.75rem 0.5rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .pv-burn-stat.main {
@@ -1321,15 +1321,15 @@
 .pv-burn-ratio-bar {
   height: 8px;
   background: var(--progress-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .pv-burn-ratio-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-green), var(--accent-amber), var(--accent-red));
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
 }
 
 .pv-burn-ratio-pct {
@@ -1414,7 +1414,7 @@
 .pv-billing-track {
   height: 8px;
   background: var(--progress-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 0.75rem;
 }
@@ -1422,7 +1422,7 @@
 .pv-billing-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .pv-billing-stats {
@@ -1481,7 +1481,7 @@
 .pv-exec-badge {
   font-size: 0.75rem;
   padding: 0.3rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   background: rgba(59, 130, 246, 0.15);
   color: var(--accent-blue);
   font-weight: 500;
@@ -1504,7 +1504,7 @@
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   position: relative;
 }
 
@@ -1564,7 +1564,7 @@
   position: relative;
   height: 10px;
   background: var(--progress-bg);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   overflow: visible;
   margin-bottom: 1rem;
 }
@@ -1572,8 +1572,8 @@
 .pv-revenue-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
-  border-radius: 5px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
 }
 
 .pv-revenue-marker {
@@ -1726,12 +1726,12 @@
 .pv-action {
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.4rem 0.75rem;
   font-size: 0.8rem;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .pv-action:hover {
@@ -1769,7 +1769,7 @@
 .pv-hero-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   margin-bottom: 1.25rem;
 }
@@ -1782,15 +1782,15 @@
   position: relative;
   height: 8px;
   background: var(--progress-bg);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: visible;
 }
 
 .pv-fin-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
 }
 
 .pv-fin-marker {
@@ -1931,8 +1931,8 @@
   padding: 0.6rem 0.75rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  transition: all 0.15s;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
 
 .pv-area-card.done {

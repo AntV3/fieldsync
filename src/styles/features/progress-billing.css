@@ -6,7 +6,7 @@
 .progress-billing-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   margin-top: 1rem;
 }
@@ -38,7 +38,7 @@
 /* Contract Summary */
 .progress-billing-contract {
   background: var(--bg-hover);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
@@ -84,7 +84,7 @@
 .billing-progress-bar {
   height: 8px;
   background: var(--bg-hover);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 0.75rem;
 }
@@ -92,8 +92,8 @@
 .billing-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
 }
 
 .billing-stats {
@@ -170,11 +170,11 @@
   padding: 0.75rem;
   background: var(--bg-hover);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast);
 }
 
 .draw-item:hover {
@@ -251,7 +251,7 @@
   gap: 2rem;
   padding: 0.75rem 1rem;
   background: var(--bg-hover);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 1rem;
   font-size: 0.85rem;
 }
@@ -287,7 +287,7 @@
   overflow-x: auto;
   margin-bottom: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .sov-table {
@@ -357,7 +357,7 @@
   width: 50px;
   padding: 0.25rem 0.35rem;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   text-align: center;
   background: var(--bg-card);
@@ -385,7 +385,7 @@
 /* Draw Summary */
 .draw-summary {
   background: var(--bg-hover);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin-bottom: 1rem;
 }

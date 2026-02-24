@@ -180,7 +180,7 @@ input[type="number"] {
 }
 
 .form-field-required {
-  color: var(--accent-red);
+  color: var(--accent-amber);
   margin-left: 0.125rem;
 }
 
@@ -208,11 +208,11 @@ input[type="number"] {
 .validated-select,
 .validated-textarea {
   width: 100%;
-  padding: var(--space-sm) var(--space-sm);
-  font-size: var(--font-size-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-md);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
   color: var(--text-primary);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -247,7 +247,7 @@ input[type="number"] {
   align-items: center;
   gap: var(--space-xs);
   margin-top: var(--space-xs);
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   color: var(--accent-red);
 }
 

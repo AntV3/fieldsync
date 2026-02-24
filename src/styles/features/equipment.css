@@ -5,7 +5,7 @@
 .project-equipment-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   margin-top: 1rem;
 }
@@ -35,11 +35,11 @@
 }
 
 .equipment-count {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
-  background: var(--bg-hover);
-  padding: 0.125rem 0.5rem;
-  border-radius: 12px;
+  background: var(--bg-elevated);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
 }
 
 .project-equipment-actions {
@@ -77,7 +77,7 @@
 
 .equipment-item {
   background: var(--bg-hover);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
 }
 
@@ -221,7 +221,7 @@
 .equipment-catalog {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
 }
 
@@ -295,8 +295,8 @@
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-hover);
-  border-radius: 8px;
-  transition: background 0.15s ease;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
 }
 
 .equipment-catalog-row:hover {
