@@ -58,7 +58,7 @@
 
 .tier-badge {
   padding: 0.5rem 1rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -67,7 +67,7 @@
 
 .tier-badge.tier-free {
   background: rgba(156, 163, 175, 0.2);
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .tier-badge.tier-pro {
@@ -82,13 +82,13 @@
 
 .tier-badge.tier-enterprise {
   background: rgba(251, 191, 36, 0.2);
-  color: #fbbf24;
+  color: var(--accent-amber);
 }
 
 .settings-section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -103,7 +103,7 @@
 /* Security Section */
 .security-section {
   border: 1px solid var(--accent-amber);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: rgba(245, 158, 11, 0.05);
 }
 
@@ -122,7 +122,7 @@
   padding: 0.75rem 1.25rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
 }
 
@@ -147,10 +147,10 @@
   padding: 0.75rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-normal);
 }
 
 .setting-item .input:focus {
@@ -170,7 +170,7 @@
   padding: 0.25rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -186,7 +186,7 @@
   padding: 1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,7 +208,7 @@
   max-width: 100%;
   max-height: 200px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* MIGRATED TO: src/styles/components/buttons.css
@@ -216,12 +216,12 @@
   padding: 0.75rem 1.5rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .btn-secondary:hover {
@@ -233,12 +233,12 @@
   padding: 0.75rem 1.5rem;
   background: var(--primary-color, var(--accent-blue));
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: white;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-normal);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -261,7 +261,7 @@ END MIGRATED */
   padding: 1rem;
   background: var(--bg-elevated);
   border: 1px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   text-align: center;
 }
 
@@ -294,7 +294,7 @@ END MIGRATED */
   display: inline-block;
   margin-top: 0.5rem;
   padding: 0.375rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 0.75rem;
   font-weight: 600;
 }

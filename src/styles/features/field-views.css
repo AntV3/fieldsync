@@ -4,7 +4,7 @@
 .crew-checkin {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1rem;
 }
@@ -61,7 +61,7 @@
   align-items: center;
   background: var(--bg-primary);
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .crew-member-info {
@@ -77,19 +77,19 @@
 .crew-member-role {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   color: var(--text-muted);
 }
 
 .crew-member-role.foreman {
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  color: var(--accent-blue);
 }
 
 .crew-member-role.supervisor {
   background: rgba(168, 85, 247, 0.2);
-  color: #a78bfa;
+  color: var(--accent-blue);
 }
 
 .crew-remove-btn {
@@ -103,7 +103,7 @@
 }
 
 .crew-remove-btn:hover {
-  color: #ef4444;
+  color: var(--accent-red);
 }
 
 .crew-add-form {
@@ -112,7 +112,7 @@
   gap: 0.5rem;
   padding: 0.75rem;
   background: var(--bg-primary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
 }
 
@@ -120,7 +120,7 @@
 .crew-add-form select {
   padding: 0.6rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 0.9rem;
@@ -137,7 +137,7 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 500;
 }
@@ -147,7 +147,7 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -156,7 +156,7 @@
   padding: 0.75rem;
   background: transparent;
   border: 1px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   cursor: pointer;
   font-size: 0.9rem;
@@ -204,9 +204,9 @@
   padding: 0.625rem 0.875rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-width: 100px;
 }
 
@@ -249,7 +249,7 @@
 /* T&M Crew Picker */
 .tm-crew-picker {
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -259,7 +259,7 @@
   padding: 0.6rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.9rem;
@@ -284,7 +284,7 @@
   padding: 0.5rem 0.75rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 0.85rem;
   color: var(--text-primary);
@@ -297,7 +297,7 @@
 
 .tm-crew-item.added {
   background: rgba(34, 197, 94, 0.1);
-  border-color: #22c55e;
+  border-color: var(--accent-green);
   cursor: default;
 }
 
@@ -316,11 +316,11 @@
 .tm-crew-item-role.foreman,
 .tm-crew-item-role.supervisor {
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  color: var(--accent-blue);
 }
 
 .tm-crew-item-check {
-  color: #22c55e;
+  color: var(--accent-green);
   font-weight: bold;
 }
 
@@ -361,7 +361,7 @@
 
 .daily-report-submitted-banner {
   background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  color: var(--accent-green);
   padding: 0.75rem;
   text-align: center;
   font-weight: 500;
@@ -380,7 +380,7 @@
 
 .daily-report-card {
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
   text-align: center;
 }
@@ -409,7 +409,7 @@
 
 .daily-report-crew {
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -434,7 +434,7 @@
   padding: 0;
   margin: 0;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .daily-report-tasks li {
@@ -457,7 +457,7 @@
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   resize: vertical;
@@ -552,7 +552,7 @@
 .message-bubble {
   max-width: 80%;
   padding: 0.6rem 0.75rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-secondary);
 }
 
@@ -575,7 +575,7 @@
 
 .message-photo {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 0.5rem;
 }
 
@@ -598,7 +598,7 @@
   flex: 1;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   background: var(--bg-primary);
   color: var(--text-primary);
   resize: none;
@@ -674,7 +674,7 @@
   min-width: 0;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 1rem;
@@ -686,7 +686,7 @@
   max-width: 70px;
   padding: 0.75rem 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   text-align: center;
@@ -698,7 +698,7 @@
   width: 80px;
   padding: 0.75rem 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 0.9rem;
@@ -710,15 +710,15 @@
   height: 36px;
   background: none;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   cursor: pointer;
   font-size: 1.1rem;
 }
 
 .material-request-remove:hover {
-  color: #ef4444;
-  border-color: #ef4444;
+  color: var(--accent-red);
+  border-color: var(--accent-red);
 }
 
 .material-request-add {
@@ -726,7 +726,7 @@
   padding: 0.6rem;
   background: transparent;
   border: 1px dashed var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -745,7 +745,7 @@
   flex: 1;
   padding: 0.6rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   cursor: pointer;
@@ -753,17 +753,17 @@
 }
 
 .priority-btn.active.low {
-  border-color: #22c55e;
+  border-color: var(--accent-green);
   background: rgba(34, 197, 94, 0.15);
 }
 
 .priority-btn.active.normal {
-  border-color: #eab308;
+  border-color: var(--accent-amber);
   background: rgba(234, 179, 8, 0.15);
 }
 
 .priority-btn.active.urgent {
-  border-color: #ef4444;
+  border-color: var(--accent-red);
   background: rgba(239, 68, 68, 0.15);
 }
 
@@ -771,7 +771,7 @@
   width: 100%;
   padding: 0.6rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
@@ -780,7 +780,7 @@
   width: 100%;
   padding: 0.6rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   resize: vertical;
@@ -809,7 +809,7 @@
   padding: 1rem 0.75rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.9rem;
@@ -820,7 +820,7 @@
   justify-content: center;
   gap: 0.5rem;
   min-height: 80px;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .field-action-btn:active {
@@ -834,12 +834,12 @@
 }
 
 .field-action-btn .badge {
-  background: #ef4444;
+  background: var(--accent-red);
   color: white;
   font-size: 0.65rem;
   font-weight: 600;
   padding: 0.15rem 0.5rem;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;

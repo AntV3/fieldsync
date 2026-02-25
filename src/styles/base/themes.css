@@ -744,7 +744,7 @@
 [data-theme="light"] .cor-filters {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 /* ===========================================
@@ -766,7 +766,7 @@
   color: #475569;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
@@ -1020,7 +1020,7 @@
 [data-theme="light"] .overview-hero-split {
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 /* Daily report cards */

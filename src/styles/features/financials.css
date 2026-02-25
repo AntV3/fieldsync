@@ -22,7 +22,7 @@
 .burn-rate-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
@@ -46,32 +46,32 @@
 }
 
 .burn-rate-title .burn-icon {
-  color: #f59e0b;
+  color: var(--accent-amber);
 }
 
 .burn-status {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 .burn-status.on-budget {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--status-success-bg);
+  color: var(--status-success);
 }
 
 .burn-status.warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
 }
 
 .burn-status.over-budget {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
 }
 
 .burn-rate-hero {
@@ -107,7 +107,7 @@
   gap: 0.75rem;
   padding: 0.75rem;
   background: var(--bg-tertiary);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.75rem;
 }
 
@@ -142,7 +142,7 @@
   align-items: center;
   padding: 0.75rem;
   background: var(--bg-elevated);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 0.85rem;
   margin-bottom: 1rem;
 }
@@ -157,7 +157,7 @@
 }
 
 .projection-value.warning {
-  color: #d97706;
+  color: var(--accent-amber);
 }
 
 .burn-rate-expand {
@@ -168,11 +168,11 @@
   padding: 0.75rem;
   background: transparent;
   border: 1px dashed var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .burn-rate-expand:hover {
@@ -234,7 +234,7 @@
   top: 50%;
   transform: translateY(-50%);
   height: 6px;
-  background: #3b82f6;
+  background: var(--accent-blue);
   border-radius: 3px;
   opacity: 0.2;
 }
@@ -266,7 +266,7 @@
 .cost-contributors-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 0;
 }
@@ -300,7 +300,7 @@
 .cost-view-toggle {
   display: flex;
   background: var(--bg-tertiary);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 2px;
 }
 
@@ -312,8 +312,8 @@
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-normal);
 }
 
 .cost-view-toggle button:hover {
@@ -350,7 +350,7 @@
 
 .cost-category {
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -373,14 +373,14 @@
 .cost-category-bar-container {
   height: 8px;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .cost-category-bar {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
 }
 
 .cost-category-info {
@@ -401,9 +401,9 @@
 .cost-auto-badge {
   font-size: 0.65rem;
   padding: 0.15rem 0.4rem;
-  background: #e0f2fe;
-  color: #0284c7;
-  border-radius: 4px;
+  background: var(--status-info-bg);
+  color: var(--status-info);
+  border-radius: var(--radius-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -439,7 +439,7 @@
   align-items: center;
   padding: 0.5rem 0.75rem;
   background: var(--bg-card);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.25rem;
 }
 
@@ -483,15 +483,15 @@
   height: 28px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .cost-item-delete:hover {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--status-danger-bg);
+  color: var(--accent-red);
 }
 
 .cost-add-btn {
@@ -504,12 +504,12 @@
   margin-top: 1rem;
   background: transparent;
   border: 1px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .cost-add-btn:hover {
@@ -525,22 +525,22 @@
 .profitability-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
 .profitability-card.healthy {
-  border-color: #10b981;
+  border-color: var(--accent-green);
   border-width: 2px;
 }
 
 .profitability-card.warning {
-  border-color: #f59e0b;
+  border-color: var(--accent-amber);
   border-width: 2px;
 }
 
 .profitability-card.loss {
-  border-color: #ef4444;
+  border-color: var(--accent-red);
   border-width: 2px;
 }
 
@@ -560,26 +560,26 @@
 .profitability-status {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 .profitability-status.healthy {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--status-success-bg);
+  color: var(--status-success);
 }
 
 .profitability-status.warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
 }
 
 .profitability-status.loss {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
 }
 
 .profitability-metrics {
@@ -613,37 +613,37 @@
 }
 
 .profit-metric-value.negative {
-  color: #dc2626;
+  color: var(--accent-red);
 }
 
 .profit-bar-container {
   height: 8px;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .profit-bar {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
 }
 
 .profit-bar.healthy {
-  background: #10b981;
+  background: var(--accent-green);
 }
 
 .profit-bar.warning {
-  background: #f59e0b;
+  background: var(--accent-amber);
 }
 
 .profit-bar.negative {
-  background: #ef4444;
+  background: var(--accent-red);
 }
 
 .profitability-summary {
   background: var(--bg-tertiary);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
   margin-bottom: 0.75rem;
 }
@@ -677,11 +677,11 @@
 }
 
 .profit-value.negative {
-  color: #dc2626;
+  color: var(--accent-red);
 }
 
 .profit-value.positive {
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 .profitability-insight {
@@ -690,7 +690,7 @@
   line-height: 1.5;
   padding: 0.75rem;
   background: #f8fafc;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .profitability-insight p {
@@ -725,9 +725,9 @@
   padding: 0.75rem 0.5rem;
   background: var(--bg-tertiary);
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
   color: var(--text-secondary);
 }
 
@@ -737,7 +737,7 @@
 }
 
 .category-option.selected {
-  background: #e0f2fe;
+  background: var(--status-info-bg);
   border-color: var(--accent-primary);
   color: var(--accent-primary);
 }
@@ -751,7 +751,7 @@
   display: flex;
   align-items: center;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-card);
 }
@@ -786,11 +786,11 @@
 
 /* Fin metric value states */
 .fin-metric-value.positive {
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 .fin-metric-value.negative {
-  color: #dc2626;
+  color: var(--accent-red);
 }
 
 /* Mobile Responsive for Financial Dashboard */

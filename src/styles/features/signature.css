@@ -26,7 +26,7 @@
 .signature-canvas-container {
   position: relative;
   border: 2px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: white;
   margin-bottom: 0.75rem;
   overflow: hidden;
@@ -45,7 +45,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #9ca3af;
+  color: var(--text-muted);
   font-size: 1.25rem;
   font-style: italic;
   pointer-events: none;
@@ -58,7 +58,7 @@
   margin-top: 1rem;
   padding: 0.75rem;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 @media (max-width: 640px) {
@@ -101,7 +101,7 @@
   min-width: 200px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
 }
 
@@ -127,12 +127,12 @@
 .filter-btn {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .filter-btn:hover {
@@ -195,7 +195,7 @@
 
 .ticket-item {
   border-bottom: 1px solid var(--border-color);
-  transition: background 0.2s;
+  transition: background var(--transition-normal);
 }
 
 .ticket-item:hover {
@@ -386,14 +386,14 @@
   width: 48px;
   height: 48px;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .signature-page-header .company-logo-placeholder {
   width: 48px;
   height: 48px;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -485,7 +485,7 @@
 
 .signature-signed-content {
   background: white;
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 3rem 2rem;
   text-align: center;
   max-width: 400px;
@@ -494,7 +494,7 @@
 }
 
 .signature-signed-content svg {
-  color: #10b981;
+  color: var(--accent-green);
   margin-bottom: 1rem;
 }
 
@@ -507,14 +507,14 @@
 
 .signature-signed-content p {
   font-size: 1rem;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 0 0 0.5rem 0;
 }
 
 .signature-signed-content .close-prompt {
   font-size: 0.95rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 1rem;
 }
 
@@ -525,25 +525,25 @@
   gap: 0.5rem;
   margin-top: 1.5rem;
   padding: 0.875rem 1.5rem;
-  background: #10b981;
+  background: var(--accent-green);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 .signature-signed-content .download-copy-btn:hover {
-  background: #059669;
+  background: var(--accent-green);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
 }
 
 .signature-signed-content .download-copy-btn:disabled {
-  background: #94a3b8;
+  background: var(--text-muted);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -567,7 +567,7 @@
 .signature-document-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-bottom: 1.5rem;
 }
@@ -644,7 +644,7 @@
   color: var(--text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .expand-details-btn:hover {
@@ -754,7 +754,7 @@
 
 .signature-photo-thumb {
   aspect-ratio: 4/3;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-tertiary);
 }
@@ -782,7 +782,7 @@
 .signature-slot-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin-bottom: 0.75rem;
 }
@@ -846,7 +846,7 @@
 .fully-signed-message {
   background: var(--color-success-bg, #d1fae5);
   border: 1px solid var(--color-success);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 1rem;
   display: flex;
   align-items: center;
@@ -868,7 +868,7 @@
   margin-top: 1.5rem;
   padding: 1.5rem;
   background: var(--bg-secondary, #f8fafc);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
@@ -937,7 +937,7 @@
   gap: 0.375rem;
   background: var(--bg-tertiary);
   padding: 0.375rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -958,7 +958,7 @@
   margin-top: 1rem;
   padding: 1rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .signature-acknowledgment .checkbox-label {
@@ -1029,7 +1029,7 @@
 .link-option-select {
   padding: 0.375rem 0.625rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 0.875rem;
@@ -1041,7 +1041,7 @@
   margin-top: 1rem;
   padding: 1rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 1rem;
 }
 
@@ -1100,7 +1100,7 @@
   margin-bottom: 0.75rem;
   background: var(--color-success-bg, #d1fae5);
   color: var(--color-success, #059669);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 0.8125rem;
   font-weight: 500;
 }
@@ -1114,7 +1114,7 @@
   margin-top: 1rem;
   padding: 1rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .link-display {
@@ -1126,7 +1126,7 @@
   flex: 1;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   font-size: 0.8125rem;
   font-family: monospace;
@@ -1173,7 +1173,7 @@
 .existing-link-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
 }
 
@@ -1188,7 +1188,7 @@
   font-size: 0.6875rem;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -1250,7 +1250,7 @@
   gap: 0.75rem;
   padding: 1rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.8125rem;
 }
 
@@ -1286,7 +1286,7 @@
 .signature-block {
   padding: 1rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .signature-block .signature-label {
@@ -1364,7 +1364,7 @@
 .cor-header-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   margin-bottom: 1rem;
 }
@@ -1391,7 +1391,7 @@
 
 .cor-status-badge {
   padding: 0.25rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -1415,7 +1415,7 @@
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 1rem;
 }
 
@@ -1464,7 +1464,7 @@
 .cor-section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 1rem;
   overflow: hidden;
 }
@@ -1500,8 +1500,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-radius: 10px;
-  transition: background 0.15s;
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
 }
 
 .cor-backup-header:hover {
@@ -1518,7 +1518,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.2rem 0.6rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -1534,7 +1534,7 @@
 .backup-ticket {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
   overflow: hidden;
 }
@@ -1549,7 +1549,7 @@
   align-items: center;
   padding: 0.75rem 1rem;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .backup-ticket-header:hover {
@@ -1572,7 +1572,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 500;
 }
@@ -1619,7 +1619,7 @@
   align-items: center;
   padding: 0.4rem 0.6rem;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
 }
 
@@ -1651,7 +1651,7 @@
   margin: 0;
   padding: 0.6rem;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.4;
@@ -1666,7 +1666,7 @@
 .backup-photo {
   display: block;
   aspect-ratio: 1;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border-color);
   transition: transform 0.15s, border-color 0.15s;

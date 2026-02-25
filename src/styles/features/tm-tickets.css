@@ -13,12 +13,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
+  padding: var(--space-md);
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: var(--z-sticky);
 }
 
 .tm-wizard-header h2 {
@@ -33,7 +33,7 @@
   border: none;
   background: var(--bg-elevated);
   color: var(--text-primary);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-size: 1.25rem;
   cursor: pointer;
   display: flex;
@@ -54,12 +54,12 @@
   padding: 0.5rem 0.75rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-lang-toggle:hover {
@@ -89,7 +89,7 @@
   color: var(--text-secondary);
   background: var(--bg-elevated);
   padding: 0.25rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
 }
 
 .tm-step-content {
@@ -114,7 +114,7 @@
   width: 100%;
   padding: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 1rem;
@@ -161,7 +161,7 @@
   padding: 0.75rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .tm-worker-input {
@@ -183,7 +183,7 @@
   gap: 0.25rem;
   background: var(--bg-elevated);
   padding: 0.5rem 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .tm-hours-input input {
@@ -212,7 +212,7 @@
   border: none;
   background: rgba(239, 68, 68, 0.1);
   color: var(--accent-red);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 1.25rem;
   cursor: pointer;
   display: flex;
@@ -225,13 +225,13 @@
   width: 100%;
   padding: 1rem;
   border: 2px dashed var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: transparent;
   color: var(--accent-blue);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-add-btn:hover {
@@ -254,9 +254,9 @@
   padding: 1.5rem 1rem;
   background: var(--bg-card);
   border: 2px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
   position: relative;
 }
 
@@ -304,9 +304,9 @@
   padding: 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
   text-align: left;
   position: relative;
 }
@@ -393,7 +393,7 @@
   padding: 0.75rem 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .tm-added-info {
@@ -416,7 +416,7 @@
   background: var(--accent-amber);
   color: white;
   font-size: 0.65rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -433,7 +433,7 @@
   border: none;
   background: var(--bg-elevated);
   color: var(--text-primary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 1.25rem;
   cursor: pointer;
   display: flex;
@@ -457,7 +457,7 @@
   width: 100%;
   padding: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 1rem;
@@ -472,11 +472,11 @@
 .tm-cat-chip {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   background: var(--bg-card);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-cat-chip.active {
@@ -489,7 +489,7 @@
 .tm-review-section {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 1rem;
   overflow: hidden;
 }
@@ -531,11 +531,11 @@
   width: 100%;
   padding: 1rem 1.5rem;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-big-btn.primary {
@@ -544,7 +544,7 @@
 }
 
 .tm-big-btn.primary:hover {
-  background: #2563eb;
+  background: var(--accent-blue);
 }
 
 .tm-big-btn.primary:disabled {
@@ -563,7 +563,7 @@
 }
 
 .tm-big-btn.submit:hover {
-  background: #059669;
+  background: var(--accent-green);
 }
 
 .tm-big-btn.submit.needs-name {
@@ -650,11 +650,11 @@
   width: 40px;
   height: 40px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-refresh-btn:hover {
@@ -680,7 +680,7 @@
 .tm-batch-hours-panel {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
   border: 1px solid var(--accent-blue);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -703,17 +703,17 @@
   width: 100%;
   padding: 0.875rem 1rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--accent-blue);
   color: white;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-batch-hours-btn:hover {
-  background: #2563eb;
+  background: var(--accent-blue);
   transform: translateY(-1px);
 }
 
@@ -721,7 +721,7 @@
 .tm-quick-actions-panel {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
   border: 1px solid var(--accent-blue);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -739,13 +739,13 @@
   gap: 0.5rem;
   padding: 0.875rem 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-quick-action-btn:hover {
@@ -760,7 +760,7 @@
 }
 
 .tm-quick-action-btn.primary:hover {
-  background: #2563eb;
+  background: var(--accent-blue);
 }
 
 .tm-quick-action-btn:disabled {
@@ -777,7 +777,7 @@
   padding: 0.875rem 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 1rem;
 }
 
@@ -804,7 +804,7 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   touch-action: manipulation;
 }
 
@@ -827,9 +827,9 @@
   padding: 0.875rem 1rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 1rem;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 
 .tm-running-total.has-data {
@@ -966,10 +966,10 @@
 .tm-worker-row-collapsible {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 0.5rem;
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-normal);
 }
 
 .tm-worker-row-collapsible.worker-complete {
@@ -1003,7 +1003,7 @@
   width: 48px;
   padding: 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 0.875rem;
@@ -1015,12 +1015,12 @@
   min-height: 44px;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 0.75rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-worker-compact .expand-btn:hover {
@@ -1056,7 +1056,7 @@
   width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 1rem;
@@ -1072,7 +1072,7 @@
   margin-bottom: 0.5rem;
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid var(--accent-orange);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.8rem;
   color: var(--accent-orange);
 }
@@ -1102,13 +1102,13 @@
 .tm-edit-link {
   padding: 0.35rem 0.75rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--accent-blue);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-edit-link:hover {
@@ -1208,7 +1208,7 @@
   margin-bottom: 2rem;
   padding: 1rem;
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .tm-success-stat {
@@ -1241,7 +1241,7 @@
 .tm-failed-photos-section {
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1rem;
 }
@@ -1265,7 +1265,7 @@
 .tm-failed-photo-item {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 2px solid var(--accent-red);
 }
@@ -1294,7 +1294,7 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -1329,7 +1329,7 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -1348,7 +1348,7 @@
   padding: 0.75rem;
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--accent-green);
   font-weight: 500;
   font-size: 0.9rem;
@@ -1361,7 +1361,7 @@
   padding: 1.25rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .tm-signature-options h3 {
@@ -1389,11 +1389,11 @@
   width: 100%;
   padding: 1rem;
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   text-align: left;
 }
 
@@ -1418,7 +1418,7 @@
   width: 48px;
   height: 48px;
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   flex-shrink: 0;
 }
@@ -1448,7 +1448,7 @@
 /* T&M Client Signature Modal */
 .tm-client-signature-modal {
   background: var(--bg-primary);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
@@ -1482,7 +1482,7 @@
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .tm-sig-close:hover {
@@ -1499,7 +1499,7 @@
   justify-content: space-around;
   padding: 0.875rem;
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 1.25rem;
 }
 
@@ -1549,7 +1549,7 @@
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -1578,7 +1578,7 @@
 .tm-sig-canvas-container {
   position: relative;
   border: 2px dashed var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--bg-secondary);
 }
@@ -1613,7 +1613,7 @@
   color: var(--text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .tm-sig-clear:hover:not(:disabled) {
@@ -1633,7 +1633,7 @@
   margin: 0;
   padding: 0.875rem;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .tm-sig-footer {
@@ -1651,11 +1651,11 @@
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-sig-btn.secondary {
@@ -1673,7 +1673,7 @@
 }
 
 .tm-sig-btn.primary:hover:not(:disabled) {
-  background: #059669;
+  background: var(--accent-green);
 }
 
 .tm-sig-btn:disabled {
@@ -1690,7 +1690,7 @@
   padding: 1.25rem;
   background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
   border: 2px solid var(--accent-green);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   color: var(--accent-green);
   font-size: 1.1rem;
   font-weight: 600;
@@ -1705,7 +1705,7 @@
 .tm-photos-section {
   background: var(--bg-card);
   border: 1px dashed var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
@@ -1714,7 +1714,7 @@
   min-height: 80px;
   padding: 0.875rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -1753,7 +1753,7 @@
 
 .tm-batch-modal {
   background: var(--bg-primary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   width: 100%;
   max-width: 400px;
@@ -1789,12 +1789,12 @@
   padding: 0.75rem 0.5rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .tm-preset-btn:hover {
@@ -1836,7 +1836,7 @@
 .tm-batch-field input {
   padding: 0.625rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -1853,7 +1853,7 @@
   justify-content: space-between;
   padding: 0.75rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.85rem;
   margin-bottom: 1rem;
 }
@@ -1875,7 +1875,7 @@
 .tm-batch-actions button {
   flex: 1;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   cursor: pointer;
 }
@@ -1897,7 +1897,7 @@
 }
 
 .tm-batch-actions .btn-primary:hover {
-  background: #2563eb;
+  background: var(--accent-blue);
 }
 
 .tm-batch-actions .btn-primary:disabled {
@@ -1917,7 +1917,7 @@
 .tm-photo-item {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -2008,13 +2008,13 @@
   width: 100%;
   padding: 1rem;
   border: 2px dashed var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   color: var(--accent-blue);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-photo-btn:hover {
@@ -2026,7 +2026,7 @@
   width: 100%;
   padding: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 1rem;
@@ -2051,7 +2051,7 @@
 
 .tm-photo-thumb {
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   display: block;
 }
@@ -2082,7 +2082,7 @@
   padding: 0.25rem 0.5rem;
   background: rgba(59, 130, 246, 0.15);
   color: var(--accent-blue);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.75rem;
   font-weight: 500;
   margin-left: 0.5rem;
@@ -2101,7 +2101,7 @@
   padding: 0.25rem 0.5rem;
   background: rgba(239, 68, 68, 0.15);
   color: var(--accent-red);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.7rem;
   font-weight: 600;
   margin-left: 0.5rem;
@@ -2136,7 +2136,7 @@
   padding: 0.25rem 0.5rem;
   background: rgba(16, 185, 129, 0.15);
   color: var(--accent-green);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.7rem;
   font-weight: 600;
   margin-left: 0.5rem;
@@ -2155,7 +2155,7 @@
 .tm-role-select select {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 0.875rem;
@@ -2174,7 +2174,7 @@
   color: var(--accent-yellow);
   font-weight: 600;
   font-size: 0.8rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-right: 0.5rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -2191,14 +2191,14 @@
   height: 60px;
   width: 60px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 /* Project Info Header */
 .tm-project-info {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1rem;
 }
@@ -2240,7 +2240,7 @@
   width: 100%;
   padding: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 1rem;
@@ -2250,7 +2250,7 @@
 .tm-worker-card-expanded {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 0.75rem;
   margin-bottom: 0.5rem;
 }
@@ -2285,7 +2285,7 @@
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 1rem;
@@ -2297,7 +2297,7 @@
 .tm-review-row-detailed {
   padding: 0.75rem;
   background: var(--bg-card);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.25rem;
 }
 
@@ -2334,7 +2334,7 @@
   padding: 0.875rem 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 0.75rem;
 }
 
@@ -2368,7 +2368,7 @@
   margin-left: auto;
   padding: 0.375rem 0.625rem;
   background: rgba(245, 158, 11, 0.15);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--accent-amber);
   font-size: 0.8rem;
   font-weight: 500;
@@ -2390,12 +2390,12 @@
   padding: 0.625rem 1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-quick-action:hover:not(:disabled) {
@@ -2419,12 +2419,12 @@
   padding: 0.5rem 0.875rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-preset-chip:hover {
@@ -2443,7 +2443,7 @@
 .tm-crew-select-section {
   background: var(--bg-card);
   border: 2px solid var(--accent-blue);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-bottom: 1rem;
 }
@@ -2491,9 +2491,9 @@
   padding: 0.75rem 0.5rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
   position: relative;
 }
 
@@ -2519,7 +2519,7 @@
 .tm-crew-item-role {
   font-size: 0.7rem;
   padding: 0.125rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
 }
@@ -2546,10 +2546,10 @@
 .tm-action-card-prominent {
   background: var(--bg-card);
   border: 2px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   padding: 1rem;
   margin-bottom: 1rem;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .tm-action-card-prominent.needs-action {
@@ -2576,7 +2576,7 @@
   width: 48px;
   height: 48px;
   background: var(--bg-elevated);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   color: var(--accent-blue);
   flex-shrink: 0;
 }
@@ -2625,7 +2625,7 @@
   flex-shrink: 0;
   width: 64px;
   height: 64px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 2px solid var(--accent-green);
 }
@@ -2664,12 +2664,12 @@
   padding: 0.875rem 1rem;
   background: var(--bg-elevated);
   border: 2px dashed var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-action-card-btn:hover {
@@ -2685,7 +2685,7 @@
 }
 
 .tm-action-card-btn.primary:hover {
-  background: #2563eb;
+  background: var(--accent-blue);
 }
 
 /* COR Select Prominent */
@@ -2693,12 +2693,12 @@
   width: 100%;
   padding: 0.875rem 1rem;
   border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-cor-select-prominent:focus {
@@ -2778,12 +2778,12 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   background: var(--bg-elevated);
   color: var(--text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .tm-filter-tab:hover {
@@ -2799,7 +2799,7 @@
 .tm-filter-count {
   background: rgba(0, 0, 0, 0.15);
   padding: 0.125rem 0.5rem;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-size: 0.75rem;
 }
 
@@ -2814,7 +2814,7 @@
   padding: 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 1rem;
 }
 
@@ -2843,7 +2843,7 @@
   padding: 3rem;
   color: var(--text-secondary);
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
 
@@ -2856,7 +2856,7 @@
 .tm-ticket-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -2886,7 +2886,7 @@
   align-items: center;
   padding: 0.75rem 1rem;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
 }
 
@@ -2926,7 +2926,7 @@ END MIGRATED */
   align-items: center;
   padding: 1rem;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .tm-ticket-header:hover {
@@ -2945,7 +2945,7 @@ END MIGRATED */
 
 .tm-ticket-status {
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -3020,7 +3020,7 @@ END MIGRATED */
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
   background: var(--bg-card);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .tm-detail-qty {
@@ -3037,7 +3037,7 @@ END MIGRATED */
   margin: 0;
   padding: 0.75rem;
   background: var(--bg-card);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
 }
 
@@ -3057,7 +3057,7 @@ END MIGRATED */
 }
 
 .btn-success:hover {
-  background: #059669;
+  background: var(--accent-green);
 }
 
 .btn-warning {
@@ -3066,7 +3066,7 @@ END MIGRATED */
 }
 
 .btn-warning:hover {
-  background: #d97706;
+  background: var(--accent-amber);
 }
 
 .btn-danger {
@@ -3075,7 +3075,7 @@ END MIGRATED */
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  background: var(--accent-red);
 }
 END MIGRATED */
 
@@ -3165,7 +3165,7 @@ END MIGRATED */
 .tm-section {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 1rem;
 }
 
@@ -3188,7 +3188,7 @@ END MIGRATED */
   color: var(--text-secondary);
   background: var(--bg-tertiary);
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 
@@ -3199,7 +3199,7 @@ END MIGRATED */
 .tm-certification {
   background: var(--bg-elevated);
   border: 2px solid var(--accent-blue);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
@@ -3208,7 +3208,7 @@ END MIGRATED */
   padding: 0.875rem 1rem;
   font-size: 1.125rem;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-primary);
   color: var(--text-primary);
   margin-top: 0.5rem;
@@ -3231,7 +3231,7 @@ END MIGRATED */
   margin-top: 1rem;
   padding: 0.75rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 3px solid var(--accent-blue);
 }
 
@@ -3274,7 +3274,7 @@ END MIGRATED */
 .tm-photo-limit-reached {
   padding: 0.75rem;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   text-align: center;
   color: var(--text-muted);
   font-size: 0.875rem;
@@ -3297,7 +3297,7 @@ END MIGRATED */
 }
 
 .tm-required {
-  color: #ef4444;
+  color: var(--accent-red);
   font-weight: 600;
 }
 
@@ -3332,7 +3332,7 @@ END MIGRATED */
   width: 100%;
   padding: 0.875rem 2.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.95rem;
@@ -3373,7 +3373,7 @@ END MIGRATED */
 .tm-search-results {
   margin-top: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -3389,7 +3389,7 @@ END MIGRATED */
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .tm-search-result-item:last-child {
@@ -3414,7 +3414,7 @@ END MIGRATED */
   color: var(--text-secondary);
   background: var(--bg-tertiary);
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-left: 0.75rem;
 }
 
@@ -3439,7 +3439,7 @@ END MIGRATED */
 .tm-review-cor {
   padding: 0.75rem;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 500;
@@ -3477,7 +3477,7 @@ END MIGRATED */
   padding: 0.75rem;
   background: rgba(34, 197, 94, 0.05);
   border: 1px solid rgba(34, 197, 94, 0.2);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .backup-signature-image {
@@ -3485,7 +3485,7 @@ END MIGRATED */
   height: 60px;
   object-fit: contain;
   background: white;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
 }
 
@@ -3584,9 +3584,9 @@ END MIGRATED */
   gap: 1rem;
   padding: 1rem 1.25rem;
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 
 .tm-summary-card:hover {
@@ -3600,28 +3600,28 @@ END MIGRATED */
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   flex-shrink: 0;
 }
 
 .tm-card-icon.tickets {
   background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  color: var(--accent-blue);
 }
 
 .tm-card-icon.hours {
   background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 .tm-card-icon.workers {
   background: rgba(139, 92, 246, 0.15);
-  color: #8b5cf6;
+  color: var(--accent-blue);
 }
 
 .tm-card-icon.materials {
   background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
+  color: var(--accent-amber);
 }
 
 .tm-card-content {
@@ -3657,7 +3657,7 @@ END MIGRATED */
 
 .tm-status-card {
   padding: 1rem;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
 }
@@ -3672,19 +3672,19 @@ END MIGRATED */
 }
 
 .tm-status-card.pending .tm-status-header {
-  color: #f59e0b;
+  color: var(--accent-amber);
 }
 
 .tm-status-card.approved .tm-status-header {
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 .tm-status-card.billed .tm-status-header {
-  color: #3b82f6;
+  color: var(--accent-blue);
 }
 
 .tm-status-card.rate .tm-status-header {
-  color: #8b5cf6;
+  color: var(--accent-blue);
 }
 
 .tm-status-count {
@@ -3711,7 +3711,7 @@ END MIGRATED */
 .tm-chart-card {
   padding: 1rem;
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
 
@@ -3767,7 +3767,7 @@ END MIGRATED */
 .tm-chart-tooltip {
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -3811,15 +3811,15 @@ END MIGRATED */
 .tm-role-track {
   height: 8px;
   background: var(--bg-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .tm-role-fill {
   height: 100%;
   background: var(--primary-color);
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
 }
 
 /* Top Workers */
@@ -3835,7 +3835,7 @@ END MIGRATED */
   gap: 0.75rem;
   padding: 0.5rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .tm-worker-rank {
@@ -3883,7 +3883,7 @@ END MIGRATED */
   justify-content: space-between;
   padding: 1rem;
   background: var(--bg-tertiary);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
 
@@ -3917,7 +3917,7 @@ END MIGRATED */
 .tm-display-toggle {
   display: flex;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.25rem;
   border: 1px solid var(--border-color);
 }
@@ -3932,9 +3932,9 @@ END MIGRATED */
   color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 
 .tm-display-btn:hover {
@@ -4005,7 +4005,7 @@ END MIGRATED */
   width: 100%;
   padding: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 1rem;
@@ -4053,8 +4053,8 @@ END MIGRATED */
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: all 0.15s ease;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
   line-height: 1;
 }
 
@@ -4074,12 +4074,12 @@ END MIGRATED */
   width: 100%;
   padding: 0.875rem 1rem;
   border: 2px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .tm-add-labor-class-select:hover {
@@ -4098,7 +4098,7 @@ END MIGRATED */
   text-align: center;
   padding: 2rem 1rem;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 1rem;
 }
 

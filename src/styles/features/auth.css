@@ -15,7 +15,7 @@
   width: 100%;
   max-width: 420px;
   background: var(--bg-card);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 2rem;
   border: 1px solid var(--border-color);
 }
@@ -42,7 +42,7 @@
   margin-bottom: 1.5rem;
   background: var(--bg-elevated);
   padding: 0.25rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .auth-tab {
@@ -53,8 +53,8 @@
   color: var(--text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
-  border-radius: 10px;
-  transition: all 0.2s;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
 }
 
 .auth-tab.active {
@@ -82,11 +82,11 @@
 .auth-field input {
   padding: 0.875rem 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-normal);
 }
 
 .auth-field input:focus {
@@ -103,13 +103,13 @@
   margin-top: 0.5rem;
   padding: 1rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--accent-blue);
   color: white;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-normal);
 }
 
 .auth-submit:hover {
@@ -125,7 +125,7 @@
   margin-top: 1.5rem;
   padding: 1rem;
   background: var(--bg-elevated);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .auth-info h4 {
@@ -212,7 +212,7 @@
 
 .onboarding-content {
   background: var(--bg-card);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 2rem;
   border: 1px solid var(--border-color);
 }
@@ -242,10 +242,10 @@
   align-items: center;
   padding: 1.5rem;
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .onboarding-option:hover {
@@ -281,11 +281,11 @@
   flex-direction: column;
   padding: 1.25rem;
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .template-card:hover {
@@ -318,12 +318,12 @@
 .import-button {
   padding: 1rem 2rem;
   border: 2px dashed var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   color: var(--text-primary);
   font-size: 1.125rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .import-button:hover {
@@ -371,7 +371,7 @@
   gap: 0.75rem;
   padding: 0.5rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .item-row.deselected {
@@ -392,7 +392,7 @@
 .item-row select {
   padding: 0.375rem 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 0.8rem;
@@ -412,7 +412,7 @@
   width: 80px;
   padding: 0.375rem 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 0.9rem;
@@ -429,12 +429,12 @@
 .onboarding-back {
   padding: 0.875rem 1.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: transparent;
   color: var(--text-secondary);
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .onboarding-back:hover {
@@ -445,13 +445,13 @@
   flex: 1;
   padding: 0.875rem 1.5rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--accent-blue);
   color: white;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-normal);
 }
 
 .onboarding-complete:hover {
@@ -473,7 +473,7 @@
 .company-logo {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   object-fit: cover;
 }
 
@@ -547,10 +547,10 @@
   text-transform: uppercase;
   letter-spacing: 0.2em;
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   color: var(--text-primary);
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-normal);
 }
 
 .company-code-input input:focus {
@@ -582,7 +582,7 @@
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0.5rem;
-  transition: color 0.2s;
+  transition: color var(--transition-normal);
 }
 
 .pin-back-btn:hover {
@@ -593,7 +593,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.375rem 0.75rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -613,7 +613,7 @@
 .tm-certification {
   background: var(--bg-elevated);
   border: 2px solid var(--accent-blue);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
@@ -622,7 +622,7 @@
   padding: 0.875rem 1rem;
   font-size: 1.125rem;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-primary);
   color: var(--text-primary);
   margin-top: 0.5rem;
@@ -645,7 +645,7 @@
   margin-top: 1rem;
   padding: 0.75rem;
   background: var(--bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 3px solid var(--accent-blue);
 }
 
@@ -743,9 +743,9 @@
   padding: 1rem 2rem;
   font-size: 1.125rem;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .landing-btn.primary {
@@ -804,7 +804,7 @@
 
 .landing-feature {
   background: var(--bg-elevated);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 2rem;
   text-align: center;
   border: 1px solid var(--border-color);
@@ -847,7 +847,7 @@
 
 .pricing-card {
   background: var(--bg-elevated);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   border: 2px solid var(--border-color);
   position: relative;
@@ -865,7 +865,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -916,7 +916,7 @@
 
 .register-card {
   background: var(--bg-elevated);
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   padding: 2rem;
   width: 100%;
   max-width: 500px;
@@ -1019,7 +1019,7 @@
 .form-group input {
   padding: 0.875rem 1rem;
   border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 1rem;
@@ -1044,7 +1044,7 @@
   padding: 0 1rem;
   background: var(--bg-secondary);
   border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   cursor: pointer;
   font-weight: 500;
@@ -1065,7 +1065,7 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 1.125rem;
   font-weight: 600;
   cursor: pointer;
@@ -1097,7 +1097,7 @@
 .billing-toggle {
   display: flex;
   background: var(--bg-secondary);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 4px;
 }
 
@@ -1106,7 +1106,7 @@
   padding: 0.625rem 1rem;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.875rem;
@@ -1127,11 +1127,11 @@
 .plan-card {
   background: var(--bg-primary);
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   cursor: pointer;
   position: relative;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-normal);
 }
 
 .plan-card:hover {
@@ -1153,7 +1153,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 0.7rem;
   font-weight: 600;
 }
@@ -1198,14 +1198,14 @@
   color: var(--text-secondary);
   background: var(--bg-secondary);
   padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .plan-select {
   text-align: center;
   padding: 0.5rem;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
@@ -1233,7 +1233,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.75rem 1rem;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   text-align: center;
   margin-bottom: 0.5rem;
 }
@@ -1340,9 +1340,9 @@
   padding: 1.5rem;
   background: var(--bg-primary);
   border: 2px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
 }
 
 .entry-mode-btn:hover {
@@ -1395,7 +1395,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.5rem 1rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 1rem;
@@ -1415,7 +1415,7 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
 }
@@ -1436,7 +1436,7 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 1.25rem;
   cursor: pointer;
 }
@@ -1460,7 +1460,7 @@
   padding: 1rem;
   font-size: 1rem;
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
 }
@@ -1475,7 +1475,7 @@
   background: var(--accent-blue);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 1.125rem;
   font-weight: 600;
   cursor: pointer;
@@ -1546,12 +1546,12 @@
   gap: 0.5rem;
   background: none;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 0.75rem 1rem;
   color: var(--text-secondary);
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
   width: 100%;
 }
 
@@ -1588,7 +1588,7 @@
   width: 32px;
   height: 2px;
   background: var(--border-color);
-  transition: background 0.3s ease;
+  transition: background var(--transition-slow);
 }
 
 .onboarding-step-line.completed {
@@ -1607,7 +1607,7 @@
   background: var(--bg-elevated);
   color: var(--text-muted);
   border: 2px solid var(--border-color);
-  transition: all 0.3s ease;
+  transition: all var(--transition-slow);
   flex-shrink: 0;
 }
 
@@ -1631,7 +1631,7 @@
   font-size: 0.65rem;
   color: var(--text-muted);
   white-space: nowrap;
-  transition: color 0.3s ease;
+  transition: color var(--transition-slow);
 }
 
 /* Adjust label position for items with preceding line */
@@ -1668,7 +1668,7 @@
   padding-right: 3rem;
   font-size: 1rem;
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
 }
@@ -1689,7 +1689,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
+  transition: color var(--transition-normal);
 }
 
 .password-toggle:hover {
@@ -1714,7 +1714,7 @@
 .password-strength-fill {
   height: 100%;
   border-radius: 2px;
-  transition: width 0.3s ease, background 0.3s ease;
+  transition: width var(--transition-slow), background var(--transition-slow);
 }
 
 .password-strength-label {
@@ -1822,7 +1822,7 @@
   padding: 1.25rem 1rem;
   background: var(--bg-primary);
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
@@ -1936,7 +1936,7 @@
   background: var(--accent-blue);
   color: white;
   padding: 0.5rem 1rem;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 0.875rem;
   font-weight: 600;
   margin: 0.5rem 0;

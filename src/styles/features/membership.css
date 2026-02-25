@@ -46,7 +46,7 @@
   padding: 1rem 1.25rem;
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid var(--accent-amber);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--accent-amber);
   margin-bottom: 1.5rem;
   font-weight: 500;
@@ -88,7 +88,7 @@
   color: var(--text-muted);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 /* Member Cards */
@@ -99,7 +99,7 @@
   padding: 1rem 1.25rem;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
   transition: border-color 0.15s;
 }
@@ -179,12 +179,12 @@
 
 .role-select {
   appearance: none;
-  background: var(--surface-dark);
+  background: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.4rem 2rem 0.4rem 0.75rem;
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   cursor: pointer;
   min-width: 100px;
 }
@@ -225,7 +225,7 @@
   color: white;
   font-size: 0.7rem;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   margin-left: 0.5rem;
 }
 
@@ -287,7 +287,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem 0.6rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -306,7 +306,7 @@
 
 .access-badge.role {
   background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
+  color: var(--accent-green);
 }
 
 [data-theme="light"] .access-badge.admin {
@@ -316,12 +316,12 @@
 
 [data-theme="light"] .access-badge.member {
   background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
+  color: var(--accent-blue);
 }
 
 [data-theme="light"] .access-badge.role {
   background: rgba(16, 185, 129, 0.12);
-  color: #059669;
+  color: var(--accent-green);
 }
 
 /* ============================================
@@ -331,7 +331,7 @@
 .project-team {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   margin-bottom: 1rem;
 }
@@ -377,7 +377,7 @@
   gap: 1rem;
   padding: 0.75rem;
   background: var(--bg-tertiary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .team-member-info {
@@ -409,7 +409,7 @@
   display: inline-block;
   padding: 0.25rem 0.6rem;
   background: var(--bg-elevated);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -431,9 +431,9 @@
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .btn-icon.btn-danger-subtle {
@@ -443,7 +443,7 @@
 
 .btn-icon.btn-danger-subtle:hover {
   background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  color: var(--accent-red);
 }
 
 .btn-icon:disabled {
@@ -471,7 +471,7 @@
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--text-primary);
   font-size: 0.9rem;

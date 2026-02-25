@@ -5,7 +5,7 @@
 .ev-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 20px;
 }
 
@@ -31,7 +31,7 @@
 
 .ev-health-badge {
   padding: 4px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 600;
   border: 1px solid;
@@ -47,7 +47,7 @@
 
 .ev-index-card {
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 12px;
   text-align: center;
 }
@@ -90,7 +90,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
 }
 
@@ -107,8 +107,8 @@
   font-weight: 600;
 }
 
-.ev-variance-item.positive .ev-variance-value { color: #10b981; }
-.ev-variance-item.negative .ev-variance-value { color: #ef4444; }
+.ev-variance-item.positive .ev-variance-value { color: var(--accent-green); }
+.ev-variance-item.negative .ev-variance-value { color: var(--accent-red); }
 
 /* S-Curve chart */
 .ev-chart-container {
@@ -149,7 +149,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #f59e0b;
+  color: var(--accent-amber);
   margin-left: auto;
 }
 
