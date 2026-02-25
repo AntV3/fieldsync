@@ -66,7 +66,7 @@ export default function FinancialsTab({
   return (
     <div className="pv-tab-panel financials-tab">
       {/* Export Actions */}
-      <div className="export-actions" style={{ display: 'flex', gap: '8px', marginLeft: 'auto', marginBottom: '12px', justifyContent: 'flex-end' }}>
+      <div className="export-actions">
         <button
           className="btn btn-ghost btn-small"
           onClick={() => exportProjectFinancials(selectedProject, {

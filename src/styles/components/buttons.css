@@ -73,6 +73,18 @@
   color: var(--text-primary);
 }
 
+/* Outline Button (alias for secondary-style outline) */
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  border-color: var(--text-muted);
+}
+
 /* Danger Button */
 .btn-danger {
   background: var(--accent-red);
@@ -203,4 +215,25 @@
   border-color: var(--primary-color, var(--accent-blue));
   background: var(--primary-color, var(--accent-blue));
   color: white;
+}
+
+/* Loading Spinner (used in buttons and inline states) */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.loading-spinner.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

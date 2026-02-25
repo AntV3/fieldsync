@@ -261,7 +261,7 @@
 
 .daily-reports-header h3 {
   margin: 0;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 /* Section headers - General styling for list components */
@@ -274,7 +274,7 @@
 
 .section-header h3 {
   margin: 0;
-  color: #ffffff;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -1041,15 +1041,33 @@
 }
 
 .reports-safety-days.excellent {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .reports-safety-days.good {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .reports-safety-days.caution {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="light"] .reports-safety-days.excellent {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="light"] .reports-safety-days.good {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="light"] .reports-safety-days.caution {
   background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .reports-safety-days-value {

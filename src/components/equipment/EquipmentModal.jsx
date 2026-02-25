@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { X, Truck, DollarSign, Calendar, Save, ChevronDown } from 'lucide-react'
+import { X, Truck, DollarSign, Calendar, Save } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 
 /**
@@ -146,14 +146,14 @@ export default memo(function EquipmentModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal equipment-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content equipment-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>
             <Truck size={20} />
             {isEditMode ? 'Edit Equipment' : 'Add Equipment to Project'}
           </h2>
-          <button className="modal-close" onClick={onClose}>
+          <button className="close-btn" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -164,22 +164,19 @@ export default memo(function EquipmentModal({
             {!isEditMode && catalogEquipment.length > 0 && (
               <div className="form-group">
                 <label>Select Equipment</label>
-                <div className="select-wrapper">
-                  <select
-                    value={useCustom ? 'custom' : selectedEquipmentId}
-                    onChange={handleEquipmentSelect}
-                    className="form-select"
-                  >
-                    <option value="">Choose from catalog...</option>
-                    {catalogEquipment.map(eq => (
-                      <option key={eq.id} value={eq.id}>
-                        {eq.name} - ${((eq.daily_rate || 0) / 100).toFixed(0)}/day
-                      </option>
-                    ))}
-                    <option value="custom">+ Add custom equipment</option>
-                  </select>
-                  <ChevronDown size={16} className="select-icon" />
-                </div>
+                <select
+                  value={useCustom ? 'custom' : selectedEquipmentId}
+                  onChange={handleEquipmentSelect}
+                  className="form-select"
+                >
+                  <option value="">Choose from catalog...</option>
+                  {catalogEquipment.map(eq => (
+                    <option key={eq.id} value={eq.id}>
+                      {eq.name} - ${((eq.daily_rate || 0) / 100).toFixed(0)}/day
+                    </option>
+                  ))}
+                  <option value="custom">+ Add custom equipment</option>
+                </select>
               </div>
             )}
 
