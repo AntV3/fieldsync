@@ -235,14 +235,14 @@ export default memo(function DrawRequestModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal draw-request-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content draw-request-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>
             <FileSpreadsheet size={20} />
             {isEditMode ? `Edit Draw #${drawNumber}` : `Create Draw #${drawNumber}`}
           </h2>
-          <button className="modal-close" onClick={onClose}>
+          <button className="close-btn" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>

@@ -366,12 +366,10 @@ export const db = {
             *,
             areas:areas(count),
             tickets:t_and_m_tickets(count),
-            pending_tickets:t_and_m_tickets(count),
             daily_reports:daily_reports(count)
           `)
           .eq('company_id', companyId)
           .eq('status', 'active')
-          .eq('pending_tickets.status', 'pending')
           .order('created_at', { ascending: false })
 
         const duration = Math.round(performance.now() - start)
@@ -384,12 +382,11 @@ export const db = {
           ...project,
           areaCount: project.areas?.[0]?.count || 0,
           ticketCount: project.tickets?.[0]?.count || 0,
-          pendingTicketCount: project.pending_tickets?.[0]?.count || 0,
+          pendingTicketCount: 0, // Loaded on-demand when project is selected
           reportCount: project.daily_reports?.[0]?.count || 0,
           // Remove the raw relation data
           areas: undefined,
           tickets: undefined,
-          pending_tickets: undefined,
           daily_reports: undefined
         }))
       } catch (error) {

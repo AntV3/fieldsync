@@ -210,6 +210,15 @@
   gap: 1.25rem !important;
 }
 
+/* Export Actions Bar */
+.export-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  margin-bottom: 12px;
+  justify-content: flex-end;
+}
+
 /* Hero Metrics Section */
 .financials-hero {
   background: var(--bg-card);
