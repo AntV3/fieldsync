@@ -83,7 +83,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       const signedUrls = await db.resolvePhotoUrls(rawUrls)
       signedUrls.forEach((signed, i) => { allPhotos[i].url = signed })
 
-      setPhotos(allPhotos)
+      setPhotos(allPhotos.filter(p => p.url))
 
       // Auto-expand the most recent date
       if (allPhotos.length > 0) {

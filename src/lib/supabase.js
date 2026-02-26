@@ -3208,9 +3208,9 @@ export const db = {
     try {
       const client = getSupabaseClient()
       const { data, error } = await client.storage.from('tm-photos').createSignedUrl(filePath, 3600)
-      if (error || !data?.signedUrl) return urlOrPath
+      if (error || !data?.signedUrl) return null
       return data.signedUrl
-    } catch { return urlOrPath }
+    } catch { return null }
   },
 
   // Batch-convert an array of stored photo URLs/paths to signed URLs (1-hour expiry).
@@ -3240,7 +3240,7 @@ export const db = {
       if (error || !data) return urlsOrPaths
       const result = [...urlsOrPaths]
       data.forEach((item, j) => {
-        if (item.signedUrl) result[indices[j]] = item.signedUrl
+        result[indices[j]] = item.signedUrl || null
       })
       return result
     } catch { return urlsOrPaths }

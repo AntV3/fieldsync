@@ -173,7 +173,7 @@ const TMTicketCard = memo(function TMTicketCard({
             <div className="tm-detail-section">
               <h4><Camera size={16} className="inline-icon" /> Photos ({ticket.photos.length})</h4>
               <div className="tm-photos-grid">
-                {signedPhotoUrls.map((photo, idx) => (
+                {signedPhotoUrls.filter(Boolean).map((photo, idx) => (
                   <a key={idx} href={photo} target="_blank" rel="noopener noreferrer" className="tm-photo-thumb">
                     <img
                       src={photo}
