@@ -1081,9 +1081,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             </button>
           </div>
 
-          <button 
-            className="btn btn-danger btn-full" 
-            onClick={handleDeleteProject}
+          <button
+            className="btn btn-danger btn-full"
+            onClick={() => handleDeleteProject(loadProjects)}
           >
             Delete Project
           </button>
