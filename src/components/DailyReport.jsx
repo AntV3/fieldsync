@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { HardHat, FileText, AlertTriangle, CheckCircle, Upload } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
+import { isFieldMode } from '../lib/fieldSession'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -48,6 +49,12 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       return
     }
 
+    // Guard: field session must be active for writes to pass RLS
+    if (!isFieldMode()) {
+      onShowToast('Session expired — please re-enter your PIN to continue', 'error')
+      return
+    }
+
     setSubmitting(true)
     try {
       // Save notes first
@@ -67,7 +74,11 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       }
     } catch (err) {
       console.error('Error submitting report:', err)
-      onShowToast('Error submitting report', 'error')
+      if (err?.code === '42501') {
+        onShowToast('Access denied — session may have expired. Re-enter your PIN.', 'error')
+      } else {
+        onShowToast('Error submitting report', 'error')
+      }
     } finally {
       setSubmitting(false)
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { isFieldMode } from '../lib/fieldSession'
 
 const LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', icon: '🧱' },
@@ -76,6 +77,11 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const handleAddLoad = async () => {
     if (newLoad.count < 1) return
 
+    if (!isFieldMode()) {
+      onShowToast?.('Session expired — please re-enter your PIN to continue', 'error')
+      return
+    }
+
     setSaving(true)
     try {
       await db.addDisposalLoad(
@@ -91,7 +97,11 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Disposal load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      onShowToast?.('Error adding load', 'error')
+      if (err?.code === '42501') {
+        onShowToast?.('Access denied — session may have expired. Re-enter your PIN.', 'error')
+      } else {
+        onShowToast?.('Error adding load', 'error')
+      }
     } finally {
       setSaving(false)
     }
@@ -112,6 +122,11 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   }
 
   const handleQuickAdd = async (loadType) => {
+    if (!isFieldMode()) {
+      onShowToast?.('Session expired — please re-enter your PIN to continue', 'error')
+      return
+    }
+
     setSaving(true)
     try {
       await db.addDisposalLoad(project.id, user?.id || null, date, loadType, 1)
@@ -119,7 +134,11 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      onShowToast?.('Error adding load', 'error')
+      if (err?.code === '42501') {
+        onShowToast?.('Access denied — session may have expired. Re-enter your PIN.', 'error')
+      } else {
+        onShowToast?.('Error adding load', 'error')
+      }
     } finally {
       setSaving(false)
     }

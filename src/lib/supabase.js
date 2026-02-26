@@ -854,8 +854,8 @@ export const db = {
         })
 
       if (error) {
-        console.error('[PIN Auth] RPC error')
-        return { success: false, rateLimited: false, project: null, error: error.message }
+        console.error('[PIN Auth] RPC error:', error.message, '| code:', error.code, '| details:', error.details)
+        return { success: false, rateLimited: false, project: null, error: error.message, errorCode: error.code }
       }
 
       if (!data || data.length === 0) {

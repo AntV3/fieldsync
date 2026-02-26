@@ -208,12 +208,32 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         return
       }
 
-      // If secure method failed but no rate limit, try fallback lookup
-      // This handles cases where the RPC function isn't deployed yet
+      // If the secure RPC returned an explicit function-missing error
+      // (migration not yet applied), attempt a temporary fallback so
+      // the app remains accessible during the deployment window.
+      // Once 20260219_fix_foreman_rls.sql is applied this path is never hit.
       if (result.error) {
-        const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
-        if (fallbackProject) {
-          setFoundProject(fallbackProject)
+        const isFnMissing = (
+          result.errorCode === 'PGRST202' ||      // PostgREST schema cache miss
+          result.errorCode === '42883' ||          // PostgreSQL: function does not exist
+          result.error?.includes('Could not find') ||
+          result.error?.includes('does not exist')
+        )
+
+        if (isFnMissing) {
+          // RPC function not deployed yet — use direct lookup as a
+          // temporary bridge.  Writes will fail until the migration
+          // is applied; the user will see per-operation errors.
+          const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
+          if (fallbackProject) {
+            console.warn('[PIN Auth] Using legacy fallback — apply migration 20260219_fix_foreman_rls.sql to restore full functionality.')
+            setFoundProject(fallbackProject)
+            return
+          }
+        } else {
+          // Function exists but encountered a runtime error
+          onShowToast('PIN verification error. Please try again.', 'error')
+          setPin('')
           return
         }
       }
@@ -221,15 +241,17 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       onShowToast('Invalid PIN', 'error')
       setPin('')
     } catch (err) {
-      // Try fallback on exception
+      console.error('[PIN Auth] Unexpected error:', err)
+      // Try fallback only for unexpected exceptions (e.g. network)
       try {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
+          console.warn('[PIN Auth] Using legacy fallback after exception.')
           setFoundProject(fallbackProject)
           return
         }
-      } catch (fallbackErr) {
-        // Fallback also failed, silent failure
+      } catch {
+        // Fallback also failed
       }
       onShowToast('Error checking PIN', 'error')
       setPin('')
