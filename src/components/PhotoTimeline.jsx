@@ -22,21 +22,14 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     }
 
     try {
-      // Get photos from T&M tickets and daily reports
-      const [tmResult, reportResult] = await Promise.all([
-        supabase
-          .from('t_and_m_tickets')
-          .select('id, work_date, description, photos')
-          .eq('project_id', projectId)
-          .not('photos', 'is', null)
-          .order('work_date', { ascending: false }),
-        supabase
-          .from('daily_reports')
-          .select('id, report_date, notes, photos')
-          .eq('project_id', projectId)
-          .not('photos', 'is', null)
-          .order('report_date', { ascending: false })
-      ])
+      // Get photos from T&M tickets
+      // Note: daily_reports stores a photos_count but not a photos array, so only tickets are sourced here
+      const tmResult = await supabase
+        .from('t_and_m_tickets')
+        .select('id, work_date, notes, photos')
+        .eq('project_id', projectId)
+        .not('photos', 'is', null)
+        .order('work_date', { ascending: false })
 
       const allPhotos = []
 
@@ -51,27 +44,8 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
                 url,
                 date: ticket.work_date,
                 source: 'T&M Ticket',
-                description: ticket.description,
+                description: ticket.notes,
                 areaId: ticket.area_id
-              })
-            }
-          }
-        }
-      }
-
-      // Process daily report photos
-      if (reportResult.data) {
-        for (const report of reportResult.data) {
-          const photoUrls = Array.isArray(report.photos) ? report.photos : []
-          for (const url of photoUrls) {
-            if (url) {
-              allPhotos.push({
-                id: `dr-${report.id}-${allPhotos.length}`,
-                url,
-                date: report.report_date,
-                source: 'Daily Report',
-                description: report.notes,
-                areaId: null
               })
             }
           }
