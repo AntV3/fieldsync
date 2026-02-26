@@ -527,6 +527,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       laborClasses.some(lc => lc.id === worker.labor_class_id)
 
     if (validLaborClass) {
+      // Worker has a matching labor class — add to that class's section
       if (!activeLaborClassIds.has(worker.labor_class_id)) {
         setActiveLaborClassIds(prev => new Set([...prev, worker.labor_class_id]))
       }
@@ -545,7 +546,33 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           }]
         }))
       }
+    } else if (hasCustomLaborClasses) {
+      // Company uses custom labor classes but this worker has no matching class.
+      // Route to the first active class, or activate and use the first available class.
+      const firstActiveId = [...activeLaborClassIds][0]
+      const targetClassId = firstActiveId || laborClasses[0]?.id
+
+      if (targetClassId) {
+        if (!activeLaborClassIds.has(targetClassId)) {
+          setActiveLaborClassIds(prev => new Set([...prev, targetClassId]))
+        }
+        const classWorkers = dynamicWorkers[targetClassId] || []
+        const emptyIndex = classWorkers.findIndex(w => !w || !w.name || !w.name.trim())
+        if (emptyIndex >= 0) {
+          const updated = [...classWorkers]
+          updated[emptyIndex] = { ...updated[emptyIndex], name: worker.name }
+          setDynamicWorkers(prev => ({ ...prev, [targetClassId]: updated }))
+        } else {
+          setDynamicWorkers(prev => ({
+            ...prev,
+            [targetClassId]: [...(prev[targetClassId] || []), {
+              name: worker.name, hours: '', overtimeHours: '', timeStarted: '', timeEnded: ''
+            }]
+          }))
+        }
+      }
     } else {
+      // No custom labor classes — use legacy role-based sections
       const role = (worker.role || '').toLowerCase()
 
       if (role.includes('foreman') || role.includes('supervisor') || role.includes('superintendent')) {

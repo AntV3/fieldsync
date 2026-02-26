@@ -826,22 +826,6 @@ export const db = {
         }
       }
 
-      // Track attempts
-      let attempts = parseInt(localStorage.getItem(rateLimitKey) || '0')
-      attempts++
-      localStorage.setItem(rateLimitKey, attempts.toString())
-
-      // Lockout after MAX_ATTEMPTS
-      if (attempts > MAX_ATTEMPTS) {
-        localStorage.setItem(lockoutKey, (Date.now() + LOCKOUT_MS).toString())
-        return {
-          success: false,
-          rateLimited: true,
-          project: null,
-          error: 'Too many failed attempts. Please try again in 5 minutes.'
-        }
-      }
-
       const deviceId = getDeviceId()
 
       // Use the new session-based validation
@@ -854,6 +838,7 @@ export const db = {
         })
 
       if (error) {
+        // RPC server error (not a wrong PIN) — don't penalize the attempt counter
         console.error('[PIN Auth] RPC error')
         return { success: false, rateLimited: false, project: null, error: error.message }
       }
@@ -870,6 +855,19 @@ export const db = {
       }
 
       if (result.error_code === 'INVALID_COMPANY' || result.error_code === 'INVALID_PIN') {
+        // Confirmed bad PIN — only NOW count as a failed attempt
+        let attempts = parseInt(localStorage.getItem(rateLimitKey) || '0')
+        attempts++
+        localStorage.setItem(rateLimitKey, attempts.toString())
+        if (attempts >= MAX_ATTEMPTS) {
+          localStorage.setItem(lockoutKey, (Date.now() + LOCKOUT_MS).toString())
+          return {
+            success: false,
+            rateLimited: true,
+            project: null,
+            error: 'Too many failed attempts. Please try again in 5 minutes.'
+          }
+        }
         return { success: false, rateLimited: false, project: null }
       }
 

@@ -213,6 +213,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (result.error) {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
+          // Clear any accumulated rate-limit counts since the PIN was correct
+          localStorage.removeItem(`pin_attempts_${company.code}`)
+          localStorage.removeItem(`pin_lockout_${company.code}`)
           setFoundProject(fallbackProject)
           return
         }
@@ -225,6 +228,9 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       try {
         const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
         if (fallbackProject) {
+          // Clear any accumulated rate-limit counts since the PIN was correct
+          localStorage.removeItem(`pin_attempts_${company.code}`)
+          localStorage.removeItem(`pin_lockout_${company.code}`)
           setFoundProject(fallbackProject)
           return
         }
