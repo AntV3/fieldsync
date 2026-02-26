@@ -1,249 +1,303 @@
 /**
  * Invoice PDF Generator
  *
- * Generates professional invoice PDFs with company branding.
+ * Generates professional, branded invoice PDFs.
  * Uses jsPDF with autoTable plugin for consistent formatting.
  */
 
 import { formatCurrency } from './corCalculations'
+import { hexToRgb, loadImageAsBase64 } from './imageUtils'
+
+// Helper: format a date string to long US format
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr + 'T00:00:00')
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+// Helper: draw a thin horizontal rule
+function drawRule(doc, x1, y, x2, color = [226, 232, 240], weight = 0.3) {
+  doc.setDrawColor(...color)
+  doc.setLineWidth(weight)
+  doc.line(x1, y, x2, y)
+}
 
 /**
  * Generate an invoice PDF
  *
  * @param {Object} invoice - Invoice data with items
- * @param {Object} project - Project data
- * @param {Object} company - Company data with branding
+ * @param {Object} project  - Project data
+ * @param {Object} company  - Company data with branding
  * @returns {Promise<jsPDF>} The generated PDF document
  */
 export async function generateInvoicePDF(invoice, project, company) {
-  // Dynamic imports for code splitting
   const { default: jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
 
-  const doc = new jsPDF('portrait')
-  const pageWidth = doc.internal.pageSize.width
+  const doc = new jsPDF('portrait', 'mm', 'letter')
+  const pageWidth  = doc.internal.pageSize.width
   const pageHeight = doc.internal.pageSize.height
   const margin = 20
+  const contentWidth = pageWidth - margin * 2
 
-  // Colors
-  const primaryColor = [33, 33, 33] // Dark gray
-  const accentColor = [59, 130, 246] // Blue
-  const lightGray = [156, 163, 175]
-  const borderColor = [229, 231, 235]
+  // ─── Brand colours ───────────────────────────────────────────────────────────
+  const brandHex = company?.branding_color || company?.primary_color || '#1E3A5F'
+  const primary  = hexToRgb(brandHex)       // company primary (header, accents)
+  const dark     = [17, 24, 39]             // near-black text
+  const mid      = [71, 85, 105]            // secondary text
+  const subtle   = [148, 163, 184]          // light labels / rules
+  const surface  = [248, 250, 252]          // table alt rows / boxes
+  const border   = [226, 232, 240]
 
-  let yPos = margin
+  let y = 0
 
-  // ============================================
-  // HEADER: Company Info & Logo
-  // ============================================
+  // ============================================================
+  // TOP HEADER BAND
+  // ============================================================
+  const headerH = 48
+  doc.setFillColor(...primary)
+  doc.rect(0, 0, pageWidth, headerH, 'F')
 
-  // Company name
-  doc.setFontSize(18)
-  doc.setFont(undefined, 'bold')
-  doc.setTextColor(...primaryColor)
-  doc.text(company?.name || 'Company Name', margin, yPos)
+  // Logo (if available)
+  let logoRight = margin
+  if (company?.logo_url) {
+    try {
+      const logoData = await loadImageAsBase64(company.logo_url)
+      if (logoData) {
+        const lh = 28
+        const lw = 28
+        doc.addImage(logoData, 'PNG', margin, (headerH - lh) / 2, lw, lh)
+        logoRight = margin + lw + 10
+      }
+    } catch (_) { /* ignore logo errors */ }
+  }
 
-  // Company details (right-aligned)
-  doc.setFontSize(9)
-  doc.setFont(undefined, 'normal')
-  doc.setTextColor(...lightGray)
-  const companyDetails = []
-  if (company?.phone) companyDetails.push(company.phone)
-  if (company?.email) companyDetails.push(company.email)
-  if (company?.address) companyDetails.push(company.address)
+  // Company name in header
+  doc.setFontSize(15)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text(company?.name || 'Company Name', logoRight, headerH / 2 - 2)
 
-  let rightY = yPos
-  companyDetails.forEach(detail => {
-    doc.text(detail, pageWidth - margin, rightY, { align: 'right' })
-    rightY += 4
-  })
+  // Contact details sub-line
+  const taglineParts = [company?.phone, company?.email].filter(Boolean)
+  if (taglineParts.length) {
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(220, 230, 245)
+    doc.text(taglineParts.join('  ·  '), logoRight, headerH / 2 + 5)
+  }
 
-  yPos += 15
+  // "INVOICE" — right side of header
+  doc.setFontSize(26)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text('INVOICE', pageWidth - margin, headerH / 2 + 5, { align: 'right' })
 
-  // INVOICE title
-  doc.setFontSize(28)
-  doc.setFont(undefined, 'bold')
-  doc.setTextColor(...accentColor)
-  doc.text('INVOICE', margin, yPos)
+  y = headerH + 14
 
-  yPos += 15
+  // ============================================================
+  // INVOICE META  (left)  +  BILL TO  (right)
+  // ============================================================
+  const leftW  = contentWidth * 0.44
+  const rightW = contentWidth * 0.44
+  const rightX = margin + contentWidth - rightW
 
-  // ============================================
-  // INVOICE DETAILS
-  // ============================================
-
-  // Invoice number, date, due date - left side
-  doc.setFontSize(10)
-  doc.setFont(undefined, 'normal')
-  doc.setTextColor(...primaryColor)
-
-  const detailsLeft = [
-    ['Invoice #:', invoice.invoice_number],
-    ['Invoice Date:', formatDate(invoice.invoice_date)],
-    ['Due Date:', invoice.due_date ? formatDate(invoice.due_date) : 'Upon Receipt'],
-    ['Terms:', invoice.terms || 'Net 30']
+  // ── Left: invoice details ───────────────────────────────────
+  const metaRows = [
+    ['Invoice #',    invoice.invoice_number || '—'],
+    ['Invoice Date', formatDate(invoice.invoice_date)],
+    ['Due Date',     invoice.due_date ? formatDate(invoice.due_date) : 'Upon Receipt'],
+    ['Terms',        invoice.terms || 'Net 30'],
   ]
+  const labelCol = margin
+  const valueCol = margin + 30
 
-  let leftY = yPos
-  detailsLeft.forEach(([label, value]) => {
-    doc.setFont(undefined, 'bold')
-    doc.text(label, margin, leftY)
-    doc.setFont(undefined, 'normal')
-    doc.text(value, margin + 30, leftY)
-    leftY += 5
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...subtle)
+  doc.text('INVOICE DETAILS', labelCol, y)
+  y += 5
+  drawRule(doc, labelCol, y, labelCol + leftW, border)
+  y += 5
+
+  metaRows.forEach(([label, value]) => {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(...mid)
+    doc.text(label, labelCol, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...dark)
+    doc.text(String(value || '—'), valueCol, y)
+    y += 5.5
   })
 
-  // Bill To - right side
-  const billToX = pageWidth / 2
-  doc.setFont(undefined, 'bold')
-  doc.setTextColor(...lightGray)
-  doc.text('BILL TO', billToX, yPos)
+  // ── Right: Bill To ──────────────────────────────────────────
+  let billY = headerH + 14
 
-  doc.setFont(undefined, 'normal')
-  doc.setTextColor(...primaryColor)
-  let billY = yPos + 5
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...subtle)
+  doc.text('BILL TO', rightX, billY)
+  billY += 5
+  drawRule(doc, rightX, billY, rightX + rightW, border)
+  billY += 5
+
   if (invoice.bill_to_name) {
-    doc.text(invoice.bill_to_name, billToX, billY)
-    billY += 4
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...dark)
+    doc.text(invoice.bill_to_name, rightX, billY)
+    billY += 6
   }
   if (invoice.bill_to_address) {
-    // Split address if too long
-    const addressLines = doc.splitTextToSize(invoice.bill_to_address, 80)
-    addressLines.forEach(line => {
-      doc.text(line, billToX, billY)
-      billY += 4
-    })
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...mid)
+    const addrLines = doc.splitTextToSize(invoice.bill_to_address, rightW)
+    addrLines.forEach(line => { doc.text(line, rightX, billY); billY += 4.5 })
   }
   if (invoice.bill_to_contact) {
-    doc.text(invoice.bill_to_contact, billToX, billY)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...mid)
+    doc.text(invoice.bill_to_contact, rightX, billY)
   }
 
-  yPos = Math.max(leftY, billY) + 10
+  y = Math.max(y, billY) + 10
 
-  // Project info
-  doc.setFontSize(9)
-  doc.setTextColor(...lightGray)
-  doc.text(`Project: ${project.name}${project.job_number ? ` (Job #${project.job_number})` : ''}`, margin, yPos)
+  // Project reference strip
+  doc.setFillColor(...surface)
+  doc.roundedRect(margin, y - 3, contentWidth, 9, 2, 2, 'F')
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...mid)
+  doc.text('Project:', margin + 4, y + 3)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...dark)
+  const projLabel = (project?.name || '') + (project?.job_number ? `  (Job #${project.job_number})` : '')
+  doc.text(projLabel, margin + 22, y + 3)
+  y += 14
 
-  yPos += 10
-
-  // ============================================
+  // ============================================================
   // LINE ITEMS TABLE
-  // ============================================
-
-  const tableData = (invoice.invoice_items || []).map((item, index) => [
-    index + 1,
-    item.reference_number || '-',
-    item.description,
+  // ============================================================
+  const tableData = (invoice.invoice_items || []).map((item, idx) => [
+    (idx + 1).toString(),
+    item.reference_number || '—',
+    item.description || '—',
     formatCurrency(item.amount)
   ])
 
   autoTable(doc, {
-    startY: yPos,
-    head: [['#', 'Ref', 'Description', 'Amount']],
-    body: tableData,
+    startY: y,
+    head: [['#', 'Ref #', 'Description', 'Amount']],
+    body: tableData.length > 0 ? tableData : [['', '', 'No line items', '']],
     theme: 'plain',
     styles: {
       fontSize: 9,
-      cellPadding: 4,
-      textColor: primaryColor,
-      lineColor: borderColor,
-      lineWidth: 0.1
+      cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+      textColor: dark,
+      overflow: 'linebreak'
     },
     headStyles: {
-      fillColor: [249, 250, 251],
-      textColor: primaryColor,
+      fillColor: primary,
+      textColor: [255, 255, 255],
       fontStyle: 'bold',
-      lineWidth: { bottom: 0.5 },
-      lineColor: borderColor
+      fontSize: 9
     },
+    alternateRowStyles: { fillColor: surface },
     columnStyles: {
-      0: { cellWidth: 12, halign: 'center' },
-      1: { cellWidth: 25 },
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 28 },
       2: { cellWidth: 'auto' },
       3: { cellWidth: 30, halign: 'right' }
-    },
-    alternateRowStyles: {
-      fillColor: [255, 255, 255]
     },
     margin: { left: margin, right: margin }
   })
 
-  yPos = doc.lastAutoTable.finalY + 10
+  y = doc.lastAutoTable.finalY + 8
 
-  // ============================================
-  // TOTALS SECTION
-  // ============================================
+  // ============================================================
+  // TOTALS BLOCK  (right-aligned)
+  // ============================================================
+  const totalsW   = 80
+  const totalsX   = pageWidth - margin - totalsW
+  const totalsVal = pageWidth - margin
 
-  const totalsX = pageWidth - margin - 80
-  const totalsValueX = pageWidth - margin
+  // Subtotal row
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...mid)
+  doc.text('Subtotal', totalsX, y)
+  doc.setTextColor(...dark)
+  doc.text(formatCurrency(invoice.subtotal), totalsVal, y, { align: 'right' })
+  y += 6
 
-  // Subtotal
-  doc.setFontSize(10)
-  doc.setFont(undefined, 'normal')
-  doc.setTextColor(...primaryColor)
-  doc.text('Subtotal', totalsX, yPos)
-  doc.text(formatCurrency(invoice.subtotal), totalsValueX, yPos, { align: 'right' })
-  yPos += 6
-
-  // Retention (if applicable)
+  // Retention (if applicable) — retention_percent stored in basis points (1000 = 10%)
   if (invoice.retention_percent > 0) {
-    const retentionPct = invoice.retention_percent / 100 // Convert from basis points
-    doc.text(`Retention (${retentionPct}%)`, totalsX, yPos)
-    doc.setTextColor(220, 38, 38) // Red
-    doc.text(`-${formatCurrency(invoice.retention_amount)}`, totalsValueX, yPos, { align: 'right' })
-    doc.setTextColor(...primaryColor)
-    yPos += 6
+    const pct = invoice.retention_percent / 100
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...mid)
+    doc.text(`Retention (${pct}%)`, totalsX, y)
+    doc.setTextColor(220, 38, 38)
+    doc.text(`-${formatCurrency(invoice.retention_amount)}`, totalsVal, y, { align: 'right' })
+    y += 6
   }
 
-  // Divider line
-  doc.setDrawColor(...borderColor)
-  doc.setLineWidth(0.5)
-  doc.line(totalsX - 5, yPos, totalsValueX, yPos)
-  yPos += 6
+  // Divider
+  drawRule(doc, totalsX, y, totalsVal, border, 0.5)
+  y += 6
 
-  // Total Due
-  doc.setFontSize(12)
-  doc.setFont(undefined, 'bold')
-  doc.text('Total Due', totalsX, yPos)
-  doc.setTextColor(...accentColor)
-  doc.text(formatCurrency(invoice.total), totalsValueX, yPos, { align: 'right' })
+  // Total Due — prominent branded block
+  const totalBoxH = 12
+  doc.setFillColor(...primary)
+  doc.roundedRect(totalsX - 4, y - 3, totalsW + 4, totalBoxH, 2, 2, 'F')
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text('Total Due', totalsX, y + 5)
+  doc.text(formatCurrency(invoice.total), totalsVal, y + 5, { align: 'right' })
+  y += totalBoxH + 10
 
-  yPos += 15
-
-  // ============================================
-  // NOTES & PAYMENT INFO
-  // ============================================
-
+  // ============================================================
+  // NOTES
+  // ============================================================
   if (invoice.notes) {
-    doc.setFontSize(9)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(...lightGray)
-    doc.text('Notes:', margin, yPos)
-    yPos += 5
+    if (y > pageHeight - 50) { doc.addPage(); y = margin }
 
-    doc.setFont(undefined, 'normal')
-    doc.setTextColor(...primaryColor)
-    const noteLines = doc.splitTextToSize(invoice.notes, pageWidth - margin * 2)
-    noteLines.forEach(line => {
-      doc.text(line, margin, yPos)
-      yPos += 4
-    })
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...subtle)
+    doc.text('NOTES', margin, y)
+    y += 5
+    drawRule(doc, margin, y, pageWidth - margin, border)
+    y += 5
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...mid)
+    const noteLines = doc.splitTextToSize(invoice.notes, contentWidth)
+    noteLines.forEach(line => { doc.text(line, margin, y); y += 4.5 })
   }
 
-  // ============================================
-  // FOOTER
-  // ============================================
-
-  const footerY = pageHeight - 15
-  doc.setFontSize(8)
-  doc.setTextColor(...lightGray)
-  doc.text(
-    `Invoice ${invoice.invoice_number} | Generated ${new Date().toLocaleDateString()}`,
-    pageWidth / 2,
-    footerY,
-    { align: 'center' }
-  )
+  // ============================================================
+  // FOOTER (all pages)
+  // ============================================================
+  const totalPgs = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= totalPgs; i++) {
+    doc.setPage(i)
+    const fy = pageHeight - 10
+    drawRule(doc, margin, fy - 4, pageWidth - margin, border, 0.3)
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...subtle)
+    doc.text(
+      `Invoice ${invoice.invoice_number || ''}  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      margin,
+      fy
+    )
+    doc.text(`Page ${i} of ${totalPgs}`, pageWidth - margin, fy, { align: 'right' })
+  }
 
   return doc
 }
@@ -253,26 +307,16 @@ export async function generateInvoicePDF(invoice, project, company) {
  */
 export async function downloadInvoicePDF(invoice, project, company) {
   const doc = await generateInvoicePDF(invoice, project, company)
-  const fileName = `Invoice_${invoice.invoice_number}_${project.job_number || project.name.replace(/\s+/g, '_')}.pdf`
+  const safeName = (project?.name || 'Project').replace(/\s+/g, '_')
+  const fileName = `Invoice_${invoice.invoice_number || 'draft'}_${project?.job_number || safeName}.pdf`
   doc.save(fileName)
   return fileName
 }
 
 /**
- * Generate invoice PDF as blob for email/preview
+ * Generate invoice PDF as blob for email / preview
  */
 export async function getInvoicePDFBlob(invoice, project, company) {
   const doc = await generateInvoicePDF(invoice, project, company)
   return doc.output('blob')
-}
-
-// Helper function to format date
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  })
 }

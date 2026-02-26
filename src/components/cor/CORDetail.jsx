@@ -10,7 +10,8 @@ import {
   formatDate,
   formatDateRange
 } from '../../lib/corCalculations'
-import { executeExport } from '../../lib/corExportPipeline'
+import { executeExport, createSnapshot } from '../../lib/corExportPipeline'
+import { generatePDFFromSnapshot } from '../../lib/corPdfGenerator'
 import { exportCORDetail } from '../../lib/financialExport'
 import SignatureCanvas from '../ui/SignatureCanvas'
 import SignatureLinkGenerator from '../SignatureLinkGenerator'
@@ -216,32 +217,37 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   }
 
   const handleExportPDF = async () => {
-    try {
-      onShowToast?.('Generating PDF with backup...', 'info')
+    const branding = {
+      logoUrl: company?.logo_url,
+      primaryColor: company?.branding_color
+    }
 
-      // Use new snapshot-based export pipeline (idempotent, reliable)
+    try {
+      onShowToast?.('Generating PDF...', 'info')
+
+      // Attempt the full idempotent pipeline first
       const result = await executeExport(corData.id, {
         cor: corData,
         tickets: associatedTickets,
         project,
         company,
-        branding: {
-          logoUrl: company?.logo_url,
-          primaryColor: company?.branding_color
-        },
-        options: {
-          includeBackup: true
-        }
+        branding,
+        options: { includeBackup: true }
       })
 
-      if (result.cached) {
-        onShowToast?.('PDF downloaded (cached)', 'success')
-      } else {
+      onShowToast?.(result.cached ? 'PDF downloaded (cached)' : 'PDF downloaded', 'success')
+    } catch (pipelineError) {
+      // Pipeline relies on database RPCs that may not be available in all environments.
+      // Fall back to direct client-side generation from a local snapshot.
+      console.warn('Export pipeline unavailable, using direct generation:', pipelineError?.message)
+      try {
+        const snapshot = createSnapshot(corData, associatedTickets)
+        await generatePDFFromSnapshot(snapshot, { project, company, branding })
         onShowToast?.('PDF downloaded', 'success')
+      } catch (fallbackError) {
+        console.error('Error generating PDF:', fallbackError)
+        onShowToast?.('Error generating PDF', 'error')
       }
-    } catch (error) {
-      console.error('Error exporting PDF:', error)
-      onShowToast?.('Error generating PDF', 'error')
     }
   }
 
