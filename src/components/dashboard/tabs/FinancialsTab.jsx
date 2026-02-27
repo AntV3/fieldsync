@@ -71,7 +71,7 @@ export default function FinancialsTab({
           className="btn btn-ghost btn-small"
           onClick={() => exportProjectFinancials(selectedProject, {
             earnedRevenue: billable,
-            approvedCORs: projectData?.cors?.filter(c => c.status === 'approved'),
+            approvedCORs: null,
             laborByDate: projectData?.laborByDate,
             haulOffByDate: projectData?.haulOffByDate,
             customCosts: projectData?.customCosts
@@ -82,8 +82,8 @@ export default function FinancialsTab({
         <button
           className="btn btn-ghost btn-small"
           onClick={() => exportToQuickBooksIIF(selectedProject, {
-            totalLaborCost: projectData?.totalLaborCost || 0,
-            totalDisposalCost: projectData?.totalDisposalCost || 0
+            totalLaborCost: projectData?.laborCost || 0,
+            totalDisposalCost: projectData?.haulOffCost || 0
           })}
         >
           <Download size={14} /> QuickBooks

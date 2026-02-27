@@ -370,7 +370,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
       const haulOffCost = haulOffCosts?.totalCost || 0
-      const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal
+      const allCostsTotal = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal
 
       // Profit calculations
       const currentProfit = billable - allCostsTotal
@@ -380,7 +380,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       const laborDays = laborCosts?.byDate?.length || 0
       const materialsDays = materialsEquipmentByDateArray.length
       const totalBurnDays = Math.max(laborDays, materialsDays)
-      const totalBurn = laborCost + materialsEquipmentCost
+      const totalBurn = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal
       const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
       // Schedule insights
@@ -860,11 +860,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   // Memoize stats for FinancialsNav to prevent re-renders from inline object creation
   const financialsNavStats = useMemo(() => ({
-    corCount: projectData?.corStats?.total || 0,
+    corCount: projectData?.corTotalCount || 0,
     ticketCount: projectData?.totalTickets || 0,
-    corPending: projectData?.corStats?.pending || 0,
+    corPending: projectData?.corPendingCount || 0,
     ticketPending: projectData?.pendingTickets || 0
-  }), [projectData?.corStats?.total, projectData?.totalTickets, projectData?.corStats?.pending, projectData?.pendingTickets])
+  }), [projectData?.corTotalCount, projectData?.totalTickets, projectData?.corPendingCount, projectData?.pendingTickets])
 
   // Destructure memoized values for cleaner usage below
   const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
@@ -1362,7 +1362,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   className="btn btn-ghost btn-small"
                   onClick={() => exportProjectFinancials(selectedProject, {
                     earnedRevenue: billable,
-                    approvedCORs: projectData?.cors?.filter(c => c.status === 'approved'),
+                    approvedCORs: null,
                     laborByDate: projectData?.laborByDate,
                     haulOffByDate: projectData?.haulOffByDate,
                     customCosts: projectData?.customCosts
@@ -1373,8 +1373,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 <button
                   className="btn btn-ghost btn-small"
                   onClick={() => exportToQuickBooksIIF(selectedProject, {
-                    totalLaborCost: projectData?.totalLaborCost || 0,
-                    totalDisposalCost: projectData?.totalDisposalCost || 0
+                    totalLaborCost: projectData?.laborCost || 0,
+                    totalDisposalCost: projectData?.haulOffCost || 0
                   })}
                 >
                   <Download size={14} /> QuickBooks
