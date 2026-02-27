@@ -199,6 +199,33 @@ export async function compressImages(files, maxWidth = 1920, quality = 0.8, onPr
 }
 
 /**
+ * Get the device's current GPS location using the browser Geolocation API.
+ * Returns null silently if permission denied or unavailable (non-blocking).
+ * @param {number} timeout - Max wait time in ms (default 5000)
+ * @returns {Promise<{latitude: number, longitude: number, accuracy: number}|null>}
+ */
+export function getGPSLocation(timeout = 5000) {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null)
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: Math.round(position.coords.accuracy)
+        })
+      },
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout, maximumAge: 60000 }
+    )
+  })
+}
+
+/**
  * Get dimensions of an image file
  * @param {File} file - Image file
  * @returns {Promise<{width: number, height: number}>}

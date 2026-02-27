@@ -1,4 +1,5 @@
-import { Camera, Link } from 'lucide-react'
+import { Camera, Link, MapPin } from 'lucide-react'
+import { createT } from './translations'
 
 /**
  * EvidenceStep - Step 4 evidence section: photo capture/upload and COR linking.
@@ -18,6 +19,8 @@ export default function EvidenceStep({
   assignableCORs,
   lang
 }) {
+  const t = createT(lang)
+
   return (
     <>
       {/* PHOTOS - Prominent Action Card */}
@@ -27,11 +30,11 @@ export default function EvidenceStep({
             <Camera size={24} />
           </div>
           <div className="tm-action-card-title">
-            <h4>{lang === 'en' ? 'Photo Evidence' : 'Evidencia Fotogr\u00e1fica'}</h4>
+            <h4>{t('photoEvidence')}</h4>
             <span className="tm-action-card-status">
               {photos.length > 0
-                ? `${photos.length} ${lang === 'en' ? 'photo(s) added' : 'foto(s) agregada(s)'}`
-                : (lang === 'en' ? 'Recommended for billing' : 'Recomendado para facturaci\u00f3n')
+                ? `${photos.length} ${t('photosAdded')}`
+                : t('recommendedForBilling')
               }
             </span>
           </div>
@@ -41,6 +44,7 @@ export default function EvidenceStep({
             {photos.map(photo => (
               <div key={photo.id} className="tm-photo-preview-thumb">
                 <img src={photo.previewUrl} alt={photo.name} />
+                {photo.latitude && <span className="tm-photo-gps-badge" title={`${photo.latitude.toFixed(4)}, ${photo.longitude.toFixed(4)}`}><MapPin size={10} /></span>}
                 <button className="tm-photo-remove-x" onClick={() => onRemovePhoto(photo.id)}>{'\u00d7'}</button>
               </div>
             ))}
@@ -55,7 +59,7 @@ export default function EvidenceStep({
             style={{ display: 'none' }}
           />
           <Camera size={18} />
-          <span>{photos.length > 0 ? (lang === 'en' ? 'Add More Photos' : 'Agregar M\u00e1s Fotos') : (lang === 'en' ? 'Add Photos' : 'Agregar Fotos')}</span>
+          <span>{photos.length > 0 ? t('addMorePhotos') : t('addPhotos')}</span>
         </label>
       </div>
 
@@ -66,11 +70,11 @@ export default function EvidenceStep({
             <Link size={24} />
           </div>
           <div className="tm-action-card-title">
-            <h4>{lang === 'en' ? 'Link to Change Order' : 'Vincular a Orden de Cambio'}</h4>
+            <h4>{t('linkToChangeOrder')}</h4>
             <span className="tm-action-card-status">
               {selectedCorId
-                ? `${lang === 'en' ? 'Linked to' : 'Vinculado a'}: ${assignableCORs.find(c => c.id === selectedCorId)?.cor_number || ''}`
-                : (lang === 'en' ? 'Optional - Link this T&M to a COR' : 'Opcional - Vincular este T&M a un COR')
+                ? `${t('linkedTo')}: ${assignableCORs.find(c => c.id === selectedCorId)?.cor_number || ''}`
+                : t('optionalLinkCOR')
               }
             </span>
           </div>
@@ -80,7 +84,7 @@ export default function EvidenceStep({
           onChange={(e) => setSelectedCorId(e.target.value)}
           className="tm-cor-select-prominent"
         >
-          <option value="">{lang === 'en' ? '-- Select a COR (optional) --' : '-- Seleccionar COR (opcional) --'}</option>
+          <option value="">{t('selectCOROptional')}</option>
           {assignableCORs.map(cor => (
             <option key={cor.id} value={cor.id}>
               {cor.cor_number}: {cor.title || 'Untitled'} ({cor.status})
@@ -88,7 +92,7 @@ export default function EvidenceStep({
           ))}
         </select>
         {assignableCORs.length === 0 && (
-          <p className="tm-cor-hint">{lang === 'en' ? 'No active CORs available for this project' : 'No hay CORs activos para este proyecto'}</p>
+          <p className="tm-cor-hint">{t('noActiveCORs')}</p>
         )}
       </div>
     </>
