@@ -1510,6 +1510,21 @@ export const corOps = {
     return null
   },
 
+  // Subscribe to punch list item changes for a project
+  // Fires when items are created, updated (status changes), or deleted
+  subscribeToPunchList(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`punch_list:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
   // ============================================
   // Signature Workflow Functions
   // ============================================
