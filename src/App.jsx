@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { ThemeProvider } from './lib/ThemeContext'
@@ -36,12 +37,10 @@ function PageLoader() {
 // Pending approval screen with auto-polling
 function PendingApprovalScreen({ pendingCompanyName, userName, onCheckStatus, onLogout }) {
   const [checking, setChecking] = useState(false)
-  const [autoCheckCount, setAutoCheckCount] = useState(0)
 
   // Auto-check status every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setAutoCheckCount(c => c + 1)
       onCheckStatus()
     }, 30000)
     return () => clearInterval(interval)
@@ -50,44 +49,27 @@ function PendingApprovalScreen({ pendingCompanyName, userName, onCheckStatus, on
   const handleManualCheck = async () => {
     setChecking(true)
     await onCheckStatus()
-    // Brief delay so the user sees the checking state
     setTimeout(() => setChecking(false), 1000)
   }
 
   return (
     <div className="pending-approval-screen">
       <Logo className="pending-logo" />
-
       <div className="pending-pulse-ring">
         <div className="pending-pulse-dot" />
       </div>
-
       <h2>Awaiting Approval</h2>
-
       {pendingCompanyName && (
-        <div className="pending-company-name">
-          {pendingCompanyName}
-        </div>
+        <div className="pending-company-name">{pendingCompanyName}</div>
       )}
-
       <p className="pending-message">
         {userName ? `Hi ${userName.split(' ')[0]}, your` : 'Your'} membership request has been submitted.
         A company administrator will review and approve your access.
       </p>
-
-      <p className="pending-auto-check">
-        We'll automatically check for updates
-      </p>
-
+      <p className="pending-auto-check">We'll automatically check for updates</p>
       <div className="pending-actions">
-        <button className="btn btn-secondary" onClick={onLogout}>
-          Sign Out
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={handleManualCheck}
-          disabled={checking}
-        >
+        <button className="btn btn-secondary" onClick={onLogout}>Sign Out</button>
+        <button className="btn btn-primary" onClick={handleManualCheck} disabled={checking}>
           {checking ? 'Checking...' : 'Check Status'}
         </button>
       </div>
@@ -95,18 +77,37 @@ function PendingApprovalScreen({ pendingCompanyName, userName, onCheckStatus, on
   )
 }
 
+// Wrapper for public view that reads token from URL params
+function PublicViewRoute() {
+  const { token } = useParams()
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <PublicView shareToken={token} />
+    </Suspense>
+  )
+}
+
+// Wrapper for signature page that reads token from URL params
+function SignatureRoute() {
+  const { token } = useParams()
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <SignaturePage signatureToken={token} />
+    </Suspense>
+  )
+}
+
 export default function App() {
-  const [view, setView] = useState('entry') // 'entry', 'foreman', 'office', 'public', 'signature', 'pending'
+  const navigate = useNavigate()
+  const location = useLocation()
+
   const [user, setUser] = useState(null)
   const [company, setCompany] = useState(null)
-  const [userCompanies, setUserCompanies] = useState([]) // All companies user can access
-  const [projects, setProjects] = useState([]) // For notification subscriptions
+  const [userCompanies, setUserCompanies] = useState([])
+  const [, setProjects] = useState([])
   const [foremanProject, setForemanProject] = useState(null)
   const [foremanName, setForemanName] = useState('')
-  const [shareToken, setShareToken] = useState(null)
-  const [signatureToken, setSignatureToken] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('dashboard')
   const [toast, setToast] = useState(null)
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
@@ -114,25 +115,27 @@ export default function App() {
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
   const [mfaPending, setMfaPending] = useState(false)
   const [mfaFactorId, setMfaFactorId] = useState(null)
-  const [pendingCompanyName, setPendingCompanyName] = useState('') // Company name for pending screen
+  const [pendingCompanyName, setPendingCompanyName] = useState('')
+  const [authReady, setAuthReady] = useState(false)
+
+  const showToast = useCallback((message, type = '') => {
+    setToast({ message, type })
+  }, [])
 
   // checkAuth defined before useEffect to avoid ESLint warning
   const checkAuth = useCallback(async () => {
     try {
-      // Guard: If Supabase isn't configured, skip auth check
       if (!isSupabaseConfigured) {
         setLoading(false)
         return
       }
 
-      // Check if user is logged in
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) {
         setLoading(false)
         return
       }
 
-      // Get user record
       const { data: userData } = await supabase
         .from('users')
         .select('*')
@@ -142,31 +145,22 @@ export default function App() {
       if (userData) {
         setUser(userData)
 
-        // Fetch all companies user has ACTIVE access to
         let companies = await db.getUserCompanies(authUser.id)
 
-        // If no active companies, check if this is a legacy user
         if (companies.length === 0 && userData.company_id) {
-          // Legacy user detected - attempt repair
           const repaired = await db.repairLegacyUser(
-            authUser.id,
-            userData.company_id,
-            userData.role || 'member'
+            authUser.id, userData.company_id, userData.role || 'member'
           )
-
           if (repaired) {
-            // Retry fetching companies after repair
             companies = await db.getUserCompanies(authUser.id)
           }
         }
 
         setUserCompanies(companies)
 
-        // If still no active companies, check for pending memberships
         if (companies.length === 0) {
           const pendingCount = await db.getUserPendingMemberships(authUser.id)
           if (pendingCount > 0) {
-            // Try to get the pending company name for context
             try {
               const { data: pendingMemberships } = await supabase
                 .from('user_companies')
@@ -177,22 +171,19 @@ export default function App() {
               if (pendingMemberships?.[0]?.companies?.name) {
                 setPendingCompanyName(pendingMemberships[0].companies.name)
               }
-            } catch (e) {
-              // Non-critical, continue without company name
+            } catch (_e) {
+              // Non-critical
             }
-            setView('pending')
+            navigate('/pending', { replace: true })
             return
           }
-          // No active or pending - show entry screen
           setToast({ message: 'No company access. Join a company to continue.', type: 'error' })
           await auth.signOut()
           return
         }
 
-        // Use saved company or first available
         const savedCompanyId = localStorage.getItem('selectedCompanyId')
         let selectedCompany = null
-
         if (savedCompanyId && companies.find(c => c.id === savedCompanyId)) {
           selectedCompany = companies.find(c => c.id === savedCompanyId)
         } else if (companies.length > 0) {
@@ -200,7 +191,6 @@ export default function App() {
         }
 
         if (selectedCompany) {
-          // Fetch full company data
           const { data: fullCompany } = await supabase
             .from('companies')
             .select('*')
@@ -208,7 +198,15 @@ export default function App() {
             .single()
 
           setCompany(fullCompany)
-          setView('office')
+          setAuthReady(true)
+
+          // Navigate to dashboard if on login/root (preserve existing office routes)
+          const currentPath = location.pathname
+          const isPublicRoute = currentPath.startsWith('/view/') || currentPath.startsWith('/sign/')
+          const isOfficeRoute = ['/dashboard', '/projects/new', '/pricing', '/branding', '/team'].includes(currentPath)
+          if (!isPublicRoute && !isOfficeRoute && currentPath !== '/field') {
+            navigate('/dashboard', { replace: true })
+          }
         }
       }
     } catch (error) {
@@ -216,48 +214,33 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [navigate, location.pathname])
 
   useEffect(() => {
-    // Check if this is a public share link or signature link
-    // Token patterns support alphanumeric, underscore, and hyphen (for UUID-style tokens)
-    const path = window.location.pathname
-    const shareMatch = path.match(/^\/view\/([a-zA-Z0-9_-]+)$/)
-    const signatureMatch = path.match(/^\/sign\/([a-zA-Z0-9_-]+)$/)
-
-    if (shareMatch) {
-      setShareToken(shareMatch[1])
-      setView('public')
-      setLoading(false)
-    } else if (signatureMatch) {
-      setSignatureToken(signatureMatch[1])
-      setView('signature')
+    const path = location.pathname
+    if (path.startsWith('/view/') || path.startsWith('/sign/')) {
       setLoading(false)
     } else {
       checkAuth()
     }
-  }, [checkAuth])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Listen for auth state changes (handles token refresh and session expiry)
+  // Listen for auth state changes
   useEffect(() => {
     if (!isSupabaseConfigured) return
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event) => {
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          // User signed out - reset state, but don't interfere with public/signature views
-          const path = window.location.pathname
+          const path = location.pathname
           if (path.startsWith('/sign/') || path.startsWith('/view/')) return
           setUser(null)
           setCompany(null)
           setUserCompanies([])
-          setView('entry')
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Token was refreshed - no action needed, session is valid
+          setAuthReady(false)
+          navigate('/login', { replace: true })
         } else if (event === 'SIGNED_IN' && !user) {
-          // User signed in (might be from another tab or session restore)
-          // Don't override public/signature views - those are accessed without auth
-          const path = window.location.pathname
+          const path = location.pathname
           if (!path.startsWith('/sign/') && !path.startsWith('/view/')) {
             checkAuth()
           }
@@ -265,34 +248,25 @@ export default function App() {
       }
     )
 
-    return () => {
-      subscription?.unsubscribe()
-    }
-  }, [user, checkAuth])
+    return () => { subscription?.unsubscribe() }
+  }, [user, checkAuth, navigate, location.pathname])
 
-  // Foreman accessed project via PIN (and entered their name)
   const handleForemanAccess = (project, name = '') => {
     setForemanProject(project)
     setForemanName(name)
-    setView('foreman')
+    navigate('/field')
   }
 
-  // Office login
   const handleOfficeLogin = async (email, password) => {
     try {
-      // Ensure field-session auth does not override office auth
       await clearFieldSession()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
         showToast(error.message || 'Invalid credentials', 'error')
         return
       }
 
-      // Get user profile
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -307,31 +281,21 @@ export default function App() {
 
       if (userData) {
         setUser(userData)
-
-        // Fetch all companies user has access to
         let companies = await db.getUserCompanies(data.user.id)
 
-        // If no active companies, check if this is a legacy user
         if (companies.length === 0 && userData.company_id) {
-          // Legacy user detected - attempt repair
           const repaired = await db.repairLegacyUser(
-            data.user.id,
-            userData.company_id,
-            userData.role || 'member'
+            data.user.id, userData.company_id, userData.role || 'member'
           )
-
           if (repaired) {
-            // Retry fetching companies after repair
             companies = await db.getUserCompanies(data.user.id)
           }
         }
 
         setUserCompanies(companies)
 
-        // Use saved company or first available
         const savedCompanyId = localStorage.getItem('selectedCompanyId')
         let selectedCompany = null
-
         if (savedCompanyId && companies.find(c => c.id === savedCompanyId)) {
           selectedCompany = companies.find(c => c.id === savedCompanyId)
         } else if (companies.length > 0) {
@@ -339,7 +303,6 @@ export default function App() {
         }
 
         if (selectedCompany) {
-          // Fetch full company data
           const { data: fullCompany } = await supabase
             .from('companies')
             .select('*')
@@ -347,21 +310,19 @@ export default function App() {
             .single()
 
           setCompany(fullCompany)
+          setAuthReady(true)
 
-          // Check if user has MFA enrolled
           const { data: factors } = await supabase.auth.mfa.listFactors()
           const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
           if (verifiedFactor) {
             setMfaFactorId(verifiedFactor.id)
             setMfaPending(true)
           } else {
-            setView('office')
+            navigate('/dashboard')
           }
         } else {
-          // Check if there are pending memberships
           const pendingCount = await db.getUserPendingMemberships(data.user.id)
           if (pendingCount > 0) {
-            // Try to get the pending company name for context
             try {
               const { data: pendingMemberships } = await supabase
                 .from('user_companies')
@@ -372,10 +333,10 @@ export default function App() {
               if (pendingMemberships?.[0]?.companies?.name) {
                 setPendingCompanyName(pendingMemberships[0].companies.name)
               }
-            } catch (e) {
+            } catch (_e) {
               // Non-critical
             }
-            setView('pending')
+            navigate('/pending')
           } else {
             showToast('No company access. Please contact admin.', 'error')
           }
@@ -389,7 +350,6 @@ export default function App() {
     }
   }
 
-  // Switch company
   const handleSwitchCompany = async (companyId) => {
     try {
       const { data: fullCompany } = await supabase
@@ -402,7 +362,7 @@ export default function App() {
         setCompany(fullCompany)
         localStorage.setItem('selectedCompanyId', companyId)
         setShowCompanySwitcher(false)
-        setActiveTab('dashboard') // Reset to dashboard when switching
+        navigate('/dashboard')
         showToast(`Switched to ${fullCompany.name}`, 'success')
       }
     } catch (err) {
@@ -417,9 +377,9 @@ export default function App() {
       setUser(null)
       setCompany(null)
       setUserCompanies([])
-      setView('entry')
-      setActiveTab('dashboard')
+      setAuthReady(false)
       localStorage.removeItem('selectedCompanyId')
+      navigate('/login')
     } catch (error) {
       console.error('Logout error:', error)
       showToast('Error signing out', 'error')
@@ -427,26 +387,17 @@ export default function App() {
   }
 
   const handleExitForeman = async () => {
-    // Clear the field session token
     await clearFieldSession()
     setForemanProject(null)
     setForemanName('')
-    setView('entry')
+    navigate('/login')
   }
-
-  const showToast = useCallback((message, type = '') => {
-    setToast({ message, type })
-  }, [])
 
   const handleProjectCreated = () => {
-    setActiveTab('dashboard')
-    // Reload projects for notifications
-    if (company?.id) {
-      loadProjects()
-    }
+    navigate('/dashboard')
+    if (company?.id) loadProjects()
   }
 
-  // Load projects for notification subscriptions
   const loadProjects = async () => {
     if (!company?.id) return
     try {
@@ -457,15 +408,13 @@ export default function App() {
     }
   }
 
-  // Load projects when company changes
   useEffect(() => {
-    if (company?.id && view === 'office') {
+    if (company?.id && authReady) {
       loadProjects()
       loadPendingRequestCount()
     }
-  }, [company?.id, view])
+  }, [company?.id, authReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load pending membership request count (for admin badge)
   const loadPendingRequestCount = async () => {
     if (!company?.id) return
     try {
@@ -477,10 +426,19 @@ export default function App() {
     }
   }
 
-  // Clear navigation after project is opened
   const handleProjectNavigated = useCallback(() => {
     setNavigateToProjectId(null)
   }, [])
+
+  // Check admin status
+  const currentMembership = userCompanies.find(uc => uc.id === company?.id)
+  const accessLevel = currentMembership?.access_level
+  const isAdmin = accessLevel === 'administrator' || company?.owner_user_id === user?.id
+
+  // Toast renderer (reused across routes)
+  const toastEl = toast && (
+    <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+  )
 
   // Loading screen
   if (loading) {
@@ -496,7 +454,7 @@ export default function App() {
     )
   }
 
-  // MFA Challenge screen (shown after login when MFA is enabled)
+  // MFA Challenge screen
   if (mfaPending) {
     return (
       <ThemeProvider>
@@ -506,7 +464,7 @@ export default function App() {
               factorId={mfaFactorId}
               onVerified={() => {
                 setMfaPending(false)
-                setView('office')
+                navigate('/dashboard')
               }}
               onCancel={async () => {
                 setMfaPending(false)
@@ -515,463 +473,239 @@ export default function App() {
                 setUser(null)
                 setCompany(null)
                 setUserCompanies([])
-                setView('entry')
+                setAuthReady(false)
+                navigate('/login')
               }}
             />
           </ErrorBoundary>
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToast(null)}
-            />
-          )}
+          {toastEl}
         </BrandingProvider>
       </ThemeProvider>
     )
   }
 
-  // Entry screen (Foreman / Office selection)
-  if (view === 'entry') {
-    return (
-      <ThemeProvider>
-        <BrandingProvider>
-        <ErrorBoundary>
-          <AppEntry
-            onForemanAccess={handleForemanAccess}
-            onOfficeLogin={handleOfficeLogin}
-            onShowToast={showToast}
-          />
-        </ErrorBoundary>
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-        </BrandingProvider>
-      </ThemeProvider>
-    )
+  // Auth guard for office routes
+  const requireAuth = (element) => {
+    if (!user || !company || !authReady) return <Navigate to="/login" replace />
+    return element
   }
 
-  // Public View (Share Link - No Authentication Required)
-  if (view === 'public' && shareToken) {
-    return (
-      <ThemeProvider>
-        <BrandingProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <PublicView shareToken={shareToken} />
-            </Suspense>
-          </ErrorBoundary>
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToast(null)}
-            />
-          )}
-        </BrandingProvider>
-      </ThemeProvider>
-    )
-  }
+  // Office layout: nav + content + offline indicator + toast
+  const officeLayout = (content) => (
+    <ToastProvider>
+    <div>
+      {!isSupabaseConfigured && (
+        <div className="demo-banner">Demo Mode - Data saved locally in your browser</div>
+      )}
 
-  // Signature View (Public Signing Page - No Authentication Required)
-  if (view === 'signature' && signatureToken) {
-    return (
-      <ThemeProvider>
-        <BrandingProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <SignaturePage signatureToken={signatureToken} />
-            </Suspense>
-          </ErrorBoundary>
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToast(null)}
-            />
-          )}
-        </BrandingProvider>
-      </ThemeProvider>
-    )
-  }
-
-  // Pending Approval View (User awaiting admin approval)
-  if (view === 'pending') {
-    return (
-      <ThemeProvider>
-        <BrandingProvider>
-          <ErrorBoundary>
-            <PendingApprovalScreen
-              pendingCompanyName={pendingCompanyName}
-              userName={user?.name}
-              onCheckStatus={checkAuth}
-              onLogout={handleLogout}
-            />
-          </ErrorBoundary>
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToast(null)}
-            />
-          )}
-        </BrandingProvider>
-      </ThemeProvider>
-    )
-  }
-
-  // Foreman View
-  if (view === 'foreman' && foremanProject) {
-    return (
-      <ThemeProvider>
-        <BrandingProvider companyId={foremanProject.company_id}>
-          <ErrorBoundary>
-            <ForemanView
-              project={foremanProject}
-              companyId={foremanProject.company_id}
-              foremanName={foremanName}
-              onShowToast={showToast}
-              onExit={handleExitForeman}
-            />
-          </ErrorBoundary>
-          <OfflineIndicator />
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => setToast(null)}
-            />
-          )}
-        </BrandingProvider>
-      </ThemeProvider>
-    )
-  }
-
-  // Check if user is administrator (for Team tab visibility)
-  // Get user's access level in the current company from userCompanies
-  const currentMembership = userCompanies.find(uc => uc.id === company?.id)
-  const accessLevel = currentMembership?.access_level
-  const isAdmin = accessLevel === 'administrator' || company?.owner_user_id === user?.id
-
-  // Office View (full dashboard)
-  return (
-    <ThemeProvider>
-      <BrandingProvider companyId={company?.id}>
-      <ToastProvider>
-      <div>
-        {/* Demo Banner */}
-        {!isSupabaseConfigured && (
-          <div className="demo-banner">
-            Demo Mode - Data saved locally in your browser
+      <nav className="nav">
+        <div className="nav-content">
+          <Logo />
+          <div className="nav-tabs nav-tabs-desktop">
+            <button className={`nav-tab ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => navigate('/dashboard')}>Dashboard</button>
+            <button className={`nav-tab ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => navigate('/projects/new')}>+ New Project</button>
+            <button className={`nav-tab ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => navigate('/pricing')}>Pricing</button>
+            {isAdmin && (
+              <button className={`nav-tab ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => navigate('/branding')}>Branding</button>
+            )}
+            {isAdmin && (
+              <button className={`nav-tab ${location.pathname === '/team' ? 'active' : ''}`} onClick={() => navigate('/team')}>
+                Team
+                {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Navigation */}
-        <nav className="nav">
-          <div className="nav-content">
-            <Logo />
-            <div className="nav-tabs nav-tabs-desktop">
-              <button
-                className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setActiveTab('dashboard')}
-              >
-                Dashboard
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'setup' ? 'active' : ''}`}
-                onClick={() => setActiveTab('setup')}
-              >
-                + New Project
-              </button>
-              <button
-                className={`nav-tab ${activeTab === 'pricing' ? 'active' : ''}`}
-                onClick={() => setActiveTab('pricing')}
-              >
-                Pricing
-              </button>
-              {isAdmin && (
-                <button
-                  className={`nav-tab ${activeTab === 'branding' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('branding')}
-                >
-                  Branding
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  className={`nav-tab ${activeTab === 'team' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('team')}
-                >
-                  Team
-                  {pendingRequestCount > 0 && (
-                    <span className="nav-tab-badge">{pendingRequestCount}</span>
-                  )}
-                </button>
-              )}
-            </div>
-            <div className="nav-user nav-user-desktop">
-              {/* Theme Toggle */}
-              <ThemeToggle compact />
-
-              {/* Mobile Menu */}
-              <div className="mobile-menu">
-                <button
-                  className="mobile-menu-btn"
-                  onClick={() => setShowMobileMenu(!showMobileMenu)}
-                  aria-label="User menu"
-                >
-                  ⋮
-                </button>
-                {showMobileMenu && (
-                  <div className="mobile-menu-dropdown">
-                    <div className="mobile-menu-info">
-                      <div className="mobile-menu-user">{user?.name || user?.email}</div>
-                      {company && <div className="mobile-menu-company">{company.name}</div>}
-                    </div>
-                    <button
-                      className="mobile-menu-logout"
-                      onClick={() => {
-                        setShowMobileMenu(false)
-                        handleLogout()
-                      }}
-                    >
-                      Sign Out
-                    </button>
+          <div className="nav-user nav-user-desktop">
+            <ThemeToggle compact />
+            <div className="mobile-menu">
+              <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(!showMobileMenu)} aria-label="User menu">⋮</button>
+              {showMobileMenu && (
+                <div className="mobile-menu-dropdown">
+                  <div className="mobile-menu-info">
+                    <div className="mobile-menu-user">{user?.name || user?.email}</div>
+                    {company && <div className="mobile-menu-company">{company.name}</div>}
                   </div>
-                )}
-              </div>
-
-              {/* Company Switcher */}
-              {userCompanies.length > 1 && (
-                <div className="company-switcher">
-                  <button
-                    className="company-switcher-btn"
-                    onClick={() => setShowCompanySwitcher(!showCompanySwitcher)}
-                  >
-                    {company?.name || 'Select Company'}
-                    <span className="switcher-arrow">▼</span>
-                  </button>
-                  {showCompanySwitcher && (
-                    <div className="company-dropdown">
-                      {userCompanies.map(c => (
-                        <button
-                          key={c.id}
-                          className={`company-option ${c.id === company?.id ? 'active' : ''}`}
-                          onClick={() => handleSwitchCompany(c.id)}
-                        >
-                          {c.name}
-                          {c.id === company?.id && <span className="check">✓</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <button className="mobile-menu-logout" onClick={() => { setShowMobileMenu(false); handleLogout() }}>Sign Out</button>
                 </div>
               )}
-              {userCompanies.length <= 1 && company && (
-                <span className="nav-company-name">{company.name}</span>
-              )}
-              <span className="nav-user-name">{user?.name || user?.email}</span>
-              <button className="nav-logout" onClick={handleLogout}>
-                Sign Out
-              </button>
             </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="mobile-menu-btn"
-              onClick={() => setShowMobileMenu(true)}
-              aria-label="Open menu"
-            >
-              <span className="hamburger-icon">
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-            </button>
-          </div>
-        </nav>
-
-        {/* Mobile Drawer */}
-        {showMobileMenu && (
-          <div className="mobile-drawer-overlay" onClick={() => setShowMobileMenu(false)}>
-            <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
-              <div className="mobile-drawer-header">
-                <Logo />
-                <button
-                  className="mobile-drawer-close"
-                  onClick={() => setShowMobileMenu(false)}
-                  aria-label="Close menu"
-                >
-                  ✕
+            {userCompanies.length > 1 && (
+              <div className="company-switcher">
+                <button className="company-switcher-btn" onClick={() => setShowCompanySwitcher(!showCompanySwitcher)}>
+                  {company?.name || 'Select Company'}
+                  <span className="switcher-arrow">▼</span>
                 </button>
-              </div>
-
-              {/* User Info */}
-              <div className="mobile-drawer-user">
-                <div className="mobile-user-avatar">
-                  {(user?.name || user?.email || 'U')[0].toUpperCase()}
-                </div>
-                <div className="mobile-user-info">
-                  <span className="mobile-user-name">{user?.name || user?.email}</span>
-                  <span className="mobile-user-company">{company?.name}</span>
-                </div>
-              </div>
-
-              {/* Company Switcher (if multiple companies) */}
-              {userCompanies.length > 1 && (
-                <div className="mobile-drawer-section">
-                  <div className="mobile-section-title">Switch Company</div>
-                  <div className="mobile-company-list">
+                {showCompanySwitcher && (
+                  <div className="company-dropdown">
                     {userCompanies.map(c => (
-                      <button
-                        key={c.id}
-                        className={`mobile-company-option ${c.id === company?.id ? 'active' : ''}`}
-                        onClick={() => {
-                          handleSwitchCompany(c.id)
-                          setShowMobileMenu(false)
-                        }}
-                      >
-                        <span className="mobile-company-name">{c.name}</span>
-                        {c.id === company?.id && <span className="mobile-company-check">✓</span>}
+                      <button key={c.id} className={`company-option ${c.id === company?.id ? 'active' : ''}`} onClick={() => handleSwitchCompany(c.id)}>
+                        {c.name}
+                        {c.id === company?.id && <span className="check">✓</span>}
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
+            {userCompanies.length <= 1 && company && (
+              <span className="nav-company-name">{company.name}</span>
+            )}
+            <span className="nav-user-name">{user?.name || user?.email}</span>
+            <button className="nav-logout" onClick={handleLogout}>Sign Out</button>
+          </div>
+          <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(true)} aria-label="Open menu">
+            <span className="hamburger-icon"><span></span><span></span><span></span></span>
+          </button>
+        </div>
+      </nav>
 
-              {/* Navigation Links */}
+      {showMobileMenu && (
+        <div className="mobile-drawer-overlay" onClick={() => setShowMobileMenu(false)}>
+          <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
+            <div className="mobile-drawer-header">
+              <Logo />
+              <button className="mobile-drawer-close" onClick={() => setShowMobileMenu(false)} aria-label="Close menu">✕</button>
+            </div>
+            <div className="mobile-drawer-user">
+              <div className="mobile-user-avatar">{(user?.name || user?.email || 'U')[0].toUpperCase()}</div>
+              <div className="mobile-user-info">
+                <span className="mobile-user-name">{user?.name || user?.email}</span>
+                <span className="mobile-user-company">{company?.name}</span>
+              </div>
+            </div>
+            {userCompanies.length > 1 && (
               <div className="mobile-drawer-section">
-                <div className="mobile-section-title">Navigation</div>
-                <div className="mobile-nav-list">
-                  <button
-                    className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                    onClick={() => { setActiveTab('dashboard'); setShowMobileMenu(false) }}
-                  >
-                    Dashboard
-                  </button>
-                  <button
-                    className={`mobile-nav-item ${activeTab === 'setup' ? 'active' : ''}`}
-                    onClick={() => { setActiveTab('setup'); setShowMobileMenu(false) }}
-                  >
-                    + New Project
-                  </button>
-                  <button
-                    className={`mobile-nav-item ${activeTab === 'pricing' ? 'active' : ''}`}
-                    onClick={() => { setActiveTab('pricing'); setShowMobileMenu(false) }}
-                  >
-                    Pricing
-                  </button>
-                  {isAdmin && (
-                    <button
-                      className={`mobile-nav-item ${activeTab === 'branding' ? 'active' : ''}`}
-                      onClick={() => { setActiveTab('branding'); setShowMobileMenu(false) }}
-                    >
-                      Branding
+                <div className="mobile-section-title">Switch Company</div>
+                <div className="mobile-company-list">
+                  {userCompanies.map(c => (
+                    <button key={c.id} className={`mobile-company-option ${c.id === company?.id ? 'active' : ''}`} onClick={() => { handleSwitchCompany(c.id); setShowMobileMenu(false) }}>
+                      <span className="mobile-company-name">{c.name}</span>
+                      {c.id === company?.id && <span className="mobile-company-check">✓</span>}
                     </button>
-                  )}
-                  {isAdmin && (
-                    <button
-                      className={`mobile-nav-item ${activeTab === 'team' ? 'active' : ''}`}
-                      onClick={() => { setActiveTab('team'); setShowMobileMenu(false) }}
-                    >
-                      Team
-                      {pendingRequestCount > 0 && (
-                        <span className="mobile-nav-badge">{pendingRequestCount}</span>
-                      )}
-                    </button>
-                  )}
+                  ))}
                 </div>
               </div>
-
-              {/* Theme Toggle */}
-              <div className="mobile-drawer-section">
-                <div className="mobile-section-title">Appearance</div>
-                <div className="mobile-theme-toggle">
-                  <ThemeToggle />
-                </div>
+            )}
+            <div className="mobile-drawer-section">
+              <div className="mobile-section-title">Navigation</div>
+              <div className="mobile-nav-list">
+                <button className={`mobile-nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => { navigate('/dashboard'); setShowMobileMenu(false) }}>Dashboard</button>
+                <button className={`mobile-nav-item ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => { navigate('/projects/new'); setShowMobileMenu(false) }}>+ New Project</button>
+                <button className={`mobile-nav-item ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => { navigate('/pricing'); setShowMobileMenu(false) }}>Pricing</button>
+                {isAdmin && (
+                  <button className={`mobile-nav-item ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => { navigate('/branding'); setShowMobileMenu(false) }}>Branding</button>
+                )}
+                {isAdmin && (
+                  <button className={`mobile-nav-item ${location.pathname === '/team' ? 'active' : ''}`} onClick={() => { navigate('/team'); setShowMobileMenu(false) }}>
+                    Team
+                    {pendingRequestCount > 0 && <span className="mobile-nav-badge">{pendingRequestCount}</span>}
+                  </button>
+                )}
               </div>
-
-              {/* Sign Out */}
-              <div className="mobile-drawer-footer">
-                <button
-                  className="mobile-logout-btn"
-                  onClick={() => {
-                    handleLogout()
-                    setShowMobileMenu(false)
-                  }}
-                >
-                  Sign Out
-                </button>
-              </div>
+            </div>
+            <div className="mobile-drawer-section">
+              <div className="mobile-section-title">Appearance</div>
+              <div className="mobile-theme-toggle"><ThemeToggle /></div>
+            </div>
+            <div className="mobile-drawer-footer">
+              <button className="mobile-logout-btn" onClick={() => { handleLogout(); setShowMobileMenu(false) }}>Sign Out</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Main Content */}
-        <ErrorBoundary>
-          <Suspense fallback={<PageLoader />}>
-            <div className="container" key={company?.id}>
-              {activeTab === 'dashboard' && (
-                <Dashboard
-                  company={company}
-                  user={user}
-                  isAdmin={isAdmin}
-                  onShowToast={showToast}
-                  navigateToProjectId={navigateToProjectId}
-                  onProjectNavigated={handleProjectNavigated}
-                />
-              )}
-              {activeTab === 'setup' && (
-                <Setup
-                  company={company}
-                  user={user}
-                  onProjectCreated={handleProjectCreated}
-                  onShowToast={showToast}
-                />
-              )}
-              {activeTab === 'pricing' && (
-                <PricingManager
-                  company={company}
-                  onShowToast={showToast}
-                />
-              )}
-              {activeTab === 'branding' && (
-                <BrandingSettings
-                  company={company}
-                  onShowToast={showToast}
-                />
-              )}
-              {activeTab === 'team' && isAdmin && (
-                <MembershipManager
-                  company={company}
-                  user={user}
-                  onShowToast={showToast}
-                />
-              )}
-            </div>
-          </Suspense>
-        </ErrorBoundary>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <div className="container" key={company?.id}>
+            {content}
+          </div>
+        </Suspense>
+      </ErrorBoundary>
 
-        {/* Offline Indicator */}
-        <OfflineIndicator />
+      <OfflineIndicator />
+      {toastEl}
+      <InstallPrompt />
+    </div>
+    </ToastProvider>
+  )
 
-        {/* Toast Notifications */}
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-        <InstallPrompt />
-      </div>
-      </ToastProvider>
+  return (
+    <ThemeProvider>
+      <BrandingProvider companyId={company?.id}>
+        <Routes>
+          {/* Public routes - no auth required */}
+          <Route path="/view/:token" element={
+            <ErrorBoundary><PublicViewRoute />{toastEl}</ErrorBoundary>
+          } />
+          <Route path="/sign/:token" element={
+            <ErrorBoundary><SignatureRoute />{toastEl}</ErrorBoundary>
+          } />
+
+          {/* Login / Entry */}
+          <Route path="/login" element={
+            user && company && authReady ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <ErrorBoundary>
+                <AppEntry onForemanAccess={handleForemanAccess} onOfficeLogin={handleOfficeLogin} onShowToast={showToast} />
+                {toastEl}
+              </ErrorBoundary>
+            )
+          } />
+
+          {/* Pending approval */}
+          <Route path="/pending" element={
+            <ErrorBoundary>
+              <PendingApprovalScreen pendingCompanyName={pendingCompanyName} userName={user?.name} onCheckStatus={checkAuth} onLogout={handleLogout} />
+              {toastEl}
+            </ErrorBoundary>
+          } />
+
+          {/* Foreman / Field view */}
+          <Route path="/field" element={
+            foremanProject ? (
+              <BrandingProvider companyId={foremanProject.company_id}>
+                <ErrorBoundary>
+                  <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onShowToast={showToast} onExit={handleExitForeman} />
+                </ErrorBoundary>
+                <OfflineIndicator />
+                {toastEl}
+              </BrandingProvider>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+
+          {/* Office routes - require auth */}
+          <Route path="/dashboard" element={requireAuth(officeLayout(
+            <Dashboard company={company} user={user} isAdmin={isAdmin} onShowToast={showToast} navigateToProjectId={navigateToProjectId} onProjectNavigated={handleProjectNavigated} />
+          ))} />
+          <Route path="/projects/new" element={requireAuth(officeLayout(
+            <Setup company={company} user={user} onProjectCreated={handleProjectCreated} onShowToast={showToast} />
+          ))} />
+          <Route path="/pricing" element={requireAuth(officeLayout(
+            <PricingManager company={company} onShowToast={showToast} />
+          ))} />
+          <Route path="/branding" element={requireAuth(officeLayout(
+            <BrandingSettings company={company} onShowToast={showToast} />
+          ))} />
+          <Route path="/team" element={requireAuth(
+            isAdmin
+              ? officeLayout(<MembershipManager company={company} user={user} onShowToast={showToast} />)
+              : <Navigate to="/dashboard" replace />
+          )} />
+
+          {/* Root redirect */}
+          <Route path="/" element={
+            user && company && authReady
+              ? <Navigate to="/dashboard" replace />
+              : <Navigate to="/login" replace />
+          } />
+
+          {/* 404 catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </BrandingProvider>
     </ThemeProvider>
   )
 }
-
