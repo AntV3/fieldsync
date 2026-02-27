@@ -81,6 +81,18 @@ export const getFieldClient = () => {
         headers: {
           'x-field-session': session.token
         }
+      },
+      auth: {
+        // Prevent this client from reading or inheriting any existing Supabase
+        // Auth JWT stored in localStorage (e.g. from an office user session on
+        // the same device).  Field workers authenticate exclusively via the
+        // x-field-session header validated by validate_field_session() in the
+        // database.  If the office JWT were forwarded, auth.uid() would be
+        // non-null and can_access_project() would check user_companies instead
+        // of the field session, causing 401 RLS violations for field writes.
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
       }
     })
     fieldClient._sessionToken = session.token
