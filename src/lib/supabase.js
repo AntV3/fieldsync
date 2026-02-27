@@ -1023,6 +1023,49 @@ export const db = {
   // Delete project - requires companyId for cross-tenant security
   async deleteProject(id, companyId = null) {
     if (isSupabaseConfigured) {
+      // Explicitly delete child records that may not have CASCADE DELETE set up
+      // in the database yet. This ensures a clean delete even on older schemas.
+
+      // 1. Collect photo storage paths from tickets before deleting them
+      let photoPathsToDelete = []
+      try {
+        const { data: tickets } = await supabase
+          .from('t_and_m_tickets')
+          .select('photos')
+          .eq('project_id', id)
+        tickets?.forEach(ticket => {
+          if (Array.isArray(ticket.photos)) {
+            ticket.photos.forEach(urlOrPath => {
+              if (!urlOrPath) return
+              if (urlOrPath.startsWith('http')) {
+                try {
+                  const match = new URL(urlOrPath).pathname.match(/\/(?:public\/)?tm-photos\/(.+)$/)
+                  if (match) photoPathsToDelete.push(decodeURIComponent(match[1]))
+                } catch { /* skip malformed URL */ }
+              } else {
+                photoPathsToDelete.push(urlOrPath)
+              }
+            })
+          }
+        })
+      } catch { /* non-fatal — proceed with deletion */ }
+
+      // 2. Delete storage files in batches
+      if (photoPathsToDelete.length > 0) {
+        try {
+          for (let i = 0; i < photoPathsToDelete.length; i += 100) {
+            await supabase.storage.from('tm-photos').remove(photoPathsToDelete.slice(i, i + 100))
+          }
+        } catch { /* non-fatal — DB rows still get deleted */ }
+      }
+
+      // 3. Delete T&M tickets (and their workers/items via DB cascade)
+      await supabase.from('t_and_m_tickets').delete().eq('project_id', id)
+
+      // 4. Delete daily reports
+      await supabase.from('daily_reports').delete().eq('project_id', id)
+
+      // 5. Delete the project row itself
       let query = supabase
         .from('projects')
         .delete()
