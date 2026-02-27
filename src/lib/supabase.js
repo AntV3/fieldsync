@@ -1068,7 +1068,7 @@ export const db = {
       // 5. Delete the project row itself
       let query = supabase
         .from('projects')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', id)
 
       // Add company_id check if provided (prevents cross-tenant access)
@@ -1076,8 +1076,9 @@ export const db = {
         query = query.eq('company_id', companyId)
       }
 
-      const { error } = await query
+      const { error, count } = await query
       if (error) throw error
+      if (count === 0) throw new Error('Project could not be deleted. You may not have permission (admin or owner role required).')
     } else {
       const localData = getLocalData()
       localData.projects = localData.projects.filter(p => p.id !== id)

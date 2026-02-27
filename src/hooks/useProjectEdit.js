@@ -176,7 +176,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
       if (typeof loadProjects === 'function') loadProjects()
     } catch (error) {
       console.error('Error deleting project:', error)
-      onShowToast('Error deleting project', 'error')
+      onShowToast(error?.message || 'Error deleting project', 'error')
     }
   }
 

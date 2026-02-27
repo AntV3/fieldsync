@@ -23,15 +23,16 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
 
     try {
       // Get photos from T&M tickets and daily reports
+      // t_and_m_tickets.notes is the description field; daily_reports.photos requires migration 20260227
       const [tmResult, reportResult] = await Promise.all([
         supabase
           .from('t_and_m_tickets')
-          .select('id, work_date, description, photos')
+          .select('id, work_date, notes, photos, area_id')
           .eq('project_id', projectId)
           .order('work_date', { ascending: false }),
         supabase
           .from('daily_reports')
-          .select('id, report_date, notes, photos')
+          .select('id, report_date, field_notes, photos')
           .eq('project_id', projectId)
           .order('report_date', { ascending: false })
       ])
@@ -49,7 +50,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
                 url,
                 date: ticket.work_date,
                 source: 'T&M Ticket',
-                description: ticket.description,
+                description: ticket.notes,
                 areaId: ticket.area_id
               })
             }
@@ -57,7 +58,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
         }
       }
 
-      // Process daily report photos
+      // Process daily report photos (requires migration 20260227_daily_reports_photos.sql)
       if (reportResult.data) {
         for (const report of reportResult.data) {
           const photoUrls = Array.isArray(report.photos) ? report.photos : []
@@ -68,7 +69,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
                 url,
                 date: report.report_date,
                 source: 'Daily Report',
-                description: report.notes,
+                description: report.field_notes,
                 areaId: null
               })
             }
