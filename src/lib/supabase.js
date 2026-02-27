@@ -2542,7 +2542,7 @@ export const db = {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
-        .eq('code', code)
+        .ilike('code', code.trim())
         .single()
       if (error) return null
       return data
@@ -3893,14 +3893,17 @@ export const db = {
   // Get crew check-ins for a project (for office view)
   async getCrewCheckinHistory(projectId, limit = 30) {
     if (!isSupabaseConfigured) return []
-    
-    const { data, error } = await supabase
+
+    const client = getClient()
+    if (!client) return []
+
+    const { data, error } = await client
       .from('crew_checkins')
       .select('*')
       .eq('project_id', projectId)
       .order('check_in_date', { ascending: false })
       .limit(limit)
-    
+
     if (error) {
       console.error('Error fetching crew history:', error)
       return []
@@ -4228,14 +4231,17 @@ export const db = {
   // Get daily reports for office view
   async getDailyReports(projectId, limit = 30) {
     if (!isSupabaseConfigured) return []
-    
-    const { data, error } = await supabase
+
+    const client = getClient()
+    if (!client) return []
+
+    const { data, error } = await client
       .from('daily_reports')
       .select('*')
       .eq('project_id', projectId)
       .order('report_date', { ascending: false })
       .limit(limit)
-    
+
     if (error) {
       console.error('Error fetching daily reports:', error)
       return []
