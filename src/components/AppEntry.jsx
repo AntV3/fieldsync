@@ -181,7 +181,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     }
   }
 
-  // Submit PIN - uses secure session-based validation with fallback
+  // Submit PIN - uses secure session-based validation
   const submitPin = async (pinToSubmit) => {
     if (pinToSubmit.length !== 4) return
 
@@ -189,7 +189,6 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     setPinState('')
 
     try {
-      // Try secure PIN validation first (creates a session token)
       const result = await db.getProjectByPinSecure(pinToSubmit, company.code)
 
       if (result.rateLimited) {
@@ -208,36 +207,20 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         return
       }
 
-      // If secure method failed but no rate limit, try fallback lookup
-      // This handles cases where the RPC function isn't deployed yet
+      // RPC server error — do NOT proceed without a valid session.
+      // Without a session token the x-field-session header won't be
+      // sent, causing every write (add load, submit report, etc.) to
+      // fail silently due to RLS. Show a clear error instead.
       if (result.error) {
-        const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
-        if (fallbackProject) {
-          // Clear any accumulated rate-limit counts since the PIN was correct
-          localStorage.removeItem(`pin_attempts_${company.code}`)
-          localStorage.removeItem(`pin_lockout_${company.code}`)
-          setFoundProject(fallbackProject)
-          return
-        }
+        onShowToast('Authentication error. Please try again or contact your administrator.', 'error')
+        setPin('')
+        return
       }
 
       onShowToast('Invalid PIN', 'error')
       setPin('')
     } catch (err) {
-      // Try fallback on exception
-      try {
-        const fallbackProject = await db.getProjectByPinAndCompany(pinToSubmit, company.id)
-        if (fallbackProject) {
-          // Clear any accumulated rate-limit counts since the PIN was correct
-          localStorage.removeItem(`pin_attempts_${company.code}`)
-          localStorage.removeItem(`pin_lockout_${company.code}`)
-          setFoundProject(fallbackProject)
-          return
-        }
-      } catch (fallbackErr) {
-        // Fallback also failed, silent failure
-      }
-      onShowToast('Error checking PIN', 'error')
+      onShowToast('Error checking PIN. Please check your connection.', 'error')
       setPin('')
     } finally {
       setLoading(false)
