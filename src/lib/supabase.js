@@ -3187,6 +3187,39 @@ export const db = {
     return filePath
   },
 
+  // Upload a photo for a daily report.
+  // Stores it in the tm-photos bucket under:
+  //   {companyId}/{projectId}/daily-report-{date}/{fileName}
+  // Returns the storage path (resolve with resolvePhotoUrl before displaying).
+  async uploadDailyReportPhoto(companyId, projectId, date, file) {
+    if (!isSupabaseConfigured) return null
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const timestamp = Date.now()
+    const array = new Uint8Array(6)
+    crypto.getRandomValues(array)
+    const randomId = Array.from(array, b => b.toString(36)).join('')
+    const extension = file.name?.split('.').pop() || 'jpg'
+    const fileName = `${timestamp}-${randomId}.${extension}`
+
+    // Path: company/project/daily-report-{date}/filename
+    const filePath = `${companyId}/${projectId}/daily-report-${date}/${fileName}`
+
+    const { error } = await client.storage
+      .from('tm-photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) throw error
+    return filePath
+  },
+
   // Convert a stored photo URL or storage path to a signed URL (1-hour expiry).
   // Handles both old public URLs ("https://…/public/tm-photos/…") and
   // new storage paths ("companyId/projectId/ticketId/file.jpg") transparently.

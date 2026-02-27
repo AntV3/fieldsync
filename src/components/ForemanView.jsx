@@ -251,6 +251,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return (
       <DailyReport
         project={project}
+        companyId={companyId}
         onShowToast={onShowToast}
         onClose={() => setActiveView('home')}
       />

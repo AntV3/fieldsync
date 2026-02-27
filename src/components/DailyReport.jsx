@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react'
-import { HardHat, FileText, AlertTriangle, CheckCircle, Upload } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, Image } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 
-export default function DailyReport({ project, onShowToast, onClose }) {
+export default function DailyReport({ project, companyId, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [report, setReport] = useState(null)
   const [fieldNotes, setFieldNotes] = useState('')
   const [issues, setIssues] = useState('')
+
+  // Photo state
+  const [photos, setPhotos] = useState([]) // Array of { path, previewUrl }
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (project?.id) {
@@ -19,11 +24,21 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     try {
       // Check for existing report
       const existing = await db.getDailyReport(project.id)
-      
+
       if (existing) {
         setReport(existing)
         setFieldNotes(existing.field_notes || '')
         setIssues(existing.issues || '')
+        // Load existing photos (resolve to signed URLs for display)
+        if (existing.photos?.length) {
+          const resolved = await Promise.all(
+            existing.photos.map(async (path) => ({
+              path,
+              previewUrl: await db.resolvePhotoUrl(path)
+            }))
+          )
+          setPhotos(resolved.filter(p => p.previewUrl))
+        }
       } else {
         // Compile fresh data
         const compiled = await db.compileDailyReport(project.id)
@@ -40,6 +55,45 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     }
   }
 
+  const handlePhotoSelect = async (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+
+    if (!companyId) {
+      onShowToast('Cannot upload photos — company info missing', 'error')
+      return
+    }
+
+    setUploadingPhoto(true)
+    const date = new Date().toISOString().split('T')[0]
+    const newPhotos = []
+
+    for (const file of files) {
+      try {
+        const path = await db.uploadDailyReportPhoto(companyId, project.id, date, file)
+        if (path) {
+          const previewUrl = URL.createObjectURL(file)
+          newPhotos.push({ path, previewUrl })
+        }
+      } catch (err) {
+        console.error('Error uploading photo:', err)
+        onShowToast('Error uploading photo', 'error')
+      }
+    }
+
+    if (newPhotos.length) {
+      setPhotos(prev => [...prev, ...newPhotos])
+      onShowToast(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} added`, 'success')
+    }
+    setUploadingPhoto(false)
+    // Reset input so same file can be re-selected if needed
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleRemovePhoto = (index) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async () => {
     // Demo mode warning
     if (!isSupabaseConfigured) {
@@ -50,10 +104,11 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
     setSubmitting(true)
     try {
-      // Save notes first
+      // Save notes and photos first
       await db.saveDailyReport(project.id, {
         field_notes: fieldNotes,
-        issues: issues
+        issues: issues,
+        photos: photos.map(p => p.path)
       })
 
       // Then submit
@@ -73,9 +128,9 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     }
   }
 
-  const today = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'long', 
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
     day: 'numeric',
     year: 'numeric'
   })
@@ -142,7 +197,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
             <div className="daily-report-card-label">T&M Tickets</div>
           </div>
           <div className="daily-report-card">
-            <div className="daily-report-card-value">{report.photos_count || 0}</div>
+            <div className="daily-report-card-value">{photos.length || report.photos_count || 0}</div>
             <div className="daily-report-card-label">Photos</div>
           </div>
         </div>
@@ -200,15 +255,66 @@ export default function DailyReport({ project, onShowToast, onClose }) {
             disabled={isSubmitted}
           />
         </div>
+
+        {/* Photos */}
+        <div className="daily-report-section">
+          <h3><Camera size={18} className="inline-icon" /> Photos</h3>
+
+          {/* Photo Grid */}
+          {photos.length > 0 && (
+            <div className="daily-report-photos">
+              {photos.map((photo, i) => (
+                <div key={i} className="daily-report-photo-item">
+                  <img src={photo.previewUrl} alt={`Site photo ${i + 1}`} />
+                  {!isSubmitted && (
+                    <button
+                      className="daily-report-photo-remove"
+                      onClick={() => handleRemovePhoto(i)}
+                      aria-label="Remove photo"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Upload Button */}
+          {!isSubmitted && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                capture="environment"
+                onChange={handlePhotoSelect}
+                style={{ display: 'none' }}
+              />
+              <button
+                className="daily-report-add-photo"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+              >
+                {uploadingPhoto ? (
+                  <><Image size={16} className="inline-icon" /> Uploading...</>
+                ) : (
+                  <><Camera size={16} className="inline-icon" /> Add Photos</>
+                )}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Submit Button */}
       {!isSubmitted && (
         <div className="daily-report-footer">
-          <button 
+          <button
             className="btn btn-primary daily-report-submit"
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || uploadingPhoto}
           >
             {submitting ? 'Submitting...' : <><Upload size={16} className="inline-icon" /> Submit Report</>}
           </button>
