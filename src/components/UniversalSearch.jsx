@@ -253,8 +253,8 @@ export default function UniversalSearch({
                         <FileText size={18} />
                         <div className="universal-search-item-content">
                           <span className="universal-search-item-title">
-                            {ticket.description?.substring(0, 50) || 'T&M Ticket'}
-                            {ticket.description?.length > 50 && '...'}
+                            {ticket.notes?.substring(0, 50) || 'T&M Ticket'}
+                            {ticket.notes?.length > 50 && '...'}
                           </span>
                           <span className="universal-search-item-meta">
                             {ticket.projectName} • {ticket.work_date}

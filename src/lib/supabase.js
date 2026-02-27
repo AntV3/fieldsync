@@ -517,11 +517,11 @@ export const db = {
       const { data: tickets } = await supabase
         .from('t_and_m_tickets')
         .select(`
-          id, description, work_date, status, project_id,
+          id, notes, work_date, status, project_id,
           projects!inner(id, name, company_id)
         `)
         .eq('projects.company_id', companyId)
-        .ilike('description', `%${searchQuery}%`)
+        .ilike('notes', `%${searchQuery}%`)
         .order('work_date', { ascending: false })
         .limit(limit)
 
