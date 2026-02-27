@@ -28,13 +28,11 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
           .from('t_and_m_tickets')
           .select('id, work_date, description, photos')
           .eq('project_id', projectId)
-          .not('photos', 'is', null)
           .order('work_date', { ascending: false }),
         supabase
           .from('daily_reports')
           .select('id, report_date, notes, photos')
           .eq('project_id', projectId)
-          .not('photos', 'is', null)
           .order('report_date', { ascending: false })
       ])
 

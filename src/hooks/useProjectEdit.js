@@ -170,7 +170,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
     }
 
     try {
-      await db.deleteProject(selectedProject.id)
+      await db.deleteProject(selectedProject.id, company?.id)
       setSelectedProject(null)
       onShowToast('Project deleted', 'success')
       if (typeof loadProjects === 'function') loadProjects()
