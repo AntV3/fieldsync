@@ -4019,7 +4019,8 @@ export const db = {
       a.completed_at?.startsWith(reportDate)
     )
 
-    const photosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+    const photoUrls = tickets.flatMap(t => t.photos || [])
+    const photosCount = photoUrls.length
 
     return {
       crew_count: crew?.workers?.length || 0,
@@ -4028,7 +4029,8 @@ export const db = {
       tasks_total: areas.length,
       completed_tasks: completedToday.map(a => ({ name: a.name, group: a.group_name })),
       tm_tickets_count: tickets.length,
-      photos_count: photosCount
+      photos_count: photosCount,
+      photos: photoUrls
     }
   },
 
