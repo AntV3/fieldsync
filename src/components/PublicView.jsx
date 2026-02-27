@@ -219,8 +219,8 @@ export default function PublicView({ shareToken }) {
                         {ticket.status}
                       </span>
                     </div>
-                    {ticket.description && (
-                      <div className="tm-description">{ticket.description}</div>
+                    {ticket.notes && (
+                      <div className="tm-description">{ticket.notes}</div>
                     )}
                     {ticket.total_amount && (
                       <div className="tm-amount">
