@@ -1392,6 +1392,12 @@ export const db = {
         { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
         (payload) => callbacks.onProjectChange?.(payload)
       )
+
+      // Punch list items (field creates/resolves items)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onPunchListChange?.(payload)
+      )
     })
 
     // Subscribe to injury reports company-wide (INSERT, UPDATE, and DELETE)

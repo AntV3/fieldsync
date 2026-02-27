@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, supabase, isSupabaseConfigured } from '../lib/supabase'
+import { db, supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
   Info, CheckSquare,
@@ -93,7 +93,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const loadPunchListCount = async () => {
     if (!project?.id || !isSupabaseConfigured) return
     try {
-      const { count } = await supabase
+      const { count } = await getSupabaseClient()
         .from('punch_list_items')
         .select('*', { count: 'exact', head: true })
         .eq('project_id', project.id)
@@ -145,6 +145,13 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     // Project-level changes from office (name, dates, budget)
     const projectSub = db.subscribeToProject?.(project.id, debouncedRefresh)
     if (projectSub) subs.push(projectSub)
+
+    // Punch list changes (office resolves items, or field teammate creates items)
+    const punchSub = db.subscribeToPunchList?.(project.id, () => {
+      loadPunchListCount()
+      debouncedRefresh()
+    })
+    if (punchSub) subs.push(punchSub)
 
     // Materials/equipment pricing changes from office
     if (companyId) {
