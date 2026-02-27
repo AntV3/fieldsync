@@ -2433,15 +2433,19 @@ export const db = {
     return approverRoles.includes(role)
   },
 
-  async updateTMTicketPhotos(ticketId, photos) {
+  async updateTMTicketPhotos(ticketId, photos, photoLocations = null) {
     if (isSupabaseConfigured) {
       const client = getClient()
       if (!client) {
         throw new Error('Database client not available')
       }
+      const updateData = { photos }
+      if (photoLocations) {
+        updateData.photo_locations = photoLocations
+      }
       const { data, error } = await client
         .from('t_and_m_tickets')
-        .update({ photos })
+        .update(updateData)
         .eq('id', ticketId)
         .select()
         .single()

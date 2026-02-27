@@ -112,7 +112,65 @@ export const TRANSLATIONS = {
     appliedHours: 'Applied hours to {count} worker(s)',
 
     // COR
-    assignedToCOR: 'Assigned to COR'
+    assignedToCOR: 'Assigned to COR',
+
+    // Evidence step
+    photoEvidence: 'Photo Evidence',
+    photosAdded: 'photo(s) added',
+    recommendedForBilling: 'Recommended for billing',
+    addMorePhotos: 'Add More Photos',
+    linkToChangeOrder: 'Link to Change Order',
+    linkedTo: 'Linked to',
+    optionalLinkCOR: 'Optional - Link this T&M to a COR',
+    selectCOROptional: '-- Select a COR (optional) --',
+    noActiveCORs: 'No active CORs available for this project',
+
+    // TMForm inline strings
+    addWorkersFirst: 'Add workers first',
+    errorLoadingCrew: 'Error loading previous crew',
+    descriptionRecommended: 'Description recommended',
+    workersNoHours: 'worker(s) have no hours entered',
+    nameRequired: 'Name required to submit',
+    submitted: 'Submitted',
+    switchToSpanish: 'Cambiar a Espanol',
+    switchToEnglish: 'Switch to English',
+    reviewAndSubmit: 'Review & Submit',
+    enterNameToSubmit: 'Enter name to submit',
+    done: 'Done',
+    skipSignature: 'Skip signature for now',
+
+    // CrewHoursStep inline strings
+    total: 'total',
+    needHours: 'need hours',
+    customHours: 'Custom hours',
+    selectTMWorkers: 'Select T&M Workers',
+    tapToAdd: 'Tap to add',
+    removeClass: 'Remove this labor class',
+    add: 'Add',
+    addLaborClass: 'Add Labor Class...',
+    other: 'Other',
+    noCustomClasses: 'No custom labor classes set up for this company. Using default categories.',
+    loadingLaborClasses: 'Loading labor classes...',
+    noLaborClassesYet: 'No labor classes added yet. Select from crew check-in above or add manually:',
+
+    // ReviewStep inline strings
+    tmSubmitted: 'T&M Ticket Submitted!',
+    ticketSavedReady: 'Your ticket has been saved and is ready for client signature.',
+    workersLabel: 'Workers',
+    retry: 'Retry',
+    retryAllPhotos: 'Retry All Failed Photos',
+    getClientSignature: 'Get Client Signature',
+    signatureDescription: 'Have the client sign this T&M ticket to verify the work performed.',
+    clientSignatureCollected: 'Client signature collected!',
+    signNowOnSite: 'Sign Now (On-Site)',
+    clientSignsDevice: 'Client signs on this device',
+    sendSignatureLink: 'Send Signature Link',
+    clientSignsLater: 'Client signs later via link',
+    ticketSummary: 'Ticket Summary',
+    edit: 'Edit',
+    submittedBy: 'Submitted By',
+    enterYourName: 'Enter your name',
+    certifyAccurate: 'By submitting, you certify this T&M is accurate.'
   },
   es: {
     // Steps
@@ -225,7 +283,65 @@ export const TRANSLATIONS = {
     appliedHours: 'Horas aplicadas a {count} trabajador(es)',
 
     // COR
-    assignedToCOR: 'Asignado a COR'
+    assignedToCOR: 'Asignado a COR',
+
+    // Evidence step
+    photoEvidence: 'Evidencia Fotogr\u00e1fica',
+    photosAdded: 'foto(s) agregada(s)',
+    recommendedForBilling: 'Recomendado para facturaci\u00f3n',
+    addMorePhotos: 'Agregar M\u00e1s Fotos',
+    linkToChangeOrder: 'Vincular a Orden de Cambio',
+    linkedTo: 'Vinculado a',
+    optionalLinkCOR: 'Opcional - Vincular este T&M a un COR',
+    selectCOROptional: '-- Seleccionar COR (opcional) --',
+    noActiveCORs: 'No hay CORs activos para este proyecto',
+
+    // TMForm inline strings
+    addWorkersFirst: 'Agregue trabajadores primero',
+    errorLoadingCrew: 'Error cargando equipo anterior',
+    descriptionRecommended: 'Descripcion recomendada',
+    workersNoHours: 'trabajador(es) sin horas',
+    nameRequired: 'Nombre requerido',
+    submitted: 'Enviado',
+    switchToSpanish: 'Cambiar a Espanol',
+    switchToEnglish: 'Switch to English',
+    reviewAndSubmit: 'Revisar y Enviar',
+    enterNameToSubmit: 'Ingrese nombre',
+    done: 'Listo',
+    skipSignature: 'Saltar firma por ahora',
+
+    // CrewHoursStep inline strings
+    total: 'total',
+    needHours: 'sin horas',
+    customHours: 'Horas personalizadas',
+    selectTMWorkers: 'Seleccionar Trabajadores T&M',
+    tapToAdd: 'Toca para agregar',
+    removeClass: 'Eliminar esta clase',
+    add: 'Agregar',
+    addLaborClass: 'Agregar Clase de Trabajo...',
+    other: 'Otros',
+    noCustomClasses: 'No hay clases de trabajo personalizadas. Usando categorias predeterminadas.',
+    loadingLaborClasses: 'Cargando clases de trabajo...',
+    noLaborClassesYet: 'No hay clases de trabajo agregadas. Seleccione del check-in o agregue manualmente:',
+
+    // ReviewStep inline strings
+    tmSubmitted: '\u00a1Ticket T&M Enviado!',
+    ticketSavedReady: 'Su ticket ha sido guardado y est\u00e1 listo para la firma del cliente.',
+    workersLabel: 'Trabajadores',
+    retry: 'Reintentar',
+    retryAllPhotos: 'Reintentar Todas las Fotos',
+    getClientSignature: 'Obtener Firma del Cliente',
+    signatureDescription: 'Haga que el cliente firme este ticket T&M para verificar el trabajo realizado.',
+    clientSignatureCollected: '\u00a1Firma del cliente recopilada!',
+    signNowOnSite: 'Firmar Ahora',
+    clientSignsDevice: 'Cliente firma en este dispositivo',
+    sendSignatureLink: 'Enviar Enlace',
+    clientSignsLater: 'Cliente firma despu\u00e9s v\u00eda enlace',
+    ticketSummary: 'Resumen del Ticket',
+    edit: 'Editar',
+    submittedBy: 'Enviado Por',
+    enterYourName: 'Ingrese su nombre',
+    certifyAccurate: 'Al enviar, certifica que este T&M es preciso.'
   }
 }
 

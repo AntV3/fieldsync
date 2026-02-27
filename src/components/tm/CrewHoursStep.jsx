@@ -50,8 +50,8 @@ export default function CrewHoursStep({
   addLaborer, updateLaborer, removeLaborer,
   addDynamicWorker, updateDynamicWorker, removeDynamicWorker,
   getInactiveLaborClasses,
-  t, lang,
-  onShowToast
+  t, lang: _lang,
+  onShowToast: _onShowToast
 }) {
   const namedWorkerCount = namedWorkers.length
 
@@ -65,12 +65,12 @@ export default function CrewHoursStep({
         </div>
         <div className="tm-summary-middle">
           <span className="tm-summary-hours">{totalRegHours + totalOTHours}h</span>
-          <span className="tm-summary-label">{lang === 'en' ? 'total' : 'total'}</span>
+          <span className="tm-summary-label">{t('total')}</span>
         </div>
         {workersNeedingHours > 0 && (
           <div className="tm-summary-warning">
             <AlertCircle size={14} />
-            <span>{workersNeedingHours} {lang === 'en' ? 'need hours' : 'sin horas'}</span>
+            <span>{workersNeedingHours} {t('needHours')}</span>
           </div>
         )}
       </div>
@@ -83,14 +83,14 @@ export default function CrewHoursStep({
           disabled={loadingPreviousCrew}
         >
           <Copy size={16} />
-          <span>{loadingPreviousCrew ? (lang === 'en' ? 'Loading...' : 'Cargando...') : t('sameAsYesterday')}</span>
+          <span>{loadingPreviousCrew ? t('loading') : t('sameAsYesterday')}</span>
         </button>
         {namedWorkers.length > 0 && (
           <div className="tm-time-presets-inline">
             <button className="tm-preset-chip" onClick={() => onApplyInlinePreset('8hr')}>8h</button>
             <button className="tm-preset-chip" onClick={() => onApplyInlinePreset('10hr')}>10h</button>
             <button className="tm-preset-chip" onClick={() => onApplyInlinePreset('4hr')}>4h</button>
-            <button className="tm-preset-chip more" onClick={() => setShowBatchHoursModal(true)} title={lang === 'en' ? 'Custom hours' : 'Horas personalizadas'}>
+            <button className="tm-preset-chip more" onClick={() => setShowBatchHoursModal(true)} title={t('customHours')}>
               <Clock size={14} />
             </button>
           </div>
@@ -101,8 +101,8 @@ export default function CrewHoursStep({
       {todaysCrew.length > 0 && (
         <div className="tm-crew-select-section">
           <div className="tm-section-header">
-            <h4><HardHat size={16} /> {lang === 'en' ? "Select T&M Workers" : "Seleccionar Trabajadores T&M"}</h4>
-            <span className="tm-section-hint">{lang === 'en' ? 'Tap to add' : 'Toca para agregar'}</span>
+            <h4><HardHat size={16} /> {t('selectTMWorkers')}</h4>
+            <span className="tm-section-hint">{t('tapToAdd')}</span>
           </div>
           <div className="tm-crew-grid">
               {todaysCrew.map((worker, index) => {
@@ -161,7 +161,7 @@ export default function CrewHoursStep({
                         type="button"
                         className="tm-remove-class-btn"
                         onClick={() => onDeactivateLaborClass(laborClass.id)}
-                        title={lang === 'en' ? 'Remove this labor class' : 'Eliminar esta clase'}
+                        title={t('removeClass')}
                       >
                         {'\u00d7'}
                       </button>
@@ -179,7 +179,7 @@ export default function CrewHoursStep({
                       ))}
                     </div>
                     <button className="tm-add-btn" onClick={() => addDynamicWorker(laborClass.id)}>
-                      + {lang === 'en' ? 'Add' : 'Agregar'} {laborClass.name}
+                      + {t('add')} {laborClass.name}
                     </button>
                   </div>
                 ))}
@@ -196,7 +196,7 @@ export default function CrewHoursStep({
                   type="button"
                   className="tm-remove-class-btn"
                   onClick={() => onDeactivateLaborClass(laborClass.id)}
-                  title={lang === 'en' ? 'Remove this labor class' : 'Eliminar esta clase'}
+                  title={t('removeClass')}
                 >
                   {'\u00d7'}
                 </button>
@@ -214,7 +214,7 @@ export default function CrewHoursStep({
                 ))}
               </div>
               <button className="tm-add-btn" onClick={() => addDynamicWorker(laborClass.id)}>
-                + {lang === 'en' ? 'Add' : 'Agregar'} {laborClass.name}
+                + {t('add')} {laborClass.name}
               </button>
             </div>
           ))}
@@ -232,7 +232,7 @@ export default function CrewHoursStep({
                 }}
               >
                 <option value="">
-                  + {lang === 'en' ? 'Add Labor Class...' : 'Agregar Clase de Trabajo...'}
+                  + {t('addLaborClass')}
                 </option>
                 {laborCategories.map(category => {
                   const inactiveInCategory = getInactiveLaborClasses().filter(lc => lc.category_id === category.id)
@@ -247,7 +247,7 @@ export default function CrewHoursStep({
                 })}
                 {/* Uncategorized classes */}
                 {getInactiveLaborClasses().filter(lc => !lc.category_id).length > 0 && (
-                  <optgroup label={lang === 'en' ? 'Other' : 'Otros'}>
+                  <optgroup label={t('other')}>
                     {getInactiveLaborClasses().filter(lc => !lc.category_id).map(lc => (
                       <option key={lc.id} value={lc.id}>{lc.name}</option>
                     ))}
@@ -261,10 +261,7 @@ export default function CrewHoursStep({
           {activeLaborClassIds.size === 0 && (
             <div className="tm-no-labor-classes">
               <p>
-                {lang === 'en'
-                  ? 'No labor classes added yet. Select from crew check-in above or add manually:'
-                  : 'No hay clases de trabajo agregadas. Seleccione del check-in o agregue manualmente:'
-                }
+                {t('noLaborClassesYet')}
               </p>
             </div>
           )}
@@ -275,7 +272,7 @@ export default function CrewHoursStep({
       {loadingLaborClasses && (
         <div className="tm-loading-labor-classes">
           <Loader2 size={20} className="tm-spinner" />
-          <span>{lang === 'en' ? 'Loading labor classes...' : 'Cargando clases de trabajo...'}</span>
+          <span>{t('loadingLaborClasses')}</span>
         </div>
       )}
 

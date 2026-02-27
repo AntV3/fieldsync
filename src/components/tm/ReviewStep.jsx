@@ -57,26 +57,24 @@ export default function ReviewStep({
           <div className="tm-success-icon">
             <CheckCircle2 size={48} />
           </div>
-          <h2>{lang === 'en' ? 'T&M Ticket Submitted!' : '\u00a1Ticket T&M Enviado!'}</h2>
+          <h2>{t('tmSubmitted')}</h2>
           <p className="tm-success-subtitle">
-            {lang === 'en'
-              ? 'Your ticket has been saved and is ready for client signature.'
-              : 'Su ticket ha sido guardado y est\u00e1 listo para la firma del cliente.'}
+            {t('ticketSavedReady')}
           </p>
         </div>
 
         <div className="tm-success-summary">
           <div className="tm-success-stat">
             <span className="tm-success-stat-value">{totalWorkers}</span>
-            <span className="tm-success-stat-label">{lang === 'en' ? 'Workers' : 'Trabajadores'}</span>
+            <span className="tm-success-stat-label">{t('workersLabel')}</span>
           </div>
           <div className="tm-success-stat">
             <span className="tm-success-stat-value">{totalRegHours + totalOTHours}</span>
-            <span className="tm-success-stat-label">{lang === 'en' ? 'Total Hours' : 'Horas Total'}</span>
+            <span className="tm-success-stat-label">{t('totalHours')}</span>
           </div>
           <div className="tm-success-stat">
             <span className="tm-success-stat-value">{new Date(workDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-            <span className="tm-success-stat-label">{lang === 'en' ? 'Work Date' : 'Fecha'}</span>
+            <span className="tm-success-stat-label">{t('workDate')}</span>
           </div>
         </div>
 
@@ -106,7 +104,7 @@ export default function ReviewStep({
                       ) : (
                         <>
                           <RotateCcw size={16} />
-                          <span>{lang === 'en' ? 'Retry' : 'Reintentar'}</span>
+                          <span>{t('retry')}</span>
                         </>
                       )}
                     </button>
@@ -129,7 +127,7 @@ export default function ReviewStep({
               }}
             >
               <RotateCcw size={16} />
-              {lang === 'en' ? 'Retry All Failed Photos' : 'Reintentar Todas las Fotos'}
+              {t('retryAllPhotos')}
             </button>
           </div>
         )}
@@ -147,17 +145,15 @@ export default function ReviewStep({
         )}
 
         <div className="tm-signature-options">
-          <h3>{lang === 'en' ? 'Get Client Signature' : 'Obtener Firma del Cliente'}</h3>
+          <h3>{t('getClientSignature')}</h3>
           <p className="tm-signature-description">
-            {lang === 'en'
-              ? 'Have the client sign this T&M ticket to verify the work performed.'
-              : 'Haga que el cliente firme este ticket T&M para verificar el trabajo realizado.'}
+            {t('signatureDescription')}
           </p>
 
           {clientSigned ? (
             <div className="tm-signed-confirmation">
               <CheckCircle2 size={32} className="tm-signed-icon" />
-              <span>{lang === 'en' ? 'Client signature collected!' : '\u00a1Firma del cliente recopilada!'}</span>
+              <span>{t('clientSignatureCollected')}</span>
             </div>
           ) : (
             <div className="tm-signature-buttons">
@@ -170,10 +166,10 @@ export default function ReviewStep({
                 </div>
                 <div className="tm-signature-option-text">
                   <span className="tm-signature-option-title">
-                    {lang === 'en' ? 'Sign Now (On-Site)' : 'Firmar Ahora'}
+                    {t('signNowOnSite')}
                   </span>
                   <span className="tm-signature-option-desc">
-                    {lang === 'en' ? 'Client signs on this device' : 'Cliente firma en este dispositivo'}
+                    {t('clientSignsDevice')}
                   </span>
                 </div>
               </button>
@@ -187,10 +183,10 @@ export default function ReviewStep({
                 </div>
                 <div className="tm-signature-option-text">
                   <span className="tm-signature-option-title">
-                    {lang === 'en' ? 'Send Signature Link' : 'Enviar Enlace'}
+                    {t('sendSignatureLink')}
                   </span>
                   <span className="tm-signature-option-desc">
-                    {lang === 'en' ? 'Client signs later via link' : 'Cliente firma despu\u00e9s v\u00eda enlace'}
+                    {t('clientSignsLater')}
                   </span>
                 </div>
               </button>
@@ -254,14 +250,14 @@ export default function ReviewStep({
       />
 
       <div className="tm-review-divider">
-        <span>{lang === 'en' ? 'Ticket Summary' : 'Resumen del Ticket'}</span>
+        <span>{t('ticketSummary')}</span>
       </div>
 
       {/* Work Info Summary */}
       <div className="tm-review-section">
         <div className="tm-review-section-header">
           <h4>{'\ud83d\udcc5'} {t('workDate')}</h4>
-          <button className="tm-edit-link" onClick={() => setStep(1)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
+          <button className="tm-edit-link" onClick={() => setStep(1)}>{t('edit')}</button>
         </div>
         <div className="tm-review-row">
           <span>{new Date(workDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
@@ -274,7 +270,7 @@ export default function ReviewStep({
         <div className="tm-review-section">
           <div className="tm-review-section-header">
             <h4><FileText size={16} className="inline-icon" /> {t('notes')}</h4>
-            <button className="tm-edit-link" onClick={() => setStep(1)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
+            <button className="tm-edit-link" onClick={() => setStep(1)}>{t('edit')}</button>
           </div>
           <div className="tm-review-notes">{notes}</div>
         </div>
@@ -284,8 +280,8 @@ export default function ReviewStep({
       {hasCustomLaborClasses && validDynamicWorkersList.length > 0 && (
         <div className="tm-review-section">
           <div className="tm-review-section-header">
-            <h4><HardHat size={16} className="inline-icon" /> {lang === 'en' ? 'Workers' : 'Trabajadores'} ({totalRegHours + totalOTHours} hrs)</h4>
-            <button className="tm-edit-link" onClick={() => setStep(2)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
+            <h4><HardHat size={16} className="inline-icon" /> {t('workersLabel')} ({totalRegHours + totalOTHours} hrs)</h4>
+            <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
           <div className="tm-review-list">
             {validDynamicWorkersList.map((w, i) => (
@@ -310,7 +306,7 @@ export default function ReviewStep({
         <div className="tm-review-section">
           <div className="tm-review-section-header">
             <h4><UserCheck size={16} className="inline-icon" /> Supervision ({validSupervision.reduce((sum, s) => sum + parseFloat(s.hours || 0) + parseFloat(s.overtimeHours || 0), 0)} hrs)</h4>
-            <button className="tm-edit-link" onClick={() => setStep(2)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
+            <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
           <div className="tm-review-list">
             {validSupervision.map((s, i) => (
@@ -334,7 +330,7 @@ export default function ReviewStep({
         <div className="tm-review-section">
           <div className="tm-review-section-header">
             <h4>{'\ud83d\ude9c'} Operators ({validOperators.reduce((sum, o) => sum + parseFloat(o.hours || 0) + parseFloat(o.overtimeHours || 0), 0)} hrs)</h4>
-            <button className="tm-edit-link" onClick={() => setStep(2)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
+            <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
           <div className="tm-review-list">
             {validOperators.map((o, i) => (
@@ -356,7 +352,7 @@ export default function ReviewStep({
         <div className="tm-review-section">
           <div className="tm-review-section-header">
             <h4><HardHat size={16} className="inline-icon" /> Laborers ({validLaborers.reduce((sum, l) => sum + parseFloat(l.hours || 0) + parseFloat(l.overtimeHours || 0), 0)} hrs)</h4>
-            <button className="tm-edit-link" onClick={() => setStep(2)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
+            <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
           <div className="tm-review-list">
             {validLaborers.map((l, i) => (
@@ -378,7 +374,7 @@ export default function ReviewStep({
         <div className="tm-review-section">
           <div className="tm-review-section-header">
             <h4><Wrench size={16} className="inline-icon" /> Materials & Equipment ({items.length} items)</h4>
-            <button className="tm-edit-link" onClick={() => setStep(3)}>{lang === 'en' ? 'Edit' : 'Editar'}</button>
+            <button className="tm-edit-link" onClick={() => setStep(3)}>{t('edit')}</button>
           </div>
           <div className="tm-review-list">
             {items.map((item, i) => (
@@ -394,17 +390,17 @@ export default function ReviewStep({
       {/* Submitted By - Certification */}
       <div className="tm-review-section tm-certification">
         <div className="tm-review-header">
-          <span><PenLine size={16} className="inline-icon" /> Submitted By</span>
+          <span><PenLine size={16} className="inline-icon" /> {t('submittedBy')}</span>
         </div>
         <input
           type="text"
           className="tm-certification-input"
-          placeholder="Enter your name"
+          placeholder={t('enterYourName')}
           value={submittedByName}
           onChange={(e) => setSubmittedByName(e.target.value)}
         />
         <p className="tm-certification-note">
-          By submitting, you certify this T&M is accurate.
+          {t('certifyAccurate')}
         </p>
       </div>
     </div>

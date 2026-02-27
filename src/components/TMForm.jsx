@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { db } from '../lib/supabase'
-import { compressImage } from '../lib/imageUtils'
+import { compressImage, getGPSLocation } from '../lib/imageUtils'
 import { TRANSLATIONS } from './tm/translations'
 import WorkDetailsStep from './tm/WorkDetailsStep'
 import CrewHoursStep from './tm/CrewHoursStep'
@@ -215,7 +215,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     if (updatedCount > 0) {
       onShowToast(t('appliedHours').replace('{count}', updatedCount), 'success')
     } else {
-      onShowToast(lang === 'en' ? 'Add workers first' : 'Agregue trabajadores primero', 'info')
+      onShowToast(t('addWorkersFirst'), 'info')
     }
   }
 
@@ -287,7 +287,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     if (count > 0) {
       onShowToast(t('appliedHours').replace('{count}', count), 'success')
     } else {
-      onShowToast(lang === 'en' ? 'Add workers first' : 'Agregue trabajadores primero', 'info')
+      onShowToast(t('addWorkersFirst'), 'info')
     }
   }
 
@@ -331,7 +331,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       onShowToast(t('loadedWorkers').replace('{count}', previousCrew.totalWorkers).replace('{date}', dateStr), 'success')
     } catch (error) {
       console.error('Error loading previous crew:', error)
-      onShowToast(lang === 'en' ? 'Error loading previous crew' : 'Error cargando equipo anterior', 'error')
+      onShowToast(t('errorLoadingCrew'), 'error')
     } finally {
       setLoadingPreviousCrew(false)
     }
@@ -606,7 +606,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   // Photo functions
-  const handlePhotoAdd = (e) => {
+  const handlePhotoAdd = async (e) => {
     const files = Array.from(e.target.files)
     if (files.length === 0) return
 
@@ -621,6 +621,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     if (filesToAdd.length < files.length) {
       onShowToast(`Only ${filesToAdd.length} photo(s) added (${maxPhotos} max)`, 'error')
     }
+
+    // Capture GPS location (non-blocking — resolves to null if unavailable)
+    const gps = await getGPSLocation()
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -645,7 +648,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         status: 'pending',
         attempts: 0,
         error: null,
-        uploadedUrl: null
+        uploadedUrl: null,
+        latitude: gps?.latitude || null,
+        longitude: gps?.longitude || null,
+        gpsAccuracy: gps?.accuracy || null
       }])
     })
 
@@ -746,13 +752,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const getValidationWarnings = () => {
     const warnings = []
     if (step === 1 && !notes.trim()) {
-      warnings.push(lang === 'en' ? 'Description recommended' : 'Descripcion recomendada')
+      warnings.push(t('descriptionRecommended'))
     }
     if (step === 2 && workersNeedingHours > 0) {
-      warnings.push(lang === 'en' ? `${workersNeedingHours} worker(s) have no hours entered` : `${workersNeedingHours} trabajador(es) sin horas`)
+      warnings.push(`${workersNeedingHours} ${t('workersNoHours')}`)
     }
     if (step === 4 && !submittedByName.trim()) {
-      warnings.push(lang === 'en' ? 'Name required to submit' : 'Nombre requerido')
+      warnings.push(t('nameRequired'))
     }
     return warnings
   }
@@ -862,14 +868,33 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         const results = await Promise.all(uploadPromises)
         photoUrls = results.filter(r => r.url !== null).map(r => r.url)
 
+        // Build GPS metadata: map photo URL → {lat, lng, accuracy}
+        const photoLocations = {}
+        for (const result of results) {
+          if (result.url) {
+            const photo = pendingPhotos.find(p => p.id === result.id)
+            if (photo?.latitude && photo?.longitude) {
+              photoLocations[result.url] = {
+                lat: photo.latitude,
+                lng: photo.longitude,
+                accuracy: photo.gpsAccuracy
+              }
+            }
+          }
+        }
+
         if (failedCount > 0 && photoUrls.length > 0) {
           onShowToast(`${photoUrls.length}/${pendingPhotos.length} photos uploaded. ${failedCount} failed - can retry later.`, 'warning')
         } else if (failedCount > 0 && photoUrls.length === 0) {
           onShowToast(`All ${failedCount} photos failed to upload - can retry after submission.`, 'error')
         }
-      }
 
-      if (photoUrls.length > 0) {
+        if (photoUrls.length > 0) {
+          setSubmitProgress('Saving photos...')
+          await db.updateTMTicketPhotos(ticket.id, photoUrls,
+            Object.keys(photoLocations).length > 0 ? photoLocations : null)
+        }
+      } else if (photoUrls.length > 0) {
         setSubmitProgress('Saving photos...')
         await db.updateTMTicketPhotos(ticket.id, photoUrls)
       }
@@ -932,14 +957,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {step === 2 && t('crewHours')}
           {step === 3 && t('materialsEquipment')}
           {step === 4 && t('review')}
-          {step === 5 && (lang === 'en' ? 'Submitted' : 'Enviado')}
+          {step === 5 && (t('submitted'))}
         </h2>
         <div className="tm-header-right">
           {step < 4 && (
             <button
               className="tm-lang-toggle"
               onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-              title={lang === 'en' ? 'Cambiar a Espanol' : 'Switch to English'}
+              title={lang === 'en' ? t('switchToSpanish') : t('switchToEnglish')}
             >
               <Globe size={16} />
               {lang === 'en' ? 'ES' : 'EN'}
@@ -1100,7 +1125,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {step === 3 && (
             <>
               <button className="tm-big-btn primary" onClick={goNext}>
-                {lang === 'en' ? 'Review & Submit' : 'Revisar y Enviar'} ({items.length} {items.length === 1 ? t('item') : t('items_plural')})
+                {t('reviewAndSubmit')} ({items.length} {items.length === 1 ? t('item') : t('items_plural')})
               </button>
               <button className="tm-skip-btn" onClick={goNext}>
                 {t('skipNoMaterials')}
@@ -1122,7 +1147,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               ) : !submittedByName.trim() ? (
                 <>
                   <PenLine size={18} />
-                  <span>{lang === 'en' ? 'Enter name to submit' : 'Ingrese nombre'}</span>
+                  <span>{t('enterNameToSubmit')}</span>
                 </>
               ) : (
                 <>
@@ -1140,10 +1165,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         <div className="tm-wizard-footer">
           <button className="tm-big-btn primary" onClick={onSubmit}>
             <Check size={20} />
-            <span>{lang === 'en' ? 'Done' : 'Listo'}</span>
+            <span>{t('done')}</span>
           </button>
           <button className="tm-skip-btn" onClick={onSubmit}>
-            {lang === 'en' ? 'Skip signature for now' : 'Saltar firma por ahora'}
+            {t('skipSignature')}
           </button>
         </div>
       )}
