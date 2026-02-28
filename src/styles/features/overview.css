@@ -40,10 +40,12 @@
 
 /* ---- Needs Attention Card (project overview) ---- */
 .overview-needs-attention {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
+  border-left: 3px solid var(--accent-amber);
 }
 
 .overview-needs-attention__header {
@@ -145,10 +147,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background: var(--bg-card);
+  padding: 10px 14px;
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Quick action buttons in bottom strip */
@@ -423,10 +426,16 @@
 
 /* Section Card */
 .overview-section-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 12px 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.overview-section-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .section-card-header {
@@ -562,10 +571,16 @@
 
 /* Crew Metrics Card */
 .crew-metrics-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border-radius: var(--radius-lg);
-  padding: 12px 14px;
+  padding: 14px 16px;
   border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.crew-metrics-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .crew-metrics-header {
@@ -674,6 +689,7 @@
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .crew-stat-label {
@@ -930,16 +946,18 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-card);
 }
 
 .quick-stat-card:hover {
   border-color: var(--accent-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .quick-stat-icon {
@@ -962,6 +980,8 @@
   font-weight: 700;
   color: var(--text-primary);
   display: block;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .quick-stat-label {
@@ -982,12 +1002,36 @@
 .overview-hero-split {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 1.25rem;
+  gap: 1.5rem;
   align-items: center;
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
-  border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border-color);
+  background: var(--gradient-hero);
+  border-radius: var(--radius-xl);
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-hero-split::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-blue);
+}
+
+.overview-hero-split::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 /* Progress Gauge */
@@ -1022,10 +1066,12 @@
 }
 
 .gauge-value {
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
 }
 
 .gauge-label {
@@ -1083,6 +1129,8 @@
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .financial-metric-value.green {

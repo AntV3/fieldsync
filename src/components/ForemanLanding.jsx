@@ -349,18 +349,44 @@ export default function ForemanLanding({
           padding: 0 1rem 2rem;
         }
 
-        /* Metrics Snapshot */
+        /* Metrics Snapshot - Premium Hero Card */
         .fm-metrics-snapshot {
           width: 100%;
-          background: linear-gradient(135deg, var(--primary-color, #3b82f6) 0%, #2563eb 100%);
+          background: var(--gradient-blue, linear-gradient(135deg, #3b82f6, #2563eb, #1d4ed8));
           border: none;
           border-radius: 16px;
-          padding: 1rem;
+          padding: 1.25rem;
           color: white;
           text-align: left;
           cursor: pointer;
           margin-bottom: 1.5rem;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+          box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), 0 2px 8px rgba(0,0,0,0.15);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .fm-metrics-snapshot::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 50%;
+          background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+          pointer-events: none;
+          border-radius: 16px 16px 0 0;
+        }
+
+        .fm-metrics-snapshot::after {
+          content: '';
+          position: absolute;
+          bottom: -40px;
+          right: -40px;
+          width: 160px;
+          height: 160px;
+          background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+          pointer-events: none;
         }
 
         .fm-metrics-snapshot:active {
@@ -373,7 +399,10 @@ export default function ForemanLanding({
           gap: 0.5rem;
           font-size: 0.875rem;
           opacity: 0.9;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.875rem;
+          font-weight: 500;
+          position: relative;
+          z-index: 1;
         }
 
         .fm-snapshot-arrow {
@@ -384,7 +413,9 @@ export default function ForemanLanding({
         .fm-snapshot-stats {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.875rem;
+          position: relative;
+          z-index: 1;
         }
 
         .fm-snapshot-stat {
@@ -400,37 +431,44 @@ export default function ForemanLanding({
         }
 
         .fm-snapshot-value {
-          font-size: 1.5rem;
+          font-size: 1.625rem;
           font-weight: 700;
           line-height: 1.2;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.02em;
         }
 
         .fm-snapshot-stat.main .fm-snapshot-value {
-          font-size: 2rem;
+          font-size: 2.25rem;
         }
 
         .fm-snapshot-label {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           opacity: 0.85;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.06em;
+          font-weight: 600;
+          margin-top: 0.1rem;
         }
 
         .fm-snapshot-divider {
           width: 1px;
-          height: 40px;
-          background: rgba(255,255,255,0.3);
+          height: 44px;
+          background: rgba(255,255,255,0.25);
         }
 
         .fm-snapshot-today {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          margin-top: 0.75rem;
-          padding-top: 0.75rem;
-          border-top: 1px solid rgba(255,255,255,0.2);
+          margin-top: 0.875rem;
+          padding-top: 0.875rem;
+          border-top: 1px solid rgba(255,255,255,0.15);
           font-size: 0.8rem;
           opacity: 0.9;
+          font-weight: 500;
+          position: relative;
+          z-index: 1;
         }
 
         /* Section Header */
@@ -438,14 +476,15 @@ export default function ForemanLanding({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.875rem;
         }
 
         .fm-section-header h2 {
-          font-size: 1rem;
-          font-weight: 600;
+          font-size: 1.05rem;
+          font-weight: 700;
           color: var(--text-primary);
           margin: 0;
+          letter-spacing: -0.01em;
         }
 
         .fm-edit-btn {
@@ -453,22 +492,28 @@ export default function ForemanLanding({
           align-items: center;
           justify-content: center;
           padding: 0.5rem;
-          background: var(--bg-elevated);
+          background: var(--gradient-card-dark, var(--bg-elevated));
           border: 1px solid var(--border-color);
-          border-radius: 8px;
+          border-radius: 10px;
           color: var(--text-secondary);
           cursor: pointer;
           font-size: 0.8rem;
           min-width: 36px;
           min-height: 36px;
-          transition: all 0.15s ease;
+          transition: all 0.2s ease;
+          box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.1));
+        }
+
+        .fm-edit-btn:hover {
+          border-color: var(--accent-blue, #3b82f6);
         }
 
         .fm-edit-btn.active {
-          background: var(--primary-color, #3b82f6);
-          border-color: var(--primary-color, #3b82f6);
+          background: var(--gradient-blue, var(--primary-color, #3b82f6));
+          border-color: transparent;
           color: white;
           padding: 0.5rem 1rem;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
 
         .fm-edit-hint {
@@ -476,13 +521,14 @@ export default function ForemanLanding({
           color: var(--text-secondary);
           margin: 0 0 0.75rem;
           text-align: center;
+          font-weight: 500;
         }
 
         /* Pinned Actions Grid */
         .fm-pinned-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 0.75rem;
+          gap: 0.875rem;
           margin-bottom: 1.5rem;
         }
 
@@ -496,19 +542,42 @@ export default function ForemanLanding({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 1.25rem 1rem;
-          background: var(--bg-card);
+          padding: 1.375rem 1rem;
+          background: var(--gradient-card-dark, var(--bg-card));
           border: 1px solid var(--border-color);
-          border-radius: 12px;
+          border-radius: 14px;
           cursor: pointer;
-          transition: all 0.15s ease;
-          min-height: 110px;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          min-height: 114px;
           position: relative;
+          box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.1));
+          overflow: hidden;
+        }
+
+        .fm-pinned-card::before {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: var(--gradient-blue, linear-gradient(90deg, #3b82f6, #2563eb));
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+
+        .fm-pinned-card:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-card-hover, 0 8px 25px rgba(0,0,0,0.15));
+          border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .fm-pinned-card:hover:not(:disabled)::before {
+          opacity: 1;
         }
 
         .fm-pinned-card:active:not(:disabled) {
           transform: scale(0.97);
-          background: var(--bg-elevated);
         }
 
         .fm-pinned-card:disabled {
@@ -517,12 +586,21 @@ export default function ForemanLanding({
         }
 
         .fm-pinned-card.completed {
-          border-color: #22c55e;
-          background: rgba(34, 197, 94, 0.08);
+          border-color: rgba(34, 197, 94, 0.4);
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+        }
+
+        .fm-pinned-card.completed::before {
+          background: linear-gradient(90deg, #22c55e, #16a34a);
+          opacity: 1;
         }
 
         .fm-pinned-card.danger {
-          border-color: #f59e0b;
+          border-color: rgba(245, 158, 11, 0.4);
+        }
+
+        .fm-pinned-card.danger::before {
+          background: linear-gradient(90deg, #f59e0b, #d97706);
         }
 
         .fm-pinned-card.danger .fm-pinned-icon {
@@ -531,26 +609,33 @@ export default function ForemanLanding({
 
         .fm-pinned-icon {
           color: var(--primary-color, #3b82f6);
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.625rem;
+          transition: transform 0.2s ease;
+        }
+
+        .fm-pinned-card:hover:not(:disabled) .fm-pinned-icon {
+          transform: scale(1.08);
         }
 
         .fm-pinned-label {
           font-size: 0.875rem;
-          font-weight: 500;
+          font-weight: 600;
           color: var(--text-primary);
           text-align: center;
+          letter-spacing: -0.01em;
         }
 
         .fm-pinned-badge {
           position: absolute;
           top: 8px;
           right: 8px;
-          background: var(--primary-color, #3b82f6);
+          background: var(--gradient-blue, var(--primary-color, #3b82f6));
           color: white;
-          font-size: 0.7rem;
-          font-weight: 600;
-          padding: 0.2rem 0.5rem;
+          font-size: 0.68rem;
+          font-weight: 700;
+          padding: 0.2rem 0.55rem;
           border-radius: 10px;
+          box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
         }
 
         .fm-pinned-check {
@@ -558,6 +643,7 @@ export default function ForemanLanding({
           top: 8px;
           right: 8px;
           color: #22c55e;
+          filter: drop-shadow(0 1px 3px rgba(34, 197, 94, 0.3));
         }
 
         .fm-pin-toggle {
@@ -574,26 +660,30 @@ export default function ForemanLanding({
           justify-content: center;
           cursor: pointer;
           color: var(--text-secondary);
-          transition: all 0.15s ease;
+          transition: all 0.2s ease;
           z-index: 10;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
 
         .fm-pin-toggle:hover {
           background: var(--bg-elevated);
+          transform: scale(1.1);
         }
 
         .fm-pin-toggle.pinned {
           background: #ef4444;
           border-color: #ef4444;
           color: white;
+          box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
         }
 
         /* More Actions Section */
         .fm-more-section {
-          background: var(--bg-card);
+          background: var(--gradient-card-dark, var(--bg-card));
           border: 1px solid var(--border-color);
-          border-radius: 12px;
+          border-radius: 14px;
           overflow: hidden;
+          box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.1));
         }
 
         .fm-more-header {
@@ -601,13 +691,18 @@ export default function ForemanLanding({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 1rem;
+          padding: 1rem 1.125rem;
           background: transparent;
           border: none;
           cursor: pointer;
           font-size: 0.9rem;
-          font-weight: 500;
+          font-weight: 600;
           color: var(--text-primary);
+          transition: background 0.15s ease;
+        }
+
+        .fm-more-header:hover {
+          background: var(--bg-secondary, rgba(255,255,255,0.02));
         }
 
         .fm-more-header:active {
@@ -634,19 +729,24 @@ export default function ForemanLanding({
           flex: 1;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
+          gap: 0.875rem;
+          padding: 1.125rem;
           background: transparent;
           border: none;
           border-bottom: 1px solid var(--border-color);
           cursor: pointer;
           text-align: left;
           color: var(--text-primary);
-          transition: background 0.15s ease;
+          transition: all 0.2s ease;
         }
 
         .fm-action-row:last-child {
           border-bottom: none;
+        }
+
+        .fm-action-row:hover:not(:disabled) {
+          background: var(--bg-secondary, rgba(255,255,255,0.02));
+          padding-left: 1.25rem;
         }
 
         .fm-action-row:active:not(:disabled) {
@@ -662,26 +762,41 @@ export default function ForemanLanding({
           color: #f59e0b;
         }
 
+        .fm-action-row svg {
+          transition: color 0.15s ease;
+        }
+
+        .fm-action-row:hover:not(:disabled) svg {
+          color: var(--accent-blue, #3b82f6);
+        }
+
+        .fm-action-row.danger:hover:not(:disabled) svg {
+          color: #f59e0b;
+        }
+
         .fm-action-label {
           flex: 1;
           font-size: 0.9rem;
+          font-weight: 500;
         }
 
         .fm-action-badge {
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           color: var(--text-secondary);
           background: var(--bg-elevated);
-          padding: 0.25rem 0.5rem;
-          border-radius: 6px;
+          padding: 0.25rem 0.625rem;
+          border-radius: 20px;
+          font-weight: 600;
         }
 
         /* Dark mode adjustments */
         [data-theme="dark"] .fm-metrics-snapshot {
-          background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+          background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 60%, #172554 100%);
+          box-shadow: 0 4px 20px rgba(30, 64, 175, 0.3), 0 2px 8px rgba(0,0,0,0.2);
         }
 
         [data-theme="dark"] .fm-pinned-card.completed {
-          background: rgba(34, 197, 94, 0.15);
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.04) 100%);
         }
       `}</style>
     </div>
