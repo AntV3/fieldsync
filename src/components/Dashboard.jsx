@@ -1440,6 +1440,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         tmTickets={projectData?.tmTickets || []}
                         corStats={projectData?.corStats}
                         areas={areas}
+                        changeOrderValue={changeOrderValue}
                       />
 
                       {/* Burn Rate & Profitability Row */}

@@ -33,6 +33,7 @@ export default function FinancialTrendChart({
   tmTickets = [],
   corStats = null,
   areas = [],
+  changeOrderValue = 0,
   onDrillDown,
 }) {
   const [timeRange, setTimeRange] = useState('30d')
@@ -40,10 +41,10 @@ export default function FinancialTrendChart({
 
   // Build the time series data using actual area completions for revenue
   const chartData = useMemo(() => {
-    const allData = buildFinancialTimeSeries(projectData, project, tmTickets, corStats, areas)
+    const allData = buildFinancialTimeSeries(projectData, project, tmTickets, corStats, areas, changeOrderValue)
     const selectedRange = timeRanges.find(r => r.id === timeRange)
     return filterByTimeRange(allData, selectedRange?.days)
-  }, [projectData, project, tmTickets, corStats, areas, timeRange])
+  }, [projectData, project, tmTickets, corStats, areas, changeOrderValue, timeRange])
 
   // Calculate trend indicators
   const costsTrend = useMemo(() => calculateTrend(chartData, 'costs'), [chartData])
@@ -251,21 +252,18 @@ export default function FinancialTrendChart({
               />
             )}
 
-            {/* COR Value line (no fill, just line) */}
-            {chartData.some(d => d.corValue > 0) && (
-              <Area
-                type="monotone"
-                dataKey="corValue"
-                name="COR Approved"
+            {/* COR Approved Value - shown as reference line (static total) */}
+            {(corStats?.total_approved_value || 0) > 0 && (
+              <ReferenceLine
+                y={corStats.total_approved_value}
                 stroke={chartColors.corValue}
-                strokeWidth={2}
                 strokeDasharray="4 2"
-                fill="transparent"
-                animationDuration={animationConfig.duration}
-                onMouseEnter={() => setHoveredLine('corValue')}
-                onMouseLeave={() => setHoveredLine(null)}
-                style={{
-                  opacity: hoveredLine && hoveredLine !== 'corValue' ? 0.3 : 1,
+                strokeWidth={2}
+                label={{
+                  value: `COR Approved`,
+                  position: 'right',
+                  fill: chartColors.corValue,
+                  fontSize: 11,
                 }}
               />
             )}
