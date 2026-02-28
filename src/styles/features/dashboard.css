@@ -109,11 +109,12 @@
 
 /* ---- Needs Attention Section (Portfolio View) ---- */
 .smart-alerts-section {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .smart-alerts-section--has-critical {
@@ -354,14 +355,16 @@
   display: flex;
   flex-direction: column;
   padding: var(--space-lg);
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-card);
 }
 
 .metric-card:hover {
   border-color: var(--border-light);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .metric-card--clickable {
@@ -369,7 +372,8 @@
 }
 
 .metric-card--clickable:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .metric-card__header {
@@ -397,6 +401,8 @@
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   margin-bottom: var(--space-xs);
 }
 

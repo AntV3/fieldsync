@@ -42,17 +42,31 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1419 100%);
+  background: var(--gradient-hero);
+  position: relative;
+}
+
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 500px;
+  height: 500px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .login-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--gradient-card-dark);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: 2.5rem;
   width: 100%;
   max-width: 400px;
   position: relative;
+  box-shadow: var(--shadow-xl);
 }
 
 .login-header {
@@ -112,21 +126,45 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: var(--bg-elevated);
-  border: 2px solid var(--border-color);
+  background: var(--gradient-card-dark);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.role-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-blue);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
 }
 
 .role-btn:hover {
   border-color: var(--accent-blue);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.role-btn:hover::before {
+  opacity: 1;
 }
 
 .role-btn.foreman:hover {
   border-color: var(--accent-amber);
+}
+
+.role-btn.foreman::before {
+  background: var(--accent-amber);
 }
 
 .role-btn.office:hover {

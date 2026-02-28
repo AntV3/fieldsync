@@ -2,11 +2,12 @@
    ============================================ */
 
 .crew-checkin {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
+  padding: 1.125rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
 }
 
 .crew-header {
