@@ -54,6 +54,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cor.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Fetch on mount

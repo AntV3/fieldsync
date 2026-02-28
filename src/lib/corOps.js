@@ -54,7 +54,7 @@ export const corOps = {
                          error?.message?.includes('duplicate') ||
                          error?.message?.includes('unique_cor_number')
       if (isConflict && retryCount < 3) {
-        console.warn(`COR number conflict, retrying with fresh number (attempt ${retryCount + 1})`)
+        observe.error('database', { message: `COR number conflict, retrying (attempt ${retryCount + 1})`, severity: 'warning', operation: 'createCOR' })
         return this.createCOR(corData, retryCount + 1)
       }
 
@@ -706,7 +706,7 @@ export const corOps = {
         }
       }
     } catch (error) {
-      console.error('Error clearing COR line items:', error)
+      observe.error('database', { message: error?.message, operation: 'clearCORLineItems' })
       throw error
     }
   },
@@ -1339,7 +1339,7 @@ export const corOps = {
         .order('log_number', { ascending: true })
 
       if (error) {
-        console.error('Error fetching COR log:', error)
+        observe.error('database', { message: error?.message, operation: 'getCORLog' })
         throw error
       }
 
@@ -1393,7 +1393,7 @@ export const corOps = {
         .single()
 
       if (error) {
-        console.error('Error updating COR log entry:', error)
+        observe.error('database', { message: error?.message, operation: 'updateCORLogEntry' })
         throw error
       }
 
@@ -1416,7 +1416,7 @@ export const corOps = {
         .single()
 
       if (error) {
-        console.error('Error updating change order status:', error)
+        observe.error('database', { message: error?.message, operation: 'updateChangeOrderStatus' })
         throw error
       }
 
@@ -1781,7 +1781,7 @@ export const corOps = {
         .eq('project_id', projectId)
         .order('cost_date', { ascending: false })
       if (error) {
-        console.error('Error fetching project costs:', error)
+        observe.error('database', { message: error?.message, operation: 'getProjectCosts' })
         return []
       }
       return data || []
@@ -1813,7 +1813,7 @@ export const corOps = {
         .select()
         .single()
       if (error) {
-        console.error('Error adding project cost:', error)
+        observe.error('database', { message: error?.message, operation: 'addProjectCost' })
         throw error
       }
       return data
@@ -1851,7 +1851,7 @@ export const corOps = {
         .select()
         .single()
       if (error) {
-        console.error('Error updating project cost:', error)
+        observe.error('database', { message: error?.message, operation: 'updateProjectCost' })
         throw error
       }
       return data
@@ -1874,7 +1874,7 @@ export const corOps = {
         .delete()
         .eq('id', costId)
       if (error) {
-        console.error('Error deleting project cost:', error)
+        observe.error('database', { message: error?.message, operation: 'deleteProjectCost' })
         throw error
       }
       return true
@@ -1934,7 +1934,7 @@ export const corOps = {
         p_company_id: companyId
       })
       if (error) {
-        console.error('Error getting next invoice number:', error)
+        observe.error('database', { message: error?.message, operation: 'getNextInvoiceNumber' })
         // Fallback: generate locally
         return this._generateLocalInvoiceNumber(companyId)
       }
@@ -1968,7 +1968,7 @@ export const corOps = {
         .order('cor_number', { ascending: true })
 
       if (corsError) {
-        console.error('Error fetching billable CORs:', corsError)
+        observe.error('database', { message: corsError?.message, operation: 'getBillableCORs' })
       }
 
       // Get approved T&M tickets with client signature that haven't been billed
@@ -1981,7 +1981,7 @@ export const corOps = {
         .order('work_date', { ascending: true })
 
       if (ticketsError) {
-        console.error('Error fetching billable T&M tickets:', ticketsError)
+        observe.error('database', { message: ticketsError?.message, operation: 'getBillableTMTickets' })
       }
 
       return {
@@ -2006,7 +2006,7 @@ export const corOps = {
         .order('invoice_date', { ascending: false })
 
       if (error) {
-        console.error('Error fetching project invoices:', error)
+        observe.error('database', { message: error?.message, operation: 'getProjectInvoices' })
         throw error
       }
       return data || []
@@ -2026,7 +2026,7 @@ export const corOps = {
         .order('invoice_date', { ascending: false })
 
       if (error) {
-        console.error('Error fetching company invoices:', error)
+        observe.error('database', { message: error?.message, operation: 'getCompanyInvoices' })
         throw error
       }
       return data || []
@@ -2061,7 +2061,7 @@ export const corOps = {
         .single()
 
       if (invoiceError) {
-        console.error('Error creating invoice:', invoiceError)
+        observe.error('database', { message: invoiceError?.message, operation: 'createInvoice' })
         throw invoiceError
       }
 
@@ -2082,7 +2082,7 @@ export const corOps = {
           .insert(itemsToInsert)
 
         if (itemsError) {
-          console.error('Error creating invoice items:', itemsError)
+          observe.error('database', { message: itemsError?.message, operation: 'createInvoiceItems' })
           // Delete the invoice if items failed
           await supabase.from('invoices').delete().eq('id', invoiceData.id)
           throw itemsError
@@ -2119,7 +2119,7 @@ export const corOps = {
         .single()
 
       if (error) {
-        console.error('Error fetching invoice:', error)
+        observe.error('database', { message: error?.message, operation: 'getInvoice' })
         throw error
       }
       return data
@@ -2140,7 +2140,7 @@ export const corOps = {
         .single()
 
       if (error) {
-        console.error('Error updating invoice:', error)
+        observe.error('database', { message: error?.message, operation: 'updateInvoice' })
         throw error
       }
       return data
@@ -2189,7 +2189,7 @@ export const corOps = {
         .eq('status', 'draft') // RLS also enforces this
 
       if (error) {
-        console.error('Error deleting invoice:', error)
+        observe.error('database', { message: error?.message, operation: 'deleteInvoice' })
         throw error
       }
       return true
@@ -2212,7 +2212,7 @@ export const corOps = {
           .in('id', corIds)
 
         if (corsError) {
-          console.error('Error marking CORs as billed:', corsError)
+          observe.error('database', { message: corsError?.message, operation: 'markCORsAsBilled' })
         }
       }
 
@@ -2224,7 +2224,7 @@ export const corOps = {
           .in('id', tmIds)
 
         if (tmError) {
-          console.error('Error marking T&M tickets as billed:', tmError)
+          observe.error('database', { message: tmError?.message, operation: 'markTMTicketsAsBilled' })
         }
       }
     }

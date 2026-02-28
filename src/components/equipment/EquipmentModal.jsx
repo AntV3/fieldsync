@@ -22,7 +22,7 @@ export default memo(function EquipmentModal({
 }) {
   const { showToast } = useToast()
   const [catalogEquipment, setCatalogEquipment] = useState([])
-  const [loading, setLoading] = useState(true) // Start true since we load on mount
+  const [_loading, setLoading] = useState(true) // Start true since we load on mount
   const [saving, setSaving] = useState(false)
 
   // Form state

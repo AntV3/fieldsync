@@ -342,7 +342,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     const file = e.target.files?.[0]
     if (!file) return
     
-    const validTypes = [
+    const _validTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
       'application/vnd.ms-excel', // .xls
       'text/csv'

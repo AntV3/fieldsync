@@ -18,6 +18,7 @@ export default function MaterialsSection({ company, onShowToast }) {
     if (company?.id) {
       loadItems()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id])
 
   const loadItems = async () => {

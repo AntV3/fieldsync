@@ -190,7 +190,7 @@ export function ProfitMarginCard({ value, amount, trend, trendContext, onClick }
   )
 }
 
-export function ContractValueCard({ value, originalValue, corsValue, onClick }) {
+export function ContractValueCard({ value, originalValue: _originalValue, corsValue, onClick }) {
   return (
     <MetricCard
       label="Contract Value"

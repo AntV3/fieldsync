@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { Truck, Plus, Edit2, Trash2, Check, X, Building2, Package } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
+import { dollarsToCents } from '../../lib/corCalculations'
 
 /**
  * EquipmentCatalog - Company equipment catalog management
@@ -45,6 +46,7 @@ export default memo(function EquipmentCatalog({
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id, showInactive]) // onShowToast is stable (memoized in App.jsx)
 
   useEffect(() => {
@@ -93,9 +95,9 @@ export default memo(function EquipmentCatalog({
         company_id: company.id,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
-        daily_rate: formData.daily_rate ? Math.round(parseFloat(formData.daily_rate) * 100) : 0,
-        weekly_rate: formData.weekly_rate ? Math.round(parseFloat(formData.weekly_rate) * 100) : null,
-        monthly_rate: formData.monthly_rate ? Math.round(parseFloat(formData.monthly_rate) * 100) : null,
+        daily_rate: formData.daily_rate ? dollarsToCents(formData.daily_rate) : 0,
+        weekly_rate: formData.weekly_rate ? dollarsToCents(formData.weekly_rate) : null,
+        monthly_rate: formData.monthly_rate ? dollarsToCents(formData.monthly_rate) : null,
         is_owned: formData.is_owned
       }
 

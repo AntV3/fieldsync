@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 
-export default function AppShowcase({ onVisible }) {
+export default function AppShowcase({ onVisible: _onVisible }) {
   const ref = useRef(null)
 
   return (

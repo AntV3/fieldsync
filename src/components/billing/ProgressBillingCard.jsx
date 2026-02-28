@@ -18,7 +18,7 @@ export default memo(function ProgressBillingCard({
   corStats = {},
   onCreateDraw,
   onViewDraw,
-  onShowToast
+  onShowToast: _onShowToast
 }) {
   const [drawRequests, setDrawRequests] = useState([])
   const [loading, setLoading] = useState(true)

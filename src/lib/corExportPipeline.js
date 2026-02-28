@@ -79,7 +79,7 @@ export function generateForcedExportKey(corId) {
  * @param {Object} options - Snapshot options
  * @returns {Object} Frozen snapshot ready for PDF generation
  */
-export function createSnapshot(cor, tickets, options = {}) {
+export function createSnapshot(cor, tickets, _options = {}) {
   const snapshotTime = new Date().toISOString()
 
   // Calculate photo manifest

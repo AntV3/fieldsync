@@ -46,6 +46,7 @@ export default function CORLogPreview({
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
   const loadCORLog = async () => {

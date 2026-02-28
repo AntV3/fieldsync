@@ -12,7 +12,7 @@ import { db } from '../../lib/supabase'
  *  - t, lang
  *  - onShowToast
  */
-export default function MaterialsStep({ companyId, items, setItems, t, lang, onShowToast }) {
+export default function MaterialsStep({ companyId, items, setItems, t, lang: _lang, onShowToast }) {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categoryItems, setCategoryItems] = useState([])
   const [loadingItems, setLoadingItems] = useState(false)
@@ -29,6 +29,7 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
     if (selectedCategory && companyId) {
       loadCategoryItems(selectedCategory)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, companyId])
 
   // Auto-focus search on mount when no category selected

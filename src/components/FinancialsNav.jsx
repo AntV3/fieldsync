@@ -61,7 +61,7 @@ export default memo(function FinancialsNav({
     corPending = 0,
     ticketPending = 0,
     billableCount = 0,
-    invoiceCount = 0
+    invoiceCount: _invoiceCount = 0
   } = stats
 
   // Get badge config for each section

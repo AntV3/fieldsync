@@ -47,6 +47,7 @@ export default memo(function ProjectEquipmentCard({
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Load project equipment when project changes
@@ -63,6 +64,7 @@ export default memo(function ProjectEquipmentCard({
       console.error('Error marking equipment returned:', error)
       onShowToast?.('Failed to update equipment', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadEquipment]) // onShowToast is stable
 
   const handleDelete = useCallback(async (equipmentItem) => {
@@ -78,6 +80,7 @@ export default memo(function ProjectEquipmentCard({
       console.error('Error removing equipment:', error)
       onShowToast?.('Failed to remove equipment', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadEquipment]) // onShowToast is stable
 
   // Memoize derived state to avoid recalculating on every render

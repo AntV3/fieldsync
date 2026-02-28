@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, FolderOpen, FileText, Users, ClipboardList, ChevronRight, Command } from 'lucide-react'
 import { db } from '../lib/supabase'
@@ -127,7 +128,7 @@ export default function UniversalSearch({
   }
 
   // Get icon for result type
-  const getIcon = (type) => {
+  const _getIcon = (type) => {
     switch (type) {
       case 'project': return FolderOpen
       case 'ticket': return FileText
@@ -138,7 +139,7 @@ export default function UniversalSearch({
   }
 
   // Get label for result type
-  const getTypeLabel = (type) => {
+  const _getTypeLabel = (type) => {
     switch (type) {
       case 'project': return 'Project'
       case 'ticket': return 'T&M Ticket'

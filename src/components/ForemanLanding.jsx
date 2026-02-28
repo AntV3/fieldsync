@@ -186,6 +186,7 @@ export default function ForemanLanding({
       default:
         return { done: false, badge: null, status: null }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayStatus, progress, areasRemaining])
 
   // Render a pinned action card

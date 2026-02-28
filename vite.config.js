@@ -11,6 +11,9 @@ export default defineConfig({
     // Source maps: only generate hidden source maps for error tracking services
     // Never expose source maps publicly in production (security risk)
     sourcemap: 'hidden',
+    // Strip console.log and console.warn in production builds
+    // console.error is kept for critical error visibility
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         // Improve code splitting by separating vendor chunks
@@ -34,6 +37,11 @@ export default defineConfig({
       // which we don't use (our PDFs are generated programmatically)
       external: ['html2canvas', 'dompurify']
     }
+  },
+  esbuild: {
+    // Drop console.log and console.warn in production (keep console.error for visibility)
+    drop: process.env.NODE_ENV === 'production' ? ['debugger'] : [],
+    pure: process.env.NODE_ENV === 'production' ? ['console.log', 'console.warn'] : [],
   },
   // Optimize dependency pre-bundling
   optimizeDeps: {

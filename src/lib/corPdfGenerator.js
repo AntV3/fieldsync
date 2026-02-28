@@ -76,7 +76,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       if (logoData) {
         doc.addImage(logoData, 'PNG', margin, yPos, 40, 15)
       }
-    } catch (e) {
+    } catch (_e) {
       if (company?.name) {
         doc.setFontSize(14)
         doc.setFont('helvetica', 'bold')
@@ -764,7 +764,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
             doc.setTextColor(100, 116, 139)
             doc.text(`Verified: ${signedDate}`, infoX, yPos + 24)
           }
-        } catch (e) {
+        } catch (_e) {
           const signerName = ticket.client_signature_name || 'Client'
           doc.setFont('helvetica', 'normal')
           doc.setFontSize(9)
@@ -1083,7 +1083,7 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
         doc.setTextColor(100, 116, 139)
         doc.text(`Verified: ${formatDate(ticket.client_signature_date)}`, infoX, yPos + 25)
       }
-    } catch (e) {
+    } catch (_e) {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(30, 41, 59)

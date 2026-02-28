@@ -207,8 +207,8 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
   if (branding.logoUrl) {
     try {
       logoBase64 = await loadImageAsBase64(branding.logoUrl)
-    } catch (e) {
-      console.error('Error loading logo:', e)
+    } catch (_e) {
+      // Logo loading failed, will use text fallback
     }
   }
 
@@ -221,7 +221,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
     try {
       doc.addImage(logoBase64, 'PNG', margin, yPos, 40, 15)
       yPos += 20
-    } catch (e) {
+    } catch (_e) {
       doc.setFontSize(16)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(...primaryColor)
@@ -581,8 +581,8 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
         if (signedDate) {
           doc.text(formatDate(signedDate), pageWidth - margin - 40, sigLineY - 5)
         }
-      } catch (e) {
-        console.error('Error adding signature:', e)
+      } catch (_e) {
+        // Signature image failed, fallback handled below
       }
     } else {
       // Show "Awaiting Signature" when not yet signed
@@ -658,7 +658,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
     if (logoBase64) {
       try {
         doc.addImage(logoBase64, 'PNG', margin, yPos, 50, 18)
-      } catch (e) {
+      } catch (_e) {
         doc.setFontSize(14)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(...primaryColor)
@@ -1068,7 +1068,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
             doc.setTextColor(100, 116, 139)
             doc.text(`Verified: ${signedDate}`, infoX, yPos + 24)
           }
-        } catch (e) {
+        } catch (_e) {
           // If signature image fails, show text info
           const signerName = ticket.client_signature_name || 'Client'
           doc.setFont('helvetica', 'normal')
@@ -1152,7 +1152,7 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
       if (logoData) {
         doc.addImage(logoData, 'PNG', margin, yPos, 40, 15)
       }
-    } catch (e) {
+    } catch (_e) {
       // Fall back to company name
       if (company?.name) {
         doc.setFontSize(14)
@@ -1449,7 +1449,7 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
         doc.setTextColor(100, 116, 139)
         doc.text(`Verified: ${signedDate}`, infoX, yPos + 24)
       }
-    } catch (e) {
+    } catch (_e) {
       const signerName = ticket.client_signature_name || 'Client'
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)

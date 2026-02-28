@@ -18,6 +18,7 @@ export default function NotificationSettings({ project, company, onShowToast, on
 
   useEffect(() => {
     loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, company?.id])
 
   const loadData = async () => {

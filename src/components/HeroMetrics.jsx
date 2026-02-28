@@ -85,7 +85,7 @@ export default memo(function HeroMetrics({
   earnedRevenue = 0,
   totalCosts = 0,
   profit = 0,
-  progress = 0,
+  progress: _progress = 0,
   corApprovedValue = 0,
   loading = false,
   previousData // Optional: for trend indicators

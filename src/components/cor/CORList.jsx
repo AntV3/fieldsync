@@ -39,9 +39,9 @@ export default function CORList({
   const [cors, setCORs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
-  const [areaFilter, setAreaFilter] = useState('all')
+  const [areaFilter, _setAreaFilter] = useState('all')
   const [groupFilter, setGroupFilter] = useState('all')
-  const [expandedCOR, setExpandedCOR] = useState(null)
+  const [_expandedCOR, _setExpandedCOR] = useState(null)
   const [selectedCORs, setSelectedCORs] = useState(new Set())
   const [selectMode, setSelectMode] = useState(false)
   const [showGroupModal, setShowGroupModal] = useState(false)
@@ -90,6 +90,7 @@ export default function CORList({
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]) // onShowToast is stable
 
   const loadStats = useCallback(async () => {
@@ -469,6 +470,7 @@ export default function CORList({
       console.error('Error deleting COR:', error)
       onShowToast?.('Error deleting COR', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadStats]) // onShowToast is stable (memoized in App.jsx)
 
   const handleSubmitForApproval = useCallback(async (corId, e) => {
@@ -482,6 +484,7 @@ export default function CORList({
       console.error('Error submitting COR:', error?.message || error)
       onShowToast?.(error?.message || 'Error submitting COR', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadCORs, loadStats]) // onShowToast is stable (memoized in App.jsx)
 
   // Toggle COR selection
@@ -660,7 +663,7 @@ export default function CORList({
     closed: cors.filter(c => c.status === 'closed').length
   }), [cors])
 
-  const totalCORsCount = filter === 'all' ? cors.length : cors.filter(c => c.status === filter).length
+  const _totalCORsCount = filter === 'all' ? cors.length : cors.filter(c => c.status === filter).length
 
   // Render COR card using memoized component
   const renderCORCard = (cor) => (

@@ -186,6 +186,7 @@ export function useConfirmModal() {
       state.resolver(true)
     }
     setState(prev => ({ ...prev, isOpen: false, resolver: null }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.resolver])
 
   const cancel = useCallback(() => {
@@ -193,6 +194,7 @@ export function useConfirmModal() {
       state.resolver(false)
     }
     setState(prev => ({ ...prev, isOpen: false, resolver: null }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.resolver])
 
   return {

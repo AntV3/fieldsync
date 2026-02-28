@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useState, useCallback, useMemo } from 'react'
 import { Settings, RotateCcw, Save, AlertTriangle, CheckCircle, Info } from 'lucide-react'
 import { DEFAULT_THRESHOLDS } from '../../lib/riskCalculations'
@@ -461,7 +462,7 @@ export function ThresholdConfigCompact({ onExpand, className = '' }) {
 
   // Detect current preset
   let currentPreset = null
-  for (const [key, preset] of Object.entries(PRESETS)) {
+  for (const [_key, preset] of Object.entries(PRESETS)) {
     const matches = Object.keys(preset.thresholds).every(cat => {
       const p = preset.thresholds[cat]
       const t = thresholds[cat]

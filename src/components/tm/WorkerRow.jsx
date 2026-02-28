@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Check } from 'lucide-react'
 
 // Helper to determine worker completion state for visual indicators

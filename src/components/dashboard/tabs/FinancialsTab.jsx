@@ -40,7 +40,7 @@ export default function FinancialsTab({
   // COR state
   corListExpanded,
   corRefreshKey,
-  corDisplayMode,
+  corDisplayMode: _corDisplayMode,
   setCORDisplayMode,
   onToggleCORList,
   onCreateCOR,

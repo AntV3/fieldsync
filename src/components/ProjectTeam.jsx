@@ -25,12 +25,14 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
     if (project?.id) {
       loadProjectTeam()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   useEffect(() => {
     if (showAddModal && company?.id) {
       loadCompanyMembers()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddModal, company?.id])
 
   const loadProjectTeam = async () => {

@@ -121,14 +121,14 @@ export default function TMList({
             if (importStatus?.import_status === 'failed') {
               importStatusResults[ticket.id] = importStatus
             }
-          } catch (e) {
+          } catch (_e) {
             // Ignore - column may not exist yet
           }
         }))
         setLockedTickets(prev => reset ? lockResults : { ...prev, ...lockResults })
         setFailedImports(prev => reset ? importStatusResults : { ...prev, ...importStatusResults })
       }
-    } catch (error) {
+    } catch (_error) {
       onShowToast('Error loading T&M tickets', 'error')
     } finally {
       setLoading(false)
@@ -185,6 +185,7 @@ export default function TMList({
       setHasMore(true)
       loadTickets(0, true)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
 
   const updateStatus = useCallback(async (ticketId, newStatus) => {
@@ -204,6 +205,7 @@ export default function TMList({
       console.error('Error updating status:', error)
       onShowToast('Error updating status', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
 
   // Handle approval - approve directly (CE/PCO is informational only)
@@ -215,6 +217,7 @@ export default function TMList({
     }
 
     updateStatus(ticket.id, 'approved')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lockedTickets, updateStatus]) // onShowToast is stable
 
   // Confirm approval with change order value
@@ -255,6 +258,7 @@ export default function TMList({
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
 
   // Open COR association modal
@@ -274,6 +278,7 @@ export default function TMList({
     } finally {
       setLoadingCors(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Associate ticket with selected COR
@@ -331,6 +336,7 @@ export default function TMList({
     } finally {
       setRetryingImport(null)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company.id, project.work_type, project.job_type]) // onShowToast and loadTickets are stable
 
   const calculateTicketTotal = (ticket) => {

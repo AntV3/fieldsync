@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRigh
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
+  dollarsToCents,
   basisPointsToPercent,
   percentToBasisPoints,
   calculateLaborItemTotal,
@@ -34,7 +35,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   // Quick select state for materials/equipment
   const [companyMaterials, setCompanyMaterials] = useState([])
   const [materialSearch, setMaterialSearch] = useState('')
-  const [materialCategory, setMaterialCategory] = useState('all')
+  const [materialCategory, _setMaterialCategory] = useState('all')
   const [equipmentSearch, setEquipmentSearch] = useState('')
 
   // Basic Info (required)
@@ -90,6 +91,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     if (!existingCOR) {
       generateCORNumber()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadCompanyMaterials = async () => {
@@ -676,7 +678,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
                           onChange={(e) => {
                             const val = e.target.value
-                            updateLaborItem(index, 'regular_rate', Math.round(parseFloat(val || 0) * 100))
+                            updateLaborItem(index, 'regular_rate', dollarsToCents(val))
                           }}
                           className="input-small"
                         />
@@ -698,7 +700,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
                           onChange={(e) => {
                             const val = e.target.value
-                            updateLaborItem(index, 'overtime_rate', Math.round(parseFloat(val || 0) * 100))
+                            updateLaborItem(index, 'overtime_rate', dollarsToCents(val))
                           }}
                           className="input-small"
                         />
@@ -788,7 +790,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
                           onChange={(e) => {
                             const val = e.target.value
-                            updateMaterialsItem(index, 'unit_cost', Math.round(parseFloat(val || 0) * 100))
+                            updateMaterialsItem(index, 'unit_cost', dollarsToCents(val))
                           }}
                           className="input-small"
                         />
@@ -878,7 +880,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.unit_cost ? (item.unit_cost / 100).toFixed(2) : ''}
                           onChange={(e) => {
                             const val = e.target.value
-                            updateEquipmentItem(index, 'unit_cost', Math.round(parseFloat(val || 0) * 100))
+                            updateEquipmentItem(index, 'unit_cost', dollarsToCents(val))
                           }}
                           className="input-small"
                         />
@@ -938,7 +940,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.amount ? (item.amount / 100).toFixed(2) : ''}
                           onChange={(e) => {
                             const val = e.target.value
-                            updateSubcontractorsItem(index, 'amount', Math.round(parseFloat(val || 0) * 100))
+                            updateSubcontractorsItem(index, 'amount', dollarsToCents(val))
                           }}
                           className="input-small"
                         />

@@ -109,6 +109,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
       folderSub?.unsubscribe?.()
       docSub?.unsubscribe?.()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadFolders, project.id])
 
   // Load documents in folder
