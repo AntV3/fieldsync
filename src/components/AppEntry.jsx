@@ -212,7 +212,8 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       // sent, causing every write (add load, submit report, etc.) to
       // fail silently due to RLS. Show a clear error instead.
       if (result.error) {
-        onShowToast('Authentication error. Please try again or contact your administrator.', 'error')
+        console.error('[Foreman Auth] PIN validation failed:', result.error)
+        onShowToast(result.error, 'error')
         setPin('')
         return
       }

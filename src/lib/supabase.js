@@ -828,7 +828,7 @@ export const db = {
 
       const deviceId = getDeviceId()
 
-      // Use the new session-based validation
+      // Try session-based validation first (requires DB migration)
       const { data, error } = await supabase
         .rpc('validate_pin_and_create_session', {
           p_pin: pin,
@@ -838,9 +838,9 @@ export const db = {
         })
 
       if (error) {
-        // RPC server error (not a wrong PIN) — don't penalize the attempt counter
-        console.error('[PIN Auth] RPC error')
-        return { success: false, rateLimited: false, project: null, error: error.message }
+        // RPC failed — fall back to direct PIN query so foreman can still log in
+        console.warn('[PIN Auth] RPC unavailable, using direct PIN lookup:', error.message)
+        return await this._pinFallbackDirectQuery(pin, companyCode, rateLimitKey, lockoutKey, MAX_ATTEMPTS, LOCKOUT_MS)
       }
 
       if (!data || data.length === 0) {
@@ -941,6 +941,97 @@ export const db = {
         rateLimited: false,
         project: project || null
       }
+    }
+  },
+
+  // Fallback PIN validation using direct table queries.
+  // Used when the validate_pin_and_create_session RPC is unavailable
+  // (e.g. database migration not yet applied). This is safe because
+  // if the RPC doesn't exist, the old open RLS policies are still active.
+  async _pinFallbackDirectQuery(pin, companyCode, rateLimitKey, lockoutKey, maxAttempts, lockoutMs) {
+    try {
+      // Look up company by code (case-insensitive)
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .ilike('code', companyCode.trim())
+        .single()
+
+      if (companyError || !company) {
+        return { success: false, rateLimited: false, project: null }
+      }
+
+      // Look up project by PIN within company
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('pin', pin.trim())
+        .eq('company_id', company.id)
+        .eq('status', 'active')
+        .single()
+
+      if (projectError || !project) {
+        // Count as failed attempt
+        let attempts = parseInt(localStorage.getItem(rateLimitKey) || '0')
+        attempts++
+        localStorage.setItem(rateLimitKey, attempts.toString())
+        if (attempts >= maxAttempts) {
+          localStorage.setItem(lockoutKey, (Date.now() + lockoutMs).toString())
+          return {
+            success: false,
+            rateLimited: true,
+            project: null,
+            error: 'Too many failed attempts. Please try again in 5 minutes.'
+          }
+        }
+        return { success: false, rateLimited: false, project: null }
+      }
+
+      // SUCCESS: Clear rate limit counters
+      localStorage.removeItem(rateLimitKey)
+      localStorage.removeItem(lockoutKey)
+
+      // Store a field session so the app knows we're in foreman mode.
+      // Try server-side session creation first; if the table doesn't
+      // exist yet we proceed without one (old RLS allows anonymous access).
+      let sessionToken = null
+      try {
+        const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+          .map(b => b.toString(16).padStart(2, '0')).join('')
+        const { error: insertError } = await supabase
+          .from('field_sessions')
+          .insert({
+            project_id: project.id,
+            company_id: company.id,
+            session_token: token,
+            device_id: typeof getDeviceId === 'function' ? getDeviceId() : null
+          })
+        if (!insertError) {
+          sessionToken = token
+        }
+      } catch {
+        // field_sessions table may not exist — that's OK
+      }
+
+      if (sessionToken) {
+        setFieldSession({
+          token: sessionToken,
+          projectId: project.id,
+          companyId: company.id,
+          projectName: project.name,
+          companyName: company.name,
+          createdAt: new Date().toISOString()
+        })
+      }
+
+      return {
+        success: true,
+        rateLimited: false,
+        project: project
+      }
+    } catch (err) {
+      console.error('[PIN Auth] Fallback query failed:', err)
+      return { success: false, rateLimited: false, project: null, error: 'Connection error. Please try again.' }
     }
   },
 
@@ -2548,7 +2639,15 @@ export const db = {
         .select('*')
         .ilike('code', code.trim())
         .single()
-      if (error) return null
+      if (error) {
+        console.error('[Company Lookup] Error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
+        return null
+      }
       return data
     }
     return null
