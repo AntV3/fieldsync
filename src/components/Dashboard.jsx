@@ -2384,6 +2384,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           <ClipboardList size={48} className="empty-state-icon" />
           <h3>No Projects Yet</h3>
           <p>Create your first project to get started</p>
+          {!showOnboarding && (
+            <button className="empty-state-guide-btn" onClick={() => setShowOnboarding(true)}>
+              <Info size={16} />
+              Review Getting Started Guide
+            </button>
+          )}
         </div>
       </>
     )
@@ -2392,10 +2398,22 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Portfolio overview - uses memoized values from above
   return (
     <div>
+      {showOnboarding && (
+        <OnboardingWizard
+          company={company}
+          user={user}
+          onShowToast={onShowToast}
+          onDismiss={() => setShowOnboarding(false)}
+        />
+      )}
       {/* Business Overview - High Level Portfolio Health */}
       <div className="business-overview">
         <div className="bo-header">
           <h2 className="bo-title">Portfolio Overview</h2>
+          <button className="bo-guide-btn" onClick={() => setShowOnboarding(true)} title="Getting Started Guide">
+            <Info size={15} />
+            <span>Guide</span>
+          </button>
           <button className="search-trigger-btn" onClick={() => setSearchOpen(true)}>
             <Search size={16} />
             <span>Search</span>
