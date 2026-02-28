@@ -11,6 +11,7 @@ import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
 import InstallPrompt from './components/InstallPrompt'
+import CookieConsent from './components/legal/CookieConsent'
 import MFAChallenge from './components/MFAChallenge'
 // ForemanView imported directly to avoid lazy loading bundling issues
 import ForemanView from './components/ForemanView'
@@ -24,6 +25,8 @@ const PublicView = lazy(() => import('./components/PublicView'))
 const SignaturePage = lazy(() => import('./components/SignaturePage'))
 const MembershipManager = lazy(() => import('./components/MembershipManager'))
 const LandingPage = lazy(() => import('./components/landing/LandingPage'))
+const PrivacyPolicy = lazy(() => import('./components/legal/PrivacyPolicy'))
+const TermsOfService = lazy(() => import('./components/legal/TermsOfService'))
 
 // Loading fallback component
 function PageLoader() {
@@ -643,6 +646,12 @@ export default function App() {
           <Route path="/sign/:token" element={
             <ErrorBoundary><SignatureRoute />{toastEl}</ErrorBoundary>
           } />
+          <Route path="/privacy" element={
+            <ErrorBoundary><Suspense fallback={<PageLoader />}><PrivacyPolicy /></Suspense></ErrorBoundary>
+          } />
+          <Route path="/terms" element={
+            <ErrorBoundary><Suspense fallback={<PageLoader />}><TermsOfService /></Suspense></ErrorBoundary>
+          } />
 
           {/* Login / Entry */}
           <Route path="/login" element={
@@ -716,6 +725,7 @@ export default function App() {
           {/* 404 catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <CookieConsent />
       </BrandingProvider>
     </ThemeProvider>
   )

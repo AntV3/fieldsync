@@ -14,6 +14,8 @@ import OverviewFinancialCard from './overview/OverviewFinancialCard'
 import OverviewCrewMetrics from './overview/OverviewCrewMetrics'
 import HeroMetrics from './HeroMetrics'
 import { TicketSkeleton } from './ui'
+import OnboardingWizard from './onboarding/OnboardingWizard'
+import { isOnboardingComplete } from './onboarding/onboardingState'
 
 // Financials components
 import FinancialsNav from './FinancialsNav'
@@ -81,6 +83,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showDrawRequestModal, setShowDrawRequestModal] = useState(false)
   const [editingDrawRequest, setEditingDrawRequest] = useState(null)
   const [drawRequestRefreshKey, setDrawRequestRefreshKey] = useState(0)
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete())
 
   // Universal Search (Cmd+K)
   const { isOpen: isSearchOpen, setIsOpen: setSearchOpen, close: closeSearch } = useUniversalSearch()
@@ -2365,14 +2368,24 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     )
   }
 
-  // Project List View - empty state
+  // Project List View - empty state with onboarding for new users
   if (projects.length === 0) {
     return (
-      <div className="empty-state">
-        <ClipboardList size={48} className="empty-state-icon" />
-        <h3>No Projects Yet</h3>
-        <p>Create your first project to get started</p>
-      </div>
+      <>
+        {showOnboarding && (
+          <OnboardingWizard
+            company={company}
+            user={user}
+            onShowToast={onShowToast}
+            onDismiss={() => setShowOnboarding(false)}
+          />
+        )}
+        <div className="empty-state">
+          <ClipboardList size={48} className="empty-state-icon" />
+          <h3>No Projects Yet</h3>
+          <p>Create your first project to get started</p>
+        </div>
+      </>
     )
   }
 

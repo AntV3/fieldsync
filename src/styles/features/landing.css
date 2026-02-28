@@ -787,6 +787,24 @@
   margin: 0 0 1.5rem;
 }
 
+.lp-footer-legal {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.lp-footer-legal a {
+  color: #787986;
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.lp-footer-legal a:hover {
+  color: #3b82f6;
+}
+
 .lp-footer-copy {
   font-size: 0.75rem;
   color: #4a4a52;

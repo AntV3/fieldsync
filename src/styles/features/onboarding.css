@@ -1,0 +1,398 @@
+/* =============================================
+   ONBOARDING WIZARD
+   ============================================= */
+
+/* ---- Overlay ---- */
+
+.ob-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 1.5rem;
+  animation: ob-fade-in 0.3s ease-out;
+}
+
+@keyframes ob-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---- Wizard Container ---- */
+
+.ob-wizard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: ob-slide-up 0.35s ease-out;
+}
+
+@keyframes ob-slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ---- Progress Dots ---- */
+
+.ob-progress {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 1.25rem 1.5rem 0;
+}
+
+.ob-progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-color);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.ob-progress-dot.active {
+  background: var(--accent-blue);
+  transform: scale(1.3);
+}
+
+.ob-progress-dot.done {
+  background: var(--accent-green);
+}
+
+/* ---- Body ---- */
+
+.ob-body {
+  padding: 2rem 2rem 1.5rem;
+  flex: 1;
+}
+
+/* ---- Step Shared ---- */
+
+.ob-step h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.ob-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.ob-subtitle strong {
+  color: var(--accent-blue);
+}
+
+/* ---- Welcome Step ---- */
+
+.ob-welcome-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  color: var(--accent-blue);
+}
+
+.ob-time-estimate {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* ---- How It Works Step ---- */
+
+.ob-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.ob-flow-card {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.ob-flow-card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.ob-flow-card p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ob-flow-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+}
+
+.ob-flow-field {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+}
+
+.ob-flow-office {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent-blue);
+}
+
+.ob-flow-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* ---- Codes Step ---- */
+
+.ob-code-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ob-code-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.ob-code-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.ob-code-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+}
+
+.ob-code-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ob-code-value code {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--accent-blue);
+  font-family: 'Space Mono', monospace;
+}
+
+.ob-copy-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ob-copy-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.ob-code-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ---- Create Project Step ---- */
+
+.ob-create-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  color: var(--accent-green);
+}
+
+.ob-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.ob-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--accent-green);
+}
+
+.ob-checklist-item span {
+  color: var(--text-secondary);
+}
+
+.ob-checklist-next {
+  color: var(--accent-blue);
+}
+
+.ob-checklist-next span {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ---- Actions ---- */
+
+.ob-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem 1.5rem;
+  gap: 1rem;
+}
+
+.ob-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-family: inherit;
+  margin-left: auto;
+}
+
+.ob-btn-primary:hover {
+  background: #2563eb;
+}
+
+.ob-btn-back {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
+  font-family: inherit;
+}
+
+.ob-btn-back:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ob-btn-skip {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  transition: color 0.2s ease;
+  font-family: inherit;
+}
+
+.ob-btn-skip:hover {
+  color: var(--text-secondary);
+}
+
+/* ---- Mobile Responsive ---- */
+
+@media (max-width: 560px) {
+  .ob-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .ob-wizard {
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: 16px 16px 0 0;
+    animation: ob-slide-up-mobile 0.35s ease-out;
+  }
+
+  @keyframes ob-slide-up-mobile {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .ob-body {
+    padding: 1.5rem 1.25rem 1rem;
+  }
+
+  .ob-step h2 {
+    font-size: 1.25rem;
+  }
+
+  .ob-flow {
+    flex-direction: column;
+  }
+
+  .ob-flow-arrow {
+    justify-content: center;
+    transform: rotate(90deg);
+  }
+
+  .ob-actions {
+    padding: 0.75rem 1.25rem 1.25rem;
+  }
+}
