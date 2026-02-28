@@ -16,6 +16,7 @@
 
 -- Drop the open public policy
 DROP POLICY IF EXISTS "Public read access for tm-photos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated or field session can read tm-photos" ON storage.objects;
 
 -- Replace with authenticated + valid field session access
 CREATE POLICY "Authenticated or field session can read tm-photos"

@@ -608,6 +608,7 @@ GRANT EXECUTE ON FUNCTION invalidate_field_session(TEXT) TO anon;
 -- ============================================================
 
 DROP POLICY IF EXISTS "Public read access for tm-photos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated or field session can read tm-photos" ON storage.objects;
 
 CREATE POLICY "Authenticated or field session can read tm-photos"
 ON storage.objects
