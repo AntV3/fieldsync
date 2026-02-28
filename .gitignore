@@ -25,3 +25,13 @@ npm-debug.log*
 
 # Local development
 .cache/
+
+# Capacitor native build artifacts
+ios/App/Pods/
+ios/App/App/public/
+ios/App/output/
+android/.gradle/
+android/app/build/
+android/app/src/main/assets/public/
+android/build/
+android/local.properties
