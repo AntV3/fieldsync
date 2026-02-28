@@ -1451,6 +1451,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           daysWorked={projectData?.totalBurnDays || 0}
                           laborCost={projectData?.laborCost || 0}
                           materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                          disposalCost={projectData?.haulOffCost || 0}
+                          customCostTotal={projectData?.customCostTotal || 0}
                           progress={progress}
                           contractValue={revisedContractValue}
                           laborByDate={projectData?.laborByDate || []}
@@ -1470,6 +1472,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         <CostContributorsCard
                           laborCost={projectData?.laborCost || 0}
                           haulOffCost={projectData?.haulOffCost || 0}
+                          materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
                           customCosts={projectData?.customCosts || []}
                           onAddCost={handleAddCost}
                           onDeleteCost={handleDeleteCost}

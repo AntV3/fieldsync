@@ -4,11 +4,17 @@
 
 /* Progress Billing Card */
 .progress-billing-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  padding: 14px 16px;
   margin-top: 1rem;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.progress-billing-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .progress-billing-header {

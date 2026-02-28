@@ -764,10 +764,23 @@
 }
 
 .reports-hero {
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
+  background: var(--gradient-hero);
   border-radius: var(--radius-xl);
-  padding: 1.5rem;
-  border: 1px solid var(--border-color);
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.reports-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-blue);
 }
 
 .reports-hero-grid {
@@ -874,10 +887,16 @@
 
 /* Reports Section Card */
 .reports-section-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.reports-section-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .reports-section-card.has-warning {
@@ -961,10 +980,16 @@
 
 /* Reports Insight Card */
 .reports-insight-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.reports-insight-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .reports-insight-header {
