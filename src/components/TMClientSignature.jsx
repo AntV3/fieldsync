@@ -1,10 +1,21 @@
 import { useState, useRef } from 'react'
-import { X, Check, RotateCcw, Pen, User, Building, Briefcase } from 'lucide-react'
+import { X, Check, RotateCcw, Pen, User, Building, Briefcase, HardHat, Wrench, Camera, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { db } from '../lib/supabase'
+
+// Helper to format time (HH:MM to 9:00am format)
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes}${ampm}`
+}
 
 export default function TMClientSignature({
   ticketId,
   ticketSummary, // { workDate, workerCount, totalHours }
+  ticketDetails, // { projectName, cePcoNumber, notes, workers, items, photos }
   lang = 'en',
   onSave,
   onClose,
@@ -38,6 +49,22 @@ export default function TMClientSignature({
       workDate: 'Work Date',
       workers: 'Workers',
       hours: 'Total Hours',
+      project: 'Project',
+      description: 'Description',
+      workerDetails: 'Worker Details',
+      name: 'Name',
+      role: 'Role',
+      time: 'Time',
+      regHrs: 'Reg Hrs',
+      ot: 'OT',
+      materialsEquipment: 'Materials & Equipment',
+      item: 'Item',
+      qty: 'Qty',
+      unit: 'Unit',
+      photos: 'Photos',
+      ticketDetails: 'Ticket Details',
+      showDetails: 'Show Full Details',
+      hideDetails: 'Hide Details',
       certification: 'By signing, I acknowledge that the work described in this T&M ticket was performed as documented.',
       nameRequired: 'Please enter your name',
       signatureRequired: 'Please sign above',
@@ -62,6 +89,22 @@ export default function TMClientSignature({
       workDate: 'Fecha',
       workers: 'Trabajadores',
       hours: 'Horas Total',
+      project: 'Proyecto',
+      description: 'Descripcion',
+      workerDetails: 'Detalle de Trabajadores',
+      name: 'Nombre',
+      role: 'Rol',
+      time: 'Hora',
+      regHrs: 'Hrs Reg',
+      ot: 'HE',
+      materialsEquipment: 'Materiales y Equipo',
+      item: 'Articulo',
+      qty: 'Cant',
+      unit: 'Unidad',
+      photos: 'Fotos',
+      ticketDetails: 'Detalles del Ticket',
+      showDetails: 'Mostrar Detalles Completos',
+      hideDetails: 'Ocultar Detalles',
       certification: 'Al firmar, reconozco que el trabajo descrito en este ticket T&M fue realizado como se documenta.',
       nameRequired: 'Por favor ingrese su nombre',
       signatureRequired: 'Por favor firme arriba',
@@ -207,7 +250,7 @@ export default function TMClientSignature({
         </div>
 
         <div className="tm-sig-body">
-          {/* Ticket Summary */}
+          {/* Ticket Summary Header */}
           {ticketSummary && (
             <div className="tm-sig-summary">
               <div className="tm-sig-summary-item">
@@ -224,6 +267,109 @@ export default function TMClientSignature({
                 <span className="tm-sig-summary-label">{text.hours}</span>
                 <span className="tm-sig-summary-value">{ticketSummary.totalHours}</span>
               </div>
+            </div>
+          )}
+
+          {/* Full Ticket Details */}
+          {ticketDetails && (
+            <div className="tm-sig-details">
+              {/* Project & CE/PCO */}
+              {ticketDetails.projectName && (
+                <div className="tm-sig-detail-row">
+                  <span className="tm-sig-detail-label">{text.project}</span>
+                  <span className="tm-sig-detail-value">{ticketDetails.projectName}</span>
+                </div>
+              )}
+              {ticketDetails.cePcoNumber && (
+                <div className="tm-sig-detail-row">
+                  <span className="tm-sig-detail-label">CE/PCO</span>
+                  <span className="tm-sig-detail-value">{ticketDetails.cePcoNumber}</span>
+                </div>
+              )}
+
+              {/* Description / Notes */}
+              {ticketDetails.notes && (
+                <div className="tm-sig-detail-row tm-sig-detail-full">
+                  <span className="tm-sig-detail-label"><FileText size={14} /> {text.description}</span>
+                  <span className="tm-sig-detail-value tm-sig-notes">{ticketDetails.notes}</span>
+                </div>
+              )}
+
+              {/* Workers Table */}
+              {ticketDetails.workers?.length > 0 && (
+                <div className="tm-sig-detail-section">
+                  <h4 className="tm-sig-section-title"><HardHat size={15} /> {text.workerDetails}</h4>
+                  <table className="tm-sig-table">
+                    <thead>
+                      <tr>
+                        <th>{text.name}</th>
+                        <th>{text.role}</th>
+                        <th>{text.time}</th>
+                        <th>{text.regHrs}</th>
+                        <th>{text.ot}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ticketDetails.workers.map((w, idx) => (
+                        <tr key={idx}>
+                          <td>{w.name}</td>
+                          <td>{w.role || '-'}</td>
+                          <td>
+                            {w.time_started && w.time_ended
+                              ? `${formatTime(w.time_started)}-${formatTime(w.time_ended)}`
+                              : '-'}
+                          </td>
+                          <td>{w.hours || 0}</td>
+                          <td>{w.overtime_hours || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Materials & Equipment Table */}
+              {ticketDetails.items?.length > 0 && (
+                <div className="tm-sig-detail-section">
+                  <h4 className="tm-sig-section-title"><Wrench size={15} /> {text.materialsEquipment}</h4>
+                  <table className="tm-sig-table">
+                    <thead>
+                      <tr>
+                        <th>{text.item}</th>
+                        <th>{text.qty}</th>
+                        <th>{text.unit}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ticketDetails.items.map((item, idx) => (
+                        <tr key={idx}>
+                          <td>{item.name}</td>
+                          <td>{item.quantity}</td>
+                          <td>{item.unit}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Photos */}
+              {ticketDetails.photos?.length > 0 && (
+                <div className="tm-sig-detail-section">
+                  <h4 className="tm-sig-section-title"><Camera size={15} /> {text.photos} ({ticketDetails.photos.length})</h4>
+                  <div className="tm-sig-photo-grid">
+                    {ticketDetails.photos.map((photo, idx) => (
+                      <div key={idx} className="tm-sig-photo-thumb">
+                        <img
+                          src={typeof photo === 'string' ? photo : (photo.previewUrl || photo.url)}
+                          alt={`Photo ${idx + 1}`}
+                          onError={(e) => { e.target.style.display = 'none' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

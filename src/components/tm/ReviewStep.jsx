@@ -220,6 +220,52 @@ export default function ReviewStep({
                 workerCount: totalWorkers,
                 totalHours: totalRegHours + totalOTHours
               }}
+              ticketDetails={{
+                projectName: project?.name,
+                cePcoNumber: cePcoNumber,
+                notes: notes,
+                workers: hasCustomLaborClasses
+                  ? validDynamicWorkersList.map(w => ({
+                      name: w.name,
+                      role: w.role,
+                      hours: w.hours || 0,
+                      overtime_hours: w.overtime_hours || 0,
+                      time_started: w.time_started,
+                      time_ended: w.time_ended
+                    }))
+                  : [
+                      ...validSupervision.map(s => ({
+                        name: s.name,
+                        role: s.role || 'Supervision',
+                        hours: s.hours || 0,
+                        overtime_hours: s.overtimeHours || 0,
+                        time_started: s.timeStarted,
+                        time_ended: s.timeEnded
+                      })),
+                      ...validOperators.map(o => ({
+                        name: o.name,
+                        role: 'Operator',
+                        hours: o.hours || 0,
+                        overtime_hours: o.overtimeHours || 0,
+                        time_started: o.timeStarted,
+                        time_ended: o.timeEnded
+                      })),
+                      ...validLaborers.map(l => ({
+                        name: l.name,
+                        role: 'Laborer',
+                        hours: l.hours || 0,
+                        overtime_hours: l.overtimeHours || 0,
+                        time_started: l.timeStarted,
+                        time_ended: l.timeEnded
+                      }))
+                    ],
+                items: items.map(item => ({
+                  name: item.name,
+                  quantity: item.quantity,
+                  unit: item.unit
+                })),
+                photos: photos.filter(p => p.status === 'confirmed' || p.previewUrl)
+              }}
               lang={lang}
               onSave={() => {
                 setShowOnSiteSignature(false)
