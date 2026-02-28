@@ -50,7 +50,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   // COR assignment state
   const [selectedCorId, setSelectedCorId] = useState('')
   const [assignableCORs, setAssignableCORs] = useState([])
-  const [loadingCORs, setLoadingCORs] = useState(false)
+  const [_loadingCORs, setLoadingCORs] = useState(false)
 
   // Batch hours modal state
   const [showBatchHoursModal, setShowBatchHoursModal] = useState(false)
@@ -95,6 +95,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     return () => {
       corSub?.unsubscribe?.()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
   // Load custom labor classes for the company

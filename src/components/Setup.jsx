@@ -89,7 +89,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       return
     }
 
-    let newAreas = [...areas]
+    const newAreas = [...areas]
     const validIndices = areas.map((a, i) => a.name.trim() ? i : -1).filter(i => i >= 0)
 
     if (method === 'value') {
@@ -234,7 +234,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
 
             if (isGroupHeader && !hasDollarAmount) {
               // Extract group name, removing any item number prefix
-              let groupName = cells.find(c => !itemNumberPattern.test(c) && c.length > 1) || cells.join(' ')
+              const groupName = cells.find(c => !itemNumberPattern.test(c) && c.length > 1) || cells.join(' ')
               currentGroup = groupName
                 .replace(/\s*\(\d{1,3}(?:,\d{3})*\s*SF\)\s*$/i, '')
                 .replace(/\s*[-:]\s*$/, '')
@@ -342,7 +342,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     const file = e.target.files?.[0]
     if (!file) return
     
-    const validTypes = [
+    const _validTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
       'application/vnd.ms-excel', // .xls
       'text/csv'

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useMemo } from 'react'
 import { BarChart3, TrendingUp, TrendingDown, Minus, Info, Building2, Factory } from 'lucide-react'
 
@@ -97,7 +98,7 @@ function BenchmarkBar({
   description = ''
 }) {
   const performance = calculatePerformance(value, benchmark, higherIsBetter)
-  const companyPerformance = companyAverage !== undefined
+  const _companyPerformance = companyAverage !== undefined
     ? calculatePerformance(companyAverage, benchmark, higherIsBetter)
     : null
 

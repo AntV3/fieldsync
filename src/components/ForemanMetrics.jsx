@@ -9,7 +9,7 @@ import {
   CheckCircle2, Clock, DollarSign, ArrowLeft
 } from 'lucide-react'
 
-export default function ForemanMetrics({ project, companyId, onBack }) {
+export default function ForemanMetrics({ project, companyId: _companyId, onBack }) {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('week') // week, month
   const [metrics, setMetrics] = useState({
@@ -24,6 +24,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     if (project?.id) {
       loadMetrics()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, timeRange])
 
   const loadMetrics = async () => {
@@ -87,6 +88,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     refreshTimeoutRef.current = setTimeout(() => {
       loadMetrics()
     }, 300)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, timeRange])
 
   useEffect(() => {
@@ -161,7 +163,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const sortedDates = [...new Set(reports.filter(r => r.submitted).map(r => r.report_date))].sort().reverse()
     let streak = 0
     const today = new Date().toISOString().split('T')[0]
-    let checkDate = new Date(today)
+    const checkDate = new Date(today)
 
     for (let i = 0; i < 30; i++) {
       const dateStr = checkDate.toISOString().split('T')[0]

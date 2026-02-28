@@ -180,7 +180,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         onShowToast('Invalid company code', 'error')
         setCompanyCode('')
       }
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error checking code', 'error')
     } finally {
       setLoading(false)
@@ -226,7 +226,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
       onShowToast('Invalid PIN', 'error')
       setPin('')
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error checking PIN. Please check your connection.', 'error')
       setPin('')
     } finally {
@@ -298,7 +298,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         onShowToast('Invalid company code', 'error')
         setCompanyCode('')
       }
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error checking code', 'error')
     } finally {
       setLoading(false)
@@ -328,7 +328,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         onShowToast('Invalid office code', 'error')
         setOfficeCode('')
       }
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error verifying code', 'error')
     } finally {
       setLoading(false)

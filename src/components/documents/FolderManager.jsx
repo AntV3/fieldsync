@@ -33,7 +33,7 @@ export default function FolderManager({
   companyId,
   folders,
   onFoldersChange,
-  onClose,
+  onClose: _onClose,
   onShowToast
 }) {
   const [showCreateModal, setShowCreateModal] = useState(false)

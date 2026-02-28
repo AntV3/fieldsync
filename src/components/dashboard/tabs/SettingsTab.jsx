@@ -8,7 +8,7 @@ export default function SettingsTab({
   company,
   user,
   isAdmin,
-  projectData,
+  projectData: _projectData,
   areas,
   areasComplete,
   areasWorking,

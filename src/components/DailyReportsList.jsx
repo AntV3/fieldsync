@@ -36,6 +36,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
   const loadReports = useCallback(async () => {
@@ -51,6 +52,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Filter reports based on view mode and date filter
@@ -268,7 +270,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     yPos += 25
 
     // Reports
-    exportReports.forEach((report, index) => {
+    exportReports.forEach((report, _index) => {
       // Check if we need a new page
       if (yPos > 250) {
         doc.addPage()

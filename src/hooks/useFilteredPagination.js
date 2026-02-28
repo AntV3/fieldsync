@@ -35,19 +35,23 @@ export function useFilteredPagination(items = [], options = {}) {
   // Keep totalItems in sync with filtered results
   useMemo(() => {
     pagination.setTotalItems(filteredItems.length)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredItems.length])
 
   const paginatedItems = useMemo(() => {
     return pagination.paginate(filteredItems)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredItems, pagination.paginate])
 
   const setSearchTerm = useCallback((term) => {
     setSearchTermRaw(term)
     pagination.goToPage(1)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.goToPage])
 
   const setPageSize = useCallback((size) => {
     pagination.setItemsPerPage(size)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.setItemsPerPage])
 
   return {

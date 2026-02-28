@@ -33,6 +33,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
     if (company?.id) {
       loadData()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id])
 
   const loadData = async () => {

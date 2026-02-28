@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
+import { db, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
   Info, CheckSquare,
@@ -48,9 +48,9 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
   // Get current hour for time-based UI
   const currentHour = new Date().getHours()
-  const isMorning = currentHour >= 5 && currentHour < 12
-  const isAfternoon = currentHour >= 12 && currentHour < 17
-  const isEvening = currentHour >= 17 || currentHour < 5
+  const _isMorning = currentHour >= 5 && currentHour < 12
+  const _isAfternoon = currentHour >= 12 && currentHour < 17
+  const _isEvening = currentHour >= 17 || currentHour < 5
 
   useEffect(() => {
     if (project?.id) {
@@ -58,6 +58,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       loadTodayStatus()
       loadPunchListCount()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   // Load today's activity status
@@ -113,6 +114,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       loadAreas()
       loadTodayStatus()
     }, 300)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   useEffect(() => {
@@ -166,6 +168,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
       subs.forEach(sub => db.unsubscribe?.(sub))
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, debouncedRefresh])
 
   const loadAreas = async () => {

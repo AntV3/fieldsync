@@ -41,7 +41,7 @@ export default function ReviewStep({
   totalWorkers, totalRegHours, totalOTHours,
   submittedByName, setSubmittedByName,
   submittedTicket,
-  submitting, submitProgress,
+  submitting: _submitting, submitProgress: _submitProgress,
   clientSigned, setClientSigned,
   showSignatureLinkModal, setShowSignatureLinkModal,
   showOnSiteSignature, setShowOnSiteSignature,

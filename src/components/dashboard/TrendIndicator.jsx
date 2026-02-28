@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react'
 import { ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react'
 
@@ -18,7 +19,7 @@ export function TrendIndicator({
   context,
   inverted = false,
   format = 'percent',
-  size = 'md',
+  size: _size = 'md',
   className = ''
 }) {
   // Determine direction

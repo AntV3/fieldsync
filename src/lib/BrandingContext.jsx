@@ -1,5 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from './supabase'
+import { observe } from './observability'
 
 const BrandingContext = createContext()
 
@@ -29,6 +31,7 @@ export function BrandingProvider({ children, companyId }) {
       // Check if we're on a custom domain
       loadBrandingByDomain()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId])
 
   // Apply branding as CSS variables when branding changes
@@ -58,14 +61,14 @@ export function BrandingProvider({ children, companyId }) {
         if (error.code === 'PGRST116') {
           await createDefaultBranding(companyId)
         } else {
-          console.error('Error loading branding:', error)
+          observe.error('database', { message: error?.message, operation: 'loadBranding' })
         }
         setBranding(DEFAULT_BRANDING)
       } else {
         setBranding({ ...DEFAULT_BRANDING, ...data })
       }
     } catch (error) {
-      console.error('Error in loadBranding:', error)
+      observe.error('database', { message: error?.message, operation: 'loadBranding' })
       setBranding(DEFAULT_BRANDING)
     } finally {
       setLoading(false)
@@ -99,7 +102,7 @@ export function BrandingProvider({ children, companyId }) {
         setBranding({ ...DEFAULT_BRANDING, ...data[0] })
       }
     } catch (error) {
-      console.error('Error loading branding by domain:', error)
+      observe.error('database', { message: error?.message, operation: 'loadBrandingByDomain' })
       setBranding(DEFAULT_BRANDING)
     } finally {
       setLoading(false)
@@ -108,7 +111,7 @@ export function BrandingProvider({ children, companyId }) {
 
   const createDefaultBranding = async (companyId) => {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('company_branding')
         .insert({
           company_id: companyId,
@@ -118,10 +121,10 @@ export function BrandingProvider({ children, companyId }) {
         .single()
 
       if (error) {
-        console.error('Error creating default branding:', error)
+        observe.error('database', { message: error?.message, operation: 'createDefaultBranding' })
       }
     } catch (error) {
-      console.error('Error in createDefaultBranding:', error)
+      observe.error('database', { message: error?.message, operation: 'createDefaultBranding' })
     }
   }
 
@@ -153,7 +156,7 @@ export function BrandingProvider({ children, companyId }) {
       }
 
       // First check if branding record exists
-      const { data: existing, error: checkError } = await supabase
+      const { data: _existing, error: checkError } = await supabase
         .from('company_branding')
         .select('id')
         .eq('company_id', companyId)
@@ -171,7 +174,7 @@ export function BrandingProvider({ children, companyId }) {
           .single()
 
         if (error) {
-          console.error('Error creating branding:', error)
+          observe.error('database', { message: error?.message, operation: 'createBranding' })
           return { success: false, error: error.message }
         }
 
@@ -188,14 +191,14 @@ export function BrandingProvider({ children, companyId }) {
         .single()
 
       if (error) {
-        console.error('Error updating branding:', error)
+        observe.error('database', { message: error?.message, operation: 'updateBranding' })
         return { success: false, error: error.message }
       }
 
       setBranding({ ...DEFAULT_BRANDING, ...data })
       return { success: true, data }
     } catch (error) {
-      console.error('Error in updateBranding:', error)
+      observe.error('database', { message: error?.message, operation: 'updateBranding' })
       return { success: false, error: error.message }
     }
   }, [companyId])
@@ -234,7 +237,7 @@ export function BrandingProvider({ children, companyId }) {
       const fileName = `${companyId}/${type}-${Date.now()}.${fileExt}`
       const filePath = `branding/${fileName}`
 
-      const { data, error } = await supabase.storage
+      const { data: _data, error } = await supabase.storage
         .from('public')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -242,7 +245,7 @@ export function BrandingProvider({ children, companyId }) {
         })
 
       if (error) {
-        console.error('Error uploading image:', error)
+        observe.error('storage', { message: error?.message, operation: 'uploadBrandingImage' })
         return { success: false, error: error.message }
       }
 
@@ -252,7 +255,7 @@ export function BrandingProvider({ children, companyId }) {
 
       return { success: true, url: publicUrl }
     } catch (error) {
-      console.error('Error in uploadBrandingImage:', error)
+      observe.error('storage', { message: error?.message, operation: 'uploadBrandingImage' })
       return { success: false, error: error.message }
     }
   }, [companyId])
@@ -263,6 +266,7 @@ export function BrandingProvider({ children, companyId }) {
     } else {
       loadBrandingByDomain()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId])
 
   const value = useMemo(() => ({

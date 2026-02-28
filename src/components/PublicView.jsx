@@ -13,6 +13,7 @@ export default function PublicView({ shareToken }) {
 
   useEffect(() => {
     loadPublicData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shareToken])
 
   const loadPublicData = async () => {

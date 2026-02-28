@@ -2,6 +2,7 @@
 // Extracted from supabase.js for maintainability
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { observe } from './observability'
 
 export const equipmentOps = {
   // ----------------------------------------
@@ -13,7 +14,7 @@ export const equipmentOps = {
    */
   async getCompanyEquipment(companyId, activeOnly = true) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return []
     }
 
@@ -30,7 +31,7 @@ export const equipmentOps = {
     const { data, error } = await query
 
     if (error) {
-      console.error('Error fetching company equipment:', error)
+      observe.error('database', { message: error?.message, operation: 'getCompanyEquipment' })
       return []
     }
 
@@ -42,7 +43,7 @@ export const equipmentOps = {
    */
   async createEquipment(equipment) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return null
     }
 
@@ -53,7 +54,7 @@ export const equipmentOps = {
       .single()
 
     if (error) {
-      console.error('Error creating equipment:', error)
+      observe.error('database', { message: error?.message, operation: 'createEquipment' })
       throw error
     }
 
@@ -65,7 +66,7 @@ export const equipmentOps = {
    */
   async updateEquipment(equipmentId, updates) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return null
     }
 
@@ -77,7 +78,7 @@ export const equipmentOps = {
       .single()
 
     if (error) {
-      console.error('Error updating equipment:', error)
+      observe.error('database', { message: error?.message, operation: 'updateEquipment' })
       throw error
     }
 
@@ -100,7 +101,7 @@ export const equipmentOps = {
    */
   async getProjectEquipment(projectId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return []
     }
 
@@ -119,7 +120,7 @@ export const equipmentOps = {
       .order('start_date', { ascending: false })
 
     if (error) {
-      console.error('Error fetching project equipment:', error)
+      observe.error('database', { message: error?.message, operation: 'getProjectEquipment' })
       return []
     }
 
@@ -131,7 +132,7 @@ export const equipmentOps = {
    */
   async getActiveProjectEquipment(projectId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return []
     }
 
@@ -151,7 +152,7 @@ export const equipmentOps = {
       .order('start_date', { ascending: false })
 
     if (error) {
-      console.error('Error fetching active project equipment:', error)
+      observe.error('database', { message: error?.message, operation: 'getActiveProjectEquipment' })
       return []
     }
 
@@ -163,7 +164,7 @@ export const equipmentOps = {
    */
   async addEquipmentToProject(projectEquipment) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return null
     }
 
@@ -182,7 +183,7 @@ export const equipmentOps = {
       .single()
 
     if (error) {
-      console.error('Error adding equipment to project:', error)
+      observe.error('database', { message: error?.message, operation: 'addEquipmentToProject' })
       throw error
     }
 
@@ -194,7 +195,7 @@ export const equipmentOps = {
    */
   async updateProjectEquipment(projectEquipmentId, updates) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return null
     }
 
@@ -214,7 +215,7 @@ export const equipmentOps = {
       .single()
 
     if (error) {
-      console.error('Error updating project equipment:', error)
+      observe.error('database', { message: error?.message, operation: 'updateProjectEquipment' })
       throw error
     }
 
@@ -235,7 +236,7 @@ export const equipmentOps = {
    */
   async removeEquipmentFromProject(projectEquipmentId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return false
     }
 
@@ -245,7 +246,7 @@ export const equipmentOps = {
       .eq('id', projectEquipmentId)
 
     if (error) {
-      console.error('Error removing project equipment:', error)
+      observe.error('database', { message: error?.message, operation: 'removeProjectEquipment' })
       throw error
     }
 

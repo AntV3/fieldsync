@@ -84,7 +84,7 @@ export const TrendIndicator = memo(function TrendIndicator({
   const diff = value - previousValue
   const percentChange = previousValue !== 0 ? ((diff / previousValue) * 100) : 0
 
-  let direction = diff === 0 ? 'neutral' : diff > 0 ? 'up' : 'down'
+  const direction = diff === 0 ? 'neutral' : diff > 0 ? 'up' : 'down'
   let status = 'neutral'
 
   if (diff !== 0) {

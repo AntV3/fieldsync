@@ -53,7 +53,7 @@ export const loadImageAsBase64 = (url, timeout = 5000, quality = 0.85) => {
         // Use JPEG for photos (smaller than PNG), fallback to PNG for transparency
         const dataUrl = canvas.toDataURL('image/jpeg', quality)
         resolve(dataUrl)
-      } catch (e) {
+      } catch (_e) {
         // Canvas tainted or other error
         resolve(null)
       }

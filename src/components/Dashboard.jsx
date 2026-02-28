@@ -136,6 +136,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       // Always refresh projects to update metrics
       await loadProjects()
     }, 150)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Cleanup debounce timeout on unmount
@@ -153,6 +154,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       loadProjects()
       loadDumpSites()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id])
 
   // Track project IDs for subscription stability (avoids re-subscribing on every projects array change)
@@ -188,6 +190,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         db.unsubscribe?.(subscription)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id, projectIdsKey, debouncedRefresh])
 
   // Prevent body scroll when mobile sidebar is open
@@ -710,7 +713,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // provided by usePortfolioMetrics hook
 
   // Handler for alert actions
-  const handleAlertAction = useCallback(({ target, projectId, alert }) => {
+  const handleAlertAction = useCallback(({ target, projectId, alert: _alert }) => {
     const project = projects.find(p => p.id === projectId)
     if (project) {
       setSelectedProject(project)
@@ -746,6 +749,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     if (projectsData.length > 0) {
       checkAutoArchive()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Only run on mount
 
   // Memoized callbacks for child components to prevent unnecessary re-renders
@@ -853,9 +857,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       await db.deleteProjectCost(costId)
       loadProjects()
       onShowToast?.('Cost deleted', 'success')
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Error deleting cost', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // onShowToast is stable (memoized in App.jsx)
 
   // Memoize stats for FinancialsNav to prevent re-renders from inline object creation
@@ -883,7 +888,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Project Detail View
   if (selectedProject) {
     // Extract memoized values
-    const { progress, billable, changeOrderValue, revisedContractValue, isValueBased, earnedValue, totalSOVValue } = progressCalculations
+    const { progress, billable, changeOrderValue, revisedContractValue, isValueBased: _isValueBased, earnedValue: _earnedValue, totalSOVValue: _totalSOVValue } = progressCalculations
 
     // Edit Mode
     if (editMode && editData) {
@@ -1096,10 +1101,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const areasComplete = areas.filter(a => a.status === 'done').length
     const areasWorking = areas.filter(a => a.status === 'working').length
     const areasNotStarted = areas.filter(a => a.status === 'not_started').length
-    const percentBilled = revisedContractValue > 0
+    const _percentBilled = revisedContractValue > 0
       ? Math.round((billable / revisedContractValue) * 100)
       : 0
-    const hasChangeOrders = changeOrderValue > 0
+    const _hasChangeOrders = changeOrderValue > 0
 
     // Tab definitions with pending badges
     const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)
@@ -2201,7 +2206,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               project={selectedProject}
               user={user}
               onClose={() => setShowShareModal(false)}
-              onShareCreated={(share) => {
+              onShareCreated={(_share) => {
                 onShowToast('Share link created successfully!', 'success')
               }}
             />
@@ -2599,6 +2604,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   )
 }
 
+// eslint-disable-next-line no-unused-vars
 function ProjectCard({ project, onClick }) {
   const [areas, setAreas] = useState([])
 

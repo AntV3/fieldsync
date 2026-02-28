@@ -41,6 +41,7 @@ export default function CORLog({ project, company, onShowToast }) {
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
   const loadCORLog = async () => {

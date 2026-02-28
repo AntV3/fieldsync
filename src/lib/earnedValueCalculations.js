@@ -31,7 +31,7 @@ export function calculateEarnedValue({
   actualCosts = 0,
   startDate,
   endDate,
-  areas = []
+  areas: _areas = []
 }) {
   // BAC = Budget at Completion (revised with change orders)
   const bac = contractValue + changeOrderValue

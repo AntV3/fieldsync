@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { useState, useCallback } from 'react'
 import { AlertTriangle, XCircle, Info, X, ArrowRight } from 'lucide-react'
 

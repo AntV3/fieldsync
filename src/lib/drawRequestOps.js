@@ -2,6 +2,7 @@
 // Extracted from supabase.js for maintainability
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { observe } from './observability'
 
 export const drawRequestOps = {
   /**
@@ -9,7 +10,7 @@ export const drawRequestOps = {
    */
   async getNextDrawNumber(projectId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return 1
     }
 
@@ -22,7 +23,7 @@ export const drawRequestOps = {
       .single()
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error getting next draw number:', error)
+      observe.error('database', { message: error?.message, operation: 'getNextDrawNumber' })
     }
 
     return (data?.draw_number || 0) + 1
@@ -33,7 +34,7 @@ export const drawRequestOps = {
    */
   async getPreviousBillingTotals(projectId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return { totalBilled: 0, totalRetention: 0 }
     }
 
@@ -44,7 +45,7 @@ export const drawRequestOps = {
       .in('status', ['submitted', 'approved', 'paid'])
 
     if (error) {
-      console.error('Error getting previous billing totals:', error)
+      observe.error('database', { message: error?.message, operation: 'getPreviousBillingTotals' })
       return { totalBilled: 0, totalRetention: 0 }
     }
 
@@ -59,7 +60,7 @@ export const drawRequestOps = {
    */
   async getProjectDrawRequests(projectId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return []
     }
 
@@ -70,7 +71,7 @@ export const drawRequestOps = {
       .order('draw_number', { ascending: false })
 
     if (error) {
-      console.error('Error fetching draw requests:', error)
+      observe.error('database', { message: error?.message, operation: 'getDrawRequests' })
       return []
     }
 
@@ -82,7 +83,7 @@ export const drawRequestOps = {
    */
   async getDrawRequest(drawRequestId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return null
     }
 
@@ -98,7 +99,7 @@ export const drawRequestOps = {
       .single()
 
     if (error) {
-      console.error('Error fetching draw request:', error)
+      observe.error('database', { message: error?.message, operation: 'getDrawRequest' })
       return null
     }
 
@@ -110,7 +111,7 @@ export const drawRequestOps = {
    */
   async createDrawRequest(drawRequest, items) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return null
     }
 
@@ -122,7 +123,7 @@ export const drawRequestOps = {
       .single()
 
     if (drError) {
-      console.error('Error creating draw request:', drError)
+      observe.error('database', { message: drError?.message, operation: 'createDrawRequest' })
       throw drError
     }
 
@@ -139,7 +140,7 @@ export const drawRequestOps = {
         .insert(itemsWithDrawId)
 
       if (itemsError) {
-        console.error('Error creating draw request items:', itemsError)
+        observe.error('database', { message: itemsError?.message, operation: 'createDrawRequestItems' })
         // Don't throw - draw request was created, items can be added later
       }
     }
@@ -153,7 +154,7 @@ export const drawRequestOps = {
    */
   async updateDrawRequest(drawRequestId, updates) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return null
     }
 
@@ -165,7 +166,7 @@ export const drawRequestOps = {
       .single()
 
     if (error) {
-      console.error('Error updating draw request:', error)
+      observe.error('database', { message: error?.message, operation: 'updateDrawRequest' })
       throw error
     }
 
@@ -195,7 +196,7 @@ export const drawRequestOps = {
    */
   async updateDrawRequestItems(drawRequestId, items) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return false
     }
 
@@ -206,7 +207,7 @@ export const drawRequestOps = {
       .eq('draw_request_id', drawRequestId)
 
     if (deleteError) {
-      console.error('Error deleting old draw request items:', deleteError)
+      observe.error('database', { message: deleteError?.message, operation: 'updateDrawRequestItems' })
       throw deleteError
     }
 
@@ -223,7 +224,7 @@ export const drawRequestOps = {
         .insert(itemsWithDrawId)
 
       if (insertError) {
-        console.error('Error inserting draw request items:', insertError)
+        observe.error('database', { message: insertError?.message, operation: 'insertDrawRequestItems' })
         throw insertError
       }
     }
@@ -236,7 +237,7 @@ export const drawRequestOps = {
    */
   async deleteDrawRequest(drawRequestId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return false
     }
 
@@ -246,7 +247,7 @@ export const drawRequestOps = {
       .eq('id', drawRequestId)
 
     if (error) {
-      console.error('Error deleting draw request:', error)
+      observe.error('database', { message: error?.message, operation: 'deleteDrawRequest' })
       throw error
     }
 
@@ -259,7 +260,7 @@ export const drawRequestOps = {
    */
   async getScheduleOfValues(projectId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return []
     }
 
@@ -270,7 +271,7 @@ export const drawRequestOps = {
       .order('created_at')
 
     if (error) {
-      console.error('Error fetching schedule of values:', error)
+      observe.error('database', { message: error?.message, operation: 'getScheduleOfValues' })
       return []
     }
 
@@ -288,7 +289,7 @@ export const drawRequestOps = {
    */
   async getPreviousDrawItems(projectId) {
     if (!isSupabaseConfigured) {
-      console.warn('Supabase not configured')
+      observe.error('general', { message: 'Supabase not configured', severity: 'warning' })
       return {}
     }
 
@@ -303,7 +304,7 @@ export const drawRequestOps = {
       .single()
 
     if (drawError && drawError.code !== 'PGRST116') {
-      console.error('Error fetching latest draw:', drawError)
+      observe.error('database', { message: drawError?.message, operation: 'getPreviousDrawData' })
       return {}
     }
 
@@ -318,7 +319,7 @@ export const drawRequestOps = {
       .eq('draw_request_id', latestDraw.id)
 
     if (itemsError) {
-      console.error('Error fetching previous draw items:', itemsError)
+      observe.error('database', { message: itemsError?.message, operation: 'getPreviousDrawItems' })
       return {}
     }
 

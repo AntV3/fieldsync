@@ -8,14 +8,11 @@ import {
   getCachedAreas,
   updateCachedAreaStatus,
   cacheCrewCheckin,
-  getCachedCrewCheckin,
   cacheTMTicket,
-  getCachedTMTickets,
   generateTempId,
   cacheDailyReport,
   getCachedDailyReport,
   cacheMessage,
-  getCachedMessages,
   addPendingAction,
   getPendingActionCount,
   syncPendingActions,
@@ -26,7 +23,6 @@ import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { observe } from './observability'
 // Import field session management from dedicated module
 import {
-  getFieldSession,
   setFieldSession,
   clearFieldSession,
   getFieldClient,
@@ -48,7 +44,7 @@ export { equipmentOps, drawRequestOps }
 
 // Initialize offline database (guard for SSR/test environments)
 if (typeof window !== 'undefined') {
-  initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
+  initOfflineDB().catch(err => observe.error('database', { message: err?.message || 'Failed to init offline DB', operation: 'initOfflineDB' }))
 }
 
 // ============================================
@@ -64,45 +60,6 @@ const getDeviceId = () => {
     localStorage.setItem(key, deviceId)
   }
   return deviceId
-}
-
-// Simple retry with exponential backoff
-const withRetry = async (fn, maxRetries = 3, baseDelay = 1000) => {
-  let lastError
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn()
-    } catch (error) {
-      lastError = error
-      // Don't retry on auth errors or validation errors
-      if (error.code === 'PGRST301' || error.code === '42501' || error.code === '23514') {
-        throw error
-      }
-      // Wait with exponential backoff
-      if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, i)))
-      }
-    }
-  }
-  throw lastError
-}
-
-// Input validation helpers
-const validateAmount = (amount) => {
-  if (amount === null || amount === undefined) return true
-  const num = parseFloat(amount)
-  return !isNaN(num) && num >= 0 && num < 10000000
-}
-
-const validateTextLength = (text, maxLength = 10000) => {
-  if (!text) return true
-  return text.length <= maxLength
-}
-
-const sanitizeText = (text) => {
-  if (!text) return text
-  // Remove null bytes and trim
-  return text.replace(/\0/g, '').trim()
 }
 
 // ============================================
@@ -154,7 +111,7 @@ export const auth = {
     } else {
       // Demo mode - find local user (password check skipped intentionally)
       if (import.meta.env.DEV) {
-        console.warn('[auth] Demo mode: password validation is skipped. Do not use demo mode in production.')
+        observe.error('general', { message: 'Demo mode: password validation is skipped. Do not use demo mode in production.', severity: 'warning', operation: 'auth' })
       }
       const localData = getLocalData()
       const user = localData.users.find(u => u.email === email)
@@ -290,7 +247,7 @@ export const db = {
 
         // Cache projects for offline use
         if (data?.length > 0) {
-          cacheProjects(data).catch(err => console.error('Failed to cache projects:', err))
+          cacheProjects(data).catch(err => observe.error('database', { message: err?.message || 'Failed to cache projects', operation: 'getProjects' }))
         }
 
         return data
@@ -581,7 +538,7 @@ export const db = {
 
       return results
     } catch (error) {
-      console.error('Universal search error:', error)
+      observe.error('database', { message: error?.message || 'Universal search error', operation: 'universalSearch' })
       return results
     }
   },
@@ -641,7 +598,7 @@ export const db = {
 
   // Deep archive: archive project AND delete photos to reclaim storage
   // Call this after user has exported their important documents
-  async archiveProjectDeep(projectId, companyId) {
+  async archiveProjectDeep(projectId, _companyId) {
     if (!isSupabaseConfigured) return null
 
     // 1. Get all photo URLs for this project
@@ -745,7 +702,7 @@ export const db = {
         .select()
         .single()
       if (error) {
-        console.error('Supabase createProject error:', error.message, error.details, error.hint)
+        observe.error('database', { message: error?.message || 'Supabase createProject error', operation: 'createProject', extra: { details: error.details, hint: error.hint } })
         throw error
       }
       return data
@@ -839,7 +796,7 @@ export const db = {
 
       if (error) {
         // RPC failed — fall back to direct PIN query so foreman can still log in
-        console.warn('[PIN Auth] RPC unavailable, using direct PIN lookup:', error.message)
+        observe.error('general', { message: 'RPC unavailable, using direct PIN lookup', severity: 'warning', operation: 'PIN Auth' })
         return await this._pinFallbackDirectQuery(pin, companyCode, rateLimitKey, lockoutKey, MAX_ATTEMPTS, LOCKOUT_MS)
       }
 
@@ -892,7 +849,7 @@ export const db = {
 
       // Fetch full project details using the new session
       const client = getFieldClient()
-      const { data: projectData, error: projectError } = await client
+      const { data: projectData } = await client
         .from('projects')
         .select('*')
         .eq('id', result.project_id)
@@ -1030,7 +987,7 @@ export const db = {
         project: project
       }
     } catch (err) {
-      console.error('[PIN Auth] Fallback query failed:', err)
+      observe.error('database', { message: err?.message || 'Fallback query failed', operation: 'PIN Auth' })
       return { success: false, rateLimited: false, project: null, error: 'Connection error. Please try again.' }
     }
   },
@@ -1096,7 +1053,7 @@ export const db = {
         .single()
 
       if (error) {
-        console.error('Error updating project')
+        observe.error('database', { message: error?.message || 'Error updating project', operation: 'updateProject' })
         throw error
       }
       return data
@@ -1118,7 +1075,7 @@ export const db = {
       // in the database yet. This ensures a clean delete even on older schemas.
 
       // 1. Collect photo storage paths from tickets before deleting them
-      let photoPathsToDelete = []
+      const photoPathsToDelete = []
       try {
         const { data: tickets } = await supabase
           .from('t_and_m_tickets')
@@ -1202,7 +1159,7 @@ export const db = {
 
       // Cache areas for offline use
       if (data?.length > 0) {
-        cacheAreas(data).catch(err => console.error('Failed to cache areas:', err))
+        cacheAreas(data).catch(err => observe.error('database', { message: err?.message || 'Failed to cache areas', operation: 'getAreas' }))
       }
 
       return data
@@ -1269,7 +1226,7 @@ export const db = {
 
       // Update cache with server response
       if (data) {
-        updateCachedAreaStatus(id, status).catch(err => console.error('Failed to update cached area status:', err))
+        updateCachedAreaStatus(id, status).catch(err => observe.error('database', { message: err?.message || 'Failed to update cached area status', operation: 'updateAreaStatus' }))
       }
 
       return data
@@ -1600,13 +1557,14 @@ export const db = {
     }
   },
 
-  // Get all users (for assignment dropdowns)
-  async getAllUsers() {
+  // Get all users (for assignment dropdowns) - limited for scalability
+  async getAllUsers(limit = 500) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role')
         .order('name')
+        .limit(limit)
       if (error) throw error
       return data
     } else {
@@ -1614,14 +1572,15 @@ export const db = {
     }
   },
 
-  // Get all foremen
-  async getForemen() {
+  // Get all foremen - limited for scalability
+  async getForemen(limit = 500) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role')
         .eq('role', 'foreman')
         .order('name')
+        .limit(limit)
       if (error) throw error
       return data
     } else {
@@ -1645,7 +1604,7 @@ export const db = {
           old_value: oldValue,
           new_value: newValue
         })
-      if (error) console.error('Error logging activity:', error)
+      if (error) observe.error('database', { message: error?.message || 'Error logging activity', operation: 'logActivity' })
     }
     // In demo mode, we skip logging
   },
@@ -1884,7 +1843,7 @@ export const db = {
         .rpc('get_labor_classes_for_field', { p_company_id: companyId })
 
       if (error) {
-        console.error('Error loading field labor classes:', error)
+        observe.error('database', { message: error?.message || 'Error loading field labor classes', operation: 'getLaborClassesForField' })
         // Fallback to direct query if RPC not available (pre-migration)
         const [categoriesResult, classesResult] = await Promise.all([
           client
@@ -2619,7 +2578,7 @@ export const db = {
           reason: isEditable ? null : `This ticket is linked to ${cor.cor_number} which has been ${cor.status === 'approved' ? 'approved' : cor.status}`
         }
       } catch (err) {
-        console.error('Error checking ticket editability:', err)
+        observe.error('database', { message: err?.message || 'Error checking ticket editability', operation: 'isTicketEditable' })
         // On error, allow editing to avoid blocking users
         return { editable: true }
       }
@@ -2640,12 +2599,7 @@ export const db = {
         .ilike('code', code.trim())
         .single()
       if (error) {
-        console.error('[Company Lookup] Error:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        })
+        observe.error('database', { message: error?.message || 'Company lookup error', operation: 'getCompanyByCode', extra: { code: error.code, details: error.details, hint: error.hint } })
         return null
       }
       return data
@@ -2687,7 +2641,7 @@ export const db = {
         .order('created_at', { ascending: true })
 
       if (error) {
-        console.error('Error fetching user companies:', error)
+        observe.error('database', { message: error?.message || 'Error fetching user companies', operation: 'getUserCompanies' })
         return []
       }
 
@@ -2712,7 +2666,7 @@ export const db = {
         .eq('status', 'pending')
 
       if (error) {
-        console.error('Error fetching pending memberships:', error)
+        observe.error('database', { message: error?.message || 'Error fetching pending memberships', operation: 'getUserPendingMemberships' })
         return 0
       }
       return count || 0
@@ -2745,7 +2699,7 @@ export const db = {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching company memberships:', error)
+        observe.error('database', { message: error?.message || 'Error fetching company memberships', operation: 'getCompanyMemberships' })
         return []
       }
       return data || []
@@ -2834,7 +2788,7 @@ export const db = {
         .order('assigned_at', { ascending: true })
 
       if (error) {
-        console.error('Error fetching project team:', error)
+        observe.error('database', { message: error?.message || 'Error fetching project team', operation: 'getProjectTeam' })
         return []
       }
       return data || []
@@ -2861,7 +2815,7 @@ export const db = {
         .order('created_at', { ascending: true })
 
       if (error) {
-        console.error('Error fetching company members:', error)
+        observe.error('database', { message: error?.message || 'Error fetching company members', operation: 'getCompanyMembers' })
         return []
       }
       return data || []
@@ -2954,13 +2908,13 @@ export const db = {
       })
 
       if (error) {
-        console.error('RPC repair_legacy_user failed:', error)
+        observe.error('database', { message: error?.message || 'RPC repair_legacy_user failed', operation: 'repairLegacyUser' })
         return false
       }
 
       return data === true
     } catch (error) {
-      console.error('Error repairing legacy user:', error)
+      observe.error('database', { message: error?.message || 'Error repairing legacy user', operation: 'repairLegacyUser' })
       return false
     }
   },
@@ -2988,7 +2942,7 @@ export const db = {
       // Legacy user if has company_id but no memberships
       return count === 0
     } catch (error) {
-      console.error('Error checking legacy user:', error)
+      observe.error('database', { message: error?.message || 'Error checking legacy user', operation: 'isLegacyUser' })
       return false
     }
   },
@@ -3271,7 +3225,7 @@ export const db = {
     const filePath = `${companyId}/${projectId}/${ticketId}/${fileName}`
 
     try {
-      const { data, error } = await client.storage
+      const { error } = await client.storage
         .from('tm-photos')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -3326,7 +3280,7 @@ export const db = {
     // Path: company/project/ticket/filename
     const filePath = `${companyId}/${projectId}/${ticketId}/${newFileName}`
 
-    const { data, error } = await client.storage
+    const { error } = await client.storage
       .from('tm-photos')
       .upload(filePath, blob, {
         cacheControl: '3600',
@@ -3509,7 +3463,7 @@ export const db = {
         issues
       }
     } catch (error) {
-      console.error('Error verifying ticket photos:', error)
+      observe.error('database', { message: error?.message || 'Error verifying ticket photos', operation: 'verifyTicketPhotos' })
       return { verified: false, error: error.message, issues: [] }
     }
   },
@@ -3531,7 +3485,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error queueing photo upload:', error)
+      observe.error('database', { message: error?.message || 'Error queueing photo upload', operation: 'queuePhotoUpload' })
       return null
     }
     return data
@@ -3548,7 +3502,7 @@ export const db = {
     })
 
     if (error) {
-      console.error('Error confirming photo upload:', error)
+      observe.error('database', { message: error?.message || 'Error confirming photo upload', operation: 'confirmQueuedUpload' })
       return false
     }
     return data === true
@@ -3564,7 +3518,7 @@ export const db = {
     })
 
     if (error) {
-      console.error('Error marking photo upload failed:', error)
+      observe.error('database', { message: error?.message || 'Error marking photo upload failed', operation: 'markQueuedUploadFailed' })
       return false
     }
     return data === true
@@ -3579,7 +3533,7 @@ export const db = {
     })
 
     if (error) {
-      console.error('Error getting pending photo uploads:', error)
+      observe.error('database', { message: error?.message || 'Error getting pending photo uploads', operation: 'getPendingPhotoUploads' })
       return []
     }
     return data || []
@@ -3604,7 +3558,7 @@ export const db = {
         })
     } catch (error) {
       // Don't fail the main operation if logging fails
-      console.error('Error logging photo operation:', error)
+      observe.error('database', { message: error?.message || 'Error logging photo operation', operation: 'logPhotoOperation' })
     }
   },
 
@@ -3644,7 +3598,7 @@ export const db = {
       if (error) throw error
       return data
     } catch (error) {
-      console.error('Error saving export snapshot:', error)
+      observe.error('database', { message: error?.message || 'Error saving export snapshot', operation: 'saveExportSnapshot' })
       return null
     }
   },
@@ -3660,7 +3614,7 @@ export const db = {
       .order('exported_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching export snapshots:', error)
+      observe.error('database', { message: error?.message || 'Error fetching export snapshots', operation: 'getExportSnapshots' })
       return []
     }
     return data || []
@@ -3677,7 +3631,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error fetching export snapshot:', error)
+      observe.error('database', { message: error?.message || 'Error fetching export snapshot', operation: 'getExportSnapshot' })
       return null
     }
     return data
@@ -3719,7 +3673,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error fetching export job:', error)
+      observe.error('database', { message: error?.message || 'Error fetching export job', operation: 'getExportJob' })
       return null
     }
     return data
@@ -3737,7 +3691,7 @@ export const db = {
       .limit(limit)
 
     if (error) {
-      console.error('Error fetching export jobs:', error)
+      observe.error('database', { message: error?.message || 'Error fetching export jobs', operation: 'getExportJobs' })
       return []
     }
     return data || []
@@ -3847,7 +3801,7 @@ export const db = {
     try {
       await supabase.rpc('update_cor_aggregated_stats', { p_cor_id: corId })
     } catch (error) {
-      console.error('Error updating COR aggregated stats:', error)
+      observe.error('database', { message: error?.message || 'Error updating COR aggregated stats', operation: 'updateCORAggregatedStats' })
     }
   },
 
@@ -3870,7 +3824,7 @@ export const db = {
       .maybeSingle() // Use maybeSingle to return null instead of 406 when no rows
 
     if (error) {
-      console.error('Error fetching crew checkin:', error)
+      observe.error('database', { message: error?.message || 'Error fetching crew checkin', operation: 'getCrewCheckin' })
     }
     return data
   },
@@ -3954,13 +3908,13 @@ export const db = {
         })
         return checkin
       }
-      console.error('Error saving crew checkin:', error)
+      observe.error('database', { message: error?.message || 'Error saving crew checkin', operation: 'saveCrewCheckin' })
       throw error
     }
 
     // Update cache with server response
     if (data) {
-      cacheCrewCheckin(data).catch(err => console.error('Failed to cache checkin:', err))
+      cacheCrewCheckin(data).catch(err => observe.error('database', { message: err?.message || 'Failed to cache checkin', operation: 'saveCrewCheckin' }))
     }
     return data
   },
@@ -4008,7 +3962,7 @@ export const db = {
       .limit(limit)
 
     if (error) {
-      console.error('Error fetching crew history:', error)
+      observe.error('database', { message: error?.message || 'Error fetching crew history', operation: 'getCrewCheckinHistory' })
       return []
     }
     return data || []
@@ -4057,7 +4011,7 @@ export const db = {
     const { data, error } = await query
 
     if (error) {
-      console.error('Error fetching labor rates:', error)
+      observe.error('database', { message: error?.message || 'Error fetching labor rates', operation: 'getLaborRates' })
       return []
     }
     return data || []
@@ -4148,7 +4102,7 @@ export const db = {
       .maybeSingle() // Use maybeSingle to return null instead of 406 when no report exists
 
     if (error) {
-      console.error('Error fetching daily report:', error)
+      observe.error('database', { message: error?.message || 'Error fetching daily report', operation: 'getDailyReport' })
     }
     return data
   },
@@ -4236,13 +4190,13 @@ export const db = {
         await cacheDailyReport(report)
         return report
       }
-      console.error('Error saving daily report:', error)
+      observe.error('database', { message: error?.message || 'Error saving daily report', operation: 'saveDailyReport' })
       throw error
     }
 
     // Update cache with server response
     if (data) {
-      cacheDailyReport(data).catch(err => console.error('Failed to cache report:', err))
+      cacheDailyReport(data).catch(err => observe.error('database', { message: err?.message || 'Failed to cache report', operation: 'saveDailyReport' }))
     }
     return data
   },
@@ -4320,13 +4274,13 @@ export const db = {
         })
         return report
       }
-      console.error('Error submitting daily report:', error)
+      observe.error('database', { message: error?.message || 'Error submitting daily report', operation: 'submitDailyReport' })
       throw error
     }
 
     // Update cache
     if (data) {
-      cacheDailyReport(data).catch(err => console.error('Failed to cache report:', err))
+      cacheDailyReport(data).catch(err => observe.error('database', { message: err?.message || 'Failed to cache report', operation: 'submitDailyReport' }))
     }
     return data
   },
@@ -4346,7 +4300,7 @@ export const db = {
       .limit(limit)
 
     if (error) {
-      console.error('Error fetching daily reports:', error)
+      observe.error('database', { message: error?.message || 'Error fetching daily reports', operation: 'getDailyReports' })
       return []
     }
     return data || []
@@ -4421,7 +4375,7 @@ export const db = {
         })
         return msg
       }
-      console.error('Error sending message:', error)
+      observe.error('database', { message: error?.message || 'Error sending message', operation: 'sendMessage' })
       throw error
     }
     return data
@@ -4548,7 +4502,7 @@ export const db = {
         })
         return request
       }
-      console.error('Error creating material request:', error)
+      observe.error('database', { message: error?.message || 'Error creating material request', operation: 'createMaterialRequest' })
       throw error
     }
     return data
@@ -4571,7 +4525,7 @@ export const db = {
     const { data, error } = await query
     
     if (error) {
-      console.error('Error fetching material requests:', error)
+      observe.error('database', { message: error?.message || 'Error fetching material requests', operation: 'getMaterialRequests' })
       return []
     }
     return data || []
@@ -4619,7 +4573,7 @@ export const db = {
       .single()
     
     if (error) {
-      console.error('Error updating material request:', error)
+      observe.error('database', { message: error?.message || 'Error updating material request', operation: 'updateMaterialRequest' })
       throw error
     }
     return data
@@ -4666,7 +4620,7 @@ export const db = {
     // Use database function to generate unique token
     const { data: tokenData, error: tokenError } = await supabase.rpc('generate_share_token')
     if (tokenError) {
-      console.error('Error generating share token:', tokenError)
+      observe.error('database', { message: tokenError?.message || 'Error generating share token', operation: 'createProjectShare' })
       throw tokenError
     }
 
@@ -4683,7 +4637,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error creating project share:', error)
+      observe.error('database', { message: error?.message || 'Error creating project share', operation: 'createProjectShare' })
       throw error
     }
     return data
@@ -4720,7 +4674,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error fetching share by token:', error)
+      observe.error('database', { message: error?.message || 'Error fetching share by token', operation: 'getShareByToken' })
       return null
     }
 
@@ -4752,7 +4706,7 @@ export const db = {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching project shares:', error)
+      observe.error('database', { message: error?.message || 'Error fetching project shares', operation: 'getProjectShares' })
       return []
     }
     return data || []
@@ -4785,7 +4739,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error updating project share:', error)
+      observe.error('database', { message: error?.message || 'Error updating project share', operation: 'updateProjectShare' })
       throw error
     }
     return data
@@ -4814,7 +4768,7 @@ export const db = {
       .eq('id', shareId)
 
     if (error) {
-      console.error('Error deleting project share:', error)
+      observe.error('database', { message: error?.message || 'Error deleting project share', operation: 'deleteProjectShare' })
       throw error
     }
   },
@@ -4946,7 +4900,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error creating injury report:', error)
+      observe.error('database', { message: error?.message || 'Error creating injury report', operation: 'createInjuryReport' })
       throw error
     }
     return data
@@ -4969,7 +4923,7 @@ export const db = {
       .order('incident_date', { ascending: false })
 
     if (error) {
-      console.error('Error fetching injury reports:', error)
+      observe.error('database', { message: error?.message || 'Error fetching injury reports', operation: 'getInjuryReports' })
       return []
     }
     return data || []
@@ -5000,7 +4954,7 @@ export const db = {
     const { data, error } = await query
 
     if (error) {
-      console.error('Error fetching company injury reports:', error)
+      observe.error('database', { message: error?.message || 'Error fetching company injury reports', operation: 'getCompanyInjuryReports' })
       return []
     }
     return data || []
@@ -5021,7 +4975,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error fetching injury report:', error)
+      observe.error('database', { message: error?.message || 'Error fetching injury report', operation: 'getInjuryReport' })
       return null
     }
     return data
@@ -5053,7 +5007,7 @@ export const db = {
       .single()
 
     if (error) {
-      console.error('Error updating injury report:', error)
+      observe.error('database', { message: error?.message || 'Error updating injury report', operation: 'updateInjuryReport' })
       throw error
     }
     return data
@@ -5085,7 +5039,7 @@ export const db = {
       .eq('id', reportId)
 
     if (error) {
-      console.error('Error deleting injury report:', error)
+      observe.error('database', { message: error?.message || 'Error deleting injury report', operation: 'deleteInjuryReport' })
       throw error
     }
   },
@@ -5136,7 +5090,7 @@ export const db = {
     })
 
     if (error) {
-      console.error('Error fetching injury statistics:', error)
+      observe.error('database', { message: error?.message || 'Error fetching injury statistics', operation: 'getInjuryStatistics' })
       return null
     }
     return data[0] || null
@@ -5225,7 +5179,7 @@ export const db = {
         .eq('company_id', companyId)
 
       if (error) {
-        console.error('Error fetching company users:', error)
+        observe.error('database', { message: error?.message || 'Error fetching company users', operation: 'getCompanyUsers' })
         return []
       }
       return data?.map(uc => ({
@@ -5254,7 +5208,7 @@ export const db = {
         .eq('project_id', projectId)
 
       if (error) {
-        console.error('Error fetching notification preferences:', error)
+        observe.error('database', { message: error?.message || 'Error fetching notification preferences', operation: 'getProjectNotificationPreferences' })
         return []
       }
       return data || []
@@ -5280,7 +5234,7 @@ export const db = {
         .eq('user_id', userId)
 
       if (error) {
-        console.error('Error fetching user notification preferences:', error)
+        observe.error('database', { message: error?.message || 'Error fetching user notification preferences', operation: 'getUserNotificationPreferences' })
         return []
       }
       return data || []
@@ -5308,7 +5262,7 @@ export const db = {
         .single()
 
       if (error) {
-        console.error('Error setting notification preference:', error)
+        observe.error('database', { message: error?.message || 'Error setting notification preference', operation: 'setNotificationPreference' })
         throw error
       }
       return data
@@ -5352,7 +5306,7 @@ export const db = {
         .eq('user_id', userId)
 
       if (error) {
-        console.error('Error removing notification preference:', error)
+        observe.error('database', { message: error?.message || 'Error removing notification preference', operation: 'removeNotificationPreference' })
         throw error
       }
       return true
@@ -5396,7 +5350,7 @@ export const db = {
         .order('name')
 
       if (error) {
-        console.error('Error fetching notification presets:', error)
+        observe.error('database', { message: error?.message || 'Error fetching notification presets', operation: 'getNotificationPresets' })
         return []
       }
       return data || []
@@ -5429,7 +5383,7 @@ export const db = {
         .single()
 
       if (error) {
-        console.error('Error creating notification preset:', error)
+        observe.error('database', { message: error?.message || 'Error creating notification preset', operation: 'createNotificationPreset' })
         throw error
       }
       return data
@@ -5466,7 +5420,7 @@ export const db = {
         .single()
 
       if (error) {
-        console.error('Error updating notification preset:', error)
+        observe.error('database', { message: error?.message || 'Error updating notification preset', operation: 'updateNotificationPreset' })
         throw error
       }
       return data
@@ -5495,7 +5449,7 @@ export const db = {
         .eq('id', presetId)
 
       if (error) {
-        console.error('Error deleting notification preset:', error)
+        observe.error('database', { message: error?.message || 'Error deleting notification preset', operation: 'deleteNotificationPreset' })
         throw error
       }
       return true
@@ -5526,7 +5480,7 @@ export const db = {
         .order('name')
 
       if (error) {
-        console.error('Error fetching dump sites:', error)
+        observe.error('database', { message: error?.message || 'Error fetching dump sites', operation: 'getDumpSites' })
         return []
       }
       return data || []
@@ -5552,7 +5506,7 @@ export const db = {
         .single()
 
       if (error) {
-        console.error('Error creating dump site:', error)
+        observe.error('database', { message: error?.message || 'Error creating dump site', operation: 'createDumpSite' })
         throw error
       }
       return data
@@ -5589,7 +5543,7 @@ export const db = {
         .single()
 
       if (error) {
-        console.error('Error updating dump site:', error)
+        observe.error('database', { message: error?.message || 'Error updating dump site', operation: 'updateDumpSite' })
         throw error
       }
       return data
@@ -5633,7 +5587,7 @@ export const db = {
           .single()
 
         if (error) {
-          console.error('Error updating dump site rate:', error)
+          observe.error('database', { message: error?.message || 'Error updating dump site rate', operation: 'setDumpSiteRate' })
           throw error
         }
         return data
@@ -5651,7 +5605,7 @@ export const db = {
           .single()
 
         if (error) {
-          console.error('Error inserting dump site rate:', error)
+          observe.error('database', { message: error?.message || 'Error inserting dump site rate', operation: 'setDumpSiteRate' })
           throw error
         }
         return data
@@ -5689,7 +5643,7 @@ export const db = {
         .eq('dump_site_id', dumpSiteId)
 
       if (error) {
-        console.error('Error fetching dump site rates:', error)
+        observe.error('database', { message: error?.message || 'Error fetching dump site rates', operation: 'getDumpSiteRates' })
         return []
       }
       return data || []
@@ -5712,7 +5666,7 @@ export const db = {
         .order('work_date', { ascending: false })
 
       if (error) {
-        console.error('Error fetching haul-offs:', error)
+        observe.error('database', { message: error?.message || 'Error fetching haul-offs', operation: 'getHaulOffs' })
         return []
       }
       return data || []
@@ -5746,7 +5700,7 @@ export const db = {
         .single()
 
       if (error) {
-        console.error('Error creating haul-off:', error)
+        observe.error('database', { message: error?.message || 'Error creating haul-off', operation: 'createHaulOff' })
         throw error
       }
       return result
@@ -5969,7 +5923,7 @@ export const db = {
     const client = getClient()
     const { page = 0, limit = 25 } = options
 
-    let query = client
+    const query = client
       .from('documents')
       .select('*', { count: 'exact' })
       .eq('folder_id', folderId)
@@ -6067,7 +6021,7 @@ export const db = {
 
     try {
       // Upload to storage
-      const { data: storageData, error: storageError } = await client.storage
+      const { error: storageError } = await client.storage
         .from('project-documents')
         .upload(storagePath, file, {
           cacheControl: '3600',
@@ -6600,7 +6554,7 @@ onConnectionChange(async (online) => {
     try {
       await syncPendingActions(db)
     } catch (err) {
-      console.error('Error syncing pending actions:', err)
+      observe.error('database', { message: err?.message || 'Error syncing pending actions', operation: 'syncPendingActions' })
     }
   }
 })

@@ -13,6 +13,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     if (project?.id) {
       loadReport()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   const loadReport = async () => {

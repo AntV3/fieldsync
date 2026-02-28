@@ -11,30 +11,12 @@ const MARGIN = 14
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 
 /**
- * Format currency for display
- */
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0)
-}
-
-/**
  * Format date for display
  */
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
   const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T12:00:00'))
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-/**
- * Add page footer
- */
-const addFooter = (doc, pageNum, totalPages) => {
-  const y = doc.internal.pageSize.height - 8
-  doc.setFontSize(7)
-  doc.setTextColor(128, 128, 128)
-  doc.text(`Page ${pageNum} of ${totalPages}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  doc.text(`Generated ${new Date().toLocaleString()} — FieldSync`, PAGE_WIDTH - MARGIN, y, { align: 'right' })
 }
 
 /**

@@ -44,6 +44,7 @@ export const OverviewProgressGauge = memo(function OverviewProgressGauge({
         cancelAnimationFrame(animationRef.current)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress])
 
   const radius = (size - strokeWidth) / 2

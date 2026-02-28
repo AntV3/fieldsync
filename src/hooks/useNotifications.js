@@ -20,7 +20,7 @@ export function useNotifications() {
         badge: '/icons/icon-96.png',
         ...options
       })
-    } catch (e) {
+    } catch (_e) {
       // Fallback for environments where Notification constructor fails
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({

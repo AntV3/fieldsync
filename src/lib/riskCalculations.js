@@ -406,7 +406,7 @@ export function generateSmartAlerts(riskResult, project) {
  * Calculate projections based on current trends
  */
 export function calculateProjections(project) {
-  const { actualProgress, totalCosts, earnedRevenue, contractValue } = project
+  const { actualProgress, totalCosts, contractValue } = project
 
   // Guard against division by zero
   if (!actualProgress || actualProgress <= 0) {

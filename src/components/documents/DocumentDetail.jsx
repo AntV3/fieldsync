@@ -46,6 +46,7 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
   // Load versions
   useEffect(() => {
     loadVersions()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [document.id])
 
   const loadVersions = async () => {

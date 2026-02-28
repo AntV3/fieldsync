@@ -26,6 +26,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
     if (company?.id) {
       loadMembers()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id])
 
   const loadMembers = async () => {

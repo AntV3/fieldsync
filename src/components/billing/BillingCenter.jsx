@@ -20,7 +20,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   const [loading, setLoading] = useState(true)
   const [selectedItems, setSelectedItems] = useState({ cors: new Set(), tickets: new Set() })
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
-  const [editingInvoice, setEditingInvoice] = useState(null)
+  const [_editingInvoice, setEditingInvoice] = useState(null)
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [viewingInvoice, setViewingInvoice] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
@@ -29,6 +29,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   // Load billable items and invoices
   useEffect(() => {
     loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
   const loadData = async () => {
@@ -79,6 +80,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       console.error('Error fetching invoice:', error)
       onShowToast?.('Error loading invoice details', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // onShowToast is stable (memoized in App.jsx)
 
   // Download invoice PDF
@@ -96,6 +98,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
     } finally {
       setActionLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project, company]) // onShowToast is stable
 
   // Mark invoice as sent
@@ -113,6 +116,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       console.error('Error updating invoice:', error)
       onShowToast?.('Error updating invoice', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // onShowToast is stable
 
   // Mark invoice as paid
@@ -134,6 +138,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       console.error('Error updating invoice:', error)
       onShowToast?.('Error updating invoice', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // onShowToast is stable
 
   // Calculate totals

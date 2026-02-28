@@ -21,6 +21,7 @@ export default function BrandingSettings({ company, onShowToast }) {
     if (company?.id) {
       loadOfficeCode()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id])
 
   const loadOfficeCode = async () => {

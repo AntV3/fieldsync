@@ -32,7 +32,7 @@ const CONFIG = {
 }
 
 // Pending metrics queue (for future batching)
-let pendingMetrics = []
+const _pendingMetrics = []
 
 /**
  * Main observability interface

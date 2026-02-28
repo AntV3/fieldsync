@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Package, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 
-export default function MaterialRequestsList({ project, company, onShowToast }) {
+export default function MaterialRequestsList({ project, company: _company, onShowToast }) {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -24,6 +24,7 @@ export default function MaterialRequestsList({ project, company, onShowToast }) 
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
   const loadRequests = async () => {

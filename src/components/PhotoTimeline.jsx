@@ -6,7 +6,7 @@ import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
  * PhotoTimeline - Visual progress photo timeline organized by area and date.
  * Shows construction progress documentation for disputes, owner reports, and team review.
  */
-export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
+export default function PhotoTimeline({ projectId, areas = [], onShowToast: _onShowToast }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedArea, setSelectedArea] = useState('all')

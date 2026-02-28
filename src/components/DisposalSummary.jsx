@@ -20,6 +20,7 @@ export default function DisposalSummary({ project, period = 'week' }) {
     if (project?.id) {
       loadData()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, period])
 
   const loadData = async () => {
