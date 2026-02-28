@@ -61,6 +61,20 @@
   --shadow-md: 0 4px 6px var(--shadow-color);
   --shadow-lg: 0 10px 15px var(--shadow-color);
   --shadow-xl: 0 20px 25px var(--shadow-color);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+  --shadow-card-hover: 0 8px 25px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1);
+
+  /* ---- Glass Effect ---- */
+  --glass-bg: rgba(26, 26, 31, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-blur: blur(12px);
+
+  /* ---- Accent Tints (for subtle card backgrounds) ---- */
+  --tint-blue: rgba(59, 130, 246, 0.08);
+  --tint-green: rgba(16, 185, 129, 0.08);
+  --tint-amber: rgba(245, 158, 11, 0.08);
+  --tint-red: rgba(239, 68, 68, 0.08);
+  --tint-purple: rgba(139, 92, 246, 0.06);
 
   /* ---- Branding (overridable) ---- */
   --primary-color: #3b82f6;
@@ -127,6 +141,10 @@
   --threshold-cost-warning: 0.75;
   --threshold-cost-critical: 0.85;
 
+  /* ---- Nav ---- */
+  --nav-height: 56px;
+  --nav-bg: rgba(10, 10, 11, 0.85);
+
   /* ---- Semantic Aliases ---- */
   /* These are shorthand aliases used across feature styles.
      They resolve to the canonical design tokens above. */
@@ -186,6 +204,24 @@
 
   /* ---- Shadows ---- */
   --shadow-color: rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.1);
+  --shadow-card-hover: 0 8px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(37, 99, 235, 0.08);
+
+  /* ---- Glass Effect ---- */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-blur: blur(12px);
+
+  /* ---- Accent Tints ---- */
+  --tint-blue: rgba(37, 99, 235, 0.06);
+  --tint-green: rgba(5, 150, 105, 0.06);
+  --tint-amber: rgba(217, 119, 6, 0.06);
+  --tint-red: rgba(220, 38, 38, 0.06);
+  --tint-purple: rgba(124, 58, 237, 0.04);
+
+  /* ---- Nav ---- */
+  --nav-height: 56px;
+  --nav-bg: rgba(255, 255, 255, 0.85);
 
   /* ---- Branding ---- */
   --primary-color: #2563eb;

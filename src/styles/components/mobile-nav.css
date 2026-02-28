@@ -58,12 +58,14 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  animation: drawerOverlayIn 0.2s ease;
 }
 
-@keyframes fadeIn {
+@keyframes drawerOverlayIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
@@ -79,13 +81,15 @@
   width: 300px;
   max-width: 85vw;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg-primary);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  animation: slideInRight 0.25s ease;
+  animation: slideInRight 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 @keyframes slideInRight {
@@ -128,7 +132,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
 }
@@ -246,7 +250,8 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: var(--space-sm) var(--space-md);
+  padding: 0.75rem var(--space-md);
+  min-height: 48px;
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
@@ -262,9 +267,14 @@
   background: var(--bg-elevated);
 }
 
+.mobile-nav-item:active {
+  transform: scale(0.98);
+}
+
 .mobile-nav-item.active {
-  background: var(--accent-blue);
-  color: white;
+  background: var(--tint-blue, rgba(59, 130, 246, 0.1));
+  color: var(--primary-color, var(--accent-blue));
+  font-weight: var(--font-weight-semibold);
 }
 
 .mobile-nav-badge {
@@ -292,9 +302,10 @@
 
 .mobile-logout-btn {
   width: 100%;
-  padding: var(--space-sm) var(--space-md);
+  padding: 0.75rem var(--space-md);
+  min-height: 48px;
   background: transparent;
-  border: 1px solid var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: var(--radius-md);
   color: var(--accent-red);
   font-size: var(--font-size-md);
@@ -304,8 +315,12 @@
 }
 
 .mobile-logout-btn:hover {
-  background: var(--accent-red);
-  color: white;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--accent-red);
+}
+
+.mobile-logout-btn:active {
+  transform: scale(0.98);
 }
 
 /* ============================================
@@ -329,6 +344,11 @@
   /* Adjust nav content for mobile */
   .nav-content {
     justify-content: space-between;
+    padding: 0 1rem;
+  }
+
+  .container {
+    padding: 1rem;
   }
 }
 

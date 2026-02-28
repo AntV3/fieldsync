@@ -18,14 +18,16 @@
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  gap: 1.5rem;
+  gap: 1.25rem;
   padding: 2rem;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .loading-logo {
   font-family: 'Space Mono', monospace;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
+  opacity: 0.6;
 }
 
 .loading-logo span {
@@ -38,11 +40,36 @@
 
 .login-container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1419 100%);
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: -20%;
+  width: 60%;
+  height: 80%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.login-container::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  right: -15%;
+  width: 50%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .login-card {
@@ -53,6 +80,9 @@
   width: 100%;
   max-width: 400px;
   position: relative;
+  z-index: 1;
+  animation: fadeInUp 0.4s ease-out;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 .login-header {
@@ -62,17 +92,18 @@
 
 .login-logo {
   font-family: 'Space Mono', monospace;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
 }
 
 .login-logo span {
-  color: var(--accent-blue);
+  color: var(--primary-color, var(--accent-blue));
 }
 
 .login-subtitle {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .selected-role {
@@ -111,7 +142,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1.5rem;
+  padding: 1.25rem;
   background: var(--bg-elevated);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-xl);
@@ -123,6 +154,12 @@
 .role-btn:hover {
   border-color: var(--accent-blue);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.role-btn:active {
+  transform: translateY(0);
+  transition-duration: 50ms;
 }
 
 .role-btn.foreman:hover {
@@ -174,30 +211,35 @@
 .nav-user {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-shrink: 0;
 }
 
 .nav-user-name {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav-logout {
-  background: var(--bg-elevated);
+  background: transparent;
   border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  padding: 0.5rem 1rem;
+  color: var(--text-muted);
+  padding: 0.375rem 0.75rem;
   border-radius: var(--radius-md);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all var(--transition-fast);
 }
 
 .nav-logout:hover {
-  background: var(--accent-red);
+  background: rgba(239, 68, 68, 0.1);
   border-color: var(--accent-red);
-  color: white;
+  color: var(--accent-red);
 }
 
 /* Mobile Menu - Hidden on desktop, shown on mobile */

@@ -413,3 +413,19 @@
 .duration-normal { animation-duration: 0.3s; }
 .duration-slow { animation-duration: 0.5s; }
 .duration-slower { animation-duration: 0.8s; }
+
+/* ---- Card List Stagger (for project cards) ---- */
+
+.project-list > .project-card {
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+.project-list > .project-card:nth-child(1) { animation-delay: 0ms; }
+.project-list > .project-card:nth-child(2) { animation-delay: 40ms; }
+.project-list > .project-card:nth-child(3) { animation-delay: 80ms; }
+.project-list > .project-card:nth-child(4) { animation-delay: 120ms; }
+.project-list > .project-card:nth-child(5) { animation-delay: 160ms; }
+.project-list > .project-card:nth-child(6) { animation-delay: 200ms; }
+.project-list > .project-card:nth-child(7) { animation-delay: 240ms; }
+.project-list > .project-card:nth-child(8) { animation-delay: 280ms; }
+.project-list > .project-card:nth-child(n+9) { animation-delay: 300ms; }

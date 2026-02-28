@@ -13,6 +13,7 @@
   padding: var(--space-lg);
   margin-bottom: var(--space-lg);
   animation: fadeIn 0.3s ease;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 /* Section Card (similar to card but smaller padding) */
@@ -21,6 +22,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 /* Info Card */
@@ -29,6 +31,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: var(--space-md);
+  transition: border-color var(--transition-fast);
 }
 
 /* Project Card */
@@ -38,13 +41,19 @@
   border-radius: var(--radius-lg);
   padding: 0.875rem 1rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-normal);
+  position: relative;
 }
 
 .project-card:hover {
-  border-color: var(--accent-blue);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  transform: translateY(-1px);
+  border-color: var(--primary-color, var(--accent-blue));
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.project-card:active {
+  transform: translateY(0);
+  transition-duration: 50ms;
 }
 
 .project-card-header {
@@ -119,7 +128,7 @@
 
 /* Mini Progress Bar (used in project cards) */
 .mini-progress-bar {
-  height: 5px;
+  height: 4px;
   background: var(--progress-bg, var(--bg-elevated));
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -128,9 +137,9 @@
 
 .mini-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  background: linear-gradient(90deg, var(--primary-color, var(--accent-blue)), var(--accent-green));
   border-radius: var(--radius-full);
-  transition: width var(--transition-slow);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Dashboard Analytics Cards */
@@ -142,6 +151,15 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.burn-rate-card:hover,
+.profitability-card:hover,
+.cost-contributors-card:hover,
+.disposal-summary-card:hover {
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Card Skeleton (loading state) */
@@ -155,10 +173,11 @@
 
 /* Card Title */
 .card-title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   margin-bottom: var(--space-md);
+  letter-spacing: -0.01em;
 }
 
 /* Card Header with actions */
@@ -174,6 +193,23 @@
   margin-top: var(--space-md);
   padding-top: var(--space-md);
   border-top: 1px solid var(--border-color);
+}
+
+/* Card Accent Variants (subtle left border) */
+.card--accent-blue {
+  border-left: 3px solid var(--accent-blue);
+}
+
+.card--accent-green {
+  border-left: 3px solid var(--accent-green);
+}
+
+.card--accent-amber {
+  border-left: 3px solid var(--accent-amber);
+}
+
+.card--accent-red {
+  border-left: 3px solid var(--accent-red);
 }
 
 /* Responsive */

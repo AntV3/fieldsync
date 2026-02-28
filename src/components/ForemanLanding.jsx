@@ -352,33 +352,50 @@ export default function ForemanLanding({
         /* Metrics Snapshot */
         .fm-metrics-snapshot {
           width: 100%;
-          background: linear-gradient(135deg, var(--primary-color, #3b82f6) 0%, #2563eb 100%);
+          background: linear-gradient(135deg, var(--primary-color, #3b82f6) 0%, #1d4ed8 100%);
           border: none;
-          border-radius: 16px;
-          padding: 1rem;
+          border-radius: var(--radius-xl, 16px);
+          padding: 1.25rem;
           color: white;
           text-align: left;
           cursor: pointer;
           margin-bottom: 1.5rem;
           transition: transform 0.15s ease, box-shadow 0.15s ease;
+          box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .fm-metrics-snapshot::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          right: -30%;
+          width: 60%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+          pointer-events: none;
         }
 
         .fm-metrics-snapshot:active {
           transform: scale(0.98);
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
         }
 
         .fm-snapshot-header {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.875rem;
-          opacity: 0.9;
-          margin-bottom: 0.75rem;
+          font-size: 0.8rem;
+          opacity: 0.85;
+          margin-bottom: 0.875rem;
+          font-weight: 500;
+          letter-spacing: 0.02em;
         }
 
         .fm-snapshot-arrow {
           margin-left: auto;
-          opacity: 0.7;
+          opacity: 0.6;
         }
 
         .fm-snapshot-stats {
@@ -392,6 +409,7 @@ export default function ForemanLanding({
           flex-direction: column;
           align-items: center;
           flex: 1;
+          gap: 0.125rem;
         }
 
         .fm-snapshot-stat.main {
@@ -403,34 +421,39 @@ export default function ForemanLanding({
           font-size: 1.5rem;
           font-weight: 700;
           line-height: 1.2;
+          letter-spacing: -0.02em;
+          font-variant-numeric: tabular-nums;
         }
 
         .fm-snapshot-stat.main .fm-snapshot-value {
-          font-size: 2rem;
+          font-size: 2.25rem;
+          letter-spacing: -0.03em;
         }
 
         .fm-snapshot-label {
-          font-size: 0.7rem;
-          opacity: 0.85;
+          font-size: 0.65rem;
+          opacity: 0.75;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.06em;
+          font-weight: 500;
         }
 
         .fm-snapshot-divider {
           width: 1px;
-          height: 40px;
-          background: rgba(255,255,255,0.3);
+          height: 36px;
+          background: rgba(255,255,255,0.2);
         }
 
         .fm-snapshot-today {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          margin-top: 0.75rem;
+          margin-top: 0.875rem;
           padding-top: 0.75rem;
-          border-top: 1px solid rgba(255,255,255,0.2);
+          border-top: 1px solid rgba(255,255,255,0.15);
           font-size: 0.8rem;
-          opacity: 0.9;
+          opacity: 0.85;
+          font-weight: 500;
         }
 
         /* Section Header */
@@ -442,10 +465,12 @@ export default function ForemanLanding({
         }
 
         .fm-section-header h2 {
-          font-size: 1rem;
+          font-size: 0.8rem;
           font-weight: 600;
-          color: var(--text-primary);
+          color: var(--text-muted);
           margin: 0;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
         }
 
         .fm-edit-btn {
@@ -453,10 +478,10 @@ export default function ForemanLanding({
           align-items: center;
           justify-content: center;
           padding: 0.5rem;
-          background: var(--bg-elevated);
+          background: transparent;
           border: 1px solid var(--border-color);
-          border-radius: 8px;
-          color: var(--text-secondary);
+          border-radius: var(--radius-md, 8px);
+          color: var(--text-muted);
           cursor: pointer;
           font-size: 0.8rem;
           min-width: 36px;
@@ -482,7 +507,7 @@ export default function ForemanLanding({
         .fm-pinned-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 0.75rem;
+          gap: 0.625rem;
           margin-bottom: 1.5rem;
         }
 
@@ -496,68 +521,72 @@ export default function ForemanLanding({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 1.25rem 1rem;
+          padding: 1.25rem 0.75rem;
           background: var(--bg-card);
           border: 1px solid var(--border-color);
-          border-radius: 12px;
+          border-radius: var(--radius-lg, 12px);
           cursor: pointer;
           transition: all 0.15s ease;
           min-height: 110px;
           position: relative;
+          gap: 0.375rem;
         }
 
         .fm-pinned-card:active:not(:disabled) {
-          transform: scale(0.97);
+          transform: scale(0.96);
           background: var(--bg-elevated);
+          transition-duration: 50ms;
         }
 
         .fm-pinned-card:disabled {
-          opacity: 0.7;
+          opacity: 0.6;
           cursor: default;
         }
 
         .fm-pinned-card.completed {
-          border-color: #22c55e;
-          background: rgba(34, 197, 94, 0.08);
+          border-color: var(--accent-green, #22c55e);
+          background: rgba(34, 197, 94, 0.06);
         }
 
         .fm-pinned-card.danger {
-          border-color: #f59e0b;
+          border-color: rgba(245, 158, 11, 0.4);
         }
 
         .fm-pinned-card.danger .fm-pinned-icon {
-          color: #f59e0b;
+          color: var(--accent-amber, #f59e0b);
         }
 
         .fm-pinned-icon {
           color: var(--primary-color, #3b82f6);
-          margin-bottom: 0.5rem;
+          opacity: 0.85;
         }
 
         .fm-pinned-label {
-          font-size: 0.875rem;
-          font-weight: 500;
+          font-size: 0.8rem;
+          font-weight: 600;
           color: var(--text-primary);
           text-align: center;
+          letter-spacing: -0.01em;
         }
 
         .fm-pinned-badge {
           position: absolute;
-          top: 8px;
-          right: 8px;
+          top: 6px;
+          right: 6px;
           background: var(--primary-color, #3b82f6);
           color: white;
-          font-size: 0.7rem;
-          font-weight: 600;
-          padding: 0.2rem 0.5rem;
-          border-radius: 10px;
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 0.15rem 0.4rem;
+          border-radius: var(--radius-full, 10px);
+          letter-spacing: 0.01em;
         }
 
         .fm-pinned-check {
           position: absolute;
           top: 8px;
           right: 8px;
-          color: #22c55e;
+          color: var(--accent-green, #22c55e);
         }
 
         .fm-pin-toggle {
@@ -583,8 +612,8 @@ export default function ForemanLanding({
         }
 
         .fm-pin-toggle.pinned {
-          background: #ef4444;
-          border-color: #ef4444;
+          background: var(--accent-red, #ef4444);
+          border-color: var(--accent-red, #ef4444);
           color: white;
         }
 
@@ -592,7 +621,7 @@ export default function ForemanLanding({
         .fm-more-section {
           background: var(--bg-card);
           border: 1px solid var(--border-color);
-          border-radius: 12px;
+          border-radius: var(--radius-lg, 12px);
           overflow: hidden;
         }
 
@@ -601,13 +630,14 @@ export default function ForemanLanding({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 1rem;
+          padding: 0.875rem 1rem;
           background: transparent;
           border: none;
           cursor: pointer;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           font-weight: 500;
-          color: var(--text-primary);
+          color: var(--text-secondary);
+          min-height: 48px;
         }
 
         .fm-more-header:active {
@@ -635,14 +665,15 @@ export default function ForemanLanding({
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 1rem;
+          padding: 0.875rem 1rem;
+          min-height: 52px;
           background: transparent;
           border: none;
           border-bottom: 1px solid var(--border-color);
           cursor: pointer;
           text-align: left;
           color: var(--text-primary);
-          transition: background 0.15s ease;
+          transition: background 0.1s ease;
         }
 
         .fm-action-row:last-child {
@@ -654,34 +685,37 @@ export default function ForemanLanding({
         }
 
         .fm-action-row:disabled {
-          opacity: 0.7;
+          opacity: 0.6;
           cursor: default;
         }
 
         .fm-action-row.danger {
-          color: #f59e0b;
+          color: var(--accent-amber, #f59e0b);
         }
 
         .fm-action-label {
           flex: 1;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
+          font-weight: 500;
         }
 
         .fm-action-badge {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
+          font-weight: 600;
           color: var(--text-secondary);
           background: var(--bg-elevated);
-          padding: 0.25rem 0.5rem;
-          border-radius: 6px;
+          padding: 0.2rem 0.5rem;
+          border-radius: var(--radius-full, 6px);
         }
 
         /* Dark mode adjustments */
         [data-theme="dark"] .fm-metrics-snapshot {
           background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+          box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
         }
 
         [data-theme="dark"] .fm-pinned-card.completed {
-          background: rgba(34, 197, 94, 0.15);
+          background: rgba(34, 197, 94, 0.12);
         }
       `}</style>
     </div>

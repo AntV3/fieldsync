@@ -1,7 +1,7 @@
 
 /* Light Theme Specific Overrides */
 [data-theme="light"] .nav {
-  box-shadow: 0 1px 3px var(--shadow-color);
+  box-shadow: 0 1px 0 var(--border-color);
 }
 
 [data-theme="light"] .card,
@@ -942,8 +942,12 @@
   background: #f1f5f9;
 }
 
-/* Navigation - slight depth */
-[data-theme="light"] .nav,
+/* Navigation - light glass effect */
+[data-theme="light"] .nav {
+  background: var(--nav-bg);
+  border-color: var(--glass-border);
+}
+
 [data-theme="light"] .sidebar {
   background: #ffffff;
   border-color: #e2e8f0;
