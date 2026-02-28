@@ -77,6 +77,12 @@ export const getFieldClient = () => {
   // Create client with session header if not already created or token changed
   if (!fieldClient || fieldClient._sessionToken !== session.token) {
     fieldClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        storageKey: 'fieldsync-field-client',
+      },
       global: {
         headers: {
           'x-field-session': session.token
