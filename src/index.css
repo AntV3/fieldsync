@@ -10269,6 +10269,106 @@ END MIGRATED */
   margin-top: 0.5rem;
 }
 
+/* Daily Report Photos */
+.dr-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.dr-photo-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+.dr-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dr-photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--transition-fast);
+}
+
+.dr-photo-remove:hover {
+  background: rgba(239, 68, 68, 0.9);
+}
+
+.dr-photo-add-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  color: var(--text-secondary);
+}
+
+.dr-photo-add-btn:hover {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.05);
+  color: var(--accent-blue);
+}
+
+.dr-photo-add-btn svg {
+  color: var(--accent-blue);
+  opacity: 0.7;
+}
+
+.dr-photo-add-btn:hover svg {
+  opacity: 1;
+}
+
+.dr-photo-add-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dr-photo-add-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dr-photo-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.75rem;
+  margin: 0;
+}
+
+@media (max-width: 360px) {
+  .dr-photo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* ============================================
    Messages Styles
    ============================================ */
