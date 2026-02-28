@@ -4067,23 +4067,65 @@ export const db = {
   async calculateManDayCosts(projectId, companyId, workType, jobType) {
     if (!isSupabaseConfigured) return { totalCost: 0, totalManDays: 0, breakdown: [] }
 
-    // Get crew check-in history
-    const crewHistory = await this.getCrewCheckinHistory(projectId, 365)
+    // Fetch crew history, T&M tickets, labor class rates, and all labor rates in parallel
+    const [crewHistory, tmTickets, laborClasses, allLaborRates] = await Promise.all([
+      this.getCrewCheckinHistory(projectId, 365),
+      this.getTMTickets(projectId),
+      this.getAllLaborClassRates(companyId),
+      this.getLaborRates(companyId, null, null)
+    ])
 
-    // Get labor rates for this work/job type
-    const laborRates = await this.getLaborRates(companyId, workType, jobType)
-
-    // Build rates lookup: { role: regularRate }
+    // Build role-based rates lookup with fallback: exact match > work_type match > any
     const ratesLookup = {}
-    laborRates.forEach(rate => {
+    let matchedRates = allLaborRates.filter(r => r.work_type === workType && r.job_type === jobType)
+    if (matchedRates.length === 0) {
+      matchedRates = allLaborRates.filter(r => r.work_type === workType)
+    }
+    if (matchedRates.length === 0) {
+      matchedRates = allLaborRates
+    }
+    matchedRates.forEach(rate => {
       ratesLookup[rate.role.toLowerCase()] = parseFloat(rate.regular_rate) || 0
     })
 
-    // Calculate costs
-    let totalCost = 0
+    // Build labor class rates lookup: { classId: { regular, overtime } }
+    const classRatesLookup = {}
+    ;(laborClasses || []).forEach(lc => {
+      const rates = lc.labor_class_rates || []
+      const matched = rates.find(r => r.work_type === workType && r.job_type === jobType)
+        || rates.find(r => r.work_type === workType)
+        || rates[0]
+      if (matched) {
+        classRatesLookup[lc.id] = {
+          regular: parseFloat(matched.regular_rate) || 0,
+          overtime: parseFloat(matched.overtime_rate) || 0
+        }
+      }
+    })
+
+    // Helper to get daily rate for a worker (labor class rate takes priority over role rate)
+    const getWorkerDailyRate = (worker) => {
+      if (worker.labor_class_id && classRatesLookup[worker.labor_class_id]) {
+        return classRatesLookup[worker.labor_class_id].regular
+      }
+      const role = (worker.role || 'laborer').toLowerCase()
+      return ratesLookup[role] || 0
+    }
+
+    // Helper to get overtime daily rate for a worker
+    const getWorkerOvertimeRate = (worker) => {
+      if (worker.labor_class_id && classRatesLookup[worker.labor_class_id]) {
+        const cr = classRatesLookup[worker.labor_class_id]
+        return cr.overtime || cr.regular * 1.5
+      }
+      const role = (worker.role || 'laborer').toLowerCase()
+      return (ratesLookup[role] || 0) * 1.5
+    }
+
+    // --- Crew check-in labor (man-day costs) ---
     let totalManDays = 0
     const byRole = {}
-    const byDate = []
+    const byDateMap = {}
 
     crewHistory.forEach(checkin => {
       const workers = checkin.workers || []
@@ -4092,7 +4134,7 @@ export const db = {
 
       workers.forEach(worker => {
         const role = (worker.role || 'laborer').toLowerCase()
-        const rate = ratesLookup[role] || 0
+        const rate = getWorkerDailyRate(worker)
 
         if (!dayBreakdown[role]) {
           dayBreakdown[role] = { count: 0, cost: 0 }
@@ -4101,7 +4143,6 @@ export const db = {
         dayBreakdown[role].cost += rate
         dayCost += rate
 
-        // Track by role totals
         if (!byRole[role]) {
           byRole[role] = { count: 0, cost: 0, rate }
         }
@@ -4109,23 +4150,74 @@ export const db = {
         byRole[role].cost += rate
       })
 
-      totalCost += dayCost
       totalManDays += workers.length
-
-      byDate.push({
+      byDateMap[checkin.check_in_date] = {
         date: checkin.check_in_date,
         workers: workers.length,
         cost: dayCost,
         breakdown: dayBreakdown
-      })
+      }
     })
+
+    // --- T&M ticket labor (hourly costs from documented worker hours) ---
+    const tmByDate = {}
+    ;(tmTickets || []).forEach(ticket => {
+      const ticketDate = ticket.work_date || ticket.ticket_date || ticket.created_at?.split('T')[0]
+      if (!ticketDate) return
+      const workers = ticket.t_and_m_workers || []
+      if (workers.length === 0) return
+
+      let ticketLaborCost = 0
+      workers.forEach(worker => {
+        const hours = parseFloat(worker.hours) || 0
+        const overtimeHours = parseFloat(worker.overtime_hours) || 0
+        const dailyRate = getWorkerDailyRate(worker)
+        const overtimeDaily = getWorkerOvertimeRate(worker)
+        // Convert daily rates to hourly (8-hour day)
+        const hourlyRate = dailyRate > 0 ? dailyRate / 8 : 0
+        const otHourlyRate = overtimeDaily > 0 ? overtimeDaily / 8 : 0
+        ticketLaborCost += (hours * hourlyRate) + (overtimeHours * otHourlyRate)
+      })
+
+      if (ticketLaborCost > 0) {
+        if (!tmByDate[ticketDate]) {
+          tmByDate[ticketDate] = { cost: 0, workers: 0 }
+        }
+        tmByDate[ticketDate].cost += ticketLaborCost
+        tmByDate[ticketDate].workers += workers.length
+      }
+    })
+
+    // Merge T&M labor into date map (use higher of check-in vs T&M to avoid double-counting)
+    Object.entries(tmByDate).forEach(([date, tmDay]) => {
+      const existing = byDateMap[date]
+      if (existing) {
+        if (tmDay.cost > existing.cost) {
+          existing.cost = tmDay.cost
+        }
+      } else {
+        // T&M-only day (no crew check-in for this date)
+        byDateMap[date] = {
+          date,
+          workers: tmDay.workers,
+          cost: tmDay.cost,
+          breakdown: {}
+        }
+        totalManDays += tmDay.workers
+      }
+    })
+
+    // Compute totals from merged data
+    const byDate = Object.values(byDateMap)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+    const totalCost = byDate.reduce((sum, day) => sum + day.cost, 0)
 
     return {
       totalCost,
       totalManDays,
       byRole,
       byDate,
-      daysWorked: crewHistory.length
+      daysWorked: byDate.length
     }
   },
 
