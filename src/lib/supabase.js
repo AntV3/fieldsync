@@ -37,6 +37,7 @@ import {
   getFieldCompanyId
 } from './fieldSession'
 import { getLocalData, setLocalData, getLocalUser, setLocalUser } from './localStorageHelpers'
+import { sanitize } from './sanitize'
 import { corOps } from './corOps'
 import { equipmentOps } from './equipmentOps'
 import { drawRequestOps } from './drawRequestOps'
@@ -99,10 +100,17 @@ const validateTextLength = (text, maxLength = 10000) => {
   return text.length <= maxLength
 }
 
-const sanitizeText = (text) => {
+// Sanitize user-provided text before database writes.
+// Strips HTML tags, null bytes, normalizes unicode, enforces max length.
+const sanitizeText = (text, maxLength = 10000) => {
   if (!text) return text
-  // Remove null bytes and trim
-  return text.replace(/\0/g, '').trim()
+  return sanitize.text(text, { maxLength })
+}
+
+// Sanitize all string fields in a data object before database insert/update
+const sanitizeRecord = (record) => {
+  if (!record || typeof record !== 'object') return record
+  return sanitize.object(record)
 }
 
 // ============================================
@@ -739,7 +747,7 @@ export const db = {
       const { data, error } = await supabase
         .from('projects')
         .insert({
-          ...project,
+          ...sanitizeRecord(project),
           status: 'active'
         })
         .select()
@@ -1089,7 +1097,7 @@ export const db = {
 
       const { data, error } = await supabase
         .from('projects')
-        .update(updates)
+        .update(sanitizeRecord(updates))
         .eq('id', id)
         .eq('company_id', companyId)  // Always enforce cross-tenant security
         .select()
@@ -1216,7 +1224,7 @@ export const db = {
       const client = getClient()
       const { data, error } = await client
         .from('areas')
-        .insert(area)
+        .insert(sanitizeRecord(area))
         .select()
         .single()
       if (error) throw error
@@ -1290,7 +1298,7 @@ export const db = {
     if (isSupabaseConfigured) {
       let query = supabase
         .from('areas')
-        .update(updates)
+        .update(sanitizeRecord(updates))
         .eq('id', id)
 
       // Add project_id check if provided (prevents cross-tenant access)
@@ -1724,7 +1732,7 @@ export const db = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('materials_equipment')
-        .insert(item)
+        .insert(sanitizeRecord(item))
         .select()
         .single()
       if (error) throw error
@@ -1737,7 +1745,7 @@ export const db = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('materials_equipment')
-        .update(updates)
+        .update(sanitizeRecord(updates))
         .eq('id', id)
         .select()
         .single()
@@ -1785,7 +1793,7 @@ export const db = {
         .from('labor_categories')
         .insert({
           company_id: companyId,
-          name,
+          name: sanitizeText(name),
           sort_order: sortOrder
         })
         .select()
@@ -1801,7 +1809,7 @@ export const db = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('labor_categories')
-        .update(updates)
+        .update(sanitizeRecord(updates))
         .eq('id', id)
         .select()
         .single()
@@ -1938,7 +1946,7 @@ export const db = {
         .insert({
           company_id: companyId,
           category_id: categoryId,
-          name,
+          name: sanitizeText(name),
           sort_order: sortOrder
         })
         .select()
@@ -1954,7 +1962,7 @@ export const db = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('labor_classes')
-        .update(updates)
+        .update(sanitizeRecord(updates))
         .eq('id', id)
         .select()
         .single()
@@ -2269,12 +2277,12 @@ export const db = {
         .insert({
           project_id: ticket.project_id,
           work_date: ticket.work_date,
-          ce_pco_number: ticket.ce_pco_number || null,
+          ce_pco_number: sanitizeText(ticket.ce_pco_number) || null,
           assigned_cor_id: ticket.assigned_cor_id || null, // Link to COR if provided
-          notes: ticket.notes,
+          notes: sanitizeText(ticket.notes),
           photos: ticket.photos || [],
           status: 'pending',
-          created_by_name: ticket.created_by_name || 'Field User'
+          created_by_name: sanitizeText(ticket.created_by_name) || 'Field User'
         })
         .select()
         .single()
@@ -2307,12 +2315,12 @@ export const db = {
     if (isSupabaseConfigured) {
       const workersData = workers.map(w => ({
         ticket_id: ticketId,
-        name: w.name,
+        name: sanitizeText(w.name),
         hours: w.hours,
         overtime_hours: w.overtime_hours || 0,
         time_started: w.time_started || null,
         time_ended: w.time_ended || null,
-        role: w.role || 'Laborer'
+        role: sanitizeText(w.role) || 'Laborer'
       }))
       const client = getClient()
       if (!client) {
@@ -2330,8 +2338,8 @@ export const db = {
       const itemsData = items.map(item => ({
         ticket_id: ticketId,
         material_equipment_id: item.material_equipment_id || null,
-        custom_name: item.custom_name || null,
-        custom_category: item.custom_category || null,
+        custom_name: sanitizeText(item.custom_name) || null,
+        custom_category: sanitizeText(item.custom_category) || null,
         quantity: item.quantity
       }))
       const client = getClient()
@@ -2459,7 +2467,7 @@ export const db = {
       const updateData = {
         status: 'approved',
         approved_by_user_id: userId,
-        approved_by_name: userName,
+        approved_by_name: sanitizeText(userName),
         approved_at: new Date().toISOString(),
         // Clear any previous rejection
         rejected_by_user_id: null,
@@ -2501,9 +2509,9 @@ export const db = {
         .update({
           status: 'rejected',
           rejected_by_user_id: userId,
-          rejected_by_name: userName,
+          rejected_by_name: sanitizeText(userName),
           rejected_at: new Date().toISOString(),
-          rejection_reason: reason,
+          rejection_reason: sanitizeText(reason),
           // Clear any previous approval
           approved_by_user_id: null,
           approved_by_name: null,
@@ -2557,9 +2565,9 @@ export const db = {
         .from('t_and_m_tickets')
         .update({
           client_signature_data: signatureData.signature,
-          client_signature_name: signatureData.signerName,
-          client_signature_title: signatureData.signerTitle,
-          client_signature_company: signatureData.signerCompany,
+          client_signature_name: sanitizeText(signatureData.signerName),
+          client_signature_title: sanitizeText(signatureData.signerTitle),
+          client_signature_company: sanitizeText(signatureData.signerCompany),
           client_signature_date: signatureData.signedAt,
           client_signature_ip: null, // Not available in on-site signing
           status: 'client_signed' // Update status to indicate client has signed
@@ -3081,9 +3089,9 @@ export const db = {
         project_id: projectId,
         user_id: userId,
         work_date: workDate,
-        load_type: loadType,
+        load_type: sanitizeText(loadType),
         load_count: loadCount,
-        notes
+        notes: sanitizeText(notes)
       })
       .select()
       .single()
@@ -3107,9 +3115,9 @@ export const db = {
     const { data, error } = await client
       .from('disposal_loads')
       .update({
-        load_type: loadType,
+        load_type: sanitizeText(loadType),
         load_count: loadCount,
-        notes
+        notes: sanitizeText(notes)
       })
       .eq('id', id)
       .select()
@@ -3629,14 +3637,14 @@ export const db = {
         .insert({
           cor_id: corId,
           export_type: exportType,
-          export_reason: exportReason,
+          export_reason: sanitizeText(exportReason),
           cor_data: snapshot.cor_data,
           tickets_data: snapshot.tickets_data,
           photos_manifest: snapshot.photos_manifest,
           totals_snapshot: snapshot.totals_snapshot,
           checksum: snapshot.checksum,
-          client_email: clientEmail,
-          client_name: clientName
+          client_email: sanitizeText(clientEmail),
+          client_name: sanitizeText(clientName)
         })
         .select()
         .single()
@@ -4390,9 +4398,9 @@ export const db = {
       .insert({
         project_id: projectId,
         sender_type: senderType,
-        sender_name: senderName,
+        sender_name: sanitizeText(senderName),
         sender_user_id: senderUserId,
-        message: message,
+        message: sanitizeText(message),
         photo_url: photoUrl,
         message_type: messageType,
         parent_message_id: parentId
@@ -4522,7 +4530,7 @@ export const db = {
         requested_by: requestedBy,
         needed_by: neededBy,
         priority: priority,
-        notes: notes
+        notes: sanitizeText(notes)
       })
       .select()
       .single()
@@ -4599,7 +4607,7 @@ export const db = {
       status: status,
       responded_by: respondedBy,
       responded_at: new Date().toISOString(),
-      response_notes: responseNotes,
+      response_notes: sanitizeText(responseNotes),
       updated_at: new Date().toISOString()
     }
     
@@ -4779,7 +4787,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from('project_shares')
-      .update(updates)
+      .update(sanitizeRecord(updates))
       .eq('id', shareId)
       .select()
       .single()
@@ -4941,7 +4949,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from('injury_reports')
-      .insert(reportData)
+      .insert(sanitizeRecord(reportData))
       .select()
       .single()
 
@@ -5047,7 +5055,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from('injury_reports')
-      .update(updates)
+      .update(sanitizeRecord(updates))
       .eq('id', reportId)
       .select()
       .single()
@@ -5422,7 +5430,7 @@ export const db = {
         .from('notification_presets')
         .insert({
           company_id: companyId,
-          name,
+          name: sanitizeText(name),
           notification_types: notificationTypes
         })
         .select()
@@ -5457,7 +5465,7 @@ export const db = {
       const { data, error } = await supabase
         .from('notification_presets')
         .update({
-          name,
+          name: sanitizeText(name),
           notification_types: notificationTypes,
           updated_at: new Date().toISOString()
         })
@@ -5543,9 +5551,9 @@ export const db = {
         .from('dump_sites')
         .insert({
           company_id: companyId,
-          name,
-          address,
-          notes,
+          name: sanitizeText(name),
+          address: sanitizeText(address),
+          notes: sanitizeText(notes),
           active: true
         })
         .select()
@@ -5581,7 +5589,7 @@ export const db = {
       const { data, error } = await supabase
         .from('dump_sites')
         .update({
-          ...updates,
+          ...sanitizeRecord(updates),
           updated_at: new Date().toISOString()
         })
         .eq('id', dumpSiteId)
@@ -5643,7 +5651,7 @@ export const db = {
           .from('dump_site_rates')
           .insert({
             dump_site_id: dumpSiteId,
-            waste_type: wasteType,
+            waste_type: sanitizeText(wasteType),
             estimated_cost_per_load: estimatedCostPerLoad,
             unit
           })
@@ -5729,11 +5737,11 @@ export const db = {
     const haulOff = {
       project_id: projectId,
       dump_site_id: data.dumpSiteId,
-      waste_type: data.wasteType,
+      waste_type: sanitizeText(data.wasteType),
       loads: data.loads,
-      hauling_company: data.haulingCompany || '',
+      hauling_company: sanitizeText(data.haulingCompany) || '',
       work_date: data.workDate,
-      notes: data.notes || '',
+      notes: sanitizeText(data.notes) || '',
       estimated_cost: data.estimatedCost || 0,
       created_by: data.createdBy || ''
     }
@@ -5848,8 +5856,8 @@ export const db = {
       .insert({
         company_id: companyId,
         project_id: projectId,
-        name: folderData.name,
-        description: folderData.description || null,
+        name: sanitizeText(folderData.name),
+        description: sanitizeText(folderData.description) || null,
         icon: folderData.icon || 'folder',
         color: folderData.color || 'blue',
         sort_order: folderData.sort_order || 0,
@@ -5910,7 +5918,7 @@ export const db = {
     const { data, error } = await client
       .from('document_folders')
       .update({
-        ...updates,
+        ...sanitizeRecord(updates),
         updated_at: new Date().toISOString()
       })
       .eq('id', folderId)
@@ -6092,8 +6100,8 @@ export const db = {
         .insert({
           company_id: companyId,
           project_id: projectId,
-          name: metadata.name || file.name.replace(/\.[^/.]+$/, ''),
-          description: metadata.description || null,
+          name: sanitizeText(metadata.name) || file.name.replace(/\.[^/.]+$/, ''),
+          description: sanitizeText(metadata.description) || null,
           file_name: file.name,
           file_size_bytes: file.size,
           mime_type: file.type,
@@ -6292,8 +6300,8 @@ export const db = {
     const { data, error } = await client
       .from('documents')
       .update({
-        name: updates.name,
-        description: updates.description,
+        name: sanitizeText(updates.name),
+        description: sanitizeText(updates.description),
         category: updates.category,
         visibility: updates.visibility,
         tags: updates.tags
