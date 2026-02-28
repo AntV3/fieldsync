@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   },
   {
     id: 'tickets',
-    label: 'T&M Tickets',
+    label: 'Time & Material',
     shortLabel: 'Tickets',
     icon: ClipboardList,
     description: 'Field data',

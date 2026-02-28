@@ -255,7 +255,7 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
         <div className="tm-empty-icon">
           <ClipboardList size={48} />
         </div>
-        <p>No T&M tickets yet</p>
+        <p>No Time & Material tickets yet</p>
         <p className="tm-empty-hint">Create tickets to see analytics and trends</p>
       </div>
     )

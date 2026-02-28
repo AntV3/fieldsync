@@ -49,7 +49,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
                 id: `tm-${ticket.id}-${allPhotos.length}`,
                 url,
                 date: ticket.work_date,
-                source: 'T&M Ticket',
+                source: 'Time & Material',
                 description: ticket.notes,
                 areaId: ticket.area_id
               })

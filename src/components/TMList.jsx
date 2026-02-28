@@ -129,7 +129,7 @@ export default function TMList({
         setFailedImports(prev => reset ? importStatusResults : { ...prev, ...importStatusResults })
       }
     } catch (error) {
-      onShowToast('Error loading T&M tickets', 'error')
+      onShowToast('Error loading tickets', 'error')
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -246,7 +246,7 @@ export default function TMList({
       return
     }
 
-    if (!confirm('Delete this T&M ticket?')) return
+    if (!confirm('Delete this Time & Material ticket?')) return
     try {
       await db.deleteTMTicket(ticketId)
       setTickets(prev => prev.filter(t => t.id !== ticketId))
@@ -503,7 +503,7 @@ export default function TMList({
     }
     
     // Download
-    const fileName = `${project.name}_TM_${new Date().toISOString().split('T')[0]}.xlsx`
+    const fileName = `${project.name}_Time_Material_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(wb, fileName)
     onShowToast('Export downloaded!', 'success')
   }
@@ -1006,12 +1006,12 @@ export default function TMList({
       const footerY = pageHeight - 15
       doc.setFontSize(8)
       doc.setTextColor(148, 163, 184)
-      doc.text(`${company?.name || 'Company'} - T&M Report - ${project.name}`, margin, footerY)
+      doc.text(`${company?.name || 'Company'} - Time & Material Report - ${project.name}`, margin, footerY)
       doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
     }
 
     // Download
-    const fileName = `${project.name}_TM_Report_${new Date().toISOString().split('T')[0]}.pdf`
+    const fileName = `${project.name}_Time_Material_Report_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)
     onShowToast('PDF exported!', 'success')
   }
@@ -1154,7 +1154,7 @@ export default function TMList({
       {/* Header with export buttons - always visible */}
       <div className="tm-list-header">
         <div className="tm-list-title">
-          <h3>T&M Tickets</h3>
+          <h3>Time & Material Tickets</h3>
           <div className="tm-header-controls">
             {/* Display Mode Toggle */}
             {!compact && (
@@ -1287,7 +1287,7 @@ export default function TMList({
 
           {filteredTickets.length === 0 ? (
         <div className="tm-empty-state">
-          <p>No {filter === 'all' ? '' : filter} T&M tickets{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
+          <p>No {filter === 'all' ? '' : filter} Time & Material tickets{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
           {viewMode === 'recent' && totalTicketsCount > 0 && (
             <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
               View All Tickets
@@ -1361,7 +1361,7 @@ export default function TMList({
           {/* See All Footer - only in preview mode */}
           {previewMode && tickets.length > 0 && (
             <button className="tm-see-all-btn" onClick={onViewAll}>
-              See all {totalCount || tickets.length} T&M tickets
+              See all {totalCount || tickets.length} Time & Material tickets
               <ChevronRight size={16} />
             </button>
           )}
@@ -1374,7 +1374,7 @@ export default function TMList({
           <div className="modal change-order-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Approve Change Order Work</h3>
             <p className="modal-subtitle">
-              This T&M ticket is associated with <strong>{pendingApprovalTicket.ce_pco_number}</strong>
+              This Time & Material ticket is associated with <strong>{pendingApprovalTicket.ce_pco_number}</strong>
             </p>
 
             <div className="form-group">
@@ -1417,7 +1417,7 @@ export default function TMList({
           companyId={company?.id}
           projectId={project?.id}
           project={project}
-          documentTitle={`T&M Ticket - ${new Date(signatureLinkTicket.work_date).toLocaleDateString()}${signatureLinkTicket.ce_pco_number ? ` (${signatureLinkTicket.ce_pco_number})` : ''}`}
+          documentTitle={`Time & Material Ticket - ${new Date(signatureLinkTicket.work_date).toLocaleDateString()}${signatureLinkTicket.ce_pco_number ? ` (${signatureLinkTicket.ce_pco_number})` : ''}`}
           onClose={() => {
             setShowSignatureLink(false)
             setSignatureLinkTicket(null)

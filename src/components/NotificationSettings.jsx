@@ -6,7 +6,7 @@ const NOTIFICATION_TYPES = [
   { id: 'message', label: 'Messages', Icon: MessageSquare, description: 'Chat messages from field' },
   { id: 'material_request', label: 'Material Requests', Icon: Package, description: 'Equipment and material requests' },
   { id: 'injury_report', label: 'Safety Reports', Icon: AlertCircle, description: 'Injury and safety incident reports' },
-  { id: 'tm_ticket', label: 'T&M Tickets', Icon: ClipboardList, description: 'Time and materials tickets' }
+  { id: 'tm_ticket', label: 'Time & Material', Icon: ClipboardList, description: 'Time & Material tickets' }
 ]
 
 export default function NotificationSettings({ project, company, onShowToast, onClose }) {
@@ -133,7 +133,7 @@ export default function NotificationSettings({ project, company, onShowToast, on
 
       <p className="settings-description">
         Choose who receives notifications when field workers send messages, request materials,
-        submit safety reports, or create T&M tickets for this project.
+        submit safety reports, or create Time & Material tickets for this project.
       </p>
 
       {users.length === 0 ? (

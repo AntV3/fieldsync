@@ -171,7 +171,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           Contract: <strong>{payload[0]?.value || 0}</strong>
         </p>
         <p style={{ margin: '3px 0', color: CREW_COLORS.tm }}>
-          T&M: <strong>{payload[1]?.value || 0}</strong>
+          Time & Material: <strong>{payload[1]?.value || 0}</strong>
         </p>
         <p style={{ margin: '3px 0', color: 'var(--text-primary)', borderTop: '1px solid var(--border-color)', paddingTop: 4 }}>
           Total: <strong>{total}</strong>
@@ -216,7 +216,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       doc.setFont(undefined, 'normal')
       doc.text(`Total Crew On-Site: ${todayMetrics.total}`, 14, y); y += 5
       doc.text(`Contract Workers: ${todayMetrics.contract.length}`, 14, y); y += 5
-      doc.text(`T&M Workers: ${todayMetrics.tm.length}`, 14, y); y += 10
+      doc.text(`Time & Material Workers: ${todayMetrics.tm.length}`, 14, y); y += 10
 
       // Contract Workers
       if (todayMetrics.contract.length > 0) {
@@ -243,7 +243,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         if (y > 240) { doc.addPage(); y = 20 }
         doc.setFontSize(12)
         doc.setFont(undefined, 'bold')
-        doc.text('T&M Workers (Extra Work)', 14, y); y += 7
+        doc.text('Time & Material Workers (Extra Work)', 14, y); y += 7
 
         doc.setFontSize(9)
         doc.setFont(undefined, 'bold')
@@ -270,7 +270,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       doc.text('Date', 14, y)
       doc.text('Total', 70, y)
       doc.text('Contract', 95, y)
-      doc.text('T&M', 125, y); y += 5
+      doc.text('T&M', 125, y); y += 5  // Keep abbreviation for column header width
 
       doc.setFont(undefined, 'normal')
       chartData.forEach(day => {
@@ -367,7 +367,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           <div className="crew-stat-icon"><Wrench size={20} /></div>
           <div className="crew-stat-content">
             <span className="crew-stat-value">{todayMetrics.tm.length}</span>
-            <span className="crew-stat-label">T&M</span>
+            <span className="crew-stat-label">Time & Material</span>
           </div>
         </div>
       </div>
@@ -383,7 +383,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           <div
             className="crew-bar-segment tm"
             style={{ width: `${(todayMetrics.tm.length / todayMetrics.total) * 100}%` }}
-            title={`${todayMetrics.tm.length} T&M`}
+            title={`${todayMetrics.tm.length} Time & Material`}
           />
         </div>
       )}
@@ -413,7 +413,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
             <div className="crew-name-group">
               <div className="crew-name-group-header tm">
                 <Wrench size={13} />
-                <span>T&M ({todayMetrics.tm.length})</span>
+                <span>Time & Material ({todayMetrics.tm.length})</span>
               </div>
               <div className="crew-name-tags">
                 {todayMetrics.tm.map((w, i) => (
@@ -484,7 +484,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
               />
               <Bar
                 dataKey="tm"
-                name="T&M (Extra Work)"
+                name="Time & Material (Extra Work)"
                 stackId="crew"
                 fill={CREW_COLORS.tm}
                 radius={[3, 3, 0, 0]}

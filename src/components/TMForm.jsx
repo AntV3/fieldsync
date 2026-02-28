@@ -923,7 +923,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           } catch (markError) {
             console.error('Error marking import failed:', markError)
           }
-          onShowToast('T&M saved. COR data sync failed - retry from ticket list.', 'warning')
+          onShowToast('Ticket saved. COR data sync failed - retry from ticket list.', 'warning')
         }
       }
 
@@ -932,7 +932,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       })
 
       setSubmittedTicket(ticket)
-      onShowToast('T&M submitted!', 'success')
+      onShowToast('Time & Material ticket submitted!', 'success')
       setStep(5)
     } catch (error) {
       console.error('Error submitting T&M:', error)

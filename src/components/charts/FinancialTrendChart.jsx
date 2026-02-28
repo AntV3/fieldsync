@@ -239,7 +239,7 @@ export default function FinancialTrendChart({
               <Area
                 type="monotone"
                 dataKey="tmValue"
-                name="T&M Value"
+                name="Time & Material Value"
                 stroke={chartColors.tmValue}
                 strokeWidth={2}
                 fill="url(#tmValueGradient)"
@@ -305,7 +305,7 @@ export default function FinancialTrendChart({
         </div>
         {chartData[chartData.length - 1]?.tmValue > 0 && (
           <div className="quick-stat">
-            <span className="stat-label">T&M Pending</span>
+            <span className="stat-label">Time & Material Pending</span>
             <span className="stat-value" style={{ color: chartColors.tmValue }}>
               {formatChartCurrency(chartData[chartData.length - 1]?.tmValue || 0)}
             </span>

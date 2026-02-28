@@ -1,7 +1,7 @@
 const CAPABILITIES = [
   'Real-Time Sync',
   'One-Tap Updates',
-  'T&M Tickets',
+  'Time & Material',
   'Daily Reports',
   'Change Orders',
   'Equipment Tracking',

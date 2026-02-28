@@ -1286,7 +1286,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     {projectData?.pendingTickets > 0 && (
                       <button className="overview-needs-attention__item overview-needs-attention__item--warning" onClick={() => setActiveProjectTab('financials')}>
                         <ClipboardList size={14} className="overview-needs-attention__item-icon" />
-                        <span className="overview-needs-attention__item-label">{projectData.pendingTickets} T&M ticket{projectData.pendingTickets !== 1 ? 's' : ''} need approval</span>
+                        <span className="overview-needs-attention__item-label">{projectData.pendingTickets} Time & Material ticket{projectData.pendingTickets !== 1 ? 's' : ''} need approval</span>
                         <ArrowRight size={13} className="overview-needs-attention__item-arrow" />
                       </button>
                     )}
@@ -1329,7 +1329,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   </button>
                   <button className="overview-action-btn" onClick={() => setActiveProjectTab('financials')}>
                     <DollarSign size={15} />
-                    <span>{projectData?.totalTickets || 0} T&M Tickets</span>
+                    <span>{projectData?.totalTickets || 0} Time & Material Tickets</span>
                   </button>
                   <span className="overview-action-divider" />
                   <button className="overview-action-btn export" onClick={() => handleExportFieldDocuments('all')}>
@@ -1634,7 +1634,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   {/* T&M Tickets */}
                   <div className="reports-metric">
                     <div className="reports-metric-value">{projectData?.totalTickets || 0}</div>
-                    <div className="reports-metric-label">T&M Tickets</div>
+                    <div className="reports-metric-label">Time & Material</div>
                     {(projectData?.pendingTickets || 0) > 0 && (
                       <div className="reports-metric-status" style={{ background: '#fef3c7', color: '#92400e' }}>
                         {projectData.pendingTickets} pending
@@ -1910,7 +1910,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                       <div className="reports-activity-stat-icon"><FileText size={16} /></div>
                       <div className="reports-activity-stat-info">
                         <strong>{projectData?.totalTickets || 0}</strong>
-                        <span>T&M Tickets Created</span>
+                        <span>Time & Material Tickets</span>
                       </div>
                     </div>
                     <div className="reports-activity-stat">
@@ -2711,10 +2711,10 @@ function EnhancedProjectCard({ project, riskScore, riskStatus, onClick }) {
       {(project.pendingTickets > 0 || project.totalTickets > 0) && (
         <div className="project-badges">
           {project.pendingTickets > 0 && (
-            <span className="badge pending">{project.pendingTickets} Pending T&M</span>
+            <span className="badge pending">{project.pendingTickets} Pending</span>
           )}
           {project.approvedTickets > 0 && (
-            <span className="badge approved">{project.approvedTickets} Approved T&M</span>
+            <span className="badge approved">{project.approvedTickets} Approved</span>
           )}
         </div>
       )}

@@ -164,8 +164,8 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
           equipmentItems.push({
             id: `import-${ticket.id}-${item.id || Date.now()}-${generateRandomId()}`,
             description: itemDescription,
-            source_type: 'T&M Ticket',
-            source_reference: `T&M #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
+            source_type: 'Time & Material Ticket',
+            source_reference: `TM #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
             quantity: itemQty,
             unit: itemUnit,
             unit_cost: dollarsToCents(itemCost),
@@ -176,8 +176,8 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
           materialsItems.push({
             id: `import-${ticket.id}-${item.id || Date.now()}-${generateRandomId()}`,
             description: itemDescription,
-            source_type: 'T&M Ticket',
-            source_reference: `T&M #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
+            source_type: 'Time & Material Ticket',
+            source_reference: `TM #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
             quantity: itemQty,
             unit: itemUnit,
             unit_cost: dollarsToCents(itemCost),
@@ -212,7 +212,7 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="ticket-selector-title">
       <div className="modal-content ticket-selector-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 id="ticket-selector-title">Import from T&M Tickets</h2>
+          <h2 id="ticket-selector-title">Import from Time & Material Tickets</h2>
           <button className="close-btn" onClick={onClose} aria-label="Close ticket selector"><X size={20} aria-hidden="true" /></button>
         </div>
 

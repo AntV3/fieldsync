@@ -289,7 +289,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       doc.setTextColor(50, 50, 50)
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
-      const stats = `Crew: ${report.crew_count || 0}  |  Tasks: ${report.tasks_completed || 0}  |  T&M: ${report.tm_tickets_count || 0}  |  Photos: ${report.photos_count || 0}`
+      const stats = `Crew: ${report.crew_count || 0}  |  Tasks: ${report.tasks_completed || 0}  |  Time & Material: ${report.tm_tickets_count || 0}  |  Photos: ${report.photos_count || 0}`
       doc.text(stats, margin + 5, yPos)
       yPos += 8
 
@@ -392,7 +392,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
             </div>
             <div className="report-stat">
               <span className="stat-value">{report.tm_tickets_count || 0}</span>
-              <span className="stat-label">T&M Tickets</span>
+              <span className="stat-label">Time & Material</span>
             </div>
             <div className="report-stat">
               <span className="stat-value">{report.photos_count || 0}</span>

@@ -20,7 +20,7 @@ export default function EnhancedSignatureCapture({
   const [acknowledged, setAcknowledged] = useState(false)
 
   const slotLabel = slot === 1 ? 'GC Authorization' : 'Client Authorization'
-  const docTypeLabel = documentType === 'cor' ? 'Change Order Request' : 'T&M Work Order'
+  const docTypeLabel = documentType === 'cor' ? 'Change Order Request' : 'Time & Material Ticket'
 
   // Lock body scroll when modal is open (prevents background scrolling on mobile)
   useEffect(() => {

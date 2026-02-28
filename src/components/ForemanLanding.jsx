@@ -25,9 +25,9 @@ const ALL_ACTIONS = {
   },
   tm: {
     id: 'tm',
-    label: 'T&M Ticket',
+    label: 'Time & Material',
     icon: FileText,
-    description: 'Create time & materials ticket'
+    description: 'Create time & material ticket'
   },
   report: {
     id: 'report',
