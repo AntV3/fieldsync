@@ -23,6 +23,7 @@ const PricingManager = lazy(() => import('./components/PricingManager'))
 const PublicView = lazy(() => import('./components/PublicView'))
 const SignaturePage = lazy(() => import('./components/SignaturePage'))
 const MembershipManager = lazy(() => import('./components/MembershipManager'))
+const LandingPage = lazy(() => import('./components/landing/LandingPage'))
 
 // Loading fallback component
 function PageLoader() {
@@ -252,6 +253,7 @@ export default function App() {
   }, [user, checkAuth, navigate, location.pathname])
 
   const handleForemanAccess = (project, name = '') => {
+    localStorage.setItem('fieldsync-has-visited', 'true')
     setForemanProject(project)
     setForemanName(name)
     navigate('/field')
@@ -260,6 +262,7 @@ export default function App() {
   const handleOfficeLogin = async (email, password) => {
     try {
       await clearFieldSession()
+      localStorage.setItem('fieldsync-has-visited', 'true')
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
@@ -695,11 +698,19 @@ export default function App() {
               : <Navigate to="/dashboard" replace />
           )} />
 
-          {/* Root redirect */}
+          {/* Root — Landing page for new visitors, fast-track for returning users */}
           <Route path="/" element={
             user && company && authReady
               ? <Navigate to="/dashboard" replace />
-              : <Navigate to="/login" replace />
+              : localStorage.getItem('fieldsync-has-visited')
+                ? <Navigate to="/login" replace />
+                : (
+                  <ErrorBoundary>
+                    <Suspense fallback={<PageLoader />}>
+                      <LandingPage />
+                    </Suspense>
+                  </ErrorBoundary>
+                )
           } />
 
           {/* 404 catch-all */}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
@@ -106,7 +107,12 @@ function PasswordInput({ value, onChange, placeholder, onKeyDown, autoFocus, sho
 }
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
-  const [mode, setMode] = useState(null) // null, 'foreman', 'office', 'join', 'register'
+  const [searchParams] = useSearchParams()
+  const [mode, setMode] = useState(() => {
+    const urlMode = searchParams.get('mode')
+    if (urlMode === 'foreman' || urlMode === 'office') return urlMode
+    return null
+  }) // null, 'foreman', 'office', 'join', 'register'
 
   // Foreman state
   const [companyCode, setCompanyCode] = useState('')
