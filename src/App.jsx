@@ -12,10 +12,9 @@ import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
 import InstallPrompt from './components/InstallPrompt'
 import MFAChallenge from './components/MFAChallenge'
-// ForemanView imported directly to avoid lazy loading bundling issues
-import ForemanView from './components/ForemanView'
 
 // Lazy load large components for code splitting
+const ForemanView = lazy(() => import('./components/ForemanView'))
 const Dashboard = lazy(() => import('./components/Dashboard'))
 const Setup = lazy(() => import('./components/Setup'))
 const BrandingSettings = lazy(() => import('./components/BrandingSettings'))
@@ -669,7 +668,9 @@ export default function App() {
             foremanProject ? (
               <BrandingProvider companyId={foremanProject.company_id}>
                 <ErrorBoundary>
-                  <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onShowToast={showToast} onExit={handleExitForeman} />
+                  <Suspense fallback={<PageLoader />}>
+                    <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onShowToast={showToast} onExit={handleExitForeman} />
+                  </Suspense>
                 </ErrorBoundary>
                 <OfflineIndicator />
                 {toastEl}

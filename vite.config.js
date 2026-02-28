@@ -8,14 +8,17 @@ export default defineConfig({
     port: 5173
   },
   build: {
-    // Generate source maps for better debugging
-    sourcemap: true,
+    // Source maps: only generate hidden source maps for error tracking services
+    // Never expose source maps publicly in production (security risk)
+    sourcemap: 'hidden',
     rollupOptions: {
       output: {
         // Improve code splitting by separating vendor chunks
         manualChunks: {
           // React core - rarely changes, can be cached long-term
           react: ['react', 'react-dom'],
+          // Router - separate chunk for navigation layer
+          router: ['react-router-dom'],
           // Supabase client - separate chunk for API layer
           supabase: ['@supabase/supabase-js'],
           // PDF generation - only loaded when user exports PDFs

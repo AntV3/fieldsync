@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { X, Truck, DollarSign, Calendar, Save } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 
 /**
  * EquipmentModal - Add or edit equipment on a project
@@ -19,6 +20,7 @@ export default memo(function EquipmentModal({
   onSave,
   onClose
 }) {
+  const { showToast } = useToast()
   const [catalogEquipment, setCatalogEquipment] = useState([])
   const [loading, setLoading] = useState(true) // Start true since we load on mount
   const [saving, setSaving] = useState(false)
@@ -97,18 +99,18 @@ export default memo(function EquipmentModal({
     // Validation - get name from customName (used for both catalog and custom entries)
     const name = customName.trim()
     if (!name) {
-      alert('Please enter equipment name')
+      showToast('Please enter equipment name', 'warning')
       return
     }
 
     const rate = parseFloat(dailyRate)
     if (isNaN(rate) || rate < 0) {
-      alert('Please enter a valid daily rate')
+      showToast('Please enter a valid daily rate', 'warning')
       return
     }
 
     if (!startDate) {
-      alert('Please select a start date')
+      showToast('Please select a start date', 'warning')
       return
     }
 
@@ -139,7 +141,7 @@ export default memo(function EquipmentModal({
       onSave?.(result)
     } catch (error) {
       console.error('Error saving equipment:', error)
-      alert('Failed to save equipment. Please try again.')
+      showToast('Failed to save equipment. Please try again.', 'error')
     } finally {
       setSaving(false)
     }

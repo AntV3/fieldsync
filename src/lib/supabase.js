@@ -8,14 +8,11 @@ import {
   getCachedAreas,
   updateCachedAreaStatus,
   cacheCrewCheckin,
-  getCachedCrewCheckin,
   cacheTMTicket,
-  getCachedTMTickets,
   generateTempId,
   cacheDailyReport,
   getCachedDailyReport,
   cacheMessage,
-  getCachedMessages,
   addPendingAction,
   getPendingActionCount,
   syncPendingActions,
@@ -26,7 +23,6 @@ import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { observe } from './observability'
 // Import field session management from dedicated module
 import {
-  getFieldSession,
   setFieldSession,
   clearFieldSession,
   getFieldClient,
@@ -64,45 +60,6 @@ const getDeviceId = () => {
     localStorage.setItem(key, deviceId)
   }
   return deviceId
-}
-
-// Simple retry with exponential backoff
-const withRetry = async (fn, maxRetries = 3, baseDelay = 1000) => {
-  let lastError
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn()
-    } catch (error) {
-      lastError = error
-      // Don't retry on auth errors or validation errors
-      if (error.code === 'PGRST301' || error.code === '42501' || error.code === '23514') {
-        throw error
-      }
-      // Wait with exponential backoff
-      if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, i)))
-      }
-    }
-  }
-  throw lastError
-}
-
-// Input validation helpers
-const validateAmount = (amount) => {
-  if (amount === null || amount === undefined) return true
-  const num = parseFloat(amount)
-  return !isNaN(num) && num >= 0 && num < 10000000
-}
-
-const validateTextLength = (text, maxLength = 10000) => {
-  if (!text) return true
-  return text.length <= maxLength
-}
-
-const sanitizeText = (text) => {
-  if (!text) return text
-  // Remove null bytes and trim
-  return text.replace(/\0/g, '').trim()
 }
 
 // ============================================
@@ -641,7 +598,7 @@ export const db = {
 
   // Deep archive: archive project AND delete photos to reclaim storage
   // Call this after user has exported their important documents
-  async archiveProjectDeep(projectId, companyId) {
+  async archiveProjectDeep(projectId, _companyId) {
     if (!isSupabaseConfigured) return null
 
     // 1. Get all photo URLs for this project
@@ -892,7 +849,7 @@ export const db = {
 
       // Fetch full project details using the new session
       const client = getFieldClient()
-      const { data: projectData, error: projectError } = await client
+      const { data: projectData } = await client
         .from('projects')
         .select('*')
         .eq('id', result.project_id)
@@ -1118,7 +1075,7 @@ export const db = {
       // in the database yet. This ensures a clean delete even on older schemas.
 
       // 1. Collect photo storage paths from tickets before deleting them
-      let photoPathsToDelete = []
+      const photoPathsToDelete = []
       try {
         const { data: tickets } = await supabase
           .from('t_and_m_tickets')
@@ -1600,13 +1557,14 @@ export const db = {
     }
   },
 
-  // Get all users (for assignment dropdowns)
-  async getAllUsers() {
+  // Get all users (for assignment dropdowns) - limited for scalability
+  async getAllUsers(limit = 500) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role')
         .order('name')
+        .limit(limit)
       if (error) throw error
       return data
     } else {
@@ -1614,14 +1572,15 @@ export const db = {
     }
   },
 
-  // Get all foremen
-  async getForemen() {
+  // Get all foremen - limited for scalability
+  async getForemen(limit = 500) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role')
         .eq('role', 'foreman')
         .order('name')
+        .limit(limit)
       if (error) throw error
       return data
     } else {
@@ -3271,7 +3230,7 @@ export const db = {
     const filePath = `${companyId}/${projectId}/${ticketId}/${fileName}`
 
     try {
-      const { data, error } = await client.storage
+      const { error } = await client.storage
         .from('tm-photos')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -3326,7 +3285,7 @@ export const db = {
     // Path: company/project/ticket/filename
     const filePath = `${companyId}/${projectId}/${ticketId}/${newFileName}`
 
-    const { data, error } = await client.storage
+    const { error } = await client.storage
       .from('tm-photos')
       .upload(filePath, blob, {
         cacheControl: '3600',
@@ -5969,7 +5928,7 @@ export const db = {
     const client = getClient()
     const { page = 0, limit = 25 } = options
 
-    let query = client
+    const query = client
       .from('documents')
       .select('*', { count: 'exact' })
       .eq('folder_id', folderId)
@@ -6067,7 +6026,7 @@ export const db = {
 
     try {
       // Upload to storage
-      const { data: storageData, error: storageError } = await client.storage
+      const { error: storageError } = await client.storage
         .from('project-documents')
         .upload(storagePath, file, {
           cacheControl: '3600',

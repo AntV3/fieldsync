@@ -161,7 +161,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const sortedDates = [...new Set(reports.filter(r => r.submitted).map(r => r.report_date))].sort().reverse()
     let streak = 0
     const today = new Date().toISOString().split('T')[0]
-    let checkDate = new Date(today)
+    const checkDate = new Date(today)
 
     for (let i = 0; i < 30; i++) {
       const dateStr = checkDate.toISOString().split('T')[0]

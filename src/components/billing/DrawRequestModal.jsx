@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { X, FileSpreadsheet, Calendar, Percent, Save, Download } from 'lucide-react'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { useToast } from '../../lib/ToastContext'
 
 /**
  * DrawRequestModal - Create or edit a draw request / pay application
@@ -23,6 +24,7 @@ export default memo(function DrawRequestModal({
   onClose,
   onDownloadPDF
 }) {
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -180,7 +182,7 @@ export default memo(function DrawRequestModal({
     e.preventDefault()
 
     if (totals.currentTotal === 0) {
-      alert('Please enter at least one line item with work completed this period.')
+      showToast('Please enter at least one line item with work completed this period.', 'warning')
       return
     }
 
@@ -228,7 +230,7 @@ export default memo(function DrawRequestModal({
       onSave?.(result)
     } catch (error) {
       console.error('Error saving draw request:', error)
-      alert('Failed to save draw request. Please try again.')
+      showToast('Failed to save draw request. Please try again.', 'error')
     } finally {
       setSaving(false)
     }

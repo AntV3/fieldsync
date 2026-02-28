@@ -82,7 +82,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   // Build cumulative data
   let cumulativeCost = 0
   let cumulativeTMValue = 0
-  let cumulativeCORValue = 0
+  const cumulativeCORValue = 0
 
   // Pre-calculate T&M values by date
   // Use the actual property names from the database: t_and_m_workers, t_and_m_items
