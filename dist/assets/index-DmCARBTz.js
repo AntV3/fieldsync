@@ -1,0 +1,3 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/web-D7Xo1KE5.js","assets/index-6q4sZMdk.js","assets/icons-CRvlVhdL.js","assets/supabase-CgbGISss.js","assets/react-CVG0RKXH.js","assets/pdf-Dbfz8bwd.js","assets/index-B5BFg1nP.css"])))=>i.map(i=>d[i]);
+import{_ as r}from"./pdf-Dbfz8bwd.js";import{aX as o}from"./index-6q4sZMdk.js";import"./icons-CRvlVhdL.js";import"./supabase-CgbGISss.js";import"./react-CVG0RKXH.js";const a=o("SplashScreen",{web:()=>r(()=>import("./web-D7Xo1KE5.js"),__vite__mapDeps([0,1,2,3,4,5,6])).then(e=>new e.SplashScreenWeb)});export{a as SplashScreen};
+//# sourceMappingURL=index-DmCARBTz.js.map
