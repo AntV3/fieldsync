@@ -148,6 +148,7 @@ export default function FinancialsTab({
                 tmTickets={projectData?.tmTickets || []}
                 corStats={projectData?.corStats}
                 areas={areas}
+                changeOrderValue={changeOrderValue}
               />
 
               <div className="financials-analysis-row stagger-children">

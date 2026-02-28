@@ -17,10 +17,12 @@ import { chartColors, costCategories } from '../components/charts/chartConfig'
  * @param {Array} tmTickets - T&M tickets for the project
  * @param {Object} corStats - COR statistics
  * @param {Array} areas - Project areas with completion dates
+ * @param {number} changeOrderValue - Approved change order value to include in revenue
  * @returns {Array} Chart-ready data points
  */
-export function buildFinancialTimeSeries(projectData, project, tmTickets = [], corStats = null, areas = []) {
+export function buildFinancialTimeSeries(projectData, project, tmTickets = [], corStats = null, areas = [], changeOrderValue = 0) {
   const contractValue = project?.contract_value || 0
+  const revisedContractValue = contractValue + changeOrderValue
   const laborByDate = projectData?.laborByDate || []
   const haulOffByDate = projectData?.haulOffByDate || []
   const materialsEquipmentByDate = projectData?.materialsEquipmentByDate || []
@@ -68,9 +70,10 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       const areaWeight = parseFloat(area.weight) || 0
       // Calculate area's contribution to revenue
       // If scheduled_value exists (SOV), use that; otherwise calculate from weight
+      // Use revisedContractValue (includes change orders) for non-SOV projects
       const areaValue = area.scheduled_value
         ? parseFloat(area.scheduled_value)
-        : (totalWeight > 0 ? (areaWeight / totalWeight) * contractValue : 0)
+        : (totalWeight > 0 ? (areaWeight / totalWeight) * revisedContractValue : 0)
 
       if (!revenueByDate[completionDate]) {
         revenueByDate[completionDate] = 0
@@ -78,11 +81,6 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       revenueByDate[completionDate] += areaValue
     }
   })
-
-  // Build cumulative data
-  let cumulativeCost = 0
-  let cumulativeTMValue = 0
-  let cumulativeCORValue = 0
 
   // Pre-calculate T&M values by date
   // Use the actual property names from the database: t_and_m_workers, t_and_m_items
@@ -145,6 +143,29 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     }
   })
 
+  // Determine if we have area-based revenue data
+  const hasAreaData = Object.keys(revenueByDate).length > 0
+  const billable = projectData?.billable || 0
+
+  // For fallback revenue (no area completion dates), we need total costs first
+  // to distribute billable proportionally based on when work was done
+  let totalCostForFallback = 0
+  if (!hasAreaData && billable > 0) {
+    sortedDates.forEach(date => {
+      const laborDay = laborByDate.find(d => d.date === date)
+      const laborCost = laborDay?.cost || 0
+      const haulOffDay = haulOffByDate.find(d => d.date === date)
+      const haulOffCost = haulOffDay?.cost || 0
+      const materialsEquipmentCost = materialsEquipmentByDateMap[date] || 0
+      const customCost = customByDate[date] || 0
+      totalCostForFallback += laborCost + materialsEquipmentCost + haulOffCost + customCost
+    })
+  }
+
+  // Build cumulative data
+  let cumulativeCost = 0
+  let cumulativeTMValue = 0
+
   // Track cumulative revenue based on actual area completions
   let cumulativeRevenue = 0
 
@@ -172,17 +193,23 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     const tmDayValue = tmByDate[date] || 0
     cumulativeTMValue += tmDayValue
 
-    // Accumulate revenue based on actual area completions
-    // Revenue increases only when areas are marked complete
-    const dailyRevenue = revenueByDate[date] || 0
-    cumulativeRevenue += dailyRevenue
+    // Calculate revenue
+    let revenue
+    if (hasAreaData) {
+      // Use actual area completion dates for revenue tracking
+      const dailyRevenue = revenueByDate[date] || 0
+      cumulativeRevenue += dailyRevenue
+      revenue = cumulativeRevenue
+    } else if (totalCostForFallback > 0) {
+      // Fallback: distribute billable proportionally based on cost progression
+      // Revenue is earned roughly in proportion to when costs are incurred
+      revenue = (cumulativeCost / totalCostForFallback) * billable
+    } else {
+      // No cost data either - show billable as flat (truly no data to distribute)
+      revenue = billable
+    }
 
-    // If we have area completion data, use actual revenue
-    // Otherwise fall back to billable (for projects without detailed tracking)
-    const hasAreaData = Object.keys(revenueByDate).length > 0
-    const revenue = hasAreaData
-      ? cumulativeRevenue
-      : (projectData?.billable || 0) // Fall back to current billable for projects without area dates
+    const dailyRevenue = hasAreaData ? (revenueByDate[date] || 0) : 0
 
     return {
       date,
