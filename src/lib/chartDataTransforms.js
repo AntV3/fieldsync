@@ -213,7 +213,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
 
     return {
       date,
-      contract: contractValue,
+      contract: revisedContractValue,
       revenue: Math.round(revenue),
       costs: Math.round(cumulativeCost),
       tmValue: Math.round(cumulativeTMValue),
@@ -258,7 +258,7 @@ export function filterByTimeRange(data, days) {
  * @param {Array} customCosts - Array of custom cost entries
  * @returns {Array} Chart-ready segments
  */
-export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCosts = []) {
+export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCosts = [], materialsEquipmentCost = 0) {
   const segments = []
 
   // Add labor if present
@@ -278,6 +278,16 @@ export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCost
       value: haulOffCost,
       color: chartColors.disposal,
       category: 'disposal',
+    })
+  }
+
+  // Add materials & equipment from T&M tickets if present
+  if (materialsEquipmentCost > 0) {
+    segments.push({
+      name: 'Materials & Equipment',
+      value: materialsEquipmentCost,
+      color: chartColors.equipment || '#f59e0b',
+      category: 'equipment',
     })
   }
 

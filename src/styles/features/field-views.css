@@ -238,6 +238,126 @@
   margin-top: 0.125rem;
 }
 
+/* Edit mode for quick-add list */
+.crew-quick-add-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent-blue);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.crew-quick-add-edit-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.crew-quick-add-item {
+  position: relative;
+  display: inline-flex;
+}
+
+.crew-quick-add-item.editing .crew-quick-add-btn {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.crew-quick-add-dismiss {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-red);
+  color: white;
+  border: 2px solid var(--bg-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--transition-fast);
+  z-index: 1;
+}
+
+.crew-quick-add-dismiss:hover {
+  transform: scale(1.15);
+}
+
+/* Dismissed workers section */
+.crew-dismissed-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.crew-dismissed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.crew-dismissed-header span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.crew-restore-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: none;
+  color: var(--accent-blue);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.crew-restore-all-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.crew-dismissed-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.crew-dismissed-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.crew-dismissed-item:hover {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.crew-dismissed-name {
+  text-decoration: line-through;
+}
+
 .crew-count {
   text-align: center;
   font-size: 0.8rem;

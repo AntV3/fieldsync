@@ -122,10 +122,16 @@
 
 /* Info Section Card */
 .info-section-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.info-section-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .info-section-header {

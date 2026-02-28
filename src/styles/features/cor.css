@@ -317,16 +317,17 @@
 }
 
 .cor-card {
-  background: var(--bg-secondary);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 1rem;
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
   cursor: pointer;
+  box-shadow: var(--shadow-card);
   transition: all var(--transition-normal);
 }
 
 .cor-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-card-hover);
   border-color: var(--accent-blue);
 }
 

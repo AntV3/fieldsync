@@ -20,10 +20,16 @@
    Burn Rate Card
    ============================================ */
 .burn-rate-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.burn-rate-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .burn-rate-header {
@@ -264,11 +270,17 @@
    Cost Contributors Card
    ============================================ */
 .cost-contributors-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
+  padding: 14px 16px;
   margin-bottom: 0;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.cost-contributors-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .cost-contributors-header {
@@ -523,10 +535,16 @@
    Profitability Card
    ============================================ */
 .profitability-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-normal);
+}
+
+.profitability-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .profitability-card.healthy {
@@ -689,7 +707,7 @@
   color: var(--text-secondary);
   line-height: 1.5;
   padding: 0.75rem;
-  background: #f8fafc;
+  background: var(--bg-tertiary);
   border-radius: var(--radius-md);
 }
 

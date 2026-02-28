@@ -25,6 +25,7 @@ const categoryInfo = {
 export default function CostContributorsCard({
   laborCost = 0,
   haulOffCost = 0,
+  materialsEquipmentCost = 0,
   customCosts = [],
   onAddCost,
   onDeleteCost
@@ -54,6 +55,17 @@ export default function CostContributorsCard({
       amount: haulOffCost,
       source: 'auto',
       description: 'From haul-off logs'
+    })
+  }
+
+  // Materials & Equipment (auto-tracked from T&M tickets)
+  if (materialsEquipmentCost > 0) {
+    costBreakdown.push({
+      category: 'equipment',
+      label: 'Materials & Equipment',
+      amount: materialsEquipmentCost,
+      source: 'auto',
+      description: 'From T&M tickets'
     })
   }
 
@@ -139,6 +151,7 @@ export default function CostContributorsCard({
         <CostDonut
           laborCost={laborCost}
           haulOffCost={haulOffCost}
+          materialsEquipmentCost={materialsEquipmentCost}
           customCosts={customCosts}
           onSegmentClick={handleSegmentClick}
         />

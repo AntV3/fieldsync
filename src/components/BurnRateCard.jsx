@@ -25,6 +25,8 @@ export default function BurnRateCard({
   daysWorked,
   laborCost,
   materialsEquipmentCost = 0,
+  disposalCost = 0,
+  customCostTotal = 0,
   progress,
   contractValue,
   laborByDate = [],
@@ -111,11 +113,33 @@ export default function BurnRateCard({
           <span className="burn-summary-label">Labor</span>
           <span className="burn-summary-value">{formatCurrency(laborCost)}</span>
         </div>
-        <div className="burn-summary-divider"></div>
-        <div className="burn-summary-item">
-          <span className="burn-summary-label">Materials</span>
-          <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
-        </div>
+        {disposalCost > 0 && (
+          <>
+            <div className="burn-summary-divider"></div>
+            <div className="burn-summary-item">
+              <span className="burn-summary-label">Disposal</span>
+              <span className="burn-summary-value">{formatCurrency(disposalCost)}</span>
+            </div>
+          </>
+        )}
+        {materialsEquipmentCost > 0 && (
+          <>
+            <div className="burn-summary-divider"></div>
+            <div className="burn-summary-item">
+              <span className="burn-summary-label">Materials & Equip</span>
+              <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
+            </div>
+          </>
+        )}
+        {customCostTotal > 0 && (
+          <>
+            <div className="burn-summary-divider"></div>
+            <div className="burn-summary-item">
+              <span className="burn-summary-label">Other</span>
+              <span className="burn-summary-value">{formatCurrency(customCostTotal)}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {progress > 0 && (

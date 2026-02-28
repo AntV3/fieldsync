@@ -1,6 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
-import { HardHat, UserPlus } from 'lucide-react'
+import { HardHat, UserPlus, X, RotateCcw } from 'lucide-react'
 import { db } from '../lib/supabase'
+
+// Helper to get/set dismissed workers from localStorage per project
+const getDismissedWorkers = (projectId) => {
+  try {
+    const key = `fieldsync_dismissed_workers_${projectId}`
+    const stored = localStorage.getItem(key)
+    return stored ? JSON.parse(stored) : []
+  } catch { return [] }
+}
+
+const saveDismissedWorkers = (projectId, names) => {
+  try {
+    const key = `fieldsync_dismissed_workers_${projectId}`
+    localStorage.setItem(key, JSON.stringify(names))
+  } catch { /* localStorage full or unavailable */ }
+}
 
 export default function CrewCheckin({ project, companyId, onShowToast }) {
   const [workers, setWorkers] = useState([])
@@ -12,6 +28,10 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   // Recent workers for quick-add
   const [recentWorkers, setRecentWorkers] = useState([])
   const [loadingRecent, setLoadingRecent] = useState(true)
+
+  // Dismissed workers (removed from quick-add list)
+  const [dismissedNames, setDismissedNames] = useState([])
+  const [editingQuickAdd, setEditingQuickAdd] = useState(false)
 
   // Labor classes from company pricing setup
   const [laborCategories, setLaborCategories] = useState([])
@@ -75,6 +95,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     if (project?.id) {
       loadTodaysCrew()
       loadRecentWorkers()
+      setDismissedNames(getDismissedWorkers(project.id))
       if (companyId) {
         loadLaborClasses()
       } else {
@@ -185,9 +206,41 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     }
   }
 
-  // Get recent workers not already checked in today
+  // Dismiss a worker from the quick-add list
+  const handleDismissWorker = (workerName) => {
+    const nameLower = workerName.toLowerCase()
+    const updated = [...dismissedNames, nameLower]
+    setDismissedNames(updated)
+    saveDismissedWorkers(project.id, updated)
+    onShowToast?.(`${workerName} removed from quick-add`, 'success')
+  }
+
+  // Restore a dismissed worker back to the quick-add list
+  const handleRestoreWorker = (workerName) => {
+    const nameLower = workerName.toLowerCase()
+    const updated = dismissedNames.filter(n => n !== nameLower)
+    setDismissedNames(updated)
+    saveDismissedWorkers(project.id, updated)
+    onShowToast?.(`${workerName} restored to quick-add`, 'success')
+  }
+
+  // Restore all dismissed workers
+  const handleRestoreAll = () => {
+    setDismissedNames([])
+    saveDismissedWorkers(project.id, [])
+    setEditingQuickAdd(false)
+    onShowToast?.('All workers restored to quick-add', 'success')
+  }
+
+  // Get dismissed worker details for the restore list
+  const dismissedWorkerDetails = recentWorkers.filter(
+    rw => dismissedNames.includes(rw.name.toLowerCase())
+  )
+
+  // Get recent workers not already checked in today and not dismissed
   const availableRecentWorkers = recentWorkers.filter(
-    rw => !workers.find(w => w.name.toLowerCase() === rw.name.toLowerCase())
+    rw => !workers.find(w => w.name.toLowerCase() === rw.name.toLowerCase()) &&
+          !dismissedNames.includes(rw.name.toLowerCase())
   )
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -265,24 +318,68 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       )}
 
       {/* Quick-add recent workers */}
-      {!loadingRecent && availableRecentWorkers.length > 0 && (
+      {!loadingRecent && (availableRecentWorkers.length > 0 || editingQuickAdd) && (
         <div className="crew-quick-add">
           <div className="crew-quick-add-header">
-            <span>Tap to add</span>
+            <span>{editingQuickAdd ? 'Manage quick-add list' : 'Tap to add'}</span>
+            <button
+              className="crew-quick-add-edit-btn"
+              onClick={() => setEditingQuickAdd(!editingQuickAdd)}
+            >
+              {editingQuickAdd ? 'Done' : 'Edit'}
+            </button>
           </div>
           <div className="crew-quick-add-grid">
             {availableRecentWorkers.map(rw => (
-              <button
-                key={rw.name}
-                className="crew-quick-add-btn"
-                onClick={() => handleQuickAdd(rw)}
-                disabled={saving}
-              >
-                <span className="crew-quick-add-name">{rw.name}</span>
-                <span className="crew-quick-add-role">{rw.role}</span>
-              </button>
+              <div key={rw.name} className={`crew-quick-add-item ${editingQuickAdd ? 'editing' : ''}`}>
+                <button
+                  className="crew-quick-add-btn"
+                  onClick={() => !editingQuickAdd && handleQuickAdd(rw)}
+                  disabled={saving || editingQuickAdd}
+                >
+                  <span className="crew-quick-add-name">{rw.name}</span>
+                  <span className="crew-quick-add-role">{rw.role}</span>
+                </button>
+                {editingQuickAdd && (
+                  <button
+                    className="crew-quick-add-dismiss"
+                    onClick={() => handleDismissWorker(rw.name)}
+                    title={`Remove ${rw.name} from quick-add`}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
+
+          {/* Show dismissed workers when editing */}
+          {editingQuickAdd && dismissedWorkerDetails.length > 0 && (
+            <div className="crew-dismissed-section">
+              <div className="crew-dismissed-header">
+                <span>Removed workers</span>
+                <button
+                  className="crew-restore-all-btn"
+                  onClick={handleRestoreAll}
+                >
+                  <RotateCcw size={12} />
+                  <span>Restore all</span>
+                </button>
+              </div>
+              <div className="crew-dismissed-list">
+                {dismissedWorkerDetails.map(rw => (
+                  <button
+                    key={rw.name}
+                    className="crew-dismissed-item"
+                    onClick={() => handleRestoreWorker(rw.name)}
+                  >
+                    <span className="crew-dismissed-name">{rw.name}</span>
+                    <RotateCcw size={12} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
