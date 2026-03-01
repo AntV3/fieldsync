@@ -18,8 +18,6 @@
 // Migration: Replace exportCORToPDF calls with executeExport from corExportPipeline.js
 // ============================================
 
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import {
   formatCurrency,
   formatPercent,
@@ -189,6 +187,8 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
   if (verifyPhotos && tmTickets?.length > 0) {
     photoManifest = await verifyPhotosForExport(tmTickets)
   }
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -1131,6 +1131,8 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
  * @param {Object} branding - Company branding (logoUrl, primaryColor)
  */
 export async function exportTMTicketToPDF(ticket, project, company, branding = {}) {
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF('p', 'mm', 'letter')
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
