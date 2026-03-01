@@ -73,6 +73,9 @@ const escapePostgrestFilter = (input) => {
 // Sanitize an object of form data before sending to the database
 const sanitizeFormData = (data) => sanitize.object(data)
 
+// Allowed fields for punch list item updates (module-level to avoid `this` binding issues)
+const PUNCH_LIST_ALLOWED_FIELDS = new Set(['description', 'area_id', 'assigned_to', 'priority', 'notes', 'photo_url', 'status'])
+
 // Get or create a device ID for rate limiting
 const getDeviceId = () => {
   const key = 'fieldsync_device_id'
@@ -3042,16 +3045,13 @@ export const db = {
     return data
   },
 
-  // Allowed fields for punch list updates (whitelist prevents cross-tenant overwrites)
-  _PUNCH_LIST_ALLOWED_FIELDS: new Set(['description', 'area_id', 'assigned_to', 'priority', 'notes', 'photo_url', 'status']),
-
   async updatePunchListItem(itemId, updates) {
     if (!isSupabaseConfigured) return null
     // Whitelist allowed fields to prevent overwriting project_id, company_id, etc.
     const safeUpdates = {}
     let photoUrl = undefined
     for (const key of Object.keys(updates)) {
-      if (!this._PUNCH_LIST_ALLOWED_FIELDS.has(key)) continue
+      if (!PUNCH_LIST_ALLOWED_FIELDS.has(key)) continue
       if (key === 'photo_url') {
         // Sanitize URL separately to avoid double-sanitization via sanitizeFormData
         photoUrl = updates[key] ? sanitize.url(updates[key]) : updates[key]
@@ -3074,6 +3074,8 @@ export const db = {
 
   async updatePunchListStatus(itemId, newStatus) {
     if (!isSupabaseConfigured) return null
+    const VALID_STATUSES = ['open', 'in_progress', 'complete']
+    if (!VALID_STATUSES.includes(newStatus)) throw new Error('Invalid punch list status')
     const client = getClient()
     const updates = {
       status: newStatus,
