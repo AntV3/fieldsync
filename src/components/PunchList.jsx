@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save } from 'lucide-react'
-import { supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: '#ef4444' },
@@ -42,18 +42,10 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     }
 
     try {
-      const client = getSupabaseClient()
-      const { data, error } = await client
-        .from('punch_list_items')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
+      const data = await db.getPunchListItems(projectId)
       setItems(data || [])
     } catch (err) {
       console.error('Error loading punch list:', err)
-      // Table might not exist yet - that's OK
       setItems([])
     } finally {
       setLoading(false)
@@ -113,39 +105,27 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
 
     setSaving(true)
     try {
-      const client = getSupabaseClient()
       if (editingItem) {
-        const { error } = await client
-          .from('punch_list_items')
-          .update({
-            description: formData.description.trim(),
-            area_id: formData.area_id || null,
-            assigned_to: formData.assigned_to.trim() || null,
-            priority: formData.priority,
-            notes: formData.notes.trim() || null,
-            photo_url: formData.photo_url || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingItem.id)
-
-        if (error) throw error
+        await db.updatePunchListItem(editingItem.id, {
+          description: formData.description.trim(),
+          area_id: formData.area_id || null,
+          assigned_to: formData.assigned_to.trim() || null,
+          priority: formData.priority,
+          notes: formData.notes.trim() || null,
+          photo_url: formData.photo_url || null
+        })
         onShowToast?.('Punch item updated', 'success')
       } else {
-        const { error } = await client
-          .from('punch_list_items')
-          .insert({
-            project_id: projectId,
-            company_id: companyId,
-            description: formData.description.trim(),
-            area_id: formData.area_id || null,
-            assigned_to: formData.assigned_to.trim() || null,
-            priority: formData.priority,
-            notes: formData.notes.trim() || null,
-            photo_url: formData.photo_url || null,
-            status: 'open'
-          })
-
-        if (error) throw error
+        await db.createPunchListItem({
+          project_id: projectId,
+          company_id: companyId,
+          description: formData.description.trim(),
+          area_id: formData.area_id || null,
+          assigned_to: formData.assigned_to.trim() || null,
+          priority: formData.priority,
+          notes: formData.notes.trim() || null,
+          photo_url: formData.photo_url || null
+        })
         onShowToast?.('Punch item added', 'success')
       }
 
@@ -161,22 +141,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
 
   const handleStatusChange = async (itemId, newStatus) => {
     try {
-      const updates = {
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      }
-      if (newStatus === 'complete') {
-        updates.completed_at = new Date().toISOString()
-      } else {
-        updates.completed_at = null
-      }
-
-      const { error } = await getSupabaseClient()
-        .from('punch_list_items')
-        .update(updates)
-        .eq('id', itemId)
-
-      if (error) throw error
+      await db.updatePunchListStatus(itemId, newStatus)
       loadItems()
     } catch (err) {
       console.error('Error updating status:', err)
@@ -188,12 +153,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     if (!confirm('Delete this punch item?')) return
 
     try {
-      const { error } = await getSupabaseClient()
-        .from('punch_list_items')
-        .delete()
-        .eq('id', itemId)
-
-      if (error) throw error
+      await db.deletePunchListItem(itemId)
       onShowToast?.('Item deleted', 'success')
       loadItems()
     } catch (err) {

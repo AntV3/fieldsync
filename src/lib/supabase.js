@@ -3010,6 +3010,89 @@ export const db = {
   },
 
   // ============================================
+  // Punch List
+  // ============================================
+
+  async getPunchListItems(projectId) {
+    if (!isSupabaseConfigured) return []
+    const client = getClient()
+    const { data, error } = await client
+      .from('punch_list_items')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  async createPunchListItem(item) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    const { data, error } = await client
+      .from('punch_list_items')
+      .insert(sanitizeFormData({
+        project_id: item.project_id,
+        company_id: item.company_id,
+        description: item.description,
+        area_id: item.area_id || null,
+        assigned_to: item.assigned_to || null,
+        priority: item.priority,
+        notes: item.notes || null,
+        photo_url: item.photo_url || null,
+        status: 'open'
+      }))
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async updatePunchListItem(itemId, updates) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    const { data, error } = await client
+      .from('punch_list_items')
+      .update(sanitizeFormData({
+        ...updates,
+        updated_at: new Date().toISOString()
+      }))
+      .eq('id', itemId)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async updatePunchListStatus(itemId, newStatus) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    const updates = {
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    }
+    if (newStatus === 'complete') {
+      updates.completed_at = new Date().toISOString()
+    } else {
+      updates.completed_at = null
+    }
+    const { error } = await client
+      .from('punch_list_items')
+      .update(updates)
+      .eq('id', itemId)
+    if (error) throw error
+  },
+
+  async deletePunchListItem(itemId) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    const { error } = await client
+      .from('punch_list_items')
+      .delete()
+      .eq('id', itemId)
+    if (error) throw error
+  },
+
+  // ============================================
   // Disposal Load Tracking
   // ============================================
 

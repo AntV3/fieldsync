@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
-// Dynamic import for XLSX (loaded on-demand to reduce initial bundle)
-const loadXLSX = () => import('xlsx')
+import { safeParseExcel, safeSheetToJson, loadXLSXSafe } from '../lib/safeXlsx'
 
 // Currency formatting helpers
 const formatCurrencyDisplay = (value) => {
@@ -170,23 +169,21 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   }
 
   const parseExcel = async (file) => {
-    // Dynamic import - only loads XLSX when user actually imports
-    const XLSX = (await loadXLSX()).default || await loadXLSX()
-
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
 
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target.result)
-          const workbook = XLSX.read(data, { type: 'array' })
+          const workbook = await safeParseExcel(data)
 
           // Get first sheet
           const sheetName = workbook.SheetNames[0]
           const sheet = workbook.Sheets[sheetName]
 
           // Convert to array of arrays
-          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+          const XLSX = await loadXLSXSafe()
+          const rows = safeSheetToJson(XLSX, sheet, { header: 1 })
 
           const tasks = []
           let currentGroup = 'General'
