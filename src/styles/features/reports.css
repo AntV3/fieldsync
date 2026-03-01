@@ -36,8 +36,10 @@
 
 .bo-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   margin-bottom: 1.25rem;
   position: relative;
   z-index: 1;

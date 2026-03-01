@@ -38,6 +38,8 @@
 
 .cor-header-actions {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -195,6 +197,65 @@
 .cor-toggle-btn.active {
   background: var(--accent-blue);
   color: white;
+}
+
+/* COR Search Bar */
+.cor-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.cor-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.cor-search-input {
+  width: 100%;
+  padding: 0.625rem 2.25rem 0.625rem 2.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.cor-search-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cor-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.cor-search-clear {
+  position: absolute;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cor-search-clear:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* Date Filter - Compact */
@@ -1700,16 +1761,21 @@
 }
 
 /* COR Responsive */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .cor-list-header {
     flex-direction: column;
     gap: 0.5rem;
     align-items: stretch;
+    padding: 0.75rem 1rem;
   }
 
   .cor-list-info {
     flex-direction: column;
     gap: 0.25rem;
+  }
+
+  .cor-header-actions {
+    justify-content: flex-start;
   }
 
   .cor-controls {
@@ -1726,6 +1792,10 @@
 
   .cor-view-toggle {
     align-self: flex-end;
+  }
+
+  .cor-search-input {
+    font-size: 0.8125rem;
   }
 
   .cor-date-filter {

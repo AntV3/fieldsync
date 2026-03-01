@@ -238,30 +238,10 @@
   color: white;
 }
 
-/* Mobile Menu - Hidden on desktop, shown on mobile */
+/* Desktop-only three-dot user menu */
 .mobile-menu {
   display: none;
   position: relative;
-}
-
-.mobile-menu-btn {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  font-size: 1.25rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-normal);
-}
-
-.mobile-menu-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-blue);
 }
 
 .mobile-menu-dropdown {
@@ -309,5 +289,19 @@
 
 .mobile-menu-logout:hover {
   background: var(--bg-hover);
+}
+
+/* ============================================
+   Nav & Container Mobile Adjustments
+   ============================================ */
+
+@media (max-width: 768px) {
+  .nav {
+    padding: 0.75rem 1rem;
+  }
+
+  .container {
+    padding: 1rem;
+  }
 }
 
