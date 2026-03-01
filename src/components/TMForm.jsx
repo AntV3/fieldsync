@@ -330,8 +330,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             ...(previousCrew.laborers || []).map(w => ({ ...w, legacyRole: 'Laborer' }))
           ]
           if (allLegacyWorkers.length > 0) {
-            const newDynamic = { ...dynamicWorkers }
-            const newActiveIds = new Set(activeLaborClassIds)
+            const newActiveIds = new Set()
+            const mappedWorkers = {}
             allLegacyWorkers.forEach(worker => {
               // Try to match legacy role to a labor class by name
               const matchingClass = laborClasses.find(lc =>
@@ -340,8 +340,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               )
               const targetClassId = matchingClass?.id || laborClasses[0]?.id
               if (targetClassId) {
-                if (!newDynamic[targetClassId]) newDynamic[targetClassId] = []
-                newDynamic[targetClassId].push({
+                if (!mappedWorkers[targetClassId]) mappedWorkers[targetClassId] = []
+                mappedWorkers[targetClassId].push({
                   name: worker.name,
                   hours: worker.hours || '',
                   overtimeHours: worker.overtimeHours || '',
@@ -351,8 +351,12 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
                 newActiveIds.add(targetClassId)
               }
             })
-            setDynamicWorkers(newDynamic)
-            setActiveLaborClassIds(newActiveIds)
+            setDynamicWorkers(prev => ({ ...prev, ...mappedWorkers }))
+            setActiveLaborClassIds(prev => {
+              const merged = new Set(prev)
+              newActiveIds.forEach(id => merged.add(id))
+              return merged
+            })
           }
         }
       } else {
