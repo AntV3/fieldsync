@@ -4,11 +4,12 @@ export default function SignInCTA({ onGetStarted, onSignIn }) {
   return (
     <section className="lp-cta lp-animate">
       <div className="lp-cta-content">
-        <h2 className="lp-cta-heading">How much is the field-to-office gap costing you?</h2>
+        <h2 className="lp-cta-heading">How much is lagging data costing you?</h2>
         <p className="lp-cta-desc">
-          Missed updates. Disputed billings. Decisions made on yesterday's data.
-          Every disconnected day costs real money. Bridge the gap in minutes —
-          see the difference on your very next project.
+          Decisions made on yesterday's numbers. Change orders stuck in a week-long
+          approval loop. Payments delayed because the paperwork hasn't caught up.
+          FieldSync gives you real-time field data so you act on what's happening
+          now — not what happened last week.
         </p>
         <div className="lp-cta-actions">
           <button className="lp-btn-primary" onClick={onGetStarted}>

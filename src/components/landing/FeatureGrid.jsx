@@ -1,15 +1,15 @@
-import { RefreshCw, Smartphone, ToggleRight, DollarSign, WifiOff, Shield } from 'lucide-react'
+import { RefreshCw, Smartphone, ToggleRight, DollarSign, WifiOff, TrendingUp } from 'lucide-react'
 
 const FEATURES = [
   {
     icon: RefreshCw,
-    title: 'Real-Time Sync',
-    desc: 'The second a foreman taps "Done," your office knows. The field-to-office gap doesn\'t shrink — it disappears.',
+    title: 'Leading, Not Lagging Data',
+    desc: 'Traditional tools give you yesterday\'s numbers. FieldSync gives you right-now data — the leading indicators you need to make decisions before problems become costly.',
   },
   {
     icon: Smartphone,
     title: 'One-Tap Updates',
-    desc: 'Your crews won\'t need training, manuals, or IT support. One tap. That\'s it. If they can use a phone, they can use FieldSync.',
+    desc: 'Your crews tap once, and the office sees it live. Simple enough for anyone on the jobsite — powerful enough to drive real-time decisions in the back office.',
   },
   {
     icon: ToggleRight,
@@ -18,18 +18,18 @@ const FEATURES = [
   },
   {
     icon: DollarSign,
-    title: 'Defensible Billing',
-    desc: 'Every draw request backed by real field data, not estimates. Stop leaving money on the table and eliminate payment disputes before they start.',
+    title: 'Faster Change Order Payments',
+    desc: 'Change orders used to take days or weeks to document and approve. With real-time field data and timestamped records, turnaround drops from weeks to hours. Get paid faster.',
   },
   {
     icon: WifiOff,
     title: 'Offline-First',
-    desc: 'No signal on the jobsite? No problem. Your crews keep working, and FieldSync bridges the data back to the office the moment connectivity returns.',
+    desc: 'No signal on the jobsite? No problem. Your crews keep working, and FieldSync syncs everything back the moment connectivity returns.',
   },
   {
-    icon: Shield,
-    title: 'Enterprise Security',
-    desc: 'Multi-factor authentication, role-based access, and session-controlled field entry. Your data is locked down — without slowing anyone down.',
+    icon: TrendingUp,
+    title: 'Real-Time Decision Making',
+    desc: 'Stop waiting until the end of the day — or week — to find out what happened on the jobsite. See progress as it happens so you can act on it while it still matters.',
   },
 ]
 
@@ -37,11 +37,11 @@ export default function FeatureGrid() {
   return (
     <section className="lp-features" id="features">
       <div className="lp-features-label">Why Teams Switch to FieldSync</div>
-      <h2 className="lp-features-heading">Everything that breaks between field and office — fixed</h2>
+      <h2 className="lp-features-heading">Real-time data from the field — not last week's news</h2>
       <p className="lp-features-desc">
-        Phone calls get missed. Texts get buried. Spreadsheets go stale by lunch.
-        Every feature in FieldSync exists to kill the communication gap between
-        your crews and your back office — for good.
+        Most contractors are making decisions based on data that's already a day
+        or a week old. FieldSync gives you leading indicators straight from the
+        field so you can act now — not react later.
       </p>
 
       <div className="lp-features-grid">

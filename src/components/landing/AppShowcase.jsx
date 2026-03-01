@@ -1,95 +1,89 @@
 import { useRef } from 'react'
+import { Smartphone, Monitor, Clock } from 'lucide-react'
 
 export default function AppShowcase({ onVisible }) {
   const ref = useRef(null)
 
   return (
     <section className="lp-showcase lp-animate" ref={ref}>
-      <span className="lp-showcase-label">One Platform. Both Worlds Connected.</span>
+      <span className="lp-showcase-label">See FieldSync in Action</span>
       <h2 className="lp-showcase-heading">
-        The field works. The office knows. Instantly.
+        Real-time data. Real decisions. Real results.
       </h2>
       <p className="lp-showcase-desc">
-        Your foremen get a dead-simple mobile view. Your office gets the full
-        command center. Both see the same truth at the same time — no phone
-        calls, no texts, no end-of-day status meetings. The gap is gone.
+        Your foremen update progress from the field with a single tap. Your office
+        sees it the same second — not at the end of the day, not next week. Leading
+        data means you spot issues early, approve change orders faster, and keep
+        payments moving.
       </p>
 
-      <div className="lp-showcase-frame">
-        <div className="lp-mockup">
-          {/* Mock Navigation */}
-          <div className="lp-mock-nav">
-            <div className="lp-mock-logo">
-              Field<span>Sync</span>
-            </div>
-            <div className="lp-mock-tabs">
-              <div className="lp-mock-tab active">Overview</div>
-              <div className="lp-mock-tab">Financials</div>
-              <div className="lp-mock-tab">Reports</div>
-              <div className="lp-mock-tab">Documents</div>
+      <div className="lp-showcase-screenshots">
+        {/* Screenshot: Field Foreman View */}
+        <div className="lp-screenshot-card lp-animate">
+          <div className="lp-screenshot-frame mobile">
+            <img
+              src="/screenshots/foreman-mobile.png"
+              alt="FieldSync foreman mobile view — one-tap progress updates from the field"
+              className="lp-screenshot-img"
+              onError={(e) => {
+                e.target.style.display = 'none'
+                e.target.nextSibling.style.display = 'flex'
+              }}
+            />
+            <div className="lp-screenshot-placeholder" style={{ display: 'none' }}>
+              <Smartphone size={32} />
+              <span>Foreman Mobile View</span>
             </div>
           </div>
+          <div className="lp-screenshot-caption">
+            <h3>Field View</h3>
+            <p>One tap to update progress. No forms, no delays.</p>
+          </div>
+        </div>
 
-          {/* Mock Body */}
-          <div className="lp-mock-body">
-            {/* Project Header */}
-            <div className="lp-mock-project-header">
-              <div className="lp-mock-project-name">Riverside Plaza — Phase 2</div>
-              <div className="lp-mock-sync">
-                <span className="lp-mock-sync-dot" />
-                Live
-              </div>
+        {/* Screenshot: Office Dashboard */}
+        <div className="lp-screenshot-card lp-animate" style={{ transitionDelay: '0.1s' }}>
+          <div className="lp-screenshot-frame desktop">
+            <img
+              src="/screenshots/office-dashboard.png"
+              alt="FieldSync office dashboard — live project progress, financials, and field activity"
+              className="lp-screenshot-img"
+              onError={(e) => {
+                e.target.style.display = 'none'
+                e.target.nextSibling.style.display = 'flex'
+              }}
+            />
+            <div className="lp-screenshot-placeholder" style={{ display: 'none' }}>
+              <Monitor size={32} />
+              <span>Office Dashboard</span>
             </div>
+          </div>
+          <div className="lp-screenshot-caption">
+            <h3>Office Dashboard</h3>
+            <p>Live progress, financials, and field activity — all in one place.</p>
+          </div>
+        </div>
 
-            {/* Progress Bar */}
-            <div className="lp-mock-progress-container">
-              <div className="lp-mock-progress-label">
-                <span>Overall Progress</span>
-                <span>68%</span>
-              </div>
-              <div className="lp-mock-progress-bar">
-                <div className="lp-mock-progress-fill" />
-              </div>
+        {/* Screenshot: Change Order / Real-Time Timeline */}
+        <div className="lp-screenshot-card lp-animate" style={{ transitionDelay: '0.2s' }}>
+          <div className="lp-screenshot-frame desktop">
+            <img
+              src="/screenshots/change-orders.png"
+              alt="FieldSync change order tracking — faster documentation and approval turnaround"
+              className="lp-screenshot-img"
+              onError={(e) => {
+                e.target.style.display = 'none'
+                e.target.nextSibling.style.display = 'flex'
+              }}
+            />
+            <div className="lp-screenshot-placeholder" style={{ display: 'none' }}>
+              <Clock size={32} />
+              <span>Change Order Tracking</span>
             </div>
-
-            {/* Metrics Row */}
-            <div className="lp-mock-metrics">
-              <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Earned</div>
-                <div className="lp-mock-metric-value">$847K</div>
-                <div className="lp-mock-metric-trend positive">+12.3%</div>
-              </div>
-              <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Costs</div>
-                <div className="lp-mock-metric-value">$512K</div>
-                <div className="lp-mock-metric-trend neutral">On budget</div>
-              </div>
-              <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Margin</div>
-                <div className="lp-mock-metric-value">$335K</div>
-                <div className="lp-mock-metric-trend positive">39.6%</div>
-              </div>
-            </div>
-
-            {/* Activity Feed */}
-            <div className="lp-mock-activity">
-              <div className="lp-mock-activity-title">Live Field Activity</div>
-              <div className="lp-mock-activity-item">
-                <span className="lp-mock-activity-dot blue" />
-                Crew check-in: 8 workers on site
-                <span className="lp-mock-activity-time">Just now</span>
-              </div>
-              <div className="lp-mock-activity-item">
-                <span className="lp-mock-activity-dot green" />
-                3rd Floor Electrical — marked Done
-                <span className="lp-mock-activity-time">4m ago</span>
-              </div>
-              <div className="lp-mock-activity-item">
-                <span className="lp-mock-activity-dot amber" />
-                T&M Ticket #47 — photo attached
-                <span className="lp-mock-activity-time">12m ago</span>
-              </div>
-            </div>
+          </div>
+          <div className="lp-screenshot-caption">
+            <h3>Change Orders — Hours, Not Weeks</h3>
+            <p>Real-time documentation means faster approvals and faster payments.</p>
           </div>
         </div>
       </div>

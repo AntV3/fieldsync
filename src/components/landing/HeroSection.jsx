@@ -9,14 +9,15 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
       </div>
 
       <h1 className="lp-hero-title">
-        Your Field and Office<br />
-        Finally <span className="lp-gradient-text">Speak the Same Language</span>.
+        Stop Managing with <span className="lp-gradient-text">Yesterday's Data</span>.
       </h1>
 
       <p className="lp-hero-subtitle">
-        Right now your crews know things your office won't learn until tomorrow —
-        or next week. FieldSync bridges that gap instantly. One tap from the field,
-        and your office sees it live. No calls. No chasing. No surprises.
+        Most contractors run on lagging data — updates that arrive a day or a week
+        after the work is done. FieldSync flips the script. Your field crews report
+        progress in real time, giving your office leading indicators to make
+        decisions now — not after the window has closed. Faster visibility means
+        faster change order approvals, faster payments, and fewer surprises.
       </p>
 
       <div className="lp-hero-actions">
@@ -44,7 +45,7 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
       <div className="lp-trust-badges">
         <span className="lp-trust-badge">Works Offline</span>
         <span className="lp-trust-dot" />
-        <span className="lp-trust-badge">Zero Training Required</span>
+        <span className="lp-trust-badge">Real-Time Leading Data</span>
         <span className="lp-trust-dot" />
         <span className="lp-trust-badge">Enterprise-Grade Security</span>
       </div>
