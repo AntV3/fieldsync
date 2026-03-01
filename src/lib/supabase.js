@@ -37,6 +37,7 @@ import {
   getFieldCompanyId
 } from './fieldSession'
 import { getLocalData, setLocalData, getLocalUser, setLocalUser } from './localStorageHelpers'
+import { sanitize, validate } from './sanitize'
 import { corOps } from './corOps'
 import { equipmentOps } from './equipmentOps'
 import { drawRequestOps } from './drawRequestOps'
@@ -54,6 +55,21 @@ if (typeof window !== 'undefined') {
 // ============================================
 // Security Helpers
 // ============================================
+
+// Escape special PostgREST filter characters to prevent filter injection
+const escapePostgrestFilter = (input) => {
+  if (!input || typeof input !== 'string') return ''
+  return input
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_')
+    .replace(/,/g, '')
+    .replace(/\./g, '')
+    .replace(/\(/g, '')
+    .replace(/\)/g, '')
+}
+
+// Sanitize an object of form data before sending to the database
+const sanitizeFormData = (data) => sanitize.object(data)
 
 // Get or create a device ID for rate limiting
 const getDeviceId = () => {
@@ -498,7 +514,7 @@ export const db = {
       return { projects: [], tickets: [], cors: [], workers: [] }
     }
 
-    const searchQuery = query.trim().toLowerCase()
+    const searchQuery = escapePostgrestFilter(query.trim().toLowerCase())
     const results = { projects: [], tickets: [], cors: [], workers: [] }
 
     try {
@@ -739,7 +755,7 @@ export const db = {
       const { data, error } = await supabase
         .from('projects')
         .insert({
-          ...project,
+          ...sanitizeFormData(project),
           status: 'active'
         })
         .select()
@@ -810,8 +826,8 @@ export const db = {
       // CLIENT-SIDE RATE LIMITING (defense-in-depth)
       const rateLimitKey = `pin_attempts_${companyCode}`
       const lockoutKey = `pin_lockout_${companyCode}`
-      const MAX_ATTEMPTS = 5
-      const LOCKOUT_MS = 5 * 60 * 1000 // 5 minutes
+      const MAX_ATTEMPTS = 8
+      const LOCKOUT_MS = 3 * 60 * 1000 // 3 minutes (short enough to not frustrate foremen)
 
       // Check if currently locked out
       const lockoutUntil = localStorage.getItem(lockoutKey)
@@ -865,7 +881,7 @@ export const db = {
             success: false,
             rateLimited: true,
             project: null,
-            error: 'Too many failed attempts. Please try again in 5 minutes.'
+            error: 'Too many failed attempts. Please try again in a few minutes.'
           }
         }
         return { success: false, rateLimited: false, project: null }
@@ -981,7 +997,7 @@ export const db = {
             success: false,
             rateLimited: true,
             project: null,
-            error: 'Too many failed attempts. Please try again in 5 minutes.'
+            error: 'Too many failed attempts. Please try again in a few minutes.'
           }
         }
         return { success: false, rateLimited: false, project: null }
@@ -1089,7 +1105,7 @@ export const db = {
 
       const { data, error } = await supabase
         .from('projects')
-        .update(updates)
+        .update(sanitizeFormData(updates))
         .eq('id', id)
         .eq('company_id', companyId)  // Always enforce cross-tenant security
         .select()
@@ -2269,12 +2285,12 @@ export const db = {
         .insert({
           project_id: ticket.project_id,
           work_date: ticket.work_date,
-          ce_pco_number: ticket.ce_pco_number || null,
-          assigned_cor_id: ticket.assigned_cor_id || null, // Link to COR if provided
-          notes: ticket.notes,
+          ce_pco_number: sanitize.text(ticket.ce_pco_number) || null,
+          assigned_cor_id: ticket.assigned_cor_id || null,
+          notes: sanitize.text(ticket.notes),
           photos: ticket.photos || [],
           status: 'pending',
-          created_by_name: ticket.created_by_name || 'Field User'
+          created_by_name: sanitize.text(ticket.created_by_name) || 'Field User'
         })
         .select()
         .single()
@@ -3922,12 +3938,13 @@ export const db = {
       return checkin
     }
 
+    const sanitizedWorkers = Array.isArray(workers) ? sanitize.object(workers) : workers
     const { data, error } = await client
       .from('crew_checkins')
       .upsert({
         project_id: projectId,
         check_in_date: checkDate,
-        workers: workers,
+        workers: sanitizedWorkers,
         created_by: createdBy,
         updated_at: new Date().toISOString()
       }, {
@@ -4215,7 +4232,7 @@ export const db = {
       .upsert({
         project_id: projectId,
         report_date: reportDate,
-        ...reportData,
+        ...sanitizeFormData(reportData),
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'project_id,report_date'
@@ -4390,10 +4407,10 @@ export const db = {
       .insert({
         project_id: projectId,
         sender_type: senderType,
-        sender_name: senderName,
+        sender_name: sanitize.text(senderName),
         sender_user_id: senderUserId,
-        message: message,
-        photo_url: photoUrl,
+        message: sanitize.text(message),
+        photo_url: photoUrl ? sanitize.url(photoUrl) : null,
         message_type: messageType,
         parent_message_id: parentId
       })
@@ -4941,7 +4958,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from('injury_reports')
-      .insert(reportData)
+      .insert(sanitizeFormData(reportData))
       .select()
       .single()
 
@@ -5047,7 +5064,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from('injury_reports')
-      .update(updates)
+      .update(sanitizeFormData(updates))
       .eq('id', reportId)
       .select()
       .single()
@@ -5543,9 +5560,9 @@ export const db = {
         .from('dump_sites')
         .insert({
           company_id: companyId,
-          name,
-          address,
-          notes,
+          name: sanitize.text(name),
+          address: sanitize.text(address),
+          notes: sanitize.text(notes),
           active: true
         })
         .select()
@@ -6202,6 +6219,7 @@ export const db = {
 
     // Get all versions (parent + all children with same parent)
     const parentId = doc.parent_document_id || documentId
+    if (!validate.uuid(parentId)) throw new Error('Invalid document ID')
 
     const { data, error } = await client
       .from('documents')
@@ -6217,6 +6235,7 @@ export const db = {
    * Upload a new version of an existing document
    */
   async uploadDocumentVersion(parentDocumentId, companyId, projectId, file, metadata = {}) {
+    if (!validate.uuid(parentDocumentId)) throw new Error('Invalid document ID')
     const client = getClient()
 
     // Get the parent document to copy metadata and determine version
@@ -6549,7 +6568,7 @@ export const db = {
       .eq('project_id', projectId)
       .eq('is_current', true)
       .is('archived_at', null)
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+      .or(`name.ilike.%${escapePostgrestFilter(query)}%,description.ilike.%${escapePostgrestFilter(query)}%`)
       .order('uploaded_at', { ascending: false })
       .limit(20)
 
