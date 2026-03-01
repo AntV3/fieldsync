@@ -269,7 +269,52 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     return grouped
   }
 
+  // Group workers by their labor category for display
+  const groupWorkersByCategory = (workerList) => {
+    const grouped = {}
+
+    workerList.forEach(worker => {
+      let categoryName = 'Other'
+      let categoryId = 'uncategorized'
+      let categorySortKey = 'zzz' // Sort "Other" last
+
+      if (worker.labor_class_id) {
+        const laborClass = laborClasses.find(lc => lc.id === worker.labor_class_id)
+        if (laborClass) {
+          if (laborClass.category_id) {
+            const category = laborCategories.find(cat => cat.id === laborClass.category_id)
+            if (category) {
+              categoryName = category.name
+              categoryId = category.id
+              categorySortKey = category.name.toLowerCase()
+            }
+          } else {
+            // Labor class exists but has no category — use the class name as a group
+            categoryName = laborClass.name
+            categoryId = `class-${laborClass.id}`
+            categorySortKey = laborClass.name.toLowerCase()
+          }
+        }
+      } else if (worker.role) {
+        // No labor_class_id but has a role (default roles like Foreman, Laborer, etc.)
+        categoryName = worker.role
+        categoryId = `role-${worker.role.toLowerCase()}`
+        categorySortKey = worker.role.toLowerCase()
+      }
+
+      if (!grouped[categoryId]) {
+        grouped[categoryId] = { name: categoryName, sortKey: categorySortKey, workers: [] }
+      }
+      grouped[categoryId].workers.push(worker)
+    })
+
+    // Sort categories alphabetically, with "Other" last
+    return Object.values(grouped).sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+  }
+
   const hasCustomClasses = laborClasses.length > 0
+  const groupedWorkers = hasCustomClasses ? groupWorkersByCategory(workers) : null
+  const groupedRecentWorkers = hasCustomClasses ? groupWorkersByCategory(availableRecentWorkers) : null
 
   if (loading || loadingClasses) {
     return (
@@ -294,6 +339,34 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
         <div className="crew-empty">
           <p>No crew checked in yet</p>
           <p className="crew-empty-hint">Add your crew for the day</p>
+        </div>
+      ) : groupedWorkers ? (
+        <div className="crew-list crew-list-grouped">
+          {groupedWorkers.map((group) => (
+            <div key={group.name} className="crew-category-section">
+              <div className="crew-category-header">
+                <span className="crew-category-name">{group.name}</span>
+                <span className="crew-category-count">{group.workers.length}</span>
+              </div>
+              {group.workers.map((worker) => (
+                <div key={worker.name} className="crew-member">
+                  <div className="crew-member-info">
+                    <span className="crew-member-name">{worker.name}</span>
+                    <span className={`crew-member-role ${(worker.role || 'laborer').toLowerCase().replace(/\s+/g, '-')}`}>
+                      {worker.role}
+                    </span>
+                  </div>
+                  <button
+                    className="crew-remove-btn"
+                    onClick={() => handleRemoveWorker(worker.name)}
+                    disabled={saving}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       ) : (
         <div className="crew-list">
@@ -329,29 +402,62 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
               {editingQuickAdd ? 'Done' : 'Edit'}
             </button>
           </div>
-          <div className="crew-quick-add-grid">
-            {availableRecentWorkers.map(rw => (
-              <div key={rw.name} className={`crew-quick-add-item ${editingQuickAdd ? 'editing' : ''}`}>
-                <button
-                  className="crew-quick-add-btn"
-                  onClick={() => !editingQuickAdd && handleQuickAdd(rw)}
-                  disabled={saving || editingQuickAdd}
-                >
-                  <span className="crew-quick-add-name">{rw.name}</span>
-                  <span className="crew-quick-add-role">{rw.role}</span>
-                </button>
-                {editingQuickAdd && (
+          {groupedRecentWorkers && groupedRecentWorkers.length > 0 ? (
+            <div className="crew-quick-add-grouped">
+              {groupedRecentWorkers.map(group => (
+                <div key={group.name} className="crew-quick-add-category">
+                  <div className="crew-quick-add-category-label">{group.name}</div>
+                  <div className="crew-quick-add-grid">
+                    {group.workers.map(rw => (
+                      <div key={rw.name} className={`crew-quick-add-item ${editingQuickAdd ? 'editing' : ''}`}>
+                        <button
+                          className="crew-quick-add-btn"
+                          onClick={() => !editingQuickAdd && handleQuickAdd(rw)}
+                          disabled={saving || editingQuickAdd}
+                        >
+                          <span className="crew-quick-add-name">{rw.name}</span>
+                          <span className="crew-quick-add-role">{rw.role}</span>
+                        </button>
+                        {editingQuickAdd && (
+                          <button
+                            className="crew-quick-add-dismiss"
+                            onClick={() => handleDismissWorker(rw.name)}
+                            title={`Remove ${rw.name} from quick-add`}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="crew-quick-add-grid">
+              {availableRecentWorkers.map(rw => (
+                <div key={rw.name} className={`crew-quick-add-item ${editingQuickAdd ? 'editing' : ''}`}>
                   <button
-                    className="crew-quick-add-dismiss"
-                    onClick={() => handleDismissWorker(rw.name)}
-                    title={`Remove ${rw.name} from quick-add`}
+                    className="crew-quick-add-btn"
+                    onClick={() => !editingQuickAdd && handleQuickAdd(rw)}
+                    disabled={saving || editingQuickAdd}
                   >
-                    <X size={14} />
+                    <span className="crew-quick-add-name">{rw.name}</span>
+                    <span className="crew-quick-add-role">{rw.role}</span>
                   </button>
-                )}
-              </div>
-            ))}
-          </div>
+                  {editingQuickAdd && (
+                    <button
+                      className="crew-quick-add-dismiss"
+                      onClick={() => handleDismissWorker(rw.name)}
+                      title={`Remove ${rw.name} from quick-add`}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Show dismissed workers when editing */}
           {editingQuickAdd && dismissedWorkerDetails.length > 0 && (
