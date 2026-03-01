@@ -319,7 +319,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
                   outerRadius={80}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
+                  label={false}
                   labelLine={false}
                 >
                   {progressPieData.map((entry, index) => (
@@ -424,6 +424,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           padding: 1rem;
           max-width: 100%;
           overflow-x: hidden;
+          box-sizing: border-box;
         }
 
         .foreman-metrics.loading {
@@ -442,7 +443,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         .metrics-header {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           margin-bottom: 1.5rem;
           flex-wrap: wrap;
         }
@@ -452,19 +453,25 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           margin: 0;
           font-size: 1.25rem;
           color: var(--text-primary);
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .back-btn {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.5rem 1rem;
+          padding: 0.5rem 0.75rem;
           background: var(--bg-elevated);
           border: 1px solid var(--border-color);
           border-radius: 8px;
           color: var(--text-primary);
           cursor: pointer;
           font-size: 0.875rem;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
 
         .back-btn:hover {
@@ -477,6 +484,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           border-radius: 8px;
           padding: 4px;
           gap: 4px;
+          flex-shrink: 0;
         }
 
         .time-toggle button {
@@ -500,6 +508,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           grid-template-columns: repeat(2, 1fr);
           gap: 1rem;
           margin-bottom: 1.5rem;
+          overflow: hidden;
         }
 
         @media (min-width: 640px) {
@@ -516,6 +525,8 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .card-icon {
@@ -605,6 +616,8 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           border: 1px solid var(--border-color);
           border-radius: 12px;
           padding: 1rem;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .chart-card h3 {
