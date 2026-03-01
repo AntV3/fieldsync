@@ -313,8 +313,48 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
       }
 
-      if (hasCustomLaborClasses && previousCrew.dynamicWorkers) {
-        setDynamicWorkers(previousCrew.dynamicWorkers)
+      if (hasCustomLaborClasses) {
+        if (previousCrew.dynamicWorkers) {
+          // Load dynamic workers and activate their labor class sections
+          setDynamicWorkers(previousCrew.dynamicWorkers)
+          setActiveLaborClassIds(prev => {
+            const newIds = new Set(prev)
+            Object.keys(previousCrew.dynamicWorkers).forEach(id => newIds.add(id))
+            return newIds
+          })
+        } else {
+          // Previous ticket used legacy roles — map workers into dynamic labor classes
+          const allLegacyWorkers = [
+            ...(previousCrew.supervision || []).map(w => ({ ...w, legacyRole: w.role || 'Foreman' })),
+            ...(previousCrew.operators || []).map(w => ({ ...w, legacyRole: 'Operator' })),
+            ...(previousCrew.laborers || []).map(w => ({ ...w, legacyRole: 'Laborer' }))
+          ]
+          if (allLegacyWorkers.length > 0) {
+            const newDynamic = { ...dynamicWorkers }
+            const newActiveIds = new Set(activeLaborClassIds)
+            allLegacyWorkers.forEach(worker => {
+              // Try to match legacy role to a labor class by name
+              const matchingClass = laborClasses.find(lc =>
+                lc.name.toLowerCase().includes(worker.legacyRole.toLowerCase()) ||
+                worker.legacyRole.toLowerCase().includes(lc.name.toLowerCase())
+              )
+              const targetClassId = matchingClass?.id || laborClasses[0]?.id
+              if (targetClassId) {
+                if (!newDynamic[targetClassId]) newDynamic[targetClassId] = []
+                newDynamic[targetClassId].push({
+                  name: worker.name,
+                  hours: worker.hours || '',
+                  overtimeHours: worker.overtimeHours || '',
+                  timeStarted: worker.timeStarted || '',
+                  timeEnded: worker.timeEnded || ''
+                })
+                newActiveIds.add(targetClassId)
+              }
+            })
+            setDynamicWorkers(newDynamic)
+            setActiveLaborClassIds(newActiveIds)
+          }
+        }
       } else {
         if (previousCrew.supervision) {
           setSupervision(previousCrew.supervision)

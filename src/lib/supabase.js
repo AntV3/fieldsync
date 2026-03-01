@@ -2352,7 +2352,8 @@ export const db = {
     const client = getClient()
     if (!client) return null
 
-    // Find the most recent ticket before the given date
+    // Find the most recent ticket on or before the given date
+    // Use lte so users can copy from an earlier ticket created on the same day
     const { data: ticket, error } = await client
       .from('t_and_m_tickets')
       .select(`
@@ -2361,10 +2362,11 @@ export const db = {
         t_and_m_workers (*)
       `)
       .eq('project_id', projectId)
-      .lt('work_date', beforeDate)
+      .lte('work_date', beforeDate)
       .order('work_date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle() // Use maybeSingle to return null instead of 406 when no previous tickets
+      .maybeSingle()
 
     if (error || !ticket) return null
 
