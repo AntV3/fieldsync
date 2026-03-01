@@ -60,12 +60,14 @@ if (typeof window !== 'undefined') {
 const escapePostgrestFilter = (input) => {
   if (!input || typeof input !== 'string') return ''
   return input
+    .replace(/\\/g, '\\\\')  // Escape backslashes FIRST to prevent bypass
     .replace(/%/g, '\\%')
     .replace(/_/g, '\\_')
     .replace(/,/g, '')
     .replace(/\./g, '')
     .replace(/\(/g, '')
     .replace(/\)/g, '')
+    .replace(/:/g, '')
 }
 
 // Sanitize an object of form data before sending to the database
@@ -108,17 +110,6 @@ const validateAmount = (amount) => {
   if (amount === null || amount === undefined) return true
   const num = parseFloat(amount)
   return !isNaN(num) && num >= 0 && num < 10000000
-}
-
-const validateTextLength = (text, maxLength = 10000) => {
-  if (!text) return true
-  return text.length <= maxLength
-}
-
-const sanitizeText = (text) => {
-  if (!text) return text
-  // Remove null bytes and trim
-  return text.replace(/\0/g, '').trim()
 }
 
 // ============================================
@@ -515,6 +506,8 @@ export const db = {
     }
 
     const searchQuery = escapePostgrestFilter(query.trim().toLowerCase())
+    // Keep raw query for client-side matching (escapePostgrestFilter strips chars needed for .includes())
+    const rawQuery = query.trim().toLowerCase()
     const results = { projects: [], tickets: [], cors: [], workers: [] }
 
     try {
@@ -575,11 +568,11 @@ export const db = {
         .order('check_in_date', { ascending: false })
         .limit(50)
 
-      // Extract unique workers matching query
+      // Extract unique workers matching query (use rawQuery for client-side matching)
       const workerMap = new Map()
       ;(checkins || []).forEach(checkin => {
         (checkin.workers || []).forEach(worker => {
-          if (worker.name.toLowerCase().includes(searchQuery)) {
+          if (worker.name.toLowerCase().includes(rawQuery)) {
             const key = worker.name.toLowerCase()
             if (!workerMap.has(key)) {
               workerMap.set(key, {
@@ -3038,7 +3031,7 @@ export const db = {
         assigned_to: item.assigned_to || null,
         priority: item.priority,
         notes: item.notes || null,
-        photo_url: item.photo_url || null,
+        photo_url: item.photo_url ? sanitize.url(item.photo_url) : null,
         status: 'open'
       }))
       .select()
@@ -3047,15 +3040,25 @@ export const db = {
     return data
   },
 
+  // Allowed fields for punch list updates (whitelist prevents cross-tenant overwrites)
+  _PUNCH_LIST_ALLOWED_FIELDS: new Set(['description', 'area_id', 'assigned_to', 'priority', 'notes', 'photo_url', 'status']),
+
   async updatePunchListItem(itemId, updates) {
     if (!isSupabaseConfigured) return null
+    // Whitelist allowed fields to prevent overwriting project_id, company_id, etc.
+    const safeUpdates = {}
+    for (const key of Object.keys(updates)) {
+      if (this._PUNCH_LIST_ALLOWED_FIELDS.has(key)) {
+        safeUpdates[key] = key === 'photo_url' && updates[key]
+          ? sanitize.url(updates[key])
+          : updates[key]
+      }
+    }
+    safeUpdates.updated_at = new Date().toISOString()
     const client = getClient()
     const { data, error } = await client
       .from('punch_list_items')
-      .update(sanitizeFormData({
-        ...updates,
-        updated_at: new Date().toISOString()
-      }))
+      .update(sanitizeFormData(safeUpdates))
       .eq('id', itemId)
       .select()
       .single()
@@ -3082,13 +3085,16 @@ export const db = {
     if (error) throw error
   },
 
-  async deletePunchListItem(itemId) {
+  async deletePunchListItem(itemId, projectId) {
     if (!isSupabaseConfigured) return null
     const client = getClient()
-    const { error } = await client
+    let query = client
       .from('punch_list_items')
       .delete()
       .eq('id', itemId)
+    // Tenant-scope the delete when projectId is available
+    if (projectId) query = query.eq('project_id', projectId)
+    const { error } = await query
     if (error) throw error
   },
 

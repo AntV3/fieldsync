@@ -4,7 +4,7 @@
  * Mitigates prototype pollution vulnerability in xlsx (SheetJS) package.
  * The xlsx package has a known CVE for prototype pollution when parsing
  * untrusted spreadsheet files. This wrapper:
- * 1. Freezes Object.prototype before parsing to prevent pollution
+ * 1. Sanitizes parsed output by stripping dangerous prototype keys
  * 2. Provides a safe dynamic import for consistent usage
  *
  * Usage:
@@ -18,33 +18,44 @@ export const loadXLSXSafe = async () => {
   return module.default || module
 }
 
+// Keys that could be used for prototype pollution
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
+/**
+ * Recursively strip dangerous prototype-polluting keys from an object.
+ */
+function sanitizeObject(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj
+  if (Array.isArray(obj)) return obj.map(sanitizeObject)
+  const clean = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (DANGEROUS_KEYS.has(key)) continue
+    clean[key] = typeof value === 'object' ? sanitizeObject(value) : value
+  }
+  return clean
+}
+
 /**
  * Safely parse an Excel file with prototype pollution mitigation.
- * Freezes Object.prototype during parsing to block pollution attempts,
- * then restores it afterward.
+ * Parses the workbook then sanitizes all sheet data to strip any
+ * injected __proto__, constructor, or prototype properties.
  */
 export const safeParseExcel = async (data, options = {}) => {
   const XLSX = await loadXLSXSafe()
+  const workbook = XLSX.read(data, { type: 'array', ...options })
 
-  // Snapshot and freeze Object.prototype to block pollution
-  const proto = Object.prototype
-  const descriptors = Object.getOwnPropertyDescriptors(proto)
-  Object.freeze(proto)
-
-  try {
-    const workbook = XLSX.read(data, { type: 'array', ...options })
-    return workbook
-  } finally {
-    // Restore Object.prototype to its original state
-    // (Object.freeze is not reversible, but prototype was already
-    // non-extensible in modern engines — the key protection is that
-    // any __proto__ pollution attempts during parse will throw)
-    try {
-      Object.defineProperties(proto, descriptors)
-    } catch {
-      // In strict environments, prototype may already be sealed
+  // Sanitize every sheet's data in place
+  for (const name of workbook.SheetNames) {
+    const sheet = workbook.Sheets[name]
+    if (sheet) {
+      // Remove dangerous keys from the sheet object itself
+      for (const key of DANGEROUS_KEYS) {
+        delete sheet[key]
+      }
     }
   }
+
+  return workbook
 }
 
 /**
@@ -53,15 +64,5 @@ export const safeParseExcel = async (data, options = {}) => {
  */
 export const safeSheetToJson = (XLSX, sheet, options = {}) => {
   const rows = XLSX.utils.sheet_to_json(sheet, options)
-
-  // Strip any __proto__ or constructor properties that may have been injected
-  return rows.map(row => {
-    if (typeof row !== 'object' || row === null) return row
-    const clean = {}
-    for (const [key, value] of Object.entries(row)) {
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue
-      clean[key] = value
-    }
-    return clean
-  })
+  return rows.map(sanitizeObject)
 }

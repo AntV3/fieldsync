@@ -19,9 +19,13 @@ function downloadFile(content, filename, mimeType = 'text/csv') {
 // Escape CSV field (handle commas, quotes, newlines, and formula injection)
 export function escapeCSV(value) {
   if (value == null) return ''
+  // Never apply formula injection prefix to numbers (e.g. negative amounts)
+  if (typeof value === 'number') {
+    return String(value)
+  }
   let str = String(value)
   // Prevent CSV formula injection: prefix dangerous first characters with a single quote
-  if (/^[=+\-@\t\r]/.test(str)) {
+  if (/^[=+\-@\t\r\n]/.test(str)) {
     str = "'" + str
   }
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {

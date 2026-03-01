@@ -153,7 +153,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     if (!confirm('Delete this punch item?')) return
 
     try {
-      await db.deletePunchListItem(itemId)
+      await db.deletePunchListItem(itemId, projectId)
       onShowToast?.('Item deleted', 'success')
       loadItems()
     } catch (err) {

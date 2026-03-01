@@ -181,36 +181,37 @@ $$;
 --    Replace USING(true) with properly scoped policies
 -- ============================================================
 
--- 2a. Companies table: replace USING(true) with authenticated-only read
+-- 2a. Companies table: replace USING(true) with scoped policy
+--     Allows: authenticated users via company_members, field users via valid session
 DO $$
 BEGIN
-  -- Drop the overly permissive policy if it exists
   DROP POLICY IF EXISTS "Companies are viewable by authenticated users" ON companies;
   DROP POLICY IF EXISTS "Anyone can view companies" ON companies;
   DROP POLICY IF EXISTS "companies_select_policy" ON companies;
+  DROP POLICY IF EXISTS "Users can view own company" ON companies;
 
-  -- Create proper policy: authenticated users can only see their own company
   CREATE POLICY "Users can view own company"
     ON companies FOR SELECT
     USING (
       id IN (
         SELECT company_id FROM company_members WHERE user_id = auth.uid()
       )
-      OR
-      -- Allow anon access only for PIN validation (company code lookup)
-      auth.role() = 'anon'
+      OR EXISTS (
+        SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = companies.id
+      )
     );
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'Could not update companies RLS: %', SQLERRM;
 END;
 $$;
 
--- 2b. Labor tables: restrict USING(true) policies
+-- 2b. Labor tables: restrict USING(true) but preserve field session access
 DO $$
 BEGIN
   -- labor_categories
   DROP POLICY IF EXISTS "Anyone can view labor categories" ON labor_categories;
   DROP POLICY IF EXISTS "labor_categories_select_all" ON labor_categories;
+  DROP POLICY IF EXISTS "Users can view own company labor categories" ON labor_categories;
 
   CREATE POLICY "Users can view own company labor categories"
     ON labor_categories FOR SELECT
@@ -218,11 +219,15 @@ BEGIN
       company_id IN (
         SELECT company_id FROM company_members WHERE user_id = auth.uid()
       )
+      OR EXISTS (
+        SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_categories.company_id
+      )
     );
 
   -- labor_classes
   DROP POLICY IF EXISTS "Anyone can view labor classes" ON labor_classes;
   DROP POLICY IF EXISTS "labor_classes_select_all" ON labor_classes;
+  DROP POLICY IF EXISTS "Users can view own company labor classes" ON labor_classes;
 
   CREATE POLICY "Users can view own company labor classes"
     ON labor_classes FOR SELECT
@@ -230,11 +235,15 @@ BEGIN
       company_id IN (
         SELECT company_id FROM company_members WHERE user_id = auth.uid()
       )
+      OR EXISTS (
+        SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_classes.company_id
+      )
     );
 
   -- labor_class_rates
   DROP POLICY IF EXISTS "Anyone can view labor class rates" ON labor_class_rates;
   DROP POLICY IF EXISTS "labor_class_rates_select_all" ON labor_class_rates;
+  DROP POLICY IF EXISTS "Users can view own company labor rates" ON labor_class_rates;
 
   CREATE POLICY "Users can view own company labor rates"
     ON labor_class_rates FOR SELECT
@@ -244,6 +253,13 @@ BEGIN
           SELECT company_id FROM company_members WHERE user_id = auth.uid()
         )
       )
+      OR EXISTS (
+        SELECT 1 FROM has_valid_field_session() s
+        WHERE s.company_id IN (
+          SELECT lc.company_id FROM labor_classes lc
+          WHERE lc.id = labor_class_rates.labor_class_id
+        )
+      )
     );
 
 EXCEPTION WHEN OTHERS THEN
@@ -251,13 +267,13 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- 2c. Signatures: restrict authenticated-only read
+-- 2c. Signatures: scoped to company members + field session holders
 DO $$
 BEGIN
   DROP POLICY IF EXISTS "Authenticated users can view signatures" ON signatures;
   DROP POLICY IF EXISTS "signatures_select_authenticated" ON signatures;
+  DROP POLICY IF EXISTS "Users can view own project signatures" ON signatures;
 
-  -- Signatures should only be visible to members of the relevant company
   CREATE POLICY "Users can view own project signatures"
     ON signatures FOR SELECT
     USING (
@@ -266,6 +282,14 @@ BEGIN
         JOIN projects p ON t.project_id = p.id
         WHERE p.company_id IN (
           SELECT company_id FROM company_members WHERE user_id = auth.uid()
+        )
+      )
+      OR EXISTS (
+        SELECT 1 FROM has_valid_field_session() s
+        WHERE s.company_id IN (
+          SELECT p.company_id FROM t_and_m_tickets t
+          JOIN projects p ON t.project_id = p.id
+          WHERE t.id = signatures.ticket_id
         )
       )
     );
