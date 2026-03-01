@@ -5,7 +5,7 @@ export default function LandingFooter() {
         <span>Field</span>Sync
       </div>
       <p className="lp-footer-tagline">
-        Real work. Real data. Real time.
+        Bridging the gap between field and office.
       </p>
       <p className="lp-footer-copy">
         &copy; {new Date().getFullYear()} FieldSync. All rights reserved.

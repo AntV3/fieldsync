@@ -4,7 +4,7 @@ const FEATURES = [
   {
     icon: RefreshCw,
     title: 'Real-Time Sync',
-    desc: 'The second a foreman taps "Done," your office knows. No calls, no texts, no waiting until end-of-day. You see it live.',
+    desc: 'The second a foreman taps "Done," your office knows. The field-to-office gap doesn\'t shrink — it disappears.',
   },
   {
     icon: Smartphone,
@@ -24,7 +24,7 @@ const FEATURES = [
   {
     icon: WifiOff,
     title: 'Offline-First',
-    desc: 'No signal on the jobsite? No problem. FieldSync works without internet and syncs automatically the moment connectivity returns.',
+    desc: 'No signal on the jobsite? No problem. Your crews keep working, and FieldSync bridges the data back to the office the moment connectivity returns.',
   },
   {
     icon: Shield,
@@ -37,11 +37,11 @@ export default function FeatureGrid() {
   return (
     <section className="lp-features" id="features">
       <div className="lp-features-label">Why Teams Switch to FieldSync</div>
-      <h2 className="lp-features-heading">Because spreadsheets and phone calls don't scale</h2>
+      <h2 className="lp-features-heading">Everything that breaks between field and office — fixed</h2>
       <p className="lp-features-desc">
-        Every feature exists because we've seen what breaks on real jobsites.
-        This isn't a generic tool with a construction skin — it's built from the ground up
-        for how your crews actually work.
+        Phone calls get missed. Texts get buried. Spreadsheets go stale by lunch.
+        Every feature in FieldSync exists to kill the communication gap between
+        your crews and your back office — for good.
       </p>
 
       <div className="lp-features-grid">

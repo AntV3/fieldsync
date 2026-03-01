@@ -5,13 +5,14 @@ export default function AppShowcase({ onVisible }) {
 
   return (
     <section className="lp-showcase lp-animate" ref={ref}>
-      <span className="lp-showcase-label">Purpose-Built for Construction</span>
+      <span className="lp-showcase-label">One Platform. Both Worlds Connected.</span>
       <h2 className="lp-showcase-heading">
-        Your entire operation. One live view.
+        The field works. The office knows. Instantly.
       </h2>
       <p className="lp-showcase-desc">
-        Office sees the full financial picture. Field crews tap once to update.
-        No phone calls. No texts. No end-of-day surprises. Just truth, in real time.
+        Your foremen get a dead-simple mobile view. Your office gets the full
+        command center. Both see the same truth at the same time — no phone
+        calls, no texts, no end-of-day status meetings. The gap is gone.
       </p>
 
       <div className="lp-showcase-frame">

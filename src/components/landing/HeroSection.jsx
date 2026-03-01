@@ -5,18 +5,18 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
     <section className="lp-hero">
       <div className="lp-badge">
         <Zap size={14} />
-        The Operating System for Construction Progress
+        The Bridge Between Field and Office
       </div>
 
       <h1 className="lp-hero-title">
-        Stop Losing Money to<br />
-        <span className="lp-gradient-text">Blind Spots</span>.
+        Your Field and Office<br />
+        Finally <span className="lp-gradient-text">Speak the Same Language</span>.
       </h1>
 
       <p className="lp-hero-subtitle">
-        Every day without real-time field visibility costs you thousands in
-        disputed billings, wasted hours, and decisions made on yesterday's data.
-        FieldSync eliminates the gap between your field and your office — instantly.
+        Right now your crews know things your office won't learn until tomorrow —
+        or next week. FieldSync bridges that gap instantly. One tap from the field,
+        and your office sees it live. No calls. No chasing. No surprises.
       </p>
 
       <div className="lp-hero-actions">
