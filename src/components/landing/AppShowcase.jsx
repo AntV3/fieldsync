@@ -5,13 +5,14 @@ export default function AppShowcase({ onVisible }) {
 
   return (
     <section className="lp-showcase lp-animate" ref={ref}>
-      <span className="lp-showcase-label">Built for Construction</span>
+      <span className="lp-showcase-label">One Platform. Both Worlds Connected.</span>
       <h2 className="lp-showcase-heading">
-        One platform. Two interfaces.
+        The field works. The office knows. Instantly.
       </h2>
       <p className="lp-showcase-desc">
-        Office managers get the full dashboard. Field crews get a
-        one-tap mobile view. Both stay perfectly in sync.
+        Your foremen get a dead-simple mobile view. Your office gets the full
+        command center. Both see the same truth at the same time — no phone
+        calls, no texts, no end-of-day status meetings. The gap is gone.
       </p>
 
       <div className="lp-showcase-frame">
@@ -54,17 +55,17 @@ export default function AppShowcase({ onVisible }) {
             {/* Metrics Row */}
             <div className="lp-mock-metrics">
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Revenue</div>
+                <div className="lp-mock-metric-label">Earned</div>
                 <div className="lp-mock-metric-value">$847K</div>
                 <div className="lp-mock-metric-trend positive">+12.3%</div>
               </div>
               <div className="lp-mock-metric">
                 <div className="lp-mock-metric-label">Costs</div>
                 <div className="lp-mock-metric-value">$512K</div>
-                <div className="lp-mock-metric-trend neutral">On track</div>
+                <div className="lp-mock-metric-trend neutral">On budget</div>
               </div>
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Profit</div>
+                <div className="lp-mock-metric-label">Margin</div>
                 <div className="lp-mock-metric-value">$335K</div>
                 <div className="lp-mock-metric-trend positive">39.6%</div>
               </div>
@@ -72,21 +73,21 @@ export default function AppShowcase({ onVisible }) {
 
             {/* Activity Feed */}
             <div className="lp-mock-activity">
-              <div className="lp-mock-activity-title">Recent Activity</div>
+              <div className="lp-mock-activity-title">Live Field Activity</div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot blue" />
                 Crew check-in: 8 workers on site
-                <span className="lp-mock-activity-time">2m ago</span>
+                <span className="lp-mock-activity-time">Just now</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot green" />
-                Electrical — marked Done
-                <span className="lp-mock-activity-time">15m ago</span>
+                3rd Floor Electrical — marked Done
+                <span className="lp-mock-activity-time">4m ago</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot amber" />
-                T&M Ticket #47 submitted
-                <span className="lp-mock-activity-time">1h ago</span>
+                T&M Ticket #47 — photo attached
+                <span className="lp-mock-activity-time">12m ago</span>
               </div>
             </div>
           </div>
