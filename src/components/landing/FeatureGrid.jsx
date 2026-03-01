@@ -4,43 +4,44 @@ const FEATURES = [
   {
     icon: RefreshCw,
     title: 'Real-Time Sync',
-    desc: 'Field updates hit the office dashboard instantly. No waiting, no chasing down status.',
+    desc: 'The second a foreman taps "Done," your office knows. No calls, no texts, no waiting until end-of-day. You see it live.',
   },
   {
     icon: Smartphone,
     title: 'One-Tap Updates',
-    desc: 'Foremen update progress with a single tap. Zero training required — it just works.',
+    desc: 'Your crews won\'t need training, manuals, or IT support. One tap. That\'s it. If they can use a phone, they can use FieldSync.',
   },
   {
     icon: ToggleRight,
     title: 'Binary Progress',
-    desc: 'Working or Done. No percentages, no ambiguity. Defensible status every stakeholder trusts.',
+    desc: 'Working or Done. No subjective percentages that mean nothing in a billing dispute. Every status is clear, timestamped, and defensible.',
   },
   {
     icon: DollarSign,
     title: 'Defensible Billing',
-    desc: 'Progress tied directly to contract value. Every draw request backed by real data.',
+    desc: 'Every draw request backed by real field data, not estimates. Stop leaving money on the table and eliminate payment disputes before they start.',
   },
   {
     icon: WifiOff,
     title: 'Offline-First',
-    desc: 'Works without signal. Crews keep working, data syncs automatically when connection returns.',
+    desc: 'No signal on the jobsite? No problem. FieldSync works without internet and syncs automatically the moment connectivity returns.',
   },
   {
     icon: Shield,
     title: 'Enterprise Security',
-    desc: 'MFA authentication, role-based access control, and session-based field authorization.',
+    desc: 'Multi-factor authentication, role-based access, and session-controlled field entry. Your data is locked down — without slowing anyone down.',
   },
 ]
 
 export default function FeatureGrid() {
   return (
     <section className="lp-features" id="features">
-      <div className="lp-features-label">Why FieldSync</div>
-      <h2 className="lp-features-heading">Built for how construction actually works</h2>
+      <div className="lp-features-label">Why Teams Switch to FieldSync</div>
+      <h2 className="lp-features-heading">Because spreadsheets and phone calls don't scale</h2>
       <p className="lp-features-desc">
-        Every feature designed around the reality of field work — not a
-        generic project tool retrofitted for construction.
+        Every feature exists because we've seen what breaks on real jobsites.
+        This isn't a generic tool with a construction skin — it's built from the ground up
+        for how your crews actually work.
       </p>
 
       <div className="lp-features-grid">

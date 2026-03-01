@@ -4,14 +4,15 @@ export default function SignInCTA({ onGetStarted, onSignIn }) {
   return (
     <section className="lp-cta lp-animate">
       <div className="lp-cta-content">
-        <h2 className="lp-cta-heading">Ready to sync your field?</h2>
+        <h2 className="lp-cta-heading">Your field data is slipping through the cracks right now.</h2>
         <p className="lp-cta-desc">
-          Start tracking progress in minutes. Set up your first project
-          and see your field data flow to the office in real time.
+          Every project without FieldSync is leaking unbilled work, missing
+          updates, and making decisions on stale data. Set up in minutes —
+          see the difference on your next draw request.
         </p>
         <div className="lp-cta-actions">
           <button className="lp-btn-primary" onClick={onGetStarted}>
-            Get Started
+            Start Free Today
             <ArrowRight size={18} />
           </button>
           <button className="lp-btn-ghost" onClick={onSignIn}>
