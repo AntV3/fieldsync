@@ -572,7 +572,7 @@ export const db = {
       const workerMap = new Map()
       ;(checkins || []).forEach(checkin => {
         (checkin.workers || []).forEach(worker => {
-          if (worker.name.toLowerCase().includes(rawQuery)) {
+          if (worker?.name && worker.name.toLowerCase().includes(rawQuery)) {
             const key = worker.name.toLowerCase()
             if (!workerMap.has(key)) {
               workerMap.set(key, {
@@ -3021,19 +3021,21 @@ export const db = {
   async createPunchListItem(item) {
     if (!isSupabaseConfigured) return null
     const client = getClient()
+    // Sanitize text fields, then set photo_url separately with URL sanitizer
+    const sanitized = sanitizeFormData({
+      project_id: item.project_id,
+      company_id: item.company_id,
+      description: item.description,
+      area_id: item.area_id || null,
+      assigned_to: item.assigned_to || null,
+      priority: item.priority,
+      notes: item.notes || null,
+      status: 'open'
+    })
+    sanitized.photo_url = item.photo_url ? sanitize.url(item.photo_url) : null
     const { data, error } = await client
       .from('punch_list_items')
-      .insert(sanitizeFormData({
-        project_id: item.project_id,
-        company_id: item.company_id,
-        description: item.description,
-        area_id: item.area_id || null,
-        assigned_to: item.assigned_to || null,
-        priority: item.priority,
-        notes: item.notes || null,
-        photo_url: item.photo_url ? sanitize.url(item.photo_url) : null,
-        status: 'open'
-      }))
+      .insert(sanitized)
       .select()
       .single()
     if (error) throw error
@@ -3047,18 +3049,22 @@ export const db = {
     if (!isSupabaseConfigured) return null
     // Whitelist allowed fields to prevent overwriting project_id, company_id, etc.
     const safeUpdates = {}
+    let photoUrl = undefined
     for (const key of Object.keys(updates)) {
-      if (this._PUNCH_LIST_ALLOWED_FIELDS.has(key)) {
-        safeUpdates[key] = key === 'photo_url' && updates[key]
-          ? sanitize.url(updates[key])
-          : updates[key]
+      if (!this._PUNCH_LIST_ALLOWED_FIELDS.has(key)) continue
+      if (key === 'photo_url') {
+        // Sanitize URL separately to avoid double-sanitization via sanitizeFormData
+        photoUrl = updates[key] ? sanitize.url(updates[key]) : updates[key]
+      } else {
+        safeUpdates[key] = updates[key]
       }
     }
-    safeUpdates.updated_at = new Date().toISOString()
+    const sanitized = sanitizeFormData({ ...safeUpdates, updated_at: new Date().toISOString() })
+    if (photoUrl !== undefined) sanitized.photo_url = photoUrl
     const client = getClient()
     const { data, error } = await client
       .from('punch_list_items')
-      .update(sanitizeFormData(safeUpdates))
+      .update(sanitized)
       .eq('id', itemId)
       .select()
       .single()
@@ -3087,14 +3093,13 @@ export const db = {
 
   async deletePunchListItem(itemId, projectId) {
     if (!isSupabaseConfigured) return null
+    if (!projectId) throw new Error('projectId is required for tenant-scoped delete')
     const client = getClient()
-    let query = client
+    const { error } = await client
       .from('punch_list_items')
       .delete()
       .eq('id', itemId)
-    // Tenant-scope the delete when projectId is available
-    if (projectId) query = query.eq('project_id', projectId)
-    const { error } = await query
+      .eq('project_id', projectId)
     if (error) throw error
   },
 

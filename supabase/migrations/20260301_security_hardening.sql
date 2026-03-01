@@ -12,7 +12,8 @@
 --    company_code as the identifier when others are absent.
 -- ============================================================
 
--- Updated check_rate_limit that never skips the check
+-- Updated check_rate_limit: fix NULL bypass — when both identifiers
+-- are NULL, conservatively deny rather than silently pass.
 CREATE OR REPLACE FUNCTION check_rate_limit(
   p_ip_address     TEXT,
   p_device_id      TEXT,
@@ -22,7 +23,23 @@ CREATE OR REPLACE FUNCTION check_rate_limit(
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   recent_failures INTEGER;
+  last_success    TIMESTAMPTZ;
 BEGIN
+  -- If both identifiers are NULL, deny access (prevent bypass)
+  IF p_ip_address IS NULL AND p_device_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  -- Find the most recent successful auth to only count failures after it
+  SELECT MAX(created_at) INTO last_success
+  FROM auth_attempts
+  WHERE (
+    (p_ip_address IS NOT NULL AND ip_address = p_ip_address)
+    OR (p_device_id IS NOT NULL AND device_id = p_device_id)
+  )
+    AND success = TRUE
+    AND created_at > NOW() - (p_window_minutes || ' minutes')::INTERVAL;
+
   SELECT COUNT(*) INTO recent_failures
   FROM auth_attempts
   WHERE (
@@ -30,7 +47,8 @@ BEGIN
     OR (p_device_id IS NOT NULL AND device_id = p_device_id)
   )
     AND success = FALSE
-    AND created_at > NOW() - (p_window_minutes || ' minutes')::INTERVAL;
+    AND created_at > NOW() - (p_window_minutes || ' minutes')::INTERVAL
+    AND (last_success IS NULL OR created_at > last_success);
   RETURN recent_failures < p_max_attempts;
 END;
 $$;
@@ -46,9 +64,23 @@ CREATE OR REPLACE FUNCTION check_rate_limit(
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   recent_failures INTEGER;
+  last_success    TIMESTAMPTZ;
+  window_start    TIMESTAMPTZ;
 BEGIN
+  window_start := NOW() - (p_window_minutes || ' minutes')::INTERVAL;
+
   -- If we have ip or device, use those (they're more reliable identifiers)
   IF p_ip_address IS NOT NULL OR p_device_id IS NOT NULL THEN
+    -- Find last success within window to reset counter
+    SELECT MAX(created_at) INTO last_success
+    FROM auth_attempts
+    WHERE (
+      (p_ip_address IS NOT NULL AND ip_address = p_ip_address)
+      OR (p_device_id IS NOT NULL AND device_id = p_device_id)
+    )
+      AND success = TRUE
+      AND created_at > window_start;
+
     SELECT COUNT(*) INTO recent_failures
     FROM auth_attempts
     WHERE (
@@ -56,19 +88,30 @@ BEGIN
       OR (p_device_id IS NOT NULL AND device_id = p_device_id)
     )
       AND success = FALSE
-      AND created_at > NOW() - (p_window_minutes || ' minutes')::INTERVAL;
+      AND created_at > window_start
+      AND (last_success IS NULL OR created_at > last_success);
   ELSE
     -- Fallback: rate limit by the company_code stored in device_id column
+    SELECT MAX(created_at) INTO last_success
+    FROM auth_attempts
+    WHERE device_id = p_fallback_key
+      AND success = TRUE
+      AND created_at > window_start;
+
     SELECT COUNT(*) INTO recent_failures
     FROM auth_attempts
     WHERE device_id = p_fallback_key
       AND success = FALSE
-      AND created_at > NOW() - (p_window_minutes || ' minutes')::INTERVAL;
+      AND created_at > window_start
+      AND (last_success IS NULL OR created_at > last_success);
   END IF;
 
   RETURN recent_failures < p_max_attempts;
 END;
 $$;
+
+-- Grant execute on the new overload to anon role
+GRANT EXECUTE ON FUNCTION check_rate_limit(TEXT, TEXT, TEXT, INTEGER, INTEGER) TO anon;
 
 -- Updated log_auth_attempt to handle fallback key scenario
 CREATE OR REPLACE FUNCTION log_auth_attempt(
@@ -183,121 +226,104 @@ $$;
 
 -- 2a. Companies table: replace USING(true) with scoped policy
 --     Allows: authenticated users via company_members, field users via valid session
-DO $$
-BEGIN
-  DROP POLICY IF EXISTS "Companies are viewable by authenticated users" ON companies;
-  DROP POLICY IF EXISTS "Anyone can view companies" ON companies;
-  DROP POLICY IF EXISTS "companies_select_policy" ON companies;
-  DROP POLICY IF EXISTS "Users can view own company" ON companies;
+--     NOTE: DROP and CREATE are separate statements so a failed CREATE
+--     does not leave the table with no policy (DROPs use IF EXISTS safely)
+DROP POLICY IF EXISTS "Companies are viewable by authenticated users" ON companies;
+DROP POLICY IF EXISTS "Anyone can view companies" ON companies;
+DROP POLICY IF EXISTS "companies_select_policy" ON companies;
+DROP POLICY IF EXISTS "Users can view own company" ON companies;
 
-  CREATE POLICY "Users can view own company"
-    ON companies FOR SELECT
-    USING (
-      id IN (
-        SELECT company_id FROM company_members WHERE user_id = auth.uid()
-      )
-      OR EXISTS (
-        SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = companies.id
-      )
-    );
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Could not update companies RLS: %', SQLERRM;
-END;
-$$;
+CREATE POLICY "Users can view own company"
+  ON companies FOR SELECT
+  USING (
+    id IN (
+      SELECT company_id FROM company_members WHERE user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = companies.id
+    )
+  );
 
 -- 2b. Labor tables: restrict USING(true) but preserve field session access
-DO $$
-BEGIN
-  -- labor_categories
-  DROP POLICY IF EXISTS "Anyone can view labor categories" ON labor_categories;
-  DROP POLICY IF EXISTS "labor_categories_select_all" ON labor_categories;
-  DROP POLICY IF EXISTS "Users can view own company labor categories" ON labor_categories;
 
-  CREATE POLICY "Users can view own company labor categories"
-    ON labor_categories FOR SELECT
-    USING (
-      company_id IN (
+-- labor_categories
+DROP POLICY IF EXISTS "Anyone can view labor categories" ON labor_categories;
+DROP POLICY IF EXISTS "labor_categories_select_all" ON labor_categories;
+DROP POLICY IF EXISTS "Users can view own company labor categories" ON labor_categories;
+
+CREATE POLICY "Users can view own company labor categories"
+  ON labor_categories FOR SELECT
+  USING (
+    company_id IN (
+      SELECT company_id FROM company_members WHERE user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_categories.company_id
+    )
+  );
+
+-- labor_classes
+DROP POLICY IF EXISTS "Anyone can view labor classes" ON labor_classes;
+DROP POLICY IF EXISTS "labor_classes_select_all" ON labor_classes;
+DROP POLICY IF EXISTS "Users can view own company labor classes" ON labor_classes;
+
+CREATE POLICY "Users can view own company labor classes"
+  ON labor_classes FOR SELECT
+  USING (
+    company_id IN (
+      SELECT company_id FROM company_members WHERE user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_classes.company_id
+    )
+  );
+
+-- labor_class_rates
+DROP POLICY IF EXISTS "Anyone can view labor class rates" ON labor_class_rates;
+DROP POLICY IF EXISTS "labor_class_rates_select_all" ON labor_class_rates;
+DROP POLICY IF EXISTS "Users can view own company labor rates" ON labor_class_rates;
+
+CREATE POLICY "Users can view own company labor rates"
+  ON labor_class_rates FOR SELECT
+  USING (
+    labor_class_id IN (
+      SELECT id FROM labor_classes WHERE company_id IN (
         SELECT company_id FROM company_members WHERE user_id = auth.uid()
       )
-      OR EXISTS (
-        SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_categories.company_id
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s
+      WHERE s.company_id IN (
+        SELECT lc.company_id FROM labor_classes lc
+        WHERE lc.id = labor_class_rates.labor_class_id
       )
-    );
-
-  -- labor_classes
-  DROP POLICY IF EXISTS "Anyone can view labor classes" ON labor_classes;
-  DROP POLICY IF EXISTS "labor_classes_select_all" ON labor_classes;
-  DROP POLICY IF EXISTS "Users can view own company labor classes" ON labor_classes;
-
-  CREATE POLICY "Users can view own company labor classes"
-    ON labor_classes FOR SELECT
-    USING (
-      company_id IN (
-        SELECT company_id FROM company_members WHERE user_id = auth.uid()
-      )
-      OR EXISTS (
-        SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_classes.company_id
-      )
-    );
-
-  -- labor_class_rates
-  DROP POLICY IF EXISTS "Anyone can view labor class rates" ON labor_class_rates;
-  DROP POLICY IF EXISTS "labor_class_rates_select_all" ON labor_class_rates;
-  DROP POLICY IF EXISTS "Users can view own company labor rates" ON labor_class_rates;
-
-  CREATE POLICY "Users can view own company labor rates"
-    ON labor_class_rates FOR SELECT
-    USING (
-      labor_class_id IN (
-        SELECT id FROM labor_classes WHERE company_id IN (
-          SELECT company_id FROM company_members WHERE user_id = auth.uid()
-        )
-      )
-      OR EXISTS (
-        SELECT 1 FROM has_valid_field_session() s
-        WHERE s.company_id IN (
-          SELECT lc.company_id FROM labor_classes lc
-          WHERE lc.id = labor_class_rates.labor_class_id
-        )
-      )
-    );
-
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Could not update labor RLS: %', SQLERRM;
-END;
-$$;
+    )
+  );
 
 -- 2c. Signatures: scoped to company members + field session holders
-DO $$
-BEGIN
-  DROP POLICY IF EXISTS "Authenticated users can view signatures" ON signatures;
-  DROP POLICY IF EXISTS "signatures_select_authenticated" ON signatures;
-  DROP POLICY IF EXISTS "Users can view own project signatures" ON signatures;
+DROP POLICY IF EXISTS "Authenticated users can view signatures" ON signatures;
+DROP POLICY IF EXISTS "signatures_select_authenticated" ON signatures;
+DROP POLICY IF EXISTS "Users can view own project signatures" ON signatures;
 
-  CREATE POLICY "Users can view own project signatures"
-    ON signatures FOR SELECT
-    USING (
-      ticket_id IN (
-        SELECT t.id FROM t_and_m_tickets t
+CREATE POLICY "Users can view own project signatures"
+  ON signatures FOR SELECT
+  USING (
+    ticket_id IN (
+      SELECT t.id FROM t_and_m_tickets t
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.company_id IN (
+        SELECT company_id FROM company_members WHERE user_id = auth.uid()
+      )
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s
+      WHERE s.company_id IN (
+        SELECT p.company_id FROM t_and_m_tickets t
         JOIN projects p ON t.project_id = p.id
-        WHERE p.company_id IN (
-          SELECT company_id FROM company_members WHERE user_id = auth.uid()
-        )
+        WHERE t.id = signatures.ticket_id
       )
-      OR EXISTS (
-        SELECT 1 FROM has_valid_field_session() s
-        WHERE s.company_id IN (
-          SELECT p.company_id FROM t_and_m_tickets t
-          JOIN projects p ON t.project_id = p.id
-          WHERE t.id = signatures.ticket_id
-        )
-      )
-    );
-
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Could not update signatures RLS: %', SQLERRM;
-END;
-$$;
+    )
+  );
 
 
 -- ============================================================

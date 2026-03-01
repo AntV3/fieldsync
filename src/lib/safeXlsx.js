@@ -42,7 +42,7 @@ function sanitizeObject(obj) {
  */
 export const safeParseExcel = async (data, options = {}) => {
   const XLSX = await loadXLSXSafe()
-  const workbook = XLSX.read(data, { type: 'array', ...options })
+  const workbook = XLSX.read(data, { ...options, type: 'array' })
 
   // Sanitize every sheet's data in place
   for (const name of workbook.SheetNames) {
