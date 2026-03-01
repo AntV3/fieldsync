@@ -623,7 +623,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
           {/* Import from Tickets button */}
           <div className="cor-import-bar">
             <button className="btn btn-ghost" onClick={() => setShowTicketSelector(true)}>
-              <FileText size={16} /> Import from T&M Tickets
+              <FileText size={16} /> Import from Time & Material Tickets
             </button>
           </div>
 

@@ -52,7 +52,7 @@ const TMTicketCard = memo(function TMTicketCard({
     <div
       className={`tm-ticket-card hover-lift animate-fade-in-up ${ticket.status} ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}
       role="article"
-      aria-label={`T&M Ticket for ${formatDate(ticket.work_date)}, ${totalHours} hours, $${totalCost.toFixed(2)}, status: ${ticket.status}`}
+      aria-label={`Time & Material Ticket for ${formatDate(ticket.work_date)}, ${totalHours} hours, $${totalCost.toFixed(2)}, status: ${ticket.status}`}
     >
       <div
         className="tm-ticket-header"

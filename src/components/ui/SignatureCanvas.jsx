@@ -47,7 +47,7 @@ export default function SignatureCanvas({
   const docTypeLabel = documentType === 'cor'
     ? 'Change Order Request'
     : documentType === 'tm_ticket'
-      ? 'T&M Work Order'
+      ? 'Time & Material Ticket'
       : 'document'
 
   const defaultLegalText = `I acknowledge that this electronic signature is legally binding and that I have reviewed and approve this ${docTypeLabel}. I understand that my signature, name, and IP address will be recorded for verification purposes.`

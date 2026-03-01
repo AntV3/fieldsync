@@ -201,7 +201,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
           </div>
           <div className="daily-report-card">
             <div className="daily-report-card-value">{report.tm_tickets_count || 0}</div>
-            <div className="daily-report-card-label">T&M Tickets</div>
+            <div className="daily-report-card-label">Time & Material</div>
           </div>
           <div className="daily-report-card">
             <div className="daily-report-card-value">{(report.photos_count || 0) + photos.length}</div>

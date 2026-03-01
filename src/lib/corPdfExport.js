@@ -744,7 +744,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
     const summaryCol1 = margin + 15
     const summaryCol2 = margin + 70
 
-    doc.text('T&M Tickets:', summaryCol1, yPos)
+    doc.text('Time & Material Tickets:', summaryCol1, yPos)
     doc.setFont('helvetica', 'bold')
     doc.text(String(tmTickets.length), summaryCol2, yPos)
     doc.setFont('helvetica', 'normal')
@@ -821,7 +821,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(30, 41, 59)
-      doc.text(`T&M TICKET — ${formatDate(ticket.work_date)}`, margin + 10, yPos + 8)
+      doc.text(`TIME & MATERIAL TICKET — ${formatDate(ticket.work_date)}`, margin + 10, yPos + 8)
 
       // CE/PCO badge
       if (ticket.ce_pco_number) {
@@ -901,7 +901,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
         doc.setFontSize(7)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(100, 116, 139)
-        doc.text('Source: T&M Ticket', margin + 55, yPos)
+        doc.text('Source: Time & Material Ticket', margin + 55, yPos)
         yPos += 6
 
         autoTable(doc, {
@@ -1172,7 +1172,7 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(30, 41, 59)
-  doc.text('T&M TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
+  doc.text('TIME & MATERIAL TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
 
   yPos += 25
 

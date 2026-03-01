@@ -67,7 +67,7 @@ export const TRANSLATIONS = {
     maxPhotos: 'max',
     noPhotos: 'No photos added',
     certification: 'Certification',
-    certifyStatement: 'I certify that this T&M ticket accurately reflects the work performed.',
+    certifyStatement: 'I certify that this Time & Material ticket accurately reflects the work performed.',
     foremanSignature: "Foreman's Name (Signature)",
     yourName: 'Your name',
 
@@ -88,7 +88,7 @@ export const TRANSLATIONS = {
     nextMaterials: 'Next: Materials',
     reviewItems: 'Review',
     skipNoMaterials: 'Skip (no materials)',
-    submitTM: 'Submit T&M',
+    submitTM: 'Submit Ticket',
     submitting: 'Submitting...',
 
     // Batch hours modal
@@ -121,7 +121,7 @@ export const TRANSLATIONS = {
     addMorePhotos: 'Add More Photos',
     linkToChangeOrder: 'Link to Change Order',
     linkedTo: 'Linked to',
-    optionalLinkCOR: 'Optional - Link this T&M to a COR',
+    optionalLinkCOR: 'Optional - Link this ticket to a COR',
     selectCOROptional: '-- Select a COR (optional) --',
     noActiveCORs: 'No active CORs available for this project',
 
@@ -143,7 +143,7 @@ export const TRANSLATIONS = {
     total: 'total',
     needHours: 'need hours',
     customHours: 'Custom hours',
-    selectTMWorkers: 'Select T&M Workers',
+    selectTMWorkers: 'Select Workers',
     tapToAdd: 'Tap to add',
     removeClass: 'Remove this labor class',
     add: 'Add',
@@ -154,13 +154,13 @@ export const TRANSLATIONS = {
     noLaborClassesYet: 'No labor classes added yet. Select from crew check-in above or add manually:',
 
     // ReviewStep inline strings
-    tmSubmitted: 'T&M Ticket Submitted!',
+    tmSubmitted: 'Time & Material Ticket Submitted!',
     ticketSavedReady: 'Your ticket has been saved and is ready for client signature.',
     workersLabel: 'Workers',
     retry: 'Retry',
     retryAllPhotos: 'Retry All Failed Photos',
     getClientSignature: 'Get Client Signature',
-    signatureDescription: 'Have the client sign this T&M ticket to verify the work performed.',
+    signatureDescription: 'Have the client sign this ticket to verify the work performed.',
     clientSignatureCollected: 'Client signature collected!',
     signNowOnSite: 'Sign Now (On-Site)',
     clientSignsDevice: 'Client signs on this device',
@@ -170,7 +170,7 @@ export const TRANSLATIONS = {
     edit: 'Edit',
     submittedBy: 'Submitted By',
     enterYourName: 'Enter your name',
-    certifyAccurate: 'By submitting, you certify this T&M is accurate.'
+    certifyAccurate: 'By submitting, you certify this Time & Material ticket is accurate.'
   },
   es: {
     // Steps
@@ -238,7 +238,7 @@ export const TRANSLATIONS = {
     maxPhotos: 'max',
     noPhotos: 'No se agregaron fotos',
     certification: 'Certificacion',
-    certifyStatement: 'Certifico que este ticket T&M refleja con precision el trabajo realizado.',
+    certifyStatement: 'Certifico que este ticket de Tiempo y Material refleja con precision el trabajo realizado.',
     foremanSignature: 'Nombre del Capataz (Firma)',
     yourName: 'Su nombre',
 
@@ -259,7 +259,7 @@ export const TRANSLATIONS = {
     nextMaterials: 'Siguiente: Materiales',
     reviewItems: 'Revisar',
     skipNoMaterials: 'Saltar (sin materiales)',
-    submitTM: 'Enviar T&M',
+    submitTM: 'Enviar Ticket',
     submitting: 'Enviando...',
 
     // Batch hours modal
@@ -292,7 +292,7 @@ export const TRANSLATIONS = {
     addMorePhotos: 'Agregar M\u00e1s Fotos',
     linkToChangeOrder: 'Vincular a Orden de Cambio',
     linkedTo: 'Vinculado a',
-    optionalLinkCOR: 'Opcional - Vincular este T&M a un COR',
+    optionalLinkCOR: 'Opcional - Vincular este ticket a un COR',
     selectCOROptional: '-- Seleccionar COR (opcional) --',
     noActiveCORs: 'No hay CORs activos para este proyecto',
 
@@ -314,7 +314,7 @@ export const TRANSLATIONS = {
     total: 'total',
     needHours: 'sin horas',
     customHours: 'Horas personalizadas',
-    selectTMWorkers: 'Seleccionar Trabajadores T&M',
+    selectTMWorkers: 'Seleccionar Trabajadores',
     tapToAdd: 'Toca para agregar',
     removeClass: 'Eliminar esta clase',
     add: 'Agregar',
@@ -325,13 +325,13 @@ export const TRANSLATIONS = {
     noLaborClassesYet: 'No hay clases de trabajo agregadas. Seleccione del check-in o agregue manualmente:',
 
     // ReviewStep inline strings
-    tmSubmitted: '\u00a1Ticket T&M Enviado!',
+    tmSubmitted: '\u00a1Ticket de Tiempo y Material Enviado!',
     ticketSavedReady: 'Su ticket ha sido guardado y est\u00e1 listo para la firma del cliente.',
     workersLabel: 'Trabajadores',
     retry: 'Reintentar',
     retryAllPhotos: 'Reintentar Todas las Fotos',
     getClientSignature: 'Obtener Firma del Cliente',
-    signatureDescription: 'Haga que el cliente firme este ticket T&M para verificar el trabajo realizado.',
+    signatureDescription: 'Haga que el cliente firme este ticket para verificar el trabajo realizado.',
     clientSignatureCollected: '\u00a1Firma del cliente recopilada!',
     signNowOnSite: 'Firmar Ahora',
     clientSignsDevice: 'Cliente firma en este dispositivo',
@@ -341,7 +341,7 @@ export const TRANSLATIONS = {
     edit: 'Editar',
     submittedBy: 'Enviado Por',
     enterYourName: 'Ingrese su nombre',
-    certifyAccurate: 'Al enviar, certifica que este T&M es preciso.'
+    certifyAccurate: 'Al enviar, certifica que este ticket de Tiempo y Material es preciso.'
   }
 }
 

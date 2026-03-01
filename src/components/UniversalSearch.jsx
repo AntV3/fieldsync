@@ -141,7 +141,7 @@ export default function UniversalSearch({
   const getTypeLabel = (type) => {
     switch (type) {
       case 'project': return 'Project'
-      case 'ticket': return 'T&M Ticket'
+      case 'ticket': return 'Time & Material'
       case 'cor': return 'Change Order'
       case 'worker': return 'Worker'
       default: return type
@@ -193,7 +193,7 @@ export default function UniversalSearch({
               </div>
               <div className="universal-search-hints">
                 <span>Projects</span>
-                <span>T&M Tickets</span>
+                <span>Time & Material</span>
                 <span>Change Orders</span>
                 <span>Workers</span>
               </div>
@@ -239,7 +239,7 @@ export default function UniversalSearch({
                 <div className="universal-search-section">
                   <div className="universal-search-section-header">
                     <FileText size={14} />
-                    <span>T&M Tickets</span>
+                    <span>Time & Material</span>
                   </div>
                   {results.tickets.map((ticket, idx) => {
                     const globalIdx = results.projects.length + idx
@@ -253,7 +253,7 @@ export default function UniversalSearch({
                         <FileText size={18} />
                         <div className="universal-search-item-content">
                           <span className="universal-search-item-title">
-                            {ticket.notes?.substring(0, 50) || 'T&M Ticket'}
+                            {ticket.notes?.substring(0, 50) || 'Time & Material Ticket'}
                             {ticket.notes?.length > 50 && '...'}
                           </span>
                           <span className="universal-search-item-meta">

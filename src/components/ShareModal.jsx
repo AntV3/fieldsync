@@ -132,7 +132,7 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
     if (perms.progress) enabled.push('Progress')
     if (perms.photos) enabled.push('Photos')
     if (perms.daily_reports) enabled.push('Reports')
-    if (perms.tm_tickets) enabled.push('T&M')
+    if (perms.tm_tickets) enabled.push('Time & Material')
     if (perms.crew_info) enabled.push('Crew')
     return enabled.join(', ')
   }
@@ -252,7 +252,7 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
                         checked={permissions.tm_tickets}
                         onChange={() => handlePermissionChange('tm_tickets')}
                       />
-                      T&M tickets
+                      Time & Material tickets
                     </label>
                     <label>
                       <input

@@ -328,7 +328,7 @@ export default function SignaturePage({ signatureToken }) {
           )}
           <div className="company-info">
             <h1>{company?.name || 'FieldSync'}</h1>
-            <span className="doc-type-label">T&M Ticket Signature</span>
+            <span className="doc-type-label">Time & Material Ticket</span>
           </div>
         </header>
 
@@ -365,7 +365,7 @@ export default function SignaturePage({ signatureToken }) {
             <div className="document-card-header">
               <FileText size={20} />
               <div className="document-card-title">
-                <h2>T&M Ticket</h2>
+                <h2>Time & Material Ticket</h2>
                 <span className="document-subtitle">
                   {document.ce_pco_number ? `CE/PCO: ${document.ce_pco_number}` : 'Time & Materials'}
                 </span>
@@ -505,7 +505,7 @@ export default function SignaturePage({ signatureToken }) {
             lockBodyScroll
             slot={activeSlot}
             documentType="tm_ticket"
-            documentTitle="T&M Ticket"
+            documentTitle="Time & Material Ticket"
             onSave={handleSignatureSubmit}
             onClose={() => {
               setShowSignatureModal(false)
@@ -975,7 +975,7 @@ export default function SignaturePage({ signatureToken }) {
                                       <span className="material-qty">
                                         {item.quantity || 1} {item.materials_equipment?.unit || 'ea'}
                                       </span>
-                                      <span className="material-source">T&M Ticket</span>
+                                      <span className="material-source">Time & Material</span>
                                     </div>
                                   ))}
                                 </div>

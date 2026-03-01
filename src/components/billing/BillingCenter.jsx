@@ -269,7 +269,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
           <div className="billing-empty-state">
             <CheckCircle size={32} className="text-success" />
             <p>No items ready to bill</p>
-            <span>Approved CORs and signed T&M tickets will appear here</span>
+            <span>Approved CORs and signed Time & Material tickets will appear here</span>
           </div>
         ) : (
           <>
@@ -309,7 +309,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
               <div className="billable-group">
                 <div className="billable-group-header">
                   <ClipboardList size={16} />
-                  <span>T&M Tickets ({billableItems.tickets.length})</span>
+                  <span>Time & Material Tickets ({billableItems.tickets.length})</span>
                 </div>
                 <div className="billable-items">
                   {billableItems.tickets.map(ticket => (
@@ -327,7 +327,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
                           {ticket.ce_pco_number || formatDate(ticket.work_date)}
                         </span>
                         <span className="billable-item-title">
-                          T&M Ticket - {formatDate(ticket.work_date)}
+                          Time & Material - {formatDate(ticket.work_date)}
                         </span>
                       </div>
                       <span className="billable-item-amount">

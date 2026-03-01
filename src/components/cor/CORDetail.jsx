@@ -575,7 +575,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             <div className="cor-detail-section backup-section">
               <h3><FileText size={18} /> Backup Documentation</h3>
               <p className="backup-summary">
-                {associatedTickets.length} T&M ticket{associatedTickets.length !== 1 ? 's' : ''} associated with this COR
+                {associatedTickets.length} Time & Material ticket{associatedTickets.length !== 1 ? 's' : ''} associated with this COR
               </p>
 
               <div className="backup-tickets-list">

@@ -40,7 +40,7 @@ export default function ReportsTab({
           </div>
           <div className="reports-metric">
             <div className="reports-metric-value">{projectData?.totalTickets || 0}</div>
-            <div className="reports-metric-label">T&M Tickets</div>
+            <div className="reports-metric-label">Time & Material</div>
             {(projectData?.pendingTickets || 0) > 0 && (
               <div className="reports-metric-status" style={{ background: '#fef3c7', color: '#92400e' }}>
                 {projectData.pendingTickets} pending
@@ -309,7 +309,7 @@ export default function ReportsTab({
               <div className="reports-activity-stat-icon"><FileText size={16} /></div>
               <div className="reports-activity-stat-info">
                 <strong>{projectData?.totalTickets || 0}</strong>
-                <span>T&M Tickets Created</span>
+                <span>Time & Material Tickets</span>
               </div>
             </div>
             <div className="reports-activity-stat">

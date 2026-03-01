@@ -282,7 +282,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           </div>
           <div className="card-content">
             <span className="card-value">{derivedMetrics.tickets.total}</span>
-            <span className="card-label">T&M Tickets</span>
+            <span className="card-label">Time & Material</span>
           </div>
           <div className="card-detail">
             {derivedMetrics.tickets.signed} signed, {derivedMetrics.tickets.pending} pending
@@ -353,7 +353,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
         {/* T&M Tickets Over Time */}
         <div className="chart-card">
-          <h3>T&M Tickets by Day</h3>
+          <h3>Time & Material Tickets by Day</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={ticketsByDay}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -410,7 +410,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
                   <DollarSign size={20} />
                 </div>
                 <div className="activity-info">
-                  <span className="activity-label">T&M Value</span>
+                  <span className="activity-label">Time & Material Value</span>
                   <span className="activity-value">${derivedMetrics.tickets.totalValue.toLocaleString()}</span>
                 </div>
               </div>

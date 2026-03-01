@@ -203,7 +203,7 @@ export default function ReviewStep({
               companyId={companyId}
               projectId={project.id}
               project={project}
-              documentTitle={`T&M - ${new Date(workDate).toLocaleDateString()}`}
+              documentTitle={`Time & Material Ticket - ${new Date(workDate).toLocaleDateString()}`}
               onClose={() => setShowSignatureLinkModal(false)}
               onShowToast={onShowToast}
             />
