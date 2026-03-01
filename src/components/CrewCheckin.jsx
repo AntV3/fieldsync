@@ -303,7 +303,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       }
 
       if (!grouped[categoryId]) {
-        grouped[categoryId] = { name: categoryName, sortKey: categorySortKey, workers: [] }
+        grouped[categoryId] = { id: categoryId, name: categoryName, sortKey: categorySortKey, workers: [] }
       }
       grouped[categoryId].workers.push(worker)
     })
@@ -343,7 +343,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       ) : groupedWorkers ? (
         <div className="crew-list crew-list-grouped">
           {groupedWorkers.map((group) => (
-            <div key={group.name} className="crew-category-section">
+            <div key={group.id} className="crew-category-section">
               <div className="crew-category-header">
                 <span className="crew-category-name">{group.name}</span>
                 <span className="crew-category-count">{group.workers.length}</span>
@@ -405,7 +405,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
           {groupedRecentWorkers && groupedRecentWorkers.length > 0 ? (
             <div className="crew-quick-add-grouped">
               {groupedRecentWorkers.map(group => (
-                <div key={group.name} className="crew-quick-add-category">
+                <div key={group.id} className="crew-quick-add-category">
                   <div className="crew-quick-add-category-label">{group.name}</div>
                   <div className="crew-quick-add-grid">
                     {group.workers.map(rw => (
