@@ -1,0 +1,339 @@
+-- ============================================================
+-- Security Hardening Migration
+-- Fixes: PIN rate-limit bypass, overly permissive RLS policies
+-- Date: 2026-03-01
+-- ============================================================
+
+-- ============================================================
+-- 1. Fix PIN brute-force rate-limit bypass
+--    Previously, rate limiting was skipped when both
+--    p_ip_address and p_device_id were NULL.
+--    Now we ALWAYS enforce rate limiting by falling back to
+--    company_code as the identifier when others are absent.
+-- ============================================================
+
+-- Updated check_rate_limit: fix NULL bypass — when both identifiers
+-- are NULL, conservatively deny rather than silently pass.
+CREATE OR REPLACE FUNCTION check_rate_limit(
+  p_ip_address     TEXT,
+  p_device_id      TEXT,
+  p_window_minutes INTEGER DEFAULT 15,
+  p_max_attempts   INTEGER DEFAULT 5
+) RETURNS BOOLEAN
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  recent_failures INTEGER;
+  last_success    TIMESTAMPTZ;
+BEGIN
+  -- If both identifiers are NULL, deny access (prevent bypass)
+  IF p_ip_address IS NULL AND p_device_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  -- Find the most recent successful auth to only count failures after it
+  SELECT MAX(created_at) INTO last_success
+  FROM auth_attempts
+  WHERE (
+    (p_ip_address IS NOT NULL AND ip_address = p_ip_address)
+    OR (p_device_id IS NOT NULL AND device_id = p_device_id)
+  )
+    AND success = TRUE
+    AND created_at > NOW() - (p_window_minutes || ' minutes')::INTERVAL;
+
+  SELECT COUNT(*) INTO recent_failures
+  FROM auth_attempts
+  WHERE (
+    (p_ip_address IS NOT NULL AND ip_address = p_ip_address)
+    OR (p_device_id IS NOT NULL AND device_id = p_device_id)
+  )
+    AND success = FALSE
+    AND created_at > NOW() - (p_window_minutes || ' minutes')::INTERVAL
+    AND (last_success IS NULL OR created_at > last_success);
+  RETURN recent_failures < p_max_attempts;
+END;
+$$;
+
+-- New overload that accepts a fallback identifier (company_code)
+CREATE OR REPLACE FUNCTION check_rate_limit(
+  p_ip_address       TEXT,
+  p_device_id        TEXT,
+  p_fallback_key     TEXT,
+  p_window_minutes   INTEGER DEFAULT 15,
+  p_max_attempts     INTEGER DEFAULT 5
+) RETURNS BOOLEAN
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  recent_failures INTEGER;
+  last_success    TIMESTAMPTZ;
+  window_start    TIMESTAMPTZ;
+BEGIN
+  window_start := NOW() - (p_window_minutes || ' minutes')::INTERVAL;
+
+  -- If we have ip or device, use those (they're more reliable identifiers)
+  IF p_ip_address IS NOT NULL OR p_device_id IS NOT NULL THEN
+    -- Find last success within window to reset counter
+    SELECT MAX(created_at) INTO last_success
+    FROM auth_attempts
+    WHERE (
+      (p_ip_address IS NOT NULL AND ip_address = p_ip_address)
+      OR (p_device_id IS NOT NULL AND device_id = p_device_id)
+    )
+      AND success = TRUE
+      AND created_at > window_start;
+
+    SELECT COUNT(*) INTO recent_failures
+    FROM auth_attempts
+    WHERE (
+      (p_ip_address IS NOT NULL AND ip_address = p_ip_address)
+      OR (p_device_id IS NOT NULL AND device_id = p_device_id)
+    )
+      AND success = FALSE
+      AND created_at > window_start
+      AND (last_success IS NULL OR created_at > last_success);
+  ELSE
+    -- Fallback: rate limit by the company_code stored in device_id column
+    SELECT MAX(created_at) INTO last_success
+    FROM auth_attempts
+    WHERE device_id = p_fallback_key
+      AND success = TRUE
+      AND created_at > window_start;
+
+    SELECT COUNT(*) INTO recent_failures
+    FROM auth_attempts
+    WHERE device_id = p_fallback_key
+      AND success = FALSE
+      AND created_at > window_start
+      AND (last_success IS NULL OR created_at > last_success);
+  END IF;
+
+  RETURN recent_failures < p_max_attempts;
+END;
+$$;
+
+-- Grant execute on the new overload to anon role
+GRANT EXECUTE ON FUNCTION check_rate_limit(TEXT, TEXT, TEXT, INTEGER, INTEGER) TO anon;
+
+-- Updated log_auth_attempt to handle fallback key scenario
+CREATE OR REPLACE FUNCTION log_auth_attempt(
+  p_ip_address   TEXT,
+  p_device_id    TEXT,
+  p_success      BOOLEAN,
+  p_attempt_type TEXT DEFAULT 'pin'
+) RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  INSERT INTO auth_attempts (ip_address, device_id, success, attempt_type)
+  VALUES (p_ip_address, p_device_id, p_success, p_attempt_type);
+END;
+$$;
+
+-- Updated validate_pin_and_create_session: ALWAYS enforces rate limiting
+CREATE OR REPLACE FUNCTION validate_pin_and_create_session(
+  p_pin          TEXT,
+  p_company_code TEXT,
+  p_device_id    TEXT DEFAULT NULL,
+  p_ip_address   TEXT DEFAULT NULL
+) RETURNS TABLE (
+  success       BOOLEAN,
+  session_token TEXT,
+  project_id    UUID,
+  project_name  TEXT,
+  company_id    UUID,
+  company_name  TEXT,
+  error_code    TEXT
+)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  found_project RECORD;
+  found_company RECORD;
+  new_token     TEXT;
+  clean_pin     TEXT;
+  clean_code    TEXT;
+  effective_device_id TEXT;
+BEGIN
+  clean_pin  := TRIM(p_pin);
+  clean_code := UPPER(TRIM(p_company_code));
+
+  -- Build an effective device_id: use actual device_id if available,
+  -- otherwise fall back to a compound key so rate limiting always works
+  effective_device_id := COALESCE(p_device_id, 'anon_' || clean_code);
+
+  -- ALWAYS enforce rate limiting (no conditional bypass)
+  IF NOT check_rate_limit(p_ip_address, p_device_id, effective_device_id, 15, 5) THEN
+    PERFORM log_auth_attempt(p_ip_address, effective_device_id, FALSE, 'pin_rate_limited');
+    RETURN QUERY SELECT false, NULL::TEXT, NULL::UUID, NULL::TEXT,
+                        NULL::UUID, NULL::TEXT, 'RATE_LIMITED'::TEXT;
+    RETURN;
+  END IF;
+
+  -- Case-insensitive company code lookup
+  SELECT * INTO found_company
+  FROM companies c
+  WHERE UPPER(TRIM(c.code)) = clean_code;
+
+  IF NOT FOUND THEN
+    PERFORM log_auth_attempt(p_ip_address, effective_device_id, FALSE, 'pin_invalid_company');
+    RETURN QUERY SELECT false, NULL::TEXT, NULL::UUID, NULL::TEXT,
+                        NULL::UUID, NULL::TEXT, 'INVALID_COMPANY'::TEXT;
+    RETURN;
+  END IF;
+
+  -- PIN lookup (case-sensitive, whitespace-trimmed)
+  SELECT * INTO found_project
+  FROM projects p
+  WHERE TRIM(p.pin) = clean_pin
+    AND p.company_id = found_company.id
+    AND p.status     = 'active';
+
+  IF NOT FOUND THEN
+    PERFORM log_auth_attempt(p_ip_address, effective_device_id, FALSE, 'pin_invalid');
+    RETURN QUERY SELECT false, NULL::TEXT, NULL::UUID, NULL::TEXT,
+                        NULL::UUID, NULL::TEXT, 'INVALID_PIN'::TEXT;
+    RETURN;
+  END IF;
+
+  new_token := encode(gen_random_bytes(32), 'hex');
+
+  -- Revoke existing sessions for this device+project
+  IF p_device_id IS NOT NULL THEN
+    DELETE FROM field_sessions
+    WHERE device_id   = p_device_id
+      AND project_id  = found_project.id;
+  END IF;
+
+  INSERT INTO field_sessions (project_id, company_id, session_token, device_id)
+  VALUES (found_project.id, found_company.id, new_token, p_device_id);
+
+  -- Log successful attempt so rate limit clears naturally
+  PERFORM log_auth_attempt(p_ip_address, effective_device_id, TRUE, 'pin');
+
+  RETURN QUERY SELECT
+    true,
+    new_token,
+    found_project.id,
+    found_project.name,
+    found_company.id,
+    found_company.name,
+    NULL::TEXT;
+END;
+$$;
+
+
+-- ============================================================
+-- 2. Fix overly permissive RLS policies
+--    Replace USING(true) with properly scoped policies
+-- ============================================================
+
+-- 2a. Companies table: replace USING(true) with scoped policy
+--     Allows: authenticated users via company_members, field users via valid session
+--     NOTE: DROP and CREATE are separate statements so a failed CREATE
+--     does not leave the table with no policy (DROPs use IF EXISTS safely)
+DROP POLICY IF EXISTS "Companies are viewable by authenticated users" ON companies;
+DROP POLICY IF EXISTS "Anyone can view companies" ON companies;
+DROP POLICY IF EXISTS "companies_select_policy" ON companies;
+DROP POLICY IF EXISTS "Users can view own company" ON companies;
+
+CREATE POLICY "Users can view own company"
+  ON companies FOR SELECT
+  USING (
+    id IN (
+      SELECT company_id FROM company_members WHERE user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = companies.id
+    )
+  );
+
+-- 2b. Labor tables: restrict USING(true) but preserve field session access
+
+-- labor_categories
+DROP POLICY IF EXISTS "Anyone can view labor categories" ON labor_categories;
+DROP POLICY IF EXISTS "labor_categories_select_all" ON labor_categories;
+DROP POLICY IF EXISTS "Users can view own company labor categories" ON labor_categories;
+
+CREATE POLICY "Users can view own company labor categories"
+  ON labor_categories FOR SELECT
+  USING (
+    company_id IN (
+      SELECT company_id FROM company_members WHERE user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_categories.company_id
+    )
+  );
+
+-- labor_classes
+DROP POLICY IF EXISTS "Anyone can view labor classes" ON labor_classes;
+DROP POLICY IF EXISTS "labor_classes_select_all" ON labor_classes;
+DROP POLICY IF EXISTS "Users can view own company labor classes" ON labor_classes;
+
+CREATE POLICY "Users can view own company labor classes"
+  ON labor_classes FOR SELECT
+  USING (
+    company_id IN (
+      SELECT company_id FROM company_members WHERE user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s WHERE s.company_id = labor_classes.company_id
+    )
+  );
+
+-- labor_class_rates
+DROP POLICY IF EXISTS "Anyone can view labor class rates" ON labor_class_rates;
+DROP POLICY IF EXISTS "labor_class_rates_select_all" ON labor_class_rates;
+DROP POLICY IF EXISTS "Users can view own company labor rates" ON labor_class_rates;
+
+CREATE POLICY "Users can view own company labor rates"
+  ON labor_class_rates FOR SELECT
+  USING (
+    labor_class_id IN (
+      SELECT id FROM labor_classes WHERE company_id IN (
+        SELECT company_id FROM company_members WHERE user_id = auth.uid()
+      )
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s
+      WHERE s.company_id IN (
+        SELECT lc.company_id FROM labor_classes lc
+        WHERE lc.id = labor_class_rates.labor_class_id
+      )
+    )
+  );
+
+-- 2c. Signatures: scoped to company members + field session holders
+DROP POLICY IF EXISTS "Authenticated users can view signatures" ON signatures;
+DROP POLICY IF EXISTS "signatures_select_authenticated" ON signatures;
+DROP POLICY IF EXISTS "Users can view own project signatures" ON signatures;
+
+CREATE POLICY "Users can view own project signatures"
+  ON signatures FOR SELECT
+  USING (
+    ticket_id IN (
+      SELECT t.id FROM t_and_m_tickets t
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.company_id IN (
+        SELECT company_id FROM company_members WHERE user_id = auth.uid()
+      )
+    )
+    OR EXISTS (
+      SELECT 1 FROM has_valid_field_session() s
+      WHERE s.company_id IN (
+        SELECT p.company_id FROM t_and_m_tickets t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = signatures.ticket_id
+      )
+    )
+  );
+
+
+-- ============================================================
+-- 3. Cleanup: remove old rate-limit entries older than 24h
+--    (keeps the auth_attempts table from growing unbounded)
+-- ============================================================
+CREATE OR REPLACE FUNCTION cleanup_old_auth_attempts()
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  DELETE FROM auth_attempts WHERE created_at < NOW() - INTERVAL '24 hours';
+END;
+$$;

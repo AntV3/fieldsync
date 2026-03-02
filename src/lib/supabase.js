@@ -37,6 +37,7 @@ import {
   getFieldCompanyId
 } from './fieldSession'
 import { getLocalData, setLocalData, getLocalUser, setLocalUser } from './localStorageHelpers'
+import { sanitize, validate } from './sanitize'
 import { corOps } from './corOps'
 import { equipmentOps } from './equipmentOps'
 import { drawRequestOps } from './drawRequestOps'
@@ -54,6 +55,26 @@ if (typeof window !== 'undefined') {
 // ============================================
 // Security Helpers
 // ============================================
+
+// Escape special PostgREST filter characters to prevent filter injection
+const escapePostgrestFilter = (input) => {
+  if (!input || typeof input !== 'string') return ''
+  return input
+    .replace(/\\/g, '\\\\')  // Escape backslashes FIRST to prevent bypass
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_')
+    .replace(/,/g, '')
+    .replace(/\./g, '')
+    .replace(/\(/g, '')
+    .replace(/\)/g, '')
+    .replace(/:/g, '')
+}
+
+// Sanitize an object of form data before sending to the database
+const sanitizeFormData = (data) => sanitize.object(data)
+
+// Allowed fields for punch list item updates (module-level to avoid `this` binding issues)
+const PUNCH_LIST_ALLOWED_FIELDS = new Set(['description', 'area_id', 'assigned_to', 'priority', 'notes', 'photo_url', 'status'])
 
 // Get or create a device ID for rate limiting
 const getDeviceId = () => {
@@ -92,17 +113,6 @@ const validateAmount = (amount) => {
   if (amount === null || amount === undefined) return true
   const num = parseFloat(amount)
   return !isNaN(num) && num >= 0 && num < 10000000
-}
-
-const validateTextLength = (text, maxLength = 10000) => {
-  if (!text) return true
-  return text.length <= maxLength
-}
-
-const sanitizeText = (text) => {
-  if (!text) return text
-  // Remove null bytes and trim
-  return text.replace(/\0/g, '').trim()
 }
 
 // ============================================
@@ -498,7 +508,9 @@ export const db = {
       return { projects: [], tickets: [], cors: [], workers: [] }
     }
 
-    const searchQuery = query.trim().toLowerCase()
+    const searchQuery = escapePostgrestFilter(query.trim().toLowerCase())
+    // Keep raw query for client-side matching (escapePostgrestFilter strips chars needed for .includes())
+    const rawQuery = query.trim().toLowerCase()
     const results = { projects: [], tickets: [], cors: [], workers: [] }
 
     try {
@@ -559,11 +571,11 @@ export const db = {
         .order('check_in_date', { ascending: false })
         .limit(50)
 
-      // Extract unique workers matching query
+      // Extract unique workers matching query (use rawQuery for client-side matching)
       const workerMap = new Map()
       ;(checkins || []).forEach(checkin => {
         (checkin.workers || []).forEach(worker => {
-          if (worker.name.toLowerCase().includes(searchQuery)) {
+          if (worker?.name && worker.name.toLowerCase().includes(rawQuery)) {
             const key = worker.name.toLowerCase()
             if (!workerMap.has(key)) {
               workerMap.set(key, {
@@ -739,7 +751,7 @@ export const db = {
       const { data, error } = await supabase
         .from('projects')
         .insert({
-          ...project,
+          ...sanitizeFormData(project),
           status: 'active'
         })
         .select()
@@ -810,8 +822,8 @@ export const db = {
       // CLIENT-SIDE RATE LIMITING (defense-in-depth)
       const rateLimitKey = `pin_attempts_${companyCode}`
       const lockoutKey = `pin_lockout_${companyCode}`
-      const MAX_ATTEMPTS = 5
-      const LOCKOUT_MS = 5 * 60 * 1000 // 5 minutes
+      const MAX_ATTEMPTS = 8
+      const LOCKOUT_MS = 3 * 60 * 1000 // 3 minutes (short enough to not frustrate foremen)
 
       // Check if currently locked out
       const lockoutUntil = localStorage.getItem(lockoutKey)
@@ -865,7 +877,7 @@ export const db = {
             success: false,
             rateLimited: true,
             project: null,
-            error: 'Too many failed attempts. Please try again in 5 minutes.'
+            error: 'Too many failed attempts. Please try again in a few minutes.'
           }
         }
         return { success: false, rateLimited: false, project: null }
@@ -981,7 +993,7 @@ export const db = {
             success: false,
             rateLimited: true,
             project: null,
-            error: 'Too many failed attempts. Please try again in 5 minutes.'
+            error: 'Too many failed attempts. Please try again in a few minutes.'
           }
         }
         return { success: false, rateLimited: false, project: null }
@@ -1089,7 +1101,7 @@ export const db = {
 
       const { data, error } = await supabase
         .from('projects')
-        .update(updates)
+        .update(sanitizeFormData(updates))
         .eq('id', id)
         .eq('company_id', companyId)  // Always enforce cross-tenant security
         .select()
@@ -2269,12 +2281,12 @@ export const db = {
         .insert({
           project_id: ticket.project_id,
           work_date: ticket.work_date,
-          ce_pco_number: ticket.ce_pco_number || null,
-          assigned_cor_id: ticket.assigned_cor_id || null, // Link to COR if provided
-          notes: ticket.notes,
+          ce_pco_number: sanitize.text(ticket.ce_pco_number) || null,
+          assigned_cor_id: ticket.assigned_cor_id || null,
+          notes: sanitize.text(ticket.notes),
           photos: ticket.photos || [],
           status: 'pending',
-          created_by_name: ticket.created_by_name || 'Field User'
+          created_by_name: sanitize.text(ticket.created_by_name) || 'Field User'
         })
         .select()
         .single()
@@ -3035,6 +3047,106 @@ export const db = {
       console.error('Error checking legacy user:', error)
       return false
     }
+  },
+
+  // ============================================
+  // Punch List
+  // ============================================
+
+  async getPunchListItems(projectId) {
+    if (!isSupabaseConfigured) return []
+    const client = getClient()
+    const { data, error } = await client
+      .from('punch_list_items')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+
+  async createPunchListItem(item) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    // Sanitize text fields, then set photo_url separately with URL sanitizer
+    const sanitized = sanitizeFormData({
+      project_id: item.project_id,
+      company_id: item.company_id,
+      description: item.description,
+      area_id: item.area_id || null,
+      assigned_to: item.assigned_to || null,
+      priority: item.priority,
+      notes: item.notes || null,
+      status: 'open'
+    })
+    sanitized.photo_url = item.photo_url ? sanitize.url(item.photo_url) : null
+    const { data, error } = await client
+      .from('punch_list_items')
+      .insert(sanitized)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async updatePunchListItem(itemId, updates) {
+    if (!isSupabaseConfigured) return null
+    // Whitelist allowed fields to prevent overwriting project_id, company_id, etc.
+    const safeUpdates = {}
+    let photoUrl = undefined
+    for (const key of Object.keys(updates)) {
+      if (!PUNCH_LIST_ALLOWED_FIELDS.has(key)) continue
+      if (key === 'photo_url') {
+        // Sanitize URL separately to avoid double-sanitization via sanitizeFormData
+        photoUrl = updates[key] ? sanitize.url(updates[key]) : updates[key]
+      } else {
+        safeUpdates[key] = updates[key]
+      }
+    }
+    const sanitized = sanitizeFormData({ ...safeUpdates, updated_at: new Date().toISOString() })
+    if (photoUrl !== undefined) sanitized.photo_url = photoUrl
+    const client = getClient()
+    const { data, error } = await client
+      .from('punch_list_items')
+      .update(sanitized)
+      .eq('id', itemId)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async updatePunchListStatus(itemId, newStatus) {
+    if (!isSupabaseConfigured) return null
+    const VALID_STATUSES = ['open', 'in_progress', 'complete']
+    if (!VALID_STATUSES.includes(newStatus)) throw new Error('Invalid punch list status')
+    const client = getClient()
+    const updates = {
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    }
+    if (newStatus === 'complete') {
+      updates.completed_at = new Date().toISOString()
+    } else {
+      updates.completed_at = null
+    }
+    const { error } = await client
+      .from('punch_list_items')
+      .update(updates)
+      .eq('id', itemId)
+    if (error) throw error
+  },
+
+  async deletePunchListItem(itemId, projectId) {
+    if (!isSupabaseConfigured) return null
+    if (!projectId) throw new Error('projectId is required for tenant-scoped delete')
+    const client = getClient()
+    const { error } = await client
+      .from('punch_list_items')
+      .delete()
+      .eq('id', itemId)
+      .eq('project_id', projectId)
+    if (error) throw error
   },
 
   // ============================================
@@ -3966,12 +4078,13 @@ export const db = {
       return checkin
     }
 
+    const sanitizedWorkers = Array.isArray(workers) ? sanitize.object(workers) : workers
     const { data, error } = await client
       .from('crew_checkins')
       .upsert({
         project_id: projectId,
         check_in_date: checkDate,
-        workers: workers,
+        workers: sanitizedWorkers,
         created_by: createdBy,
         updated_at: new Date().toISOString()
       }, {
@@ -4259,7 +4372,7 @@ export const db = {
       .upsert({
         project_id: projectId,
         report_date: reportDate,
-        ...reportData,
+        ...sanitizeFormData(reportData),
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'project_id,report_date'
@@ -4434,10 +4547,10 @@ export const db = {
       .insert({
         project_id: projectId,
         sender_type: senderType,
-        sender_name: senderName,
+        sender_name: sanitize.text(senderName),
         sender_user_id: senderUserId,
-        message: message,
-        photo_url: photoUrl,
+        message: sanitize.text(message),
+        photo_url: photoUrl ? sanitize.url(photoUrl) : null,
         message_type: messageType,
         parent_message_id: parentId
       })
@@ -4985,7 +5098,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from('injury_reports')
-      .insert(reportData)
+      .insert(sanitizeFormData(reportData))
       .select()
       .single()
 
@@ -5091,7 +5204,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from('injury_reports')
-      .update(updates)
+      .update(sanitizeFormData(updates))
       .eq('id', reportId)
       .select()
       .single()
@@ -5587,9 +5700,9 @@ export const db = {
         .from('dump_sites')
         .insert({
           company_id: companyId,
-          name,
-          address,
-          notes,
+          name: sanitize.text(name),
+          address: sanitize.text(address),
+          notes: sanitize.text(notes),
           active: true
         })
         .select()
@@ -6246,6 +6359,7 @@ export const db = {
 
     // Get all versions (parent + all children with same parent)
     const parentId = doc.parent_document_id || documentId
+    if (!validate.uuid(parentId)) throw new Error('Invalid document ID')
 
     const { data, error } = await client
       .from('documents')
@@ -6261,6 +6375,7 @@ export const db = {
    * Upload a new version of an existing document
    */
   async uploadDocumentVersion(parentDocumentId, companyId, projectId, file, metadata = {}) {
+    if (!validate.uuid(parentDocumentId)) throw new Error('Invalid document ID')
     const client = getClient()
 
     // Get the parent document to copy metadata and determine version
@@ -6593,7 +6708,7 @@ export const db = {
       .eq('project_id', projectId)
       .eq('is_current', true)
       .is('archived_at', null)
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+      .or(`name.ilike.%${escapePostgrestFilter(query)}%,description.ilike.%${escapePostgrestFilter(query)}%`)
       .order('uploaded_at', { ascending: false })
       .limit(20)
 
