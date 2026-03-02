@@ -755,6 +755,27 @@ export const corOps = {
     return null
   },
 
+  // Mark a ticket association as imported (without running the actual import)
+  // Used when CORForm saves line items client-side and then links tickets
+  async markTicketAssociationImported(ticketId, corId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_order_ticket_associations')
+        .update({
+          data_imported: true,
+          imported_at: new Date().toISOString(),
+          import_status: 'completed',
+          import_failed_at: null,
+          import_error: null
+        })
+        .eq('change_order_id', corId)
+        .eq('ticket_id', ticketId)
+      if (error) {
+        console.warn('Failed to mark ticket association as imported:', error)
+      }
+    }
+  },
+
   async unassignTicketFromCOR(ticketId, corId) {
     if (isSupabaseConfigured) {
       // Use atomic database function to ensure both junction table and FK stay in sync

@@ -29,8 +29,35 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   // Fetch full COR data with line items
   const fetchFullCOR = useCallback(async () => {
     try {
-      const fullCOR = await db.getCORById(cor.id)
+      let fullCOR = await db.getCORById(cor.id)
       if (fullCOR) {
+        // Auto-import cost data from any unimported associated tickets
+        const unimported = fullCOR.change_order_ticket_associations?.filter(
+          assoc => !assoc.data_imported && assoc.t_and_m_tickets
+        ) || []
+
+        if (unimported.length > 0 && company?.id) {
+          let importedAny = false
+          for (const assoc of unimported) {
+            try {
+              await db.importTicketDataToCOR(
+                assoc.ticket_id,
+                cor.id,
+                company.id,
+                project?.work_type || 'demolition',
+                project?.job_type || 'standard'
+              )
+              importedAny = true
+            } catch (importErr) {
+              console.warn('Auto-import failed for ticket:', assoc.ticket_id, importErr)
+            }
+          }
+          // Re-fetch COR data after imports so line items and totals are current
+          if (importedAny) {
+            fullCOR = await db.getCORById(cor.id) || fullCOR
+          }
+        }
+
         // Resolve all ticket photos to signed URLs in one batch (bucket is private)
         if (fullCOR.tickets?.length) {
           const photoGroups = fullCOR.tickets.map(t => t.photos || [])
@@ -54,7 +81,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     } finally {
       setLoading(false)
     }
-  }, [cor.id]) // onShowToast is stable (memoized in App.jsx)
+  }, [cor.id, company?.id, project?.work_type, project?.job_type]) // onShowToast is stable (memoized in App.jsx)
 
   // Fetch on mount
   useEffect(() => {

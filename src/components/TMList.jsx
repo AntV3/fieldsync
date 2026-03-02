@@ -285,6 +285,20 @@ export default function TMList({
       if (selectedCorForAssign) {
         // Associate with COR using atomic function (ticketId, corId)
         await db.assignTicketToCOR(pendingCorAssignTicket.id, selectedCorForAssign)
+
+        // Auto-import ticket cost data (labor, materials, equipment) into COR line items
+        try {
+          await db.importTicketDataToCOR(
+            pendingCorAssignTicket.id,
+            selectedCorForAssign,
+            company.id,
+            project.work_type || 'demolition',
+            project.job_type || 'standard'
+          )
+        } catch (importError) {
+          console.warn('Auto-import of ticket costs failed, can retry later:', importError)
+        }
+
         const cor = availableCors.find(c => c.id === selectedCorForAssign)
         onShowToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
       } else if (pendingCorAssignTicket.assigned_cor_id) {

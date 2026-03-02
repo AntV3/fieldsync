@@ -427,6 +427,8 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
           for (const ticketId of importedTicketIds) {
             try {
               await db.assignTicketToCOR(ticketId, savedCOR.id)
+              // Mark association as imported since line items were saved above
+              await db.markTicketAssociationImported?.(ticketId, savedCOR.id)
             } catch (linkError) {
               console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
               failedLinks.push(ticketId)
@@ -501,6 +503,8 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         for (const ticketId of importedTicketIds) {
           try {
             await db.assignTicketToCOR(ticketId, corIdToUse)
+            // Mark association as imported since line items were saved above
+            await db.markTicketAssociationImported?.(ticketId, corIdToUse)
           } catch (linkError) {
             console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
           }
