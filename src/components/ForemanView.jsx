@@ -26,8 +26,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress, punchlist
   const [showProjectInfo, setShowProjectInfo] = useState(false)
 
-  // Punch list open count for badge
-  const [punchListOpenCount, setPunchListOpenCount] = useState(0)
+  // Punch list open count for badge (null = not loaded yet)
+  const [punchListOpenCount, setPunchListOpenCount] = useState(null)
 
   // Today's activity status (for smart cards)
   const [todayStatus, setTodayStatus] = useState({
@@ -45,12 +45,6 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     }
     return false
   })
-
-  // Get current hour for time-based UI
-  const currentHour = new Date().getHours()
-  const isMorning = currentHour >= 5 && currentHour < 12
-  const isAfternoon = currentHour >= 12 && currentHour < 17
-  const isEvening = currentHour >= 17 || currentHour < 5
 
   useEffect(() => {
     if (project?.id) {
@@ -271,6 +265,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         <InjuryReportForm
           project={project}
           companyId={companyId}
+          user={foremanName ? { name: foremanName } : undefined}
           onClose={() => setActiveView('home')}
           onReportCreated={() => {
             setActiveView('home')
