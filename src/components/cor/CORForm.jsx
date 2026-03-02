@@ -152,6 +152,30 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   const loadLaborRates = async () => {
     try {
+      // Try new labor class rates first, fall back to legacy labor_rates
+      const classRates = await db.getAllLaborClassRates?.(company?.id)
+      if (classRates?.length > 0) {
+        // Flatten class rates into a lookup-friendly format
+        const flatRates = []
+        classRates.forEach(lc => {
+          const matchingRate = lc.labor_class_rates?.find(r =>
+            r.work_type === (project?.work_type || 'demolition') &&
+            r.job_type === (project?.job_type || 'standard')
+          )
+          if (matchingRate) {
+            flatRates.push({
+              role: lc.name,
+              regular_rate: matchingRate.regular_rate,
+              overtime_rate: matchingRate.overtime_rate
+            })
+          }
+        })
+        if (flatRates.length > 0) {
+          setLaborRates(flatRates)
+          return
+        }
+      }
+      // Fall back to legacy labor_rates table
       const rates = await db.getLaborRates?.(company?.id, project?.work_type, project?.job_type)
       setLaborRates(rates || [])
     } catch (error) {
@@ -161,7 +185,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   const getRateForClass = (laborClass) => {
     const classLower = laborClass?.toLowerCase() || ''
-    return laborRates.find(r => r.role?.toLowerCase() === classLower) || null
+    return laborRates.find(r => (r.role || r.name)?.toLowerCase() === classLower) || null
   }
 
   const generateCORNumber = async () => {

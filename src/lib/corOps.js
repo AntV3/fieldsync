@@ -860,12 +860,12 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
-      // 1. Get ticket with workers and items
+      // 1. Get ticket with workers (including labor class names) and items
       const { data: ticket, error: ticketError } = await client
         .from('t_and_m_tickets')
         .select(`
           *,
-          t_and_m_workers (*),
+          t_and_m_workers (*, labor_classes (id, name)),
           t_and_m_items (
             *,
             materials_equipment (name, unit, cost_per_unit, category)
@@ -875,48 +875,101 @@ export const corOps = {
         .single()
       if (ticketError) throw ticketError
 
-      // 2. Get labor rates for this company/work type/job type
-      const { data: rates, error: ratesError } = await client
-        .from('labor_rates')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('work_type', workType || 'demolition')
-        .eq('job_type', jobType || 'standard')
-      if (ratesError) throw ratesError
+      // 2. Build labor items from workers
+      const workers = ticket.t_and_m_workers || []
+      const effectiveWorkType = workType || 'demolition'
+      const effectiveJobType = jobType || 'standard'
+      let laborItems = []
 
-      // Create rate lookup
-      const rateLookup = {}
-      rates?.forEach(rate => {
-        rateLookup[rate.role.toLowerCase()] = rate
-      })
+      // Split workers into those with labor_class_id (new system) and those without (legacy)
+      const classWorkers = workers.filter(w => w.labor_class_id)
+      const legacyWorkers = workers.filter(w => !w.labor_class_id)
 
-      // 3. Group workers by role and sum hours
-      const laborByRole = {}
-      ticket.t_and_m_workers?.forEach(worker => {
-        const role = (worker.role || 'laborer').toLowerCase()
-        if (!laborByRole[role]) {
-          laborByRole[role] = { regular_hours: 0, overtime_hours: 0 }
-        }
-        laborByRole[role].regular_hours += parseFloat(worker.hours) || 0
-        laborByRole[role].overtime_hours += parseFloat(worker.overtime_hours) || 0
-      })
+      // NEW SYSTEM: Group workers by labor_class_id and fetch rates from labor_class_rates
+      if (classWorkers.length > 0) {
+        const laborByClass = {}
+        classWorkers.forEach(worker => {
+          const classId = worker.labor_class_id
+          if (!laborByClass[classId]) {
+            laborByClass[classId] = {
+              name: worker.labor_classes?.name || worker.role || 'Unknown',
+              regular_hours: 0,
+              overtime_hours: 0
+            }
+          }
+          laborByClass[classId].regular_hours += parseFloat(worker.hours) || 0
+          laborByClass[classId].overtime_hours += parseFloat(worker.overtime_hours) || 0
+        })
 
-      // 4. Create labor items
-      const laborItems = Object.entries(laborByRole).map(([role, hours]) => {
-        const rate = rateLookup[role] || { regular_rate: 0, overtime_rate: 0 }
-        // Convert dollar rates to cents
-        const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
-        const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
-        return {
-          labor_class: role.charAt(0).toUpperCase() + role.slice(1),
-          wage_type: jobType || 'standard',
-          regular_hours: hours.regular_hours,
-          overtime_hours: hours.overtime_hours,
-          regular_rate: regRate,
-          overtime_rate: otRate,
-          source_ticket_id: ticketId
-        }
-      })
+        const classIds = Object.keys(laborByClass)
+        const { data: classRates, error: classRatesError } = await client
+          .from('labor_class_rates')
+          .select('labor_class_id, regular_rate, overtime_rate')
+          .in('labor_class_id', classIds)
+          .eq('work_type', effectiveWorkType)
+          .eq('job_type', effectiveJobType)
+        if (classRatesError) throw classRatesError
+
+        const classRateLookup = {}
+        classRates?.forEach(r => { classRateLookup[r.labor_class_id] = r })
+
+        laborItems = Object.entries(laborByClass).map(([classId, data]) => {
+          const rate = classRateLookup[classId] || { regular_rate: 0, overtime_rate: 0 }
+          const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+          const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+          return {
+            labor_class: data.name,
+            wage_type: effectiveJobType,
+            regular_hours: data.regular_hours,
+            overtime_hours: data.overtime_hours,
+            regular_rate: regRate,
+            overtime_rate: otRate,
+            source_ticket_id: ticketId
+          }
+        })
+      }
+
+      // LEGACY SYSTEM: Workers without labor_class_id use role-based lookup
+      if (legacyWorkers.length > 0) {
+        const { data: rates, error: ratesError } = await client
+          .from('labor_rates')
+          .select('*')
+          .eq('company_id', companyId)
+          .eq('work_type', effectiveWorkType)
+          .eq('job_type', effectiveJobType)
+        if (ratesError) throw ratesError
+
+        const rateLookup = {}
+        rates?.forEach(rate => {
+          rateLookup[rate.role.toLowerCase()] = rate
+        })
+
+        const laborByRole = {}
+        legacyWorkers.forEach(worker => {
+          const role = (worker.role || 'laborer').toLowerCase()
+          if (!laborByRole[role]) {
+            laborByRole[role] = { regular_hours: 0, overtime_hours: 0 }
+          }
+          laborByRole[role].regular_hours += parseFloat(worker.hours) || 0
+          laborByRole[role].overtime_hours += parseFloat(worker.overtime_hours) || 0
+        })
+
+        const legacyItems = Object.entries(laborByRole).map(([role, hours]) => {
+          const rate = rateLookup[role] || { regular_rate: 0, overtime_rate: 0 }
+          const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+          const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+          return {
+            labor_class: role.charAt(0).toUpperCase() + role.slice(1),
+            wage_type: effectiveJobType,
+            regular_hours: hours.regular_hours,
+            overtime_hours: hours.overtime_hours,
+            regular_rate: regRate,
+            overtime_rate: otRate,
+            source_ticket_id: ticketId
+          }
+        })
+        laborItems = laborItems.concat(legacyItems)
+      }
 
       if (laborItems.length > 0) {
         await this.addBulkLaborItems(corId, laborItems)
