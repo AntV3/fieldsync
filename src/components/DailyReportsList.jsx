@@ -25,6 +25,30 @@ export default function DailyReportsList({ project, company, onShowToast }) {
   // Date filter state
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
+  // Photo URLs for expanded report
+  const [reportPhotos, setReportPhotos] = useState({}) // { reportId: [signedUrl, ...] }
+  const [photosLoading, setPhotosLoading] = useState(false)
+
+  // Load photos when a report is expanded
+  useEffect(() => {
+    if (!expandedReport) return
+    const report = reports.find(r => r.id === expandedReport)
+    if (!report?.photos?.length || reportPhotos[expandedReport]) return
+
+    let cancelled = false
+    setPhotosLoading(true)
+    db.resolvePhotoUrls(report.photos).then(signedUrls => {
+      if (!cancelled) {
+        setReportPhotos(prev => ({ ...prev, [expandedReport]: signedUrls.filter(Boolean) }))
+      }
+    }).catch(err => {
+      console.error('Error loading report photos:', err)
+    }).finally(() => {
+      if (!cancelled) setPhotosLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [expandedReport, reports])
+
   useEffect(() => {
     loadReports()
 
@@ -543,6 +567,26 @@ export default function DailyReportsList({ project, company, onShowToast }) {
             <div className="report-section issues">
               <h4>Issues / Concerns</h4>
               <p className="report-issues">{report.issues}</p>
+            </div>
+          )}
+
+          {/* Photos */}
+          {getPhotoCount(report) > 0 && (
+            <div className="report-section">
+              <h4>Photos ({getPhotoCount(report)})</h4>
+              {photosLoading && !reportPhotos[report.id] ? (
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Loading photos...</p>
+              ) : reportPhotos[report.id]?.length > 0 ? (
+                <div className="report-photo-grid">
+                  {reportPhotos[report.id].map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="report-photo-thumb">
+                      <img src={url} alt={`Report photo ${i + 1}`} loading="lazy" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Unable to load photos</p>
+              )}
             </div>
           )}
 
