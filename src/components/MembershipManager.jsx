@@ -51,9 +51,19 @@ export default function MembershipManager({ company, user, onShowToast }) {
     try {
       setActionLoading(membership.id)
       const accessLevel = selectedAccessLevels[membership.id] || 'member'
+
+      // Step 1: Approve membership and set access level
       await db.approveMembershipWithRole(membership.id, user.id, accessLevel)
-      // Set the company role after approval
-      await db.updateMemberCompanyRole(membership.id, companyRole)
+
+      // Step 2: Set the company role (job title) after approval
+      try {
+        await db.updateMemberCompanyRole(membership.id, companyRole)
+      } catch (roleError) {
+        // Don't fail the whole approval if company_role update fails
+        // (e.g., column might not exist yet if migration hasn't been run)
+        console.warn('Could not set company role:', roleError.message)
+      }
+
       onShowToast(`${membership.users?.name || membership.users?.email} approved as ${companyRole}`, 'success')
       // Clear selections
       setSelectedAccessLevels(prev => {
@@ -69,7 +79,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
       loadMembers()
     } catch (error) {
       console.error('Error approving membership:', error)
-      onShowToast('Error approving request', 'error')
+      onShowToast('Error approving request: ' + (error.message || 'Unknown error'), 'error')
     } finally {
       setActionLoading(null)
     }
