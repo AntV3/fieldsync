@@ -4318,10 +4318,11 @@ export const db = {
     const client = getClient()
 
     // Run all queries in parallel for faster loading
-    const [crew, areasResult, ticketsResult] = await Promise.all([
+    const [crew, areasResult, ticketsResult, existingReport] = await Promise.all([
       this.getCrewCheckin(projectId, reportDate),
       client.from('areas').select('*').eq('project_id', projectId),
-      client.from('t_and_m_tickets').select('*').eq('project_id', projectId).eq('work_date', reportDate)
+      client.from('t_and_m_tickets').select('*').eq('project_id', projectId).eq('work_date', reportDate),
+      client.from('daily_reports').select('photos').eq('project_id', projectId).eq('report_date', reportDate).maybeSingle()
     ])
 
     const areas = areasResult?.data || []
@@ -4332,7 +4333,10 @@ export const db = {
       a.completed_at?.startsWith(reportDate)
     )
 
-    const photosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+    // Count photos from T&M tickets AND report-level photos
+    const tmPhotosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
+    const reportPhotosCount = existingReport?.data?.photos?.length || 0
+    const photosCount = tmPhotosCount + reportPhotosCount
 
     return {
       crew_count: crew?.workers?.length || 0,
@@ -4441,17 +4445,35 @@ export const db = {
       throw new Error('Database client not available')
     }
 
+    // Fetch existing report to preserve photos and notes saved earlier
+    const { data: existing } = await client
+      .from('daily_reports')
+      .select('photos, field_notes, issues')
+      .eq('project_id', projectId)
+      .eq('report_date', reportDate)
+      .maybeSingle()
+
+    // Merge: compiled metrics + preserved report-level data
+    const upsertData = {
+      project_id: projectId,
+      report_date: reportDate,
+      ...compiled,
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+      submitted_by: submittedBy,
+      updated_at: new Date().toISOString()
+    }
+
+    // Preserve photos and notes from the saved report (if saveDailyReport was called first)
+    if (existing) {
+      if (existing.photos) upsertData.photos = existing.photos
+      if (existing.field_notes && !upsertData.field_notes) upsertData.field_notes = existing.field_notes
+      if (existing.issues && !upsertData.issues) upsertData.issues = existing.issues
+    }
+
     const { data, error } = await client
       .from('daily_reports')
-      .upsert({
-        project_id: projectId,
-        report_date: reportDate,
-        ...compiled,
-        status: 'submitted',
-        submitted_at: new Date().toISOString(),
-        submitted_by: submittedBy,
-        updated_at: new Date().toISOString()
-      }, {
+      .upsert(upsertData, {
         onConflict: 'project_id,report_date'
       })
       .select()

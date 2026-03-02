@@ -512,6 +512,53 @@
   font-size: 0.85rem;
 }
 
+.report-crew-grouped {
+  gap: 0;
+}
+
+.report-crew-class-group {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.report-crew-class-group:last-child {
+  margin-bottom: 0;
+}
+
+.report-crew-class-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg-tertiary, rgba(0,0,0,0.03));
+  font-size: 0.8rem;
+}
+
+.report-crew-class-name {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.report-crew-class-count {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 0.05rem 0.35rem;
+  border-radius: 10px;
+}
+
+.report-crew-class-group .crew-member {
+  border-radius: 0;
+  padding: 0.35rem 0.5rem 0.35rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.report-crew-class-group .crew-member:last-child {
+  border-bottom: none;
+}
+
 .report-tasks-list {
   margin: 0;
   padding-left: 1.5rem;
