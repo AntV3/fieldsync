@@ -559,6 +559,22 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
     const snapshot = createSnapshot(cor, tickets, options)
     const savedSnapshot = await saveSnapshot(snapshot, job.jobId)
 
+    // Step 4b: Resolve photo storage paths to signed URLs for PDF embedding.
+    // This happens after saving (so raw paths are persisted) but before PDF
+    // generation (so the generator receives loadable URLs).
+    if (snapshot.ticketsData?.length > 0) {
+      const { db } = await import('./supabase')
+      for (const ticket of snapshot.ticketsData) {
+        if (ticket.photos?.length > 0) {
+          try {
+            ticket.photos = await db.resolvePhotoUrls(ticket.photos)
+          } catch (e) {
+            // Keep raw paths on failure; generator will show placeholders
+          }
+        }
+      }
+    }
+
     // Step 5: Generate PDF from snapshot
     // Import the PDF generator dynamically to avoid circular deps
     const { generatePDFFromSnapshot } = await import('./corPdfGenerator')

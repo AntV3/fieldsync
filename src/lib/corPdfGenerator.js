@@ -1000,7 +1000,13 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
     doc.text(`${ticket.photos.length} photo${ticket.photos.length !== 1 ? 's' : ''}`, margin + 55, yPos)
     yPos += 8
 
-    const photoImages = await loadImagesAsBase64(ticket.photos)
+    // Resolve storage paths to signed URLs before loading
+    let photoUrls = ticket.photos
+    try {
+      const { db } = await import('./supabase')
+      photoUrls = await db.resolvePhotoUrls(ticket.photos)
+    } catch { /* use raw URLs as fallback */ }
+    const photoImages = await loadImagesAsBase64(photoUrls, 10000)
     const photoWidth = 55
     const photoHeight = 45
     const photoGap = 6

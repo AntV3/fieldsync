@@ -27,6 +27,7 @@ import {
   formatDateRange
 } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
+import { db } from './supabase'
 
 // Helper to format time (HH:MM or HH:MM:SS to 9:00am format)
 const formatTime = (timeStr) => {
@@ -65,7 +66,17 @@ export async function verifyPhotosForExport(tmTickets) {
   for (const ticket of tmTickets) {
     if (!ticket.photos || ticket.photos.length === 0) continue
 
-    for (const photoUrl of ticket.photos) {
+    // Resolve storage paths to signed URLs for the whole ticket at once
+    let signedUrls
+    try {
+      signedUrls = await db.resolvePhotoUrls(ticket.photos)
+    } catch {
+      signedUrls = ticket.photos
+    }
+
+    for (let pi = 0; pi < ticket.photos.length; pi++) {
+      const photoUrl = ticket.photos[pi]
+      const signedUrl = signedUrls[pi]
       const entry = {
         ticketId: ticket.id,
         workDate: ticket.work_date,
@@ -76,7 +87,7 @@ export async function verifyPhotosForExport(tmTickets) {
 
       try {
         // Try to load the image to verify accessibility
-        const imgData = await loadImageAsBase64(photoUrl)
+        const imgData = await loadImageAsBase64(signedUrl, 10000)
         if (imgData) {
           entry.verified = true
           verified++
@@ -952,8 +963,9 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
         const photosPerRow = 3
         const frameWidth = 1
 
-        // Load all photos in parallel for faster PDF generation
-        const photoImages = await loadImagesAsBase64(ticket.photos)
+        // Resolve storage paths to signed URLs, then load as base64
+        const signedUrls = await db.resolvePhotoUrls(ticket.photos)
+        const photoImages = await loadImagesAsBase64(signedUrls, 10000)
 
         for (let i = 0; i < ticket.photos.length; i++) {
           // Check if we need to wrap to next row
@@ -1347,8 +1359,9 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
     const photoGap = 6
     const photosPerRow = 3
 
-    // Load all photos in parallel for faster PDF generation
-    const photoImages = await loadImagesAsBase64(ticket.photos)
+    // Resolve storage paths to signed URLs, then load as base64
+    const signedUrls = await db.resolvePhotoUrls(ticket.photos)
+    const photoImages = await loadImagesAsBase64(signedUrls, 10000)
 
     for (let i = 0; i < ticket.photos.length; i++) {
       if (i > 0 && i % photosPerRow === 0) {
