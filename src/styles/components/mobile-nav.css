@@ -76,9 +76,9 @@
   position: fixed;
   top: 0;
   right: 0;
+  bottom: 0;
   width: 300px;
   max-width: 85vw;
-  height: 100vh;
   background: var(--bg-primary);
   border-left: 1px solid var(--border-color);
   display: flex;
