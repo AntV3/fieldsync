@@ -93,6 +93,82 @@
   color: var(--accent-blue);
 }
 
+/* Grouped crew list by labor category */
+.crew-list-grouped {
+  gap: 0;
+}
+
+.crew-category-section {
+  margin-bottom: 0.75rem;
+}
+
+.crew-category-section:last-child {
+  margin-bottom: 0;
+}
+
+.crew-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.375rem;
+  border-left: 3px solid var(--accent-blue);
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.crew-category-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-blue);
+}
+
+.crew-category-count {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.crew-category-section .crew-member {
+  margin-bottom: 0.375rem;
+}
+
+.crew-category-section .crew-member:last-child {
+  margin-bottom: 0;
+}
+
+/* Grouped quick-add by labor category */
+.crew-quick-add-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.crew-quick-add-category {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.crew-quick-add-category-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-blue);
+  padding-left: 0.25rem;
+  border-left: 2px solid var(--accent-blue);
+  padding-bottom: 0;
+  line-height: 1.4;
+}
+
 .crew-remove-btn {
   background: none;
   border: none;
