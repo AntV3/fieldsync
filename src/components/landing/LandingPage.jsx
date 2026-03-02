@@ -84,7 +84,7 @@ export default function LandingPage() {
             Sign In
           </button>
           <button className="lp-nav-cta" onClick={handleGetStarted}>
-            Get Started
+            Start Free
           </button>
         </div>
       </nav>

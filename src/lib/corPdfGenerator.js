@@ -8,8 +8,6 @@
 // This ensures deterministic, reproducible exports
 // ============================================
 
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import {
   formatCurrency,
   formatPercent,
@@ -51,6 +49,8 @@ const formatTimePeriod = (worker) => {
  * @returns {Promise<Object>} PDF generation result
  */
 export async function generatePDFFromSnapshot(snapshot, context = {}) {
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
   const { project, company, branding = {} } = context
   const cor = snapshot.corData
   const tickets = snapshot.ticketsData || []
@@ -815,6 +815,8 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
  * @returns {Promise<Object>} PDF generation result
  */
 export async function generateTicketPDFFromData(ticketData, context = {}) {
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
   const { project, company, branding = {} } = context
   const ticket = ticketData
 
