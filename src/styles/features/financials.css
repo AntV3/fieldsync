@@ -26,6 +26,8 @@
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-normal);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .burn-rate-card:hover {
@@ -277,6 +279,8 @@
   margin-bottom: 0;
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-normal);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cost-contributors-card:hover {
@@ -541,6 +545,8 @@
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-normal);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .profitability-card:hover {
