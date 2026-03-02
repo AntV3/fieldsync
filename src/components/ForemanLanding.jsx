@@ -179,14 +179,14 @@ export default function ForemanLanding({
         }
       case 'punchlist':
         return {
-          done: punchListOpenCount === 0 && punchListOpenCount !== undefined,
+          done: punchListOpenCount !== null && punchListOpenCount === 0,
           badge: punchListOpenCount > 0 ? `${punchListOpenCount} open` : null,
-          status: punchListOpenCount > 0 ? `${punchListOpenCount} items open` : 'All clear'
+          status: punchListOpenCount === null ? 'Loading...' : punchListOpenCount > 0 ? `${punchListOpenCount} items open` : 'All clear'
         }
       default:
         return { done: false, badge: null, status: null }
     }
-  }, [todayStatus, progress, areasRemaining])
+  }, [todayStatus, progress, areasRemaining, punchListOpenCount])
 
   // Render a pinned action card
   const renderPinnedAction = (actionId) => {
