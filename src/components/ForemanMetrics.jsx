@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import {
@@ -309,17 +309,17 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         <div className="chart-card">
           <h3>Area Progress</h3>
           {progressPieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie
                   data={progressPieData}
                   cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
+                  cy="45%"
+                  innerRadius={45}
+                  outerRadius={75}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
+                  label={false}
                   labelLine={false}
                 >
                   {progressPieData.map((entry, index) => (
@@ -327,6 +327,13 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value) => <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{value}</span>}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -424,6 +431,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           padding: 1rem;
           max-width: 100%;
           overflow-x: hidden;
+          box-sizing: border-box;
         }
 
         .foreman-metrics.loading {
@@ -442,7 +450,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         .metrics-header {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           margin-bottom: 1.5rem;
           flex-wrap: wrap;
         }
@@ -452,19 +460,25 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           margin: 0;
           font-size: 1.25rem;
           color: var(--text-primary);
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .back-btn {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.5rem 1rem;
+          padding: 0.5rem 0.75rem;
           background: var(--bg-elevated);
           border: 1px solid var(--border-color);
           border-radius: 8px;
           color: var(--text-primary);
           cursor: pointer;
           font-size: 0.875rem;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
 
         .back-btn:hover {
@@ -477,6 +491,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           border-radius: 8px;
           padding: 4px;
           gap: 4px;
+          flex-shrink: 0;
         }
 
         .time-toggle button {
@@ -500,6 +515,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           grid-template-columns: repeat(2, 1fr);
           gap: 1rem;
           margin-bottom: 1.5rem;
+          overflow: hidden;
         }
 
         @media (min-width: 640px) {
@@ -516,6 +532,8 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .card-icon {
@@ -605,6 +623,8 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           border: 1px solid var(--border-color);
           border-radius: 12px;
           padding: 1rem;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .chart-card h3 {

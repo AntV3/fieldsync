@@ -9,14 +9,15 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
       </div>
 
       <h1 className="lp-hero-title">
-        Your Field and Office<br />
-        Finally <span className="lp-gradient-text">Speak the Same Language</span>.
+        <span className="lp-gradient-text">FieldSync</span><br />
+        One Team. One Truth. One Tap.
       </h1>
 
       <p className="lp-hero-subtitle">
-        Right now your crews know things your office won't learn until tomorrow —
-        or next week. FieldSync bridges that gap instantly. One tap from the field,
-        and your office sees it live. No calls. No chasing. No surprises.
+        The disconnect between your field and your office? Gone.
+        No more lost updates, no more delayed reports, no more "I didn't get that."
+        FieldSync erases the gap — so every crew member and every manager
+        operates from the same page, in the same moment, speaking the same language.
       </p>
 
       <div className="lp-hero-actions">
