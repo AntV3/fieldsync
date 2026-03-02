@@ -4,6 +4,9 @@
  * as a consolidated or individual PDF report.
  */
 
+import { db } from './supabase'
+import { loadImagesAsBase64 } from './imageUtils'
+
 const loadJsPDF = () => import('jspdf')
 
 const PAGE_WIDTH = 210 // A4 width in mm
@@ -74,8 +77,24 @@ export async function exportDailyReportsPDF(reports, project) {
   doc.text(`${reports.length} report${reports.length !== 1 ? 's' : ''}`, PAGE_WIDTH / 2, y, { align: 'center' })
   y += 12
 
+  // Pre-load all report photos as base64 for embedding
+  const reportPhotoData = {}
+  for (const report of reports) {
+    if (report.photos?.length > 0) {
+      try {
+        const signedUrls = await db.resolvePhotoUrls(report.photos)
+        const base64Images = await loadImagesAsBase64(signedUrls, 10000)
+        reportPhotoData[report.id] = base64Images.filter(Boolean)
+      } catch (e) {
+        console.error('Error loading photos for report:', report.id, e)
+        reportPhotoData[report.id] = []
+      }
+    }
+  }
+
   // Each report
-  reports.forEach((report, idx) => {
+  for (let idx = 0; idx < reports.length; idx++) {
+    const report = reports[idx]
     y = checkPage(doc, y, 60)
 
     // Report header
@@ -143,6 +162,42 @@ export async function exportDailyReportsPDF(reports, project) {
       y += issueLines.length * 4 + 2
     }
 
+    // Photos
+    const photoImages = reportPhotoData[report.id]
+    if (photoImages?.length > 0) {
+      y = checkPage(doc, y, 55)
+      doc.setFont(undefined, 'bold')
+      doc.text('Photos:', MARGIN + 4, y)
+      y += 5
+
+      const photoWidth = 55
+      const photoHeight = 45
+      const photoGap = 5
+      const photosPerRow = 3
+      let xPos = MARGIN + 4
+
+      for (let i = 0; i < photoImages.length; i++) {
+        if (i > 0 && i % photosPerRow === 0) {
+          xPos = MARGIN + 4
+          y += photoHeight + photoGap
+        }
+
+        if (y + photoHeight > doc.internal.pageSize.height - 20) {
+          doc.addPage()
+          y = 20
+          xPos = MARGIN + 4
+        }
+
+        doc.setDrawColor(200, 200, 200)
+        doc.setLineWidth(0.5)
+        doc.rect(xPos - 1, y - 1, photoWidth + 2, photoHeight + 2, 'S')
+        doc.addImage(photoImages[i], 'JPEG', xPos, y, photoWidth, photoHeight)
+        xPos += photoWidth + photoGap
+      }
+
+      y += photoHeight + 5
+    }
+
     y += 8
 
     // Divider
@@ -151,7 +206,7 @@ export async function exportDailyReportsPDF(reports, project) {
       doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
       y += 6
     }
-  })
+  }
 
   const fileName = `${project.name}_Daily_Reports_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
@@ -372,6 +427,21 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
 
   // Daily Reports Section
   if (dailyReports.length > 0) {
+    // Pre-load all report photos
+    const reportPhotoData = {}
+    for (const report of dailyReports) {
+      if (report.photos?.length > 0) {
+        try {
+          const signedUrls = await db.resolvePhotoUrls(report.photos)
+          const base64Images = await loadImagesAsBase64(signedUrls, 10000)
+          reportPhotoData[report.id] = base64Images.filter(Boolean)
+        } catch (e) {
+          console.error('Error loading photos for report:', report.id, e)
+          reportPhotoData[report.id] = []
+        }
+      }
+    }
+
     doc.addPage()
     y = 20
 
@@ -380,7 +450,8 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
     doc.text('Daily Reports', MARGIN, y)
     y += 10
 
-    dailyReports.forEach((report, idx) => {
+    for (let idx = 0; idx < dailyReports.length; idx++) {
+      const report = dailyReports[idx]
       y = checkPage(doc, y, 40)
 
       doc.setFontSize(10)
@@ -410,13 +481,50 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
         y += issueLines.length * 4 + 2
       }
 
+      // Photos
+      const photoImages = reportPhotoData[report.id]
+      if (photoImages?.length > 0) {
+        y = checkPage(doc, y, 55)
+        doc.setFont(undefined, 'bold')
+        doc.setFontSize(9)
+        doc.text('Photos:', MARGIN + 2, y)
+        y += 5
+
+        const photoWidth = 55
+        const photoHeight = 45
+        const photoGap = 5
+        const photosPerRow = 3
+        let xPos = MARGIN + 2
+
+        for (let i = 0; i < photoImages.length; i++) {
+          if (i > 0 && i % photosPerRow === 0) {
+            xPos = MARGIN + 2
+            y += photoHeight + photoGap
+          }
+
+          if (y + photoHeight > doc.internal.pageSize.height - 20) {
+            doc.addPage()
+            y = 20
+            xPos = MARGIN + 2
+          }
+
+          doc.setDrawColor(200, 200, 200)
+          doc.setLineWidth(0.5)
+          doc.rect(xPos - 1, y - 1, photoWidth + 2, photoHeight + 2, 'S')
+          doc.addImage(photoImages[i], 'JPEG', xPos, y, photoWidth, photoHeight)
+          xPos += photoWidth + photoGap
+        }
+
+        y += photoHeight + 5
+      }
+
       y += 4
       if (idx < dailyReports.length - 1) {
         doc.setDrawColor(220, 220, 220)
         doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
         y += 4
       }
-    })
+    }
   }
 
   // Incident Reports Section
