@@ -8,9 +8,10 @@ import { TicketSkeleton, CountBadge } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
 import { exportTMTicketsCSV } from '../lib/financialExport'
+import { loadXLSXSafe } from '../lib/safeXlsx'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
-const loadXLSX = () => import('xlsx')
+const loadXLSX = loadXLSXSafe
 const loadJsPDF = () => Promise.all([import('jspdf'), import('jspdf-autotable')])
 
 export default function TMList({

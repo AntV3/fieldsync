@@ -126,7 +126,8 @@ export default function CORList({
     onShowToast?.('Generating Excel report...', 'info')
 
     try {
-      const XLSX = await import('xlsx')
+      const { loadXLSXSafe } = await import('../../lib/safeXlsx')
+      const XLSX = await loadXLSXSafe()
 
       // Calculate statistics
       const approved = cors.filter(c => c.status === 'approved')
