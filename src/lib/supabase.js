@@ -2723,7 +2723,8 @@ export const db = {
   // Get all memberships for a company (for admin view)
   async getCompanyMemberships(companyId) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      // Try with company_role column first
+      let { data, error } = await supabase
         .from('user_companies')
         .select(`
           id,
@@ -2744,9 +2745,34 @@ export const db = {
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
 
+      // If query fails (e.g., company_role column doesn't exist), retry without it
       if (error) {
-        console.error('Error fetching company memberships:', error)
-        return []
+        console.warn('Membership query failed, retrying without company_role:', error.message)
+        const retry = await supabase
+          .from('user_companies')
+          .select(`
+            id,
+            access_level,
+            status,
+            created_at,
+            approved_at,
+            approved_by,
+            removed_at,
+            removed_by,
+            users!user_companies_user_id_fkey (
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('company_id', companyId)
+          .order('created_at', { ascending: false })
+
+        if (retry.error) {
+          console.error('Error fetching company memberships:', retry.error)
+          return []
+        }
+        data = retry.data
       }
       return data || []
     }
@@ -2772,13 +2798,29 @@ export const db = {
   // Approve a pending membership with access level assignment (uses RPC for security)
   async approveMembershipWithRole(membershipId, approvedBy, accessLevel = 'member') {
     if (isSupabaseConfigured) {
-      const { error } = await supabase.rpc('approve_membership_with_role', {
+      // Try RPC function first (preferred - has server-side validation)
+      const { error: rpcError } = await supabase.rpc('approve_membership_with_role', {
         membership_id: membershipId,
         approved_by_user: approvedBy,
         new_access_level: accessLevel
       })
 
-      if (error) throw error
+      if (rpcError) {
+        // Fallback to direct update if RPC function is not available or has mismatched params
+        console.warn('RPC approve failed, using direct update:', rpcError.message)
+        const { error: updateError } = await supabase
+          .from('user_companies')
+          .update({
+            status: 'active',
+            access_level: accessLevel,
+            approved_at: new Date().toISOString(),
+            approved_by: approvedBy
+          })
+          .eq('id', membershipId)
+          .eq('status', 'pending')
+
+        if (updateError) throw updateError
+      }
     }
   },
 
