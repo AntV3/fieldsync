@@ -626,6 +626,39 @@
   color: var(--text-muted);
 }
 
+.daily-report-crew-group {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.daily-report-crew-group:last-child {
+  border-bottom: none;
+}
+
+.daily-report-crew-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary, rgba(0,0,0,0.03));
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.daily-report-crew-group-count {
+  font-size: 0.7rem;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.daily-report-crew-group .daily-report-crew-item {
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+}
+
 .daily-report-tasks {
   list-style: none;
   padding: 0;

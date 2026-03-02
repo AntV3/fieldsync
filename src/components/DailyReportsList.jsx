@@ -178,6 +178,19 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     })
   }
 
+  // Get accurate photo count: use actual photos array length if available,
+  // fall back to stored photos_count metric
+  const getPhotoCount = (report) => {
+    return report.photos?.length || report.photos_count || 0
+  }
+
+  // Get accurate task count from completed_tasks array if available,
+  // fall back to stored tasks_completed metric
+  const getTasksCompleted = (report) => {
+    if (report.completed_tasks?.length > 0) return report.completed_tasks.length
+    return report.tasks_completed || 0
+  }
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'submitted': return '✓'
@@ -304,19 +317,40 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       doc.setTextColor(50, 50, 50)
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
-      const stats = `Crew: ${report.crew_count || 0}  |  Tasks: ${report.tasks_completed || 0}  |  Time & Material: ${report.tm_tickets_count || 0}  |  Photos: ${report.photos_count || 0}`
+      const stats = `Crew: ${report.crew_count || 0}  |  Tasks: ${getTasksCompleted(report)}  |  Time & Material: ${report.tm_tickets_count || 0}  |  Photos: ${getPhotoCount(report)}`
       doc.text(stats, margin + 5, yPos)
       yPos += 8
 
-      // Crew list
+      // Crew list - grouped by class/role
       if (report.crew_list?.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.text('Crew:', margin + 5, yPos)
-        doc.setFont('helvetica', 'normal')
-        const crewNames = report.crew_list.map(w => `${w.name} (${w.role})`).join(', ')
-        const crewLines = doc.splitTextToSize(crewNames, pageWidth - margin * 2 - 30)
-        doc.text(crewLines, margin + 25, yPos)
-        yPos += crewLines.length * 5 + 3
+        yPos += 6
+
+        // Group workers by role
+        const crewGroups = {}
+        report.crew_list.forEach(w => {
+          const role = w.role || 'Other'
+          if (!crewGroups[role]) crewGroups[role] = []
+          crewGroups[role].push(w)
+        })
+
+        doc.setFontSize(9)
+        for (const [role, workers] of Object.entries(crewGroups)) {
+          if (yPos > 270) {
+            doc.addPage()
+            yPos = margin
+          }
+          doc.setFont('helvetica', 'bold')
+          doc.text(`${role} (${workers.length}):`, margin + 10, yPos)
+          doc.setFont('helvetica', 'normal')
+          const names = workers.map(w => w.name).join(', ')
+          const nameLines = doc.splitTextToSize(names, pageWidth - margin * 2 - 50)
+          doc.text(nameLines, margin + 55, yPos)
+          yPos += nameLines.length * 4.5 + 2
+        }
+        doc.setFontSize(10)
+        yPos += 2
       }
 
       // Field notes
@@ -424,7 +458,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         </div>
         <div className="daily-report-summary">
           <span className="report-crew">{report.crew_count || 0} crew</span>
-          <span className="report-tasks">{report.tasks_completed || 0} tasks</span>
+          <span className="report-tasks">{getTasksCompleted(report)} tasks</span>
           <span className="report-expand">{expandedReport === report.id ? '▼' : '▶'}</span>
         </div>
       </div>
@@ -438,7 +472,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
               <span className="stat-label">Crew on Site</span>
             </div>
             <div className="report-stat">
-              <span className="stat-value">{report.tasks_completed || 0}</span>
+              <span className="stat-value">{getTasksCompleted(report)}</span>
               <span className="stat-label">Tasks Done</span>
             </div>
             <div className="report-stat">
@@ -446,22 +480,37 @@ export default function DailyReportsList({ project, company, onShowToast }) {
               <span className="stat-label">Time & Material</span>
             </div>
             <div className="report-stat">
-              <span className="stat-value">{report.photos_count || 0}</span>
+              <span className="stat-value">{getPhotoCount(report)}</span>
               <span className="stat-label">Photos</span>
             </div>
           </div>
 
-          {/* Crew List */}
+          {/* Crew List - grouped by class/role */}
           {report.crew_list?.length > 0 && (
             <div className="report-section">
               <h4>Crew</h4>
-              <div className="report-crew-list">
-                {report.crew_list.map((worker, i) => (
-                  <div key={i} className="crew-member">
-                    <span className="crew-name">{worker.name}</span>
-                    <span className="crew-role">{worker.role}</span>
-                  </div>
-                ))}
+              <div className="report-crew-list report-crew-grouped">
+                {(() => {
+                  const groups = {}
+                  report.crew_list.forEach(worker => {
+                    const role = worker.role || 'Other'
+                    if (!groups[role]) groups[role] = []
+                    groups[role].push(worker)
+                  })
+                  return Object.entries(groups).map(([role, workers]) => (
+                    <div key={role} className="report-crew-class-group">
+                      <div className="report-crew-class-header">
+                        <span className="report-crew-class-name">{role}</span>
+                        <span className="report-crew-class-count">{workers.length}</span>
+                      </div>
+                      {workers.map((worker, i) => (
+                        <div key={i} className="crew-member">
+                          <span className="crew-name">{worker.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                })()}
               </div>
             </div>
           )}

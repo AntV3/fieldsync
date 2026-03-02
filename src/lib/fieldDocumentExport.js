@@ -115,27 +115,46 @@ export async function exportDailyReportsPDF(reports, project) {
 
     doc.setTextColor(0, 0, 0)
 
-    // Metrics row
+    // Metrics row - use accurate counts from actual data
+    const actualPhotos = report.photos?.length || report.photos_count || 0
+    const actualTasks = report.completed_tasks?.length || report.tasks_completed || 0
     doc.setFontSize(9)
     const metrics = [
       `Crew: ${report.crew_count || 0}`,
-      `Tasks: ${report.tasks_completed || 0}/${report.tasks_total || 0}`,
+      `Tasks: ${actualTasks}/${report.tasks_total || 0}`,
       `T&M Tickets: ${report.tm_tickets_count || 0}`,
-      `Photos: ${report.photos_count || 0}`
+      `Photos: ${actualPhotos}`
     ]
     doc.text(metrics.join('    |    '), MARGIN + 4, y)
     y += 7
 
-    // Crew list
+    // Crew list - grouped by class/role
     if (report.crew_list?.length > 0) {
       doc.setFont(undefined, 'bold')
       doc.text('Crew:', MARGIN + 4, y)
-      doc.setFont(undefined, 'normal')
-      const crewNames = report.crew_list.map(w => `${w.name} (${w.role || 'Laborer'})`).join(', ')
-      const crewLines = doc.splitTextToSize(crewNames, CONTENT_WIDTH - 8)
-      y += 4
-      doc.text(crewLines, MARGIN + 4, y)
-      y += crewLines.length * 4 + 2
+      y += 5
+
+      // Group workers by role
+      const crewGroups = {}
+      report.crew_list.forEach(w => {
+        const role = w.role || 'Other'
+        if (!crewGroups[role]) crewGroups[role] = []
+        crewGroups[role].push(w)
+      })
+
+      doc.setFontSize(8)
+      for (const [role, workers] of Object.entries(crewGroups)) {
+        y = checkPage(doc, y, 8)
+        doc.setFont(undefined, 'bold')
+        doc.text(`${role} (${workers.length}):`, MARGIN + 8, y)
+        doc.setFont(undefined, 'normal')
+        const names = workers.map(w => w.name).join(', ')
+        const nameLines = doc.splitTextToSize(names, CONTENT_WIDTH - 50)
+        doc.text(nameLines, MARGIN + 50, y)
+        y += nameLines.length * 3.5 + 2
+      }
+      doc.setFontSize(9)
+      y += 1
     }
 
     // Field notes
@@ -460,8 +479,34 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
       doc.text(formatDate(report.report_date), MARGIN + 2, y)
       doc.setFont(undefined, 'normal')
       doc.setFontSize(8)
-      doc.text(`Crew: ${report.crew_count || 0} | Tasks: ${report.tasks_completed || 0}/${report.tasks_total || 0} | T&M: ${report.tm_tickets_count || 0}`, MARGIN + 60, y)
+      const consolidatedTasks = report.completed_tasks?.length || report.tasks_completed || 0
+      const consolidatedPhotos = report.photos?.length || report.photos_count || 0
+      doc.text(`Crew: ${report.crew_count || 0} | Tasks: ${consolidatedTasks}/${report.tasks_total || 0} | T&M: ${report.tm_tickets_count || 0} | Photos: ${consolidatedPhotos}`, MARGIN + 60, y)
       y += 6
+
+      // Crew grouped by class/role
+      if (report.crew_list?.length > 0) {
+        const crewGroups = {}
+        report.crew_list.forEach(w => {
+          const role = w.role || 'Other'
+          if (!crewGroups[role]) crewGroups[role] = []
+          crewGroups[role].push(w)
+        })
+
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(8)
+        for (const [role, workers] of Object.entries(crewGroups)) {
+          y = checkPage(doc, y, 6)
+          doc.setFont(undefined, 'bold')
+          doc.text(`${role} (${workers.length}):`, MARGIN + 4, y)
+          doc.setFont(undefined, 'normal')
+          const names = workers.map(w => w.name).join(', ')
+          const nameLines = doc.splitTextToSize(names, CONTENT_WIDTH - 50)
+          doc.text(nameLines, MARGIN + 46, y)
+          y += nameLines.length * 3.5 + 1
+        }
+        y += 2
+      }
 
       doc.setTextColor(0, 0, 0)
       doc.setFontSize(9)

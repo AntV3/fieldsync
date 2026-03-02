@@ -192,11 +192,11 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         {/* Summary Cards */}
         <div className="daily-report-summary">
           <div className="daily-report-card">
-            <div className="daily-report-card-value">{report.crew_count || 0}</div>
+            <div className="daily-report-card-value">{report.crew_list?.length || report.crew_count || 0}</div>
             <div className="daily-report-card-label">Crew on Site</div>
           </div>
           <div className="daily-report-card">
-            <div className="daily-report-card-value">{report.tasks_completed || 0}</div>
+            <div className="daily-report-card-value">{report.completed_tasks?.length || report.tasks_completed || 0}</div>
             <div className="daily-report-card-label">Tasks Done</div>
           </div>
           <div className="daily-report-card">
@@ -209,17 +209,33 @@ export default function DailyReport({ project, onShowToast, onClose }) {
           </div>
         </div>
 
-        {/* Crew List */}
+        {/* Crew List - grouped by class/role */}
         {report.crew_list?.length > 0 && (
           <div className="daily-report-section">
             <h3><HardHat size={18} className="inline-icon" /> Crew</h3>
             <div className="daily-report-crew">
-              {report.crew_list.map((worker, i) => (
-                <div key={i} className="daily-report-crew-item">
-                  <span>{worker.name}</span>
-                  <span className="daily-report-crew-role">{worker.role}</span>
-                </div>
-              ))}
+              {(() => {
+                // Group workers by role/class type
+                const groups = {}
+                report.crew_list.forEach(worker => {
+                  const role = worker.role || 'Other'
+                  if (!groups[role]) groups[role] = []
+                  groups[role].push(worker)
+                })
+                return Object.entries(groups).map(([role, workers]) => (
+                  <div key={role} className="daily-report-crew-group">
+                    <div className="daily-report-crew-group-header">
+                      <span className="daily-report-crew-group-name">{role}</span>
+                      <span className="daily-report-crew-group-count">{workers.length}</span>
+                    </div>
+                    {workers.map((worker, i) => (
+                      <div key={i} className="daily-report-crew-item">
+                        <span>{worker.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              })()}
             </div>
           </div>
         )}
