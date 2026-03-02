@@ -875,19 +875,21 @@ export const corOps = {
         .single()
       if (ticketError) throw ticketError
 
-      // 2. Build labor items - check if workers use labor classes (new) vs roles (legacy)
+      // 2. Build labor items from workers
       const workers = ticket.t_and_m_workers || []
-      const hasLaborClasses = workers.some(w => w.labor_class_id)
       const effectiveWorkType = workType || 'demolition'
       const effectiveJobType = jobType || 'standard'
       let laborItems = []
 
-      if (hasLaborClasses) {
-        // NEW SYSTEM: Group workers by labor_class_id and fetch rates from labor_class_rates
+      // Split workers into those with labor_class_id (new system) and those without (legacy)
+      const classWorkers = workers.filter(w => w.labor_class_id)
+      const legacyWorkers = workers.filter(w => !w.labor_class_id)
+
+      // NEW SYSTEM: Group workers by labor_class_id and fetch rates from labor_class_rates
+      if (classWorkers.length > 0) {
         const laborByClass = {}
-        workers.forEach(worker => {
+        classWorkers.forEach(worker => {
           const classId = worker.labor_class_id
-          if (!classId) return
           if (!laborByClass[classId]) {
             laborByClass[classId] = {
               name: worker.labor_classes?.name || worker.role || 'Unknown',
@@ -899,7 +901,6 @@ export const corOps = {
           laborByClass[classId].overtime_hours += parseFloat(worker.overtime_hours) || 0
         })
 
-        // Fetch rates from labor_class_rates for each labor class
         const classIds = Object.keys(laborByClass)
         const { data: classRates, error: classRatesError } = await client
           .from('labor_class_rates')
@@ -926,8 +927,10 @@ export const corOps = {
             source_ticket_id: ticketId
           }
         })
-      } else {
-        // LEGACY SYSTEM: Use role-based lookup from labor_rates table
+      }
+
+      // LEGACY SYSTEM: Workers without labor_class_id use role-based lookup
+      if (legacyWorkers.length > 0) {
         const { data: rates, error: ratesError } = await client
           .from('labor_rates')
           .select('*')
@@ -942,7 +945,7 @@ export const corOps = {
         })
 
         const laborByRole = {}
-        workers.forEach(worker => {
+        legacyWorkers.forEach(worker => {
           const role = (worker.role || 'laborer').toLowerCase()
           if (!laborByRole[role]) {
             laborByRole[role] = { regular_hours: 0, overtime_hours: 0 }
@@ -951,7 +954,7 @@ export const corOps = {
           laborByRole[role].overtime_hours += parseFloat(worker.overtime_hours) || 0
         })
 
-        laborItems = Object.entries(laborByRole).map(([role, hours]) => {
+        const legacyItems = Object.entries(laborByRole).map(([role, hours]) => {
           const rate = rateLookup[role] || { regular_rate: 0, overtime_rate: 0 }
           const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
           const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
@@ -965,6 +968,7 @@ export const corOps = {
             source_ticket_id: ticketId
           }
         })
+        laborItems = laborItems.concat(legacyItems)
       }
 
       if (laborItems.length > 0) {
