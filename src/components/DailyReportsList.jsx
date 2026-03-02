@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ClipboardList, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
+import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from '../lib/imageUtils'
 import { ErrorState, EmptyState } from './ui'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
@@ -267,8 +267,23 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     yPos += 25
 
+    // Pre-load all report photos as base64 for embedding
+    const reportPhotoData = {}
+    for (const report of exportReports) {
+      if (report.photos?.length > 0) {
+        try {
+          const signedUrls = await db.resolvePhotoUrls(report.photos)
+          const base64Images = await loadImagesAsBase64(signedUrls, 10000)
+          reportPhotoData[report.id] = base64Images.filter(Boolean)
+        } catch (e) {
+          console.error('Error loading photos for report:', report.id, e)
+          reportPhotoData[report.id] = []
+        }
+      }
+    }
+
     // Reports
-    exportReports.forEach((report, index) => {
+    for (const report of exportReports) {
       // Check if we need a new page
       if (yPos > 250) {
         doc.addPage()
@@ -326,8 +341,44 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         yPos += issueLines.length * 5 + 3
       }
 
+      // Photos
+      const photoImages = reportPhotoData[report.id]
+      if (photoImages?.length > 0) {
+        doc.setTextColor(50, 50, 50)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Photos:', margin + 5, yPos)
+        yPos += 5
+
+        const photoWidth = 50
+        const photoHeight = 40
+        const photoGap = 5
+        const photosPerRow = 3
+        let xPos = margin + 5
+
+        for (let i = 0; i < photoImages.length; i++) {
+          if (i > 0 && i % photosPerRow === 0) {
+            xPos = margin + 5
+            yPos += photoHeight + photoGap
+          }
+
+          if (yPos + photoHeight > doc.internal.pageSize.getHeight() - 20) {
+            doc.addPage()
+            yPos = margin
+            xPos = margin + 5
+          }
+
+          doc.setDrawColor(200, 200, 200)
+          doc.setLineWidth(0.5)
+          doc.rect(xPos - 1, yPos - 1, photoWidth + 2, photoHeight + 2, 'S')
+          doc.addImage(photoImages[i], 'JPEG', xPos, yPos, photoWidth, photoHeight)
+          xPos += photoWidth + photoGap
+        }
+
+        yPos += photoHeight + 5
+      }
+
       yPos += 10
-    })
+    }
 
     // Footer
     const pageCount = doc.internal.getNumberOfPages()
