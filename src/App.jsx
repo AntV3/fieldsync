@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
@@ -119,6 +119,9 @@ export default function App() {
   const [pendingCompanyName, setPendingCompanyName] = useState('')
   const [authReady, setAuthReady] = useState(false)
 
+  // Ref to prevent onAuthStateChange from calling checkAuth during active login
+  const loginInProgressRef = useRef(false)
+
   const showToast = useCallback((message, type = '') => {
     setToast({ message, type })
   }, [])
@@ -132,7 +135,7 @@ export default function App() {
       }
 
       const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (!authUser) {
+      if (!authUser?.id) {
         setLoading(false)
         return
       }
@@ -240,7 +243,7 @@ export default function App() {
           setUserCompanies([])
           setAuthReady(false)
           navigate('/login', { replace: true })
-        } else if (event === 'SIGNED_IN' && !user) {
+        } else if (event === 'SIGNED_IN' && !user && !loginInProgressRef.current) {
           const path = location.pathname
           if (!path.startsWith('/sign/') && !path.startsWith('/view/')) {
             checkAuth()
@@ -260,6 +263,7 @@ export default function App() {
   }
 
   const handleOfficeLogin = async (email, password) => {
+    loginInProgressRef.current = true
     try {
       await clearFieldSession()
       localStorage.setItem('fieldsync-has-visited', 'true')
@@ -267,6 +271,11 @@ export default function App() {
 
       if (error) {
         showToast(error.message || 'Invalid credentials', 'error')
+        return
+      }
+
+      if (!data?.user?.id) {
+        showToast('Login failed — no user returned', 'error')
         return
       }
 
@@ -350,6 +359,8 @@ export default function App() {
     } catch (err) {
       console.error('Login error:', err)
       showToast('Login failed', 'error')
+    } finally {
+      loginInProgressRef.current = false
     }
   }
 
