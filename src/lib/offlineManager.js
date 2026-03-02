@@ -200,13 +200,14 @@ export const ACTION_TYPES = {
   CREATE_MATERIAL_REQUEST: 'CREATE_MATERIAL_REQUEST'
 }
 
-// Add action to pending queue
+// Add action to pending queue with idempotency key to prevent double-replay
 export const addPendingAction = async (type, payload, metadata = {}) => {
   await initOfflineDB()
   const action = {
     type,
     payload,
     metadata,
+    idempotency_key: crypto.randomUUID(),
     created_at: new Date().toISOString(),
     attempts: 0,
     last_error: null
@@ -404,6 +405,30 @@ if (typeof window !== 'undefined') {
 
 let isSyncing = false
 
+// Check if an idempotency key was already synced (prevents double-replay after crash)
+const wasAlreadySynced = async (idempotencyKey) => {
+  if (!idempotencyKey) return false
+  try {
+    const record = await getFromStore(STORES.CACHED_DATA, `synced_${idempotencyKey}`)
+    return !!record
+  } catch {
+    return false
+  }
+}
+
+// Mark an idempotency key as synced
+const markAsSynced = async (idempotencyKey) => {
+  if (!idempotencyKey) return
+  try {
+    await saveToStore(STORES.CACHED_DATA, {
+      key: `synced_${idempotencyKey}`,
+      synced_at: new Date().toISOString()
+    })
+  } catch {
+    // Non-critical — worst case we replay once more
+  }
+}
+
 // Process pending actions queue with conflict detection
 export const syncPendingActions = async (db, options = {}) => {
   if (isSyncing || !isOnline) return { synced: 0, failed: 0, conflicts: [] }
@@ -417,6 +442,13 @@ export const syncPendingActions = async (db, options = {}) => {
 
     for (const action of actions) {
       try {
+        // Idempotency check: skip if this action was already synced
+        if (action.idempotency_key && await wasAlreadySynced(action.idempotency_key)) {
+          await removePendingAction(action.id)
+          results.synced++
+          continue
+        }
+
         // Check for conflicts on update actions (not creates)
         if (action.payload?.id && action.type === ACTION_TYPES.UPDATE_AREA_STATUS) {
           const serverRecord = await fetchServerRecord(db, action.type, action.payload)
@@ -445,6 +477,8 @@ export const syncPendingActions = async (db, options = {}) => {
         }
 
         await processAction(action, db)
+        // Mark as synced BEFORE removing from queue (crash safety)
+        await markAsSynced(action.idempotency_key)
         await removePendingAction(action.id)
         results.synced++
       } catch (error) {

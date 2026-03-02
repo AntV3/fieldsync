@@ -276,8 +276,9 @@ export default function CORLog({ project, company, onShowToast }) {
   // Export to Excel
   const exportToExcel = async () => {
     try {
-      // Dynamic import for xlsx
-      const XLSX = await import('xlsx')
+      // Safe dynamic import for xlsx
+      const { loadXLSXSafe } = await import('../../lib/safeXlsx')
+      const XLSX = await loadXLSXSafe()
 
       // Prepare data
       const data = logEntries.map(entry => ({
