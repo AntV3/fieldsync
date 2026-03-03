@@ -86,48 +86,44 @@
 .status-badge {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  min-height: 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--letter-spacing-caps);
   white-space: nowrap;
 }
 
 .status-badge.not-started,
 .status-badge.not_started {
-  background: var(--bg-card);
+  background: var(--bg-tertiary);
   color: var(--text-muted);
-  border: 1px solid var(--border-color);
 }
 
 .status-badge.pending,
 .status-badge.working {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--amber-subtle);
   color: var(--accent-amber);
-  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .status-badge.done,
 .status-badge.approved,
 .status-badge.completed {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--green-subtle);
   color: var(--accent-green);
-  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .status-badge.billed {
-  background: rgba(59, 130, 246, 0.15);
+  background: var(--blue-subtle);
   color: var(--accent-blue);
-  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .status-badge.rejected,
 .status-badge.error {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--red-subtle);
   color: var(--accent-red);
-  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 /* ============================================
@@ -145,17 +141,17 @@
 }
 
 .status-indicator-success {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--green-subtle);
   color: var(--accent-green);
 }
 
 .status-indicator-warning {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--amber-subtle);
   color: var(--accent-amber);
 }
 
 .status-indicator-danger {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--red-subtle);
   color: var(--accent-red);
 }
 

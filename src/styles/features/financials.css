@@ -20,7 +20,7 @@
    Burn Rate Card
    ============================================ */
 .burn-rate-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -114,7 +114,8 @@
   display: flex;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: var(--bg-tertiary);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   margin-bottom: 0.75rem;
 }
@@ -130,7 +131,7 @@
   font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--letter-spacing-caps);
 }
 
 .burn-summary-value {
@@ -202,7 +203,7 @@
   font-size: 0.7rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--letter-spacing-caps);
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 0.5rem;
@@ -243,7 +244,7 @@
   transform: translateY(-50%);
   height: 6px;
   background: var(--accent-blue);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   opacity: 0.2;
 }
 
@@ -272,7 +273,7 @@
    Cost Contributors Card
    ============================================ */
 .cost-contributors-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -420,9 +421,9 @@
   background: var(--status-info-bg);
   color: var(--status-info);
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: var(--letter-spacing-caps);
 }
 
 .cost-category-values {
@@ -539,7 +540,7 @@
    Profitability Card
    ============================================ */
 .profitability-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -554,18 +555,15 @@
 }
 
 .profitability-card.healthy {
-  border-color: var(--accent-green);
-  border-width: 2px;
+  border-left: 3px solid var(--accent-green);
 }
 
 .profitability-card.warning {
-  border-color: var(--accent-amber);
-  border-width: 2px;
+  border-left: 3px solid var(--accent-amber);
 }
 
 .profitability-card.loss {
-  border-color: var(--accent-red);
-  border-width: 2px;
+  border-left: 3px solid var(--accent-red);
 }
 
 .profitability-header {
@@ -781,8 +779,8 @@
 }
 
 .input-with-prefix:focus-within {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-focus);
 }
 
 .input-prefix {

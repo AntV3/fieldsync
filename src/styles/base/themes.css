@@ -1,7 +1,48 @@
+/* ============================================
+   Light Theme Overrides
+   ============================================
 
-/* Light Theme Specific Overrides */
+   These overrides supplement the design tokens in
+   variables.css for components that need additional
+   light-mode styling beyond token switching.
+
+   WCAG 2.1 AA contrast ratios maintained throughout.
+   ============================================ */
+
+/* ---- Global ---- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: var(--line-height-normal);
+}
+
+/* Accessibility utility classes */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================
+   Light Mode: Shadows & Depth
+   ============================================ */
+
 [data-theme="light"] .nav {
-  box-shadow: 0 1px 3px var(--shadow-color);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .card,
@@ -9,8 +50,26 @@
 [data-theme="light"] .foreman-card,
 [data-theme="light"] .cor-section,
 [data-theme="light"] .tm-wizard {
-  box-shadow: 0 1px 3px var(--shadow-color);
+  box-shadow: var(--shadow-card);
 }
+
+[data-theme="light"] .foreman-header,
+[data-theme="light"] .foreman-project-info,
+[data-theme="light"] .foreman-card {
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .entry-card {
+  box-shadow: var(--shadow-card-hover);
+}
+
+[data-theme="light"] .entry-card:hover {
+  box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+/* ============================================
+   Light Mode: Inputs & Forms
+   ============================================ */
 
 [data-theme="light"] input,
 [data-theme="light"] select,
@@ -25,76 +84,371 @@
   color: var(--text-muted);
 }
 
-[data-theme="light"] .demo-banner {
-  background: #fef3c7;
-  color: #92400e;
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  border-color: var(--border-color);
 }
 
-/* Ensure buttons with white text stay readable in light mode */
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-focus);
+}
+
+/* ============================================
+   Light Mode: Buttons
+   ============================================ */
+
 [data-theme="light"] .btn-primary,
 [data-theme="light"] .btn-success,
 [data-theme="light"] .btn-danger {
   color: white;
 }
 
-/* Status badges - ensure contrast in light mode */
-[data-theme="light"] .status-badge.done,
-[data-theme="light"] .status-badge.approved {
-  background: #d1fae5;
-  color: #065f46;
+[data-theme="light"] .btn-secondary {
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
-[data-theme="light"] .status-badge.working,
-[data-theme="light"] .status-badge.pending {
-  background: #fef3c7;
-  color: #92400e;
+[data-theme="light"] .btn-primary {
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
 }
 
-[data-theme="light"] .status-badge.not_started {
-  background: #f1f5f9;
-  color: #475569;
+[data-theme="light"] .btn-primary:hover {
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
 }
 
-/* Modal and overlay adjustments for light mode */
+/* ============================================
+   Light Mode: Modals
+   ============================================ */
+
 [data-theme="light"] .modal-overlay {
   background: rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="light"] .modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
-/* Table row hover in light mode */
+[data-theme="light"] .modal-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .modal-header h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .modal-footer {
+  border-top: 1px solid var(--border-color);
+}
+
+/* ============================================
+   Light Mode: Tables
+   ============================================ */
+
 [data-theme="light"] table tbody tr:hover {
   background: var(--bg-tertiary);
 }
 
-/* Progress bars in light mode */
+/* ============================================
+   Light Mode: Progress Bars
+   ============================================ */
+
 [data-theme="light"] .progress-bar {
   background: var(--progress-bg);
 }
 
-/* Foreman view cards */
-[data-theme="light"] .foreman-header,
-[data-theme="light"] .foreman-project-info,
-[data-theme="light"] .foreman-card {
-  box-shadow: 0 1px 3px var(--shadow-color);
+/* ============================================
+   Light Mode: Status Badges (WCAG 4.5:1)
+   ============================================ */
+
+[data-theme="light"] .status-badge.done,
+[data-theme="light"] .status-badge.approved {
+  background: var(--status-success-bg);
+  color: var(--status-success);
 }
 
-/* Entry page cards in light mode */
-[data-theme="light"] .entry-card {
-  box-shadow: 0 4px 12px var(--shadow-color);
+[data-theme="light"] .status-badge.working,
+[data-theme="light"] .status-badge.pending {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
 }
 
-[data-theme="light"] .entry-card:hover {
-  box-shadow: 0 8px 24px var(--shadow-color);
+[data-theme="light"] .status-badge.not_started {
+  background: var(--status-neutral-bg);
+  color: var(--text-secondary);
+}
+
+/* Ticket Status Badges */
+[data-theme="light"] .ticket-status.pending,
+[data-theme="light"] .tm-ticket-status.pending {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+[data-theme="light"] .ticket-status.approved,
+[data-theme="light"] .tm-ticket-status.approved {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+[data-theme="light"] .ticket-status.billed,
+[data-theme="light"] .tm-ticket-status.billed {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+[data-theme="light"] .ticket-status.rejected,
+[data-theme="light"] .tm-ticket-status.rejected {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+/* Invoice Status Badges */
+[data-theme="light"] .invoice-status.status-draft {
+  background: var(--status-neutral-bg);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .invoice-status.status-sent {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+[data-theme="light"] .invoice-status.status-partial {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+[data-theme="light"] .invoice-status.status-paid {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+[data-theme="light"] .invoice-status.status-void {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+/* COR Status Badges */
+[data-theme="light"] .cor-status-badge.draft,
+[data-theme="light"] .cor-log-status.draft {
+  background: var(--status-neutral-bg);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .cor-status-badge.pending,
+[data-theme="light"] .cor-log-status.pending {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+[data-theme="light"] .cor-status-badge.approved,
+[data-theme="light"] .cor-log-status.approved {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+[data-theme="light"] .cor-status-badge.rejected,
+[data-theme="light"] .cor-log-status.rejected {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+[data-theme="light"] .cor-status-badge.billed,
+[data-theme="light"] .cor-log-status.billed {
+  background: var(--status-info-bg);
+  color: var(--status-info);
+}
+
+[data-theme="light"] .cor-status-badge.closed,
+[data-theme="light"] .cor-log-status.closed {
+  background: var(--status-neutral-bg);
+  color: var(--text-secondary);
 }
 
 /* ============================================
-   Comprehensive Light Mode Fixes
+   Light Mode: Demo Banner
    ============================================ */
 
-/* Foreman View - ensure all text is readable */
+[data-theme="light"] .demo-banner {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+/* ============================================
+   Light Mode: Navigation & Layout
+   ============================================ */
+
+[data-theme="light"] .nav,
+[data-theme="light"] .sidebar {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .dashboard-content,
+[data-theme="light"] .main-content {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="light"] .tab-nav,
+[data-theme="light"] .financials-nav {
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--border-color);
+}
+
+[data-theme="light"] .tab-btn.active,
+[data-theme="light"] .financials-nav-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+[data-theme="light"] .section-header {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Light Mode: Cards & Surfaces
+   ============================================ */
+
+[data-theme="light"] .card,
+[data-theme="light"] .section-card,
+[data-theme="light"] .info-card {
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .project-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .project-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: #93c5fd;
+}
+
+[data-theme="light"] .project-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .project-info {
+  color: var(--text-secondary);
+}
+
+/* Dashboard Cards */
+[data-theme="light"] .burn-rate-card,
+[data-theme="light"] .profitability-card,
+[data-theme="light"] .cost-contributors-card,
+[data-theme="light"] .disposal-summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .burn-rate-title h3,
+[data-theme="light"] .card-title {
+  color: var(--text-primary);
+}
+
+/* Overview cards */
+[data-theme="light"] .overview-hero-split {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+}
+
+[data-theme="light"] .overview-needs-attention {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .overview-needs-attention__header {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .overview-needs-attention__count {
+  background: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+/* Business overview */
+[data-theme="light"] .business-overview {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .bo-financial-row {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .bo-metric.highlight {
+  background: var(--green-subtle);
+  border-color: rgba(5, 150, 105, 0.2);
+}
+
+/* Smart alerts */
+[data-theme="light"] .smart-alerts-section {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Daily report cards */
+[data-theme="light"] .daily-report-card {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .daily-report-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Attention/alert cards */
+[data-theme="light"] .attention-card,
+[data-theme="light"] .alert-card {
+  border-left: 4px solid var(--accent-amber);
+}
+
+/* Stats values */
+[data-theme="light"] .stat-value,
+[data-theme="light"] .quick-stat-value {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .stat-value.positive,
+[data-theme="light"] .profit-positive {
+  color: var(--accent-green);
+}
+
+[data-theme="light"] .stat-value.negative,
+[data-theme="light"] .profit-negative {
+  color: var(--accent-red);
+}
+
+/* Summary cards */
+[data-theme="light"] .summary-card {
+  background: var(--bg-card);
+  box-shadow: 0 1px 2px var(--shadow-color);
+}
+
+/* ============================================
+   Light Mode: Charts
+   ============================================ */
+
+[data-theme="light"] .chart-container,
+[data-theme="light"] .financial-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+/* ============================================
+   Light Mode: Foreman View
+   ============================================ */
+
 [data-theme="light"] .foreman-container {
   background: var(--bg-primary);
 }
@@ -111,6 +465,18 @@
 
 [data-theme="light"] .foreman-stat-label {
   color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-stat-value {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-stat-value.working {
+  color: var(--accent-amber);
+}
+
+[data-theme="light"] .foreman-stat-value.done {
+  color: var(--accent-green);
 }
 
 [data-theme="light"] .foreman-tabs {
@@ -164,7 +530,27 @@
   color: white;
 }
 
-/* Field Action Buttons */
+[data-theme="light"] .foreman-project-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .foreman-info-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .foreman-info-value {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .foreman-view-header h2 {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Light Mode: Field Actions
+   ============================================ */
+
 [data-theme="light"] .field-action-btn {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -179,7 +565,16 @@
   border-color: var(--accent-red);
 }
 
-/* T&M Form / Wizard */
+[data-theme="light"] .field-action-btn svg,
+[data-theme="light"] .foreman-info-btn svg,
+[data-theme="light"] .back-btn-simple svg {
+  color: inherit;
+}
+
+/* ============================================
+   Light Mode: T&M Wizard
+   ============================================ */
+
 [data-theme="light"] .tm-wizard {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -189,14 +584,8 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-[data-theme="light"] .tm-wizard-title {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .tm-step-content {
-  color: var(--text-primary);
-}
-
+[data-theme="light"] .tm-wizard-title,
+[data-theme="light"] .tm-step-content,
 [data-theme="light"] .tm-section-title {
   color: var(--text-primary);
 }
@@ -208,11 +597,40 @@
 }
 
 [data-theme="light"] .tm-crew-item.selected {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--blue-subtle);
   border-color: var(--accent-blue);
 }
 
-/* Disposal Load Input */
+[data-theme="light"] .tm-section {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .tm-ticket-card {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .tm-ticket-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+[data-theme="light"] .tm-ticket-summary,
+[data-theme="light"] .tm-ticket-hours,
+[data-theme="light"] .ticket-item-summary {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .ticket-pco,
+[data-theme="light"] .tm-ticket-pco {
+  background: var(--status-neutral-bg);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Light Mode: Disposal Load Input
+   ============================================ */
+
 [data-theme="light"] .disposal-load-input {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -248,7 +666,10 @@
   color: var(--text-primary);
 }
 
-/* Crew Check-in */
+/* ============================================
+   Light Mode: Crew Check-in
+   ============================================ */
+
 [data-theme="light"] .crew-checkin-container {
   background: var(--bg-card);
 }
@@ -266,7 +687,10 @@
   color: var(--text-secondary);
 }
 
-/* Daily Report */
+/* ============================================
+   Light Mode: Daily Report
+   ============================================ */
+
 [data-theme="light"] .daily-report-form {
   background: var(--bg-card);
 }
@@ -279,42 +703,29 @@
   color: var(--text-primary);
 }
 
-/* Cards and sections - ensure borders visible */
-[data-theme="light"] .card,
-[data-theme="light"] .section-card,
-[data-theme="light"] .info-card {
-  border: 1px solid var(--border-color);
-}
+/* ============================================
+   Light Mode: Ticket Selector
+   ============================================ */
 
-/* Project Info Panel */
-[data-theme="light"] .foreman-project-info {
+[data-theme="light"] .ticket-item {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
 }
 
-[data-theme="light"] .foreman-info-label {
-  color: var(--text-secondary);
+[data-theme="light"] .ticket-item.selected {
+  background: var(--blue-subtle);
+  border-color: var(--accent-blue);
 }
 
-[data-theme="light"] .foreman-info-value {
+[data-theme="light"] .ticket-date,
+[data-theme="light"] .ticket-item-desc {
   color: var(--text-primary);
 }
 
-/* Dashboard Cards */
-[data-theme="light"] .burn-rate-card,
-[data-theme="light"] .profitability-card,
-[data-theme="light"] .cost-contributors-card,
-[data-theme="light"] .disposal-summary-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-}
+/* ============================================
+   Light Mode: COR Form
+   ============================================ */
 
-[data-theme="light"] .burn-rate-title h3,
-[data-theme="light"] .card-title {
-  color: var(--text-primary);
-}
-
-/* COR Form */
 [data-theme="light"] .cor-form-container {
   background: var(--bg-card);
 }
@@ -328,179 +739,18 @@
   color: var(--text-primary);
 }
 
-/* Modal Content */
-[data-theme="light"] .modal-content {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-}
+/* ============================================
+   Light Mode: COR Log Preview
+   ============================================ */
 
-[data-theme="light"] .modal-header {
-  border-bottom: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .modal-header h2 {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .modal-footer {
-  border-top: 1px solid var(--border-color);
-}
-
-/* Ticket Selector */
-[data-theme="light"] .ticket-item {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .ticket-item.selected {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: var(--accent-blue);
-}
-
-[data-theme="light"] .ticket-date,
-[data-theme="light"] .ticket-item-desc {
-  color: var(--text-primary);
-}
-
-/* Ticket Status Badges - Light Mode ADA Compliant (4.5:1 contrast) */
-[data-theme="light"] .ticket-status.pending,
-[data-theme="light"] .tm-ticket-status.pending {
-  background: #fef3c7;
-  color: #92400e; /* Dark amber - 4.5:1+ contrast on light yellow */
-}
-
-[data-theme="light"] .ticket-status.approved,
-[data-theme="light"] .tm-ticket-status.approved {
-  background: #d1fae5;
-  color: #065f46; /* Dark green - 4.5:1+ contrast on light green */
-}
-
-[data-theme="light"] .ticket-status.billed,
-[data-theme="light"] .tm-ticket-status.billed {
-  background: #dbeafe;
-  color: #1e40af; /* Dark blue - 4.5:1+ contrast on light blue */
-}
-
-[data-theme="light"] .ticket-status.rejected,
-[data-theme="light"] .tm-ticket-status.rejected {
-  background: #fee2e2;
-  color: #991b1b; /* Dark red - 4.5:1+ contrast on light red */
-}
-
-/* Ticket summary and secondary text - ensure readability */
-[data-theme="light"] .tm-ticket-summary,
-[data-theme="light"] .tm-ticket-hours,
-[data-theme="light"] .ticket-item-summary {
-  color: #374151; /* Gray-700 for better contrast */
-}
-
-/* Ticket PCO badge - ensure visibility */
-[data-theme="light"] .ticket-pco,
-[data-theme="light"] .tm-ticket-pco {
-  background: #e5e7eb;
-  color: #1f2937;
-}
-
-/* Invoice status badges - Light Mode ADA Compliant */
-[data-theme="light"] .invoice-status.status-draft {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-[data-theme="light"] .invoice-status.status-sent {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-[data-theme="light"] .invoice-status.status-partial {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-[data-theme="light"] .invoice-status.status-paid {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-[data-theme="light"] .invoice-status.status-void {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-/* Charts */
-[data-theme="light"] .chart-container,
-[data-theme="light"] .financial-chart-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-}
-
-/* Back button and headers */
-[data-theme="light"] .back-btn-simple {
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .foreman-view-header h2 {
-  color: var(--text-primary);
-}
-
-/* Empty states */
-[data-theme="light"] .foreman-empty,
-[data-theme="light"] .empty-state {
-  color: var(--text-secondary);
-}
-
-[data-theme="light"] .foreman-empty-text {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .foreman-empty-subtext {
-  color: var(--text-secondary);
-}
-
-/* Ensure all icons inherit proper color */
-[data-theme="light"] .field-action-btn svg,
-[data-theme="light"] .foreman-info-btn svg,
-[data-theme="light"] .back-btn-simple svg {
-  color: inherit;
-}
-
-/* Stats in light mode */
-[data-theme="light"] .foreman-stat-value {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .foreman-stat-value.working {
-  color: var(--accent-amber);
-}
-
-[data-theme="light"] .foreman-stat-value.done {
-  color: var(--accent-green);
-}
-
-/* Project list */
-[data-theme="light"] .project-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .project-name {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .project-info {
-  color: var(--text-secondary);
-}
-
-/* COR Log Preview - Light Mode Overrides */
 [data-theme="light"] .cor-log-preview {
   background: var(--bg-card);
-  box-shadow: 0 1px 3px var(--shadow-color);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .cor-log-stat {
   background: var(--bg-secondary);
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
 [data-theme="light"] .cor-log-preview-table-wrapper {
@@ -509,69 +759,34 @@
 
 [data-theme="light"] .cor-log-preview-view-all {
   background: var(--bg-secondary);
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
-/* COR Status Badges - Light Mode ADA Compliant (4.5:1 contrast) */
-[data-theme="light"] .cor-status-badge.draft,
-[data-theme="light"] .cor-log-status.draft {
-  background: #e5e7eb;
-  color: #374151;
+[data-theme="light"] .cor-log-preview-view-all:hover {
+  background: var(--bg-tertiary);
+  box-shadow: var(--shadow-card);
 }
 
-[data-theme="light"] .cor-status-badge.pending,
-[data-theme="light"] .cor-log-status.pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-[data-theme="light"] .cor-status-badge.approved,
-[data-theme="light"] .cor-log-status.approved {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-[data-theme="light"] .cor-status-badge.rejected,
-[data-theme="light"] .cor-log-status.rejected {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-[data-theme="light"] .cor-status-badge.billed,
-[data-theme="light"] .cor-log-status.billed {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-[data-theme="light"] .cor-status-badge.closed,
-[data-theme="light"] .cor-log-status.closed {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-/* COR Log Summary Cards - Light Mode */
-[data-theme="light"] .summary-card {
-  background: var(--bg-secondary);
-}
-
-[data-theme="light"] .summary-card.pending svg { color: #d97706; }
-[data-theme="light"] .summary-card.approved svg { color: #059669; }
-[data-theme="light"] .summary-card.void svg { color: #dc2626; }
+/* COR Log Summary Cards */
+[data-theme="light"] .summary-card.pending svg { color: var(--accent-amber); }
+[data-theme="light"] .summary-card.approved svg { color: var(--accent-green); }
+[data-theme="light"] .summary-card.void svg { color: var(--accent-red); }
 [data-theme="light"] .summary-card.total svg { color: var(--primary-color); }
 
-[data-theme="light"] .summary-card.pending .summary-card-amount { color: #92400e; }
-[data-theme="light"] .summary-card.approved .summary-card-amount { color: #065f46; }
-[data-theme="light"] .summary-card.void .summary-card-amount { color: #991b1b; }
+[data-theme="light"] .summary-card.pending .summary-card-amount { color: var(--status-warning); }
+[data-theme="light"] .summary-card.approved .summary-card-amount { color: var(--status-success); }
+[data-theme="light"] .summary-card.void .summary-card-amount { color: var(--status-danger); }
 
-/* COR Log Stat Cards - Light Mode accent colors */
-[data-theme="light"] .cor-log-stat.approved .cor-log-stat-icon { color: #059669; }
-[data-theme="light"] .cor-log-stat.pending .cor-log-stat-icon { color: #d97706; }
-[data-theme="light"] .cor-log-stat.void .cor-log-stat-icon { color: #dc2626; }
+/* COR Log Stat Cards */
+[data-theme="light"] .cor-log-stat.approved .cor-log-stat-icon { color: var(--accent-green); }
+[data-theme="light"] .cor-log-stat.pending .cor-log-stat-icon { color: var(--accent-amber); }
+[data-theme="light"] .cor-log-stat.void .cor-log-stat-icon { color: var(--accent-red); }
 
-[data-theme="light"] .cor-log-stat.approved .cor-log-stat-value { color: #065f46; }
-[data-theme="light"] .cor-log-stat.pending .cor-log-stat-value { color: #92400e; }
-[data-theme="light"] .cor-log-stat.void .cor-log-stat-value { color: #991b1b; }
+[data-theme="light"] .cor-log-stat.approved .cor-log-stat-value { color: var(--status-success); }
+[data-theme="light"] .cor-log-stat.pending .cor-log-stat-value { color: var(--status-warning); }
+[data-theme="light"] .cor-log-stat.void .cor-log-stat-value { color: var(--status-danger); }
 
-/* COR Log Table - Light Mode */
+/* COR Log Table */
 [data-theme="light"] .cor-log-table-wrapper {
   background: var(--bg-card);
 }
@@ -584,13 +799,27 @@
   background: var(--bg-tertiary);
 }
 
-/* COR Log Expanded - Light Mode */
-[data-theme="light"] .cor-log-expanded {
-  background: var(--bg-card);
-  box-shadow: 0 1px 3px var(--shadow-color);
+[data-theme="light"] .cor-log-preview-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
 }
 
-/* COR Log Modal - Light Mode */
+[data-theme="light"] .cor-log-preview-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+[data-theme="light"] .cor-log-table th {
+  border-bottom: 2px solid var(--border-color);
+}
+
+/* COR Log Expanded */
+[data-theme="light"] .cor-log-expanded {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* COR Log Modal */
 [data-theme="light"] .cor-log-modal {
   background: var(--bg-card);
 }
@@ -608,111 +837,114 @@
   background: var(--bg-tertiary);
 }
 
-/* COR Log Summary Row - Light Mode */
+/* COR Log Summary Row */
 [data-theme="light"] .cor-log-summary-row .summary-breakdown-amounts .approved {
-  color: #065f46;
+  color: var(--status-success);
 }
 
 [data-theme="light"] .cor-log-summary-row .summary-breakdown-amounts .pending {
-  color: #92400e;
+  color: var(--status-warning);
 }
 
-/* COR Log Section Colors - Light Mode */
-[data-theme="light"] .cor-log-section.pending .section-total { color: #92400e; }
-[data-theme="light"] .cor-log-section.approved .section-total { color: #065f46; }
-[data-theme="light"] .cor-log-section.void .section-total { color: #991b1b; }
+/* COR Log Section Colors */
+[data-theme="light"] .cor-log-section.pending .section-total { color: var(--status-warning); }
+[data-theme="light"] .cor-log-section.approved .section-total { color: var(--status-success); }
+[data-theme="light"] .cor-log-section.void .section-total { color: var(--status-danger); }
 
-/* ===========================================
-   COR CARD LIST - Light Mode Depth & Contrast
-   =========================================== */
+/* COR Log Empty States */
+[data-theme="light"] .cor-log-preview-empty,
+[data-theme="light"] .cor-log-empty {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
 
-/* COR Cards need visible separation from card background */
+/* ============================================
+   Light Mode: COR Card List
+   ============================================ */
+
 [data-theme="light"] .cor-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .cor-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card-hover);
   border-color: var(--primary-color);
 }
 
-/* Stronger colored left border on cards for visual pop */
+/* Status-colored left border on COR cards */
 [data-theme="light"] .cor-card.draft {
-  border-left: 4px solid #9ca3af;
+  border-left: 4px solid var(--status-neutral);
 }
 
 [data-theme="light"] .cor-card.pending_approval {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid var(--accent-amber);
 }
 
 [data-theme="light"] .cor-card.approved {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid var(--accent-green);
 }
 
 [data-theme="light"] .cor-card.rejected {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--accent-red);
 }
 
 [data-theme="light"] .cor-card.billed {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--accent-blue);
 }
 
 [data-theme="light"] .cor-card.closed {
-  border-left: 4px solid #6b7280;
+  border-left: 4px solid var(--status-neutral);
   opacity: 0.85;
 }
 
-/* COR card text contrast */
+/* COR card text */
 [data-theme="light"] .cor-number {
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 [data-theme="light"] .cor-title {
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 [data-theme="light"] .cor-total {
-  color: #059669;
+  color: var(--accent-green);
 }
 
 [data-theme="light"] .cor-meta {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 [data-theme="light"] .cor-area {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
-[data-theme="light"] .cor-period {
-  color: #64748b;
-}
-
+[data-theme="light"] .cor-period,
 [data-theme="light"] .cor-created {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 [data-theme="light"] .cor-card-footer {
-  border-top-color: #e2e8f0;
+  border-top-color: var(--border-color);
 }
 
 [data-theme="light"] .cor-action-btn {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-  color: #475569;
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
 }
 
 [data-theme="light"] .cor-action-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* COR Selection */
 [data-theme="light"] .cor-card.selected {
   border-color: var(--primary-color);
-  background: rgba(37, 99, 235, 0.04);
+  background: var(--blue-subtle);
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2), 0 2px 8px rgba(37, 99, 235, 0.08);
 }
 
@@ -721,380 +953,142 @@
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
-/* COR signed badge */
 [data-theme="light"] .cor-signed-badge {
-  background: rgba(5, 150, 105, 0.1);
-  color: #065f46;
+  background: var(--green-subtle);
+  color: var(--status-success);
 }
 
 /* COR List Header & Stats */
 [data-theme="light"] .cor-list-info h3 {
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 [data-theme="light"] .cor-stat-item {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 [data-theme="light"] .cor-header-actions .btn {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
-/* COR Filter/Search */
+/* COR Filters */
 [data-theme="light"] .cor-filters {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
 
-/* ===========================================
-   GENERAL LIGHT MODE - Add Depth & Warmth
-   =========================================== */
+/* ============================================
+   Light Mode: Financials
+   ============================================ */
 
-/* Give all cards more presence in light mode */
 [data-theme="light"] .financials-section {
   background: transparent;
 }
 
-[data-theme="light"] .tm-section {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+/* ============================================
+   Light Mode: Back Buttons
+   ============================================ */
+
+[data-theme="light"] .back-btn-simple {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
 }
 
-/* Section back button */
 [data-theme="light"] .section-back-btn {
-  color: #475569;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
 [data-theme="light"] .section-back-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
-/* TM Ticket Cards - match the improved depth */
-[data-theme="light"] .tm-ticket-card {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+/* ============================================
+   Light Mode: Empty States
+   ============================================ */
+
+[data-theme="light"] .foreman-empty,
+[data-theme="light"] .empty-state {
+  color: var(--text-secondary);
 }
 
-[data-theme="light"] .tm-ticket-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+[data-theme="light"] .foreman-empty-text {
+  color: var(--text-primary);
 }
 
-/* Summary cards - more visible */
-[data-theme="light"] .summary-card {
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+[data-theme="light"] .foreman-empty-subtext {
+  color: var(--text-secondary);
 }
 
-/* Buttons - subtle depth */
-[data-theme="light"] .btn-secondary {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
+/* ============================================
+   Light Mode: Filter Pills & Toggles
+   ============================================ */
 
-[data-theme="light"] .btn-primary {
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
-}
-
-[data-theme="light"] .btn-primary:hover {
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
-}
-
-/* Table improvements */
-[data-theme="light"] .cor-log-preview-table th {
-  background: #f1f5f9;
-  color: #475569;
-  border-bottom: 2px solid #cbd5e1;
-}
-
-[data-theme="light"] .cor-log-preview-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-[data-theme="light"] .cor-log-table th {
-  border-bottom: 2px solid #cbd5e1;
-}
-
-/* COR Log Preview - extra depth */
-[data-theme="light"] .cor-log-preview {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="light"] .cor-log-stat {
-  background: #f8fafc;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="light"] .cor-log-preview-view-all {
-  background: #f8fafc;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="light"] .cor-log-preview-view-all:hover {
-  background: #f1f5f9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* COR Log Expanded - depth */
-[data-theme="light"] .cor-log-expanded {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-/* Empty states - warmer background */
-[data-theme="light"] .cor-log-preview-empty,
-[data-theme="light"] .cor-log-empty {
-  background: #f8fafc;
-  color: #64748b;
-}
-
-/* ===========================================
-   FILTER PILLS & TOGGLES - Light Mode
-   =========================================== */
-
-/* Controls bar */
 [data-theme="light"] .cor-controls,
 [data-theme="light"] .tm-list-filters {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
 }
 
-/* Filter pills container */
 [data-theme="light"] .cor-filter-pills,
 [data-theme="light"] .tm-filter-tabs {
-  background: #e2e8f0;
+  background: var(--bg-tertiary);
 }
 
-/* Active pill - blue accent */
 [data-theme="light"] .cor-pill.active,
 [data-theme="light"] .tm-filter-tab.active {
-  background: #ffffff;
-  color: #2563eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: var(--shadow-card);
 }
 
-/* Pill count badge */
 [data-theme="light"] .cor-pill-count,
 [data-theme="light"] .tm-filter-count {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 [data-theme="light"] .cor-pill.active .cor-pill-count,
 [data-theme="light"] .tm-filter-tab.active .tm-filter-count {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--primary-color);
+  color: white;
 }
 
-/* View toggle */
 [data-theme="light"] .cor-view-toggle,
 [data-theme="light"] .view-mode-tabs {
-  background: #e2e8f0;
-  border-color: #cbd5e1;
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
 }
 
 [data-theme="light"] .cor-toggle-btn.active,
 [data-theme="light"] .view-mode-tab.active {
-  background: #ffffff;
-  color: #2563eb;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: 0 1px 2px var(--shadow-color);
 }
 
-/* Group filter select */
 [data-theme="light"] .cor-group-filter,
 [data-theme="light"] .cor-area-filter {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  color: #1e293b;
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
 }
 
-/* Date filter */
 [data-theme="light"] .cor-date-filter,
 [data-theme="light"] .date-filter {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: var(--bg-card);
+  border-color: var(--border-color);
 }
 
 [data-theme="light"] .cor-date-filter input,
 [data-theme="light"] .date-filter input {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #1e293b;
-}
-
-/* ===========================================
-   LIGHT MODE - More Color, Less Blinding White
-   =========================================== */
-
-/* Warm up the main background */
-[data-theme="light"] body {
-  background: #f1f5f9;
-}
-
-/* Main content area - subtle warm tint */
-[data-theme="light"] .dashboard-content,
-[data-theme="light"] .main-content {
-  background: #f1f5f9;
-}
-
-/* Navigation - slight depth */
-[data-theme="light"] .nav,
-[data-theme="light"] .sidebar {
-  background: #ffffff;
-  border-color: #e2e8f0;
-}
-
-/* Tab navigation - add color accent */
-[data-theme="light"] .tab-nav,
-[data-theme="light"] .financials-nav {
-  background: #ffffff;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-[data-theme="light"] .tab-btn.active,
-[data-theme="light"] .financials-nav-btn.active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
-}
-
-/* Section headers - subtle blue tint */
-[data-theme="light"] .section-header {
-  color: #0f172a;
-}
-
-/* Project cards - warm shadow */
-[data-theme="light"] .project-card {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-[data-theme="light"] .project-card:hover {
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-  border-color: #93c5fd;
-}
-
-/* Business overview - light mode */
-[data-theme="light"] .business-overview {
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
-}
-
-[data-theme="light"] .bo-financial-row {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-[data-theme="light"] .bo-metric.highlight {
-  background: rgba(5, 150, 105, 0.05);
-  border-color: rgba(5, 150, 105, 0.2);
-}
-
-/* Smart alerts section - light mode */
-[data-theme="light"] .smart-alerts-section {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-/* Needs Attention card on project overview - light mode */
-[data-theme="light"] .overview-needs-attention {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .overview-needs-attention__header {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-[data-theme="light"] .overview-needs-attention__count {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-/* Overview cards */
-[data-theme="light"] .overview-hero-split {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  border-radius: var(--radius-lg);
-}
-
-/* Daily report cards */
-[data-theme="light"] .daily-report-card {
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .daily-report-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Attention/alert cards - warm accent */
-[data-theme="light"] .attention-card,
-[data-theme="light"] .alert-card {
-  border-left: 4px solid #f59e0b;
-}
-
-/* Stats values - use accent colors */
-[data-theme="light"] .stat-value,
-[data-theme="light"] .quick-stat-value {
-  color: #0f172a;
-}
-
-/* Active/success values - green accent */
-[data-theme="light"] .stat-value.positive,
-[data-theme="light"] .profit-positive {
-  color: #059669;
-}
-
-/* Warning values */
-[data-theme="light"] .stat-value.negative,
-[data-theme="light"] .profit-negative {
-  color: #dc2626;
-}
-
-/* Input fields - slight border color */
-[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
-[data-theme="light"] select,
-[data-theme="light"] textarea {
-  border-color: #cbd5e1;
-}
-
-[data-theme="light"] input:focus,
-[data-theme="light"] select:focus,
-[data-theme="light"] textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
   color: var(--text-primary);
-  min-height: 100vh;
-  line-height: 1.5;
 }
-
-/* Accessibility utility classes */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-

@@ -46,8 +46,9 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-focus);
+  background: var(--bg-card);
 }
 
 input::placeholder,

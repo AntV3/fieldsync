@@ -4,7 +4,7 @@
 
 /* Financial Trend Chart Container */
 .financial-trend-chart {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
