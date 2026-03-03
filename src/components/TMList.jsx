@@ -672,50 +672,40 @@ export default function TMList({
       return `${h12}:${minutes}${ampm}`
     }
 
-    // Collect workers by type
-    const supervisionData = []
-    const operatorsData = []
-    const laborersData = []
-    let supervisionRegHours = 0, supervisionOTHours = 0
-    let operatorsRegHours = 0, operatorsOTHours = 0
-    let laborersRegHours = 0, laborersOTHours = 0
+    // Collect workers grouped by labor class/role
+    const laborGroups = {}
+    const laborGroupTotals = {}
 
     exportTickets.forEach(ticket => {
       if (ticket.t_and_m_workers) {
         ticket.t_and_m_workers.forEach(worker => {
           const regHrs = parseFloat(worker.hours) || 0
           const otHrs = parseFloat(worker.overtime_hours) || 0
-          const role = worker.role || 'Laborer'
+          const laborClass = worker.role || worker.labor_class || 'Laborer'
           const timePeriod = worker.time_started && worker.time_ended
-            ? `${formatTimePdf(worker.time_started)} - ${formatTimePdf(worker.time_ended)}`
-            : '-'
+            ? `${formatTimePdf(worker.time_started)} – ${formatTimePdf(worker.time_ended)}`
+            : '—'
           const rowData = [
             formatDate(ticket.work_date),
             worker.name,
             timePeriod,
             regHrs.toString(),
-            otHrs > 0 ? otHrs.toString() : '-',
+            otHrs > 0 ? otHrs.toString() : '—',
             (regHrs + otHrs).toString()
           ]
 
-          if (role === 'Foreman' || role === 'Superintendent') {
-            supervisionData.push(rowData)
-            supervisionRegHours += regHrs
-            supervisionOTHours += otHrs
-          } else if (role === 'Operator') {
-            operatorsData.push(rowData)
-            operatorsRegHours += regHrs
-            operatorsOTHours += otHrs
-          } else {
-            laborersData.push(rowData)
-            laborersRegHours += regHrs
-            laborersOTHours += otHrs
+          if (!laborGroups[laborClass]) {
+            laborGroups[laborClass] = []
+            laborGroupTotals[laborClass] = { reg: 0, ot: 0 }
           }
+          laborGroups[laborClass].push(rowData)
+          laborGroupTotals[laborClass].reg += regHrs
+          laborGroupTotals[laborClass].ot += otHrs
         })
       }
     })
 
-    // Helper function to render a labor table
+    // Helper function to render a labor table by class
     const renderLaborTable = (title, data, regHours, otHours) => {
       if (data.length === 0) return
 
@@ -733,7 +723,7 @@ export default function TMList({
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Date', 'Name', 'Hours Worked', 'Reg Hrs', 'OT Hrs', 'Total']],
+        head: [['Date', 'Name', 'Time Frame', 'Reg Hrs', 'OT Hrs', 'Total']],
         body: data,
         margin: { left: margin, right: margin },
         headStyles: {
@@ -751,13 +741,13 @@ export default function TMList({
         },
         columnStyles: {
           0: { cellWidth: 25 },
-          2: { cellWidth: 35 },
-          3: { halign: 'center', cellWidth: 20 },
-          4: { halign: 'center', cellWidth: 20 },
-          5: { halign: 'center', cellWidth: 20 }
+          2: { cellWidth: 38 },
+          3: { halign: 'center', cellWidth: 18 },
+          4: { halign: 'center', cellWidth: 18 },
+          5: { halign: 'center', cellWidth: 18 }
         },
         foot: [[
-          '', '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '-', (regHours + otHours).toString()
+          '', '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '—', (regHours + otHours).toString()
         ]],
         footStyles: {
           fillColor: secondaryColor,
@@ -770,21 +760,33 @@ export default function TMList({
       yPos = doc.lastAutoTable.finalY + 10
     }
 
-    // Render each labor category
-    if (supervisionData.length > 0 || operatorsData.length > 0 || laborersData.length > 0) {
+    // Render each labor class as its own table
+    const laborClassNames = Object.keys(laborGroups)
+    if (laborClassNames.length > 0) {
       doc.setTextColor(...primaryColor)
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.text('LABOR', margin, yPos)
       yPos += 8
 
-      renderLaborTable('SUPERVISION', supervisionData, supervisionRegHours, supervisionOTHours)
-      renderLaborTable('OPERATORS', operatorsData, operatorsRegHours, operatorsOTHours)
-      renderLaborTable('LABORERS', laborersData, laborersRegHours, laborersOTHours)
+      // Sort: Supervision-type roles first, then alphabetical
+      const supervisionRoles = ['Foreman', 'Superintendent']
+      const sortedClasses = laborClassNames.sort((a, b) => {
+        const aIsSuper = supervisionRoles.includes(a) ? 0 : 1
+        const bIsSuper = supervisionRoles.includes(b) ? 0 : 1
+        if (aIsSuper !== bIsSuper) return aIsSuper - bIsSuper
+        return a.localeCompare(b)
+      })
 
-      // Grand total for all labor
-      const totalRegHours = supervisionRegHours + operatorsRegHours + laborersRegHours
-      const totalOTHours = supervisionOTHours + operatorsOTHours + laborersOTHours
+      let grandTotalReg = 0
+      let grandTotalOT = 0
+
+      sortedClasses.forEach(className => {
+        const totals = laborGroupTotals[className]
+        renderLaborTable(className.toUpperCase(), laborGroups[className], totals.reg, totals.ot)
+        grandTotalReg += totals.reg
+        grandTotalOT += totals.ot
+      })
 
       doc.setFillColor(...primaryColor)
       doc.rect(margin, yPos, pageWidth - margin * 2, 12, 'F')
@@ -792,7 +794,7 @@ export default function TMList({
       doc.setFontSize(10)
       doc.setFont('helvetica', 'bold')
       doc.text('LABOR TOTAL:', margin + 5, yPos + 8)
-      doc.text(`${totalRegHours} Reg + ${totalOTHours} OT = ${totalRegHours + totalOTHours} Hours`, pageWidth - margin - 5, yPos + 8, { align: 'right' })
+      doc.text(`${grandTotalReg} Reg + ${grandTotalOT} OT = ${grandTotalReg + grandTotalOT} Hours`, pageWidth - margin - 5, yPos + 8, { align: 'right' })
 
       yPos += 20
     }

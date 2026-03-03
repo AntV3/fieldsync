@@ -667,12 +667,26 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
               />
               {expandedSections.labor && (
                 <div className="cor-section-content">
+                  {/* Column Headers */}
+                  <div className="labor-column-headers">
+                    <span className="labor-col-header">Class</span>
+                    <span className="labor-col-header">Wage Type</span>
+                    <span className="labor-col-header">Reg Hrs</span>
+                    <span className="labor-col-header"></span>
+                    <span className="labor-col-header">Reg Rate</span>
+                    <span className="labor-col-header">OT Hrs</span>
+                    <span className="labor-col-header"></span>
+                    <span className="labor-col-header">OT Rate</span>
+                    <span className="labor-col-header">Total</span>
+                    <span className="labor-col-header"></span>
+                  </div>
                   {laborItems.map((item, index) => (
                     <div key={item.id || index} className="line-item compact">
                       <div className="line-item-row">
                         <select
                           value={item.labor_class}
                           onChange={(e) => updateLaborItem(index, 'labor_class', e.target.value)}
+                          title="Labor Class"
                         >
                           {LABOR_CLASSES.map(lc => (
                             <option key={lc} value={lc}>{lc}</option>
@@ -681,6 +695,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                         <select
                           value={item.wage_type}
                           onChange={(e) => updateLaborItem(index, 'wage_type', e.target.value)}
+                          title="Wage Type"
                         >
                           {WAGE_TYPES.map(wt => (
                             <option key={wt.value} value={wt.value}>{wt.label}</option>
@@ -694,6 +709,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.regular_hours || ''}
                           onChange={(e) => updateLaborItem(index, 'regular_hours', e.target.value)}
                           className="input-small"
+                          title="Regular Hours"
                         />
                         <span className="input-label">@</span>
                         <input
@@ -707,6 +723,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                             updateLaborItem(index, 'regular_rate', Math.round(parseFloat(val || 0) * 100))
                           }}
                           className="input-small"
+                          title="Regular Rate"
                         />
                         <input
                           type="number"
@@ -716,6 +733,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                           value={item.overtime_hours || ''}
                           onChange={(e) => updateLaborItem(index, 'overtime_hours', e.target.value)}
                           className="input-small"
+                          title="Overtime Hours"
                         />
                         <span className="input-label">@</span>
                         <input
@@ -729,6 +747,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                             updateLaborItem(index, 'overtime_rate', Math.round(parseFloat(val || 0) * 100))
                           }}
                           className="input-small"
+                          title="Overtime Rate"
                         />
                         <span className="line-item-total">{formatCurrency(item.total)}</span>
                         <button className="btn-icon" onClick={() => removeLaborItem(index)}>

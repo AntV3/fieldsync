@@ -2424,12 +2424,52 @@
 }
 
 .tm-review-time {
-  color: var(--text-muted);
+  color: var(--accent-blue, #3b82f6);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .tm-review-hours {
   font-weight: 500;
-  color: var(--accent-blue);
+  color: var(--text-primary);
+}
+
+/* Review step labor table layout */
+.tm-review-labor-table {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.tm-review-labor-header {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.5fr 1.2fr;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary, #f1f5f9);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tm-review-labor-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.5fr 1.2fr;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border-color);
+  align-items: center;
+}
+
+.tm-review-labor-row:nth-child(even) {
+  background: var(--bg-elevated, #fafbfc);
 }
 
 /* =============================================
@@ -3103,17 +3143,27 @@ END MIGRATED */
   font-size: 0.875rem;
 }
 
+.tm-ticket-hours-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
 .tm-ticket-hours {
   color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
 }
 
 .tm-ticket-time-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 400;
+  color: var(--accent-blue, #3b82f6);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .tm-worker-hours-info {
@@ -3128,7 +3178,73 @@ END MIGRATED */
   align-items: center;
   gap: 0.25rem;
   font-size: 0.8rem;
+  color: var(--accent-blue, #3b82f6);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tm-no-time {
   color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* Labor table in expanded ticket details */
+.tm-labor-table {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.tm-labor-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.5fr 1.2fr;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary, #f1f5f9);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tm-labor-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.5fr 1.2fr;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border-color);
+  align-items: center;
+}
+
+.tm-labor-table-row:nth-child(even) {
+  background: var(--bg-elevated, #fafbfc);
+}
+
+.tm-labor-col-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.tm-labor-col-class .tm-role-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--accent-blue-bg, #eff6ff);
+  color: var(--accent-blue, #3b82f6);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tm-labor-col-time {
+  font-size: 0.8rem;
+}
+
+.tm-labor-col-hours {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -3668,7 +3784,20 @@ END MIGRATED */
 /* Backup Time Range Display */
 .backup-time-range {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--accent-blue, #3b82f6);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Backup Labor Class Badge */
+.backup-labor-class-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--accent-blue-bg, #eff6ff);
+  color: var(--accent-blue, #3b82f6);
+  font-weight: 600;
   white-space: nowrap;
 }
 

@@ -2687,6 +2687,51 @@ END MIGRATED */
   background: var(--bg-primary);
 }
 
+/* Labor Column Headers */
+.labor-column-headers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  border-bottom: 2px solid var(--border-color, #e2e8f0);
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.labor-col-header {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: 0 0 auto;
+  min-width: 90px;
+}
+
+.labor-col-header:nth-child(3),
+.labor-col-header:nth-child(5),
+.labor-col-header:nth-child(6),
+.labor-col-header:nth-child(8) {
+  min-width: 70px;
+  width: 70px;
+}
+
+.labor-col-header:nth-child(4),
+.labor-col-header:nth-child(7) {
+  min-width: 16px;
+  width: 16px;
+}
+
+.labor-col-header:nth-child(9) {
+  min-width: 80px;
+  text-align: right;
+}
+
+.labor-col-header:nth-child(10) {
+  min-width: 28px;
+  width: 28px;
+}
+
 .line-item.compact {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-light);
@@ -3175,6 +3220,16 @@ END MIGRATED */
   padding: 0.5rem;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
+}
+
+/* Highlight labor class and wage type cells */
+.pricing-table td:first-child {
+  font-weight: 600;
+}
+
+.pricing-table td:nth-child(2) {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 .pricing-table .text-right {

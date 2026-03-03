@@ -126,13 +126,18 @@ const TMTicketCard = memo(function TMTicketCard({
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
         </div>
         <div className="tm-ticket-summary">
-          <span className="tm-ticket-hours">
-            {totalHours} hrs
+          <div className="tm-ticket-hours-block">
+            <span className="tm-ticket-hours">{totalHours} hrs</span>
             {(() => {
               const range = getTicketTimeRange(ticket.t_and_m_workers)
-              return range ? <span className="tm-ticket-time-range">{range}</span> : null
+              return range ? (
+                <span className="tm-ticket-time-range">
+                  <Clock size={11} className="inline-icon" />
+                  {range}
+                </span>
+              ) : null
             })()}
-          </span>
+          </div>
           <span className="tm-ticket-total">${totalCost.toFixed(2)}</span>
           <span className="tm-expand-arrow" aria-hidden="true">{isExpanded ? '▼' : '▶'}</span>
         </div>
@@ -142,29 +147,35 @@ const TMTicketCard = memo(function TMTicketCard({
         <div className="tm-ticket-details">
           {ticket.t_and_m_workers?.length > 0 && (
             <div className="tm-detail-section">
-              <h4><HardHat size={16} className="inline-icon" /> Workers</h4>
-              <div className="tm-detail-list">
+              <h4><HardHat size={16} className="inline-icon" /> Labor</h4>
+              <div className="tm-labor-table">
+                <div className="tm-labor-table-header">
+                  <span className="tm-labor-col-name">Worker</span>
+                  <span className="tm-labor-col-class">Class</span>
+                  <span className="tm-labor-col-time">Time Frame</span>
+                  <span className="tm-labor-col-hours">Hours</span>
+                </div>
                 {ticket.t_and_m_workers.map(worker => (
-                  <div key={worker.id} className="tm-detail-row">
-                    <span>
-                      {worker.role && worker.role !== 'Laborer' && (
-                        <span className="tm-role-badge">{worker.role}</span>
-                      )}
-                      {worker.name}
+                  <div key={worker.id} className="tm-labor-table-row">
+                    <span className="tm-labor-col-name">{worker.name}</span>
+                    <span className="tm-labor-col-class">
+                      <span className="tm-role-badge">{worker.role || worker.labor_class || 'Laborer'}</span>
                     </span>
-                    <span className="tm-worker-hours-info">
-                      {worker.time_started && worker.time_ended && (
+                    <span className="tm-labor-col-time">
+                      {worker.time_started && worker.time_ended ? (
                         <span className="tm-worker-time-range">
                           <Clock size={12} className="inline-icon" />
                           {formatTime12(worker.time_started)} - {formatTime12(worker.time_ended)}
                         </span>
+                      ) : (
+                        <span className="tm-no-time">—</span>
                       )}
-                      <span>
-                        {worker.hours} hrs
-                        {parseFloat(worker.overtime_hours) > 0 && (
-                          <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
-                        )}
-                      </span>
+                    </span>
+                    <span className="tm-labor-col-hours">
+                      {worker.hours} reg
+                      {parseFloat(worker.overtime_hours) > 0 && (
+                        <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
+                      )}
                     </span>
                   </div>
                 ))}

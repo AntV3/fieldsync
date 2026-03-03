@@ -1,6 +1,15 @@
 import { lazy, Suspense } from 'react'
-import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw } from 'lucide-react'
+import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw, Clock } from 'lucide-react'
 import EvidenceStep from './EvidenceStep'
+
+const formatTime12 = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes}${ampm}`
+}
 
 const SignatureLinkGenerator = lazy(() => import('../SignatureLinkGenerator'))
 const TMClientSignature = lazy(() => import('../TMClientSignature'))
@@ -329,18 +338,23 @@ export default function ReviewStep({
             <h4><HardHat size={16} className="inline-icon" /> {t('workersLabel')} ({totalRegHours + totalOTHours} hrs)</h4>
             <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
-          <div className="tm-review-list">
+          <div className="tm-review-labor-table">
+            <div className="tm-review-labor-header">
+              <span>Worker</span>
+              <span>Class</span>
+              <span>Time Frame</span>
+              <span>Hours</span>
+            </div>
             {validDynamicWorkersList.map((w, i) => (
-              <div key={i} className="tm-review-row-detailed">
-                <div className="tm-review-worker-name">
-                  <span className="tm-role-badge">{w.role}</span> {w.name}
-                </div>
-                <div className="tm-review-worker-details">
-                  {w.time_started && w.time_ended && (
-                    <span className="tm-review-time">{w.time_started} - {w.time_ended}</span>
-                  )}
-                  <span className="tm-review-hours">{w.hours || 0} reg{w.overtime_hours > 0 ? ` + ${w.overtime_hours} OT` : ''}</span>
-                </div>
+              <div key={i} className="tm-review-labor-row">
+                <span className="tm-review-worker-name">{w.name}</span>
+                <span><span className="tm-role-badge">{w.role}</span></span>
+                <span className="tm-review-time">
+                  {w.time_started && w.time_ended ? (
+                    <><Clock size={12} className="inline-icon" /> {formatTime12(w.time_started)} – {formatTime12(w.time_ended)}</>
+                  ) : '—'}
+                </span>
+                <span className="tm-review-hours">{w.hours || 0} reg{w.overtime_hours > 0 ? ` + ${w.overtime_hours} OT` : ''}</span>
               </div>
             ))}
           </div>
@@ -354,18 +368,23 @@ export default function ReviewStep({
             <h4><UserCheck size={16} className="inline-icon" /> Supervision ({validSupervision.reduce((sum, s) => sum + parseFloat(s.hours || 0) + parseFloat(s.overtimeHours || 0), 0)} hrs)</h4>
             <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
-          <div className="tm-review-list">
+          <div className="tm-review-labor-table">
+            <div className="tm-review-labor-header">
+              <span>Worker</span>
+              <span>Role</span>
+              <span>Time Frame</span>
+              <span>Hours</span>
+            </div>
             {validSupervision.map((s, i) => (
-              <div key={i} className="tm-review-row-detailed">
-                <div className="tm-review-worker-name">
-                  <span className="tm-role-badge">{s.role}</span> {s.name}
-                </div>
-                <div className="tm-review-worker-details">
-                  {s.timeStarted && s.timeEnded && (
-                    <span className="tm-review-time">{s.timeStarted} - {s.timeEnded}</span>
-                  )}
-                  <span className="tm-review-hours">{s.hours || 0} reg{parseFloat(s.overtimeHours) > 0 ? ` + ${s.overtimeHours} OT` : ''}</span>
-                </div>
+              <div key={i} className="tm-review-labor-row">
+                <span className="tm-review-worker-name">{s.name}</span>
+                <span><span className="tm-role-badge">{s.role}</span></span>
+                <span className="tm-review-time">
+                  {s.timeStarted && s.timeEnded ? (
+                    <><Clock size={12} className="inline-icon" /> {formatTime12(s.timeStarted)} – {formatTime12(s.timeEnded)}</>
+                  ) : '—'}
+                </span>
+                <span className="tm-review-hours">{s.hours || 0} reg{parseFloat(s.overtimeHours) > 0 ? ` + ${s.overtimeHours} OT` : ''}</span>
               </div>
             ))}
           </div>
@@ -378,16 +397,23 @@ export default function ReviewStep({
             <h4>{'\ud83d\ude9c'} Operators ({validOperators.reduce((sum, o) => sum + parseFloat(o.hours || 0) + parseFloat(o.overtimeHours || 0), 0)} hrs)</h4>
             <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
-          <div className="tm-review-list">
+          <div className="tm-review-labor-table">
+            <div className="tm-review-labor-header">
+              <span>Worker</span>
+              <span>Class</span>
+              <span>Time Frame</span>
+              <span>Hours</span>
+            </div>
             {validOperators.map((o, i) => (
-              <div key={i} className="tm-review-row-detailed">
-                <div className="tm-review-worker-name">{o.name}</div>
-                <div className="tm-review-worker-details">
-                  {o.timeStarted && o.timeEnded && (
-                    <span className="tm-review-time">{o.timeStarted} - {o.timeEnded}</span>
-                  )}
-                  <span className="tm-review-hours">{o.hours || 0} reg{parseFloat(o.overtimeHours) > 0 ? ` + ${o.overtimeHours} OT` : ''}</span>
-                </div>
+              <div key={i} className="tm-review-labor-row">
+                <span className="tm-review-worker-name">{o.name}</span>
+                <span><span className="tm-role-badge">Operator</span></span>
+                <span className="tm-review-time">
+                  {o.timeStarted && o.timeEnded ? (
+                    <><Clock size={12} className="inline-icon" /> {formatTime12(o.timeStarted)} – {formatTime12(o.timeEnded)}</>
+                  ) : '—'}
+                </span>
+                <span className="tm-review-hours">{o.hours || 0} reg{parseFloat(o.overtimeHours) > 0 ? ` + ${o.overtimeHours} OT` : ''}</span>
               </div>
             ))}
           </div>
@@ -400,16 +426,23 @@ export default function ReviewStep({
             <h4><HardHat size={16} className="inline-icon" /> Laborers ({validLaborers.reduce((sum, l) => sum + parseFloat(l.hours || 0) + parseFloat(l.overtimeHours || 0), 0)} hrs)</h4>
             <button className="tm-edit-link" onClick={() => setStep(2)}>{t('edit')}</button>
           </div>
-          <div className="tm-review-list">
+          <div className="tm-review-labor-table">
+            <div className="tm-review-labor-header">
+              <span>Worker</span>
+              <span>Class</span>
+              <span>Time Frame</span>
+              <span>Hours</span>
+            </div>
             {validLaborers.map((l, i) => (
-              <div key={i} className="tm-review-row-detailed">
-                <div className="tm-review-worker-name">{l.name}</div>
-                <div className="tm-review-worker-details">
-                  {l.timeStarted && l.timeEnded && (
-                    <span className="tm-review-time">{l.timeStarted} - {l.timeEnded}</span>
-                  )}
-                  <span className="tm-review-hours">{l.hours || 0} reg{parseFloat(l.overtimeHours) > 0 ? ` + ${l.overtimeHours} OT` : ''}</span>
-                </div>
+              <div key={i} className="tm-review-labor-row">
+                <span className="tm-review-worker-name">{l.name}</span>
+                <span><span className="tm-role-badge">Laborer</span></span>
+                <span className="tm-review-time">
+                  {l.timeStarted && l.timeEnded ? (
+                    <><Clock size={12} className="inline-icon" /> {formatTime12(l.timeStarted)} – {formatTime12(l.timeEnded)}</>
+                  ) : '—'}
+                </span>
+                <span className="tm-review-hours">{l.hours || 0} reg{parseFloat(l.overtimeHours) > 0 ? ` + ${l.overtimeHours} OT` : ''}</span>
               </div>
             ))}
           </div>

@@ -16,6 +16,15 @@ import { exportCORDetail } from '../../lib/financialExport'
 import SignatureCanvas from '../ui/SignatureCanvas'
 import SignatureLinkGenerator from '../SignatureLinkGenerator'
 
+const formatTime12 = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes}${ampm}`
+}
+
 export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
   const [loading, setLoading] = useState(true)
   const [corData, setCORData] = useState(cor)
@@ -636,7 +645,21 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                             <Users size={14} /> {workerCount}
                           </span>
                           <span className="backup-stat">
-                            {hours.total.toFixed(1)} hrs
+                            <Clock size={14} /> {hours.total.toFixed(1)} hrs
+                            {(() => {
+                              const workers = ticket.t_and_m_workers || []
+                              let earliest = null
+                              let latest = null
+                              for (const w of workers) {
+                                if (w.time_started && w.time_ended) {
+                                  if (!earliest || w.time_started < earliest) earliest = w.time_started
+                                  if (!latest || w.time_ended > latest) latest = w.time_ended
+                                }
+                              }
+                              return earliest && latest
+                                ? ` (${formatTime12(earliest)} – ${formatTime12(latest)})`
+                                : null
+                            })()}
                           </span>
                           {photoCount > 0 && (
                             <span className="backup-stat">
@@ -671,8 +694,8 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                                 <thead>
                                   <tr>
                                     <th>Name</th>
-                                    <th>Role</th>
-                                    <th>Time</th>
+                                    <th>Class / Type</th>
+                                    <th>Time Frame</th>
                                     <th>Reg Hrs</th>
                                     <th>OT Hrs</th>
                                   </tr>
@@ -681,14 +704,18 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                                   {ticket.t_and_m_workers.map((worker, idx) => (
                                     <tr key={idx}>
                                       <td>{worker.name}</td>
-                                      <td>{worker.role || '-'}</td>
+                                      <td>
+                                        <span className="backup-labor-class-badge">
+                                          {worker.role || worker.labor_class || 'Laborer'}
+                                        </span>
+                                      </td>
                                       <td className="backup-time-range">
                                         {worker.time_started && worker.time_ended
-                                          ? `${worker.time_started} - ${worker.time_ended}`
-                                          : '-'}
+                                          ? `${formatTime12(worker.time_started)} – ${formatTime12(worker.time_ended)}`
+                                          : '—'}
                                       </td>
                                       <td>{worker.hours || 0}</td>
-                                      <td>{worker.overtime_hours || '-'}</td>
+                                      <td>{worker.overtime_hours || '—'}</td>
                                     </tr>
                                   ))}
                                 </tbody>
