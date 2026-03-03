@@ -24,7 +24,8 @@ import {
   centsToDollars,
   calculateCORTotals,
   formatDate,
-  formatDateRange
+  formatDateRange,
+  groupLaborByClassAndType
 } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
 import { db } from './supabase'
@@ -330,28 +331,55 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
     doc.text('LABOR', margin, yPos)
     yPos += 6
 
+    const laborGroups = groupLaborByClassAndType(cor.change_order_labor)
+
+    for (const group of laborGroups) {
+      if (yPos > pageHeight - 60) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(71, 85, 105)
+      doc.text(group.label, margin, yPos)
+      yPos += 4
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
+        body: group.items.map(item => [
+          item.regular_hours?.toString() || '0',
+          `$${centsToDollars(item.regular_rate)}/hr`,
+          item.overtime_hours?.toString() || '-',
+          item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-',
+          formatCurrency(item.total)
+        ]),
+        foot: [[
+          { content: `${group.label} Subtotal`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
+          { content: formatCurrency(group.subtotal), styles: { fontStyle: 'bold' } }
+        ]],
+        margin: { left: margin, right: margin },
+        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        footStyles: { fillColor: headerBg, textColor: [0, 0, 0], fontSize: 8 },
+        theme: 'striped'
+      })
+
+      yPos = doc.lastAutoTable.finalY + 6
+    }
+
+    // Labor total footer row
     autoTable(doc, {
       startY: yPos,
-      head: [['Class', 'Type', 'Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
-      body: cor.change_order_labor.map(item => [
-        item.labor_class,
-        item.wage_type,
-        item.regular_hours.toString(),
-        `$${centsToDollars(item.regular_rate)}/hr`,
-        item.overtime_hours?.toString() || '-',
-        item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-',
-        formatCurrency(item.total)
-      ]),
-      foot: [[
-        { content: `Subtotal: ${formatCurrency(totals.labor_subtotal)}`, colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
+      body: [[
+        { content: `Subtotal: ${formatCurrency(totals.labor_subtotal)}`, colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
         { content: `+${formatPercent(cor.labor_markup_percent || 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
         { content: formatCurrency(totals.labor_subtotal + totals.labor_markup_amount), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-      bodyStyles: { fontSize: 8 },
-      footStyles: { fillColor: headerBg, textColor: [0, 0, 0], fontSize: 8 },
-      theme: 'striped'
+      bodyStyles: { fillColor: headerBg, textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold' },
+      theme: 'plain'
     })
 
     yPos = doc.lastAutoTable.finalY + 10

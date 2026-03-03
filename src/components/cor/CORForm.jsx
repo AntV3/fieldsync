@@ -12,7 +12,8 @@ import {
   DEFAULT_PERCENTAGES,
   LABOR_CLASSES,
   WAGE_TYPES,
-  COMMON_UNITS
+  COMMON_UNITS,
+  groupLaborByClassAndType
 } from '../../lib/corCalculations'
 import TicketSelector from './TicketSelector'
 
@@ -667,95 +668,111 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
               />
               {expandedSections.labor && (
                 <div className="cor-section-content">
-                  {/* Column Headers */}
-                  <div className="labor-column-headers">
-                    <span className="labor-col-header">Class</span>
-                    <span className="labor-col-header">Wage Type</span>
-                    <span className="labor-col-header">Reg Hrs</span>
-                    <span className="labor-col-header"></span>
-                    <span className="labor-col-header">Reg Rate</span>
-                    <span className="labor-col-header">OT Hrs</span>
-                    <span className="labor-col-header"></span>
-                    <span className="labor-col-header">OT Rate</span>
-                    <span className="labor-col-header">Total</span>
-                    <span className="labor-col-header"></span>
-                  </div>
-                  {laborItems.map((item, index) => (
-                    <div key={item.id || index} className="line-item compact">
-                      <div className="line-item-row">
-                        <select
-                          value={item.labor_class}
-                          onChange={(e) => updateLaborItem(index, 'labor_class', e.target.value)}
-                          title="Labor Class"
-                        >
-                          {LABOR_CLASSES.map(lc => (
-                            <option key={lc} value={lc}>{lc}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={item.wage_type}
-                          onChange={(e) => updateLaborItem(index, 'wage_type', e.target.value)}
-                          title="Wage Type"
-                        >
-                          {WAGE_TYPES.map(wt => (
-                            <option key={wt.value} value={wt.value}>{wt.label}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="Reg hrs"
-                          value={item.regular_hours || ''}
-                          onChange={(e) => updateLaborItem(index, 'regular_hours', e.target.value)}
-                          className="input-small"
-                          title="Regular Hours"
-                        />
-                        <span className="input-label">@</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="$/hr"
-                          value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            updateLaborItem(index, 'regular_rate', Math.round(parseFloat(val || 0) * 100))
-                          }}
-                          className="input-small"
-                          title="Regular Rate"
-                        />
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="OT hrs"
-                          value={item.overtime_hours || ''}
-                          onChange={(e) => updateLaborItem(index, 'overtime_hours', e.target.value)}
-                          className="input-small"
-                          title="Overtime Hours"
-                        />
-                        <span className="input-label">@</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="$/hr"
-                          value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            updateLaborItem(index, 'overtime_rate', Math.round(parseFloat(val || 0) * 100))
-                          }}
-                          className="input-small"
-                          title="Overtime Rate"
-                        />
-                        <span className="line-item-total">{formatCurrency(item.total)}</span>
-                        <button className="btn-icon" onClick={() => removeLaborItem(index)}>
-                          <Trash2 size={14} />
-                        </button>
+                  {laborItems.length > 0 && groupLaborByClassAndType(laborItems).map((group) => {
+                    // Map group items back to their indices in the flat laborItems array
+                    const itemIndices = group.items.map(gi =>
+                      laborItems.findIndex(li => li === gi || (li.id && li.id === gi.id))
+                    )
+                    return (
+                      <div key={`${group.laborClass}-${group.wageType}`} className="labor-form-group">
+                        <div className="labor-form-group-header">
+                          <span className="labor-form-group-label">{group.label}</span>
+                          <span className="labor-form-group-subtotal">{formatCurrency(group.subtotal)}</span>
+                        </div>
+                        <div className="labor-column-headers">
+                          <span className="labor-col-header">Class</span>
+                          <span className="labor-col-header">Wage Type</span>
+                          <span className="labor-col-header">Reg Hrs</span>
+                          <span className="labor-col-header"></span>
+                          <span className="labor-col-header">Reg Rate</span>
+                          <span className="labor-col-header">OT Hrs</span>
+                          <span className="labor-col-header"></span>
+                          <span className="labor-col-header">OT Rate</span>
+                          <span className="labor-col-header">Total</span>
+                          <span className="labor-col-header"></span>
+                        </div>
+                        {itemIndices.map((origIndex) => {
+                          const item = laborItems[origIndex]
+                          return (
+                            <div key={item.id || origIndex} className="line-item compact">
+                              <div className="line-item-row">
+                                <select
+                                  value={item.labor_class}
+                                  onChange={(e) => updateLaborItem(origIndex, 'labor_class', e.target.value)}
+                                  title="Labor Class"
+                                >
+                                  {LABOR_CLASSES.map(lc => (
+                                    <option key={lc} value={lc}>{lc}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={item.wage_type}
+                                  onChange={(e) => updateLaborItem(origIndex, 'wage_type', e.target.value)}
+                                  title="Wage Type"
+                                >
+                                  {WAGE_TYPES.map(wt => (
+                                    <option key={wt.value} value={wt.value}>{wt.label}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="Reg hrs"
+                                  value={item.regular_hours || ''}
+                                  onChange={(e) => updateLaborItem(origIndex, 'regular_hours', e.target.value)}
+                                  className="input-small"
+                                  title="Regular Hours"
+                                />
+                                <span className="input-label">@</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="$/hr"
+                                  value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    updateLaborItem(origIndex, 'regular_rate', Math.round(parseFloat(val || 0) * 100))
+                                  }}
+                                  className="input-small"
+                                  title="Regular Rate"
+                                />
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="OT hrs"
+                                  value={item.overtime_hours || ''}
+                                  onChange={(e) => updateLaborItem(origIndex, 'overtime_hours', e.target.value)}
+                                  className="input-small"
+                                  title="Overtime Hours"
+                                />
+                                <span className="input-label">@</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="$/hr"
+                                  value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    updateLaborItem(origIndex, 'overtime_rate', Math.round(parseFloat(val || 0) * 100))
+                                  }}
+                                  className="input-small"
+                                  title="Overtime Rate"
+                                />
+                                <span className="line-item-total">{formatCurrency(item.total)}</span>
+                                <button className="btn-icon" onClick={() => removeLaborItem(origIndex)}>
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   <button className="btn btn-ghost btn-add" onClick={addLaborItem}>
                     <Plus size={14} /> Add Labor
                   </button>

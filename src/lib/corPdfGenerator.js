@@ -12,7 +12,8 @@ import {
   formatCurrency,
   formatPercent,
   formatDate,
-  formatDateRange
+  formatDateRange,
+  groupLaborByClassAndType
 } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
 
@@ -156,7 +157,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   }
 
   // ============================================
-  // LABOR TABLE
+  // LABOR TABLE (grouped by class and type)
   // ============================================
 
   if (cor.change_order_labor?.length > 0) {
@@ -166,30 +167,53 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     doc.text('Labor', margin, yPos)
     yPos += 5
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Class', 'Wage Type', 'Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
-      body: cor.change_order_labor.map(item => [
-        item.labor_class,
-        item.wage_type || 'Standard',
-        item.regular_hours?.toString() || '0',
-        formatCurrency(item.regular_rate),
-        item.overtime_hours?.toString() || '0',
-        formatCurrency(item.overtime_rate),
-        formatCurrency(item.total)
-      ]),
-      foot: [[
-        { content: 'Labor Subtotal', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold' } },
-        { content: formatCurrency(cor.labor_subtotal), styles: { fontStyle: 'bold' } }
-      ]],
-      margin: { left: margin, right: margin },
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8 },
-      bodyStyles: { fontSize: 8 },
-      footStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59], fontSize: 8 },
-      theme: 'grid'
-    })
+    const laborGroups = groupLaborByClassAndType(cor.change_order_labor)
 
-    yPos = doc.lastAutoTable.finalY + 10
+    for (const group of laborGroups) {
+      if (yPos > pageHeight - 60) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(71, 85, 105)
+      doc.text(group.label, margin, yPos)
+      yPos += 4
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
+        body: group.items.map(item => [
+          item.regular_hours?.toString() || '0',
+          formatCurrency(item.regular_rate),
+          item.overtime_hours?.toString() || '0',
+          formatCurrency(item.overtime_rate),
+          formatCurrency(item.total)
+        ]),
+        foot: [[
+          { content: `${group.label} Subtotal`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
+          { content: formatCurrency(group.subtotal), styles: { fontStyle: 'bold' } }
+        ]],
+        margin: { left: margin, right: margin },
+        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        footStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59], fontSize: 8 },
+        theme: 'grid'
+      })
+
+      yPos = doc.lastAutoTable.finalY + 6
+    }
+
+    // Labor total row
+    doc.setFillColor(248, 250, 252)
+    doc.rect(margin, yPos, pageWidth - (margin * 2), 7, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(30, 41, 59)
+    doc.text('Labor Subtotal:', margin + 5, yPos + 5)
+    doc.text(formatCurrency(cor.labor_subtotal), pageWidth - margin - 5, yPos + 5, { align: 'right' })
+    yPos += 12
   }
 
   // ============================================

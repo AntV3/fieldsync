@@ -3,6 +3,8 @@
  * Generates CSV/IIF exports for accounting integration
  */
 
+import { groupLaborByClassAndType as groupLaborItems } from './corCalculations'
+
 // Helper to trigger file download
 function downloadFile(content, filename, mimeType = 'text/csv') {
   const blob = new Blob([content], { type: mimeType })
@@ -127,13 +129,18 @@ export function exportCORDetail(cor, project) {
   rows.push({ section: 'Period', description: `${cor.period_start || ''} to ${cor.period_end || ''}`, quantity: '', unit: '', rate: '', total: '' })
   rows.push({ section: '', description: '', quantity: '', unit: '', rate: '', total: '' })
 
-  // Labor
+  // Labor (grouped by class and type)
   if (cor.change_order_labor?.length > 0) {
     rows.push({ section: 'LABOR', description: '', quantity: '', unit: '', rate: '', total: '' })
-    cor.change_order_labor.forEach(item => {
-      const regHrs = parseFloat(item.regular_hours) || 0
-      const otHrs = parseFloat(item.overtime_hours) || 0
-      rows.push({ section: '', description: item.description || item.classification, quantity: regHrs + otHrs, unit: 'hours', rate: (parseInt(item.regular_rate) || 0) / 100, total: (parseInt(item.total) || 0) / 100 })
+    const laborGroups = groupLaborItems(cor.change_order_labor)
+    laborGroups.forEach(group => {
+      rows.push({ section: group.label, description: '', quantity: '', unit: '', rate: '', total: '' })
+      group.items.forEach(item => {
+        const regHrs = parseFloat(item.regular_hours) || 0
+        const otHrs = parseFloat(item.overtime_hours) || 0
+        rows.push({ section: '', description: item.labor_class || item.description || item.classification, quantity: regHrs + otHrs, unit: 'hours', rate: (parseInt(item.regular_rate) || 0) / 100, total: (parseInt(item.total) || 0) / 100 })
+      })
+      rows.push({ section: '', description: `${group.label} Subtotal`, quantity: '', unit: '', rate: '', total: (group.subtotal || 0) / 100 })
     })
   }
 
