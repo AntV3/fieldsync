@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { parseLocalDate } from '../lib/utils'
 
 const LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', icon: '🧱' },
@@ -21,7 +22,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const [newLoad, setNewLoad] = useState({ type: 'concrete', count: 1 })
 
   // Format date for display
-  const displayDate = new Date(date).toLocaleDateString('en-US', {
+  const displayDate = parseLocalDate(date).toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric'

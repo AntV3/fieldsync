@@ -4,6 +4,8 @@
 // Utility functions for client-side calculations
 // All monetary values are stored in cents to avoid floating point issues
 
+import { parseLocalDate } from './utils'
+
 // Helper to convert cents to dollars with formatting
 export const centsToDollars = (cents) => {
   const dollars = (cents || 0) / 100
@@ -224,7 +226,7 @@ export const getStatusInfo = (status) => {
 // Format date for display
 export const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
+  const date = parseLocalDate(dateStr)
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
