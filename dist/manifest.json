@@ -1,7 +1,7 @@
 {
   "name": "FieldSync - Construction Progress Tracking",
   "short_name": "FieldSync",
-  "description": "Real-time field-to-office construction progress tracking",
+  "description": "Same Job. Same Page. Right Now. Real-time field-to-office construction sync.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
