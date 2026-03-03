@@ -663,8 +663,15 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         const photoGap = 6
         const photosPerRow = 3
 
+        // Resolve storage paths to signed URLs before loading
+        let photoUrls = ticket.photos
+        try {
+          const { db } = await import('./supabase')
+          photoUrls = await db.resolvePhotoUrls(ticket.photos)
+        } catch { /* use raw URLs as fallback */ }
+
         // Load all photos in parallel for faster PDF generation
-        const photoImages = await loadImagesAsBase64(ticket.photos)
+        const photoImages = await loadImagesAsBase64(photoUrls)
 
         for (let i = 0; i < ticket.photos.length; i++) {
           if (i > 0 && i % photosPerRow === 0) {
