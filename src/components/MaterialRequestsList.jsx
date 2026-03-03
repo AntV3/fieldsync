@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Package, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { parseLocalDate } from '../lib/utils'
 
 export default function MaterialRequestsList({ project, company, onShowToast }) {
   const [requests, setRequests] = useState([])
@@ -52,7 +53,7 @@ export default function MaterialRequestsList({ project, company, onShowToast }) 
   }
 
   const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return parseLocalDate(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'

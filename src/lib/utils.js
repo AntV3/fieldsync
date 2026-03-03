@@ -1,3 +1,29 @@
+/**
+ * Parse a date string as local time. Date-only strings (YYYY-MM-DD) are parsed
+ * as local midnight instead of UTC midnight, preventing off-by-one day errors
+ * for users in negative-UTC-offset timezones.
+ */
+export function parseLocalDate(dateStr) {
+  if (!dateStr) return null
+  const s = String(dateStr)
+  // Date-only string (YYYY-MM-DD): append time to force local interpretation
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return new Date(s + 'T00:00:00')
+  }
+  return new Date(s)
+}
+
+/**
+ * Get today's date as a YYYY-MM-DD string in the user's local timezone.
+ * Avoids the pitfall of toISOString().split('T')[0] which returns the UTC date.
+ */
+export function getLocalDateString(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function formatCurrency(amount) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -101,8 +127,8 @@ export function calculateScheduleInsights(project, actualManDays = 0) {
 
   // Schedule performance (time-based)
   if (project.start_date && project.end_date) {
-    const startDate = new Date(project.start_date)
-    const endDate = new Date(project.end_date)
+    const startDate = parseLocalDate(project.start_date)
+    const endDate = parseLocalDate(project.end_date)
     startDate.setHours(0, 0, 0, 0)
     endDate.setHours(0, 0, 0, 0)
 

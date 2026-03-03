@@ -3,6 +3,7 @@ import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2 } from 'lucid
 import { db } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
 import { TRANSLATIONS } from './tm/translations'
+import { getLocalDateString, parseLocalDate } from '../lib/utils'
 import WorkDetailsStep from './tm/WorkDetailsStep'
 import CrewHoursStep from './tm/CrewHoursStep'
 import MaterialsStep from './tm/MaterialsStep'
@@ -37,7 +38,7 @@ const calculateHoursFromTimeRange = (startTime, endTime) => {
 
 export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1)
-  const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
+  const [workDate, setWorkDate] = useState(getLocalDateString())
 
   // Post-submit signature state
   const [submittedTicket, setSubmittedTicket] = useState(null)
@@ -384,7 +385,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }
       }
 
-      const dateStr = new Date(previousCrew.workDate).toLocaleDateString()
+      const dateStr = parseLocalDate(previousCrew.workDate).toLocaleDateString()
       onShowToast(t('loadedWorkers').replace('{count}', previousCrew.totalWorkers).replace('{date}', dateStr), 'success')
     } catch (error) {
       console.error('Error loading previous crew:', error)

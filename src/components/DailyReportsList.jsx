@@ -4,6 +4,7 @@ import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from '../lib/imageUtils'
 import { ErrorState, EmptyState } from './ui'
+import { parseLocalDate } from '../lib/utils'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
 
@@ -83,7 +84,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     // Apply date filter if set
     if (dateFilter.start) {
-      const startDate = new Date(dateFilter.start)
+      const startDate = parseLocalDate(dateFilter.start)
       startDate.setHours(0, 0, 0, 0)
       filtered = filtered.filter(r => {
         const reportDate = new Date(r.report_date || r.created_at)
@@ -91,7 +92,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       })
     }
     if (dateFilter.end) {
-      const endDate = new Date(dateFilter.end)
+      const endDate = parseLocalDate(dateFilter.end)
       endDate.setHours(23, 59, 59, 999)
       filtered = filtered.filter(r => {
         const reportDate = new Date(r.report_date || r.created_at)

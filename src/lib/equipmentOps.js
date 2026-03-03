@@ -2,6 +2,7 @@
 // Extracted from supabase.js for maintainability
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { parseLocalDate } from './utils'
 
 export const equipmentOps = {
   // ----------------------------------------
@@ -260,12 +261,12 @@ export const equipmentOps = {
     today.setHours(0, 0, 0, 0)
 
     return projectEquipment.reduce((total, eq) => {
-      const startDate = new Date(eq.start_date)
+      const startDate = parseLocalDate(eq.start_date)
       startDate.setHours(0, 0, 0, 0)
 
       let endDate
       if (eq.end_date) {
-        endDate = new Date(eq.end_date)
+        endDate = parseLocalDate(eq.end_date)
         endDate.setHours(0, 0, 0, 0)
       } else {
         endDate = today
@@ -282,12 +283,12 @@ export const equipmentOps = {
    * Calculate days on site for a single equipment entry
    */
   calculateDaysOnSite(startDate, endDate = null) {
-    const start = new Date(startDate)
+    const start = parseLocalDate(startDate)
     start.setHours(0, 0, 0, 0)
 
     let end
     if (endDate) {
-      end = new Date(endDate)
+      end = parseLocalDate(endDate)
     } else {
       end = new Date()
     }
