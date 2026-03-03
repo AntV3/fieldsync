@@ -114,16 +114,8 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
   }
 
   const handleSubmit = async () => {
-    if (!validateStep(step)) return
-
-    // Demo mode warning
-    if (!isSupabaseConfigured) {
-      setToast({ type: 'info', message: 'Demo Mode: Report saved locally only - won\'t reach office' })
-      setTimeout(() => {
-        onClose()
-      }, 1500)
-      return
-    }
+    // Validate all required steps before submitting
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return
 
     setLoading(true)
     try {
@@ -181,7 +173,10 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
       const report = await db.createInjuryReport(reportData)
 
-      setToast({ type: 'success', message: 'Injury report submitted successfully' })
+      const successMsg = isSupabaseConfigured
+        ? 'Injury report submitted successfully'
+        : 'Demo Mode: Report saved locally only'
+      setToast({ type: 'success', message: successMsg })
 
       if (onReportCreated) {
         onReportCreated(report)
