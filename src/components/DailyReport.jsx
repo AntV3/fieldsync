@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
@@ -13,11 +13,24 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [submitProgress, setSubmitProgress] = useState('')
 
+  // Keep a ref to the latest photos so the cleanup runs against current values
+  const photosRef = useRef(photos)
+  photosRef.current = photos
+
   useEffect(() => {
     if (project?.id) {
       loadReport()
     }
   }, [project?.id])
+
+  // Revoke blob URLs on unmount to prevent ERR_FILE_NOT_FOUND and memory leaks
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach(p => {
+        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
+      })
+    }
+  }, [])
 
   const loadReport = async () => {
     try {

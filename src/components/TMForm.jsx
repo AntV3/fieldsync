@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
@@ -82,6 +82,19 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [activeLaborClassIds, setActiveLaborClassIds] = useState(new Set())
 
   const hasCustomLaborClasses = laborClasses.length > 0
+
+  // Keep a ref to the latest photos so the cleanup runs against current values
+  const photosRef = useRef(photos)
+  photosRef.current = photos
+
+  // Revoke blob URLs on unmount to prevent ERR_FILE_NOT_FOUND and memory leaks
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach(p => {
+        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
+      })
+    }
+  }, [])
 
   // Load today's crew and assignable CORs on mount
   useEffect(() => {

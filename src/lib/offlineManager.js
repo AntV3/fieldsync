@@ -22,6 +22,11 @@ const STORES = {
 
 let db = null
 
+// Reset the cached connection so the next operation re-opens the database
+const resetConnection = () => {
+  db = null
+}
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
@@ -39,6 +44,18 @@ export const initOfflineDB = () => {
 
     request.onsuccess = () => {
       db = request.result
+
+      // If the browser closes the connection (e.g. storage pressure), clear
+      // the cached reference so the next operation will re-open.
+      db.onclose = resetConnection
+
+      // If another tab opens a newer version, close gracefully and reset so
+      // the next call to initOfflineDB() will re-open at the new version.
+      db.onversionchange = () => {
+        db.close()
+        resetConnection()
+      }
+
       resolve(db)
     }
 
@@ -106,21 +123,36 @@ const getStore = (storeName, mode = 'readonly') => {
   return tx.objectStore(storeName)
 }
 
+// Retry helper: if the IDB connection was closed between init and use,
+// reset and re-open once, then retry the operation.
+const withRetry = async (operation) => {
+  try {
+    return await operation()
+  } catch (err) {
+    if (err?.name === 'InvalidStateError') {
+      resetConnection()
+      await initOfflineDB()
+      return await operation()
+    }
+    throw err
+  }
+}
+
 // Save item to store
 export const saveToStore = async (storeName, data) => {
   await initOfflineDB()
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName, 'readwrite')
     const request = store.put(data)
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
-  })
+  }))
 }
 
 // Save multiple items to store
 export const saveAllToStore = async (storeName, items) => {
   await initOfflineDB()
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite')
     const store = tx.objectStore(storeName)
 
@@ -128,63 +160,63 @@ export const saveAllToStore = async (storeName, items) => {
 
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
-  })
+  }))
 }
 
 // Get item from store
 export const getFromStore = async (storeName, key) => {
   await initOfflineDB()
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName)
     const request = store.get(key)
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
-  })
+  }))
 }
 
 // Get all items from store
 export const getAllFromStore = async (storeName) => {
   await initOfflineDB()
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName)
     const request = store.getAll()
     request.onsuccess = () => resolve(request.result || [])
     request.onerror = () => reject(request.error)
-  })
+  }))
 }
 
 // Get items by index
 export const getByIndex = async (storeName, indexName, value) => {
   await initOfflineDB()
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName)
     const index = store.index(indexName)
     const request = index.getAll(value)
     request.onsuccess = () => resolve(request.result || [])
     request.onerror = () => reject(request.error)
-  })
+  }))
 }
 
 // Delete item from store
 export const deleteFromStore = async (storeName, key) => {
   await initOfflineDB()
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName, 'readwrite')
     const request = store.delete(key)
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error)
-  })
+  }))
 }
 
 // Clear entire store
 export const clearStore = async (storeName) => {
   await initOfflineDB()
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName, 'readwrite')
     const request = store.clear()
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error)
-  })
+  }))
 }
 
 // ============================================
