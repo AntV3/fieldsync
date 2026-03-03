@@ -304,7 +304,7 @@ export default function TMClientSignature({
                       <tr>
                         <th>{text.name}</th>
                         <th>{text.role}</th>
-                        <th>{text.time}</th>
+                        <th>Time Frame</th>
                         <th>{text.regHrs}</th>
                         <th>{text.ot}</th>
                       </tr>
@@ -313,14 +313,14 @@ export default function TMClientSignature({
                       {ticketDetails.workers.map((w, idx) => (
                         <tr key={idx}>
                           <td>{w.name}</td>
-                          <td>{w.role || '-'}</td>
-                          <td>
+                          <td>{w.role || '—'}</td>
+                          <td className="tm-sig-time-cell">
                             {w.time_started && w.time_ended
-                              ? `${formatTime(w.time_started)}-${formatTime(w.time_ended)}`
-                              : '-'}
+                              ? `${formatTime(w.time_started)} – ${formatTime(w.time_ended)}`
+                              : '—'}
                           </td>
                           <td>{w.hours || 0}</td>
-                          <td>{w.overtime_hours || '-'}</td>
+                          <td>{w.overtime_hours || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
