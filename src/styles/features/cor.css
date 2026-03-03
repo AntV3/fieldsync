@@ -3199,6 +3199,74 @@ END MIGRATED */
   margin-bottom: 0.75rem;
 }
 
+/* Labor groups (class + type sub-sections) in CORDetail */
+.labor-group {
+  margin-bottom: 0.75rem;
+}
+
+.labor-group:last-child {
+  margin-bottom: 0;
+}
+
+.labor-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg-secondary, #f1f5f9);
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+}
+
+.labor-group-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+.labor-group-subtotal {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Labor form groups in CORForm */
+.labor-form-group {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.labor-form-group:last-child {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.labor-form-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-secondary, #f1f5f9);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.labor-form-group-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.labor-form-group-subtotal {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .pricing-table {
   width: 100%;
   border-collapse: collapse;

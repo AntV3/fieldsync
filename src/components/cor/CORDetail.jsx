@@ -8,7 +8,8 @@ import {
   calculateCORTotals,
   getStatusInfo,
   formatDate,
-  formatDateRange
+  formatDateRange,
+  groupLaborByClassAndType
 } from '../../lib/corCalculations'
 import { executeExport, createSnapshot } from '../../lib/corExportPipeline'
 import { generatePDFFromSnapshot } from '../../lib/corPdfGenerator'
@@ -382,32 +383,36 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
               {corData.change_order_labor?.length > 0 ? (
                 <div className="category-items">
-                  <table className="pricing-table">
-                    <thead>
-                      <tr>
-                        <th>Class</th>
-                        <th>Type</th>
-                        <th>Reg Hrs</th>
-                        <th>Reg Rate</th>
-                        <th>OT Hrs</th>
-                        <th>OT Rate</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {corData.change_order_labor.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.labor_class}</td>
-                          <td>{item.wage_type}</td>
-                          <td>{item.regular_hours}</td>
-                          <td>${centsToDollars(item.regular_rate)}/hr</td>
-                          <td>{item.overtime_hours || '-'}</td>
-                          <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
-                          <td className="text-right">{formatCurrency(item.total)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  {groupLaborByClassAndType(corData.change_order_labor).map((group, gIdx) => (
+                    <div key={gIdx} className="labor-group">
+                      <div className="labor-group-header">
+                        <span className="labor-group-label">{group.label}</span>
+                        <span className="labor-group-subtotal">{formatCurrency(group.subtotal)}</span>
+                      </div>
+                      <table className="pricing-table">
+                        <thead>
+                          <tr>
+                            <th>Reg Hrs</th>
+                            <th>Reg Rate</th>
+                            <th>OT Hrs</th>
+                            <th>OT Rate</th>
+                            <th className="text-right">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.items.map((item, idx) => (
+                            <tr key={idx}>
+                              <td>{item.regular_hours}</td>
+                              <td>${centsToDollars(item.regular_rate)}/hr</td>
+                              <td>{item.overtime_hours || '-'}</td>
+                              <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
+                              <td className="text-right">{formatCurrency(item.total)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="category-empty">No labor items</div>

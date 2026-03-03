@@ -263,6 +263,45 @@ export const LABOR_CLASSES = [
   'Laborer'
 ]
 
+// Group labor items by labor_class and wage_type
+// Returns an array of { laborClass, wageType, label, items, subtotal } groups
+export const groupLaborByClassAndType = (laborItems) => {
+  if (!laborItems?.length) return []
+
+  const groupMap = new Map()
+
+  for (const item of laborItems) {
+    const cls = item.labor_class || 'Laborer'
+    const type = item.wage_type || 'standard'
+    const key = `${cls}::${type}`
+
+    if (!groupMap.has(key)) {
+      groupMap.set(key, { laborClass: cls, wageType: type, items: [] })
+    }
+    groupMap.get(key).items.push(item)
+  }
+
+  // Sort groups: by LABOR_CLASSES order, then by wage_type order
+  const classOrder = LABOR_CLASSES.reduce((m, c, i) => { m[c] = i; return m }, {})
+  const typeOrder = { standard: 0, pla: 1, prevailing: 2 }
+
+  const groups = Array.from(groupMap.values())
+  groups.sort((a, b) => {
+    const ca = classOrder[a.laborClass] ?? 99
+    const cb = classOrder[b.laborClass] ?? 99
+    if (ca !== cb) return ca - cb
+    return (typeOrder[a.wageType] ?? 99) - (typeOrder[b.wageType] ?? 99)
+  })
+
+  // Calculate subtotals and labels
+  const wageLabels = { standard: 'Standard', pla: 'PLA', prevailing: 'Prevailing Wage' }
+  return groups.map(g => ({
+    ...g,
+    label: `${g.laborClass} — ${wageLabels[g.wageType] || g.wageType}`,
+    subtotal: g.items.reduce((sum, item) => sum + (parseInt(item.total) || 0), 0)
+  }))
+}
+
 // Wage types for dropdown
 export const WAGE_TYPES = [
   { value: 'standard', label: 'Standard' },
