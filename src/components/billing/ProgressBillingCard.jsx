@@ -32,8 +32,8 @@ export default memo(function ProgressBillingCard({
   }, [areas])
 
   const approvedCOs = useMemo(() => {
-    return (corStats?.approvedTotal || 0)
-  }, [corStats?.approvedTotal])
+    return (corStats?.total_approved_value || 0)
+  }, [corStats?.total_approved_value])
 
   const revisedContract = originalContract + approvedCOs
 
@@ -63,7 +63,7 @@ export default memo(function ProgressBillingCard({
     )
 
     const billedToDate = completedDraws.reduce((sum, dr) =>
-      sum + (dr.previous_billings || 0) + (dr.current_billing || 0), 0
+      sum + (dr.current_billing || 0), 0
     )
 
     // Get the most recent retention amount

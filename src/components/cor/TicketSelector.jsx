@@ -10,7 +10,7 @@ const generateRandomId = () => {
   return Array.from(array, b => b.toString(36)).join('')
 }
 
-export default function TicketSelector({ projectId, corId, onImport, onClose, onShowToast }) {
+export default function TicketSelector({ projectId, companyId, corId, onImport, onClose, onShowToast }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
@@ -52,12 +52,12 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
       filtered = filtered.filter(t =>
         t.work_description?.toLowerCase().includes(term) ||
         t.ce_pco_number?.toLowerCase().includes(term) ||
-        t.ticket_date?.includes(term)
+        (t.work_date || t.ticket_date)?.includes(term)
       )
     }
 
     // Sort by date descending
-    filtered.sort((a, b) => new Date(b.ticket_date) - new Date(a.ticket_date))
+    filtered.sort((a, b) => new Date(b.work_date || b.ticket_date) - new Date(a.work_date || a.ticket_date))
 
     return filtered
   }, [tickets, filter, searchTerm])
@@ -113,13 +113,36 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
   }
 
   // Import selected tickets' data
-  const handleImport = () => {
+  const handleImport = async () => {
     if (selectedTickets.size === 0) {
       onShowToast?.('Please select at least one ticket', 'error')
       return
     }
 
     const ticketsToImport = tickets.filter(t => selectedTickets.has(t.id))
+
+    // Look up labor rates for the company so imported items have correct costs
+    const rateLookup = {}
+    const classRateLookup = {}
+    try {
+      if (companyId) {
+        const rates = await db.getLaborRates?.(companyId)
+        if (rates) {
+          rates.forEach(rate => {
+            rateLookup[(rate.role || '').toLowerCase()] = rate
+          })
+        }
+        // Also try to get class-based rates
+        const classRates = await db.getLaborClassRates?.(companyId)
+        if (classRates) {
+          classRates.forEach(rate => {
+            classRateLookup[rate.labor_class_id] = rate
+          })
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load labor rates for import:', err)
+    }
 
     // Aggregate data from selected tickets
     const laborItems = []
@@ -130,18 +153,25 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
       // Extract labor from t_and_m_workers (correct table name from Supabase join)
       const workers = ticket.t_and_m_workers || ticket.workers || []
       workers.forEach(worker => {
+        const role = (worker.role || worker.labor_class || 'laborer').toLowerCase()
+        // Look up rates: first try class-based, then role-based
+        const classRate = worker.labor_class_id ? classRateLookup[worker.labor_class_id] : null
+        const roleRate = rateLookup[role] || {}
+        const regRate = dollarsToCents(parseFloat(classRate?.regular_rate || roleRate.regular_rate) || 0)
+        const otRate = dollarsToCents(parseFloat(classRate?.overtime_rate || roleRate.overtime_rate) || 0)
+
         laborItems.push({
           id: `import-${ticket.id}-${worker.id || Date.now()}-${generateRandomId()}`,
           worker_name: worker.name || worker.worker_name || '',
-          labor_class: worker.role || worker.labor_class || 'Laborer',
+          labor_class: worker.labor_classes?.name || worker.role || worker.labor_class || 'Laborer',
           wage_type: 'standard',
           regular_hours: parseFloat(worker.regular_hours) || parseFloat(worker.hours) || 0,
           overtime_hours: parseFloat(worker.overtime_hours) || 0,
-          regular_rate: parseFloat(worker.regular_rate) || 0,
-          overtime_rate: parseFloat(worker.overtime_rate) || 0,
+          regular_rate: regRate,
+          overtime_rate: otRate,
           total: 0,
           source_ticket_id: ticket.id,
-          source_ticket_date: ticket.ticket_date || ticket.work_date
+          source_ticket_date: ticket.work_date || ticket.ticket_date
         })
       })
 
@@ -164,7 +194,7 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
           equipmentItems.push({
             id: `import-${ticket.id}-${item.id || Date.now()}-${generateRandomId()}`,
             description: itemDescription,
-            source_type: 'Time & Material Ticket',
+            source_type: 'field_ticket',
             source_reference: `TM #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
             quantity: itemQty,
             unit: itemUnit,
@@ -176,7 +206,7 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
           materialsItems.push({
             id: `import-${ticket.id}-${item.id || Date.now()}-${generateRandomId()}`,
             description: itemDescription,
-            source_type: 'Time & Material Ticket',
+            source_type: 'field_ticket',
             source_reference: `TM #${ticket.id?.slice(-6) || ''} - ${formatDate(ticket.ticket_date || ticket.work_date)}`,
             quantity: itemQty,
             unit: itemUnit,
@@ -303,7 +333,7 @@ export default function TicketSelector({ projectId, corId, onImport, onClose, on
 
                       <div className="ticket-item-info" onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}>
                         <div className="ticket-item-header">
-                          <span className="ticket-date">{formatDate(ticket.ticket_date)}</span>
+                          <span className="ticket-date">{formatDate(ticket.work_date || ticket.ticket_date)}</span>
                           <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
                           {ticket.ce_pco_number && (
                             <span className="ticket-pco">CE/PCO: {ticket.ce_pco_number}</span>

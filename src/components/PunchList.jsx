@@ -64,7 +64,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     // custom headers, so use the anon client; RLS on the anon role allows
     // field users to receive events via the field-session policies we added)
     const channel = supabase
-      .channel(`punch_list:${projectId}`)
+      .channel(`punch_list_component:${projectId}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
         () => loadItems()

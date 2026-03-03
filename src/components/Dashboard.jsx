@@ -133,6 +133,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         setCORRefreshKey(prev => prev + 1)
         pendingCORRefreshRef.current = false
       }
+      // Invalidate detail cache for the selected project so real-time data is fresh
+      if (projectId) {
+        projectDetailsCacheRef.current.delete(projectId)
+      }
       // Always refresh projects to update metrics
       await loadProjects()
     }, 150)
@@ -746,7 +750,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     if (projectsData.length > 0) {
       checkAutoArchive()
     }
-  }, []) // Only run on mount
+  }, [projectsData.length]) // Run when projects data loads
 
   // Memoized callbacks for child components to prevent unnecessary re-renders
   const handleAddEquipment = useCallback(() => {
@@ -851,6 +855,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const handleDeleteCost = useCallback(async (costId) => {
     try {
       await db.deleteProjectCost(costId)
+      // Invalidate cache for this project so fresh data is loaded
+      if (selectedProject?.id) {
+        projectDetailsCacheRef.current.delete(selectedProject.id)
+      }
       loadProjects()
       onShowToast?.('Cost deleted', 'success')
     } catch (err) {
@@ -2268,7 +2276,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               }}
               onShowToast={onShowToast}
               onStatusChange={() => {
-                // Trigger a refresh of the COR list
+                setCORRefreshKey(prev => prev + 1)
+                debouncedRefresh({ refreshCOR: true })
               }}
             />
           </Suspense>
@@ -2308,6 +2317,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   setSavingCost(true)
                   await db.addProjectCost(selectedProject.id, company.id, costData)
                   setShowAddCostModal(false)
+                  // Invalidate cache so fresh financial data is loaded
+                  projectDetailsCacheRef.current.delete(selectedProject.id)
                   loadProjects()
                   onShowToast('Cost added successfully', 'success')
                 } catch (err) {
