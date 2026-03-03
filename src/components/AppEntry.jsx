@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
@@ -108,6 +108,7 @@ function PasswordInput({ value, onChange, placeholder, onKeyDown, autoFocus, sho
 
 export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [mode, setMode] = useState(() => {
     const urlMode = searchParams.get('mode')
     if (urlMode === 'foreman' || urlMode === 'office') return urlMode
@@ -633,6 +634,18 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               <span className="entry-mode-desc">Sign in to dashboard</span>
             </button>
           </div>
+
+          <button
+            className="entry-join-link"
+            style={{ marginTop: '1rem', display: 'flex', alignSelf: 'center' }}
+            onClick={() => {
+              localStorage.removeItem('fieldsync-has-visited')
+              navigate('/')
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Back to home</span>
+          </button>
         </div>
       </div>
     )
