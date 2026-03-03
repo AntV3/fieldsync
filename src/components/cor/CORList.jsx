@@ -702,8 +702,8 @@ export default function CORList({
             {counts.pending_approval > 0 && (
               <span className="cor-stat-item pending">{counts.pending_approval} pending</span>
             )}
-            {stats?.totalApproved > 0 && (
-              <span className="cor-stat-item approved">{formatCurrency(stats.totalApproved)}</span>
+            {stats?.total_approved_value > 0 && (
+              <span className="cor-stat-item approved">{formatCurrency(stats.total_approved_value)}</span>
             )}
           </div>
         </div>

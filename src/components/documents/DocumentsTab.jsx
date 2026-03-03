@@ -106,8 +106,8 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     })
 
     return () => {
-      folderSub?.unsubscribe?.()
-      docSub?.unsubscribe?.()
+      if (folderSub) db.unsubscribe?.(folderSub)
+      if (docSub) db.unsubscribe?.(docSub)
     }
   }, [loadFolders, project.id])
 

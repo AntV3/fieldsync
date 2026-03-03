@@ -1135,6 +1135,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       {showTicketSelector && (
         <TicketSelector
           projectId={project.id}
+          companyId={company?.id}
           corId={existingCOR?.id}
           onImport={handleTicketImport}
           onClose={() => setShowTicketSelector(false)}

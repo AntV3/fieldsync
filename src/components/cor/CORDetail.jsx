@@ -169,16 +169,12 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   const handleSaveSignature = async (signatureData) => {
     setLoading(true)
     try {
-      await db.saveCORSignature?.(corData.id, {
-        gc_signature: signatureData.signature,
-        gc_signer_name: signatureData.signerName,
-        signed_at: signatureData.signedAt
-      })
+      await db.saveCORSignature?.(corData.id, signatureData.signature, signatureData.signerName)
       setCORData({
         ...corData,
-        gc_signature: signatureData.signature,
-        gc_signer_name: signatureData.signerName,
-        signed_at: signatureData.signedAt
+        gc_signature_data: signatureData.signature,
+        gc_signature_name: signatureData.signerName,
+        gc_signature_date: new Date().toISOString()
       })
       setShowSignature(false)
       onShowToast?.('Signature saved', 'success')

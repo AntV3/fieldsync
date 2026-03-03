@@ -103,8 +103,8 @@ export default function FolderGrid({ projectId, onShowToast }) {
     })
 
     return () => {
-      folderSub?.unsubscribe?.()
-      docSub?.unsubscribe?.()
+      if (folderSub) db.unsubscribe?.(folderSub)
+      if (docSub) db.unsubscribe?.(docSub)
     }
   }, [projectId, loadFolders, loadDocuments])
 

@@ -93,7 +93,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     })
 
     return () => {
-      corSub?.unsubscribe?.()
+      if (corSub) db.unsubscribe?.(corSub)
     }
   }, [project.id])
 
