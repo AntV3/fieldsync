@@ -221,7 +221,13 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
 
             // Check if this is a group header
             // Group headers: single text, no dollar amounts, matches area patterns
-            const hasDollarAmount = cells.some(c => dollarPattern.test(c.replace(/[$,]/g, '') + (c.includes('.') ? '' : '.00')))
+            const hasDollarAmount = cells.some(c => {
+              // Match formatted currency: $1,234.56 or 1,234.56
+              if (dollarPattern.test(c) || /^\$/.test(c)) return true
+              // Match raw numbers from Excel (currency formatting is stripped by SheetJS)
+              const num = parseFloat(c.replace(/[$,]/g, ''))
+              return !isNaN(num) && num > 100 && /^[\d,.$]+$/.test(c)
+            })
             const isGroupHeader =
               !hasDollarAmount &&
               cells.length <= 3 &&
@@ -261,9 +267,10 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
               if (/^KN\s*\d+$/i.test(cell)) continue
 
               // Check for dollar amounts (SOV scheduled values) - CAPTURE the value
-              if (dollarPattern.test(cell.replace(/[$,]/g, '') + (cell.includes('.') ? '' : '.00')) || /^\$/.test(cell)) {
-                const cleanValue = cell.replace(/[$,]/g, '')
-                const parsedValue = parseFloat(cleanValue)
+              // Handle formatted ($1,234.56), $ prefix, and raw Excel numbers (365000)
+              const cleanValue = cell.replace(/[$,]/g, '')
+              const parsedValue = parseFloat(cleanValue)
+              if (dollarPattern.test(cell) || /^\$/.test(cell) || (!isNaN(parsedValue) && parsedValue > 100 && /^[\d,.$]+$/.test(cell))) {
                 // Only capture if it's a reasonable dollar amount (> $100, likely a line item value)
                 if (!isNaN(parsedValue) && parsedValue > 100) {
                   // Keep the largest dollar value found (likely the scheduled value, not quantities)
