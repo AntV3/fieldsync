@@ -23,11 +23,12 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
 
     try {
       // Get photos from T&M tickets and daily reports
-      // t_and_m_tickets.notes is the description field; daily_reports.photos requires migration 20260227
+      // t_and_m_tickets.photos requires migration 20260227_fix_project_cascade_delete
+      // daily_reports.photos requires migration 20260227_daily_reports_photos
       const [tmResult, reportResult] = await Promise.all([
         supabase
           .from('t_and_m_tickets')
-          .select('id, work_date, notes, photos, area_id')
+          .select('id, work_date, notes, photos')
           .eq('project_id', projectId)
           .order('work_date', { ascending: false }),
         supabase
@@ -51,7 +52,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
                 date: ticket.work_date,
                 source: 'Time & Material',
                 description: ticket.notes,
-                areaId: ticket.area_id
+                areaId: null
               })
             }
           }
