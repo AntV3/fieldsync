@@ -662,6 +662,16 @@ export default function TMList({
 
     yPos += 35
 
+    // Helper to format time for PDF
+    const formatTimePdf = (timeStr) => {
+      if (!timeStr) return ''
+      const [hours, minutes] = timeStr.split(':')
+      const h = parseInt(hours)
+      const ampm = h >= 12 ? 'pm' : 'am'
+      const h12 = h % 12 || 12
+      return `${h12}:${minutes}${ampm}`
+    }
+
     // Collect workers by type
     const supervisionData = []
     const operatorsData = []
@@ -676,9 +686,13 @@ export default function TMList({
           const regHrs = parseFloat(worker.hours) || 0
           const otHrs = parseFloat(worker.overtime_hours) || 0
           const role = worker.role || 'Laborer'
+          const timePeriod = worker.time_started && worker.time_ended
+            ? `${formatTimePdf(worker.time_started)} - ${formatTimePdf(worker.time_ended)}`
+            : '-'
           const rowData = [
             formatDate(ticket.work_date),
             worker.name,
+            timePeriod,
             regHrs.toString(),
             otHrs > 0 ? otHrs.toString() : '-',
             (regHrs + otHrs).toString()
@@ -719,7 +733,7 @@ export default function TMList({
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Date', 'Name', 'Reg Hrs', 'OT Hrs', 'Total']],
+        head: [['Date', 'Name', 'Hours Worked', 'Reg Hrs', 'OT Hrs', 'Total']],
         body: data,
         margin: { left: margin, right: margin },
         headStyles: {
@@ -736,13 +750,14 @@ export default function TMList({
           fillColor: [248, 250, 252]
         },
         columnStyles: {
-          0: { cellWidth: 30 },
-          2: { halign: 'center', cellWidth: 22 },
-          3: { halign: 'center', cellWidth: 22 },
-          4: { halign: 'center', cellWidth: 22 }
+          0: { cellWidth: 25 },
+          2: { cellWidth: 35 },
+          3: { halign: 'center', cellWidth: 20 },
+          4: { halign: 'center', cellWidth: 20 },
+          5: { halign: 'center', cellWidth: 20 }
         },
         foot: [[
-          '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '-', (regHours + otHours).toString()
+          '', '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '-', (regHours + otHours).toString()
         ]],
         footStyles: {
           fillColor: secondaryColor,

@@ -1,7 +1,30 @@
 import { memo, useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { CountBadge } from '../ui'
 import { db } from '../../lib/supabase'
+
+const formatTime12 = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes}${ampm}`
+}
+
+const getTicketTimeRange = (workers) => {
+  if (!workers?.length) return null
+  let earliest = null
+  let latest = null
+  for (const w of workers) {
+    if (w.time_started && w.time_ended) {
+      if (!earliest || w.time_started < earliest) earliest = w.time_started
+      if (!latest || w.time_ended > latest) latest = w.time_ended
+    }
+  }
+  if (!earliest || !latest) return null
+  return `${formatTime12(earliest)} - ${formatTime12(latest)}`
+}
 
 /**
  * Memoized T&M Ticket Card component
@@ -103,7 +126,13 @@ const TMTicketCard = memo(function TMTicketCard({
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
         </div>
         <div className="tm-ticket-summary">
-          <span className="tm-ticket-hours">{totalHours} hrs</span>
+          <span className="tm-ticket-hours">
+            {totalHours} hrs
+            {(() => {
+              const range = getTicketTimeRange(ticket.t_and_m_workers)
+              return range ? <span className="tm-ticket-time-range">{range}</span> : null
+            })()}
+          </span>
           <span className="tm-ticket-total">${totalCost.toFixed(2)}</span>
           <span className="tm-expand-arrow" aria-hidden="true">{isExpanded ? '▼' : '▶'}</span>
         </div>
@@ -123,11 +152,19 @@ const TMTicketCard = memo(function TMTicketCard({
                       )}
                       {worker.name}
                     </span>
-                    <span>
-                      {worker.hours} hrs
-                      {parseFloat(worker.overtime_hours) > 0 && (
-                        <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
+                    <span className="tm-worker-hours-info">
+                      {worker.time_started && worker.time_ended && (
+                        <span className="tm-worker-time-range">
+                          <Clock size={12} className="inline-icon" />
+                          {formatTime12(worker.time_started)} - {formatTime12(worker.time_ended)}
+                        </span>
                       )}
+                      <span>
+                        {worker.hours} hrs
+                        {parseFloat(worker.overtime_hours) > 0 && (
+                          <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
+                        )}
+                      </span>
                     </span>
                   </div>
                 ))}
