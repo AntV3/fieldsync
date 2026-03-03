@@ -864,7 +864,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     } catch (err) {
       onShowToast?.('Error deleting cost', 'error')
     }
-  }, []) // onShowToast is stable (memoized in App.jsx)
+  }, [selectedProject?.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Memoize stats for FinancialsNav to prevent re-renders from inline object creation
   const financialsNavStats = useMemo(() => ({
