@@ -1,18 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Camera, ChevronDown, ChevronUp, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Camera, ChevronDown, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
 
 /**
  * PhotoTimeline - Visual progress photo timeline organized by area and date.
  * Shows construction progress documentation for disputes, owner reports, and team review.
+ * Uses a date dropdown to keep the overview page compact.
  */
 export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedArea, setSelectedArea] = useState('all')
+  const [selectedDate, setSelectedDate] = useState(null)
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [expandedDates, setExpandedDates] = useState(new Set())
+  const [downloading, setDownloading] = useState(false)
 
   // Load photos for the project
   const loadPhotos = useCallback(async () => {
@@ -83,11 +85,13 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       const signedUrls = await db.resolvePhotoUrls(rawUrls)
       signedUrls.forEach((signed, i) => { allPhotos[i].url = signed })
 
-      setPhotos(allPhotos.filter(p => p.url))
+      const validPhotos = allPhotos.filter(p => p.url)
+      setPhotos(validPhotos)
 
-      // Auto-expand the most recent date
-      if (allPhotos.length > 0) {
-        setExpandedDates(new Set([allPhotos[0].date]))
+      // Auto-select the most recent date
+      if (validPhotos.length > 0) {
+        const dates = [...new Set(validPhotos.map(p => p.date))].sort((a, b) => b.localeCompare(a))
+        setSelectedDate(dates[0])
       }
     } catch (err) {
       console.error('Error loading photos:', err)
@@ -106,30 +110,20 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     return photos.filter(p => p.areaId === selectedArea)
   }, [photos, selectedArea])
 
-  // Group photos by date
-  const photosByDate = useMemo(() => {
-    const groups = {}
-    for (const photo of filteredPhotos) {
-      if (!groups[photo.date]) {
-        groups[photo.date] = []
-      }
-      groups[photo.date].push(photo)
-    }
-    // Return sorted by date descending
-    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
+  // Get unique dates sorted descending
+  const availableDates = useMemo(() => {
+    const dates = [...new Set(filteredPhotos.map(p => p.date))]
+    return dates.sort((a, b) => b.localeCompare(a))
   }, [filteredPhotos])
 
-  // All photos in flat list for lightbox navigation
-  const flatPhotos = useMemo(() => filteredPhotos, [filteredPhotos])
+  // Photos for the selected date
+  const selectedDatePhotos = useMemo(() => {
+    if (!selectedDate) return []
+    return filteredPhotos.filter(p => p.date === selectedDate)
+  }, [filteredPhotos, selectedDate])
 
-  const toggleDate = (date) => {
-    setExpandedDates(prev => {
-      const next = new Set(prev)
-      if (next.has(date)) next.delete(date)
-      else next.add(date)
-      return next
-    })
-  }
+  // All photos in flat list for lightbox navigation (scoped to selected date)
+  const flatPhotos = useMemo(() => selectedDatePhotos, [selectedDatePhotos])
 
   const openLightbox = (photo) => {
     const idx = flatPhotos.findIndex(p => p.id === photo.id)
@@ -152,11 +146,56 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
   }
 
+  const formatDateShort = (dateStr) => {
+    const date = new Date(dateStr + 'T00:00:00')
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
   const getAreaName = (areaId) => {
     if (!areaId) return null
     const area = areas.find(a => a.id === areaId)
     return area?.name || null
   }
+
+  // Download all photos for the selected date
+  const downloadSelectedPhotos = async () => {
+    if (selectedDatePhotos.length === 0 || downloading) return
+
+    setDownloading(true)
+    try {
+      for (const photo of selectedDatePhotos) {
+        const response = await fetch(photo.url)
+        const blob = await response.blob()
+        const ext = blob.type.includes('png') ? 'png' : 'jpg'
+        const filename = `progress-photo_${selectedDate}_${photo.id}.${ext}`
+
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(link.href)
+      }
+      if (onShowToast) {
+        onShowToast(`Downloaded ${selectedDatePhotos.length} photo${selectedDatePhotos.length !== 1 ? 's' : ''}`, 'success')
+      }
+    } catch (err) {
+      console.error('Error downloading photos:', err)
+      if (onShowToast) {
+        onShowToast('Failed to download photos', 'error')
+      }
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  // When area filter changes, ensure selectedDate is still valid
+  useEffect(() => {
+    if (availableDates.length > 0 && !availableDates.includes(selectedDate)) {
+      setSelectedDate(availableDates[0])
+    }
+  }, [availableDates, selectedDate])
 
   if (loading) {
     return (
@@ -204,52 +243,76 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
           <span>Photos from T&M tickets and daily reports will appear here</span>
         </div>
       ) : (
-        <div className="photo-timeline-dates">
-          {photosByDate.map(([date, datePhotos]) => (
-            <div key={date} className="photo-date-group">
-              <button
-                className="photo-date-header"
-                onClick={() => toggleDate(date)}
+        <div className="photo-timeline-body">
+          {/* Date selector row */}
+          <div className="photo-date-selector-row">
+            <div className="photo-date-selector">
+              <Calendar size={14} />
+              <select
+                value={selectedDate || ''}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="photo-date-select"
               >
-                <div className="photo-date-info">
-                  <Calendar size={14} />
-                  <span className="photo-date-label">{formatDate(date)}</span>
-                  <span className="photo-date-count">{datePhotos.length} photo{datePhotos.length !== 1 ? 's' : ''}</span>
-                </div>
-                {expandedDates.has(date) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-
-              {expandedDates.has(date) && (
-                <div className="photo-grid">
-                  {datePhotos.map(photo => (
-                    <div
-                      key={photo.id}
-                      className="photo-grid-item"
-                      onClick={() => openLightbox(photo)}
-                    >
-                      <img
-                        src={photo.url}
-                        alt={photo.description || 'Project photo'}
-                        loading="lazy"
-                      />
-                      <div className="photo-grid-overlay">
-                        <ZoomIn size={16} />
-                      </div>
-                      <div className="photo-grid-meta">
-                        <span className="photo-source-badge">{photo.source}</span>
-                        {getAreaName(photo.areaId) && (
-                          <span className="photo-area-badge">
-                            <MapPin size={10} />
-                            {getAreaName(photo.areaId)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {availableDates.map(date => (
+                  <option key={date} value={date}>
+                    {formatDateShort(date)} ({filteredPhotos.filter(p => p.date === date).length} photo{filteredPhotos.filter(p => p.date === date).length !== 1 ? 's' : ''})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="photo-date-chevron" />
             </div>
-          ))}
+
+            <div className="photo-date-actions">
+              <span className="photo-date-showing">
+                {selectedDatePhotos.length} photo{selectedDatePhotos.length !== 1 ? 's' : ''}
+              </span>
+              <button
+                className="photo-download-btn"
+                onClick={downloadSelectedPhotos}
+                disabled={downloading || selectedDatePhotos.length === 0}
+                title={`Download ${selectedDatePhotos.length} photo${selectedDatePhotos.length !== 1 ? 's' : ''}`}
+              >
+                <Download size={14} />
+                {downloading ? 'Downloading...' : 'Download'}
+              </button>
+            </div>
+          </div>
+
+          {/* Photo grid for selected date */}
+          <div className="photo-grid">
+            {selectedDatePhotos.map(photo => (
+              <div
+                key={photo.id}
+                className="photo-grid-item"
+                onClick={() => openLightbox(photo)}
+              >
+                <img
+                  src={photo.url}
+                  alt={photo.description || 'Project photo'}
+                  loading="lazy"
+                />
+                <div className="photo-grid-overlay">
+                  <ZoomIn size={16} />
+                </div>
+                <div className="photo-grid-meta">
+                  <span className="photo-source-badge">{photo.source}</span>
+                  {getAreaName(photo.areaId) && (
+                    <span className="photo-area-badge">
+                      <MapPin size={10} />
+                      {getAreaName(photo.areaId)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Date count summary */}
+          {availableDates.length > 1 && (
+            <div className="photo-dates-summary">
+              {availableDates.length} date{availableDates.length !== 1 ? 's' : ''} with photos
+            </div>
+          )}
         </div>
       )}
 
