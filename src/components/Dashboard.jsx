@@ -943,7 +943,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
           {/* Client & Contractor Info */}
           <div className="card">
-            <h3>Client & Contractor</h3>
+            <h3>Contractor</h3>
             <div className="form-group">
               <label>General Contractor</label>
               <input
@@ -956,21 +956,87 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
             <div className="form-row">
               <div className="form-group">
-                <label>Client Contact</label>
+                <label>Contact Name</label>
+                <input
+                  type="text"
+                  value={editData.contractor_contact}
+                  onChange={(e) => handleEditChange('contractor_contact', e.target.value)}
+                  placeholder="e.g., John Smith"
+                />
+              </div>
+              <div className="form-group">
+                <label>Position</label>
+                <input
+                  type="text"
+                  value={editData.contractor_position}
+                  onChange={(e) => handleEditChange('contractor_position', e.target.value)}
+                  placeholder="e.g., Project Manager"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Phone</label>
+                <input
+                  type="tel"
+                  value={editData.contractor_phone}
+                  onChange={(e) => handleEditChange('contractor_phone', e.target.value)}
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={editData.contractor_email}
+                  onChange={(e) => handleEditChange('contractor_email', e.target.value)}
+                  placeholder="john@contractor.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3>Client</h3>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Contact Name</label>
                 <input
                   type="text"
                   value={editData.client_contact}
                   onChange={(e) => handleEditChange('client_contact', e.target.value)}
-                  placeholder="Contact name"
+                  placeholder="e.g., Jane Doe"
                 />
               </div>
               <div className="form-group">
-                <label>Client Phone</label>
+                <label>Position</label>
+                <input
+                  type="text"
+                  value={editData.client_position}
+                  onChange={(e) => handleEditChange('client_position', e.target.value)}
+                  placeholder="e.g., Owner Representative"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Phone</label>
                 <input
                   type="tel"
                   value={editData.client_phone}
                   onChange={(e) => handleEditChange('client_phone', e.target.value)}
-                  placeholder="(555) 123-4567"
+                  placeholder="(555) 987-6543"
+                />
+              </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={editData.client_email}
+                  onChange={(e) => handleEditChange('client_email', e.target.value)}
+                  placeholder="jane@client.com"
                 />
               </div>
             </div>
@@ -2110,20 +2176,59 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                       <span className="info-detail-value">No general contractor specified</span>
                     </div>
                   )}
+                  {selectedProject.contractor_contact && (
+                    <div className="info-detail-row">
+                      <span className="info-detail-label">Contractor Contact</span>
+                      <span className="info-detail-value">
+                        {selectedProject.contractor_contact}
+                        {selectedProject.contractor_position && `, ${selectedProject.contractor_position}`}
+                      </span>
+                    </div>
+                  )}
+                  {selectedProject.contractor_phone && (
+                    <div className="info-detail-row clickable">
+                      <span className="info-detail-label">
+                        <Phone size={14} />
+                        Contractor Phone
+                      </span>
+                      <a href={`tel:${selectedProject.contractor_phone}`} className="info-detail-value link">
+                        {selectedProject.contractor_phone}
+                      </a>
+                    </div>
+                  )}
+                  {selectedProject.contractor_email && (
+                    <div className="info-detail-row clickable">
+                      <span className="info-detail-label">Contractor Email</span>
+                      <a href={`mailto:${selectedProject.contractor_email}`} className="info-detail-value link">
+                        {selectedProject.contractor_email}
+                      </a>
+                    </div>
+                  )}
                   {selectedProject.client_contact && (
                     <div className="info-detail-row">
                       <span className="info-detail-label">Client Contact</span>
-                      <span className="info-detail-value">{selectedProject.client_contact}</span>
+                      <span className="info-detail-value">
+                        {selectedProject.client_contact}
+                        {selectedProject.client_position && `, ${selectedProject.client_position}`}
+                      </span>
                     </div>
                   )}
                   {selectedProject.client_phone && (
                     <div className="info-detail-row clickable">
                       <span className="info-detail-label">
                         <Phone size={14} />
-                        Phone
+                        Client Phone
                       </span>
                       <a href={`tel:${selectedProject.client_phone}`} className="info-detail-value link">
                         {selectedProject.client_phone}
+                      </a>
+                    </div>
+                  )}
+                  {selectedProject.client_email && (
+                    <div className="info-detail-row clickable">
+                      <span className="info-detail-label">Client Email</span>
+                      <a href={`mailto:${selectedProject.client_email}`} className="info-detail-value link">
+                        {selectedProject.client_email}
                       </a>
                     </div>
                   )}
