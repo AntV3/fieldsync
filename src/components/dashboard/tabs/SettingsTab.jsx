@@ -107,20 +107,59 @@ export default function SettingsTab({
               <span className="info-detail-value">No general contractor specified</span>
             </div>
           )}
+          {selectedProject.contractor_contact && (
+            <div className="info-detail-row">
+              <span className="info-detail-label">Contractor Contact</span>
+              <span className="info-detail-value">
+                {selectedProject.contractor_contact}
+                {selectedProject.contractor_position && `, ${selectedProject.contractor_position}`}
+              </span>
+            </div>
+          )}
+          {selectedProject.contractor_phone && (
+            <div className="info-detail-row clickable">
+              <span className="info-detail-label">
+                <Phone size={14} />
+                Contractor Phone
+              </span>
+              <a href={`tel:${selectedProject.contractor_phone}`} className="info-detail-value link">
+                {selectedProject.contractor_phone}
+              </a>
+            </div>
+          )}
+          {selectedProject.contractor_email && (
+            <div className="info-detail-row clickable">
+              <span className="info-detail-label">Contractor Email</span>
+              <a href={`mailto:${selectedProject.contractor_email}`} className="info-detail-value link">
+                {selectedProject.contractor_email}
+              </a>
+            </div>
+          )}
           {selectedProject.client_contact && (
             <div className="info-detail-row">
               <span className="info-detail-label">Client Contact</span>
-              <span className="info-detail-value">{selectedProject.client_contact}</span>
+              <span className="info-detail-value">
+                {selectedProject.client_contact}
+                {selectedProject.client_position && `, ${selectedProject.client_position}`}
+              </span>
             </div>
           )}
           {selectedProject.client_phone && (
             <div className="info-detail-row clickable">
               <span className="info-detail-label">
                 <Phone size={14} />
-                Phone
+                Client Phone
               </span>
               <a href={`tel:${selectedProject.client_phone}`} className="info-detail-value link">
                 {selectedProject.client_phone}
+              </a>
+            </div>
+          )}
+          {selectedProject.client_email && (
+            <div className="info-detail-row clickable">
+              <span className="info-detail-label">Client Email</span>
+              <a href={`mailto:${selectedProject.client_email}`} className="info-detail-value link">
+                {selectedProject.client_email}
               </a>
             </div>
           )}

@@ -28,6 +28,14 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const [jobNumber, setJobNumber] = useState('')
   const [address, setAddress] = useState('')
   const [generalContractor, setGeneralContractor] = useState('')
+  const [contractorContact, setContractorContact] = useState('')
+  const [contractorPosition, setContractorPosition] = useState('')
+  const [contractorPhone, setContractorPhone] = useState('')
+  const [contractorEmail, setContractorEmail] = useState('')
+  const [clientContact, setClientContact] = useState('')
+  const [clientPosition, setClientPosition] = useState('')
+  const [clientPhone, setClientPhone] = useState('')
+  const [clientEmail, setClientEmail] = useState('')
   const [contractValue, setContractValue] = useState('')
   const [pin, setPin] = useState('')
   const [workType, setWorkType] = useState('demolition')
@@ -147,6 +155,14 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     setJobNumber('')
     setAddress('')
     setGeneralContractor('')
+    setContractorContact('')
+    setContractorPosition('')
+    setContractorPhone('')
+    setContractorEmail('')
+    setClientContact('')
+    setClientPosition('')
+    setClientPhone('')
+    setClientEmail('')
     setContractValue('')
     setPin('')
     setWorkType('demolition')
@@ -501,6 +517,14 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         job_number: jobNumber.trim() || null,
         address: address.trim() || null,
         general_contractor: generalContractor.trim() || null,
+        contractor_contact: contractorContact.trim() || null,
+        contractor_position: contractorPosition.trim() || null,
+        contractor_phone: contractorPhone.trim() || null,
+        contractor_email: contractorEmail.trim() || null,
+        client_contact: clientContact.trim() || null,
+        client_position: clientPosition.trim() || null,
+        client_phone: clientPhone.trim() || null,
+        client_email: clientEmail.trim() || null,
         contract_value: contractVal,
         pin: pin,
         work_type: workType,
@@ -680,6 +704,90 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
             value={generalContractor}
             onChange={(e) => setGeneralContractor(e.target.value)}
           />
+        </div>
+
+        <div className="form-row-2">
+          <div className="form-group">
+            <label>Contractor Contact Name</label>
+            <input
+              type="text"
+              placeholder="e.g., John Smith"
+              value={contractorContact}
+              onChange={(e) => setContractorContact(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Contractor Position</label>
+            <input
+              type="text"
+              placeholder="e.g., Project Manager"
+              value={contractorPosition}
+              onChange={(e) => setContractorPosition(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="form-row-2">
+          <div className="form-group">
+            <label>Contractor Phone</label>
+            <input
+              type="tel"
+              placeholder="e.g., (555) 123-4567"
+              value={contractorPhone}
+              onChange={(e) => setContractorPhone(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Contractor Email</label>
+            <input
+              type="email"
+              placeholder="e.g., john@contractor.com"
+              value={contractorEmail}
+              onChange={(e) => setContractorEmail(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="form-row-2">
+          <div className="form-group">
+            <label>Client Contact Name</label>
+            <input
+              type="text"
+              placeholder="e.g., Jane Doe"
+              value={clientContact}
+              onChange={(e) => setClientContact(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Client Position</label>
+            <input
+              type="text"
+              placeholder="e.g., Owner Representative"
+              value={clientPosition}
+              onChange={(e) => setClientPosition(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="form-row-2">
+          <div className="form-group">
+            <label>Client Phone</label>
+            <input
+              type="tel"
+              placeholder="e.g., (555) 987-6543"
+              value={clientPhone}
+              onChange={(e) => setClientPhone(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Client Email</label>
+            <input
+              type="email"
+              placeholder="e.g., jane@client.com"
+              value={clientEmail}
+              onChange={(e) => setClientEmail(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="form-row-2">
