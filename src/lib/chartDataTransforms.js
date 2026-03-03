@@ -305,17 +305,24 @@ export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCost
     grouped[cat].total += parseFloat(cost.amount) || 0
   })
 
-  // Add grouped custom costs
+  // Merge grouped custom costs into existing segments or add new ones
   Object.entries(grouped).forEach(([category, data]) => {
     if (data.total > 0) {
-      const catConfig = costCategories[category] || costCategories.other
-      segments.push({
-        name: catConfig.label,
-        value: data.total,
-        color: catConfig.color,
-        category,
-        items: data.items,
-      })
+      const existingSegment = segments.find(s => s.category === category)
+      if (existingSegment) {
+        // Merge into existing auto-tracked segment to avoid duplicate chart entries
+        existingSegment.value += data.total
+        existingSegment.items = data.items
+      } else {
+        const catConfig = costCategories[category] || costCategories.other
+        segments.push({
+          name: catConfig.label,
+          value: data.total,
+          color: catConfig.color,
+          category,
+          items: data.items,
+        })
+      }
     }
   })
 

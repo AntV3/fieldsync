@@ -175,6 +175,7 @@ export default function FinancialsTab({
                 <CostContributorsCard
                   laborCost={projectData?.laborCost || 0}
                   haulOffCost={projectData?.haulOffCost || 0}
+                  materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
                   customCosts={projectData?.customCosts || []}
                   onAddCost={onAddCost}
                   onDeleteCost={onDeleteCost}

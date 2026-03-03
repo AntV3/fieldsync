@@ -83,16 +83,24 @@ export default function CostContributorsCard({
     customByCategory[cost.category].total += parseFloat(cost.amount) || 0
   })
 
-  // Add custom cost categories
+  // Merge custom costs into existing auto-tracked categories or add new entries
   Object.values(customByCategory).forEach(group => {
-    const info = categoryInfo[group.category] || categoryInfo.other
-    costBreakdown.push({
-      category: group.category,
-      label: info.label,
-      amount: group.total,
-      source: 'manual',
-      items: group.items
-    })
+    const existingEntry = costBreakdown.find(e => e.category === group.category)
+    if (existingEntry) {
+      // Merge into existing auto-tracked category to avoid duplicate keys/entries
+      existingEntry.amount += group.total
+      existingEntry.items = group.items
+      existingEntry.source = 'mixed'
+    } else {
+      const info = categoryInfo[group.category] || categoryInfo.other
+      costBreakdown.push({
+        category: group.category,
+        label: info.label,
+        amount: group.total,
+        source: 'manual',
+        items: group.items
+      })
+    }
   })
 
   // Calculate total
