@@ -5,19 +5,20 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
     <section className="lp-hero">
       <div className="lp-badge">
         <Zap size={14} />
-        The Bridge Between Field and Office
+        Field and Office — Finally Connected
       </div>
 
       <h1 className="lp-hero-title">
         <span className="lp-gradient-text">FieldSync</span><br />
-        One Team. One Truth. One Tap.
+        Same Job. Same Page. Right Now.
       </h1>
 
       <p className="lp-hero-subtitle">
-        The disconnect between your field and your office? Gone.
-        No more lost updates, no more delayed reports, no more "I didn't get that."
-        FieldSync erases the gap — so every crew member and every manager
-        operates from the same page, in the same moment, speaking the same language.
+        Right now, your foreman knows something your office doesn't.
+        That gap — between boots on the ground and screens in the office — is costing you money on every project you're running.
+        Missed draws. Disputed change orders. Decisions made on yesterday's data.
+        FieldSync erases the gap. Every task, every dollar, every status — live, locked, and defensible.
+        Your field and your office, finally on the same page.
       </p>
 
       <div className="lp-hero-actions">
