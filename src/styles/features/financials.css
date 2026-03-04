@@ -20,7 +20,7 @@
    Burn Rate Card
    ============================================ */
 .burn-rate-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -273,7 +273,7 @@
    Cost Contributors Card
    ============================================ */
 .cost-contributors-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -540,7 +540,7 @@
    Profitability Card
    ============================================ */
 .profitability-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;

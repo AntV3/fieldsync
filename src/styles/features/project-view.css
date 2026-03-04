@@ -64,7 +64,7 @@
   justify-content: center;
   gap: 1.5rem;
   padding: 0.875rem 1.25rem;
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   margin-bottom: 0.75rem;
@@ -343,7 +343,7 @@
 }
 
 .hero-metric-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1rem;
@@ -356,10 +356,26 @@
   min-width: 0;
 }
 
+.hero-metric-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-blue);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
 .hero-metric-card:hover {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
   border-color: rgba(59, 130, 246, 0.2);
+}
+
+.hero-metric-card:hover::after {
+  opacity: 1;
 }
 
 .hero-metric-header {
@@ -505,7 +521,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
