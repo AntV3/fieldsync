@@ -2569,7 +2569,7 @@ input[type="number"] {
 }
 
 .metric-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1rem;
@@ -9786,7 +9786,7 @@ END MIGRATED */
    ============================================ */
 
 .crew-checkin {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1rem;
@@ -12244,7 +12244,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .hero-metric-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 0.875rem;
@@ -12394,7 +12394,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
@@ -23604,7 +23604,7 @@ END MIGRATED */
    Burn Rate Card
    ============================================ */
 .burn-rate-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 1rem;
@@ -23848,7 +23848,7 @@ END MIGRATED */
    Cost Contributors Card
    ============================================ */
 .cost-contributors-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 1rem;
@@ -24107,7 +24107,7 @@ END MIGRATED */
    Profitability Card
    ============================================ */
 .profitability-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 1rem;
@@ -24469,8 +24469,8 @@ END MIGRATED */
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--gradient-card-dark);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
 }
 
@@ -24772,7 +24772,7 @@ END MIGRATED */
 
 /* Section Card */
 .overview-section-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 12px 14px;
@@ -24911,7 +24911,7 @@ END MIGRATED */
 
 /* Crew Metrics Card */
 .crew-metrics-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border-radius: 12px;
   padding: 12px 14px;
   border: 1px solid var(--border-color);
@@ -25279,7 +25279,7 @@ END MIGRATED */
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
@@ -25333,10 +25333,10 @@ END MIGRATED */
   grid-template-columns: auto 1fr;
   gap: 1.25rem;
   align-items: center;
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
+  background: var(--gradient-hero);
   border-radius: 12px;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border);
 }
 
 /* Progress Gauge */
@@ -26633,7 +26633,7 @@ END MIGRATED */
 
 /* Info Section Card */
 .info-section-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
