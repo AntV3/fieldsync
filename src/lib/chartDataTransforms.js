@@ -243,11 +243,15 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
 export function filterByTimeRange(data, days) {
   if (!days || !data.length) return data
 
+  // Use date-only comparison to avoid timezone issues where UTC-parsed
+  // date strings get compared against local-time cutoffs, potentially
+  // excluding one day of data depending on the user's timezone.
   const now = new Date()
-  const cutoff = new Date()
-  cutoff.setDate(now.getDate() - days)
+  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  cutoff.setDate(cutoff.getDate() - days)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
 
-  return data.filter(d => new Date(d.date) >= cutoff)
+  return data.filter(d => d.date >= cutoffStr)
 }
 
 /**
@@ -417,9 +421,12 @@ export function buildBurnSparkline(laborByDate = [], haulOffByDate = [], limit =
 
 /**
  * Calculate trend direction from time series
+ * Uses rate-of-change analysis so cumulative metrics (costs, revenue)
+ * show whether activity is accelerating, decelerating, or steady
+ * rather than always showing "up" because cumulative values only increase.
  *
  * @param {Array} data - Time series data
- * @param {string} key - Data key to analyze
+ * @param {string} key - Data key to analyze (cumulative value)
  * @returns {Object} Trend info { direction, percentage }
  */
 export function calculateTrend(data, key) {
@@ -427,22 +434,45 @@ export function calculateTrend(data, key) {
     return { direction: 'flat', percentage: 0 }
   }
 
-  const recent = data.slice(-7)
-  if (recent.length < 2) {
+  // Use up to last 14 points so we can compare two periods
+  const window = data.slice(-14)
+  if (window.length < 4) {
     return { direction: 'flat', percentage: 0 }
   }
 
-  const first = recent[0][key] || 0
-  const last = recent[recent.length - 1][key] || 0
-
-  if (first === 0) {
-    return { direction: last > 0 ? 'up' : 'flat', percentage: 0 }
+  // Compute daily increments from cumulative values
+  const increments = []
+  for (let i = 1; i < window.length; i++) {
+    increments.push((window[i][key] || 0) - (window[i - 1][key] || 0))
   }
 
-  const change = ((last - first) / first) * 100
+  // Split increments into earlier half and recent half
+  const mid = Math.floor(increments.length / 2)
+  const earlier = increments.slice(0, mid)
+  const recent = increments.slice(mid)
+
+  if (earlier.length === 0 || recent.length === 0) {
+    return { direction: 'flat', percentage: 0 }
+  }
+
+  const earlierAvg = earlier.reduce((a, b) => a + b, 0) / earlier.length
+  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length
+
+  // Both periods have zero activity
+  if (earlierAvg === 0 && recentAvg === 0) {
+    return { direction: 'flat', percentage: 0 }
+  }
+
+  // Activity started from nothing
+  if (earlierAvg === 0) {
+    return { direction: recentAvg > 0 ? 'up' : 'down', percentage: 0 }
+  }
+
+  // Percentage change in daily rate between the two periods
+  const change = ((recentAvg - earlierAvg) / Math.abs(earlierAvg)) * 100
 
   return {
-    direction: change > 5 ? 'up' : change < -5 ? 'down' : 'flat',
+    direction: change > 10 ? 'up' : change < -10 ? 'down' : 'flat',
     percentage: Math.abs(Math.round(change)),
   }
 }
