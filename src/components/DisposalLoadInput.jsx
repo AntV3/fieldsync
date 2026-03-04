@@ -92,7 +92,8 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Disposal load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      onShowToast?.('Error adding load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error adding load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -106,7 +107,8 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Load removed', 'success')
     } catch (err) {
       console.error('Error deleting disposal load:', err)
-      onShowToast?.('Error removing load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error removing load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -120,7 +122,8 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      onShowToast?.('Error adding load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error adding load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -133,7 +136,8 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
-      onShowToast?.('Error updating load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error updating load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -151,7 +155,8 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
-      onShowToast?.('Error updating load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error updating load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }

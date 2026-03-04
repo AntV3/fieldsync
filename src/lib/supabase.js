@@ -1003,38 +1003,43 @@ export const db = {
       localStorage.removeItem(rateLimitKey)
       localStorage.removeItem(lockoutKey)
 
-      // Store a field session so the app knows we're in foreman mode.
-      // Try server-side session creation first; if the table doesn't
-      // exist yet we proceed without one (old RLS allows anonymous access).
+      // Create a server-side field session via the SECURITY DEFINER RPC.
+      // Direct INSERT into field_sessions is blocked by RLS, so we must
+      // use the RPC. If it also fails (e.g., function has a bug or
+      // doesn't exist on older DBs), we still store a local-only session
+      // so the app can navigate; old DBs without field_sessions don't
+      // require session-based RLS anyway.
       let sessionToken = null
       try {
-        const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-          .map(b => b.toString(16).padStart(2, '0')).join('')
-        const { error: insertError } = await supabase
-          .from('field_sessions')
-          .insert({
-            project_id: project.id,
-            company_id: company.id,
-            session_token: token,
-            device_id: typeof getDeviceId === 'function' ? getDeviceId() : null
+        const deviceId = typeof getDeviceId === 'function' ? getDeviceId() : null
+        const { data: sessionData, error: sessionError } = await supabase
+          .rpc('validate_pin_and_create_session', {
+            p_pin: pin.trim(),
+            p_company_code: companyCode.trim(),
+            p_device_id: deviceId,
+            p_ip_address: null
           })
-        if (!insertError) {
-          sessionToken = token
+
+        if (!sessionError && sessionData?.length > 0 && sessionData[0].success) {
+          sessionToken = sessionData[0].session_token
+        } else if (sessionError) {
+          console.warn('[PIN Auth] Fallback session creation failed:', sessionError.message)
         }
       } catch {
-        // field_sessions table may not exist — that's OK
+        // RPC may not exist on older databases — proceed without server session
       }
 
-      if (sessionToken) {
-        setFieldSession({
-          token: sessionToken,
-          projectId: project.id,
-          companyId: company.id,
-          projectName: project.name,
-          companyName: company.name,
-          createdAt: new Date().toISOString()
-        })
-      }
+      // Always store a field session so the app knows we're in foreman mode.
+      // With a valid server token, RLS policies will validate via x-field-session.
+      // Without one (old DB), the app still navigates and old RLS policies apply.
+      setFieldSession({
+        token: sessionToken || `local_${Date.now()}`,
+        projectId: project.id,
+        companyId: company.id,
+        projectName: project.name,
+        companyName: company.name,
+        createdAt: new Date().toISOString()
+      })
 
       return {
         success: true,
