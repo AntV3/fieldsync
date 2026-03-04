@@ -733,6 +733,7 @@ END;
 $$;
 
 -- Function to extend session expiry (called on activity)
+DROP FUNCTION IF EXISTS extend_field_session(text);
 CREATE OR REPLACE FUNCTION extend_field_session(p_session_token TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql SECURITY DEFINER
