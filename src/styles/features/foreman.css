@@ -61,7 +61,7 @@
 }
 
 .foreman-project-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   padding: 1.375rem;
@@ -153,7 +153,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1.125rem;
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   margin-bottom: 1.5rem;
@@ -257,7 +257,7 @@
 }
 
 .foreman-stat {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 0.875rem;
@@ -607,7 +607,7 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   color: var(--text-primary);
@@ -760,7 +760,7 @@
 }
 
 .fm-stat {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1rem 0.5rem;
@@ -827,7 +827,7 @@
   justify-content: center;
   gap: 0.875rem;
   padding: 1.625rem 1rem;
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   cursor: pointer;
@@ -902,7 +902,7 @@
   align-items: center;
   gap: 0.875rem;
   padding: 1.125rem 1.25rem;
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   cursor: pointer;
@@ -1056,7 +1056,7 @@
   align-items: center;
   gap: 0.875rem;
   padding: 1.125rem;
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -1193,7 +1193,7 @@
 
 /* Task Groups */
 .fm-group {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1362,7 +1362,7 @@
 }
 
 .pin-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
   padding: 2.5rem;
@@ -1731,7 +1731,7 @@
 
 .foreman-group {
   margin-bottom: 1.5rem;
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-color);
   overflow: hidden;

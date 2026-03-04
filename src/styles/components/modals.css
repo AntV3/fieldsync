@@ -26,13 +26,13 @@
 .modal-content {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-height: calc(100vh - 2rem);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-xl, 0 25px 50px -12px rgba(0, 0, 0, 0.5));
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
   color: var(--text-primary);
 }
 
@@ -43,7 +43,6 @@
   align-items: center;
   padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-secondary);
 }
 
 .modal-header h2 {
@@ -51,6 +50,7 @@
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .modal-header h3,
@@ -81,7 +81,6 @@
   align-items: center;
   padding: var(--space-md) var(--space-lg);
   border-top: 1px solid var(--border-color);
-  background: var(--bg-secondary);
   gap: var(--space-sm);
 }
 
@@ -164,7 +163,7 @@
   }
 
   .modal-content {
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     max-height: 90vh;
   }
 

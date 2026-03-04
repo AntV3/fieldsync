@@ -35,10 +35,17 @@ const MetricCard = memo(function MetricCard({
     danger: 'var(--accent-red)'
   }
 
+  const variantBgs = {
+    default: 'var(--blue-subtle)',
+    success: 'var(--green-subtle)',
+    warning: 'var(--amber-subtle)',
+    danger: 'var(--red-subtle)'
+  }
+
   return (
     <div className={`hero-metric-card hover-lift animate-fade-in-up`}>
       <div className="hero-metric-header">
-        <div className="hero-metric-icon" style={{ color: variantColors[variant] }}>
+        <div className="hero-metric-icon" style={{ color: variantColors[variant], background: variantBgs[variant] }}>
           <Icon size={18} />
         </div>
         <span className="hero-metric-label">{label}</span>

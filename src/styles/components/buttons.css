@@ -39,8 +39,9 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover, #2563eb);
+  filter: brightness(1.1);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
 .btn-primary:disabled {
@@ -92,7 +93,7 @@
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--red-hover, #dc2626);
+  filter: brightness(1.1);
 }
 
 /* Success Button */
@@ -102,7 +103,7 @@
 }
 
 .btn-success:hover:not(:disabled) {
-  background: var(--green-hover, #059669);
+  filter: brightness(1.1);
 }
 
 /* Warning Button */
@@ -112,7 +113,7 @@
 }
 
 .btn-warning:hover:not(:disabled) {
-  background: var(--amber-hover, #d97706);
+  filter: brightness(1.1);
 }
 
 /* Size Variants */
@@ -137,14 +138,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: none;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
 }
 
@@ -155,7 +156,7 @@
 
 .btn-icon.danger:hover,
 .btn-icon.btn-danger-subtle:hover {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--red-subtle);
   color: var(--accent-red);
 }
 

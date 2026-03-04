@@ -492,7 +492,7 @@ export default function ForemanLanding({
           align-items: center;
           justify-content: center;
           padding: 0.5rem;
-          background: var(--gradient-card-dark, var(--bg-elevated));
+          background: var(--bg-card);
           border: 1px solid var(--border-color);
           border-radius: 10px;
           color: var(--text-secondary);
@@ -543,7 +543,7 @@ export default function ForemanLanding({
           align-items: center;
           justify-content: center;
           padding: 1.375rem 1rem;
-          background: var(--gradient-card-dark, var(--bg-card));
+          background: var(--bg-card);
           border: 1px solid var(--border-color);
           border-radius: 14px;
           cursor: pointer;
@@ -679,7 +679,7 @@ export default function ForemanLanding({
 
         /* More Actions Section */
         .fm-more-section {
-          background: var(--gradient-card-dark, var(--bg-card));
+          background: var(--bg-card);
           border: 1px solid var(--border-color);
           border-radius: 14px;
           overflow: hidden;

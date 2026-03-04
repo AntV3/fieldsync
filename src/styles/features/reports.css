@@ -962,7 +962,7 @@
 
 /* Reports Section Card */
 .reports-section-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1058,7 +1058,7 @@
 
 /* Reports Insight Card */
 .reports-insight-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;

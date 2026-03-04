@@ -59,7 +59,7 @@
 }
 
 .login-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: 2.5rem;
@@ -126,7 +126,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   cursor: pointer;

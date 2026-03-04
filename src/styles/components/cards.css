@@ -8,7 +8,7 @@
 
 /* Base Card */
 .card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   padding: var(--space-lg);
@@ -39,7 +39,7 @@
 
 /* Project Card */
 .project-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1rem 1.125rem;
@@ -56,8 +56,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: var(--gradient-blue);
+  height: 2px;
+  background: var(--primary-color);
   opacity: 0;
   transition: opacity var(--transition-normal);
 }
@@ -65,7 +65,7 @@
 .project-card:hover {
   border-color: var(--accent-blue);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .project-card:hover::before {
@@ -84,7 +84,7 @@
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--letter-spacing-tight);
   color: var(--text-primary);
 }
 
@@ -141,7 +141,7 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--letter-spacing-wide);
   font-variant-numeric: tabular-nums;
 }
 
@@ -155,7 +155,7 @@
   color: var(--text-muted);
   margin-top: 0.2rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--letter-spacing-caps);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -209,12 +209,12 @@
 .profitability-card,
 .cost-contributors-card,
 .disposal-summary-card {
-  background: var(--gradient-card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
 }
 
 .burn-rate-card:hover,
@@ -239,7 +239,7 @@
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   margin-bottom: var(--space-md);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 /* Card Header with actions */
