@@ -401,6 +401,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     company_id: company.id,
     project_id: project.id,
     title,
+    description: scopeOfWork || '',
     scope_of_work: scopeOfWork || '',
     area_id: areaId || null,
     cor_number: corNumber,
@@ -438,36 +439,38 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         savedCOR = await db.createCOR(corPayload)
       }
 
-      if (savedCOR?.id) {
-        await db.saveCORLineItems(savedCOR.id, {
-          laborItems,
-          materialItems: materialsItems,
-          equipmentItems,
-          subcontractorItems: subcontractorsItems
-        })
+      if (!savedCOR?.id) {
+        throw new Error('Failed to save COR - no ID returned')
+      }
 
-        // Link imported tickets to this COR as backup documentation
-        if (importedTicketIds.length > 0) {
-          const failedLinks = []
-          for (const ticketId of importedTicketIds) {
-            try {
-              await db.assignTicketToCOR(ticketId, savedCOR.id)
-              // Mark association as imported since line items were saved above
-              await db.markTicketAssociationImported?.(ticketId, savedCOR.id)
-            } catch (linkError) {
-              console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
-              failedLinks.push(ticketId)
-            }
+      await db.saveCORLineItems(savedCOR.id, {
+        laborItems,
+        materialItems: materialsItems,
+        equipmentItems,
+        subcontractorItems: subcontractorsItems
+      })
+
+      // Link imported tickets to this COR as backup documentation
+      if (importedTicketIds.length > 0) {
+        const failedLinks = []
+        for (const ticketId of importedTicketIds) {
+          try {
+            await db.assignTicketToCOR(ticketId, savedCOR.id)
+            // Mark association as imported since line items were saved above
+            await db.markTicketAssociationImported?.(ticketId, savedCOR.id)
+          } catch (linkError) {
+            console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
+            failedLinks.push(ticketId)
           }
-          if (failedLinks.length > 0) {
-            onShowToast?.(
-              `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
-              'warning'
-            )
-            onSaved?.(savedCOR)
-            onClose?.()
-            return
-          }
+        }
+        if (failedLinks.length > 0) {
+          onShowToast?.(
+            `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
+            'warning'
+          )
+          onSaved?.(savedCOR)
+          onClose?.()
+          return
         }
       }
 
@@ -511,16 +514,17 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         await db.submitCORForApproval(existingCOR.id)
       } else {
         savedCOR = await db.createCOR(corPayload)
-        if (savedCOR?.id) {
-          corIdToUse = savedCOR.id
-          await db.saveCORLineItems(savedCOR.id, {
-            laborItems,
-            materialItems: materialsItems,
-            equipmentItems,
-            subcontractorItems: subcontractorsItems
-          })
-          await db.submitCORForApproval(savedCOR.id)
+        if (!savedCOR?.id) {
+          throw new Error('Failed to create COR - no ID returned')
         }
+        corIdToUse = savedCOR.id
+        await db.saveCORLineItems(savedCOR.id, {
+          laborItems,
+          materialItems: materialsItems,
+          equipmentItems,
+          subcontractorItems: subcontractorsItems
+        })
+        await db.submitCORForApproval(savedCOR.id)
       }
 
       // Link imported tickets to this COR as backup documentation

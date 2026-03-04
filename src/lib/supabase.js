@@ -2324,7 +2324,8 @@ export const db = {
         overtime_hours: w.overtime_hours || 0,
         time_started: w.time_started || null,
         time_ended: w.time_ended || null,
-        role: w.role || 'Laborer'
+        role: w.role || 'Laborer',
+        labor_class_id: w.labor_class_id || null
       }))
       const client = getClient()
       if (!client) {
