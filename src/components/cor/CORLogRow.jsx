@@ -76,7 +76,9 @@ export default function CORLogRow({
   const formatDateDisplay = (dateStr) => {
     if (!dateStr) return '-'
     try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
+      const s = String(dateStr)
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+      return d.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'

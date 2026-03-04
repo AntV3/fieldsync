@@ -1313,17 +1313,19 @@ export const corOps = {
       }
 
       data.forEach(cor => {
+        // cor_total is stored in cents; convert to dollars for consumers
+        const corValueDollars = (cor.cor_total || 0) / 100
         switch (cor.status) {
           case 'draft':
             stats.draft_count++
             break
           case 'pending_approval':
             stats.pending_count++
-            stats.total_pending_value += cor.cor_total || 0
+            stats.total_pending_value += corValueDollars
             break
           case 'approved':
             stats.approved_count++
-            stats.total_approved_value += cor.cor_total || 0
+            stats.total_approved_value += corValueDollars
             break
           case 'rejected':
             stats.rejected_count++
@@ -1331,7 +1333,7 @@ export const corOps = {
           case 'billed':
           case 'closed':
             stats.billed_count++
-            stats.total_billed_value += cor.cor_total || 0
+            stats.total_billed_value += corValueDollars
             break
         }
       })

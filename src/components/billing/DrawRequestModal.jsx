@@ -50,7 +50,8 @@ export default memo(function DrawRequestModal({
     }, 0)
   }, [areas])
 
-  const approvedCOs = corStats?.approvedTotal || 0
+  // getCORStats returns dollars; convert to cents to match originalContract
+  const approvedCOs = Math.round((corStats?.total_approved_value || 0) * 100)
   const revisedContract = originalContract + approvedCOs
 
   // Initialize data
