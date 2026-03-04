@@ -38,6 +38,9 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     disposalLoadsToday: 0
   })
 
+  // Counter incremented on real-time updates — passed to ForemanMetrics to avoid duplicate subscriptions
+  const [refreshSignal, setRefreshSignal] = useState(0)
+
   // Theme
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -71,15 +74,20 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       // Load disposal loads for today
       const disposal = await db.getDisposalLoads?.(project.id, today) || []
 
+      // Check if daily report has been submitted for today
+      const dailyReport = await db.getDailyReport?.(project.id, today)
+      const dailyReportDone = dailyReport?.status === 'submitted'
+
       setTodayStatus({
         crewCheckedIn,
         crewCount: crewWorkers.length,
         tmTicketsToday: todayTickets.length,
-        dailyReportDone: false, // We'll track this separately
+        dailyReportDone,
         disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
       })
     } catch (error) {
       console.error('Error loading today status:', error)
+      onShowToast?.('Error loading today\'s activity', 'error')
     }
   }
 
@@ -106,6 +114,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     refreshTimeoutRef.current = setTimeout(() => {
       loadAreas()
       loadTodayStatus()
+      setRefreshSignal(prev => prev + 1)
     }, 300)
   }, [project?.id])
 
@@ -167,9 +176,26 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       const data = await db.getAreas(project.id)
       setAreas(data)
       const groups = [...new Set(data.map(a => a.group_name || 'General'))]
-      const expanded = {}
-      groups.forEach(g => expanded[g] = false)
-      setExpandedGroups(expanded)
+      // Restore persisted expand state, or default to all expanded
+      const storageKey = `fm_groups_${project.id}`
+      try {
+        const stored = localStorage.getItem(storageKey)
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          // Ensure any new groups are expanded by default
+          const expanded = {}
+          groups.forEach(g => expanded[g] = parsed[g] !== undefined ? parsed[g] : true)
+          setExpandedGroups(expanded)
+        } else {
+          const expanded = {}
+          groups.forEach(g => expanded[g] = true)
+          setExpandedGroups(expanded)
+        }
+      } catch {
+        const expanded = {}
+        groups.forEach(g => expanded[g] = true)
+        setExpandedGroups(expanded)
+      }
     } catch (error) {
       console.error('Error loading areas:', error)
       onShowToast?.('Error loading areas', 'error')
@@ -195,7 +221,11 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   }
 
   const toggleGroup = (group) => {
-    setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))
+    setExpandedGroups(prev => {
+      const next = { ...prev, [group]: !prev[group] }
+      try { localStorage.setItem(`fm_groups_${project.id}`, JSON.stringify(next)) } catch {}
+      return next
+    })
   }
 
   const toggleTheme = () => {
@@ -332,6 +362,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         project={project}
         companyId={companyId}
         onBack={() => setActiveView('home')}
+        refreshSignal={refreshSignal}
       />
     )
   }
@@ -452,7 +483,11 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     <div className="fm-view">
       {/* Header */}
       <div className="fm-header">
-        <button className="fm-exit" onClick={onExit}>
+        <button className="fm-exit" onClick={() => {
+          if (window.confirm('Exit field view? You will need to re-enter your PIN to return.')) {
+            onExit()
+          }
+        }}>
           <ArrowLeft size={20} />
         </button>
         <div className="fm-header-center">

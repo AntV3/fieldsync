@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus } from 'lucide-react'
+import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus, Cloud } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 
@@ -9,6 +9,8 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const [report, setReport] = useState(null)
   const [fieldNotes, setFieldNotes] = useState('')
   const [issues, setIssues] = useState('')
+  const [weather, setWeather] = useState('')
+  const [temperature, setTemperature] = useState('')
   const [photos, setPhotos] = useState([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [submitProgress, setSubmitProgress] = useState('')
@@ -41,6 +43,8 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         setReport(existing)
         setFieldNotes(existing.field_notes || '')
         setIssues(existing.issues || '')
+        setWeather(existing.weather || '')
+        setTemperature(existing.temperature || '')
       } else {
         // Compile fresh data
         const compiled = await db.compileDailyReport(project.id)
@@ -120,10 +124,12 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         }
       }
 
-      // Save notes and photos
+      // Save notes, weather, and photos
       const reportData = {
         field_notes: fieldNotes,
-        issues: issues
+        issues: issues,
+        weather: weather || null,
+        temperature: temperature || null
       }
       if (uploadedPaths.length > 0) {
         reportData.photos = uploadedPaths
@@ -318,6 +324,36 @@ export default function DailyReport({ project, onShowToast, onClose }) {
           {isSubmitted && photos.length === 0 && (report.photos_count || 0) === 0 && (
             <p className="dr-photo-empty">No photos attached</p>
           )}
+        </div>
+
+        {/* Weather */}
+        <div className="daily-report-section">
+          <h3><Cloud size={18} className="inline-icon" /> Weather</h3>
+          <div className="dr-weather-row">
+            <select
+              value={weather}
+              onChange={(e) => setWeather(e.target.value)}
+              disabled={isSubmitted}
+              className="dr-weather-select"
+            >
+              <option value="">Select weather...</option>
+              <option value="clear">Clear</option>
+              <option value="partly_cloudy">Partly Cloudy</option>
+              <option value="cloudy">Cloudy</option>
+              <option value="rain">Rain</option>
+              <option value="storm">Storm</option>
+              <option value="snow">Snow</option>
+              <option value="wind">Windy</option>
+            </select>
+            <input
+              type="text"
+              value={temperature}
+              onChange={(e) => setTemperature(e.target.value)}
+              placeholder="Temp (e.g. 75°F)"
+              disabled={isSubmitted}
+              className="dr-temp-input"
+            />
+          </div>
         </div>
 
         {/* Field Notes */}

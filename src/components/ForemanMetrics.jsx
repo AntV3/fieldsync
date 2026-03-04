@@ -9,7 +9,7 @@ import {
   CheckCircle2, Clock, DollarSign, ArrowLeft
 } from 'lucide-react'
 
-export default function ForemanMetrics({ project, companyId, onBack }) {
+export default function ForemanMetrics({ project, companyId, onBack, refreshSignal }) {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('week') // week, month
   const [metrics, setMetrics] = useState({
@@ -20,13 +20,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     dailyReports: []
   })
 
-  useEffect(() => {
-    if (project?.id) {
-      loadMetrics()
-    }
-  }, [project?.id, timeRange])
-
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     setLoading(true)
     try {
       const now = new Date()
@@ -38,37 +32,25 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       }
       const startStr = startDate.toISOString().split('T')[0]
 
-      // Load all data in parallel
+      // Load all data in parallel (single batch query for crew instead of N+1)
       const days = timeRange === 'week' ? 7 : 30
-      const [areas, tickets, disposalLoads, dailyReports] = await Promise.all([
+      const [areas, tickets, crewHistoryRaw, disposalLoads, dailyReports] = await Promise.all([
         db.getAreas(project.id),
         db.getTMTickets?.(project.id) || [],
+        db.getCrewCheckinHistory?.(project.id, days) || [],
         db.getDisposalLoadsHistory?.(project.id, days) || [],
         db.getDailyReports?.(project.id) || []
       ])
 
-      // Load crew history for each day (parallel for performance)
-      const crewDates = []
-      const currentDate = new Date(startDate)
-      while (currentDate <= now) {
-        crewDates.push({
-          dateStr: currentDate.toISOString().split('T')[0],
-          dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
-        })
-        currentDate.setDate(currentDate.getDate() + 1)
-      }
-
-      const crewResults = await Promise.all(
-        crewDates.map(async ({ dateStr, dayName }) => {
-          try {
-            const crew = await db.getCrewCheckin(project.id, dateStr)
-            return { date: dateStr, count: crew?.workers?.length || 0, dayName }
-          } catch {
-            return { date: dateStr, count: 0, dayName }
-          }
-        })
-      )
-      const crewHistory = crewResults
+      // Transform crew history into {date, count, dayName} format
+      const crewHistory = crewHistoryRaw.map(checkin => {
+        const d = new Date(checkin.check_in_date + 'T12:00:00')
+        return {
+          date: checkin.check_in_date,
+          count: checkin.workers?.length || 0,
+          dayName: d.toLocaleDateString('en-US', { weekday: 'short' })
+        }
+      })
 
       setMetrics({
         areas,
@@ -82,42 +64,20 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Real-time subscriptions - reload metrics when underlying data changes
-  const refreshTimeoutRef = useRef(null)
-
-  const debouncedReload = useCallback(() => {
-    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
-    refreshTimeoutRef.current = setTimeout(() => {
-      loadMetrics()
-    }, 300)
   }, [project?.id, timeRange])
 
   useEffect(() => {
-    if (!project?.id) return
-    const subs = []
-
-    const areaSub = db.subscribeToAreas?.(project.id, debouncedReload)
-    if (areaSub) subs.push(areaSub)
-
-    const crewSub = db.subscribeToCrewCheckins?.(project.id, debouncedReload)
-    if (crewSub) subs.push(crewSub)
-
-    const tmSub = db.subscribeToTMTickets?.(project.id, debouncedReload)
-    if (tmSub) subs.push(tmSub)
-
-    const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedReload)
-    if (haulSub) subs.push(haulSub)
-
-    const reportSub = db.subscribeToDailyReports?.(project.id, debouncedReload)
-    if (reportSub) subs.push(reportSub)
-
-    return () => {
-      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
-      subs.forEach(sub => db.unsubscribe?.(sub))
+    if (project?.id) {
+      loadMetrics()
     }
-  }, [project?.id, debouncedReload])
+  }, [project?.id, loadMetrics])
+
+  // Reload when parent signals real-time data changed (avoids duplicate subscriptions)
+  useEffect(() => {
+    if (refreshSignal > 0 && project?.id) {
+      loadMetrics()
+    }
+  }, [refreshSignal, project?.id, loadMetrics])
 
   // Calculate derived metrics
   const derivedMetrics = useMemo(() => {
@@ -430,300 +390,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         </div>
       </div>
 
-      <style>{`
-        .foreman-metrics {
-          padding: 1rem;
-          max-width: 100%;
-          overflow-x: hidden;
-          box-sizing: border-box;
-        }
-
-        .foreman-metrics.loading {
-          min-height: 400px;
-        }
-
-        .loading-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem;
-          color: var(--text-secondary);
-        }
-
-        .metrics-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .metrics-header h2 {
-          flex: 1;
-          margin: 0;
-          font-size: 1.25rem;
-          color: var(--text-primary);
-          min-width: 0;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .back-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: var(--bg-elevated);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          color: var(--text-primary);
-          cursor: pointer;
-          font-size: 0.875rem;
-          flex-shrink: 0;
-          white-space: nowrap;
-        }
-
-        .back-btn:hover {
-          background: var(--bg-tertiary);
-        }
-
-        .time-toggle {
-          display: flex;
-          background: var(--bg-elevated);
-          border-radius: 8px;
-          padding: 4px;
-          gap: 4px;
-          flex-shrink: 0;
-        }
-
-        .time-toggle button {
-          padding: 0.5rem 1rem;
-          border: none;
-          background: transparent;
-          border-radius: 6px;
-          color: var(--text-secondary);
-          cursor: pointer;
-          font-size: 0.875rem;
-          transition: all 0.2s;
-        }
-
-        .time-toggle button.active {
-          background: var(--primary-color, #3b82f6);
-          color: white;
-        }
-
-        .summary-cards {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          overflow: hidden;
-        }
-
-        @media (min-width: 640px) {
-          .summary-cards {
-            grid-template-columns: repeat(4, 1fr);
-          }
-        }
-
-        .summary-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 1rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          min-width: 0;
-          overflow: hidden;
-        }
-
-        .card-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .progress-card .card-icon {
-          background: #dbeafe;
-          color: #3b82f6;
-        }
-
-        .crew-card .card-icon {
-          background: #dcfce7;
-          color: #22c55e;
-        }
-
-        .tickets-card .card-icon {
-          background: #fef3c7;
-          color: #f59e0b;
-        }
-
-        .disposal-card .card-icon {
-          background: #f3e8ff;
-          color: #8b5cf6;
-        }
-
-        [data-theme="dark"] .progress-card .card-icon {
-          background: #1e3a5f;
-        }
-
-        [data-theme="dark"] .crew-card .card-icon {
-          background: #14532d;
-        }
-
-        [data-theme="dark"] .tickets-card .card-icon {
-          background: #451a03;
-        }
-
-        [data-theme="dark"] .disposal-card .card-icon {
-          background: #3b0764;
-        }
-
-        .card-content {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .card-value {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          line-height: 1.2;
-        }
-
-        .card-label {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .card-detail {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          margin-top: auto;
-        }
-
-        .charts-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1rem;
-        }
-
-        @media (min-width: 640px) {
-          .charts-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        .chart-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 1rem;
-          min-width: 0;
-          overflow: hidden;
-        }
-
-        .chart-card h3 {
-          margin: 0 0 1rem 0;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        .no-data {
-          height: 200px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-secondary);
-          font-size: 0.875rem;
-        }
-
-        .activity-card {
-          grid-column: 1 / -1;
-        }
-
-        @media (min-width: 640px) {
-          .activity-card {
-            grid-column: auto;
-          }
-        }
-
-        .activity-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .activity-item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .activity-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .activity-info {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-        }
-
-        .activity-label {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-        }
-
-        .activity-value {
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        /* Recharts customization */
-        .recharts-cartesian-grid-horizontal line,
-        .recharts-cartesian-grid-vertical line {
-          stroke: var(--border-color);
-        }
-
-        .recharts-text {
-          fill: var(--text-secondary);
-        }
-
-        .recharts-tooltip-wrapper {
-          outline: none;
-        }
-
-        .recharts-default-tooltip {
-          background: var(--bg-card) !important;
-          border: 1px solid var(--border-color) !important;
-          border-radius: 8px !important;
-        }
-
-        .recharts-tooltip-label {
-          color: var(--text-primary) !important;
-        }
-
-        .recharts-tooltip-item {
-          color: var(--text-secondary) !important;
-        }
-      `}</style>
     </div>
   )
 }

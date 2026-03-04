@@ -1029,11 +1029,23 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             </button>
           )}
           {step < 5 && (
-            <div className="tm-step-dots">
-              <span className={`tm-dot ${step >= 1 ? 'active' : ''}`}></span>
-              <span className={`tm-dot ${step >= 2 ? 'active' : ''}`}></span>
-              <span className={`tm-dot ${step >= 3 ? 'active' : ''}`}></span>
-              <span className={`tm-dot ${step >= 4 ? 'active' : ''}`}></span>
+            <div className="tm-step-bar">
+              {[
+                { num: 1, label: 'Details' },
+                { num: 2, label: 'Crew' },
+                { num: 3, label: 'Materials' },
+                { num: 4, label: 'Review' }
+              ].map(s => (
+                <div
+                  key={s.num}
+                  className={`tm-step-item ${step === s.num ? 'current' : ''} ${step > s.num ? 'completed' : ''}`}
+                >
+                  <span className="tm-step-num">
+                    {step > s.num ? <CheckCircle2 size={14} /> : s.num}
+                  </span>
+                  <span className="tm-step-label">{s.label}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>

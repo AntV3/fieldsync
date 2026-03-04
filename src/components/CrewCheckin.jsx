@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { HardHat, UserPlus, X, RotateCcw } from 'lucide-react'
+import { HardHat, UserPlus, X, RotateCcw, Copy, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 // Helper to get/set dismissed workers from localStorage per project
@@ -37,6 +37,10 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const [laborCategories, setLaborCategories] = useState([])
   const [laborClasses, setLaborClasses] = useState([])
   const [loadingClasses, setLoadingClasses] = useState(true)
+
+  // Search filter for quick-add list
+  const [searchQuery, setSearchQuery] = useState('')
+  const [copyingCrew, setCopyingCrew] = useState(false)
 
   // Fallback roles if no custom labor classes are set up
   const defaultRoles = ['Foreman', 'Laborer', 'Supervisor', 'Operator']
@@ -232,6 +236,29 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     onShowToast?.('All workers restored to quick-add', 'success')
   }
 
+  // Copy previous day's crew in one tap
+  const handleCopyPreviousCrew = async () => {
+    setCopyingCrew(true)
+    try {
+      const history = await db.getCrewCheckinHistory(project.id, 7)
+      // Find the most recent check-in with workers (skip today if present)
+      const today = new Date().toISOString().split('T')[0]
+      const previous = history.find(h => h.check_in_date !== today && h.workers?.length > 0)
+      if (!previous || !previous.workers?.length) {
+        onShowToast?.('No previous crew found', 'info')
+        return
+      }
+      await db.saveCrewCheckin(project.id, previous.workers)
+      setWorkers(previous.workers)
+      onShowToast?.(`Added ${previous.workers.length} crew from previous day`, 'success')
+    } catch (err) {
+      console.error('Error copying crew:', err)
+      onShowToast?.('Error copying previous crew', 'error')
+    } finally {
+      setCopyingCrew(false)
+    }
+  }
+
   // Get dismissed worker details for the restore list
   const dismissedWorkerDetails = recentWorkers.filter(
     rw => dismissedNames.includes(rw.name.toLowerCase())
@@ -241,6 +268,8 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const availableRecentWorkers = recentWorkers.filter(
     rw => !workers.find(w => w.name.toLowerCase() === rw.name.toLowerCase()) &&
           !dismissedNames.includes(rw.name.toLowerCase())
+  ).filter(
+    rw => !searchQuery || rw.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -339,6 +368,14 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
         <div className="crew-empty">
           <p>No crew checked in yet</p>
           <p className="crew-empty-hint">Add your crew for the day</p>
+          <button
+            className="crew-copy-prev-btn"
+            onClick={handleCopyPreviousCrew}
+            disabled={copyingCrew}
+          >
+            <Copy size={16} />
+            <span>{copyingCrew ? 'Copying...' : 'Copy previous day\'s crew'}</span>
+          </button>
         </div>
       ) : groupedWorkers ? (
         <div className="crew-list crew-list-grouped">
@@ -391,7 +428,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       )}
 
       {/* Quick-add recent workers */}
-      {!loadingRecent && (availableRecentWorkers.length > 0 || editingQuickAdd) && (
+      {!loadingRecent && (availableRecentWorkers.length > 0 || editingQuickAdd || searchQuery) && (
         <div className="crew-quick-add">
           <div className="crew-quick-add-header">
             <span>{editingQuickAdd ? 'Manage quick-add list' : 'Tap to add'}</span>
@@ -402,6 +439,23 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
               {editingQuickAdd ? 'Done' : 'Edit'}
             </button>
           </div>
+          {recentWorkers.length >= 6 && !editingQuickAdd && (
+            <div className="crew-search-wrapper">
+              <Search size={14} className="crew-search-icon" />
+              <input
+                type="text"
+                className="crew-search-input"
+                placeholder="Search crew..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="crew-search-clear" onClick={() => setSearchQuery('')}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
           {groupedRecentWorkers && groupedRecentWorkers.length > 0 ? (
             <div className="crew-quick-add-grouped">
               {groupedRecentWorkers.map(group => (

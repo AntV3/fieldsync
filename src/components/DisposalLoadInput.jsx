@@ -79,14 +79,18 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
 
     setSaving(true)
     try {
-      await db.addDisposalLoad(
+      const result = await db.addDisposalLoad(
         project.id,
         user?.id || null,
         date,
         newLoad.type,
         newLoad.count
       )
-      await loadDisposalData()
+      if (result) {
+        setLoads(prev => [...prev, result])
+      } else {
+        await loadDisposalData()
+      }
       setNewLoad({ type: 'concrete', count: 1 })
       setShowAddForm(false)
       onShowToast?.('Disposal load added', 'success')
@@ -100,12 +104,14 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
 
   const handleDeleteLoad = async (id) => {
     setSaving(true)
+    const prevLoads = loads
+    setLoads(prev => prev.filter(l => l.id !== id))
     try {
       await db.deleteDisposalLoad(id)
-      await loadDisposalData()
       onShowToast?.('Load removed', 'success')
     } catch (err) {
       console.error('Error deleting disposal load:', err)
+      setLoads(prevLoads)
       onShowToast?.('Error removing load', 'error')
     } finally {
       setSaving(false)
@@ -115,8 +121,12 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const handleQuickAdd = async (loadType) => {
     setSaving(true)
     try {
-      await db.addDisposalLoad(project.id, user?.id || null, date, loadType, 1)
-      await loadDisposalData()
+      const result = await db.addDisposalLoad(project.id, user?.id || null, date, loadType, 1)
+      if (result) {
+        setLoads(prev => [...prev, result])
+      } else {
+        await loadDisposalData()
+      }
       onShowToast?.('Load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
@@ -128,11 +138,12 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
 
   const handleIncrementLoad = async (load) => {
     setSaving(true)
+    setLoads(prev => prev.map(l => l.id === load.id ? { ...l, load_count: l.load_count + 1 } : l))
     try {
       await db.updateDisposalLoad(load.id, load.load_type, load.load_count + 1)
-      await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
+      setLoads(prev => prev.map(l => l.id === load.id ? { ...l, load_count: load.load_count } : l))
       onShowToast?.('Error updating load', 'error')
     } finally {
       setSaving(false)
@@ -146,11 +157,12 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
     }
 
     setSaving(true)
+    setLoads(prev => prev.map(l => l.id === load.id ? { ...l, load_count: l.load_count - 1 } : l))
     try {
       await db.updateDisposalLoad(load.id, load.load_type, load.load_count - 1)
-      await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
+      setLoads(prev => prev.map(l => l.id === load.id ? { ...l, load_count: load.load_count } : l))
       onShowToast?.('Error updating load', 'error')
     } finally {
       setSaving(false)

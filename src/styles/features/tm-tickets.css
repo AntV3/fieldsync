@@ -84,6 +84,62 @@
   background: var(--accent-blue);
 }
 
+/* Step Progress Bar */
+.tm-step-bar {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.tm-step-item {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.tm-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--border-color);
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tm-step-label {
+  display: none;
+}
+
+.tm-step-item.current .tm-step-num {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.tm-step-item.current .tm-step-label {
+  display: inline;
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.tm-step-item.completed .tm-step-num {
+  background: #22c55e;
+  color: white;
+}
+
+@media (min-width: 400px) {
+  .tm-step-label {
+    display: inline;
+  }
+}
+
 .tm-item-count {
   font-size: 0.875rem;
   color: var(--text-secondary);
