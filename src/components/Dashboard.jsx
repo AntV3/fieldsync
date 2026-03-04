@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
-import { db } from '../lib/supabase'
+import { db, equipmentOps } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
@@ -307,7 +307,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         corStats,
         crewHistory,
         materialRequests,
-        weeklyDisposal
+        weeklyDisposal,
+        projectEquipment
       ] = await Promise.all([
         safeAsync(() => db.getAreas(project.id), { fallback: [], context: { operation: 'getAreas', projectId: project.id } }),
         safeAsync(() => db.getTMTickets(project.id), { fallback: [], context: { operation: 'getTMTickets', projectId: project.id } }),
@@ -320,7 +321,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } }),
         safeAsync(() => db.getCrewCheckinHistory(project.id, 60), { fallback: [], context: { operation: 'getCrewCheckinHistory', projectId: project.id } }),
         safeAsync(() => db.getMaterialRequests(project.id), { fallback: [], context: { operation: 'getMaterialRequests', projectId: project.id } }),
-        safeAsync(() => db.getWeeklyDisposalSummary(project.id, 4), { fallback: [], context: { operation: 'getWeeklyDisposalSummary', projectId: project.id } })
+        safeAsync(() => db.getWeeklyDisposalSummary(project.id, 4), { fallback: [], context: { operation: 'getWeeklyDisposalSummary', projectId: project.id } }),
+        safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } })
       ])
 
       // Calculate progress - use SOV values if available
@@ -374,7 +376,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
       const haulOffCost = haulOffCosts?.totalCost || 0
-      const allCostsTotal = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal
+      // Project equipment rental costs (daily rate * days on site, stored in cents)
+      const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
+      const allCostsTotal = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
       // Profit calculations
       const currentProfit = billable - allCostsTotal
@@ -384,7 +388,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       const laborDays = laborCosts?.byDate?.length || 0
       const materialsDays = materialsEquipmentByDateArray.length
       const totalBurnDays = Math.max(laborDays, materialsDays)
-      const totalBurn = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal
+      const totalBurn = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
       const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
       // Schedule insights
@@ -470,6 +474,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         dailyBurn,
         materialsEquipmentCost,
         materialsEquipmentByDate: materialsEquipmentByDateArray,
+        projectEquipmentCost,
         haulOffCost,
         haulOffLoads: haulOffCosts?.totalLoads || 0,
         haulOffDays: haulOffCosts?.daysWithHaulOff || 0,
@@ -597,6 +602,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           dailyBurn: 0,
           materialsEquipmentCost: 0,
           materialsEquipmentByDate: [],
+          projectEquipmentCost: 0,
           haulOffCost: 0,
           haulOffLoads: 0,
           haulOffDays: 0,
@@ -1268,8 +1274,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   totalCosts={projectData?.allCostsTotal || 0}
                   laborCost={projectData?.laborCost || 0}
                   disposalCost={projectData?.haulOffCost || 0}
-                  equipmentCost={projectData?.materialsEquipmentCost || 0}
-                  materialsCost={0}
+                  equipmentCost={projectData?.projectEquipmentCost || 0}
+                  materialsCost={projectData?.materialsEquipmentCost || 0}
                   otherCost={projectData?.customCostTotal || 0}
                   contractValue={revisedContractValue}
                 />
@@ -1525,6 +1531,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           daysWorked={projectData?.totalBurnDays || 0}
                           laborCost={projectData?.laborCost || 0}
                           materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                          projectEquipmentCost={projectData?.projectEquipmentCost || 0}
                           disposalCost={projectData?.haulOffCost || 0}
                           customCostTotal={projectData?.customCostTotal || 0}
                           progress={progress}
@@ -1547,6 +1554,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           laborCost={projectData?.laborCost || 0}
                           haulOffCost={projectData?.haulOffCost || 0}
                           materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                          projectEquipmentCost={projectData?.projectEquipmentCost || 0}
                           customCosts={projectData?.customCosts || []}
                           onAddCost={handleAddCost}
                           onDeleteCost={handleDeleteCost}
