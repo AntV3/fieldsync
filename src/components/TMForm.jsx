@@ -42,6 +42,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Post-submit signature state
   const [submittedTicket, setSubmittedTicket] = useState(null)
+  const [showForemanSignature, setShowForemanSignature] = useState(false)
+  const [foremanSigned, setForemanSigned] = useState(false)
   const [showSignatureLinkModal, setShowSignatureLinkModal] = useState(false)
   const [showOnSiteSignature, setShowOnSiteSignature] = useState(false)
   const [clientSigned, setClientSigned] = useState(false)
@@ -1142,6 +1144,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           submittedTicket={submittedTicket}
           submitting={submitting}
           submitProgress={submitProgress}
+          foremanSigned={foremanSigned}
+          setForemanSigned={setForemanSigned}
+          showForemanSignature={showForemanSignature}
+          setShowForemanSignature={setShowForemanSignature}
+          foremanName={submittedByName}
           clientSigned={clientSigned}
           setClientSigned={setClientSigned}
           showSignatureLinkModal={showSignatureLinkModal}

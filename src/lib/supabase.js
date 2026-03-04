@@ -2561,6 +2561,31 @@ export const db = {
     return null
   },
 
+  // Save foreman signature directly to T&M ticket (on-site signing before client)
+  async saveTMForemanSignature(ticketId, signatureData) {
+    if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+      const { data, error } = await client
+        .from('t_and_m_tickets')
+        .update({
+          foreman_signature_data: signatureData.signature,
+          foreman_signature_name: signatureData.signerName,
+          foreman_signature_title: signatureData.signerTitle,
+          foreman_signature_date: signatureData.signedAt,
+          status: 'foreman_signed' // Update status to indicate foreman has signed
+        })
+        .eq('id', ticketId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
   // Save client signature directly to T&M ticket (on-site signing)
   async saveTMClientSignature(ticketId, signatureData) {
     if (isSupabaseConfigured) {
