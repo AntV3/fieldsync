@@ -1364,6 +1364,23 @@
   border-radius: var(--radius-lg);
 }
 
+.tm-signature-options + .tm-signature-options {
+  margin-top: 1rem;
+}
+
+.tm-signature-locked {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+
+.tm-signature-locked-msg {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0.25rem 0 0;
+}
+
 .tm-signature-options h3 {
   font-size: 1.1rem;
   margin: 0 0 0.5rem;
@@ -2236,6 +2253,25 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Foreman signed badge in ticket header */
+.tm-foreman-signed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border-radius: var(--radius-lg);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.tm-foreman-signed-badge svg {
+  width: 12px;
+  height: 12px;
 }
 
 /* Client verified badge in ticket header */
