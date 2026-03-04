@@ -656,7 +656,7 @@
     justify-content: center;
     gap: 0.5rem;
     position: fixed;
-    bottom: 1.5rem;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
     right: 1.5rem;
     padding: 0.875rem 1.25rem;
     background: var(--primary-color);

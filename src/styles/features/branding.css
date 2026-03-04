@@ -329,7 +329,7 @@ END MIGRATED */
   text-align: center;
   font-weight: 600;
   font-size: 0.875rem;
-  z-index: 1000;
+  z-index: var(--z-toast);
 }
 
 .settings-loading {

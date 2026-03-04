@@ -339,4 +339,18 @@ input[type="number"] {
   .form-row-compact {
     flex-direction: column;
   }
+
+  /* Prevent iOS zoom on input focus (requires minimum 16px) */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: max(var(--font-size-md), 16px);
+  }
 }

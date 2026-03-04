@@ -1555,3 +1555,64 @@
 .benchmark-indicator__label {
   font-weight: var(--font-weight-medium);
 }
+
+/* ---- Mobile Responsive ---- */
+@media (max-width: 768px) {
+  .project-row {
+    grid-template-columns: auto 1fr auto;
+    gap: var(--space-sm);
+  }
+
+  .project-row__progress {
+    display: none;
+  }
+
+  .project-row__status {
+    width: auto;
+  }
+
+  .project-row__budget {
+    width: auto;
+  }
+
+  .benchmark-comparison__legend {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .benchmark-summary {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .smart-alert {
+    gap: var(--space-sm);
+  }
+
+  .projections-panel__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .project-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+
+  .project-row__risk {
+    display: none;
+  }
+
+  .project-row__name {
+    white-space: normal;
+  }
+
+  .metric-card__value {
+    font-size: var(--font-size-2xl);
+  }
+
+  .preset-selector {
+    grid-template-columns: 1fr;
+  }
+}

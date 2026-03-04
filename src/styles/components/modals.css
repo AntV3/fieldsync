@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
   padding: var(--space-md);
   overflow-y: auto;
 }
@@ -29,6 +29,7 @@
   border-radius: var(--radius-xl);
   width: 100%;
   max-height: calc(100vh - 2rem);
+  z-index: var(--z-modal);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -100,6 +101,8 @@
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .close-btn:hover {
@@ -175,9 +178,14 @@
 
   .modal-footer {
     flex-direction: column;
+    padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   }
 
   .modal-footer .btn {
     width: 100%;
+  }
+
+  .modal-body {
+    padding: var(--space-md);
   }
 }

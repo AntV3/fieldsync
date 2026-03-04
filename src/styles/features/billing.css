@@ -1179,4 +1179,23 @@
     grid-template-columns: 50px 1fr 80px 32px;
     font-size: 0.75rem;
   }
+
+  .invoice-detail-header {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .tm-summary-bar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .tm-summary-stat {
+    min-width: calc(50% - 0.75rem);
+  }
+
+  .invoice-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }

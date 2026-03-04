@@ -440,10 +440,10 @@ END MIGRATED */
 /* Toast */
 .toast-container {
   position: fixed;
-  bottom: 2rem;
+  bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--z-toast);
 }
 
 .toast {
@@ -536,6 +536,24 @@ END MIGRATED */
 }
 
 /* Responsive */
+@media (max-width: 768px) {
+  .project-list {
+    grid-template-columns: 1fr;
+  }
+
+  .toast-container {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    left: 1rem;
+    right: 1rem;
+    transform: none;
+  }
+
+  .toast {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 @media (max-width: 640px) {
   h1 {
     font-size: 1.5rem;
@@ -566,6 +584,10 @@ END MIGRATED */
   .project-card-header {
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  .dashboard-header {
+    flex-wrap: wrap;
   }
 }
 
