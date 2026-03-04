@@ -259,8 +259,25 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+  .card {
+    padding: var(--space-md);
+  }
+
   .project-card-header {
     flex-direction: column;
     gap: var(--space-xs);
+  }
+
+  .project-stats-row {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .project-stat {
+    min-width: calc(33% - var(--space-xs));
+  }
+
+  .project-stat:not(:last-child)::after {
+    display: none;
   }
 }

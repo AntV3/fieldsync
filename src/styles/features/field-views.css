@@ -809,7 +809,39 @@
   margin: 0;
 }
 
+@media (max-width: 640px) {
+  .daily-report-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .material-request-item {
+    flex-wrap: wrap;
+  }
+
+  .material-request-name {
+    flex: 1 1 100%;
+  }
+
+  .material-request-qty {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .material-request-unit {
+    flex: 1 1 auto;
+  }
+}
+
 @media (max-width: 360px) {
+  .daily-report-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.375rem;
+  }
+
+  .daily-report-card-value {
+    font-size: 1.25rem;
+  }
+
   .dr-photo-grid {
     grid-template-columns: repeat(2, 1fr);
   }

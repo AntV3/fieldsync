@@ -238,3 +238,20 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Mobile touch targets */
+@media (max-width: 640px) {
+  .btn {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  .toggle-btn {
+    min-height: 44px;
+  }
+}
