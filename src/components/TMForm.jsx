@@ -952,9 +952,6 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           await db.updateTMTicketPhotos(ticket.id, photoUrls,
             Object.keys(photoLocations).length > 0 ? photoLocations : null)
         }
-      } else if (photoUrls.length > 0) {
-        setSubmitProgress('Saving photos...')
-        await db.updateTMTicketPhotos(ticket.id, photoUrls)
       }
 
       setSubmitProgress('Saving workers...')
