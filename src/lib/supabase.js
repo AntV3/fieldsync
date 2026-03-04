@@ -6100,25 +6100,23 @@ export const db = {
 
     if (error) throw error
 
-    // Get document counts for each folder
-    const folderIds = data.map(f => f.id)
-    if (folderIds.length > 0) {
-      const { data: counts, error: countError } = await client
-        .from('documents')
-        .select('folder_id')
-        .in('folder_id', folderIds)
-        .is('archived_at', null)
-        .eq('is_current', true)
-
-      if (!countError && counts) {
-        const countMap = {}
-        counts.forEach(doc => {
-          countMap[doc.folder_id] = (countMap[doc.folder_id] || 0) + 1
-        })
-        data.forEach(folder => {
-          folder.document_count = countMap[folder.id] || 0
-        })
-      }
+    // Get document counts per folder using individual count queries (much faster
+    // than fetching every document row and counting client-side)
+    if (data.length > 0) {
+      const countPromises = data.map(folder =>
+        client
+          .from('documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('folder_id', folder.id)
+          .is('archived_at', null)
+          .eq('is_current', true)
+          .then(res => ({ folderId: folder.id, count: res.count || 0 }))
+      )
+      const counts = await Promise.all(countPromises)
+      const countMap = Object.fromEntries(counts.map(c => [c.folderId, c.count]))
+      data.forEach(folder => {
+        folder.document_count = countMap[folder.id] || 0
+      })
     }
 
     return data
@@ -6194,7 +6192,7 @@ export const db = {
 
     let query = client
       .from('documents')
-      .select('*', { count: 'exact' })
+      .select('id,name,file_name,file_size_bytes,mime_type,storage_path,category,visibility,approval_status,version,uploaded_at', { count: 'exact' })
       .eq('folder_id', folderId)
       .is('archived_at', null)
       .eq('is_current', true)
@@ -6238,7 +6236,7 @@ export const db = {
 
     const { data, error, count } = await client
       .from('documents')
-      .select('*', { count: 'exact' })
+      .select('id,name,file_name,file_size_bytes,mime_type,storage_path,category,visibility,approval_status,version,uploaded_at', { count: 'exact' })
       .eq('project_id', projectId)
       .is('folder_id', null)
       .is('archived_at', null)
@@ -6267,12 +6265,18 @@ export const db = {
     // Check project storage limit (250 MB default)
     const STORAGE_LIMIT = 250 * 1024 * 1024 // 250 MB
     const { data: usageData } = await client
-      .from('documents')
-      .select('file_size_bytes')
-      .eq('project_id', projectId)
-      .is('archived_at', null)
-
-    const currentUsage = usageData?.reduce((sum, doc) => sum + (doc.file_size_bytes || 0), 0) || 0
+      .rpc('get_project_storage_bytes', { p_project_id: projectId })
+      .maybeSingle()
+    // Fallback: if RPC not available, use a lightweight sum query
+    let currentUsage = usageData?.total_bytes ?? null
+    if (currentUsage === null) {
+      const { data: sizeRows } = await client
+        .from('documents')
+        .select('file_size_bytes')
+        .eq('project_id', projectId)
+        .is('archived_at', null)
+      currentUsage = sizeRows?.reduce((sum, doc) => sum + (doc.file_size_bytes || 0), 0) || 0
+    }
     if (currentUsage + file.size > STORAGE_LIMIT) {
       const usedMB = Math.round(currentUsage / 1024 / 1024)
       const limitMB = Math.round(STORAGE_LIMIT / 1024 / 1024)
@@ -6289,17 +6293,20 @@ export const db = {
     const storagePath = `${companyId}/${projectId}/documents/${fileName}`
 
     try {
-      // Upload to storage
-      const { data: storageData, error: storageError } = await client.storage
-        .from('project-documents')
-        .upload(storagePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        })
+      // Get user ID and start upload in parallel for faster execution
+      const [userResult, storageResult] = await Promise.all([
+        client.auth.getUser(),
+        client.storage
+          .from('project-documents')
+          .upload(storagePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+      ])
 
-      if (storageError) throw storageError
+      if (storageResult.error) throw storageResult.error
 
-      // Get public URL
+      // Get public URL (synchronous, no network call)
       const { data: urlData } = client.storage
         .from('project-documents')
         .getPublicUrl(storagePath)
@@ -6328,7 +6335,7 @@ export const db = {
           approval_status: approvalStatus,
           resource_type: metadata.resourceType || null,
           resource_id: metadata.resourceId || null,
-          uploaded_by: (await client.auth.getUser()).data?.user?.id
+          uploaded_by: userResult.data?.user?.id
         })
         .select()
         .single()
@@ -6365,7 +6372,7 @@ export const db = {
 
     let query = client
       .from('documents')
-      .select('*', { count: 'exact' })
+      .select('id,name,file_name,file_size_bytes,mime_type,storage_path,folder_id,category,visibility,approval_status,version,uploaded_at,uploaded_by', { count: 'exact' })
       .eq('project_id', projectId)
       .eq('is_current', true)
       .order('uploaded_at', { ascending: false })
@@ -6770,7 +6777,7 @@ export const db = {
 
     const { data, error } = await client
       .from('documents')
-      .select('*')
+      .select('id,name,file_name,file_size_bytes,mime_type,storage_path,category,visibility,approval_status,version,uploaded_at')
       .eq('project_id', projectId)
       .eq('is_current', true)
       .is('archived_at', null)

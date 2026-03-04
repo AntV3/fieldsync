@@ -88,28 +88,32 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     }
   }, [project.id, onShowToast])
 
+  // Debounced refresh to coalesce rapid real-time events (e.g. batch uploads)
+  const refreshTimerRef = useRef(null)
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+    refreshTimerRef.current = setTimeout(() => {
+      loadFolders()
+      if (selectedFolderRef.current) {
+        loadFolderDocuments(selectedFolderRef.current, true)
+      }
+    }, 500)
+  }, [loadFolders])
+
   // Initial load and real-time subscriptions
   useEffect(() => {
     loadFolders()
 
     // Subscribe to real-time document and folder changes
-    const folderSub = db.subscribeToDocumentFolders?.(project.id, () => {
-      loadFolders()
-    })
-    const docSub = db.subscribeToDocuments?.(project.id, () => {
-      // Refresh folder counts when documents change
-      loadFolders()
-      // If a folder is open, refresh its documents
-      if (selectedFolderRef.current) {
-        loadFolderDocuments(selectedFolderRef.current, true)
-      }
-    })
+    const folderSub = db.subscribeToDocumentFolders?.(project.id, debouncedRefresh)
+    const docSub = db.subscribeToDocuments?.(project.id, debouncedRefresh)
 
     return () => {
       if (folderSub) db.unsubscribe?.(folderSub)
       if (docSub) db.unsubscribe?.(docSub)
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     }
-  }, [loadFolders, project.id])
+  }, [loadFolders, debouncedRefresh, project.id])
 
   // Load documents in folder
   const loadFolderDocuments = async (folder, reset = false) => {
