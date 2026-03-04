@@ -105,7 +105,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
     }
 
     const totalWeight = validAreas.reduce((sum, a) => sum + parseFloat(a.weight), 0)
-    if (totalWeight !== 100) {
+    if (Math.abs(totalWeight - 100) > 0.01) {
       onShowToast('Area weights must total 100%', 'error')
       return
     }

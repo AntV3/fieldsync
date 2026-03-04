@@ -1141,7 +1141,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
             <div className="weight-total">
               <span className="weight-total-label">Total Weight:</span>
-              <span className={`weight-total-value ${totalWeight === 100 ? 'valid' : 'invalid'}`}>
+              <span className={`weight-total-value ${Math.abs(totalWeight - 100) <= 0.01 ? 'valid' : 'invalid'}`}>
                 {totalWeight}%
               </span>
             </div>

@@ -71,7 +71,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       // Calculate area's contribution to revenue
       // If scheduled_value exists (SOV), use that; otherwise calculate from weight
       // Use revisedContractValue (includes change orders) for non-SOV projects
-      const areaValue = area.scheduled_value
+      const areaValue = area.scheduled_value != null && area.scheduled_value !== ''
         ? parseFloat(area.scheduled_value)
         : (totalWeight > 0 ? (areaWeight / totalWeight) * revisedContractValue : 0)
 
