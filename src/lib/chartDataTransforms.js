@@ -258,7 +258,7 @@ export function filterByTimeRange(data, days) {
  * @param {Array} customCosts - Array of custom cost entries
  * @returns {Array} Chart-ready segments
  */
-export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCosts = [], materialsEquipmentCost = 0) {
+export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCosts = [], materialsEquipmentCost = 0, projectEquipmentCost = 0) {
   const segments = []
 
   // Add labor if present
@@ -281,11 +281,21 @@ export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCost
     })
   }
 
-  // Add materials & equipment from T&M tickets if present
+  // Add materials from T&M tickets if present
   if (materialsEquipmentCost > 0) {
     segments.push({
-      name: 'Materials & Equipment',
+      name: 'Materials',
       value: materialsEquipmentCost,
+      color: chartColors.materials || '#8b5cf6',
+      category: 'materials',
+    })
+  }
+
+  // Add project equipment rental costs if present
+  if (projectEquipmentCost > 0) {
+    segments.push({
+      name: 'Equipment Rental',
+      value: projectEquipmentCost,
       color: chartColors.equipment || '#f59e0b',
       category: 'equipment',
     })

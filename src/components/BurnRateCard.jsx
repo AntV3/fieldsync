@@ -25,6 +25,7 @@ export default function BurnRateCard({
   daysWorked,
   laborCost,
   materialsEquipmentCost = 0,
+  projectEquipmentCost = 0,
   disposalCost = 0,
   customCostTotal = 0,
   progress,
@@ -126,8 +127,17 @@ export default function BurnRateCard({
           <>
             <div className="burn-summary-divider"></div>
             <div className="burn-summary-item">
-              <span className="burn-summary-label">Materials & Equip</span>
+              <span className="burn-summary-label">Materials</span>
               <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
+            </div>
+          </>
+        )}
+        {projectEquipmentCost > 0 && (
+          <>
+            <div className="burn-summary-divider"></div>
+            <div className="burn-summary-item">
+              <span className="burn-summary-label">Equipment Rental</span>
+              <span className="burn-summary-value">{formatCurrency(projectEquipmentCost)}</span>
             </div>
           </>
         )}

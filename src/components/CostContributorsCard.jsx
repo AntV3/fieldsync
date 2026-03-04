@@ -26,6 +26,7 @@ export default function CostContributorsCard({
   laborCost = 0,
   haulOffCost = 0,
   materialsEquipmentCost = 0,
+  projectEquipmentCost = 0,
   customCosts = [],
   onAddCost,
   onDeleteCost
@@ -58,14 +59,25 @@ export default function CostContributorsCard({
     })
   }
 
-  // Materials & Equipment (auto-tracked from T&M tickets)
+  // Materials (auto-tracked from T&M tickets)
   if (materialsEquipmentCost > 0) {
     costBreakdown.push({
-      category: 'equipment',
-      label: 'Materials & Equipment',
+      category: 'materials',
+      label: 'Materials',
       amount: materialsEquipmentCost,
       source: 'auto',
       description: 'From T&M tickets'
+    })
+  }
+
+  // Equipment rental (auto-tracked from project equipment daily rates)
+  if (projectEquipmentCost > 0) {
+    costBreakdown.push({
+      category: 'equipment',
+      label: 'Equipment Rental',
+      amount: projectEquipmentCost,
+      source: 'auto',
+      description: 'From equipment tracking'
     })
   }
 
@@ -160,6 +172,7 @@ export default function CostContributorsCard({
           laborCost={laborCost}
           haulOffCost={haulOffCost}
           materialsEquipmentCost={materialsEquipmentCost}
+          projectEquipmentCost={projectEquipmentCost}
           customCosts={customCosts}
           onSegmentClick={handleSegmentClick}
         />

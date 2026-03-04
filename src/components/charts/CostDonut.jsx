@@ -18,6 +18,7 @@ export default function CostDonut({
   laborCost = 0,
   haulOffCost = 0,
   materialsEquipmentCost = 0,
+  projectEquipmentCost = 0,
   customCosts = [],
   onSegmentClick,
 }) {
@@ -25,8 +26,8 @@ export default function CostDonut({
 
   // Build the donut segments
   const segments = useMemo(() => {
-    return buildCostDistribution(laborCost, haulOffCost, customCosts, materialsEquipmentCost)
-  }, [laborCost, haulOffCost, customCosts, materialsEquipmentCost])
+    return buildCostDistribution(laborCost, haulOffCost, customCosts, materialsEquipmentCost, projectEquipmentCost)
+  }, [laborCost, haulOffCost, customCosts, materialsEquipmentCost, projectEquipmentCost])
 
   // Calculate total
   const totalCost = useMemo(() => {
