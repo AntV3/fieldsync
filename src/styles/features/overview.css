@@ -40,7 +40,7 @@
 
 /* ---- Needs Attention Card (project overview) ---- */
 .overview-needs-attention {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -148,8 +148,8 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--gradient-card-dark);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
@@ -426,7 +426,7 @@
 
 /* Section Card */
 .overview-section-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -571,7 +571,7 @@
 
 /* Crew Metrics Card */
 .crew-metrics-card {
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   border: 1px solid var(--border-color);
@@ -946,7 +946,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: var(--bg-card);
+  background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -1004,10 +1004,10 @@
   grid-template-columns: auto 1fr;
   gap: 1.75rem;
   align-items: center;
-  background: var(--bg-card);
+  background: var(--gradient-hero);
   border-radius: var(--radius-xl);
   padding: 1.25rem 1.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
@@ -1019,8 +1019,19 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   background: var(--gradient-blue);
+}
+
+.overview-hero-split::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 /* Progress Gauge */
