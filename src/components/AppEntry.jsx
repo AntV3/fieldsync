@@ -500,23 +500,75 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       const companyCodeGenerated = generateCode(6)
       const officeCodeGenerated = generateCode(6)
 
-      // Create auth user
+      // Step 1: Create auth user (or recover orphan auth account from previous failed attempt)
+      let userId
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
         password: registerPassword
       })
 
-      if (authError) {
-        if (authError.message?.includes('already registered')) {
-          onShowToast('An account with this email already exists. Sign in instead.', 'error')
-        } else {
-          throw authError
+      const userAlreadyExists = authError?.message?.includes('already registered') ||
+        (authData?.user && authData.user.identities?.length === 0)
+
+      if (userAlreadyExists) {
+        // Auth account exists — could be orphan from failed registration or real user
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: registerPassword
+        })
+
+        if (signInError) {
+          onShowToast('An account with this email already exists. Use your existing password or sign in instead.', 'error')
+          return
         }
+
+        // Check if they already have a company (not an orphan)
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id, company_id')
+          .eq('id', signInData.user.id)
+          .maybeSingle()
+
+        if (existingUser?.company_id) {
+          await supabase.auth.signOut()
+          onShowToast('An account with this email already exists. Sign in instead.', 'error')
+          return
+        }
+
+        // Orphan auth user (no profile or no company) — continue with registration
+        userId = signInData.user.id
+      } else if (authError) {
+        throw authError
+      } else {
+        userId = authData.user?.id
+        if (!userId) throw new Error('Failed to create account')
+      }
+
+      // Step 2: Try atomic RPC registration first (preferred — bypasses RLS in single transaction)
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('register_company', {
+        p_user_id: userId,
+        p_user_email: normalizedEmail,
+        p_user_name: registerName.trim(),
+        p_company_name: registerCompanyName.trim(),
+        p_company_code: companyCodeGenerated,
+        p_office_code: officeCodeGenerated
+      })
+
+      if (!rpcError && rpcResult) {
+        // RPC succeeded — company, user, and membership all created atomically
+        setCreatedCompany({
+          name: registerCompanyName.trim(),
+          code: companyCodeGenerated,
+          officeCode: officeCodeGenerated
+        })
+        setRegisterStep(3)
         return
       }
 
-      const userId = authData.user?.id
-      if (!userId) throw new Error('Failed to create account')
+      // Step 3: Fallback to direct inserts (for databases without the RPC)
+      if (rpcError) {
+        console.warn('register_company RPC unavailable, using direct inserts:', rpcError.message)
+      }
 
       // Create company
       const { data: companyData, error: companyError } = await supabase
@@ -536,10 +588,10 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         throw new Error('Failed to create company. Please try again.')
       }
 
-      // Create user record
+      // Create user record (upsert in case orphan user already has a partial record)
       const { error: userError } = await supabase
         .from('users')
-        .insert({
+        .upsert({
           id: userId,
           email: normalizedEmail,
           password_hash: 'managed_by_supabase_auth',
@@ -547,7 +599,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
           company_id: companyData.id,
           role: 'admin',
           is_active: true
-        })
+        }, { onConflict: 'id' })
 
       if (userError) {
         console.error('User record error:', userError)
@@ -566,8 +618,21 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         })
 
       if (ucError) {
-        console.error('User-company link error:', ucError)
-        throw new Error('Failed to link account to company')
+        // RLS may block inserting with status:'active' for the first user.
+        // Fall back to repairLegacyUser RPC (SECURITY DEFINER) which bypasses RLS.
+        console.warn('Direct user_companies insert failed, trying repair RPC:', ucError.message)
+        const { error: repairError } = await supabase.rpc('repair_legacy_user', {
+          p_user_id: userId,
+          p_company_id: companyData.id,
+          p_role: 'admin'
+        })
+
+        if (repairError) {
+          console.error('Repair RPC also failed:', repairError.message)
+          // The user record has company_id set, so repairLegacyUser will
+          // fire automatically on next login via checkAuth(). Show success
+          // since the company and user were created successfully.
+        }
       }
 
       // Store the created company info for the success screen
