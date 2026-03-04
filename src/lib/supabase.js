@@ -2813,20 +2813,25 @@ export const db = {
   // Approve a pending membership with access level assignment (uses RPC for security)
   async approveMembershipWithRole(membershipId, approvedBy, accessLevel = 'member') {
     if (isSupabaseConfigured) {
+      // Map frontend access_level to role used in RLS policies
+      // RLS checks role IN ('admin', 'owner') so these must stay in sync
+      const roleForRLS = accessLevel === 'administrator' ? 'admin' : 'member'
+
       // Try RPC function first (preferred - has server-side validation)
       const { error: rpcError } = await supabase.rpc('approve_membership_with_role', {
         membership_id: membershipId,
         approved_by_user: approvedBy,
-        new_access_level: accessLevel
+        new_role: roleForRLS
       })
 
       if (rpcError) {
-        // Fallback to direct update if RPC function is not available or has mismatched params
+        // Fallback to direct update if RPC function is not available
         console.warn('RPC approve failed, using direct update:', rpcError.message)
         const { error: updateError } = await supabase
           .from('user_companies')
           .update({
             status: 'active',
+            role: roleForRLS,
             access_level: accessLevel,
             approved_at: new Date().toISOString(),
             approved_by: approvedBy
@@ -2835,6 +2840,17 @@ export const db = {
           .eq('status', 'pending')
 
         if (updateError) throw updateError
+      } else {
+        // RPC succeeded (updates status, role, approved_at, approved_by)
+        // Also set access_level which the RPC doesn't handle
+        const { error: alError } = await supabase
+          .from('user_companies')
+          .update({ access_level: accessLevel })
+          .eq('id', membershipId)
+
+        if (alError) {
+          console.warn('Could not set access_level after RPC approval:', alError.message)
+        }
       }
     }
   },
@@ -2972,12 +2988,14 @@ export const db = {
     }
   },
 
-  // Update a member's access level
+  // Update a member's access level (also syncs role column for RLS policies)
   async updateMemberAccessLevel(membershipId, newAccessLevel) {
     if (isSupabaseConfigured) {
+      // Keep role column in sync with access_level for RLS policies
+      const roleForRLS = newAccessLevel === 'administrator' ? 'admin' : 'member'
       const { error } = await supabase
         .from('user_companies')
-        .update({ access_level: newAccessLevel })
+        .update({ access_level: newAccessLevel, role: roleForRLS })
         .eq('id', membershipId)
 
       if (error) throw error
