@@ -21,8 +21,11 @@ ADD COLUMN IF NOT EXISTS company_name TEXT DEFAULT '';
 
 -- ============================================================
 -- PART 2: FIELD USER RLS POLICIES (anon role)
--- Field users authenticate via project PIN, not Supabase Auth
--- So auth.uid() is NULL - these policies allow anonymous access
+-- ⚠️  SUPERSEDED BY migration_field_sessions.sql
+-- ⚠️  DO NOT RUN THIS SECTION — these auth.uid() IS NULL policies
+-- ⚠️  are insecure and have been replaced with session-validated
+-- ⚠️  policies using can_access_project() in migration_field_sessions.sql.
+-- ⚠️  Run migration_field_sessions.sql + migration_launch_security.sql instead.
 -- ============================================================
 
 -- 2.1 CREW_CHECKINS - Field crew check-in management
