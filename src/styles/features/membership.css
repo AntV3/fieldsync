@@ -101,11 +101,12 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
-  transition: border-color 0.15s;
+  transition: all var(--transition-smooth);
 }
 
 .member-card:hover {
   border-color: var(--text-muted);
+  box-shadow: var(--shadow-sm);
 }
 
 .member-card.pending {

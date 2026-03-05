@@ -162,6 +162,8 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-smooth);
 }
 
 .tm-worker-input {
@@ -306,7 +308,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
   text-align: left;
   position: relative;
 }
@@ -490,6 +492,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   margin-bottom: 1rem;
   overflow: hidden;
 }
@@ -3057,6 +3060,8 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
   overflow: hidden;
 }
 
@@ -3900,7 +3905,7 @@ END MIGRATED */
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: all var(--transition-normal);
+  transition: all var(--transition-smooth);
 }
 
 .tm-summary-card:hover {

@@ -72,7 +72,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
   font-size: 0.85rem;
   color: var(--text-primary);
 }
@@ -387,6 +387,19 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1rem;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.disposal-summary-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .disposal-summary-card .card-header {

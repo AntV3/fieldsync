@@ -8,6 +8,18 @@
   padding: 1.125rem;
   margin-bottom: 1rem;
   box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.crew-checkin::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .crew-header {
@@ -283,7 +295,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
   min-width: 100px;
 }
 
@@ -1182,7 +1194,7 @@
   justify-content: center;
   gap: 0.5rem;
   min-height: 80px;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .field-action-btn:active {

@@ -15,8 +15,23 @@
   margin-bottom: var(--space-lg);
   animation: fadeIn 0.3s ease;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+  transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
   position: relative;
+  overflow: hidden;
+}
+
+/* Subtle surface gradient overlay for depth */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* Section Card (similar to card but smaller padding) */
@@ -26,6 +41,11 @@
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.section-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* Info Card */
@@ -34,7 +54,8 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: var(--space-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
 }
 
 /* Project Card */
@@ -65,7 +86,12 @@
 .project-card:hover {
   border-color: var(--accent-blue);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.project-card:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
 }
 
 .project-card:hover::before {
@@ -212,9 +238,23 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: var(--space-md);
+  padding: var(--space-lg);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+  transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.burn-rate-card::after,
+.profitability-card::after,
+.cost-contributors-card::after,
+.disposal-summary-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .burn-rate-card:hover,
@@ -222,6 +262,7 @@
 .cost-contributors-card:hover,
 .disposal-summary-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 /* Card Skeleton (loading state) */

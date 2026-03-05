@@ -7,6 +7,19 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.punch-list-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .punch-list-header {
@@ -223,7 +236,7 @@
   padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  transition: background var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .punch-item:hover {

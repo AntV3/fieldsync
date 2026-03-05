@@ -7,6 +7,19 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 20px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.photo-timeline-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .photo-timeline-header {
@@ -185,6 +198,11 @@
   overflow: hidden;
   cursor: pointer;
   background: var(--bg-secondary);
+  transition: box-shadow var(--transition-smooth);
+}
+
+.photo-grid-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .photo-grid-item img {

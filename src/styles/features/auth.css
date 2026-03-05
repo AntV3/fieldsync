@@ -17,7 +17,8 @@
   background: var(--bg-card);
   border-radius: var(--radius-xl);
   padding: 2rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-elevated);
 }
 
 .auth-header {

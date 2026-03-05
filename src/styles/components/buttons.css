@@ -14,11 +14,13 @@
   font-weight: var(--font-weight-semibold);
   font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
+  position: relative;
+  isolation: isolate;
 }
 
 .btn:disabled {
@@ -34,19 +36,27 @@
 
 /* Primary Button */
 .btn-primary {
-  background: var(--primary-color, var(--accent-blue));
+  background: var(--gradient-blue);
   color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(59, 130, 246, 0.15);
 }
 
 .btn-primary:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3), 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
+  filter: brightness(0.95);
 }
 
 .btn-primary:disabled {
   background: var(--text-muted);
   transform: none;
+  box-shadow: none;
 }
 
 /* Secondary Button */
@@ -54,12 +64,20 @@
   background: var(--bg-elevated);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--bg-card);
   border-color: var(--primary-color, var(--accent-blue));
   color: var(--primary-color, var(--accent-blue));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* Ghost Button (outline only) */
@@ -88,32 +106,57 @@
 
 /* Danger Button */
 .btn-danger {
-  background: var(--accent-red);
+  background: var(--gradient-amber);
+  background: linear-gradient(135deg, var(--accent-red) 0%, #dc2626 100%);
   color: white;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);
 }
 
 .btn-danger:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
 }
 
 /* Success Button */
 .btn-success {
-  background: var(--accent-green);
+  background: var(--gradient-green);
   color: white;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
 }
 
 .btn-success:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.btn-success:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
 }
 
 /* Warning Button */
 .btn-warning {
-  background: var(--accent-amber);
+  background: var(--gradient-amber);
   color: white;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
 }
 
 .btn-warning:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+.btn-warning:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
 }
 
 /* Size Variants */
@@ -214,8 +257,9 @@
 
 .toggle-btn.active {
   border-color: var(--primary-color, var(--accent-blue));
-  background: var(--primary-color, var(--accent-blue));
+  background: var(--gradient-blue);
   color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 }
 
 /* Loading Spinner (used in buttons and inline states) */

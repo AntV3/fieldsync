@@ -34,12 +34,12 @@ textarea {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
   background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--font-size-md);
   font-family: inherit;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth), background var(--transition-smooth);
 }
 
 input:focus,
@@ -49,6 +49,12 @@ textarea:focus {
   border-color: var(--primary-color);
   box-shadow: var(--shadow-focus);
   background: var(--bg-card);
+}
+
+input:hover:not(:focus):not(:disabled),
+select:hover:not(:focus):not(:disabled),
+textarea:hover:not(:focus):not(:disabled) {
+  border-color: var(--text-muted);
 }
 
 input::placeholder,

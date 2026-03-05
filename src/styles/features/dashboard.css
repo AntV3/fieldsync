@@ -204,11 +204,12 @@
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border-left: 4px solid;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-smooth), transform var(--transition-smooth);
 }
 
 .smart-alert:hover {
   background: var(--bg-elevated);
+  transform: translateX(2px);
 }
 
 .smart-alert--critical {
@@ -358,8 +359,19 @@
   background: var(--gradient-card-dark);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-smooth);
   box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .metric-card:hover {
@@ -373,7 +385,12 @@
 
 .metric-card--clickable:hover {
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.metric-card--clickable:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
 }
 
 .metric-card__header {
@@ -794,15 +811,22 @@
   align-items: center;
   padding: var(--space-md);
   background: var(--bg-card);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all var(--transition-smooth);
+  box-shadow: var(--shadow-card);
 }
 
 .project-row:hover {
   border-color: var(--accent-blue);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.project-row:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
 }
 
 .project-row__risk {
