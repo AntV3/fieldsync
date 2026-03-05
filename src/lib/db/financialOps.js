@@ -1155,5 +1155,51 @@ export const financialOps = {
       daysWithHaulOff,
       avgDailyHaulOffCost: daysWithHaulOff > 0 ? totalCost / daysWithHaulOff : 0
     }
+  },
+
+  // ============================================
+  // Real-time Subscriptions
+  // ============================================
+
+  // Subscribe to COR export job changes (for tracking async export progress)
+  subscribeToExportJobs(corId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`cor_export_jobs:${corId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'cor_export_jobs', filter: `cor_id=eq.${corId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to haul-off changes for a project
+  subscribeToHaulOffTracking(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`haul_offs:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'haul_offs', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to dump site changes for a company
+  subscribeToDumpSites(companyId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`dump_sites:${companyId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'dump_sites', filter: `company_id=eq.${companyId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
   }
 }

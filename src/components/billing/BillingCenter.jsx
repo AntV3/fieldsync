@@ -26,9 +26,30 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   const [actionLoading, setActionLoading] = useState(false)
   const dropdownRef = useRef(null)
 
-  // Load billable items and invoices
+  // Load billable items and invoices + subscribe to real-time updates
   useEffect(() => {
     loadData()
+
+    // Subscribe to invoice changes so office/field see updates in real-time
+    const invoiceSub = db.subscribeToInvoices?.(project.id, () => {
+      loadData()
+    })
+
+    // Subscribe to COR changes (affects billable items list)
+    const corSub = db.subscribeToCORs?.(project.id, () => {
+      loadData()
+    })
+
+    // Subscribe to T&M ticket changes (affects billable items list)
+    const tmSub = db.subscribeToTMTickets?.(project.id, () => {
+      loadData()
+    })
+
+    return () => {
+      if (invoiceSub) db.unsubscribe?.(invoiceSub)
+      if (corSub) db.unsubscribe?.(corSub)
+      if (tmSub) db.unsubscribe?.(tmSub)
+    }
   }, [project.id])
 
   const loadData = async () => {

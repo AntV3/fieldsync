@@ -1354,5 +1354,23 @@ export const fieldOps = {
     witnesses.splice(witnessIndex, 1)
 
     return this.updateInjuryReport(reportId, { witnesses })
+  },
+
+  // ============================================
+  // Real-time Subscriptions
+  // ============================================
+
+  // Subscribe to disposal loads / haul-offs for a project
+  subscribeToHaulOffs(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`disposal_loads:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'disposal_loads', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
   }
 }

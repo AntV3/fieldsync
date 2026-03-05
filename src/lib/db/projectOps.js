@@ -1267,6 +1267,48 @@ export const projectOps = {
         { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onPunchListChange?.(payload)
       )
+
+      // Disposal loads / haul-offs (field logs loads, office sees real-time)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'disposal_loads', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onDisposalLoadChange?.(payload)
+      )
+
+      // Haul-off tracking (field logs haul-offs with dump site info)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'haul_offs', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onHaulOffChange?.(payload)
+      )
+
+      // Invoices (office creates/updates, both sides see changes)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'invoices', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onInvoiceChange?.(payload)
+      )
+
+      // Draw requests / progress billing (office creates, both sides see)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'draw_requests', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onDrawRequestChange?.(payload)
+      )
+
+      // Project equipment (field/office adds equipment, both sides see)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'project_equipment', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onProjectEquipmentChange?.(payload)
+      )
+
+      // Project costs (custom cost entries)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'project_costs', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onProjectCostChange?.(payload)
+      )
+
+      // Daily reports
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'daily_reports', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onDailyReportChange?.(payload)
+      )
     })
 
     // Subscribe to injury reports company-wide (INSERT, UPDATE, and DELETE)

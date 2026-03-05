@@ -295,5 +295,34 @@ export const equipmentOps = {
     end.setHours(0, 0, 0, 0)
 
     return Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1)
+  },
+
+  // ----------------------------------------
+  // Real-time Subscriptions
+  // ----------------------------------------
+
+  /**
+   * Subscribe to project equipment changes (add, update, remove, return)
+   */
+  subscribeToProjectEquipment(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project_equipment:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'project_equipment', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  /**
+   * Unsubscribe from a channel
+   */
+  unsubscribe(subscription) {
+    if (subscription && isSupabaseConfigured) {
+      supabase.removeChannel(subscription)
+    }
   }
 }

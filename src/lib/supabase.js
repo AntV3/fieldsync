@@ -193,6 +193,7 @@ export const db = {
   ...fieldOps,
   ...financialOps,
   ...documentOps,
+  ...corOps,
 }
 
 // ============================================

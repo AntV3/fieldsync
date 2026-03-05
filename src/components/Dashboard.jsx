@@ -184,7 +184,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       onProjectChange: () => debouncedRefresh(), // Project details changed
       onMaterialsEquipmentChange: () => debouncedRefresh(), // Pricing updates
       onLaborRateChange: () => debouncedRefresh(), // Labor rate updates
-      onPunchListChange: () => debouncedRefresh() // Punch list items created/resolved by field
+      onPunchListChange: () => debouncedRefresh(), // Punch list items created/resolved by field
+      onDisposalLoadChange: () => debouncedRefresh(), // Disposal loads from field
+      onHaulOffChange: () => debouncedRefresh(), // Haul-off tracking from field
+      onInvoiceChange: () => debouncedRefresh(), // Invoice created/updated/paid
+      onDrawRequestChange: () => debouncedRefresh(), // Draw request changes
+      onProjectEquipmentChange: () => debouncedRefresh(), // Equipment added/removed/returned
+      onProjectCostChange: () => debouncedRefresh(), // Custom cost entries
+      onDailyReportChange: () => debouncedRefresh() // Daily reports submitted from field
     })
 
     return () => {
@@ -268,6 +275,36 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         debouncedRefresh({ refreshCOR: true })
       })
       if (corsSub) subscriptions.push(corsSub)
+
+      // Invoices subscription
+      const invoicesSub = db.subscribeToInvoices?.(projectId, () => {
+        debouncedRefresh()
+      })
+      if (invoicesSub) subscriptions.push(invoicesSub)
+
+      // Project costs subscription
+      const costsSub = db.subscribeToProjectCosts?.(projectId, () => {
+        debouncedRefresh()
+      })
+      if (costsSub) subscriptions.push(costsSub)
+
+      // T&M tickets subscription
+      const tmSub = db.subscribeToTMTickets?.(projectId, () => {
+        debouncedRefresh()
+      })
+      if (tmSub) subscriptions.push(tmSub)
+
+      // Material requests subscription
+      const matReqSub = db.subscribeToMaterialRequests?.(projectId, () => {
+        debouncedRefresh()
+      })
+      if (matReqSub) subscriptions.push(matReqSub)
+
+      // Messages subscription
+      const msgSub = db.subscribeToMessages?.(projectId, () => {
+        debouncedRefresh()
+      })
+      if (msgSub) subscriptions.push(msgSub)
 
       return () => {
         subscriptions.forEach(sub => db.unsubscribe?.(sub))
