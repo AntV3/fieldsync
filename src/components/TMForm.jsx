@@ -725,7 +725,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   const retryPhotoUpload = async (photoId, ticketId) => {
-    const photo = photos.find(p => p.id === photoId)
+    // Use ref to avoid stale closure over photos state
+    const currentPhotos = photosRef.current
+    const photo = currentPhotos.find(p => p.id === photoId)
     if (!photo || photo.status !== 'failed') return
 
     updatePhotoStatus(photoId, { status: 'compressing', error: null })
@@ -748,7 +750,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         attempts: photo.attempts + 1
       })
 
-      await db.updateTMTicketPhotos(ticketId, [...photos.filter(p => p.uploadedUrl).map(p => p.uploadedUrl), url])
+      // Use ref for current photo state to avoid stale closure
+      const latestPhotos = photosRef.current
+      const allUploadedUrls = latestPhotos
+        .filter(p => p.id === photoId ? true : p.uploadedUrl)
+        .map(p => p.id === photoId ? url : p.uploadedUrl)
+        .filter(Boolean)
+      await db.updateTMTicketPhotos(ticketId, allUploadedUrls)
 
       onShowToast('Photo uploaded successfully', 'success')
     } catch (err) {
@@ -906,26 +914,27 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         )
 
         setSubmitProgress(`Uploading ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
-        pendingPhotos.forEach(p => updatePhotoStatus(p.id, { status: 'uploading' }))
 
         let uploadedCount = 0
         let failedCount = 0
-        const uploadPromises = compressedPhotos.map(async (photo) => {
+        const results = []
+
+        // Upload photos sequentially to avoid overwhelming the connection
+        for (const photo of compressedPhotos) {
+          updatePhotoStatus(photo.id, { status: 'uploading' })
           try {
             const url = await db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
             uploadedCount++
             setSubmitProgress(`Uploading ${uploadedCount}/${pendingPhotos.length} photos...`)
             updatePhotoStatus(photo.id, { status: 'confirmed', uploadedUrl: url, attempts: (photo.attempts || 0) + 1 })
-            return { id: photo.id, url }
+            results.push({ id: photo.id, url })
           } catch (err) {
             console.error(`Photo ${photo.name} upload failed:`, err)
             failedCount++
             updatePhotoStatus(photo.id, { status: 'failed', error: err.message || 'Upload failed', attempts: (photo.attempts || 0) + 1 })
-            return { id: photo.id, url: null, error: err.message }
+            results.push({ id: photo.id, url: null, error: err.message })
           }
-        })
-
-        const results = await Promise.all(uploadPromises)
+        }
         photoUrls = results.filter(r => r.url !== null).map(r => r.url)
 
         // Build GPS metadata: map photo URL → {lat, lng, accuracy}
@@ -984,9 +993,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }
       }
 
-      photos.forEach(p => {
-        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
-      })
+      // Don't revoke blob URLs here — they're needed for the retry UI on step 5.
+      // They will be cleaned up on component unmount via the photosRef effect.
 
       setSubmittedTicket(ticket)
       onShowToast('Time & Material ticket submitted!', 'success')
@@ -1222,16 +1230,28 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 5: Success Footer */}
+      {/* Step 5: Success Footer - Foreman signature required before Done */}
       {step === 5 && (
         <div className="tm-wizard-footer">
-          <button className="tm-big-btn primary" onClick={onSubmit}>
-            <Check size={20} />
-            <span>{t('done')}</span>
-          </button>
-          <button className="tm-skip-btn" onClick={onSubmit}>
-            {t('skipSignature')}
-          </button>
+          {foremanSigned ? (
+            <button className="tm-big-btn primary" onClick={onSubmit}>
+              <Check size={20} />
+              <span>{t('done')}</span>
+            </button>
+          ) : (
+            <button
+              className="tm-big-btn submit needs-name"
+              onClick={() => setShowForemanSignature(true)}
+            >
+              <PenLine size={18} />
+              <span>{t('foremanSignatureRequired')}</span>
+            </button>
+          )}
+          {foremanSigned && !clientSigned && (
+            <button className="tm-skip-btn" onClick={onSubmit}>
+              {t('skipClientSignature')}
+            </button>
+          )}
         </div>
       )}
     </div>

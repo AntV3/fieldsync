@@ -358,7 +358,7 @@ export default function TMForemanSignature({
 
           {/* Signer Info */}
           <div className="tm-sig-fields">
-            <div className="tm-sig-field">
+            <div className={`tm-sig-field ${!signerName.trim() ? 'tm-sig-field-required' : ''}`}>
               <label>
                 <User size={14} />
                 {text.signerName} *
@@ -368,6 +368,8 @@ export default function TMForemanSignature({
                 value={signerName}
                 onChange={(e) => setSignerName(e.target.value)}
                 placeholder={text.signerNamePlaceholder}
+                required
+                autoFocus
               />
             </div>
 

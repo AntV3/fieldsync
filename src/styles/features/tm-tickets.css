@@ -4483,3 +4483,35 @@ END MIGRATED */
   }
 }
 
+/* Foreman signature required notice on step 5 */
+.tm-foreman-required-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: var(--radius-md);
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .tm-foreman-required-notice {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+/* Highlight required signature field when empty */
+.tm-sig-field-required input {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+[data-theme="dark"] .tm-sig-field-required input {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.08);
+}
+
