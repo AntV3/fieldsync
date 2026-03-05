@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 import { ChevronDown, ChevronRight, Plus, Edit2, Trash2, DollarSign, X, Check, AlertCircle } from 'lucide-react'
 
 // Simplified rate types - scalable for any company type
@@ -8,7 +9,8 @@ const RATE_TYPES = [
   { id: 'prevailing', label: 'Prevailing Wage' }
 ]
 
-export default function LaborRatesSection({ company, onShowToast }) {
+export default function LaborRatesSection({ company }) {
+  const { showToast } = useToast()
   const [categories, setCategories] = useState([])
   const [laborClasses, setLaborClasses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -50,7 +52,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
       setExpandedCategories(expanded)
     } catch (error) {
       console.error('Error loading labor classes:', error)
-      onShowToast?.('Error loading labor classes', 'error')
+      showToast('Error loading labor classes', 'error')
     } finally {
       setLoading(false)
     }
@@ -75,7 +77,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
 
   const saveCategory = async () => {
     if (!categoryName.trim()) {
-      onShowToast?.('Please enter a category name', 'error')
+      showToast('Please enter a category name', 'error')
       return
     }
 
@@ -83,13 +85,13 @@ export default function LaborRatesSection({ company, onShowToast }) {
     try {
       if (editingCategory) {
         await db.updateLaborCategory(editingCategory.id, { name: categoryName.trim() })
-        onShowToast?.('Category updated', 'success')
+        showToast('Category updated', 'success')
       } else {
         const newCategory = await db.createLaborCategory(company.id, categoryName.trim(), categories.length)
         if (newCategory) {
           setExpandedCategories(prev => ({ ...prev, [newCategory.id]: true }))
         }
-        onShowToast?.('Category created', 'success')
+        showToast('Category created', 'success')
       }
       setShowCategoryModal(false)
       setCategoryName('')
@@ -98,9 +100,9 @@ export default function LaborRatesSection({ company, onShowToast }) {
     } catch (error) {
       console.error('Error saving category:', error)
       if (error.message?.includes('duplicate')) {
-        onShowToast?.('A category with this name already exists', 'error')
+        showToast('A category with this name already exists', 'error')
       } else {
-        onShowToast?.('Error saving category', 'error')
+        showToast('Error saving category', 'error')
       }
     } finally {
       setSaving(false)
@@ -110,7 +112,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
   const deleteCategory = async (category) => {
     const classesInCategory = laborClasses.filter(c => c.category_id === category.id)
     if (classesInCategory.length > 0) {
-      onShowToast?.('Remove all classes from this category first', 'error')
+      showToast('Remove all classes from this category first', 'error')
       return
     }
 
@@ -118,11 +120,11 @@ export default function LaborRatesSection({ company, onShowToast }) {
 
     try {
       await db.deleteLaborCategory(category.id)
-      onShowToast?.('Category deleted', 'success')
+      showToast('Category deleted', 'success')
       await loadData()
     } catch (error) {
       console.error('Error deleting category:', error)
-      onShowToast?.('Error deleting category', 'error')
+      showToast('Error deleting category', 'error')
     }
   }
 
@@ -139,7 +141,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
 
   const saveClass = async () => {
     if (!className.trim()) {
-      onShowToast?.('Please enter a class name', 'error')
+      showToast('Please enter a class name', 'error')
       return
     }
 
@@ -150,11 +152,11 @@ export default function LaborRatesSection({ company, onShowToast }) {
           name: className.trim(),
           category_id: selectedCategoryId || null
         })
-        onShowToast?.('Labor class updated', 'success')
+        showToast('Labor class updated', 'success')
       } else {
         const classesInCategory = laborClasses.filter(c => c.category_id === selectedCategoryId)
         await db.createLaborClass(company.id, selectedCategoryId || null, className.trim(), classesInCategory.length)
-        onShowToast?.('Labor class created', 'success')
+        showToast('Labor class created', 'success')
       }
       setShowClassModal(false)
       setClassName('')
@@ -164,9 +166,9 @@ export default function LaborRatesSection({ company, onShowToast }) {
     } catch (error) {
       console.error('Error saving class:', error)
       if (error.message?.includes('duplicate')) {
-        onShowToast?.('A class with this name already exists', 'error')
+        showToast('A class with this name already exists', 'error')
       } else {
-        onShowToast?.('Error saving class', 'error')
+        showToast('Error saving class', 'error')
       }
     } finally {
       setSaving(false)
@@ -178,11 +180,11 @@ export default function LaborRatesSection({ company, onShowToast }) {
 
     try {
       await db.deleteLaborClass(laborClass.id)
-      onShowToast?.('Labor class deleted', 'success')
+      showToast('Labor class deleted', 'success')
       await loadData()
     } catch (error) {
       console.error('Error deleting class:', error)
-      onShowToast?.('Error deleting class', 'error')
+      showToast('Error deleting class', 'error')
     }
   }
 
@@ -243,12 +245,12 @@ export default function LaborRatesSection({ company, onShowToast }) {
       }))
 
       await db.saveLaborClassRates(selectedClassForRates.id, ratesToSave)
-      onShowToast?.('Rates saved', 'success')
+      showToast('Rates saved', 'success')
       setShowRatesModal(false)
       setSelectedClassForRates(null)
     } catch (error) {
       console.error('Error saving rates:', error)
-      onShowToast?.('Error saving rates', 'error')
+      showToast('Error saving rates', 'error')
     } finally {
       setSaving(false)
     }

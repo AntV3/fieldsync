@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { db, supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
+import { useToast } from '../lib/ToastContext'
 import {
   Info, CheckSquare,
   ArrowLeft, ChevronDown, ChevronRight,
@@ -16,7 +17,8 @@ import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
 import PunchList from './PunchList'
 
-export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
+export default memo(function ForemanView({ project, companyId, foremanName, onExit }) {
+  const { showToast } = useToast()
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
@@ -59,24 +61,24 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // Load crew check-in for today (returns single object with .workers array, or null)
-      const crew = await db.getCrewCheckin(project.id, today)
+      // Load all today's data in parallel for faster loading
+      const [crew, todayTickets, disposal] = await Promise.all([
+        // Load crew check-in for today (returns single object with .workers array, or null)
+        db.getCrewCheckin(project.id, today),
+        // Load only today's T&M tickets instead of ALL tickets (was fetching entire history)
+        db.getTMTicketsByDate?.(project.id, today).catch(() => []) || [],
+        // Load disposal loads for today
+        db.getDisposalLoads?.(project.id, today).catch(() => []) || []
+      ])
+
       const crewWorkers = crew?.workers || []
-      const crewCheckedIn = crewWorkers.length > 0
-
-      // Load T&M tickets for today
-      const tickets = await db.getTMTickets?.(project.id) || []
-      const todayTickets = tickets.filter(t => t.work_date === today)
-
-      // Load disposal loads for today
-      const disposal = await db.getDisposalLoads?.(project.id, today) || []
 
       setTodayStatus({
-        crewCheckedIn,
+        crewCheckedIn: crewWorkers.length > 0,
         crewCount: crewWorkers.length,
-        tmTicketsToday: todayTickets.length,
+        tmTicketsToday: (todayTickets || []).length,
         dailyReportDone: false, // We'll track this separately
-        disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
+        disposalLoadsToday: (disposal || []).reduce((sum, d) => sum + (d.load_count || 1), 0)
       })
     } catch (error) {
       console.error('Error loading today status:', error)
@@ -172,7 +174,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       setExpandedGroups(expanded)
     } catch (error) {
       console.error('Error loading areas:', error)
-      onShowToast?.('Error loading areas', 'error')
+      showToast('Error loading areas', 'error')
     } finally {
       setLoading(false)
     }
@@ -188,7 +190,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       setAreas(prev => prev.map(a => a.id === areaId ? { ...a, status: finalStatus } : a))
     } catch (error) {
       console.error('Error updating status:', error)
-      onShowToast?.('Error updating', 'error')
+      showToast('Error updating', 'error')
     } finally {
       setUpdating(null)
     }
@@ -241,7 +243,6 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           companyId={companyId}
           onSubmit={() => setActiveView('home')}
           onCancel={() => setActiveView('home')}
-          onShowToast={onShowToast}
         />
       </div>
     )
@@ -252,7 +253,6 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return (
       <DailyReport
         project={project}
-        onShowToast={onShowToast}
         onClose={() => setActiveView('home')}
       />
     )
@@ -269,7 +269,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           onClose={() => setActiveView('home')}
           onReportCreated={() => {
             setActiveView('home')
-            onShowToast?.('Injury report submitted', 'success')
+            showToast('Injury report submitted', 'success')
           }}
         />
       </div>
@@ -286,7 +286,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           </button>
           <h2>Crew Check-in</h2>
         </div>
-        <CrewCheckin project={project} companyId={companyId} onShowToast={onShowToast} />
+        <CrewCheckin project={project} companyId={companyId} />
       </div>
     )
   }
@@ -304,7 +304,6 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         <DisposalLoadInput
           project={project}
           date={new Date().toISOString().split('T')[0]}
-          onShowToast={onShowToast}
         />
       </div>
     )
@@ -320,7 +319,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           </button>
           <h2>Documents</h2>
         </div>
-        <FolderGrid projectId={project.id} onShowToast={onShowToast} />
+        <FolderGrid projectId={project.id} />
       </div>
     )
   }
@@ -350,7 +349,6 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           projectId={project.id}
           areas={areas}
           companyId={companyId}
-          onShowToast={onShowToast}
         />
       </div>
     )
@@ -494,8 +492,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         areasRemaining={areasRemaining}
         punchListOpenCount={punchListOpenCount}
         onNavigate={handleNavigate}
-        onShowToast={onShowToast}
       />
     </div>
   )
-}
+})

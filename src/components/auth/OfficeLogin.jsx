@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserPlus, ArrowLeft } from 'lucide-react'
+import { useToast } from '../../lib/ToastContext'
 import Logo from '../Logo'
 
-export default function OfficeLogin({ onOfficeLogin, onShowToast }) {
+export default function OfficeLogin({ onOfficeLogin }) {
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const handleOfficeSubmit = () => {
     if (!email.trim() || !password.trim()) {
-      onShowToast('Enter email and password', 'error')
+      showToast('Enter email and password', 'error')
       return
     }
     onOfficeLogin(email, password)

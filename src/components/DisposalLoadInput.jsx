@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { parseLocalDate } from '../lib/utils'
+import { useToast } from '../lib/ToastContext'
 
 const LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', icon: '🧱' },
@@ -12,7 +13,8 @@ const LOAD_TYPES = [
 
 const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
 
-export default function DisposalLoadInput({ project, user = null, date, onShowToast }) {
+export default function DisposalLoadInput({ project, user = null, date }) {
+  const { showToast } = useToast()
   const [loads, setLoads] = useState([])
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
@@ -89,13 +91,13 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await loadDisposalData()
       setNewLoad({ type: 'concrete', count: 1 })
       setShowAddForm(false)
-      onShowToast?.('Disposal load added', 'success')
+      showToast('Disposal load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
       const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
         : err?.code === '0A000' ? 'Database configuration error — please contact support'
         : 'Error adding load'
-      onShowToast?.(msg, 'error')
+      showToast(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -106,13 +108,13 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
     try {
       await db.deleteDisposalLoad(id)
       await loadDisposalData()
-      onShowToast?.('Load removed', 'success')
+      showToast('Load removed', 'success')
     } catch (err) {
       console.error('Error deleting disposal load:', err)
       const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
         : err?.code === '0A000' ? 'Database configuration error — please contact support'
         : 'Error removing load'
-      onShowToast?.(msg, 'error')
+      showToast(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -123,13 +125,13 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
     try {
       await db.addDisposalLoad(project.id, user?.id || null, date, loadType, 1)
       await loadDisposalData()
-      onShowToast?.('Load added', 'success')
+      showToast('Load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
       const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
         : err?.code === '0A000' ? 'Database configuration error — please contact support'
         : 'Error adding load'
-      onShowToast?.(msg, 'error')
+      showToast(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -145,7 +147,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
         : err?.code === '0A000' ? 'Database configuration error — please contact support'
         : 'Error updating load'
-      onShowToast?.(msg, 'error')
+      showToast(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -166,7 +168,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
         : err?.code === '0A000' ? 'Database configuration error — please contact support'
         : 'Error updating load'
-      onShowToast?.(msg, 'error')
+      showToast(msg, 'error')
     } finally {
       setSaving(false)
     }

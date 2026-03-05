@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 
 const CATEGORIES = ['Containment', 'PPE', 'Disposal', 'Equipment']
 
-export default function MaterialsSection({ company, onShowToast }) {
+export default function MaterialsSection({ company }) {
+  const { showToast } = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -28,7 +30,7 @@ export default function MaterialsSection({ company, onShowToast }) {
       findDuplicates(data || [])
     } catch (error) {
       console.error('Error loading items:', error)
-      onShowToast('Error loading materials', 'error')
+      showToast('Error loading materials', 'error')
     } finally {
       setLoading(false)
     }
@@ -66,11 +68,11 @@ export default function MaterialsSection({ company, onShowToast }) {
         await db.deleteMaterialEquipment(item.id)
       }
 
-      onShowToast(`Merged ${dupeGroup.items.length} items into one`, 'success')
+      showToast(`Merged ${dupeGroup.items.length} items into one`, 'success')
       loadItems()
     } catch (error) {
       console.error('Error merging duplicates:', error)
-      onShowToast('Error merging duplicates', 'error')
+      showToast('Error merging duplicates', 'error')
     }
   }
 
@@ -88,18 +90,18 @@ export default function MaterialsSection({ company, onShowToast }) {
         }
       }
 
-      onShowToast('All duplicates merged!', 'success')
+      showToast('All duplicates merged!', 'success')
       loadItems()
       setShowDuplicates(false)
     } catch (error) {
       console.error('Error merging all duplicates:', error)
-      onShowToast('Error merging duplicates', 'error')
+      showToast('Error merging duplicates', 'error')
     }
   }
 
   const handleAddItem = async () => {
     if (!newItem.name.trim()) {
-      onShowToast('Enter item name', 'error')
+      showToast('Enter item name', 'error')
       return
     }
 
@@ -113,13 +115,13 @@ export default function MaterialsSection({ company, onShowToast }) {
         active: true
       })
 
-      onShowToast('Item added', 'success')
+      showToast('Item added', 'success')
       setNewItem({ name: '', category: 'Equipment', unit: 'each', cost_per_unit: '' })
       setShowAddForm(false)
       loadItems()
     } catch (error) {
       console.error('Error adding item:', error)
-      onShowToast('Error adding item', 'error')
+      showToast('Error adding item', 'error')
     }
   }
 
@@ -132,12 +134,12 @@ export default function MaterialsSection({ company, onShowToast }) {
         cost_per_unit: parseFloat(item.cost_per_unit) || 0
       })
 
-      onShowToast('Item updated', 'success')
+      showToast('Item updated', 'success')
       setEditingItem(null)
       loadItems()
     } catch (error) {
       console.error('Error updating item:', error)
-      onShowToast('Error updating item', 'error')
+      showToast('Error updating item', 'error')
     }
   }
 
@@ -146,11 +148,11 @@ export default function MaterialsSection({ company, onShowToast }) {
 
     try {
       await db.deleteMaterialEquipment(itemId)
-      onShowToast('Item deleted', 'success')
+      showToast('Item deleted', 'success')
       loadItems()
     } catch (error) {
       console.error('Error deleting item:', error)
-      onShowToast('Error deleting item', 'error')
+      showToast('Error deleting item', 'error')
     }
   }
 

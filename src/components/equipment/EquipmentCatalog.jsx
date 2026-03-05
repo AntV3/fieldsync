@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { Truck, Plus, Edit2, Trash2, Check, X, Building2, Package } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 
 /**
  * EquipmentCatalog - Company equipment catalog management
@@ -12,9 +13,9 @@ import { equipmentOps } from '../../lib/supabase'
  * - Active/inactive status
  */
 export default memo(function EquipmentCatalog({
-  company,
-  onShowToast
+  company
 }) {
+  const { showToast } = useToast()
   const [catalogEquipment, setCatalogEquipment] = useState([])
   const [loading, setLoading] = useState(true)
   const [showInactive, setShowInactive] = useState(false)
@@ -41,11 +42,11 @@ export default memo(function EquipmentCatalog({
       setCatalogEquipment(data || [])
     } catch (error) {
       console.error('Error loading equipment:', error)
-      onShowToast?.('Failed to load equipment', 'error')
+      showToast('Failed to load equipment', 'error')
     } finally {
       setLoading(false)
     }
-  }, [company?.id, showInactive]) // onShowToast is stable (memoized in App.jsx)
+  }, [company?.id, showInactive])
 
   useEffect(() => {
     loadEquipment()
@@ -84,7 +85,7 @@ export default memo(function EquipmentCatalog({
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      onShowToast?.('Equipment name is required', 'error')
+      showToast('Equipment name is required', 'error')
       return
     }
 
@@ -102,17 +103,17 @@ export default memo(function EquipmentCatalog({
       if (editingId) {
         delete data.company_id
         await equipmentOps.updateEquipment(editingId, data)
-        onShowToast?.('Equipment updated', 'success')
+        showToast('Equipment updated', 'success')
       } else {
         await equipmentOps.createEquipment(data)
-        onShowToast?.('Equipment added to catalog', 'success')
+        showToast('Equipment added to catalog', 'success')
       }
 
       resetForm()
       loadEquipment()
     } catch (error) {
       console.error('Error saving equipment:', error)
-      onShowToast?.('Failed to save equipment', 'error')
+      showToast('Failed to save equipment', 'error')
     }
   }
 
@@ -123,22 +124,22 @@ export default memo(function EquipmentCatalog({
 
     try {
       await equipmentOps.deactivateEquipment(item.id)
-      onShowToast?.('Equipment deactivated', 'success')
+      showToast('Equipment deactivated', 'success')
       loadEquipment()
     } catch (error) {
       console.error('Error deactivating equipment:', error)
-      onShowToast?.('Failed to deactivate equipment', 'error')
+      showToast('Failed to deactivate equipment', 'error')
     }
   }
 
   const handleReactivate = async (item) => {
     try {
       await equipmentOps.updateEquipment(item.id, { is_active: true })
-      onShowToast?.('Equipment reactivated', 'success')
+      showToast('Equipment reactivated', 'success')
       loadEquipment()
     } catch (error) {
       console.error('Error reactivating equipment:', error)
-      onShowToast?.('Failed to reactivate equipment', 'error')
+      showToast('Failed to reactivate equipment', 'error')
     }
   }
 

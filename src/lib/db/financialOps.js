@@ -712,16 +712,16 @@ export const financialOps = {
   // Bulk set notification preferences for multiple users on a project
   async setProjectNotificationPreferences(projectId, userPreferences) {
     // userPreferences is an array of { userId, notificationTypes }
-    const results = []
-    for (const pref of userPreferences) {
+    // Process all preferences concurrently instead of sequentially
+    const promises = userPreferences.map(pref => {
       if (pref.notificationTypes && pref.notificationTypes.length > 0) {
-        const result = await this.setNotificationPreference(projectId, pref.userId, pref.notificationTypes)
-        results.push(result)
+        return this.setNotificationPreference(projectId, pref.userId, pref.notificationTypes)
       } else {
-        await this.removeNotificationPreference(projectId, pref.userId)
+        return this.removeNotificationPreference(projectId, pref.userId).then(() => null)
       }
-    }
-    return results
+    })
+    const results = await Promise.all(promises)
+    return results.filter(Boolean)
   },
 
   // ============================================
@@ -954,50 +954,26 @@ export const financialOps = {
   // Set rate for a waste type at a dump site
   async setDumpSiteRate(dumpSiteId, wasteType, estimatedCostPerLoad, unit = 'load') {
     if (isSupabaseConfigured) {
-      // First check if rate exists
-      const { data: existing } = await supabase
+      // Use upsert to atomically insert-or-update in a single query
+      // (replaces previous check-then-update which required 2 round trips)
+      const { data, error } = await supabase
         .from('dump_site_rates')
-        .select('id')
-        .eq('dump_site_id', dumpSiteId)
-        .eq('waste_type', wasteType)
-        .maybeSingle()
+        .upsert({
+          dump_site_id: dumpSiteId,
+          waste_type: wasteType,
+          estimated_cost_per_load: estimatedCostPerLoad,
+          unit
+        }, {
+          onConflict: 'dump_site_id,waste_type'
+        })
+        .select()
+        .single()
 
-      if (existing) {
-        // Update existing rate
-        const { data, error } = await supabase
-          .from('dump_site_rates')
-          .update({
-            estimated_cost_per_load: estimatedCostPerLoad,
-            unit
-          })
-          .eq('id', existing.id)
-          .select()
-          .single()
-
-        if (error) {
-          console.error('Error updating dump site rate:', error)
-          throw error
-        }
-        return data
-      } else {
-        // Insert new rate
-        const { data, error } = await supabase
-          .from('dump_site_rates')
-          .insert({
-            dump_site_id: dumpSiteId,
-            waste_type: wasteType,
-            estimated_cost_per_load: estimatedCostPerLoad,
-            unit
-          })
-          .select()
-          .single()
-
-        if (error) {
-          console.error('Error inserting dump site rate:', error)
-          throw error
-        }
-        return data
+      if (error) {
+        console.error('Error setting dump site rate:', error)
+        throw error
       }
+      return data
     }
     // Demo mode
     const localData = getLocalData()

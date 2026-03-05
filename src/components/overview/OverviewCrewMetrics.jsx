@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 import { chartColors, tooltipStyle, formatChartDate } from '../charts/chartConfig'
 
 /**
@@ -28,9 +29,9 @@ const TIME_RANGES = [
 ]
 
 export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
-  project,
-  onShowToast
+  project
 }) {
+  const { showToast } = useToast()
   const [crewHistory, setCrewHistory] = useState([])
   const [tmTickets, setTmTickets] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -183,7 +184,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   // PDF Export
   const exportCrewPDF = useCallback(async () => {
     setExporting(true)
-    onShowToast?.('Generating crew report PDF...', 'info')
+    showToast('Generating crew report PDF...', 'info')
 
     try {
       const jsPDFModule = await loadJsPDF()
@@ -290,14 +291,14 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
 
       const fileName = `${project.name}_Crew_Report_${selectedDate}.pdf`
       doc.save(fileName)
-      onShowToast?.('PDF exported!', 'success')
+      showToast('PDF exported!', 'success')
     } catch (error) {
       console.error('Error exporting crew PDF:', error)
-      onShowToast?.('Error generating PDF', 'error')
+      showToast('Error generating PDF', 'error')
     } finally {
       setExporting(false)
     }
-  }, [project, selectedDate, todayMetrics, chartData, onShowToast])
+  }, [project, selectedDate, todayMetrics, chartData])
 
   if (loading) {
     return (

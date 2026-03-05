@@ -1,14 +1,16 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { ClipboardList, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from '../lib/imageUtils'
 import { ErrorState, EmptyState } from './ui'
 import { parseLocalDate } from '../lib/utils'
+import { useToast } from '../lib/ToastContext'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
 
-export default function DailyReportsList({ project, company, onShowToast }) {
+export default memo(function DailyReportsList({ project, company }) {
+  const { showToast } = useToast()
   const { branding } = useBranding()
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
@@ -72,11 +74,11 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     } catch (err) {
       console.error('Error loading daily reports:', err)
       setError(err)
-      onShowToast?.('Error loading daily reports', 'error')
+      showToast('Error loading daily reports', 'error')
     } finally {
       setLoading(false)
     }
-  }, [project.id]) // onShowToast is stable (memoized in App.jsx)
+  }, [project.id])
 
   // Filter reports based on view mode and date filter
   const filteredReports = useMemo(() => {
@@ -238,11 +240,11 @@ export default function DailyReportsList({ project, company, onShowToast }) {
   const exportToPDF = async () => {
     const exportReports = getExportReports()
     if (exportReports.length === 0) {
-      onShowToast?.('No reports to export', 'error')
+      showToast('No reports to export', 'error')
       return
     }
 
-    onShowToast?.('Generating PDF...', 'info')
+    showToast('Generating PDF...', 'info')
 
     // Dynamic import - only loads jsPDF when user actually exports
     const jsPDFModule = await loadJsPDF()
@@ -450,7 +452,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     const fileName = `${project.name}_Daily_Reports_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)
-    onShowToast?.('PDF exported!', 'success')
+    showToast('PDF exported!', 'success')
   }
 
   // Render a single report card
@@ -765,4 +767,4 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       )}
     </div>
   )
-}
+})

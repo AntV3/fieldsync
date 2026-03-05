@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBranding } from '../lib/BrandingContext'
 import { supabase } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
-export default function BrandingSettings({ company, onShowToast }) {
+export default function BrandingSettings({ company }) {
+  const { showToast } = useToast()
   const { branding, updateBranding, uploadBrandingImage, loading } = useBranding()
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
@@ -60,9 +62,9 @@ export default function BrandingSettings({ company, onShowToast }) {
       if (error) throw error
 
       setOfficeCode(newCode)
-      onShowToast?.('Office code regenerated', 'success')
+      showToast('Office code regenerated', 'success')
     } catch {
-      onShowToast?.('Error regenerating code', 'error')
+      showToast('Error regenerating code', 'error')
     } finally {
       setRegeneratingCode(false)
     }
@@ -70,7 +72,7 @@ export default function BrandingSettings({ company, onShowToast }) {
 
   const copyOfficeCode = () => {
     navigator.clipboard.writeText(officeCode)
-    onShowToast?.('Office code copied to clipboard', 'success')
+    showToast('Office code copied to clipboard', 'success')
   }
 
   // Tier restrictions
@@ -88,13 +90,13 @@ export default function BrandingSettings({ company, onShowToast }) {
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      onShowToast?.('Image must be smaller than 5MB', 'error')
+      showToast('Image must be smaller than 5MB', 'error')
       return
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      onShowToast?.('Please upload an image file', 'error')
+      showToast('Please upload an image file', 'error')
       return
     }
 
@@ -102,13 +104,13 @@ export default function BrandingSettings({ company, onShowToast }) {
       const result = await uploadBrandingImage(file, type)
       if (result.success) {
         handleInputChange(`${type}_url`, result.url)
-        onShowToast?.(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`, 'success')
+        showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`, 'success')
       } else {
-        onShowToast?.(result.error || 'Failed to upload image', 'error')
+        showToast(result.error || 'Failed to upload image', 'error')
       }
     } catch (error) {
       console.error('Upload error:', error)
-      onShowToast?.('Failed to upload image', 'error')
+      showToast('Failed to upload image', 'error')
     }
   }
 
@@ -119,24 +121,24 @@ export default function BrandingSettings({ company, onShowToast }) {
       // Validate colors
       const colorRegex = /^#[0-9A-F]{6}$/i
       if (!colorRegex.test(localBranding.primary_color)) {
-        onShowToast?.('Primary color must be a valid hex color (e.g., #3B82F6)', 'error')
+        showToast('Primary color must be a valid hex color (e.g., #3B82F6)', 'error')
         return
       }
       if (!colorRegex.test(localBranding.secondary_color)) {
-        onShowToast?.('Secondary color must be a valid hex color (e.g., #1E40AF)', 'error')
+        showToast('Secondary color must be a valid hex color (e.g., #1E40AF)', 'error')
         return
       }
 
       const result = await updateBranding(localBranding)
 
       if (result.success) {
-        onShowToast?.('Branding settings saved successfully!', 'success')
+        showToast('Branding settings saved successfully!', 'success')
       } else {
-        onShowToast?.(result.error || 'Failed to save branding settings', 'error')
+        showToast(result.error || 'Failed to save branding settings', 'error')
       }
     } catch (error) {
       console.error('Save error:', error)
-      onShowToast?.('Failed to save branding settings', 'error')
+      showToast('Failed to save branding settings', 'error')
     } finally {
       setSaving(false)
     }
@@ -226,7 +228,7 @@ export default function BrandingSettings({ company, onShowToast }) {
               className="btn-secondary btn-small"
               onClick={() => {
                 navigator.clipboard.writeText(company?.code || '')
-                onShowToast?.('Company code copied', 'success')
+                showToast('Company code copied', 'success')
               }}
               disabled={!company?.code}
             >

@@ -161,6 +161,25 @@ export const tmOps = {
     return { changeOrders: {}, totalApprovedValue: 0, pendingCount: 0 }
   },
 
+  // Get T&M tickets for a specific date (lightweight query for field status checks)
+  // Only fetches minimal columns needed for counting/display, not full ticket data
+  async getTMTicketsByDate(projectId, date) {
+    if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) return []
+
+      const { data, error } = await client
+        .from('t_and_m_tickets')
+        .select('id, work_date, status, created_at')
+        .eq('project_id', projectId)
+        .eq('work_date', date)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
+    }
+    return []
+  },
+
   async getTMTicketsByStatus(projectId, status) {
     if (isSupabaseConfigured) {
       const client = getClient()

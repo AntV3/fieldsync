@@ -13,6 +13,7 @@ import {
 } from '../../lib/corCalculations'
 import { executeExport, createSnapshot } from '../../lib/corExportPipeline'
 import { generatePDFFromSnapshot } from '../../lib/corPdfGenerator'
+import { useToast } from '../../lib/ToastContext'
 import { exportCORDetail } from '../../lib/financialExport'
 import SignatureCanvas from '../ui/SignatureCanvas'
 import SignatureLinkGenerator from '../SignatureLinkGenerator'
@@ -26,7 +27,8 @@ const formatTime12 = (timeStr) => {
   return `${h12}:${minutes}${ampm}`
 }
 
-export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
+export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onStatusChange }) {
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [corData, setCORData] = useState(cor)
   const [showSignature, setShowSignature] = useState(false)
@@ -91,12 +93,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       }
     } catch (error) {
       console.error('Error fetching COR details:', error)
-      onShowToast?.('Error loading COR details', 'error')
+      showToast('Error loading COR details', 'error')
     } finally {
       setLoading(false)
     }
-  }, [cor.id, company?.id, project?.work_type, project?.job_type]) // onShowToast is stable (memoized in App.jsx)
-
+  }, [cor.id, company?.id, project?.work_type, project?.job_type])
   // Fetch on mount
   useEffect(() => {
     fetchFullCOR()
@@ -136,11 +137,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     try {
       await db.approveCOR(corData.id)
       setCORData({ ...corData, status: 'approved', approved_at: new Date().toISOString() })
-      onShowToast?.('COR approved', 'success')
+      showToast('COR approved', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error approving COR:', error)
-      onShowToast?.('Error approving COR', 'error')
+      showToast('Error approving COR', 'error')
     } finally {
       setLoading(false)
     }
@@ -154,11 +155,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     try {
       await db.rejectCOR(corData.id, reason)
       setCORData({ ...corData, status: 'rejected', rejection_reason: reason })
-      onShowToast?.('COR rejected', 'success')
+      showToast('COR rejected', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error rejecting COR:', error)
-      onShowToast?.('Error rejecting COR', 'error')
+      showToast('Error rejecting COR', 'error')
     } finally {
       setLoading(false)
     }
@@ -170,11 +171,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     try {
       await db.markCORAsBilled(corData.id)
       setCORData({ ...corData, status: 'billed' })
-      onShowToast?.('COR marked as billed', 'success')
+      showToast('COR marked as billed', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error marking COR as billed:', error)
-      onShowToast?.('Error updating status', 'error')
+      showToast('Error updating status', 'error')
     } finally {
       setLoading(false)
     }
@@ -191,11 +192,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
         gc_signature_date: new Date().toISOString()
       })
       setShowSignature(false)
-      onShowToast?.('Signature saved', 'success')
+      showToast('Signature saved', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error saving signature:', error)
-      onShowToast?.('Error saving signature', 'error')
+      showToast('Error saving signature', 'error')
     } finally {
       setLoading(false)
     }
@@ -213,10 +214,10 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       await db.updateCOR(corData.id, { cor_number: newCorNumber.trim() })
       setCORData({ ...corData, cor_number: newCorNumber.trim() })
       setEditingNumber(false)
-      onShowToast?.('COR number updated', 'success')
+      showToast('COR number updated', 'success')
     } catch (error) {
       console.error('Error updating COR number:', error)
-      onShowToast?.('Error updating COR number', 'error')
+      showToast('Error updating COR number', 'error')
     } finally {
       setLoading(false)
     }
@@ -260,7 +261,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     }
 
     try {
-      onShowToast?.('Generating PDF...', 'info')
+      showToast('Generating PDF...', 'info')
 
       // Attempt the full idempotent pipeline first
       const result = await executeExport(corData.id, {
@@ -272,7 +273,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
         options: { includeBackup: true }
       })
 
-      onShowToast?.(result.cached ? 'PDF downloaded (cached)' : 'PDF downloaded', 'success')
+      showToast(result.cached ? 'PDF downloaded (cached)' : 'PDF downloaded', 'success')
     } catch (pipelineError) {
       // Pipeline relies on database RPCs that may not be available in all environments.
       // Fall back to direct client-side generation from a local snapshot.
@@ -280,10 +281,10 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       try {
         const snapshot = createSnapshot(corData, associatedTickets)
         await generatePDFFromSnapshot(snapshot, { project, company, branding })
-        onShowToast?.('PDF downloaded', 'success')
+        showToast('PDF downloaded', 'success')
       } catch (fallbackError) {
         console.error('Error generating PDF:', fallbackError)
-        onShowToast?.('Error generating PDF', 'error')
+        showToast('Error generating PDF', 'error')
       }
     }
   }
@@ -954,7 +955,6 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
           project={project}
           documentTitle={`COR ${corData.cor_number}: ${corData.title || 'Untitled'}`}
           onClose={() => setShowSignatureLink(false)}
-          onShowToast={onShowToast}
         />
       )}
 

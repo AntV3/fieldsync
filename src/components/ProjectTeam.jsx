@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { Users, UserPlus, UserMinus, ChevronDown, X } from 'lucide-react'
+import { useToast } from '../lib/ToastContext'
 
 const PROJECT_ROLE_OPTIONS = [
   'Project Manager',
@@ -12,7 +13,8 @@ const PROJECT_ROLE_OPTIONS = [
   'Team Member'
 ]
 
-export default function ProjectTeam({ project, company, user, isAdmin, onShowToast }) {
+export default function ProjectTeam({ project, company, user, isAdmin }) {
+  const { showToast } = useToast()
   const [teamMembers, setTeamMembers] = useState([])
   const [companyMembers, setCompanyMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -40,7 +42,7 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
       setTeamMembers(data)
     } catch (error) {
       console.error('Error loading project team:', error)
-      onShowToast('Error loading project team', 'error')
+      showToast('Error loading project team', 'error')
     } finally {
       setLoading(false)
     }
@@ -55,27 +57,27 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
       setCompanyMembers(available)
     } catch (error) {
       console.error('Error loading company members:', error)
-      onShowToast('Error loading company members', 'error')
+      showToast('Error loading company members', 'error')
     }
   }
 
   const handleAddMember = async () => {
     if (!selectedUser) {
-      onShowToast('Select a team member', 'error')
+      showToast('Select a team member', 'error')
       return
     }
 
     try {
       setActionLoading('add')
       await db.addProjectMember(project.id, selectedUser, selectedRole, user.id)
-      onShowToast('Team member added', 'success')
+      showToast('Team member added', 'success')
       setShowAddModal(false)
       setSelectedUser('')
       setSelectedRole('Team Member')
       loadProjectTeam()
     } catch (error) {
       console.error('Error adding team member:', error)
-      onShowToast('Error adding team member', 'error')
+      showToast('Error adding team member', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -85,11 +87,11 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
     try {
       setActionLoading(member.id)
       await db.updateProjectMemberRole(project.id, member.users?.id, newRole)
-      onShowToast('Role updated', 'success')
+      showToast('Role updated', 'success')
       loadProjectTeam()
     } catch (error) {
       console.error('Error updating role:', error)
-      onShowToast('Error updating role', 'error')
+      showToast('Error updating role', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -99,11 +101,11 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
     try {
       setActionLoading(member.id)
       await db.removeProjectMember(project.id, member.users?.id)
-      onShowToast('Team member removed', 'success')
+      showToast('Team member removed', 'success')
       loadProjectTeam()
     } catch (error) {
       console.error('Error removing team member:', error)
-      onShowToast('Error removing team member', 'error')
+      showToast('Error removing team member', 'error')
     } finally {
       setActionLoading(null)
     }

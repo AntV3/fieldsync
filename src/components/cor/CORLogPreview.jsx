@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Table, List } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { useToast } from '../../lib/ToastContext'
 
 /**
  * CORLogPreview - COR Log view for the Financials tab
@@ -26,12 +27,12 @@ const STATUS_DISPLAY = {
 
 export default function CORLogPreview({
   project,
-  onShowToast,
   onToggleList,      // Toggles the full card list below
   showingList,       // Whether the list is currently expanded
   onViewFullLog,     // Opens full COR log modal (with edit capabilities)
   onCreateCOR,
 }) {
+  const { showToast } = useToast()
   const [logEntries, setLogEntries] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -54,7 +55,7 @@ export default function CORLogPreview({
       setLogEntries(data || [])
     } catch (error) {
       console.error('Error loading COR log:', error)
-      onShowToast?.('Error loading COR log', 'error')
+      showToast('Error loading COR log', 'error')
     } finally {
       setLoading(false)
     }

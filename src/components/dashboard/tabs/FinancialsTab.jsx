@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react'
+import { useToast } from '../../../lib/ToastContext'
 import { HardHat, Menu, Download } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../../../lib/financialExport'
@@ -59,9 +60,9 @@ export default function FinancialsTab({
   onViewDraw,
   // Costs
   onAddCost,
-  onDeleteCost,
-  onShowToast
+  onDeleteCost
 }) {
+  const { showToast } = useToast()
   return (
     <div className="pv-tab-panel financials-tab">
       {/* Export Actions */}
@@ -184,7 +185,7 @@ export default function FinancialsTab({
                 project={selectedProject}
                 onAddEquipment={onAddEquipment}
                 onEditEquipment={onEditEquipment}
-                onShowToast={onShowToast}
+
               />
 
               <ProgressBillingCard
@@ -194,7 +195,7 @@ export default function FinancialsTab({
                 corStats={projectData?.corStats}
                 onCreateDraw={onCreateDraw}
                 onViewDraw={onViewDraw}
-                onShowToast={onShowToast}
+
               />
 
               <details className="financials-details">
@@ -204,7 +205,7 @@ export default function FinancialsTab({
                   <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
                 </summary>
                 <div className="financials-details-content">
-                  <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+                  <ManDayCosts project={selectedProject} company={company} />
                 </div>
               </details>
             </div>
@@ -217,7 +218,7 @@ export default function FinancialsTab({
                 <Suspense fallback={<TicketSkeleton />}>
                   <CORLogPreview
                     project={selectedProject}
-                    onShowToast={onShowToast}
+    
                     onToggleList={onToggleCORList}
                     showingList={corListExpanded}
                     onViewFullLog={() => setCORDisplayMode('log')}
@@ -234,7 +235,7 @@ export default function FinancialsTab({
                       company={company}
                       areas={areas}
                       refreshKey={corRefreshKey}
-                      onShowToast={onShowToast}
+      
                       previewMode={false}
                       onViewAll={onToggleCORList}
                       onDisplayModeChange={setCORDisplayMode}
@@ -261,7 +262,7 @@ export default function FinancialsTab({
                   <TMList
                     project={selectedProject}
                     company={company}
-                    onShowToast={onShowToast}
+    
                     compact={tmViewMode === 'preview'}
                     previewMode={tmViewMode === 'preview'}
                     onViewAll={onViewAllTickets}
@@ -279,7 +280,7 @@ export default function FinancialsTab({
                   project={selectedProject}
                   company={company}
                   user={user}
-                  onShowToast={onShowToast}
+  
                 />
               </Suspense>
             </div>

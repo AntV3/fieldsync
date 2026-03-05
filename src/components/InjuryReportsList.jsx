@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import { ErrorState } from './ui'
@@ -10,7 +11,8 @@ import Toast from './Toast'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
 
-export default function InjuryReportsList({ project, companyId, company, user, onShowToast }) {
+export default memo(function InjuryReportsList({ project, companyId, company, user }) {
+  const { showToast } = useToast()
   const { branding } = useBranding()
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)
@@ -1188,4 +1190,4 @@ export default function InjuryReportsList({ project, companyId, company, user, o
       `}</style>
     </>
   )
-}
+})

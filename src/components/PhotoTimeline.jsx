@@ -1,13 +1,15 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Camera, ChevronDown, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 /**
  * PhotoTimeline - Visual progress photo timeline organized by area and date.
  * Shows construction progress documentation for disputes, owner reports, and team review.
  * Uses a date dropdown to keep the overview page compact.
  */
-export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
+export default function PhotoTimeline({ projectId, areas = [] }) {
+  const { showToast } = useToast()
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedArea, setSelectedArea] = useState('all')
@@ -15,10 +17,18 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [downloading, setDownloading] = useState(false)
+  const cacheRef = useRef({ data: null, projectId: null, timestamp: null })
 
   // Load photos for the project
   const loadPhotos = useCallback(async () => {
     if (!projectId || !isSupabaseConfigured) {
+      setLoading(false)
+      return
+    }
+
+    // Use cached data if still valid (5 minute TTL)
+    if (cacheRef.current.projectId === projectId && cacheRef.current.data && (Date.now() - cacheRef.current.timestamp) < 5 * 60 * 1000) {
+      setPhotos(cacheRef.current.data)
       setLoading(false)
       return
     }
@@ -86,6 +96,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       signedUrls.forEach((signed, i) => { allPhotos[i].url = signed })
 
       const validPhotos = allPhotos.filter(p => p.url)
+      cacheRef.current = { data: validPhotos, projectId, timestamp: Date.now() }
       setPhotos(validPhotos)
 
       // Auto-select the most recent date
@@ -177,14 +188,10 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
         document.body.removeChild(link)
         URL.revokeObjectURL(link.href)
       }
-      if (onShowToast) {
-        onShowToast(`Downloaded ${selectedDatePhotos.length} photo${selectedDatePhotos.length !== 1 ? 's' : ''}`, 'success')
-      }
+      showToast(`Downloaded ${selectedDatePhotos.length} photo${selectedDatePhotos.length !== 1 ? 's' : ''}`, 'success')
     } catch (err) {
       console.error('Error downloading photos:', err)
-      if (onShowToast) {
-        onShowToast('Failed to download photos', 'error')
-      }
+      showToast('Failed to download photos', 'error')
     } finally {
       setDownloading(false)
     }

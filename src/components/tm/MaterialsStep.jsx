@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search } from 'lucide-react'
 import { CATEGORIES } from './translations'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 
 /**
  * MaterialsStep - Step 3: Material/equipment category browsing and item selection.
@@ -10,9 +11,9 @@ import { db } from '../../lib/supabase'
  *  - companyId
  *  - items, setItems
  *  - t, lang
- *  - onShowToast
  */
-export default function MaterialsStep({ companyId, items, setItems, t, lang, onShowToast }) {
+export default function MaterialsStep({ companyId, items, setItems, t, lang }) {
+  const { showToast } = useToast()
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categoryItems, setCategoryItems] = useState([])
   const [loadingItems, setLoadingItems] = useState(false)
@@ -50,7 +51,7 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
       setCategoryItems(data)
     } catch (error) {
       console.error('Error loading items:', error)
-      onShowToast('Error loading items', 'error')
+      showToast('Error loading items', 'error')
     } finally {
       setLoadingItems(false)
     }
@@ -100,12 +101,12 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
         isCustom: false
       }])
     }
-    onShowToast(`Added ${item.name}`, 'success')
+    showToast(`Added ${item.name}`, 'success')
   }
 
   const addCustomItemHandler = () => {
     if (!customItem.name || !customItem.category || !customItem.quantity) {
-      onShowToast('Fill in all fields', 'error')
+      showToast('Fill in all fields', 'error')
       return
     }
     setItems([...items, {
@@ -121,7 +122,7 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
     setCustomItem({ name: '', category: '', quantity: '' })
     setShowCustomForm(false)
     setSelectedCategory(null)
-    onShowToast('Custom item added', 'success')
+    showToast('Custom item added', 'success')
   }
 
   const updateItemQuantity = (index, quantity) => {

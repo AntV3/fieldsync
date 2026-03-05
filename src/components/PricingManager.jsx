@@ -8,7 +8,7 @@ const PRICING_TABS = [
   { id: 'materials', label: 'Materials & Equipment', Icon: Wrench }
 ]
 
-export default function PricingManager({ company, onShowToast }) {
+export default function PricingManager({ company }) {
   const [activeTab, setActiveTab] = useState('labor')
 
   return (
@@ -35,10 +35,10 @@ export default function PricingManager({ company, onShowToast }) {
       {/* Tab Content */}
       <div className="pricing-content">
         {activeTab === 'labor' && (
-          <LaborRatesSection company={company} onShowToast={onShowToast} />
+          <LaborRatesSection company={company} />
         )}
         {activeTab === 'materials' && (
-          <MaterialsSection company={company} onShowToast={onShowToast} />
+          <MaterialsSection company={company} />
         )}
       </div>
     </div>

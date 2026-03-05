@@ -5,6 +5,7 @@
  * This component can be used standalone if change orders get their own top-level tab.
  */
 import { Suspense, lazy } from 'react'
+import { useToast } from '../../../lib/ToastContext'
 import { TicketSkeleton } from '../../ui'
 
 const CORLogPreview = lazy(() => import('../../cor/CORLogPreview'))
@@ -20,16 +21,15 @@ export default function ChangeOrdersTab({
   onToggleCORList,
   onCreateCOR,
   onViewCOR,
-  onEditCOR,
-  onShowToast
+  onEditCOR
 }) {
+  const { showToast } = useToast()
   return (
     <div className="financials-cors animate-fade-in">
       <div className="financials-section cor-section-primary">
         <Suspense fallback={<TicketSkeleton />}>
           <CORLogPreview
             project={selectedProject}
-            onShowToast={onShowToast}
             onToggleList={onToggleCORList}
             showingList={corListExpanded}
             onViewFullLog={() => setCORDisplayMode('log')}
@@ -46,7 +46,6 @@ export default function ChangeOrdersTab({
               company={company}
               areas={areas}
               refreshKey={corRefreshKey}
-              onShowToast={onShowToast}
               previewMode={false}
               onViewAll={onToggleCORList}
               onDisplayModeChange={setCORDisplayMode}

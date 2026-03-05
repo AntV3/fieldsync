@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
   Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck
 } from 'lucide-react'
+import { useToast } from '../lib/ToastContext'
 
 /**
  * ForemanLanding - Mobile-first landing page for foremen
@@ -80,7 +81,7 @@ const DEFAULT_PINNED = ['crew', 'tm', 'report', 'progress']
 // Storage key generator
 const getPinStorageKey = (projectId) => `fm_pinned_${projectId}`
 
-export default function ForemanLanding({
+export default memo(function ForemanLanding({
   project,
   todayStatus,
   progress,
@@ -88,9 +89,9 @@ export default function ForemanLanding({
   areasDone,
   areasRemaining,
   punchListOpenCount,
-  onNavigate,
-  onShowToast
+  onNavigate
 }) {
+  const { showToast } = useToast()
   // Pinned actions state
   const [pinnedIds, setPinnedIds] = useState(() => {
     try {
@@ -124,20 +125,20 @@ export default function ForemanLanding({
       if (prev.includes(actionId)) {
         // Don't allow unpinning if only one left
         if (prev.length <= 1) {
-          onShowToast?.('Keep at least one pinned action', 'info')
+          showToast('Keep at least one pinned action', 'info')
           return prev
         }
         return prev.filter(id => id !== actionId)
       } else {
         // Max 5 pinned
         if (prev.length >= 5) {
-          onShowToast?.('Maximum 5 pinned actions', 'info')
+          showToast('Maximum 5 pinned actions', 'info')
           return prev
         }
         return [...prev, actionId]
       }
     })
-  }, [onShowToast])
+  }, [showToast])
 
   // Get unpinned actions (for "More Actions" section)
   const unpinnedActions = useMemo(() => {
@@ -801,4 +802,4 @@ export default function ForemanLanding({
       `}</style>
     </div>
   )
-}
+})

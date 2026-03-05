@@ -14,6 +14,7 @@ import OverviewFinancialCard from './overview/OverviewFinancialCard'
 import OverviewCrewMetrics from './overview/OverviewCrewMetrics'
 import HeroMetrics from './HeroMetrics'
 import { TicketSkeleton } from './ui'
+import { useToast } from '../lib/ToastContext'
 
 // Financials components
 import FinancialsNav from './FinancialsNav'
@@ -52,7 +53,8 @@ const PhotoTimeline = lazy(() => import('./PhotoTimeline'))
 const PunchList = lazy(() => import('./PunchList'))
 import EarnedValueCard from './charts/EarnedValueCard'
 
-export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
+export default function Dashboard({ company, user, isAdmin, navigateToProjectId, onProjectNavigated }) {
+  const { showToast } = useToast()
   const [projects, setProjects] = useState([])
   const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
@@ -94,7 +96,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     handleEditClick, handleCancelEdit, handleEditChange,
     handleAreaEditChange, handleAddArea, handleRemoveArea,
     handleSaveEdit, handleDeleteProject
-  } = useProjectEdit({ selectedProject, areas, company, onShowToast, loadAreas, setSelectedProject })
+  } = useProjectEdit({ selectedProject, areas, company, loadAreas, setSelectedProject })
 
   // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
   // When multiple real-time events fire rapidly, this coalesces them into a single refresh
@@ -673,7 +675,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       setProjectsData(enhanced)
     } catch (error) {
       console.error('Error loading projects:', error)
-      onShowToast('Error loading projects', 'error')
+      showToast('Error loading projects', 'error')
     } finally {
       setLoading(false)
     }
@@ -782,7 +784,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         if (shouldAutoArchive(project, 30)) {
           try {
             await db.archiveProject(project.id)
-            onShowToast(`Project "${project.name}" has been auto-archived after 30 days of completion`, 'info')
+            showToast(`Project "${project.name}" has been auto-archived after 30 days of completion`, 'info')
           } catch (error) {
             console.error('Failed to auto-archive project:', error)
           }
@@ -839,7 +841,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Field document export handler
   const handleExportFieldDocuments = useCallback(async (type = 'all') => {
     if (!selectedProject) return
-    onShowToast('Gathering field data...', 'info')
+    showToast('Gathering field data...', 'info')
     try {
       const [dailyReports, injuryReports, crewCheckins] = await Promise.all([
         db.getDailyReports(selectedProject.id, 365),
@@ -864,11 +866,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           context: exportContext
         })
       }
-      onShowToast('PDF exported!', 'success')
+      showToast('PDF exported!', 'success')
     } catch (error) {
       console.error('Error exporting field documents:', error)
-      onShowToast('Error generating PDF', 'error')
+      showToast('Error generating PDF', 'error')
     }
+  }, [selectedProject])
   }, [selectedProject, company, onShowToast])
 
   const handleBackToTMPreview = useCallback(() => {
@@ -906,11 +909,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         projectDetailsCacheRef.current.delete(selectedProject.id)
       }
       loadProjects()
-      onShowToast?.('Cost deleted', 'success')
+      showToast('Cost deleted', 'success')
     } catch (err) {
-      onShowToast?.('Error deleting cost', 'error')
+      showToast('Error deleting cost', 'error')
     }
-  }, [selectedProject?.id]) // onShowToast is stable (memoized in App.jsx)
+  }, [selectedProject?.id])
 
   // Memoize stats for FinancialsNav to prevent re-renders from inline object creation
   const financialsNavStats = useMemo(() => ({
@@ -1326,7 +1329,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 {/* Left: Crew On-Site */}
                 <OverviewCrewMetrics
                   project={selectedProject}
-                  onShowToast={onShowToast}
+                  
                 />
 
                 {/* Right: Work Areas */}
@@ -1433,7 +1436,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   <PhotoTimeline
                     projectId={selectedProject?.id}
                     areas={areas}
-                    onShowToast={onShowToast}
+                    
                   />
                 </Suspense>
                 <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading punch list...</div>}>
@@ -1441,7 +1444,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                     projectId={selectedProject?.id}
                     areas={areas}
                     companyId={company?.id}
-                    onShowToast={onShowToast}
+                    
                   />
                 </Suspense>
               </div>
@@ -1611,7 +1614,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         project={selectedProject}
                         onAddEquipment={handleAddEquipment}
                         onEditEquipment={handleEditEquipment}
-                        onShowToast={onShowToast}
+                        
                       />
 
                       {/* Progress Billing / Draw Requests */}
@@ -1622,7 +1625,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         corStats={projectData?.corStats}
                         onCreateDraw={handleCreateDraw}
                         onViewDraw={handleViewDraw}
-                        onShowToast={onShowToast}
+                        
                       />
 
                       {/* Labor Details - Collapsible */}
@@ -1633,7 +1636,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
                         </summary>
                         <div className="financials-details-content">
-                          <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+                          <ManDayCosts project={selectedProject} company={company} />
                         </div>
                       </details>
                     </div>
@@ -1647,7 +1650,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         <Suspense fallback={<TicketSkeleton />}>
                           <CORLogPreview
                             project={selectedProject}
-                            onShowToast={onShowToast}
+                            
                             onToggleList={handleToggleCORList}
                             showingList={corListExpanded}
                             onViewFullLog={handleViewFullCORLog}
@@ -1665,7 +1668,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                               company={company}
                               areas={areas}
                               refreshKey={corRefreshKey}
-                              onShowToast={onShowToast}
+                              
                               previewMode={false}
                               onViewAll={handleToggleCORList}
                               onDisplayModeChange={setCORDisplayMode}
@@ -1695,7 +1698,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           <TMList
                             project={selectedProject}
                             company={company}
-                            onShowToast={onShowToast}
+                            
                             compact={tmViewMode === 'preview'}
                             previewMode={tmViewMode === 'preview'}
                             onViewAll={handleViewAllTickets}
@@ -1713,7 +1716,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                           project={selectedProject}
                           company={company}
                           user={user}
-                          onShowToast={onShowToast}
+                          
                         />
                       </Suspense>
                     </div>
@@ -2077,7 +2080,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </div>
                 <div className="reports-section-content">
                   <Suspense fallback={<TicketSkeleton />}>
-                    <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+                    <DailyReportsList project={selectedProject} company={company} />
                   </Suspense>
                 </div>
               </div>
@@ -2105,7 +2108,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                       companyId={company?.id || selectedProject?.company_id}
                       company={company}
                       user={user}
-                      onShowToast={onShowToast}
+                      
                     />
                   </Suspense>
                 </div>
@@ -2120,7 +2123,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 <DocumentsTab
                   project={selectedProject}
                   companyId={company?.id || selectedProject?.company_id}
-                  onShowToast={onShowToast}
+                  
                   userRole={user?.access_level || 'office'}
                 />
               </Suspense>
@@ -2319,7 +2322,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 company={company}
                 user={user}
                 isAdmin={isAdmin}
-                onShowToast={onShowToast}
+                
               />
 
               {/* Project Settings - Collapsible */}
@@ -2352,7 +2355,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
               {/* Account Security */}
               <div className="info-section-card">
-                <MFASetup onShowToast={onShowToast} />
+                <MFASetup />
               </div>
             </div>
           )}
@@ -2366,7 +2369,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               user={user}
               onClose={() => setShowShareModal(false)}
               onShareCreated={(share) => {
-                onShowToast('Share link created successfully!', 'success')
+                showToast('Share link created successfully!', 'success')
               }}
             />
           </Suspense>
@@ -2379,7 +2382,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               <NotificationSettings
                 project={selectedProject}
                 company={company}
-                onShowToast={onShowToast}
+                
                 onClose={() => setShowNotificationSettings(false)}
               />
             </Suspense>
@@ -2403,7 +2406,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 setEditingCOR(null)
                 setCORRefreshKey(prev => prev + 1)
               }}
-              onShowToast={onShowToast}
+              
             />
           </Suspense>
         )}
@@ -2426,7 +2429,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 setEditingCOR(cor)
                 setShowCORForm(true)
               }}
-              onShowToast={onShowToast}
+              
               onStatusChange={() => {
                 setCORRefreshKey(prev => prev + 1)
                 debouncedRefresh({ refreshCOR: true })
@@ -2451,7 +2454,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               </div>
               <div className="cor-log-modal-content">
                 <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
-                  <CORLog project={selectedProject} company={company} onShowToast={onShowToast} />
+                  <CORLog project={selectedProject} company={company} />
                 </Suspense>
               </div>
             </div>
@@ -2472,10 +2475,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                   // Invalidate cache so fresh financial data is loaded
                   projectDetailsCacheRef.current.delete(selectedProject.id)
                   loadProjects()
-                  onShowToast('Cost added successfully', 'success')
+                  showToast('Cost added successfully', 'success')
                 } catch (err) {
                   console.error('Error adding cost:', err)
-                  onShowToast('Error adding cost', 'error')
+                  showToast('Error adding cost', 'error')
                 } finally {
                   setSavingCost(false)
                 }
@@ -2496,7 +2499,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 setShowEquipmentModal(false)
                 setEditingEquipment(null)
                 setEquipmentRefreshKey(prev => prev + 1)
-                onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success')
+                showToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success')
               }}
               onClose={() => {
                 setShowEquipmentModal(false)
@@ -2519,7 +2522,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 setShowDrawRequestModal(false)
                 setEditingDrawRequest(null)
                 setDrawRequestRefreshKey(prev => prev + 1)
-                onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success')
+                showToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success')
               }}
               onClose={() => {
                 setShowDrawRequestModal(false)
@@ -2760,7 +2763,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             setShowCORDetail(true)
           }
         }}
-        onShowToast={onShowToast}
+        
       />
     </div>
   )

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
 import { db, supabase } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 import Logo from './Logo'
 
 // Password strength calculator
@@ -106,7 +107,8 @@ function PasswordInput({ value, onChange, placeholder, onKeyDown, autoFocus, sho
   )
 }
 
-export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }) {
+export default function AppEntry({ onForemanAccess, onOfficeLogin }) {
+  const { showToast } = useToast()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [mode, setMode] = useState(() => {
@@ -168,7 +170,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   // Verify company code
   const submitCompanyCode = async () => {
     if (companyCode.length < 2) {
-      onShowToast('Enter company code', 'error')
+      showToast('Enter company code', 'error')
       return
     }
 
@@ -178,11 +180,11 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (foundCompany) {
         setCompany(foundCompany)
       } else {
-        onShowToast('Invalid company code', 'error')
+        showToast('Invalid company code', 'error')
         setCompanyCode('')
       }
     } catch (err) {
-      onShowToast('Error checking code', 'error')
+      showToast('Error checking code', 'error')
     } finally {
       setLoading(false)
     }
@@ -200,7 +202,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
       if (result.rateLimited) {
         setPinState('error')
-        onShowToast('Too many attempts. Please wait 15 minutes.', 'error')
+        showToast('Too many attempts. Please wait 15 minutes.', 'error')
         if (pinResetTimeoutRef.current) clearTimeout(pinResetTimeoutRef.current)
         pinResetTimeoutRef.current = setTimeout(() => {
           setPin('')
@@ -220,15 +222,15 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       // fail silently due to RLS. Show a clear error instead.
       if (result.error) {
         console.error('[Foreman Auth] PIN validation failed:', result.error)
-        onShowToast(result.error, 'error')
+        showToast(result.error, 'error')
         setPin('')
         return
       }
 
-      onShowToast('Invalid PIN', 'error')
+      showToast('Invalid PIN', 'error')
       setPin('')
     } catch (err) {
-      onShowToast('Error checking PIN. Please check your connection.', 'error')
+      showToast('Error checking PIN. Please check your connection.', 'error')
       setPin('')
     } finally {
       setLoading(false)
@@ -238,7 +240,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   // Submit foreman name and enter the project
   const handleForemanNameSubmit = () => {
     if (!foremanName.trim()) {
-      onShowToast('Enter your name to continue', 'error')
+      showToast('Enter your name to continue', 'error')
       return
     }
     try { localStorage.setItem('fieldsync_foreman_name', foremanName.trim()) } catch { /* ignore */ }
@@ -276,7 +278,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   // Handle office login
   const handleOfficeSubmit = () => {
     if (!email.trim() || !password.trim()) {
-      onShowToast('Enter email and password', 'error')
+      showToast('Enter email and password', 'error')
       return
     }
     onOfficeLogin(email, password)
@@ -285,7 +287,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   // Verify company code for joining
   const verifyJoinCode = async () => {
     if (companyCode.length < 2) {
-      onShowToast('Enter company code', 'error')
+      showToast('Enter company code', 'error')
       return
     }
 
@@ -296,11 +298,11 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         setJoinCompany(foundCompany)
         setJoinStep(2) // Go to office code step
       } else {
-        onShowToast('Invalid company code', 'error')
+        showToast('Invalid company code', 'error')
         setCompanyCode('')
       }
     } catch (err) {
-      onShowToast('Error checking code', 'error')
+      showToast('Error checking code', 'error')
     } finally {
       setLoading(false)
     }
@@ -309,7 +311,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   // Verify office code (secure server-side check)
   const verifyOfficeCode = async () => {
     if (!officeCode.trim()) {
-      onShowToast('Enter office code', 'error')
+      showToast('Enter office code', 'error')
       return
     }
 
@@ -326,11 +328,11 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (data === true) {
         setJoinStep(3) // Go to create account step
       } else {
-        onShowToast('Invalid office code', 'error')
+        showToast('Invalid office code', 'error')
         setOfficeCode('')
       }
     } catch (err) {
-      onShowToast('Error verifying code', 'error')
+      showToast('Error verifying code', 'error')
     } finally {
       setLoading(false)
     }
@@ -340,15 +342,15 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const handleJoinSubmit = async () => {
     if (loading) return
     if (!joinName.trim()) {
-      onShowToast('Enter your name', 'error')
+      showToast('Enter your name', 'error')
       return
     }
     if (!joinEmail.trim() || !isValidEmail(joinEmail)) {
-      onShowToast('Enter a valid email address', 'error')
+      showToast('Enter a valid email address', 'error')
       return
     }
     if (joinPassword.length < 6) {
-      onShowToast('Password must be 6+ characters', 'error')
+      showToast('Password must be 6+ characters', 'error')
       return
     }
 
@@ -377,7 +379,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
         if (signInError) {
           // Password doesn't match their existing account
-          onShowToast('Account exists with different password. Use your existing password.', 'error')
+          showToast('Account exists with different password. Use your existing password.', 'error')
           setLoading(false)
           return
         }
@@ -394,13 +396,13 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
         if (existingMembership) {
           if (existingMembership.status === 'active') {
-            onShowToast('You already belong to this company. Logging you in...', 'success')
+            showToast('You already belong to this company. Logging you in...', 'success')
             setTimeout(() => window.location.reload(), 1000)
           } else if (existingMembership.status === 'pending') {
-            onShowToast('Your request is still pending approval.', 'error')
+            showToast('Your request is still pending approval.', 'error')
             await supabase.auth.signOut()
           } else {
-            onShowToast('Your membership was removed. Contact the company admin.', 'error')
+            showToast('Your membership was removed. Contact the company admin.', 'error')
             await supabase.auth.signOut()
           }
           return
@@ -472,7 +474,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
     } catch (err) {
       console.error('Join error:', err)
-      onShowToast(err.message || 'Error creating account', 'error')
+      showToast(err.message || 'Error creating account', 'error')
     } finally {
       setLoading(false)
     }
@@ -482,15 +484,15 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const handleRegisterCompany = async () => {
     if (loading) return
     if (!registerName.trim()) {
-      onShowToast('Enter your name', 'error')
+      showToast('Enter your name', 'error')
       return
     }
     if (!registerEmail.trim() || !isValidEmail(registerEmail)) {
-      onShowToast('Enter a valid email address', 'error')
+      showToast('Enter a valid email address', 'error')
       return
     }
     if (registerPassword.length < 6) {
-      onShowToast('Password must be 6+ characters', 'error')
+      showToast('Password must be 6+ characters', 'error')
       return
     }
 
@@ -518,7 +520,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
         })
 
         if (signInError) {
-          onShowToast('An account with this email already exists. Use your existing password or sign in instead.', 'error')
+          showToast('An account with this email already exists. Use your existing password or sign in instead.', 'error')
           return
         }
 
@@ -531,7 +533,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
         if (existingUser?.company_id) {
           await supabase.auth.signOut()
-          onShowToast('An account with this email already exists. Sign in instead.', 'error')
+          showToast('An account with this email already exists. Sign in instead.', 'error')
           return
         }
 
@@ -645,7 +647,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
     } catch (err) {
       console.error('Registration error:', err)
-      onShowToast(err.message || 'Error creating company', 'error')
+      showToast(err.message || 'Error creating company', 'error')
     } finally {
       setLoading(false)
     }

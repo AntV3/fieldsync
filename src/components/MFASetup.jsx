@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Shield, ShieldCheck, ShieldOff, Copy, Check, X, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
-export default function MFASetup({ onShowToast, onClose }) {
+export default function MFASetup({ onClose }) {
+  const { showToast } = useToast()
   const [step, setStep] = useState('loading')
   const [factors, setFactors] = useState([])
   const [qrCode, setQrCode] = useState(null)
@@ -44,7 +46,7 @@ export default function MFASetup({ onShowToast, onClose }) {
       setStep('enroll')
     } catch (err) {
       setError(err.message)
-      onShowToast?.('Failed to start MFA enrollment', 'error')
+      showToast('Failed to start MFA enrollment', 'error')
     }
   }
 
@@ -64,7 +66,7 @@ export default function MFASetup({ onShowToast, onClose }) {
       if (verifyError) throw verifyError
 
       setStep('success')
-      onShowToast?.('MFA enabled successfully!', 'success')
+      showToast('MFA enabled successfully!', 'success')
       await loadFactors()
     } catch {
       setError('Invalid code. Please try again.')
@@ -78,10 +80,10 @@ export default function MFASetup({ onShowToast, onClose }) {
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId: id })
       if (error) throw error
-      onShowToast?.('MFA disabled', 'success')
+      showToast('MFA disabled', 'success')
       await loadFactors()
     } catch {
-      onShowToast?.('Failed to disable MFA', 'error')
+      showToast('Failed to disable MFA', 'error')
     }
   }
 

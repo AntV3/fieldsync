@@ -33,6 +33,7 @@ export function useAsyncData(fetchFn, options = {}) {
 
   const mountedRef = useRef(true)
   const cacheRef = useRef({ data: null, timestamp: null })
+  const fetchIdRef = useRef(0)
 
   // Check if cache is valid
   const isCacheValid = useCallback(() => {
@@ -52,12 +53,18 @@ export function useAsyncData(fetchFn, options = {}) {
       return { success: true, data: cacheRef.current.data }
     }
 
+    // Increment fetch ID to track stale requests
+    const currentFetchId = ++fetchIdRef.current
+
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
       const data = await fetchFn()
 
-      if (!mountedRef.current) return { success: false, cancelled: true }
+      // Skip setState if unmounted or if a newer fetch was started
+      if (!mountedRef.current || currentFetchId !== fetchIdRef.current) {
+        return { success: false, cancelled: true }
+      }
 
       // Update cache
       if (cacheTime) {
@@ -77,7 +84,9 @@ export function useAsyncData(fetchFn, options = {}) {
 
       return { success: true, data }
     } catch (err) {
-      if (!mountedRef.current) return { success: false, cancelled: true }
+      if (!mountedRef.current || currentFetchId !== fetchIdRef.current) {
+        return { success: false, cancelled: true }
+      }
 
       const errorMessage = err?.message || 'Failed to fetch data'
       setState(prev => ({

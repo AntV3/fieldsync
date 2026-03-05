@@ -9,6 +9,7 @@ import { useFilteredPagination } from '../../hooks/useFilteredPagination'
 import Pagination from '../ui/Pagination'
 import CORLog from './CORLog'
 import CORCard from './CORCard'
+import { useToast } from '../../lib/ToastContext'
 
 // Status display mapping for exports
 const STATUS_DISPLAY = {
@@ -25,7 +26,6 @@ export default function CORList({
   company,
   areas,
   refreshKey,
-  onShowToast,
   onCreateCOR,
   onViewCOR,
   onEditCOR,
@@ -35,6 +35,7 @@ export default function CORList({
   onViewAll,            // Callback when "See All" is clicked
   onDisplayModeChange   // Callback when display mode changes (for parent layout adjustments)
 }) {
+  const { showToast } = useToast()
   const { branding } = useBranding()
   const [cors, setCORs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -86,12 +87,11 @@ export default function CORList({
       setCORs(data || [])
     } catch (error) {
       console.error('Error loading CORs:', error)
-      onShowToast?.('Error loading change order requests', 'error')
+      showToast('Error loading change order requests', 'error')
     } finally {
       setLoading(false)
     }
-  }, [project.id]) // onShowToast is stable
-
+  }, [project.id])
   const loadStats = useCallback(async () => {
     try {
       const data = await db.getCORStats?.(project.id)
@@ -119,11 +119,11 @@ export default function CORList({
   // Professional Excel Export
   const exportToExcel = async () => {
     if (cors.length === 0) {
-      onShowToast?.('No CORs to export', 'error')
+      showToast('No CORs to export', 'error')
       return
     }
 
-    onShowToast?.('Generating Excel report...', 'info')
+    showToast('Generating Excel report...', 'info')
 
     try {
       const { loadXLSXSafe } = await import('../../lib/safeXlsx')
@@ -238,21 +238,21 @@ export default function CORList({
       const fileName = `COR_Report_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.xlsx`
       XLSX.writeFile(wb, fileName)
 
-      onShowToast?.('Excel report exported successfully', 'success')
+      showToast('Excel report exported successfully', 'success')
     } catch (error) {
       console.error('Export error:', error)
-      onShowToast?.('Export failed', 'error')
+      showToast('Export failed', 'error')
     }
   }
 
   // Professional PDF Export with Branding
   const exportToPDF = async () => {
     if (cors.length === 0) {
-      onShowToast?.('No CORs to export', 'error')
+      showToast('No CORs to export', 'error')
       return
     }
 
-    onShowToast?.('Generating PDF report...', 'info')
+    showToast('Generating PDF report...', 'info')
 
     try {
       const { default: jsPDF } = await import('jspdf')
@@ -450,10 +450,10 @@ export default function CORList({
       const fileName = `COR_Report_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.pdf`
       doc.save(fileName)
 
-      onShowToast?.('PDF report exported successfully', 'success')
+      showToast('PDF report exported successfully', 'success')
     } catch (error) {
       console.error('Export error:', error)
-      onShowToast?.('Export failed', 'error')
+      showToast('Export failed', 'error')
     }
   }
 
@@ -464,27 +464,25 @@ export default function CORList({
     try {
       await db.deleteCOR(corId)
       setCORs(prev => prev.filter(c => c.id !== corId))
-      onShowToast?.('COR deleted', 'success')
+      showToast('COR deleted', 'success')
       loadStats()
     } catch (error) {
       console.error('Error deleting COR:', error)
-      onShowToast?.('Error deleting COR', 'error')
+      showToast('Error deleting COR', 'error')
     }
-  }, [loadStats]) // onShowToast is stable (memoized in App.jsx)
-
+  }, [loadStats])
   const handleSubmitForApproval = useCallback(async (corId, e) => {
     e?.stopPropagation()
     try {
       await db.submitCORForApproval(corId)
       await loadCORs()
-      onShowToast?.('COR submitted for approval', 'success')
+      showToast('COR submitted for approval', 'success')
       loadStats()
     } catch (error) {
       console.error('Error submitting COR:', error?.message || error)
-      onShowToast?.(error?.message || 'Error submitting COR', 'error')
+      showToast(error?.message || 'Error submitting COR', 'error')
     }
-  }, [loadCORs, loadStats]) // onShowToast is stable (memoized in App.jsx)
-
+  }, [loadCORs, loadStats])
   // Toggle COR selection
   const toggleCORSelection = useCallback((corId, e) => {
     e?.stopPropagation()
@@ -508,13 +506,13 @@ export default function CORList({
   // Group selected CORs
   const handleGroupSelected = async () => {
     if (!newGroupName.trim()) {
-      onShowToast?.('Please enter a group name', 'error')
+      showToast('Please enter a group name', 'error')
       return
     }
 
     try {
       await db.bulkUpdateCORGroup([...selectedCORs], newGroupName.trim())
-      onShowToast?.(`${selectedCORs.size} CORs grouped as "${newGroupName.trim()}"`, 'success')
+      showToast(`${selectedCORs.size} CORs grouped as "${newGroupName.trim()}"`, 'success')
       setShowGroupModal(false)
       setNewGroupName('')
       setSelectedCORs(new Set())
@@ -522,7 +520,7 @@ export default function CORList({
       loadCORs()
     } catch (error) {
       console.error('Error grouping CORs:', error)
-      onShowToast?.('Error grouping CORs', 'error')
+      showToast('Error grouping CORs', 'error')
     }
   }
 
@@ -789,7 +787,7 @@ export default function CORList({
               </button>
             </div>
             <div className="cor-log-modal-content">
-              <CORLog project={project} company={company} onShowToast={onShowToast} />
+              <CORLog project={project} company={company} />
             </div>
           </div>
         </div>

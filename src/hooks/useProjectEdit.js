@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 /**
  * Manages project edit mode state and handlers.
  * Extracted from Dashboard.jsx for maintainability.
  */
-export default function useProjectEdit({ selectedProject, areas, company, onShowToast, loadAreas, setSelectedProject }) {
+export default function useProjectEdit({ selectedProject, areas, company, loadAreas, setSelectedProject }) {
+  const { showToast } = useToast()
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -75,38 +77,38 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
 
   const handleSaveEdit = async () => {
     if (!editData.name.trim()) {
-      onShowToast('Please enter a project name', 'error')
+      showToast('Please enter a project name', 'error')
       return
     }
 
     const contractVal = parseFloat(editData.contract_value)
     if (!contractVal || contractVal <= 0) {
-      onShowToast('Please enter a valid contract value', 'error')
+      showToast('Please enter a valid contract value', 'error')
       return
     }
 
     if (editData.pin && editData.pin.length !== 4) {
-      onShowToast('PIN must be 4 digits', 'error')
+      showToast('PIN must be 4 digits', 'error')
       return
     }
 
     if (editData.pin && editData.pin !== selectedProject.pin) {
       const pinAvailable = await db.isPinAvailable(editData.pin, selectedProject.id)
       if (!pinAvailable) {
-        onShowToast('This PIN is already in use', 'error')
+        showToast('This PIN is already in use', 'error')
         return
       }
     }
 
     const validAreas = editData.areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
     if (validAreas.length === 0) {
-      onShowToast('Please add at least one area', 'error')
+      showToast('Please add at least one area', 'error')
       return
     }
 
     const totalWeight = validAreas.reduce((sum, a) => sum + parseFloat(a.weight), 0)
     if (Math.abs(totalWeight - 100) > 0.01) {
-      onShowToast('Area weights must total 100%', 'error')
+      showToast('Area weights must total 100%', 'error')
       return
     }
 
@@ -167,10 +169,10 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
 
       setEditMode(false)
       setEditData(null)
-      onShowToast('Project updated!', 'success')
+      showToast('Project updated!', 'success')
     } catch (error) {
       console.error('Error saving project:', error?.message || error)
-      onShowToast(error?.message || 'Error saving changes', 'error')
+      showToast(error?.message || 'Error saving changes', 'error')
     } finally {
       setSaving(false)
     }
@@ -184,11 +186,11 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
     try {
       await db.deleteProject(selectedProject.id, company?.id)
       setSelectedProject(null)
-      onShowToast('Project deleted', 'success')
+      showToast('Project deleted', 'success')
       if (typeof loadProjects === 'function') loadProjects()
     } catch (error) {
       console.error('Error deleting project:', error)
-      onShowToast(error?.message || 'Error deleting project', 'error')
+      showToast(error?.message || 'Error deleting project', 'error')
     }
   }
 

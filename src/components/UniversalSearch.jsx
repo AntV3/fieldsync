@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, FolderOpen, FileText, Users, ClipboardList, ChevronRight, Command } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 export default function UniversalSearch({
   isOpen,
@@ -8,9 +9,9 @@ export default function UniversalSearch({
   companyId,
   onSelectProject,
   onSelectTicket,
-  onSelectCOR,
-  onShowToast
+  onSelectCOR
 }) {
+  const { showToast } = useToast()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState({ projects: [], tickets: [], cors: [], workers: [] })
   const [loading, setLoading] = useState(false)
@@ -51,11 +52,11 @@ export default function UniversalSearch({
       setSelectedIndex(0)
     } catch (error) {
       console.error('Search error:', error)
-      onShowToast?.('Search failed', 'error')
+      showToast('Search failed', 'error')
     } finally {
       setLoading(false)
     }
-  }, [companyId, onShowToast])
+  }, [companyId])
 
   // Handle input change with debounce
   const handleInputChange = (e) => {
