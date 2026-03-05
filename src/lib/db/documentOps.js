@@ -46,20 +46,23 @@ export const documentOps = {
 
     if (error) throw error
 
-    // Get document counts per folder using individual count queries (much faster
-    // than fetching every document row and counting client-side)
+    // Get document counts for all folders in a single query instead of N individual count queries
     if (data.length > 0) {
-      const countPromises = data.map(folder =>
-        client
-          .from('documents')
-          .select('id', { count: 'exact', head: true })
-          .eq('folder_id', folder.id)
-          .is('archived_at', null)
-          .eq('is_current', true)
-          .then(res => ({ folderId: folder.id, count: res.count || 0 }))
-      )
-      const counts = await Promise.all(countPromises)
-      const countMap = Object.fromEntries(counts.map(c => [c.folderId, c.count]))
+      const { data: docs } = await client
+        .from('documents')
+        .select('folder_id')
+        .eq('project_id', projectId)
+        .is('archived_at', null)
+        .eq('is_current', true)
+        .not('folder_id', 'is', null)
+
+      // Count documents per folder client-side
+      const countMap = {}
+      if (docs) {
+        for (const doc of docs) {
+          countMap[doc.folder_id] = (countMap[doc.folder_id] || 0) + 1
+        }
+      }
       data.forEach(folder => {
         folder.document_count = countMap[folder.id] || 0
       })

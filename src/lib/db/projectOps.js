@@ -726,7 +726,7 @@ export const projectOps = {
       // Look up company by code (case-insensitive)
       const { data: company, error: companyError } = await supabase
         .from('companies')
-        .select('*')
+        .select('id, code, name')
         .ilike('code', companyCode.trim())
         .single()
 
@@ -1425,7 +1425,7 @@ export const projectOps = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, name, email, role')
         .order('name')
       if (error) throw error
       return data
@@ -1439,7 +1439,7 @@ export const projectOps = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, name, email, role')
         .eq('role', 'foreman')
         .order('name')
       if (error) throw error
