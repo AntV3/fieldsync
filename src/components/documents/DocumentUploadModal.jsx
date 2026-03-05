@@ -1,7 +1,11 @@
 import { useState, useRef, useCallback } from 'react'
-import { X, Upload, CloudUpload, File, AlertCircle, Loader2 } from 'lucide-react'
+import { X, Upload, CloudUpload, File, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { DOCUMENT_CATEGORIES, ALLOWED_FILE_TYPES, DOCUMENT_VISIBILITY_LABELS, APPROVAL_REQUIRED_CATEGORIES } from '../../lib/constants'
+import { compressImage } from '../../lib/imageUtils'
+
+// Max concurrent uploads to avoid overwhelming the connection
+const MAX_CONCURRENT_UPLOADS = 3
 
 // Format file size
 const formatFileSize = (bytes) => {
@@ -17,7 +21,7 @@ const formatFileSize = (bytes) => {
 }
 
 export default function DocumentUploadModal({ projectId, companyId, folderId, folderName, onClose, onUploadComplete, onShowToast }) {
-  const [file, setFile] = useState(null)
+  const [files, setFiles] = useState([])
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
@@ -28,6 +32,9 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('general')
   const [visibility, setVisibility] = useState('all')
+
+  // Per-file upload status: { fileIndex: 'pending' | 'compressing' | 'uploading' | 'done' | 'error' }
+  const [fileStatuses, setFileStatuses] = useState({})
 
   const fileInputRef = useRef(null)
 
@@ -47,19 +54,31 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
     return null
   }
 
-  // Handle file selection
-  const handleFileSelect = useCallback((selectedFile) => {
-    const validationError = validateFile(selectedFile)
-    if (validationError) {
-      setError(validationError)
+  // Handle file selection (supports multiple files)
+  const handleFileSelect = useCallback((selectedFiles) => {
+    const validFiles = []
+    const errors = []
+
+    for (const f of selectedFiles) {
+      const validationError = validateFile(f)
+      if (validationError) {
+        errors.push(`${f.name}: ${validationError}`)
+      } else {
+        validFiles.push(f)
+      }
+    }
+
+    if (errors.length > 0 && validFiles.length === 0) {
+      setError(errors.join('\n'))
       return
     }
 
-    setError(null)
-    setFile(selectedFile)
-    // Auto-fill name from filename (without extension)
-    if (!name) {
-      const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, '')
+    setError(errors.length > 0 ? errors.join('\n') : null)
+    setFiles(prev => [...prev, ...validFiles])
+
+    // Auto-fill name from first file if empty
+    if (!name && validFiles.length === 1) {
+      const nameWithoutExt = validFiles[0].name.replace(/\.[^/.]+$/, '')
       setName(nameWithoutExt)
     }
   }, [name])
@@ -75,56 +94,115 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
     }
   }
 
-  // Handle drop
+  // Handle drop (supports multiple files)
   const handleDrop = (e) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0])
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileSelect(Array.from(e.dataTransfer.files))
     }
   }
 
-  // Handle input change
+  // Handle input change (supports multiple files)
   const handleInputChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0])
+    if (e.target.files && e.target.files.length > 0) {
+      handleFileSelect(Array.from(e.target.files))
+      e.target.value = ''
     }
   }
 
-  // Handle upload
+  // Remove a file from the list
+  const removeFile = (index) => {
+    setFiles(prev => prev.filter((_, i) => i !== index))
+    setFileStatuses(prev => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+  }
+
+  // Upload a single file with optional compression
+  const uploadSingleFile = async (file, index, docName) => {
+    // Compress images before upload
+    let fileToUpload = file
+    if (file.type.startsWith('image/') && file.size > 500 * 1024) {
+      setFileStatuses(prev => ({ ...prev, [index]: 'compressing' }))
+      try {
+        fileToUpload = await compressImage(file, 1920, 0.8)
+      } catch {
+        // Use original if compression fails
+      }
+    }
+
+    setFileStatuses(prev => ({ ...prev, [index]: 'uploading' }))
+
+    const document = await db.uploadDocument(companyId, projectId, fileToUpload, {
+      name: docName,
+      description: description.trim() || null,
+      category,
+      visibility,
+      folderId: folderId || null
+    })
+
+    setFileStatuses(prev => ({ ...prev, [index]: 'done' }))
+    return document
+  }
+
+  // Handle upload with concurrency control
   const handleUpload = async () => {
-    if (!file) {
+    if (files.length === 0) {
       setError('Please select a file')
       return
     }
 
-    if (!name.trim()) {
+    // For single file, require a name
+    if (files.length === 1 && !name.trim()) {
       setError('Please enter a document name')
       return
     }
 
     setUploading(true)
     setError(null)
-    setUploadProgress('Uploading document...')
 
-    try {
-      const document = await db.uploadDocument(companyId, projectId, file, {
-        name: name.trim(),
-        description: description.trim() || null,
-        category,
-        visibility,
-        folderId: folderId || null
+    const totalFiles = files.length
+    let completed = 0
+    let failed = 0
+    const results = []
+
+    // Process files in batches of MAX_CONCURRENT_UPLOADS
+    for (let i = 0; i < totalFiles; i += MAX_CONCURRENT_UPLOADS) {
+      const batch = files.slice(i, i + MAX_CONCURRENT_UPLOADS)
+      const batchPromises = batch.map((file, batchIdx) => {
+        const fileIndex = i + batchIdx
+        const docName = totalFiles === 1
+          ? name.trim()
+          : file.name.replace(/\.[^/.]+$/, '')
+        return uploadSingleFile(file, fileIndex, docName)
+          .then(doc => {
+            completed++
+            setUploadProgress(`Uploaded ${completed}/${totalFiles}`)
+            results.push(doc)
+          })
+          .catch(err => {
+            failed++
+            setFileStatuses(prev => ({ ...prev, [fileIndex]: 'error' }))
+            console.error(`Upload error for ${file.name}:`, err)
+          })
       })
 
-      setUploadProgress('Upload complete!')
-      onUploadComplete(document)
-    } catch (err) {
-      console.error('Upload error:', err)
-      setError(err.message || 'Failed to upload document')
-      setUploading(false)
+      await Promise.all(batchPromises)
     }
+
+    if (failed === totalFiles) {
+      setError('All uploads failed. Please try again.')
+      setUploading(false)
+      return
+    }
+
+    setUploadProgress(`${completed} of ${totalFiles} uploaded!`)
+    onUploadComplete(results.length === 1 ? results[0] : results)
   }
 
   // Check if category requires approval
@@ -150,38 +228,58 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
         <div className="modal-content">
           {/* Dropzone */}
           <div
-            className={`document-dropzone ${dragActive ? 'drag-active' : ''} ${file ? 'has-file' : ''}`}
+            className={`document-dropzone ${dragActive ? 'drag-active' : ''} ${files.length > 0 ? 'has-file' : ''}`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            onClick={() => !file && fileInputRef.current?.click()}
+            onClick={() => files.length === 0 && fileInputRef.current?.click()}
           >
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               accept={Object.keys(ALLOWED_FILE_TYPES).join(',')}
               onChange={handleInputChange}
               style={{ display: 'none' }}
             />
 
-            {file ? (
-              <div className="dropzone-file">
-                <File size={32} />
-                <div className="dropzone-file-info">
-                  <span className="dropzone-file-name">{file.name}</span>
-                  <span className="dropzone-file-size">{formatFileSize(file.size)}</span>
-                </div>
-                <button
-                  className="dropzone-file-remove"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setFile(null)
-                    setError(null)
-                  }}
-                >
-                  <X size={16} />
-                </button>
+            {files.length > 0 ? (
+              <div className="dropzone-file-list">
+                {files.map((file, idx) => {
+                  const status = fileStatuses[idx]
+                  return (
+                    <div key={idx} className="dropzone-file">
+                      <File size={24} />
+                      <div className="dropzone-file-info">
+                        <span className="dropzone-file-name">{file.name}</span>
+                        <span className="dropzone-file-size">
+                          {formatFileSize(file.size)}
+                          {status === 'compressing' && ' · Compressing...'}
+                          {status === 'uploading' && ' · Uploading...'}
+                          {status === 'done' && ' · Done'}
+                          {status === 'error' && ' · Failed'}
+                        </span>
+                      </div>
+                      {status === 'done' && <CheckCircle size={16} style={{ color: '#10b981' }} />}
+                      {status === 'error' && <XCircle size={16} style={{ color: '#ef4444' }} />}
+                      {(status === 'compressing' || status === 'uploading') && <Loader2 size={16} className="spinner" />}
+                      {!uploading && (
+                        <button
+                          className="dropzone-file-remove"
+                          onClick={(e) => { e.stopPropagation(); removeFile(idx) }}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+                {!uploading && (
+                  <button className="dropzone-add-more" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>
+                    + Add more files
+                  </button>
+                )}
               </div>
             ) : (
               <>
@@ -191,7 +289,7 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
                   or click to browse
                 </p>
                 <p className="dropzone-hint">
-                  PDF, Word, Excel, Images &bull; Max 25MB
+                  PDF, Word, Excel, Images &bull; Max 25MB &bull; Multiple files supported
                 </p>
               </>
             )}
@@ -290,10 +388,10 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
               <button
                 className="btn btn-primary"
                 onClick={handleUpload}
-                disabled={!file || !name.trim()}
+                disabled={files.length === 0 || (files.length === 1 && !name.trim())}
               >
                 <Upload size={18} />
-                Upload Document
+                {files.length > 1 ? `Upload ${files.length} Documents` : 'Upload Document'}
               </button>
             </>
           )}
