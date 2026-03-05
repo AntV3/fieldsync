@@ -103,8 +103,7 @@ export const companyOps = {
   // Get all memberships for a company (for admin view)
   async getCompanyMemberships(companyId) {
     if (isSupabaseConfigured) {
-      // Try with company_role column first
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('user_companies')
         .select(`
           id,
@@ -125,34 +124,9 @@ export const companyOps = {
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
 
-      // If query fails (e.g., company_role column doesn't exist), retry without it
       if (error) {
-        console.warn('Membership query failed, retrying without company_role:', error.message)
-        const retry = await supabase
-          .from('user_companies')
-          .select(`
-            id,
-            access_level,
-            status,
-            created_at,
-            approved_at,
-            approved_by,
-            removed_at,
-            removed_by,
-            users!user_companies_user_id_fkey (
-              id,
-              name,
-              email
-            )
-          `)
-          .eq('company_id', companyId)
-          .order('created_at', { ascending: false })
-
-        if (retry.error) {
-          console.error('Error fetching company memberships:', retry.error)
-          return []
-        }
-        data = retry.data
+        console.error('Error fetching company memberships:', error)
+        return []
       }
       return data || []
     }

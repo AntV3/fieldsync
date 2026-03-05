@@ -59,24 +59,24 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // Load crew check-in for today (returns single object with .workers array, or null)
-      const crew = await db.getCrewCheckin(project.id, today)
+      // Load all today's data in parallel for faster loading
+      const [crew, todayTickets, disposal] = await Promise.all([
+        // Load crew check-in for today (returns single object with .workers array, or null)
+        db.getCrewCheckin(project.id, today),
+        // Load only today's T&M tickets instead of ALL tickets (was fetching entire history)
+        db.getTMTicketsByDate?.(project.id, today).catch(() => []) || [],
+        // Load disposal loads for today
+        db.getDisposalLoads?.(project.id, today).catch(() => []) || []
+      ])
+
       const crewWorkers = crew?.workers || []
-      const crewCheckedIn = crewWorkers.length > 0
-
-      // Load T&M tickets for today
-      const tickets = await db.getTMTickets?.(project.id) || []
-      const todayTickets = tickets.filter(t => t.work_date === today)
-
-      // Load disposal loads for today
-      const disposal = await db.getDisposalLoads?.(project.id, today) || []
 
       setTodayStatus({
-        crewCheckedIn,
+        crewCheckedIn: crewWorkers.length > 0,
         crewCount: crewWorkers.length,
-        tmTicketsToday: todayTickets.length,
+        tmTicketsToday: (todayTickets || []).length,
         dailyReportDone: false, // We'll track this separately
-        disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
+        disposalLoadsToday: (disposal || []).reduce((sum, d) => sum + (d.load_count || 1), 0)
       })
     } catch (error) {
       console.error('Error loading today status:', error)

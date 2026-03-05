@@ -16,8 +16,12 @@ export default defineConfig({
         manualChunks: {
           // React core - rarely changes, can be cached long-term
           react: ['react', 'react-dom'],
+          // Router - separate chunk, changes less frequently than app code
+          router: ['react-router-dom'],
           // Supabase client - separate chunk for API layer
           supabase: ['@supabase/supabase-js'],
+          // Recharts - large charting library (~160KB), only used on dashboard
+          charts: ['recharts'],
           // PDF generation - only loaded when user exports PDFs
           pdf: ['jspdf', 'jspdf-autotable'],
           // Excel parsing - only loaded during Excel import

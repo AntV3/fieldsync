@@ -425,7 +425,7 @@ export const fieldOps = {
 
     const { data, error } = await client
       .from('crew_checkins')
-      .select('*')
+      .select('id, project_id, check_in_date, workers, created_by, updated_at')
       .eq('project_id', projectId)
       .order('check_in_date', { ascending: false })
       .limit(limit)
@@ -490,11 +490,11 @@ export const fieldOps = {
   async calculateManDayCosts(projectId, companyId, workType, jobType) {
     if (!isSupabaseConfigured) return { totalCost: 0, totalManDays: 0, breakdown: [] }
 
-    // Get crew check-in history
-    const crewHistory = await this.getCrewCheckinHistory(projectId, 365)
-
-    // Get labor rates for this work/job type
-    const laborRates = await this.getLaborRates(companyId, workType, jobType)
+    // Fetch crew history and labor rates in parallel (independent queries)
+    const [crewHistory, laborRates] = await Promise.all([
+      this.getCrewCheckinHistory(projectId, 365),
+      this.getLaborRates(companyId, workType, jobType)
+    ])
 
     // Build rates lookup: { role: regularRate }
     const ratesLookup = {}
@@ -879,7 +879,7 @@ export const fieldOps = {
     const client = getClient()
     const { data, error } = await client
       .from('messages')
-      .select('*')
+      .select('id, project_id, sender_type, sender_name, sender_user_id, message, photo_url, message_type, parent_message_id, is_read, created_at')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
       .limit(limit)
