@@ -849,18 +849,21 @@ export default function Dashboard({ company, user, isAdmin, navigateToProjectId,
         db.getCrewCheckinHistory(selectedProject.id, 365)
       ])
 
+      const exportContext = { company }
+
       if (type === 'daily') {
-        await exportDailyReportsPDF(dailyReports || [], selectedProject)
+        await exportDailyReportsPDF(dailyReports || [], selectedProject, exportContext)
       } else if (type === 'incidents') {
-        await exportIncidentReportsPDF(injuryReports || [], selectedProject)
+        await exportIncidentReportsPDF(injuryReports || [], selectedProject, exportContext)
       } else if (type === 'crew') {
-        await exportCrewCheckinsPDF(crewCheckins || [], selectedProject)
+        await exportCrewCheckinsPDF(crewCheckins || [], selectedProject, exportContext)
       } else {
         await exportAllFieldDocumentsPDF({
           dailyReports: dailyReports || [],
           incidentReports: injuryReports || [],
           crewCheckins: crewCheckins || [],
-          project: selectedProject
+          project: selectedProject,
+          context: exportContext
         })
       }
       showToast('PDF exported!', 'success')
@@ -869,6 +872,7 @@ export default function Dashboard({ company, user, isAdmin, navigateToProjectId,
       showToast('Error generating PDF', 'error')
     }
   }, [selectedProject])
+  }, [selectedProject, company, onShowToast])
 
   const handleBackToTMPreview = useCallback(() => {
     setTMViewMode('preview')

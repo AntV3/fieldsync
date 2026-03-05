@@ -807,16 +807,32 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   }
 
   // ============================================
-  // FOOTER (on all pages)
+  // HEADER ACCENT + FOOTER (on all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
+
+    // Thin accent stripe at top of continuation pages
+    if (i > 1) {
+      doc.setFillColor(...primaryColor)
+      doc.rect(0, 0, pageWidth, 2.5, 'F')
+    }
+
+    // Footer rule + text
     const footerY = pageHeight - 10
-    doc.setFontSize(8)
-    doc.setTextColor(150, 150, 150)
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.3)
+    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(148, 163, 184)
+    doc.text(
+      `${cor.cor_number || 'COR'}  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      margin, footerY
+    )
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
   }
 
@@ -1131,16 +1147,32 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
   }
 
   // ============================================
-  // FOOTER (all pages)
+  // HEADER ACCENT + FOOTER (all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
+
+    // Thin accent stripe at top of continuation pages
+    if (i > 1) {
+      doc.setFillColor(...primaryColor)
+      doc.rect(0, 0, pageWidth, 2.5, 'F')
+    }
+
+    // Footer rule + text
     const footerY = pageHeight - 10
-    doc.setFontSize(8)
-    doc.setTextColor(150, 150, 150)
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.3)
+    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(148, 163, 184)
+    doc.text(
+      `T&M Ticket  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      margin, footerY
+    )
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
   }
 
