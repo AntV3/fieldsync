@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { ToastProvider } from './lib/ToastContext'
 import App from './App'
 import './index.css'
 import './styles/index.css' // New modular styles (overrides legacy where needed)
@@ -8,7 +9,9 @@ import './styles/index.css' // New modular styles (overrides legacy where needed
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>
 )
