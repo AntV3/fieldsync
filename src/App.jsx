@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
-import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './lib/supabase'
+import { isSupabaseConfigured, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { ThemeProvider } from './lib/ThemeContext'
-import { ToastProvider } from './lib/ToastContext'
+import { useToast } from './lib/ToastContext'
+import useAuthState from './hooks/useAuthState'
 import LoginChooser from './components/auth/LoginChooser'
 import FieldLogin from './components/auth/FieldLogin'
 import OfficeLogin from './components/auth/OfficeLogin'
 import JoinCompany from './components/auth/JoinCompany'
 import RegisterCompany from './components/auth/RegisterCompany'
-import Toast from './components/Toast'
 import Logo from './components/Logo'
 import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -105,311 +105,34 @@ function SignatureRoute() {
 export default function App() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { showToast } = useToast()
 
-  const [user, setUser] = useState(null)
-  const [company, setCompany] = useState(null)
-  const [userCompanies, setUserCompanies] = useState([])
+  const {
+    user,
+    company,
+    userCompanies,
+    authReady,
+    loading,
+    mfaPending,
+    mfaFactorId,
+    pendingCompanyName,
+    foremanProject,
+    foremanName,
+    checkAuth,
+    handleOfficeLogin,
+    handleSwitchCompany,
+    handleLogout,
+    handleForemanAccess,
+    handleExitForeman,
+    handleMfaVerified,
+    handleMfaCancel,
+  } = useAuthState({ navigate, locationPathname: location.pathname, showToast })
+
   const [, setProjects] = useState([])
-  const [foremanProject, setForemanProject] = useState(null)
-  const [foremanName, setForemanName] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState(null)
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
-  const [mfaPending, setMfaPending] = useState(false)
-  const [mfaFactorId, setMfaFactorId] = useState(null)
-  const [pendingCompanyName, setPendingCompanyName] = useState('')
-  const [authReady, setAuthReady] = useState(false)
-
-  // Ref to prevent onAuthStateChange from calling checkAuth during active login
-  const loginInProgressRef = useRef(false)
-
-  const showToast = useCallback((message, type = '') => {
-    setToast({ message, type })
-  }, [])
-
-  // checkAuth defined before useEffect to avoid ESLint warning
-  const checkAuth = useCallback(async () => {
-    try {
-      if (!isSupabaseConfigured) {
-        setLoading(false)
-        return
-      }
-
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (!authUser?.id) {
-        setLoading(false)
-        return
-      }
-
-      const { data: userData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single()
-
-      if (userData) {
-        setUser(userData)
-
-        let companies = await db.getUserCompanies(authUser.id)
-
-        if (companies.length === 0 && userData.company_id) {
-          const repaired = await db.repairLegacyUser(
-            authUser.id, userData.company_id, userData.role || 'member'
-          )
-          if (repaired) {
-            companies = await db.getUserCompanies(authUser.id)
-          }
-        }
-
-        setUserCompanies(companies)
-
-        if (companies.length === 0) {
-          const pendingCount = await db.getUserPendingMemberships(authUser.id)
-          if (pendingCount > 0) {
-            try {
-              const { data: pendingMemberships } = await supabase
-                .from('user_companies')
-                .select('company_id, companies(name)')
-                .eq('user_id', authUser.id)
-                .eq('status', 'pending')
-                .limit(1)
-              if (pendingMemberships?.[0]?.companies?.name) {
-                setPendingCompanyName(pendingMemberships[0].companies.name)
-              }
-            } catch (_e) {
-              // Non-critical
-            }
-            navigate('/pending', { replace: true })
-            return
-          }
-          setToast({ message: 'No company access. Join a company to continue.', type: 'error' })
-          await auth.signOut()
-          return
-        }
-
-        const savedCompanyId = localStorage.getItem('selectedCompanyId')
-        let selectedCompany = null
-        if (savedCompanyId && companies.find(c => c.id === savedCompanyId)) {
-          selectedCompany = companies.find(c => c.id === savedCompanyId)
-        } else if (companies.length > 0) {
-          selectedCompany = companies[0]
-        }
-
-        if (selectedCompany) {
-          const { data: fullCompany } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('id', selectedCompany.id)
-            .single()
-
-          setCompany(fullCompany)
-          setAuthReady(true)
-
-          // Navigate to dashboard if on login/root (preserve existing office routes)
-          const currentPath = location.pathname
-          const isPublicRoute = currentPath.startsWith('/view/') || currentPath.startsWith('/sign/')
-          const isOfficeRoute = ['/dashboard', '/projects/new', '/pricing', '/branding', '/team'].includes(currentPath)
-          if (!isPublicRoute && !isOfficeRoute && currentPath !== '/field') {
-            navigate('/dashboard', { replace: true })
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Auth check error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [navigate, location.pathname])
-
-  useEffect(() => {
-    const path = location.pathname
-    if (path.startsWith('/view/') || path.startsWith('/sign/')) {
-      setLoading(false)
-    } else {
-      checkAuth()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Listen for auth state changes
-  useEffect(() => {
-    if (!isSupabaseConfigured) return
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event) => {
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          const path = location.pathname
-          if (path.startsWith('/sign/') || path.startsWith('/view/')) return
-          setUser(null)
-          setCompany(null)
-          setUserCompanies([])
-          setAuthReady(false)
-          navigate('/login', { replace: true })
-        } else if (event === 'SIGNED_IN' && !user && !loginInProgressRef.current) {
-          const path = location.pathname
-          if (!path.startsWith('/sign/') && !path.startsWith('/view/')) {
-            checkAuth()
-          }
-        }
-      }
-    )
-
-    return () => { subscription?.unsubscribe() }
-  }, [user, checkAuth, navigate, location.pathname])
-
-  const handleForemanAccess = (project, name = '') => {
-    localStorage.setItem('fieldsync-has-visited', 'true')
-    setForemanProject(project)
-    setForemanName(name)
-    navigate('/field')
-  }
-
-  const handleOfficeLogin = async (email, password) => {
-    loginInProgressRef.current = true
-    try {
-      await clearFieldSession()
-      localStorage.setItem('fieldsync-has-visited', 'true')
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
-      if (error) {
-        showToast(error.message || 'Invalid credentials', 'error')
-        return
-      }
-
-      if (!data?.user?.id) {
-        showToast('Login failed — no user returned', 'error')
-        return
-      }
-
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single()
-
-      if (userError) {
-        console.error('User fetch error:', userError)
-        showToast('Error loading profile', 'error')
-        return
-      }
-
-      if (userData) {
-        setUser(userData)
-        let companies = await db.getUserCompanies(data.user.id)
-
-        if (companies.length === 0 && userData.company_id) {
-          const repaired = await db.repairLegacyUser(
-            data.user.id, userData.company_id, userData.role || 'member'
-          )
-          if (repaired) {
-            companies = await db.getUserCompanies(data.user.id)
-          }
-        }
-
-        setUserCompanies(companies)
-
-        const savedCompanyId = localStorage.getItem('selectedCompanyId')
-        let selectedCompany = null
-        if (savedCompanyId && companies.find(c => c.id === savedCompanyId)) {
-          selectedCompany = companies.find(c => c.id === savedCompanyId)
-        } else if (companies.length > 0) {
-          selectedCompany = companies[0]
-        }
-
-        if (selectedCompany) {
-          const { data: fullCompany } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('id', selectedCompany.id)
-            .single()
-
-          setCompany(fullCompany)
-          setAuthReady(true)
-
-          const { data: factors } = await supabase.auth.mfa.listFactors()
-          const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
-          if (verifiedFactor) {
-            setMfaFactorId(verifiedFactor.id)
-            setMfaPending(true)
-          } else {
-            navigate('/dashboard')
-          }
-        } else {
-          const pendingCount = await db.getUserPendingMemberships(data.user.id)
-          if (pendingCount > 0) {
-            try {
-              const { data: pendingMemberships } = await supabase
-                .from('user_companies')
-                .select('company_id, companies(name)')
-                .eq('user_id', data.user.id)
-                .eq('status', 'pending')
-                .limit(1)
-              if (pendingMemberships?.[0]?.companies?.name) {
-                setPendingCompanyName(pendingMemberships[0].companies.name)
-              }
-            } catch (_e) {
-              // Non-critical
-            }
-            navigate('/pending')
-          } else {
-            showToast('No company access. Please contact admin.', 'error')
-          }
-        }
-      } else {
-        showToast('Profile not found. Please contact admin.', 'error')
-      }
-    } catch (err) {
-      console.error('Login error:', err)
-      showToast('Login failed', 'error')
-    } finally {
-      loginInProgressRef.current = false
-    }
-  }
-
-  const handleSwitchCompany = async (companyId) => {
-    try {
-      const { data: fullCompany } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', companyId)
-        .single()
-
-      if (fullCompany) {
-        setCompany(fullCompany)
-        localStorage.setItem('selectedCompanyId', companyId)
-        setShowCompanySwitcher(false)
-        navigate('/dashboard')
-        showToast(`Switched to ${fullCompany.name}`, 'success')
-      }
-    } catch (err) {
-      console.error('Switch company error:', err)
-      showToast('Error switching company', 'error')
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await auth.signOut()
-      setUser(null)
-      setCompany(null)
-      setUserCompanies([])
-      setAuthReady(false)
-      localStorage.removeItem('selectedCompanyId')
-      navigate('/login')
-    } catch (error) {
-      console.error('Logout error:', error)
-      showToast('Error signing out', 'error')
-    }
-  }
-
-  const handleExitForeman = async () => {
-    await clearFieldSession()
-    setForemanProject(null)
-    setForemanName('')
-    navigate('/login')
-  }
 
   const handleProjectCreated = () => {
     navigate('/dashboard')
@@ -453,11 +176,6 @@ export default function App() {
   const accessLevel = currentMembership?.access_level
   const isAdmin = accessLevel === 'administrator' || company?.owner_user_id === user?.id
 
-  // Toast renderer (reused across routes)
-  const toastEl = toast && (
-    <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-  )
-
   // Loading screen
   if (loading) {
     return (
@@ -480,23 +198,10 @@ export default function App() {
           <ErrorBoundary>
             <MFAChallenge
               factorId={mfaFactorId}
-              onVerified={() => {
-                setMfaPending(false)
-                navigate('/dashboard')
-              }}
-              onCancel={async () => {
-                setMfaPending(false)
-                setMfaFactorId(null)
-                await auth.signOut()
-                setUser(null)
-                setCompany(null)
-                setUserCompanies([])
-                setAuthReady(false)
-                navigate('/login')
-              }}
+              onVerified={handleMfaVerified}
+              onCancel={handleMfaCancel}
             />
           </ErrorBoundary>
-          {toastEl}
         </BrandingProvider>
       </ThemeProvider>
     )
@@ -508,9 +213,14 @@ export default function App() {
     return element
   }
 
-  // Office layout: nav + content + offline indicator + toast
+  // Auth redirect for login routes (redirect if already authenticated)
+  const guestOnly = (element) => {
+    if (user && company && authReady) return <Navigate to="/dashboard" replace />
+    return <ErrorBoundary>{element}</ErrorBoundary>
+  }
+
+  // Office layout: nav + content + offline indicator
   const officeLayout = (content) => (
-    <ToastProvider>
     <div>
       {!isSupabaseConfigured && (
         <div className="demo-banner">Demo Mode - Data saved locally in your browser</div>
@@ -536,7 +246,7 @@ export default function App() {
           <div className="nav-user nav-user-desktop">
             <ThemeToggle compact />
             <div className="mobile-menu">
-              <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(!showMobileMenu)} aria-label="User menu">⋮</button>
+              <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(!showMobileMenu)} aria-label="User menu">&#x22EE;</button>
               {showMobileMenu && (
                 <div className="mobile-menu-dropdown">
                   <div className="mobile-menu-info">
@@ -551,14 +261,14 @@ export default function App() {
               <div className="company-switcher">
                 <button className="company-switcher-btn" onClick={() => setShowCompanySwitcher(!showCompanySwitcher)}>
                   {company?.name || 'Select Company'}
-                  <span className="switcher-arrow">▼</span>
+                  <span className="switcher-arrow">&#x25BC;</span>
                 </button>
                 {showCompanySwitcher && (
                   <div className="company-dropdown">
                     {userCompanies.map(c => (
-                      <button key={c.id} className={`company-option ${c.id === company?.id ? 'active' : ''}`} onClick={() => handleSwitchCompany(c.id)}>
+                      <button key={c.id} className={`company-option ${c.id === company?.id ? 'active' : ''}`} onClick={() => { handleSwitchCompany(c.id); setShowCompanySwitcher(false) }}>
                         {c.name}
-                        {c.id === company?.id && <span className="check">✓</span>}
+                        {c.id === company?.id && <span className="check">&#x2713;</span>}
                       </button>
                     ))}
                   </div>
@@ -582,7 +292,7 @@ export default function App() {
           <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
             <div className="mobile-drawer-header">
               <Logo />
-              <button className="mobile-drawer-close" onClick={() => setShowMobileMenu(false)} aria-label="Close menu">✕</button>
+              <button className="mobile-drawer-close" onClick={() => setShowMobileMenu(false)} aria-label="Close menu">&#x2715;</button>
             </div>
             <div className="mobile-drawer-user">
               <div className="mobile-user-avatar">{(user?.name || user?.email || 'U')[0].toUpperCase()}</div>
@@ -598,7 +308,7 @@ export default function App() {
                   {userCompanies.map(c => (
                     <button key={c.id} className={`mobile-company-option ${c.id === company?.id ? 'active' : ''}`} onClick={() => { handleSwitchCompany(c.id); setShowMobileMenu(false) }}>
                       <span className="mobile-company-name">{c.name}</span>
-                      {c.id === company?.id && <span className="mobile-company-check">✓</span>}
+                      {c.id === company?.id && <span className="mobile-company-check">&#x2713;</span>}
                     </button>
                   ))}
                 </div>
@@ -641,10 +351,8 @@ export default function App() {
       </ErrorBoundary>
 
       <OfflineIndicator />
-      {toastEl}
       <InstallPrompt />
     </div>
-    </ToastProvider>
   )
 
   return (
@@ -653,69 +361,31 @@ export default function App() {
         <Routes>
           {/* Public routes - no auth required */}
           <Route path="/view/:token" element={
-            <ErrorBoundary><PublicViewRoute />{toastEl}</ErrorBoundary>
+            <ErrorBoundary><PublicViewRoute /></ErrorBoundary>
           } />
           <Route path="/sign/:token" element={
-            <ErrorBoundary><SignatureRoute />{toastEl}</ErrorBoundary>
+            <ErrorBoundary><SignatureRoute /></ErrorBoundary>
           } />
 
           {/* Login / Entry — split into separate routes */}
-          <Route path="/login" element={
-            user && company && authReady ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <ErrorBoundary>
-                <LoginChooser />
-                {toastEl}
-              </ErrorBoundary>
-            )
-          } />
-          <Route path="/login/field" element={
-            user && company && authReady ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <ErrorBoundary>
-                <FieldLogin onForemanAccess={handleForemanAccess} onShowToast={showToast} />
-                {toastEl}
-              </ErrorBoundary>
-            )
-          } />
-          <Route path="/login/office" element={
-            user && company && authReady ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <ErrorBoundary>
-                <OfficeLogin onOfficeLogin={handleOfficeLogin} onShowToast={showToast} />
-                {toastEl}
-              </ErrorBoundary>
-            )
-          } />
-          <Route path="/login/office/join" element={
-            user && company && authReady ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <ErrorBoundary>
-                <JoinCompany onShowToast={showToast} />
-                {toastEl}
-              </ErrorBoundary>
-            )
-          } />
-          <Route path="/register" element={
-            user && company && authReady ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <ErrorBoundary>
-                <RegisterCompany onShowToast={showToast} />
-                {toastEl}
-              </ErrorBoundary>
-            )
-          } />
+          <Route path="/login" element={guestOnly(<LoginChooser />)} />
+          <Route path="/login/field" element={guestOnly(
+            <FieldLogin onForemanAccess={handleForemanAccess} onShowToast={showToast} />
+          )} />
+          <Route path="/login/office" element={guestOnly(
+            <OfficeLogin onOfficeLogin={handleOfficeLogin} onShowToast={showToast} />
+          )} />
+          <Route path="/login/office/join" element={guestOnly(
+            <JoinCompany onShowToast={showToast} />
+          )} />
+          <Route path="/register" element={guestOnly(
+            <RegisterCompany onShowToast={showToast} />
+          )} />
 
           {/* Pending approval */}
           <Route path="/pending" element={
             <ErrorBoundary>
               <PendingApprovalScreen pendingCompanyName={pendingCompanyName} userName={user?.name} onCheckStatus={checkAuth} onLogout={handleLogout} />
-              {toastEl}
             </ErrorBoundary>
           } />
 
@@ -727,7 +397,6 @@ export default function App() {
                   <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onShowToast={showToast} onExit={handleExitForeman} />
                 </ErrorBoundary>
                 <OfflineIndicator />
-                {toastEl}
               </BrandingProvider>
             ) : (
               <Navigate to="/login" replace />
