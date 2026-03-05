@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Camera, ChevronDown, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight, Download } from 'lucide-react'
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
+import { isSupabaseConfigured, getSupabaseClient, db } from '../lib/supabase'
 
 /**
  * PhotoTimeline - Visual progress photo timeline organized by area and date.
@@ -27,13 +27,14 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       // Get photos from T&M tickets and daily reports
       // t_and_m_tickets.photos requires migration 20260227_fix_project_cascade_delete
       // daily_reports.photos requires migration 20260227_daily_reports_photos
-      const [tmResult, reportResult] = await Promise.all([
-        supabase
+      const client = getSupabaseClient()
+      const [tmResult, reportResult] = await Promise.allSettled([
+        client
           .from('t_and_m_tickets')
           .select('id, work_date, notes, photos')
           .eq('project_id', projectId)
           .order('work_date', { ascending: false }),
-        supabase
+        client
           .from('daily_reports')
           .select('id, report_date, field_notes, photos')
           .eq('project_id', projectId)
@@ -43,8 +44,9 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       const allPhotos = []
 
       // Process T&M ticket photos
-      if (tmResult.data) {
-        for (const ticket of tmResult.data) {
+      const tmData = tmResult.status === 'fulfilled' ? tmResult.value.data : null
+      if (tmData) {
+        for (const ticket of tmData) {
           const photoUrls = Array.isArray(ticket.photos) ? ticket.photos : []
           for (const url of photoUrls) {
             if (url) {
@@ -62,8 +64,9 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       }
 
       // Process daily report photos (requires migration 20260227_daily_reports_photos.sql)
-      if (reportResult.data) {
-        for (const report of reportResult.data) {
+      const reportData = reportResult.status === 'fulfilled' ? reportResult.value.data : null
+      if (reportData) {
+        for (const report of reportData) {
           const photoUrls = Array.isArray(report.photos) ? report.photos : []
           for (const url of photoUrls) {
             if (url) {
