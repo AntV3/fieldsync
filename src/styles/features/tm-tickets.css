@@ -2978,45 +2978,209 @@
   gap: 0.5rem;
 }
 
+/* T&M Unified Toolbar */
+.tm-toolbar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.625rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tm-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tm-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tm-toolbar-search-row {
+  gap: 0.5rem;
+}
+
+/* T&M View Toggle */
+.tm-view-toggle {
+  display: flex;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.tm-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all var(--transition-smooth);
+  white-space: nowrap;
+}
+
+.tm-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.tm-toggle-btn.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
+/* T&M Search Bar */
+.tm-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.tm-search-input {
+  width: 100%;
+  padding: 0.625rem 2.25rem 0.625rem 2.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tm-search-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-focus);
+}
+
+.tm-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.tm-search-clear {
+  position: absolute;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tm-search-clear:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* T&M Date Filter */
+.tm-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.tm-date-filter svg {
+  color: var(--text-muted);
+}
+
+.tm-date-filter input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.4rem;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+}
+
+.tm-date-sep {
+  color: var(--text-muted);
+}
+
+.tm-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.tm-clear-btn:hover {
+  color: var(--accent-red);
+  background: rgba(220, 38, 38, 0.1);
+}
+
 .tm-filter-tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   flex-wrap: wrap;
 }
 
 .tm-filter-tab {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-full);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  font-size: 0.875rem;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .tm-filter-tab:hover {
-  border-color: var(--accent-blue);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 .tm-filter-tab.active {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  color: white;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-blue);
+  font-weight: 500;
 }
 
 .tm-filter-count {
-  background: rgba(0, 0, 0, 0.15);
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-lg);
-  font-size: 0.75rem;
+  font-size: 0.65rem;
+  opacity: 0.7;
 }
 
 .tm-filter-tab.active .tm-filter-count {
-  background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
 }
 
 /* Summary Bar */
@@ -3409,26 +3573,57 @@ END MIGRATED */
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
   }
-  
+
   .tm-category-card {
     padding: 1rem;
   }
-  
+
   .tm-ticket-summary {
     flex-direction: column;
     align-items: flex-end;
     gap: 0.25rem;
   }
-  
+
   .tm-summary-bar {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .tm-summary-stat {
     display: flex;
     justify-content: space-between;
     text-align: left;
+  }
+
+  /* T&M Toolbar Responsive */
+  .tm-toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .tm-toolbar-right {
+    justify-content: space-between;
+  }
+
+  .tm-filter-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .tm-filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tm-toolbar-search-row {
+    flex-direction: column;
+  }
+
+  .tm-date-filter {
+    width: 100%;
+    justify-content: center;
   }
 }
 

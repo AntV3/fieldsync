@@ -127,7 +127,46 @@
   font-weight: 500;
 }
 
-/* COR Controls Row */
+/* COR Unified Toolbar */
+.cor-toolbar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.625rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cor-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cor-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.cor-toolbar-search-row {
+  gap: 0.5rem;
+}
+
+.cor-toolbar-search-row .cor-search {
+  margin-bottom: 0;
+}
+
+.cor-toolbar-search-row .cor-date-filter {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+/* Legacy - keep for compat */
 .cor-controls {
   display: flex;
   justify-content: space-between;
@@ -140,6 +179,7 @@
 .cor-filter-pills {
   display: flex;
   gap: 0.25rem;
+  flex-wrap: wrap;
 }
 
 .cor-pill {
@@ -204,7 +244,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .cor-search-icon {
@@ -266,7 +307,6 @@
   padding: 0.4rem 0.6rem;
   background: var(--bg-tertiary);
   border-radius: var(--radius-md);
-  margin-bottom: 0.75rem;
   font-size: 0.75rem;
 }
 
@@ -288,16 +328,21 @@
 }
 
 .cor-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
-  color: var(--accent-blue);
-  font-size: 0.7rem;
+  color: var(--text-muted);
   cursor: pointer;
-  padding: 0.2rem 0.4rem;
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
 }
 
 .cor-clear-btn:hover {
-  text-decoration: underline;
+  color: var(--accent-red);
+  background: rgba(220, 38, 38, 0.1);
 }
 
 /* Empty State - Minimal */
@@ -3862,5 +3907,38 @@ END MIGRATED */
 
 .dollar-input-wrapper.compact .dollar-input {
   padding-left: 1.25rem !important;
+}
+
+/* COR Toolbar Responsive */
+@media (max-width: 640px) {
+  .cor-toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .cor-toolbar-right {
+    justify-content: space-between;
+  }
+
+  .cor-filter-pills {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .cor-filter-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cor-toolbar-search-row {
+    flex-direction: column;
+  }
+
+  .cor-date-filter {
+    width: 100%;
+    justify-content: center;
+  }
 }
 

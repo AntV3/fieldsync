@@ -810,100 +810,106 @@ export default function CORList({
             </div>
           )}
 
-          {/* Minimal Filter Row - hidden in preview mode */}
+          {/* Unified Toolbar - hidden in preview mode */}
           {!previewMode && (
-            <div className="cor-controls">
-              <div className="cor-filter-pills" role="tablist">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'draft', label: 'Draft' },
-                  { id: 'pending_approval', label: 'Pending' },
-                  { id: 'approved', label: 'Approved' }
-                ].map(status => (
-                  <button
-                    key={status.id}
-                    role="tab"
-                    aria-selected={filter === status.id}
-                    className={`cor-pill ${filter === status.id ? 'active' : ''}`}
-                    onClick={() => setFilter(status.id)}
-                  >
-                    {status.label}
-                    {counts[status.id] > 0 && <span className="cor-pill-count">{counts[status.id]}</span>}
-                  </button>
-                ))}
-              </div>
-
-              {/* Group Filter */}
-              {availableGroups.length > 0 && (
-                <select
-                  className="cor-group-filter"
-                  value={groupFilter}
-                  onChange={(e) => setGroupFilter(e.target.value)}
-                >
-                  <option value="all">All Groups</option>
-                  {availableGroups.map(group => (
-                    <option key={group} value={group}>{group}</option>
+            <div className="cor-toolbar">
+              {/* Row 1: Filters + Search + View Toggle */}
+              <div className="cor-toolbar-row">
+                <div className="cor-filter-pills" role="tablist">
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'draft', label: 'Draft' },
+                    { id: 'pending_approval', label: 'Pending' },
+                    { id: 'approved', label: 'Approved' },
+                    { id: 'rejected', label: 'Rejected' },
+                    { id: 'billed', label: 'Billed' }
+                  ].map(status => (
+                    <button
+                      key={status.id}
+                      role="tab"
+                      aria-selected={filter === status.id}
+                      className={`cor-pill ${filter === status.id ? 'active' : ''}`}
+                      onClick={() => setFilter(status.id)}
+                    >
+                      {status.label}
+                      {counts[status.id] > 0 && <span className="cor-pill-count">{counts[status.id]}</span>}
+                    </button>
                   ))}
-                </select>
-              )}
+                </div>
 
-              {/* View Toggle */}
-              <div className="cor-view-toggle">
-                <button
-                  className={`cor-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
-                  onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
-                >
-                  Recent
-                </button>
-                <button
-                  className={`cor-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
-                  onClick={() => setViewMode('all')}
-                >
-                  All
-                </button>
+                <div className="cor-toolbar-right">
+                  {/* Group Filter */}
+                  {availableGroups.length > 0 && (
+                    <select
+                      className="cor-group-filter"
+                      value={groupFilter}
+                      onChange={(e) => setGroupFilter(e.target.value)}
+                    >
+                      <option value="all">All Groups</option>
+                      {availableGroups.map(group => (
+                        <option key={group} value={group}>{group}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* View Toggle */}
+                  <div className="cor-view-toggle">
+                    <button
+                      className={`cor-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
+                      onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
+                    >
+                      Recent
+                    </button>
+                    <button
+                      className={`cor-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+                      onClick={() => setViewMode('all')}
+                    >
+                      All
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Search Input */}
-          {!previewMode && (
-            <div className="cor-search">
-              <Search size={14} className="cor-search-icon" />
-              <input
-                type="text"
-                className="cor-search-input"
-                placeholder="Search CORs by title, number, scope, or status..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button className="cor-search-clear" onClick={() => setSearchTerm('')}>
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          )}
+              {/* Row 2: Search + Date Filter (inline) */}
+              <div className="cor-toolbar-row cor-toolbar-search-row">
+                <div className="cor-search">
+                  <Search size={14} className="cor-search-icon" />
+                  <input
+                    type="text"
+                    className="cor-search-input"
+                    placeholder="Search by title, number, or scope..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button className="cor-search-clear" onClick={() => setSearchTerm('')}>
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
 
-          {/* Date Filter - Only in All mode and not preview mode */}
-          {viewMode === 'all' && !previewMode && (
-            <div className="cor-date-filter">
-              <Calendar size={14} />
-              <input
-                type="date"
-                value={dateFilter.start}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-              />
-              <span className="cor-date-sep">to</span>
-              <input
-                type="date"
-                value={dateFilter.end}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-              />
-              {(dateFilter.start || dateFilter.end) && (
-                <button className="cor-clear-btn" onClick={() => setDateFilter({ start: '', end: '' })}>
-                  Clear
-                </button>
-              )}
+                {viewMode === 'all' && (
+                  <div className="cor-date-filter">
+                    <Calendar size={14} />
+                    <input
+                      type="date"
+                      value={dateFilter.start}
+                      onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+                    />
+                    <span className="cor-date-sep">to</span>
+                    <input
+                      type="date"
+                      value={dateFilter.end}
+                      onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+                    />
+                    {(dateFilter.start || dateFilter.end) && (
+                      <button className="cor-clear-btn" onClick={() => setDateFilter({ start: '', end: '' })}>
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
