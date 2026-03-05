@@ -461,7 +461,8 @@
 }
 
 .onboarding-complete:hover {
-  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .onboarding-complete:disabled {

@@ -139,7 +139,7 @@
 .photo-date-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 59, 130, 246), 0.15);
+  box-shadow: var(--shadow-focus);
 }
 
 .photo-date-chevron {
@@ -208,7 +208,7 @@
 }
 
 .photo-grid-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .photo-grid-item img {

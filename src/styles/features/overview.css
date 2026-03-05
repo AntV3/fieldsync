@@ -198,12 +198,12 @@
 
 /* Light mode bottom strip */
 [data-theme="light"] .overview-bottom-strip {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 /* Light mode needs-attention */
 [data-theme="light"] .overview-needs-attention {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .overview-needs-attention__item:hover {
@@ -861,7 +861,7 @@
 .crew-range-pill.active {
   background: var(--bg-elevated);
   color: var(--accent-blue);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .crew-chart-container {
@@ -877,7 +877,7 @@
 
 /* Light mode crew metrics */
 [data-theme="light"] .crew-metrics-card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .crew-stat {

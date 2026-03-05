@@ -54,7 +54,7 @@
 .documents-search-input:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: var(--shadow-focus);
 }
 
 .documents-search .search-clear {
@@ -238,7 +238,7 @@
 
 .document-card:hover {
   border-color: var(--accent-blue);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .document-card.pending {
@@ -627,7 +627,7 @@
 .document-upload-form textarea:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: var(--shadow-focus);
 }
 
 .document-upload-form textarea {
@@ -1103,7 +1103,7 @@
 
 .documents-folder-card:hover {
   border-color: var(--accent-blue);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
 
@@ -1325,7 +1325,7 @@
 
 .docs-folder-card:hover {
   border-color: var(--text-muted);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 .docs-folder-card-icon {
@@ -2384,7 +2384,7 @@
 
 .folder-card:hover {
   border-color: var(--folder-color, var(--accent-blue));
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-3px);
 }
 
@@ -2712,7 +2712,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-elevated);
   overflow: hidden;
   margin: 0 1rem;
 }
