@@ -4,7 +4,11 @@ import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from './l
 import { BrandingProvider } from './lib/BrandingContext'
 import { ThemeProvider } from './lib/ThemeContext'
 import { ToastProvider } from './lib/ToastContext'
-import AppEntry from './components/AppEntry'
+import LoginChooser from './components/auth/LoginChooser'
+import FieldLogin from './components/auth/FieldLogin'
+import OfficeLogin from './components/auth/OfficeLogin'
+import JoinCompany from './components/auth/JoinCompany'
+import RegisterCompany from './components/auth/RegisterCompany'
 import Toast from './components/Toast'
 import Logo from './components/Logo'
 import ThemeToggle from './components/ThemeToggle'
@@ -655,13 +659,53 @@ export default function App() {
             <ErrorBoundary><SignatureRoute />{toastEl}</ErrorBoundary>
           } />
 
-          {/* Login / Entry */}
+          {/* Login / Entry — split into separate routes */}
           <Route path="/login" element={
             user && company && authReady ? (
               <Navigate to="/dashboard" replace />
             ) : (
               <ErrorBoundary>
-                <AppEntry onForemanAccess={handleForemanAccess} onOfficeLogin={handleOfficeLogin} onShowToast={showToast} />
+                <LoginChooser />
+                {toastEl}
+              </ErrorBoundary>
+            )
+          } />
+          <Route path="/login/field" element={
+            user && company && authReady ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <ErrorBoundary>
+                <FieldLogin onForemanAccess={handleForemanAccess} onShowToast={showToast} />
+                {toastEl}
+              </ErrorBoundary>
+            )
+          } />
+          <Route path="/login/office" element={
+            user && company && authReady ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <ErrorBoundary>
+                <OfficeLogin onOfficeLogin={handleOfficeLogin} onShowToast={showToast} />
+                {toastEl}
+              </ErrorBoundary>
+            )
+          } />
+          <Route path="/login/office/join" element={
+            user && company && authReady ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <ErrorBoundary>
+                <JoinCompany onShowToast={showToast} />
+                {toastEl}
+              </ErrorBoundary>
+            )
+          } />
+          <Route path="/register" element={
+            user && company && authReady ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <ErrorBoundary>
+                <RegisterCompany onShowToast={showToast} />
                 {toastEl}
               </ErrorBoundary>
             )
