@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { FileSpreadsheet, Plus, ChevronRight } from 'lucide-react'
 import { drawRequestOps } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 import { formatCurrency } from '../../lib/corCalculations'
 
 /**
@@ -17,9 +18,9 @@ export default memo(function ProgressBillingCard({
   areas = [],
   corStats = {},
   onCreateDraw,
-  onViewDraw,
-  onShowToast
+  onViewDraw
 }) {
+  const { showToast } = useToast()
   const [drawRequests, setDrawRequests] = useState([])
   const [loading, setLoading] = useState(true)
 

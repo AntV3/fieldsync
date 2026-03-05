@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Link, Copy, Check, Clock, ExternalLink, AlertCircle, Trash2, Mail } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 // Hook to lock body scroll when modal is open
 function useBodyScrollLock() {
@@ -48,9 +49,9 @@ export default function SignatureLinkGenerator({
   projectId,
   project,
   documentTitle = '',
-  onClose,
-  onShowToast
+  onClose
 }) {
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [existingRequests, setExistingRequests] = useState([])
@@ -133,14 +134,14 @@ export default function SignatureLinkGenerator({
 
           window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
           setEmailSent(true)
-          onShowToast?.('Outlook opened — review and send the email', 'success')
+          showToast('Outlook opened — review and send the email', 'success')
         } else {
-          onShowToast?.('Signature link created', 'success')
+          showToast('Signature link created', 'success')
         }
       }
     } catch (err) {
       console.error('Error generating signature link:', err)
-      onShowToast?.('Failed to create signature link', 'error')
+      showToast('Failed to create signature link', 'error')
     } finally {
       setGenerating(false)
     }
@@ -151,7 +152,7 @@ export default function SignatureLinkGenerator({
     try {
       await navigator.clipboard.writeText(link)
       setCopied(true)
-      onShowToast?.('Link copied to clipboard', 'success')
+      showToast('Link copied to clipboard', 'success')
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Error copying to clipboard:', err)
@@ -167,10 +168,10 @@ export default function SignatureLinkGenerator({
     try {
       await db.revokeSignatureRequest(requestId)
       await loadExistingRequests()
-      onShowToast?.('Signature link revoked', 'success')
+      showToast('Signature link revoked', 'success')
     } catch (err) {
       console.error('Error revoking signature request:', err)
-      onShowToast?.('Failed to revoke link', 'error')
+      showToast('Failed to revoke link', 'error')
     }
   }
 

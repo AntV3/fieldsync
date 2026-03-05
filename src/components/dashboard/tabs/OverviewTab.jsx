@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react'
+import { useToast } from '../../../lib/ToastContext'
 import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
@@ -20,10 +21,10 @@ export default function OverviewTab({
   areasWorking,
   areasNotStarted,
   companyId,
-  onShowToast,
   onSetActiveTab,
   onExportFieldDocuments
 }) {
+  const { showToast } = useToast()
   const attentionItems = []
   if (projectData?.urgentMaterialRequests > 0) {
     attentionItems.push({
@@ -88,7 +89,6 @@ export default function OverviewTab({
         {/* Left: Crew On-Site */}
         <OverviewCrewMetrics
           project={selectedProject}
-          onShowToast={onShowToast}
         />
 
         {/* Right: Work Areas */}
@@ -179,7 +179,6 @@ export default function OverviewTab({
           <PhotoTimeline
             projectId={selectedProject?.id}
             areas={areas}
-            onShowToast={onShowToast}
           />
         </Suspense>
         <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
@@ -187,7 +186,6 @@ export default function OverviewTab({
             projectId={selectedProject?.id}
             areas={areas}
             companyId={companyId}
-            onShowToast={onShowToast}
           />
         </Suspense>
       </div>

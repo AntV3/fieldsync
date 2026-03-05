@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Download, ArrowLeft, Loader2, File, Image, FileSpreadsheet, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 
 // Icon mapping
 const FOLDER_ICONS = {
@@ -49,7 +50,8 @@ const formatFileSize = (bytes) => {
   return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`
 }
 
-export default function FolderGrid({ projectId, onShowToast }) {
+export default function FolderGrid({ projectId }) {
+  const { showToast } = useToast()
   const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedFolder, setSelectedFolder] = useState(null)
@@ -66,11 +68,11 @@ export default function FolderGrid({ projectId, onShowToast }) {
       setFolders(folderList)
     } catch (error) {
       console.error('Error loading folders:', error)
-      onShowToast?.('Failed to load folders', 'error')
+      showToast('Failed to load folders', 'error')
     } finally {
       setLoading(false)
     }
-  }, [projectId, onShowToast])
+  }, [projectId])
 
   const loadDocuments = useCallback(async (folderId) => {
     if (!folderId) return
@@ -80,11 +82,11 @@ export default function FolderGrid({ projectId, onShowToast }) {
       setDocuments(result.documents)
     } catch (error) {
       console.error('Error loading documents:', error)
-      onShowToast?.('Failed to load documents', 'error')
+      showToast('Failed to load documents', 'error')
     } finally {
       setLoadingDocs(false)
     }
-  }, [onShowToast])
+  }, [])
 
   // Debounce real-time events to avoid rapid-fire refreshes during batch uploads
   const refreshTimerRef = useRef(null)

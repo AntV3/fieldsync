@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: '#ef4444' },
@@ -18,7 +19,8 @@ const STATUS_OPTIONS = [
  * PunchList - Tracks deficiency items that need resolution before project closeout.
  * Items are linked to work areas and can include photos, assignees, and priorities.
  */
-export default function PunchList({ projectId, areas = [], companyId, onShowToast }) {
+export default function PunchList({ projectId, areas = [], companyId }) {
+  const { showToast } = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -99,7 +101,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     e.preventDefault()
 
     if (!formData.description.trim()) {
-      onShowToast?.('Please enter a description', 'error')
+      showToast('Please enter a description', 'error')
       return
     }
 
@@ -114,7 +116,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
           notes: formData.notes.trim() || null,
           photo_url: formData.photo_url || null
         })
-        onShowToast?.('Punch item updated', 'success')
+        showToast('Punch item updated', 'success')
       } else {
         await db.createPunchListItem({
           project_id: projectId,
@@ -126,14 +128,14 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
           notes: formData.notes.trim() || null,
           photo_url: formData.photo_url || null
         })
-        onShowToast?.('Punch item added', 'success')
+        showToast('Punch item added', 'success')
       }
 
       resetForm()
       loadItems()
     } catch (err) {
       console.error('Error saving punch item:', err)
-      onShowToast?.(err.message || 'Error saving item', 'error')
+      showToast(err.message || 'Error saving item', 'error')
     } finally {
       setSaving(false)
     }
@@ -145,7 +147,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
       loadItems()
     } catch (err) {
       console.error('Error updating status:', err)
-      onShowToast?.('Error updating status', 'error')
+      showToast('Error updating status', 'error')
     }
   }
 
@@ -154,11 +156,11 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
 
     try {
       await db.deletePunchListItem(itemId, projectId)
-      onShowToast?.('Item deleted', 'success')
+      showToast('Item deleted', 'success')
       loadItems()
     } catch (err) {
       console.error('Error deleting item:', err)
-      onShowToast?.('Error deleting item', 'error')
+      showToast('Error deleting item', 'error')
     }
   }
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { Truck, Plus, Calendar, RotateCcw, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { useToast } from '../../lib/ToastContext'
 
 // Helper function - defined outside component to avoid recreation
 const formatDate = (dateStr) => {
@@ -23,9 +24,10 @@ const formatDate = (dateStr) => {
 export default memo(function ProjectEquipmentCard({
   project,
   onAddEquipment,
-  onEditEquipment,
-  onShowToast
+  onEditEquipment
 }) {
+  const { showToast } = useToast()
+
   const [projectEquipment, setProjectEquipment] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(true)
@@ -45,11 +47,11 @@ export default memo(function ProjectEquipmentCard({
       setTotalCost(cost)
     } catch (error) {
       console.error('Error loading equipment:', error)
-      onShowToast?.('Failed to load equipment', 'error')
+      showToast('Failed to load equipment', 'error')
     } finally {
       setLoading(false)
     }
-  }, [project?.id]) // onShowToast is stable (memoized in App.jsx)
+  }, [project?.id])
 
   // Load project equipment when project changes + subscribe to real-time updates
   useEffect(() => {
@@ -69,13 +71,13 @@ export default memo(function ProjectEquipmentCard({
   const handleMarkReturned = useCallback(async (equipmentItem) => {
     try {
       await equipmentOps.markEquipmentReturned(equipmentItem.id)
-      onShowToast?.(`${equipmentItem.equipment_name} marked as returned`, 'success')
+      showToast(`${equipmentItem.equipment_name} marked as returned`, 'success')
       loadEquipment()
     } catch (error) {
       console.error('Error marking equipment returned:', error)
-      onShowToast?.('Failed to update equipment', 'error')
+      showToast('Failed to update equipment', 'error')
     }
-  }, [loadEquipment]) // onShowToast is stable
+  }, [loadEquipment])
 
   const handleDelete = useCallback(async (equipmentItem) => {
     if (!confirm(`Remove ${equipmentItem.equipment_name} from this project?`)) {
@@ -84,13 +86,13 @@ export default memo(function ProjectEquipmentCard({
 
     try {
       await equipmentOps.removeEquipmentFromProject(equipmentItem.id)
-      onShowToast?.('Equipment removed', 'success')
+      showToast('Equipment removed', 'success')
       loadEquipment()
     } catch (error) {
       console.error('Error removing equipment:', error)
-      onShowToast?.('Failed to remove equipment', 'error')
+      showToast('Failed to remove equipment', 'error')
     }
-  }, [loadEquipment]) // onShowToast is stable
+  }, [loadEquipment])
 
   // Memoize derived state to avoid recalculating on every render
   const activeEquipment = useMemo(

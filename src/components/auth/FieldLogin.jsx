@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ArrowLeft } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 import Logo from '../Logo'
 
-export default function FieldLogin({ onForemanAccess, onShowToast }) {
+export default function FieldLogin({ onForemanAccess }) {
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   // State
   const [companyCode, setCompanyCode] = useState('')
@@ -38,7 +40,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
   // Verify company code
   const submitCompanyCode = async () => {
     if (companyCode.length < 2) {
-      onShowToast('Enter company code', 'error')
+      showToast('Enter company code', 'error')
       return
     }
 
@@ -48,11 +50,11 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
       if (foundCompany) {
         setCompany(foundCompany)
       } else {
-        onShowToast('Invalid company code', 'error')
+        showToast('Invalid company code', 'error')
         setCompanyCode('')
       }
     } catch (err) {
-      onShowToast('Error checking code', 'error')
+      showToast('Error checking code', 'error')
     } finally {
       setLoading(false)
     }
@@ -70,7 +72,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
 
       if (result.rateLimited) {
         setPinState('error')
-        onShowToast('Too many attempts. Please wait 15 minutes.', 'error')
+        showToast('Too many attempts. Please wait 15 minutes.', 'error')
         if (pinResetTimeoutRef.current) clearTimeout(pinResetTimeoutRef.current)
         pinResetTimeoutRef.current = setTimeout(() => {
           setPin('')
@@ -86,15 +88,15 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
 
       if (result.error) {
         console.error('[Foreman Auth] PIN validation failed:', result.error)
-        onShowToast(result.error, 'error')
+        showToast(result.error, 'error')
         setPin('')
         return
       }
 
-      onShowToast('Invalid PIN', 'error')
+      showToast('Invalid PIN', 'error')
       setPin('')
     } catch (err) {
-      onShowToast('Error checking PIN. Please check your connection.', 'error')
+      showToast('Error checking PIN. Please check your connection.', 'error')
       setPin('')
     } finally {
       setLoading(false)
@@ -104,7 +106,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
   // Submit foreman name
   const handleForemanNameSubmit = () => {
     if (!foremanName.trim()) {
-      onShowToast('Enter your name to continue', 'error')
+      showToast('Enter your name to continue', 'error')
       return
     }
     try { localStorage.setItem('fieldsync_foreman_name', foremanName.trim()) } catch { /* ignore */ }

@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ArrowLeft, Check } from 'lucide-react'
 import { db, supabase } from '../../lib/supabase'
 import { isValidEmail, StepIndicator, PasswordInput } from './authUtils'
+import { useToast } from '../../lib/ToastContext'
 import Logo from '../Logo'
 
-export default function JoinCompany({ onShowToast }) {
+export default function JoinCompany() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   const [loading, setLoading] = useState(false)
   const [companyCode, setCompanyCode] = useState('')
@@ -26,7 +28,7 @@ export default function JoinCompany({ onShowToast }) {
   // Verify company code
   const verifyJoinCode = async () => {
     if (companyCode.length < 2) {
-      onShowToast('Enter company code', 'error')
+      showToast('Enter company code', 'error')
       return
     }
 
@@ -37,11 +39,11 @@ export default function JoinCompany({ onShowToast }) {
         setJoinCompany(foundCompany)
         setJoinStep(2)
       } else {
-        onShowToast('Invalid company code', 'error')
+        showToast('Invalid company code', 'error')
         setCompanyCode('')
       }
     } catch (err) {
-      onShowToast('Error checking code', 'error')
+      showToast('Error checking code', 'error')
     } finally {
       setLoading(false)
     }
@@ -50,7 +52,7 @@ export default function JoinCompany({ onShowToast }) {
   // Verify office code
   const verifyOfficeCode = async () => {
     if (!officeCode.trim()) {
-      onShowToast('Enter office code', 'error')
+      showToast('Enter office code', 'error')
       return
     }
 
@@ -66,11 +68,11 @@ export default function JoinCompany({ onShowToast }) {
       if (data === true) {
         setJoinStep(3)
       } else {
-        onShowToast('Invalid office code', 'error')
+        showToast('Invalid office code', 'error')
         setOfficeCode('')
       }
     } catch (err) {
-      onShowToast('Error verifying code', 'error')
+      showToast('Error verifying code', 'error')
     } finally {
       setLoading(false)
     }
@@ -80,15 +82,15 @@ export default function JoinCompany({ onShowToast }) {
   const handleJoinSubmit = async () => {
     if (loading) return
     if (!joinName.trim()) {
-      onShowToast('Enter your name', 'error')
+      showToast('Enter your name', 'error')
       return
     }
     if (!joinEmail.trim() || !isValidEmail(joinEmail)) {
-      onShowToast('Enter a valid email address', 'error')
+      showToast('Enter a valid email address', 'error')
       return
     }
     if (joinPassword.length < 6) {
-      onShowToast('Password must be 6+ characters', 'error')
+      showToast('Password must be 6+ characters', 'error')
       return
     }
 
@@ -113,7 +115,7 @@ export default function JoinCompany({ onShowToast }) {
         })
 
         if (signInError) {
-          onShowToast('Account exists with different password. Use your existing password.', 'error')
+          showToast('Account exists with different password. Use your existing password.', 'error')
           setLoading(false)
           return
         }
@@ -129,13 +131,13 @@ export default function JoinCompany({ onShowToast }) {
 
         if (existingMembership) {
           if (existingMembership.status === 'active') {
-            onShowToast('You already belong to this company. Logging you in...', 'success')
+            showToast('You already belong to this company. Logging you in...', 'success')
             setTimeout(() => window.location.reload(), 1000)
           } else if (existingMembership.status === 'pending') {
-            onShowToast('Your request is still pending approval.', 'error')
+            showToast('Your request is still pending approval.', 'error')
             await supabase.auth.signOut()
           } else {
-            onShowToast('Your membership was removed. Contact the company admin.', 'error')
+            showToast('Your membership was removed. Contact the company admin.', 'error')
             await supabase.auth.signOut()
           }
           return
@@ -200,7 +202,7 @@ export default function JoinCompany({ onShowToast }) {
 
     } catch (err) {
       console.error('Join error:', err)
-      onShowToast(err.message || 'Error creating account', 'error')
+      showToast(err.message || 'Error creating account', 'error')
     } finally {
       setLoading(false)
     }

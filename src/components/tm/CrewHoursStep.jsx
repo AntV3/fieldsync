@@ -28,7 +28,6 @@ import BatchHoursModal from './BatchHoursModal'
  *  - addDynamicWorker, updateDynamicWorker, removeDynamicWorker
  *  - getInactiveLaborClasses
  *  - t, lang
- *  - onShowToast
  */
 export default function CrewHoursStep({
   supervision, operators, laborers,
@@ -50,8 +49,7 @@ export default function CrewHoursStep({
   addLaborer, updateLaborer, removeLaborer,
   addDynamicWorker, updateDynamicWorker, removeDynamicWorker,
   getInactiveLaborClasses,
-  t, lang: _lang,
-  onShowToast: _onShowToast
+  t, lang: _lang
 }) {
   const namedWorkerCount = namedWorkers.length
 

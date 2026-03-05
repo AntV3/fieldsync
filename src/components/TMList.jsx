@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
@@ -17,13 +18,13 @@ const loadJsPDF = () => Promise.all([import('jspdf'), import('jspdf-autotable')]
 export default function TMList({
   project,
   company,
-  onShowToast,
   compact = false,
   // Preview mode props
   previewMode = false,   // When true, shows current month tickets with "See All" button
   onViewAll              // Callback when "See All" is clicked
 }) {
   const { branding } = useBranding()
+  const { showToast } = useToast()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -130,12 +131,12 @@ export default function TMList({
         setFailedImports(prev => reset ? importStatusResults : { ...prev, ...importStatusResults })
       }
     } catch (error) {
-      onShowToast('Error loading tickets', 'error')
+      showToast('Error loading tickets', 'error')
     } finally {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [project.id, filter, onShowToast])
+  }, [project.id, filter])
 
   useEffect(() => {
     // Reset pagination when project changes
@@ -191,7 +192,7 @@ export default function TMList({
   const updateStatus = useCallback(async (ticketId, newStatus) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticketId]) {
-      onShowToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
+      showToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
       return
     }
 
@@ -200,23 +201,23 @@ export default function TMList({
       setTickets(prev => prev.map(t =>
         t.id === ticketId ? { ...t, status: newStatus } : t
       ))
-      onShowToast(`Ticket ${newStatus}`, 'success')
+      showToast(`Ticket ${newStatus}`, 'success')
     } catch (error) {
       console.error('Error updating status:', error)
-      onShowToast('Error updating status', 'error')
+      showToast('Error updating status', 'error')
     }
-  }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
+  }, [lockedTickets])
 
   // Handle approval - approve directly (CE/PCO is informational only)
   const handleApprove = useCallback((ticket) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticket.id]) {
-      onShowToast(lockedTickets[ticket.id].reason || 'This ticket is locked (COR approved)', 'error')
+      showToast(lockedTickets[ticket.id].reason || 'This ticket is locked (COR approved)', 'error')
       return
     }
 
     updateStatus(ticket.id, 'approved')
-  }, [lockedTickets, updateStatus]) // onShowToast is stable
+  }, [lockedTickets, updateStatus])
 
   // Confirm approval with change order value
   const confirmChangeOrderApproval = async () => {
@@ -230,20 +231,20 @@ export default function TMList({
           ? { ...t, status: 'approved', change_order_value: value }
           : t
       ))
-      onShowToast(`Ticket approved with $${value.toLocaleString()} change order`, 'success')
+      showToast(`Ticket approved with $${value.toLocaleString()} change order`, 'success')
       setShowChangeOrderModal(false)
       setPendingApprovalTicket(null)
       setChangeOrderValue('')
     } catch (error) {
       console.error('Error approving ticket:', error)
-      onShowToast('Error approving ticket', 'error')
+      showToast('Error approving ticket', 'error')
     }
   }
 
   const deleteTicket = useCallback(async (ticketId) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticketId]) {
-      onShowToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
+      showToast(lockedTickets[ticketId].reason || 'This ticket is locked (COR approved)', 'error')
       return
     }
 
@@ -251,12 +252,12 @@ export default function TMList({
     try {
       await db.deleteTMTicket(ticketId)
       setTickets(prev => prev.filter(t => t.id !== ticketId))
-      onShowToast('Ticket deleted', 'success')
+      showToast('Ticket deleted', 'success')
     } catch (error) {
       console.error('Error deleting ticket:', error)
-      onShowToast('Error deleting ticket', 'error')
+      showToast('Error deleting ticket', 'error')
     }
-  }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
+  }, [lockedTickets])
 
   // Open COR association modal
   const openCorAssignModal = useCallback(async (ticket) => {
@@ -271,11 +272,11 @@ export default function TMList({
       setAvailableCors(cors || [])
     } catch (error) {
       console.error('Error loading CORs:', error)
-      onShowToast('Error loading change orders', 'error')
+      showToast('Error loading change orders', 'error')
     } finally {
       setLoadingCors(false)
     }
-  }, [project.id]) // onShowToast is stable (memoized in App.jsx)
+  }, [project.id])
 
   // Associate ticket with selected COR
   const handleAssignToCor = async () => {
@@ -300,11 +301,11 @@ export default function TMList({
         }
 
         const cor = availableCors.find(c => c.id === selectedCorForAssign)
-        onShowToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
+        showToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
       } else if (pendingCorAssignTicket.assigned_cor_id) {
         // Remove association using atomic function (ticketId, corId)
         await db.unassignTicketFromCOR(pendingCorAssignTicket.id, pendingCorAssignTicket.assigned_cor_id)
-        onShowToast('Ticket unlinked from COR', 'success')
+        showToast('Ticket unlinked from COR', 'success')
       }
 
       // Refresh tickets
@@ -314,7 +315,7 @@ export default function TMList({
       setSelectedCorForAssign('')
     } catch (error) {
       console.error('Error updating COR association:', error)
-      onShowToast('Error updating COR link', 'error')
+      showToast('Error updating COR link', 'error')
     }
   }
 
@@ -332,7 +333,7 @@ export default function TMList({
         project.work_type || 'demolition',
         project.job_type || 'standard'
       )
-      onShowToast('COR data import successful!', 'success')
+      showToast('COR data import successful!', 'success')
       // Clear the failed import state for this ticket
       setFailedImports(prev => {
         const next = { ...prev }
@@ -342,11 +343,11 @@ export default function TMList({
       loadTickets()
     } catch (error) {
       console.error('Error retrying import:', error)
-      onShowToast('Import retry failed. Please try again.', 'error')
+      showToast('Import retry failed. Please try again.', 'error')
     } finally {
       setRetryingImport(null)
     }
-  }, [company.id, project.work_type, project.job_type]) // onShowToast and loadTickets are stable
+  }, [company.id, project.work_type, project.job_type])
 
   const calculateTicketTotal = (ticket) => {
     let total = 0
@@ -431,11 +432,11 @@ export default function TMList({
     const exportTickets = getExportTickets()
 
     if (exportTickets.length === 0) {
-      onShowToast('No tickets to export', 'error')
+      showToast('No tickets to export', 'error')
       return
     }
 
-    onShowToast('Preparing Excel export...', 'info')
+    showToast('Preparing Excel export...', 'info')
 
     // Dynamic import - only loads XLSX when user actually exports
     const XLSX = (await loadXLSX()).default || await loadXLSX()
@@ -522,7 +523,7 @@ export default function TMList({
     // Download
     const fileName = `${project.name}_Time_Material_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(wb, fileName)
-    onShowToast('Export downloaded!', 'success')
+    showToast('Export downloaded!', 'success')
   }
 
   // Export to PDF - Professional format with company branding (loads jsPDF on-demand)
@@ -530,11 +531,11 @@ export default function TMList({
     const exportTickets = getExportTickets()
 
     if (exportTickets.length === 0) {
-      onShowToast('No tickets to export', 'error')
+      showToast('No tickets to export', 'error')
       return
     }
 
-    onShowToast('Generating PDF...', 'info')
+    showToast('Generating PDF...', 'info')
 
     // Dynamic import - only loads jsPDF and autoTable when user actually exports
     const [jsPDFModule, autoTableModule] = await loadJsPDF()
@@ -1047,7 +1048,7 @@ export default function TMList({
     // Download
     const fileName = `${project.name}_Time_Material_Report_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)
-    onShowToast('PDF exported!', 'success')
+    showToast('PDF exported!', 'success')
   }
 
   // Filter tickets by status, view mode, and date range
@@ -1456,7 +1457,6 @@ export default function TMList({
             setShowSignatureLink(false)
             setSignatureLinkTicket(null)
           }}
-          onShowToast={onShowToast}
         />
       )}
 

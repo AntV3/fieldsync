@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ArrowLeft, Download, Archive, CheckCircle, XCircle, Clock, FileText, User, Calendar, Folder, Eye, Link2, Loader2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { DOCUMENT_CATEGORIES, DOCUMENT_VISIBILITY_LABELS } from '../../lib/constants'
+import { useToast } from '../../lib/ToastContext'
 
 // Format file size
 const formatFileSize = (bytes) => {
@@ -29,7 +30,8 @@ const formatDate = (dateString) => {
   })
 }
 
-export default function DocumentDetail({ document: initialDocument, onBack, onUpdate, onShowToast, isOfficeOrAdmin }) {
+export default function DocumentDetail({ document: initialDocument, onBack, onUpdate, isOfficeOrAdmin }) {
+  const { showToast } = useToast()
   const [document, setDocument] = useState(initialDocument)
   const [versions, setVersions] = useState([])
   const [loadingVersions, setLoadingVersions] = useState(true)
@@ -73,11 +75,11 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
     try {
       await db.approveDocument(document.id)
       setDocument(prev => ({ ...prev, approval_status: 'approved' }))
-      onShowToast?.('Document approved', 'success')
+      showToast('Document approved', 'success')
       onUpdate?.()
     } catch (error) {
       console.error('Error approving document:', error)
-      onShowToast?.('Failed to approve document', 'error')
+      showToast('Failed to approve document', 'error')
     } finally {
       setProcessing(false)
     }
@@ -86,7 +88,7 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
   // Handle reject
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      onShowToast?.('Please provide a reason for rejection', 'error')
+      showToast('Please provide a reason for rejection', 'error')
       return
     }
 
@@ -96,11 +98,11 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
       setDocument(prev => ({ ...prev, approval_status: 'rejected', rejection_reason: rejectReason.trim() }))
       setShowRejectModal(false)
       setRejectReason('')
-      onShowToast?.('Document rejected', 'success')
+      showToast('Document rejected', 'success')
       onUpdate?.()
     } catch (error) {
       console.error('Error rejecting document:', error)
-      onShowToast?.('Failed to reject document', 'error')
+      showToast('Failed to reject document', 'error')
     } finally {
       setProcessing(false)
     }
@@ -113,12 +115,12 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
     setProcessing(true)
     try {
       await db.archiveDocument(document.id)
-      onShowToast?.('Document archived', 'success')
+      showToast('Document archived', 'success')
       onBack()
       onUpdate?.()
     } catch (error) {
       console.error('Error archiving document:', error)
-      onShowToast?.('Failed to archive document', 'error')
+      showToast('Failed to archive document', 'error')
     } finally {
       setProcessing(false)
     }

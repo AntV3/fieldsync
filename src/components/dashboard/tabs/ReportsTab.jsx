@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react'
+import { useToast } from '../../../lib/ToastContext'
 import { ClipboardList, Users, Shield, Package, Truck, FileText, Camera, HardHat, DollarSign, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { TicketSkeleton } from '../../ui'
@@ -11,9 +12,9 @@ export default function ReportsTab({
   company,
   user,
   projectData,
-  areas,
-  onShowToast
+  areas
 }) {
+  const { showToast } = useToast()
   return (
     <div className="pv-tab-panel reports-tab">
       {/* Hero Metrics - High Level Project Pulse */}
@@ -355,7 +356,7 @@ export default function ReportsTab({
         </div>
         <div className="reports-section-content">
           <Suspense fallback={<TicketSkeleton />}>
-            <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+            <DailyReportsList project={selectedProject} company={company} />
           </Suspense>
         </div>
       </div>
@@ -383,7 +384,6 @@ export default function ReportsTab({
               companyId={company?.id || selectedProject?.company_id}
               company={company}
               user={user}
-              onShowToast={onShowToast}
             />
           </Suspense>
         </div>

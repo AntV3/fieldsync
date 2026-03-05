@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Plus, Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Trash2, Edit2, GripVertical, Loader2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 
 // Available icons for folders
 const FOLDER_ICON_OPTIONS = [
@@ -33,9 +34,9 @@ export default function FolderManager({
   companyId,
   folders,
   onFoldersChange,
-  onClose,
-  onShowToast
+  onClose
 }) {
+  const { showToast } = useToast()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingFolder, setEditingFolder] = useState(null)
   const [deleting, setDeleting] = useState(null)
@@ -72,7 +73,7 @@ export default function FolderManager({
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!folderName.trim()) {
-      onShowToast?.('Please enter a folder name', 'error')
+      showToast('Please enter a folder name', 'error')
       return
     }
 
@@ -86,7 +87,7 @@ export default function FolderManager({
           color: folderColor,
           description: folderDescription.trim() || null
         })
-        onShowToast?.('Folder updated', 'success')
+        showToast('Folder updated', 'success')
       } else {
         // Create new folder
         const maxOrder = Math.max(0, ...folders.map(f => f.sort_order || 0))
@@ -97,7 +98,7 @@ export default function FolderManager({
           description: folderDescription.trim() || null,
           sort_order: maxOrder + 1
         })
-        onShowToast?.('Folder created', 'success')
+        showToast('Folder created', 'success')
       }
       setShowCreateModal(false)
       resetForm()
@@ -105,9 +106,9 @@ export default function FolderManager({
     } catch (error) {
       console.error('Error saving folder:', error)
       if (error.message?.includes('duplicate key') || error.code === '23505') {
-        onShowToast?.('A folder with this name already exists', 'error')
+        showToast('A folder with this name already exists', 'error')
       } else {
-        onShowToast?.('Failed to save folder', 'error')
+        showToast('Failed to save folder', 'error')
       }
     } finally {
       setSaving(false)
@@ -122,11 +123,11 @@ export default function FolderManager({
     setDeleting(folder.id)
     try {
       await db.deleteFolder(folder.id)
-      onShowToast?.('Folder deleted', 'success')
+      showToast('Folder deleted', 'success')
       onFoldersChange?.()
     } catch (error) {
       console.error('Error deleting folder:', error)
-      onShowToast?.('Failed to delete folder', 'error')
+      showToast('Failed to delete folder', 'error')
     } finally {
       setDeleting(null)
     }

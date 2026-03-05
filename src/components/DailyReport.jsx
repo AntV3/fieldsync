@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
+import { useToast } from '../lib/ToastContext'
 
-export default function DailyReport({ project, onShowToast, onClose }) {
+export default function DailyReport({ project, onClose }) {
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [report, setReport] = useState(null)
@@ -51,7 +53,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       }
     } catch (err) {
       console.error('Error loading report:', err)
-      onShowToast('Error loading report', 'error')
+      showToast('Error loading report', 'error')
     } finally {
       setLoading(false)
     }
@@ -66,9 +68,20 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     try {
       // Compress all images in parallel for faster processing
       const imageFiles = files.filter(f => f.type.startsWith('image/'))
-      const compressedFiles = await Promise.all(
+      const results = await Promise.allSettled(
         imageFiles.map(file => compressImage(file))
       )
+      const compressedFiles = results
+        .filter(r => r.status === 'fulfilled')
+        .map(r => r.value)
+      const failedCount = results.filter(r => r.status === 'rejected').length
+      if (failedCount > 0) {
+        showToast(`${failedCount} photo(s) failed to compress, using originals`, 'warning')
+        // Add original files for failed compressions
+        results.forEach((r, i) => {
+          if (r.status === 'rejected') compressedFiles.push(imageFiles[i])
+        })
+      }
       const newPhotos = compressedFiles.map((compressed, i) => ({
         id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         file: compressed,
@@ -78,7 +91,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       setPhotos(prev => [...prev, ...newPhotos])
     } catch (err) {
       console.error('Error adding photos:', err)
-      onShowToast('Error adding photos', 'error')
+      showToast('Error adding photos', 'error')
     } finally {
       setUploadingPhotos(false)
       e.target.value = ''
@@ -96,7 +109,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const handleSubmit = async () => {
     // Demo mode warning
     if (!isSupabaseConfigured) {
-      onShowToast('Demo Mode: Report saved locally only - won\'t reach office', 'info')
+      showToast('Demo Mode: Report saved locally only - won\'t reach office', 'info')
       onClose()
       return
     }
@@ -138,14 +151,14 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       const result = await db.submitDailyReport(project.id, 'Field')
 
       if (result) {
-        onShowToast('Daily report submitted!', 'success')
+        showToast('Daily report submitted!', 'success')
         onClose()
       } else {
-        onShowToast('Report not sent - check connection', 'error')
+        showToast('Report not sent - check connection', 'error')
       }
     } catch (err) {
       console.error('Error submitting report:', err)
-      onShowToast('Error submitting report', 'error')
+      showToast('Error submitting report', 'error')
     } finally {
       setSubmitting(false)
       setSubmitProgress('')

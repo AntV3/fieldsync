@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo } from 'react'
 import { Package, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { parseLocalDate } from '../lib/utils'
+import { useToast } from '../lib/ToastContext'
 
-export default function MaterialRequestsList({ project, company, onShowToast }) {
+export default function MaterialRequestsList({ project, company }) {
+  const { showToast } = useToast()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -33,7 +35,7 @@ export default function MaterialRequestsList({ project, company, onShowToast }) 
       setRequests(data || [])
     } catch (error) {
       console.error('Error loading material requests:', error)
-      onShowToast?.('Error loading material requests', 'error')
+      showToast('Error loading material requests', 'error')
     } finally {
       setLoading(false)
     }
@@ -45,10 +47,10 @@ export default function MaterialRequestsList({ project, company, onShowToast }) 
       setRequests(requests.map(r =>
         r.id === requestId ? { ...r, status: newStatus } : r
       ))
-      onShowToast?.(`Request ${newStatus}`, 'success')
+      showToast(`Request ${newStatus}`, 'success')
     } catch (error) {
       console.error('Error updating status:', error)
-      onShowToast?.('Error updating status', 'error')
+      showToast('Error updating status', 'error')
     }
   }
 

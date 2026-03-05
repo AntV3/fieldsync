@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 import { safeParseExcel, safeSheetToJson, loadXLSXSafe } from '../lib/safeXlsx'
 
 // Currency formatting helpers
@@ -23,7 +24,8 @@ const parseCurrencyInput = (value) => {
   return isNaN(num) ? null : num
 }
 
-export default function Setup({ company, user, onProjectCreated, onShowToast }) {
+export default function Setup({ company, user, onProjectCreated }) {
+  const { showToast } = useToast()
   const [projectName, setProjectName] = useState('')
   const [jobNumber, setJobNumber] = useState('')
   const [address, setAddress] = useState('')
@@ -92,7 +94,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const autoGenerateWeights = (method = 'value') => {
     const validAreas = areas.filter(a => a.name.trim())
     if (validAreas.length === 0) {
-      onShowToast('Add tasks first', 'error')
+      showToast('Add tasks first', 'error')
       return
     }
 
@@ -104,7 +106,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
 
       if (totalValue === 0) {
         // Fallback to equal if no values
-        onShowToast('No scheduled values - using equal distribution', 'info')
+        showToast('No scheduled values - using equal distribution', 'info')
         method = 'equal'
       } else {
         let runningTotal = 0
@@ -125,7 +127,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
 
         setAreas(newAreas)
         setShowWeightDropdown(false)
-        onShowToast('Weights calculated by value', 'success')
+        showToast('Weights calculated by value', 'success')
         return
       }
     }
@@ -147,7 +149,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
 
     setAreas(newAreas)
     setShowWeightDropdown(false)
-    onShowToast('Weights distributed equally', 'success')
+    showToast('Weights distributed equally', 'success')
   }
 
   const resetForm = () => {
@@ -370,7 +372,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
     
     const ext = file.name.split('.').pop().toLowerCase()
     if (!['xlsx', 'xls', 'csv'].includes(ext)) {
-      onShowToast('Please upload an Excel file (.xlsx, .xls, or .csv)', 'error')
+      showToast('Please upload an Excel file (.xlsx, .xls, or .csv)', 'error')
       return
     }
     
@@ -380,17 +382,17 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       const tasks = await parseExcel(file)
       
       if (tasks.length === 0) {
-        onShowToast('No tasks found. Check Excel format.', 'error')
+        showToast('No tasks found. Check Excel format.', 'error')
         setImporting(false)
         return
       }
       
       setImportedTasks(tasks)
       setShowImportReview(true)
-      onShowToast(`Found ${tasks.length} tasks`, 'success')
+      showToast(`Found ${tasks.length} tasks`, 'success')
     } catch (error) {
       console.error('Excel import error:', error)
-      onShowToast('Error reading Excel file', 'error')
+      showToast('Error reading Excel file', 'error')
     } finally {
       setImporting(false)
       if (fileInputRef.current) {
@@ -408,7 +410,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const handleUseImportedTasks = () => {
     const selectedTasks = importedTasks.filter(t => t.selected)
     if (selectedTasks.length === 0) {
-      onShowToast('Please select at least one task', 'error')
+      showToast('Please select at least one task', 'error')
       return
     }
 
@@ -440,7 +442,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         }
       })
 
-      onShowToast(`Tasks imported with value-based weights! Total SOV: ${formatter.format(totalSOV)}`, 'success')
+      showToast(`Tasks imported with value-based weights! Total SOV: ${formatter.format(totalSOV)}`, 'success')
     } else {
       // Equal distribution fallback (no scheduled values)
       const weight = Math.round((100 / selectedTasks.length) * 100) / 100
@@ -453,7 +455,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         scheduledValue: task.scheduledValue || null
       }))
 
-      onShowToast('Tasks imported with equal weights', 'success')
+      showToast('Tasks imported with equal weights', 'success')
     }
 
     setAreas(newAreas)
@@ -462,50 +464,50 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
 
   const handleSubmit = async () => {
     if (!company?.id) {
-      onShowToast('No company selected. Please log in again.', 'error')
+      showToast('No company selected. Please log in again.', 'error')
       return
     }
 
     if (!projectName.trim()) {
-      onShowToast('Please enter a project name', 'error')
+      showToast('Please enter a project name', 'error')
       return
     }
 
     const contractVal = parseFloat(contractValue)
     if (!contractVal || contractVal <= 0) {
-      onShowToast('Please enter a valid contract value', 'error')
+      showToast('Please enter a valid contract value', 'error')
       return
     }
 
     if (pin.length !== 4) {
-      onShowToast('Please enter a 4-digit PIN', 'error')
+      showToast('Please enter a 4-digit PIN', 'error')
       return
     }
 
     const pinAvailable = await db.isPinAvailable(pin)
     if (!pinAvailable) {
-      onShowToast('This PIN is already in use. Try another.', 'error')
+      showToast('This PIN is already in use. Try another.', 'error')
       return
     }
 
     const validAreas = areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
     if (validAreas.length === 0) {
-      onShowToast('Please add at least one area', 'error')
+      showToast('Please add at least one area', 'error')
       return
     }
 
     if (Math.abs(totalWeight - 100) > 0.1) {
-      onShowToast('Area weights must total 100%', 'error')
+      showToast('Area weights must total 100%', 'error')
       return
     }
 
     if (!startDate || !endDate) {
-      onShowToast('Start date and end date are required', 'error')
+      showToast('Start date and end date are required', 'error')
       return
     }
 
     if (new Date(endDate) < new Date(startDate)) {
-      onShowToast('End date must be on or after start date', 'error')
+      showToast('End date must be on or after start date', 'error')
       return
     }
 
@@ -548,12 +550,12 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         })
       }
 
-      onShowToast('Project created!', 'success')
+      showToast('Project created!', 'success')
       resetForm()
       onProjectCreated()
     } catch (error) {
       console.error('Error creating project:', error)
-      onShowToast('Error creating project', 'error')
+      showToast('Error creating project', 'error')
     } finally {
       setCreating(false)
     }

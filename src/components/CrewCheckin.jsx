@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { HardHat, UserPlus, X, RotateCcw } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 // Helper to get/set dismissed workers from localStorage per project
 const getDismissedWorkers = (projectId) => {
@@ -18,7 +19,8 @@ const saveDismissedWorkers = (projectId, names) => {
   } catch { /* localStorage full or unavailable */ }
 }
 
-export default function CrewCheckin({ project, companyId, onShowToast }) {
+export default memo(function CrewCheckin({ project, companyId }) {
+  const { showToast } = useToast()
   const [workers, setWorkers] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -49,11 +51,11 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       }
     } catch (err) {
       console.error('Error loading crew:', err)
-      onShowToast?.('Error loading today\'s crew', 'error')
+      showToast('Error loading today\'s crew', 'error')
     } finally {
       setLoading(false)
     }
-  }, [project?.id, onShowToast])
+  }, [project?.id])
 
   const loadRecentWorkers = useCallback(async () => {
     try {
@@ -85,11 +87,11 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     } catch (err) {
       console.error('Error loading labor classes:', err)
       // Show toast but continue with default roles
-      onShowToast?.('Using default roles - custom labor classes unavailable', 'info')
+      showToast('Using default roles - custom labor classes unavailable', 'info')
     } finally {
       setLoadingClasses(false)
     }
-  }, [companyId, onShowToast])
+  }, [companyId])
 
   useEffect(() => {
     if (project?.id) {
@@ -125,18 +127,18 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
 
   const handleAddWorker = async () => {
     if (!newWorker.name.trim()) {
-      onShowToast('Enter worker name', 'error')
+      showToast('Enter worker name', 'error')
       return
     }
 
     if (!newWorker.role) {
-      onShowToast('Select a role', 'error')
+      showToast('Select a role', 'error')
       return
     }
 
     // Check for duplicate
     if (workers.find(w => w.name.toLowerCase() === newWorker.name.trim().toLowerCase())) {
-      onShowToast('Worker already added', 'error')
+      showToast('Worker already added', 'error')
       return
     }
 
@@ -154,10 +156,10 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       // Reset form but keep same role selected for quick entry
       setNewWorker({ ...newWorker, name: '' })
       setShowAddForm(false)
-      onShowToast('Crew member added', 'success')
+      showToast('Crew member added', 'success')
     } catch (err) {
       console.error('Error adding worker:', err)
-      onShowToast('Error adding crew member', 'error')
+      showToast('Error adding crew member', 'error')
     } finally {
       setSaving(false)
     }
@@ -171,10 +173,10 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       )
       await db.saveCrewCheckin(project.id, updatedWorkers)
       setWorkers(updatedWorkers)
-      onShowToast('Crew member removed', 'success')
+      showToast('Crew member removed', 'success')
     } catch (err) {
       console.error('Error removing worker:', err)
-      onShowToast('Error removing crew member', 'error')
+      showToast('Error removing crew member', 'error')
     } finally {
       setSaving(false)
     }
@@ -184,7 +186,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const handleQuickAdd = async (recentWorker) => {
     // Check if already added
     if (workers.find(w => w.name.toLowerCase() === recentWorker.name.toLowerCase())) {
-      onShowToast('Already checked in', 'info')
+      showToast('Already checked in', 'info')
       return
     }
 
@@ -197,10 +199,10 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       }]
       await db.saveCrewCheckin(project.id, updatedWorkers)
       setWorkers(updatedWorkers)
-      onShowToast(`${recentWorker.name} checked in`, 'success')
+      showToast(`${recentWorker.name} checked in`, 'success')
     } catch (err) {
       console.error('Error adding worker:', err)
-      onShowToast('Error adding crew member', 'error')
+      showToast('Error adding crew member', 'error')
     } finally {
       setSaving(false)
     }
@@ -212,7 +214,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     const updated = [...dismissedNames, nameLower]
     setDismissedNames(updated)
     saveDismissedWorkers(project.id, updated)
-    onShowToast?.(`${workerName} removed from quick-add`, 'success')
+    showToast(`${workerName} removed from quick-add`, 'success')
   }
 
   // Restore a dismissed worker back to the quick-add list
@@ -221,7 +223,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     const updated = dismissedNames.filter(n => n !== nameLower)
     setDismissedNames(updated)
     saveDismissedWorkers(project.id, updated)
-    onShowToast?.(`${workerName} restored to quick-add`, 'success')
+    showToast(`${workerName} restored to quick-add`, 'success')
   }
 
   // Restore all dismissed workers
@@ -229,7 +231,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     setDismissedNames([])
     saveDismissedWorkers(project.id, [])
     setEditingQuickAdd(false)
-    onShowToast?.('All workers restored to quick-add', 'success')
+    showToast('All workers restored to quick-add', 'success')
   }
 
   // Get dismissed worker details for the restore list
@@ -555,4 +557,4 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       </div>
     </div>
   )
-}
+})

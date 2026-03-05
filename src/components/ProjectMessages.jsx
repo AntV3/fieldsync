@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Briefcase, HardHat, MessageSquare } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
-export default function ProjectMessages({ project, company, userName, onShowToast }) {
+export default function ProjectMessages({ project, company, userName }) {
+  const { showToast } = useToast()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -81,7 +83,7 @@ export default function ProjectMessages({ project, company, userName, onShowToas
       setNewMessage('')
     } catch (err) {
       console.error('Error sending message:', err)
-      onShowToast?.('Error sending message', 'error')
+      showToast('Error sending message', 'error')
     } finally {
       setSending(false)
     }

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { HardHat } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
-export default function ManDayCosts({ project, company, onShowToast }) {
+export default function ManDayCosts({ project, company }) {
+  const { showToast } = useToast()
   const [costData, setCostData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)

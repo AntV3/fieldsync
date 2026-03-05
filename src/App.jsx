@@ -360,16 +360,16 @@ export default function App() {
           {/* Login / Entry — split into separate routes */}
           <Route path="/login" element={guestOnly(<LoginChooser />)} />
           <Route path="/login/field" element={guestOnly(
-            <FieldLogin onForemanAccess={handleForemanAccess} onShowToast={showToast} />
+            <FieldLogin onForemanAccess={handleForemanAccess} />
           )} />
           <Route path="/login/office" element={guestOnly(
-            <OfficeLogin onOfficeLogin={handleOfficeLogin} onShowToast={showToast} />
+            <OfficeLogin onOfficeLogin={handleOfficeLogin} />
           )} />
           <Route path="/login/office/join" element={guestOnly(
-            <JoinCompany onShowToast={showToast} />
+            <JoinCompany />
           )} />
           <Route path="/register" element={guestOnly(
-            <RegisterCompany onShowToast={showToast} />
+            <RegisterCompany />
           )} />
 
           {/* Pending approval */}
@@ -384,7 +384,7 @@ export default function App() {
             foremanProject ? (
               <BrandingProvider companyId={foremanProject.company_id}>
                 <ErrorBoundary>
-                  <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onShowToast={showToast} onExit={handleExitForeman} />
+                  <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onExit={handleExitForeman} />
                 </ErrorBoundary>
                 <OfflineIndicator />
               </BrandingProvider>
@@ -395,24 +395,24 @@ export default function App() {
 
           {/* Office routes - require auth */}
           <Route path="/dashboard" element={requireAuth(officeLayout(
-            <Dashboard company={company} user={user} isAdmin={isAdmin} onShowToast={showToast} navigateToProjectId={navigateToProjectId} onProjectNavigated={handleProjectNavigated} />
+            <Dashboard company={company} user={user} isAdmin={isAdmin} navigateToProjectId={navigateToProjectId} onProjectNavigated={handleProjectNavigated} />
           ))} />
           <Route path="/projects/new" element={requireAuth(officeLayout(
-            <Setup company={company} user={user} onProjectCreated={handleProjectCreated} onShowToast={showToast} />
+            <Setup company={company} user={user} onProjectCreated={handleProjectCreated} />
           ))} />
           <Route path="/pricing" element={requireAuth(officeLayout(
-            <PricingManager company={company} onShowToast={showToast} />
+            <PricingManager company={company} />
           ))} />
           <Route path="/branding" element={requireAuth(officeLayout(
-            <BrandingSettings company={company} onShowToast={showToast} />
+            <BrandingSettings company={company} />
           ))} />
           <Route path="/team" element={requireAuth(
             isAdmin
-              ? officeLayout(<MembershipManager company={company} user={user} onShowToast={showToast} />)
+              ? officeLayout(<MembershipManager company={company} user={user} />)
               : <Navigate to="/dashboard" replace />
           )} />
           <Route path="/account" element={requireAuth(officeLayout(
-            <AccountSettings user={user} company={company} onShowToast={showToast} />
+            <AccountSettings user={user} company={company} />
           ))} />
 
           {/* Root — Landing page for new visitors, fast-track for returning users */}

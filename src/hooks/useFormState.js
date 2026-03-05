@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useToast } from '../lib/ToastContext'
 
 /**
  * useFormState - Manages form submission state with loading, error, and success handling
@@ -7,10 +8,10 @@ import { useState, useCallback } from 'react'
  * @param {Object} options
  * @param {Function} options.onSuccess - Callback when submission succeeds
  * @param {Function} options.onError - Callback when submission fails
- * @param {Function} options.onShowToast - Toast notification function
  * @returns {Object} Form state and handlers
  */
-export function useFormState({ onSuccess, onError, onShowToast } = {}) {
+export function useFormState({ onSuccess, onError } = {}) {
+  const { showToast } = useToast()
   const [state, setState] = useState({
     isSubmitting: false,
     isSuccess: false,
@@ -66,8 +67,8 @@ export function useFormState({ onSuccess, onError, onShowToast } = {}) {
       const result = await submitFn()
       setSuccess(result)
 
-      if (successMessage && onShowToast) {
-        onShowToast(successMessage, 'success')
+      if (successMessage) {
+        showToast(successMessage, 'success')
       }
 
       if (onSuccess) {
@@ -83,9 +84,7 @@ export function useFormState({ onSuccess, onError, onShowToast } = {}) {
       const message = errorMessage || err?.message || 'An error occurred'
       setError(message)
 
-      if (onShowToast) {
-        onShowToast(message, 'error')
-      }
+      showToast(message, 'error')
 
       if (onError) {
         onError(err)
@@ -93,7 +92,7 @@ export function useFormState({ onSuccess, onError, onShowToast } = {}) {
 
       return { success: false, error: err }
     }
-  }, [onSuccess, onError, onShowToast, setSubmitting, setSuccess, setError, reset])
+  }, [onSuccess, onError, showToast, setSubmitting, setSuccess, setError, reset])
 
   return {
     ...state,

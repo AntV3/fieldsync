@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { X, Check, RotateCcw, Pen, User, Building, Briefcase, HardHat, Wrench, Camera, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 // Helper to format time (HH:MM to 9:00am format)
 const formatTime = (timeStr) => {
@@ -18,9 +19,9 @@ export default function TMClientSignature({
   ticketDetails, // { projectName, cePcoNumber, notes, workers, items, photos }
   lang = 'en',
   onSave,
-  onClose,
-  onShowToast
+  onClose
 }) {
+  const { showToast } = useToast()
   const canvasRef = useRef(null)
   const [signerName, setSignerName] = useState('')
   const [signerTitle, setSignerTitle] = useState('')
@@ -196,12 +197,12 @@ export default function TMClientSignature({
   // Save signature
   const handleSave = async () => {
     if (!signerName.trim()) {
-      onShowToast?.(text.nameRequired, 'error')
+      showToast(text.nameRequired, 'error')
       return
     }
 
     if (!hasSignature) {
-      onShowToast?.(text.signatureRequired, 'error')
+      showToast(text.signatureRequired, 'error')
       return
     }
 
@@ -222,7 +223,7 @@ export default function TMClientSignature({
         signedAt: new Date().toISOString()
       })
 
-      onShowToast?.(text.signatureSaved, 'success')
+      showToast(text.signatureSaved, 'success')
       onSave?.({
         signerName: signerName.trim(),
         signerTitle: signerTitle.trim(),
@@ -230,7 +231,7 @@ export default function TMClientSignature({
       })
     } catch (error) {
       console.error('Error saving signature:', error)
-      onShowToast?.(text.signatureError, 'error')
+      showToast(text.signatureError, 'error')
     } finally {
       setSaving(false)
     }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MessageSquare, Package, AlertCircle, ClipboardList } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 
 const NOTIFICATION_TYPES = [
   { id: 'message', label: 'Messages', Icon: MessageSquare, description: 'Chat messages from field' },
@@ -9,7 +10,8 @@ const NOTIFICATION_TYPES = [
   { id: 'tm_ticket', label: 'Time & Material', Icon: ClipboardList, description: 'Time & Material tickets' }
 ]
 
-export default function NotificationSettings({ project, company, onShowToast, onClose }) {
+export default function NotificationSettings({ project, company, onClose }) {
+  const { showToast } = useToast()
   const [users, setUsers] = useState([])
   const [preferences, setPreferences] = useState({}) // { userId: { types: [], presetId: null } }
   const [presets, setPresets] = useState([])
@@ -47,7 +49,7 @@ export default function NotificationSettings({ project, company, onShowToast, on
 
     } catch (error) {
       console.error('Error loading notification settings:', error)
-      onShowToast?.('Error loading notification settings', 'error')
+      showToast('Error loading notification settings', 'error')
     } finally {
       setLoading(false)
     }
@@ -102,11 +104,11 @@ export default function NotificationSettings({ project, company, onShowToast, on
 
       await db.setProjectNotificationPreferences(project.id, userPreferences)
 
-      onShowToast?.('Notification settings saved', 'success')
+      showToast('Notification settings saved', 'success')
       onClose?.()
     } catch (error) {
       console.error('Error saving notification settings:', error)
-      onShowToast?.('Error saving notification settings', 'error')
+      showToast('Error saving notification settings', 'error')
     } finally {
       setSaving(false)
     }

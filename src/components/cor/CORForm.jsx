@@ -16,8 +16,10 @@ import {
   groupLaborByClassAndType
 } from '../../lib/corCalculations'
 import TicketSelector from './TicketSelector'
+import { useToast } from '../../lib/ToastContext'
 
-export default function CORForm({ project, company, areas, existingCOR, onClose, onSaved, onShowToast }) {
+export default function CORForm({ project, company, areas, existingCOR, onClose, onSaved }) {
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
   const [showTicketSelector, setShowTicketSelector] = useState(false)
@@ -390,7 +392,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
                       (importData.materialsItems?.length || 0) +
                       (importData.equipmentItems?.length || 0)
 
-    onShowToast?.(`Imported ${itemCount} item(s) from ${importData.ticketIds.length} ticket(s)`, 'success')
+    showToast(`Imported ${itemCount} item(s) from ${importData.ticketIds.length} ticket(s)`, 'success')
   }
 
   // Check if title is provided (minimum requirement)
@@ -421,7 +423,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   // Save as draft
   const handleSave = async () => {
     if (!canSave) {
-      onShowToast?.('Title is required', 'error')
+      showToast('Title is required', 'error')
       return
     }
 
@@ -464,7 +466,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
           }
         }
         if (failedLinks.length > 0) {
-          onShowToast?.(
+          showToast(
             `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
             'warning'
           )
@@ -474,12 +476,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         }
       }
 
-      onShowToast?.('COR saved as draft', 'success')
+      showToast('COR saved as draft', 'success')
       onSaved?.(savedCOR)
       onClose?.()
     } catch (error) {
       console.error('Error saving COR:', error)
-      onShowToast?.('Error saving COR', 'error')
+      showToast('Error saving COR', 'error')
     } finally {
       setLoading(false)
     }
@@ -489,7 +491,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const handleSubmit = async () => {
     const validation = validateCOR(corData)
     if (!validation.valid) {
-      onShowToast?.(validation.errors[0], 'error')
+      showToast(validation.errors[0], 'error')
       return
     }
 
@@ -540,12 +542,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         }
       }
 
-      onShowToast?.('COR submitted for approval', 'success')
+      showToast('COR submitted for approval', 'success')
       onSaved?.(savedCOR)
       onClose?.()
     } catch (error) {
       console.error('Error submitting COR:', error)
-      onShowToast?.('Error submitting COR', 'error')
+      showToast('Error submitting COR', 'error')
     } finally {
       setLoading(false)
     }
@@ -1179,7 +1181,6 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
           corId={existingCOR?.id}
           onImport={handleTicketImport}
           onClose={() => setShowTicketSelector(false)}
-          onShowToast={onShowToast}
         />
       )}
     </div>

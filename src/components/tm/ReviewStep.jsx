@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { useToast } from '../../lib/ToastContext'
 import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw, Clock, ShieldCheck } from 'lucide-react'
 import EvidenceStep from './EvidenceStep'
 
@@ -40,7 +41,6 @@ const TMForemanSignature = lazy(() => import('../TMForemanSignature'))
  *  - showOnSiteSignature, setShowOnSiteSignature
  *  - onRetryPhotoUpload
  *  - t, lang
- *  - onShowToast
  */
 export default function ReviewStep({
   step, setStep,
@@ -62,9 +62,9 @@ export default function ReviewStep({
   showSignatureLinkModal, setShowSignatureLinkModal,
   showOnSiteSignature, setShowOnSiteSignature,
   onRetryPhotoUpload,
-  t, lang,
-  onShowToast
+  t, lang
 }) {
+  const { showToast } = useToast()
   // Build ticket details for signature modals (shared between foreman and client)
   const buildTicketDetails = () => ({
     projectName: project?.name,
@@ -329,7 +329,6 @@ export default function ReviewStep({
                 setForemanSigned(true)
               }}
               onClose={() => setShowForemanSignature(false)}
-              onShowToast={onShowToast}
             />
           </Suspense>
         )}
@@ -345,7 +344,6 @@ export default function ReviewStep({
               project={project}
               documentTitle={`Time & Material Ticket - ${new Date(workDate).toLocaleDateString()}`}
               onClose={() => setShowSignatureLinkModal(false)}
-              onShowToast={onShowToast}
             />
           </Suspense>
         )}
@@ -363,7 +361,6 @@ export default function ReviewStep({
                 setClientSigned(true)
               }}
               onClose={() => setShowOnSiteSignature(false)}
-              onShowToast={onShowToast}
             />
           </Suspense>
         )}

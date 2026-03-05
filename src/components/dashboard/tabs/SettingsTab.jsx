@@ -1,3 +1,4 @@
+import { useToast } from '../../../lib/ToastContext'
 import { DollarSign, HardHat, FileText, LayoutGrid, Building2, Phone, MapPin, Info } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import ProjectTeam from '../../ProjectTeam'
@@ -16,9 +17,9 @@ export default function SettingsTab({
   changeOrderValue,
   revisedContractValue,
   dumpSites,
-  onEditClick,
-  onShowToast
+  onEditClick
 }) {
+  const { showToast } = useToast()
   return (
     <div className="pv-tab-panel info-tab">
       {/* Hero Header */}
@@ -203,7 +204,6 @@ export default function SettingsTab({
         company={company}
         user={user}
         isAdmin={isAdmin}
-        onShowToast={onShowToast}
       />
 
       {/* Project Settings - Collapsible */}
@@ -236,7 +236,7 @@ export default function SettingsTab({
 
       {/* Account Security */}
       <div className="info-section-card">
-        <MFASetup onShowToast={onShowToast} />
+        <MFASetup />
       </div>
     </div>
   )

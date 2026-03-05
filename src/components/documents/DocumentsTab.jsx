@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Upload, Search, FolderOpen, Loader2, X, ArrowLeft, Folder, FileText, Download, File, Image, FileSpreadsheet, Plus, Eye, Archive, CheckCircle, Settings2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { DOCUMENTS_PER_PAGE } from '../../lib/constants'
+import { useToast } from '../../lib/ToastContext'
 import DocumentUploadModal from './DocumentUploadModal'
 import DocumentDetail from './DocumentDetail'
 import FolderGrid from './FolderGrid'
@@ -47,7 +48,8 @@ const FOLDER_COLORS = {
   orange: '#f97316'
 }
 
-export default function DocumentsTab({ project, companyId, onShowToast, userRole }) {
+export default function DocumentsTab({ project, companyId, userRole }) {
+  const { showToast } = useToast()
   const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedFolder, setSelectedFolder] = useState(null)
@@ -82,11 +84,11 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
       setFolders(folderList)
     } catch (error) {
       console.error('Error loading folders:', error)
-      onShowToast?.('Failed to load folders', 'error')
+      showToast('Failed to load folders', 'error')
     } finally {
       setLoading(false)
     }
-  }, [project.id, onShowToast])
+  }, [project.id])
 
   // Debounced refresh to coalesce rapid real-time events (e.g. batch uploads)
   const refreshTimerRef = useRef(null)
@@ -138,7 +140,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
       setHasMore(result.hasMore)
     } catch (error) {
       console.error('Error loading documents:', error)
-      onShowToast?.('Failed to load documents', 'error')
+      showToast('Failed to load documents', 'error')
     } finally {
       setLoadingDocs(false)
     }
@@ -208,7 +210,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     if (selectedFolder) {
       loadFolderDocuments(selectedFolder, true)
     }
-    onShowToast?.('Document uploaded successfully', 'success')
+    showToast('Document uploaded successfully', 'success')
   }
 
   // Handle document action
@@ -228,21 +230,21 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
             loadFolderDocuments(selectedFolder, true)
           }
           loadFolders()
-          onShowToast?.('Document archived', 'success')
+          showToast('Document archived', 'success')
           break
         case 'approve':
           await db.approveDocument(document.id)
           if (selectedFolder) {
             loadFolderDocuments(selectedFolder, true)
           }
-          onShowToast?.('Document approved', 'success')
+          showToast('Document approved', 'success')
           break
         default:
           break
       }
     } catch (error) {
       console.error('Error performing action:', error)
-      onShowToast?.('Action failed', 'error')
+      showToast('Action failed', 'error')
     }
   }
 
@@ -257,7 +259,6 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     return (
       <FolderGrid
         projectId={project.id}
-        onShowToast={onShowToast}
       />
     )
   }
@@ -274,7 +275,6 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
           }
           loadFolders()
         }}
-        onShowToast={onShowToast}
         isOfficeOrAdmin={isOfficeOrAdmin}
       />
     )
@@ -434,7 +434,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
             folderName={uploadToFolder?.name}
             onClose={() => { setShowUploadModal(false); setUploadToFolder(null) }}
             onUploadComplete={handleUploadComplete}
-            onShowToast={onShowToast}
+
           />
         )}
       </div>
@@ -559,7 +559,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
               folders={folders}
               onFoldersChange={loadFolders}
               onClose={() => setShowFolderManager(false)}
-              onShowToast={onShowToast}
+  
             />
           </div>
         </div>
@@ -574,7 +574,6 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
           folderName={uploadToFolder?.name}
           onClose={() => { setShowUploadModal(false); setUploadToFolder(null) }}
           onUploadComplete={handleUploadComplete}
-          onShowToast={onShowToast}
         />
       )}
     </div>

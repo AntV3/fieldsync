@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { isValidEmail, generateCode, StepIndicator, PasswordInput } from './authUtils'
+import { useToast } from '../../lib/ToastContext'
 import Logo from '../Logo'
 
-export default function RegisterCompany({ onShowToast }) {
+export default function RegisterCompany() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   const [loading, setLoading] = useState(false)
   const [registerStep, setRegisterStep] = useState(1)
@@ -19,15 +21,15 @@ export default function RegisterCompany({ onShowToast }) {
   const handleRegisterCompany = async () => {
     if (loading) return
     if (!registerName.trim()) {
-      onShowToast('Enter your name', 'error')
+      showToast('Enter your name', 'error')
       return
     }
     if (!registerEmail.trim() || !isValidEmail(registerEmail)) {
-      onShowToast('Enter a valid email address', 'error')
+      showToast('Enter a valid email address', 'error')
       return
     }
     if (registerPassword.length < 6) {
-      onShowToast('Password must be 6+ characters', 'error')
+      showToast('Password must be 6+ characters', 'error')
       return
     }
 
@@ -54,7 +56,7 @@ export default function RegisterCompany({ onShowToast }) {
         })
 
         if (signInError) {
-          onShowToast('An account with this email already exists. Use your existing password or sign in instead.', 'error')
+          showToast('An account with this email already exists. Use your existing password or sign in instead.', 'error')
           return
         }
 
@@ -66,7 +68,7 @@ export default function RegisterCompany({ onShowToast }) {
 
         if (existingUser?.company_id) {
           await supabase.auth.signOut()
-          onShowToast('An account with this email already exists. Sign in instead.', 'error')
+          showToast('An account with this email already exists. Sign in instead.', 'error')
           return
         }
 
@@ -169,7 +171,7 @@ export default function RegisterCompany({ onShowToast }) {
 
     } catch (err) {
       console.error('Registration error:', err)
-      onShowToast(err.message || 'Error creating company', 'error')
+      showToast(err.message || 'Error creating company', 'error')
     } finally {
       setLoading(false)
     }

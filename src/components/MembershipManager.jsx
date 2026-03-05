@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { AlertTriangle, UserCheck, UserX, UserMinus, Users, ChevronDown, Shield, User, Briefcase } from 'lucide-react'
+import { useToast } from '../lib/ToastContext'
 
 const ACCESS_LEVEL_OPTIONS = [
   { value: 'member', label: 'Member', icon: User, description: 'Standard access to projects' },
@@ -14,7 +15,8 @@ const COMPANY_ROLE_OPTIONS = [
   { value: 'Accounting', label: 'Accounting' }
 ]
 
-export default function MembershipManager({ company, user, onShowToast }) {
+export default function MembershipManager({ company, user }) {
+  const { showToast } = useToast()
   const [filter, setFilter] = useState('pending')
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -35,7 +37,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
       setMembers(data)
     } catch (error) {
       console.error('Error loading members:', error)
-      onShowToast('Error loading team members', 'error')
+      showToast('Error loading team members', 'error')
     } finally {
       setLoading(false)
     }
@@ -44,7 +46,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
   const handleApprove = async (membership) => {
     const companyRole = selectedCompanyRoles[membership.id]
     if (!companyRole) {
-      onShowToast('Please select a role for this member', 'error')
+      showToast('Please select a role for this member', 'error')
       return
     }
 
@@ -64,7 +66,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
         console.warn('Could not set company role:', roleError.message)
       }
 
-      onShowToast(`${membership.users?.name || membership.users?.email} approved as ${companyRole}`, 'success')
+      showToast(`${membership.users?.name || membership.users?.email} approved as ${companyRole}`, 'success')
       // Clear selections
       setSelectedAccessLevels(prev => {
         const updated = { ...prev }
@@ -79,7 +81,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
       loadMembers()
     } catch (error) {
       console.error('Error approving membership:', error)
-      onShowToast('Error approving request: ' + (error.message || 'Unknown error'), 'error')
+      showToast('Error approving request: ' + (error.message || 'Unknown error'), 'error')
     } finally {
       setActionLoading(null)
     }
@@ -97,11 +99,11 @@ export default function MembershipManager({ company, user, onShowToast }) {
     try {
       setActionLoading(membership.id)
       await db.updateMemberCompanyRole(membership.id, newCompanyRole)
-      onShowToast(`${membership.users?.name || 'User'} role updated to ${newCompanyRole}`, 'success')
+      showToast(`${membership.users?.name || 'User'} role updated to ${newCompanyRole}`, 'success')
       loadMembers()
     } catch (error) {
       console.error('Error updating company role:', error)
-      onShowToast('Error updating role', 'error')
+      showToast('Error updating role', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -110,7 +112,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
   const handleUpdateAccessLevel = async (membership, newAccessLevel) => {
     // Don't allow demoting yourself
     if (membership.users?.id === user.id && newAccessLevel !== 'administrator') {
-      onShowToast('You cannot demote yourself', 'error')
+      showToast('You cannot demote yourself', 'error')
       return
     }
 
@@ -118,11 +120,11 @@ export default function MembershipManager({ company, user, onShowToast }) {
       setActionLoading(membership.id)
       await db.updateMemberAccessLevel(membership.id, newAccessLevel)
       const levelLabel = ACCESS_LEVEL_OPTIONS.find(o => o.value === newAccessLevel)?.label || newAccessLevel
-      onShowToast(`${membership.users?.name || 'User'} is now ${levelLabel}`, 'success')
+      showToast(`${membership.users?.name || 'User'} is now ${levelLabel}`, 'success')
       loadMembers()
     } catch (error) {
       console.error('Error updating access level:', error)
-      onShowToast('Error updating access level', 'error')
+      showToast('Error updating access level', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -132,11 +134,11 @@ export default function MembershipManager({ company, user, onShowToast }) {
     try {
       setActionLoading(membership.id)
       await db.rejectMembership(membership.id)
-      onShowToast('Request rejected', 'success')
+      showToast('Request rejected', 'success')
       loadMembers()
     } catch (error) {
       console.error('Error rejecting membership:', error)
-      onShowToast('Error rejecting request', 'error')
+      showToast('Error rejecting request', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -145,18 +147,18 @@ export default function MembershipManager({ company, user, onShowToast }) {
   const handleRemove = async (membership) => {
     // Don't allow removing yourself
     if (membership.users?.id === user.id) {
-      onShowToast('You cannot remove yourself', 'error')
+      showToast('You cannot remove yourself', 'error')
       return
     }
 
     try {
       setActionLoading(membership.id)
       await db.removeMember(membership.id, user.id)
-      onShowToast(`${membership.users?.name || membership.users?.email} removed`, 'success')
+      showToast(`${membership.users?.name || membership.users?.email} removed`, 'success')
       loadMembers()
     } catch (error) {
       console.error('Error removing member:', error)
-      onShowToast('Error removing member', 'error')
+      showToast('Error removing member', 'error')
     } finally {
       setActionLoading(null)
     }

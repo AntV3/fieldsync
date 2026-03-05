@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Receipt, Plus, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, AlertCircle, Eye, X } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import { useToast } from '../../lib/ToastContext'
 import { formatCurrency } from '../../lib/corCalculations'
 import { downloadInvoicePDF } from '../../lib/invoicePdfGenerator'
 import InvoiceModal from './InvoiceModal'
@@ -14,7 +15,8 @@ const STATUS_CONFIG = {
   void: { label: 'Void', icon: AlertCircle, className: 'status-void' }
 }
 
-export default function BillingCenter({ project, company, user, onShowToast }) {
+export default function BillingCenter({ project, company, user }) {
+  const { showToast } = useToast()
   const [billableItems, setBillableItems] = useState({ cors: [], tickets: [] })
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -63,7 +65,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       setInvoices(projectInvoices)
     } catch (error) {
       console.error('Error loading billing data:', error)
-      onShowToast?.('Error loading billing data', 'error')
+      showToast('Error loading billing data', 'error')
     } finally {
       setLoading(false)
     }
@@ -98,10 +100,9 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       setViewingInvoice(fullInvoice)
     } catch (error) {
       console.error('Error fetching invoice:', error)
-      onShowToast?.('Error loading invoice details', 'error')
+      showToast('Error loading invoice details', 'error')
     }
-  }, []) // onShowToast is stable (memoized in App.jsx)
-
+  }, [])
   // Download invoice PDF
   const handleDownloadPDF = useCallback(async (invoice) => {
     setActiveDropdown(null)
@@ -110,37 +111,35 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
       // Fetch full invoice with items if not already loaded
       const fullInvoice = await db.getInvoice(invoice.id)
       const fileName = await downloadInvoicePDF(fullInvoice, project, company)
-      onShowToast?.(`Downloaded ${fileName}`, 'success')
+      showToast(`Downloaded ${fileName}`, 'success')
     } catch (error) {
       console.error('Error generating PDF:', error)
-      onShowToast?.('Error generating PDF', 'error')
+      showToast('Error generating PDF', 'error')
     } finally {
       setActionLoading(false)
     }
-  }, [project, company]) // onShowToast is stable
-
+  }, [project, company])
   // Mark invoice as sent
   const handleMarkSent = useCallback(async (invoice) => {
     setActiveDropdown(null)
     if (invoice.status !== 'draft') {
-      onShowToast?.('Only draft invoices can be marked as sent', 'error')
+      showToast('Only draft invoices can be marked as sent', 'error')
       return
     }
     try {
       await db.markInvoiceSent(invoice.id)
       await loadData()
-      onShowToast?.(`Invoice ${invoice.invoice_number} marked as sent`, 'success')
+      showToast(`Invoice ${invoice.invoice_number} marked as sent`, 'success')
     } catch (error) {
       console.error('Error updating invoice:', error)
-      onShowToast?.('Error updating invoice', 'error')
+      showToast('Error updating invoice', 'error')
     }
-  }, []) // onShowToast is stable
-
+  }, [])
   // Mark invoice as paid
   const handleMarkPaid = useCallback(async (invoice) => {
     setActiveDropdown(null)
     if (invoice.status === 'paid') {
-      onShowToast?.('Invoice is already marked as paid', 'error')
+      showToast('Invoice is already marked as paid', 'error')
       return
     }
     try {
@@ -150,13 +149,12 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
         amount_paid: invoice.total
       })
       await loadData()
-      onShowToast?.(`Invoice ${invoice.invoice_number} marked as paid`, 'success')
+      showToast(`Invoice ${invoice.invoice_number} marked as paid`, 'success')
     } catch (error) {
       console.error('Error updating invoice:', error)
-      onShowToast?.('Error updating invoice', 'error')
+      showToast('Error updating invoice', 'error')
     }
-  }, []) // onShowToast is stable
-
+  }, [])
   // Calculate totals
   const totals = useMemo(() => {
     const selectedCORsTotal = billableItems.cors
@@ -226,7 +224,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
     setShowInvoiceModal(false)
     clearSelection()
     await loadData()
-    onShowToast?.(`Invoice ${invoice.invoice_number} created`, 'success')
+    showToast(`Invoice ${invoice.invoice_number} created`, 'success')
   }
 
   // Get selected items for invoice modal

@@ -5,6 +5,7 @@ import { formatCurrency } from '../../lib/corCalculations'
 import { useFilteredPagination } from '../../hooks/useFilteredPagination'
 import Pagination from '../ui/Pagination'
 import CORLogRow from './CORLogRow'
+import { useToast } from '../../lib/ToastContext'
 
 // Status display mapping for client presentation
 const STATUS_DISPLAY = {
@@ -23,7 +24,8 @@ const STATUS_CATEGORIES = {
   void: ['rejected', 'closed']
 }
 
-export default function CORLog({ project, company, onShowToast }) {
+export default function CORLog({ project, company }) {
+  const { showToast } = useToast()
   const [logEntries, setLogEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
@@ -49,7 +51,7 @@ export default function CORLog({ project, company, onShowToast }) {
       setLogEntries(data || [])
     } catch (error) {
       console.error('Error loading COR log:', error)
-      onShowToast?.('Error loading COR log', 'error')
+      showToast('Error loading COR log', 'error')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -88,10 +90,10 @@ export default function CORLog({ project, company, onShowToast }) {
           : entry
       ))
       setEditingId(null)
-      onShowToast?.('Log entry updated', 'success')
+      showToast('Log entry updated', 'success')
     } catch (error) {
       console.error('Error updating log entry:', error)
-      onShowToast?.('Error updating log entry', 'error')
+      showToast('Error updating log entry', 'error')
     } finally {
       setSavingId(null)
     }
@@ -268,10 +270,10 @@ export default function CORLog({ project, company, onShowToast }) {
       const fileName = `COR_Log_${project.job_number || project.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
       doc.save(fileName)
 
-      onShowToast?.('PDF exported successfully', 'success')
+      showToast('PDF exported successfully', 'success')
     } catch (error) {
       console.error('Error exporting PDF:', error)
-      onShowToast?.('Error exporting PDF', 'error')
+      showToast('Error exporting PDF', 'error')
     }
   }
 
@@ -340,10 +342,10 @@ export default function CORLog({ project, company, onShowToast }) {
       const fileName = `COR_Log_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.xlsx`
       XLSX.writeFile(wb, fileName)
 
-      onShowToast?.('Excel exported successfully', 'success')
+      showToast('Excel exported successfully', 'success')
     } catch (error) {
       console.error('Error exporting Excel:', error)
-      onShowToast?.('Error exporting Excel', 'error')
+      showToast('Error exporting Excel', 'error')
     }
   }
 

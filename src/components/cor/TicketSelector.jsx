@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Check, Search, FileText, Users, Package, Truck, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { dollarsToCents } from '../../lib/corCalculations'
+import { useToast } from '../../lib/ToastContext'
 
 // Generate secure random ID suffix
 const generateRandomId = () => {
@@ -10,7 +11,8 @@ const generateRandomId = () => {
   return Array.from(array, b => b.toString(36)).join('')
 }
 
-export default function TicketSelector({ projectId, companyId, corId, onImport, onClose, onShowToast }) {
+export default function TicketSelector({ projectId, companyId, corId, onImport, onClose }) {
+  const { showToast } = useToast()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
@@ -29,7 +31,7 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
       setTickets(allTickets || [])
     } catch (error) {
       console.error('Error loading tickets:', error)
-      onShowToast?.('Error loading tickets', 'error')
+      showToast('Error loading tickets', 'error')
     } finally {
       setLoading(false)
     }
@@ -117,7 +119,7 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
   // Import selected tickets' data
   const handleImport = async () => {
     if (selectedTickets.size === 0) {
-      onShowToast?.('Please select at least one ticket', 'error')
+      showToast('Please select at least one ticket', 'error')
       return
     }
 

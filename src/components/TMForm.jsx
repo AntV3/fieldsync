@@ -4,6 +4,7 @@ import { db } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
 import { TRANSLATIONS } from './tm/translations'
 import { getLocalDateString, parseLocalDate } from '../lib/utils'
+import { useToast } from '../lib/ToastContext'
 import WorkDetailsStep from './tm/WorkDetailsStep'
 import CrewHoursStep from './tm/CrewHoursStep'
 import MaterialsStep from './tm/MaterialsStep'
@@ -36,7 +37,8 @@ const calculateHoursFromTimeRange = (startTime, endTime) => {
   }
 }
 
-export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
+export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel }) {
+  const { showToast } = useToast()
   const [step, setStep] = useState(1)
   const [workDate, setWorkDate] = useState(getLocalDateString())
 
@@ -229,9 +231,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     setBatchHours({ timeStarted: '', timeEnded: '', hours: '', overtimeHours: '' })
 
     if (updatedCount > 0) {
-      onShowToast(t('appliedHours').replace('{count}', updatedCount), 'success')
+      showToast(t('appliedHours').replace('{count}', updatedCount), 'success')
     } else {
-      onShowToast(t('addWorkersFirst'), 'info')
+      showToast(t('addWorkersFirst'), 'info')
     }
   }
 
@@ -301,9 +303,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     }
 
     if (count > 0) {
-      onShowToast(t('appliedHours').replace('{count}', count), 'success')
+      showToast(t('appliedHours').replace('{count}', count), 'success')
     } else {
-      onShowToast(t('addWorkersFirst'), 'info')
+      showToast(t('addWorkersFirst'), 'info')
     }
   }
 
@@ -325,7 +327,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       const previousCrew = await db.getPreviousTicketCrew(project.id, workDate)
 
       if (!previousCrew || previousCrew.totalWorkers === 0) {
-        onShowToast(t('noPreviousCrew'), 'info')
+        showToast(t('noPreviousCrew'), 'info')
         return
       }
 
@@ -388,10 +390,10 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       }
 
       const dateStr = parseLocalDate(previousCrew.workDate).toLocaleDateString()
-      onShowToast(t('loadedWorkers').replace('{count}', previousCrew.totalWorkers).replace('{date}', dateStr), 'success')
+      showToast(t('loadedWorkers').replace('{count}', previousCrew.totalWorkers).replace('{date}', dateStr), 'success')
     } catch (error) {
       console.error('Error loading previous crew:', error)
-      onShowToast(t('errorLoadingCrew'), 'error')
+      showToast(t('errorLoadingCrew'), 'error')
     } finally {
       setLoadingPreviousCrew(false)
     }
@@ -662,7 +664,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }
       }
     }
-    onShowToast(`Added ${worker.name}`, 'success')
+    showToast(`Added ${worker.name}`, 'success')
   }
 
   // Photo functions
@@ -672,14 +674,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
     const remainingSlots = maxPhotos === -1 ? Infinity : maxPhotos - photos.length
     if (remainingSlots <= 0) {
-      onShowToast(`Photo limit reached (${maxPhotos} max)`, 'error')
+      showToast(`Photo limit reached (${maxPhotos} max)`, 'error')
       e.target.value = ''
       return
     }
 
     const filesToAdd = files.slice(0, remainingSlots)
     if (filesToAdd.length < files.length) {
-      onShowToast(`Only ${filesToAdd.length} photo(s) added (${maxPhotos} max)`, 'error')
+      showToast(`Only ${filesToAdd.length} photo(s) added (${maxPhotos} max)`, 'error')
     }
 
     // Capture GPS location (non-blocking — resolves to null if unavailable)
@@ -689,11 +691,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
     filesToAdd.forEach(file => {
       if (!file.type.startsWith('image/')) {
-        onShowToast('Please select an image file', 'error')
+        showToast('Please select an image file', 'error')
         return
       }
       if (file.size > MAX_FILE_SIZE) {
-        onShowToast(`Photo too large: ${file.name} (max 10MB)`, 'error')
+        showToast(`Photo too large: ${file.name} (max 10MB)`, 'error')
         return
       }
 
@@ -758,7 +760,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         .filter(Boolean)
       await db.updateTMTicketPhotos(ticketId, allUploadedUrls)
 
-      onShowToast('Photo uploaded successfully', 'success')
+      showToast('Photo uploaded successfully', 'success')
     } catch (err) {
       console.error('Retry failed:', err)
       updatePhotoStatus(photoId, {
@@ -766,7 +768,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         error: err.message || 'Upload failed',
         attempts: photo.attempts + 1
       })
-      onShowToast('Photo retry failed', 'error')
+      showToast('Photo retry failed', 'error')
     }
   }
 
@@ -848,7 +850,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   // Submit
   const handleSubmit = async () => {
     if (!submittedByName.trim()) {
-      onShowToast('Enter your name to submit', 'error')
+      showToast('Enter your name to submit', 'error')
       return
     }
 
@@ -857,7 +859,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     if (hasCustomLaborClasses) {
       allWorkersForSubmit = getValidDynamicWorkers()
       if (allWorkersForSubmit.length === 0) {
-        onShowToast('Add at least one worker', 'error')
+        showToast('Add at least one worker', 'error')
         return
       }
     } else {
@@ -866,7 +868,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       const vl = laborers.filter(l => l && l.name && l.name.trim() && (parseFloat(l.hours) > 0 || parseFloat(l.overtimeHours) > 0))
 
       if (vs.length === 0 && vo.length === 0 && vl.length === 0) {
-        onShowToast('Add at least one worker', 'error')
+        showToast('Add at least one worker', 'error')
         return
       }
 
@@ -953,9 +955,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }
 
         if (failedCount > 0 && photoUrls.length > 0) {
-          onShowToast(`${photoUrls.length}/${pendingPhotos.length} photos uploaded. ${failedCount} failed - can retry later.`, 'warning')
+          showToast(`${photoUrls.length}/${pendingPhotos.length} photos uploaded. ${failedCount} failed - can retry later.`, 'warning')
         } else if (failedCount > 0 && photoUrls.length === 0) {
-          onShowToast(`All ${failedCount} photos failed to upload - can retry after submission.`, 'error')
+          showToast(`All ${failedCount} photos failed to upload - can retry after submission.`, 'error')
         }
 
         if (photoUrls.length > 0) {
@@ -989,7 +991,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           } catch (markError) {
             console.error('Error marking import failed:', markError)
           }
-          onShowToast('Ticket saved. COR data sync failed - retry from ticket list.', 'warning')
+          showToast('Ticket saved. COR data sync failed - retry from ticket list.', 'warning')
         }
       }
 
@@ -997,11 +999,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       // They will be cleaned up on component unmount via the photosRef effect.
 
       setSubmittedTicket(ticket)
-      onShowToast('Time & Material ticket submitted!', 'success')
+      showToast('Time & Material ticket submitted!', 'success')
       setStep(5)
     } catch (error) {
       console.error('Error submitting T&M:', error)
-      onShowToast('Error submitting T&M', 'error')
+      showToast('Error submitting T&M', 'error')
     } finally {
       setSubmitting(false)
       setSubmitProgress('')
@@ -1105,7 +1107,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           getInactiveLaborClasses={getInactiveLaborClasses}
           t={t}
           lang={lang}
-          onShowToast={onShowToast}
+
         />
       )}
 
@@ -1117,7 +1119,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           setItems={setItems}
           t={t}
           lang={lang}
-          onShowToast={onShowToast}
+
         />
       )}
 
@@ -1166,7 +1168,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           onRetryPhotoUpload={retryPhotoUpload}
           t={t}
           lang={lang}
-          onShowToast={onShowToast}
+
         />
       )}
 

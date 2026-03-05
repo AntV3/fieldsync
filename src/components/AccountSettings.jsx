@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { User, Mail, Lock, Save, Loader2 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { useToast } from '../lib/ToastContext'
 import MFASetup from './MFASetup'
 
-export default function AccountSettings({ user, company, onShowToast }) {
+export default function AccountSettings({ user, company }) {
+  const { showToast } = useToast()
   const [name, setName] = useState(user?.name || '')
   const [email] = useState(user?.email || '')
   const [saving, setSaving] = useState(false)
@@ -21,7 +23,7 @@ export default function AccountSettings({ user, company, onShowToast }) {
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) {
-      onShowToast('Name cannot be empty', 'error')
+      showToast('Name cannot be empty', 'error')
       return
     }
     if (trimmed === user?.name) return
@@ -39,10 +41,10 @@ export default function AccountSettings({ user, company, onShowToast }) {
         // Update auth metadata
         await supabase.auth.updateUser({ data: { name: trimmed } })
       }
-      onShowToast('Profile updated', 'success')
+      showToast('Profile updated', 'success')
     } catch (err) {
       console.error('Error updating profile:', err)
-      onShowToast('Failed to update profile', 'error')
+      showToast('Failed to update profile', 'error')
     } finally {
       setSaving(false)
     }
@@ -51,15 +53,15 @@ export default function AccountSettings({ user, company, onShowToast }) {
   const handleChangePassword = async (e) => {
     e.preventDefault()
     if (!currentPassword || !newPassword) {
-      onShowToast('Please fill in all password fields', 'error')
+      showToast('Please fill in all password fields', 'error')
       return
     }
     if (newPassword.length < 8) {
-      onShowToast('New password must be at least 8 characters', 'error')
+      showToast('New password must be at least 8 characters', 'error')
       return
     }
     if (newPassword !== confirmPassword) {
-      onShowToast('New passwords do not match', 'error')
+      showToast('New passwords do not match', 'error')
       return
     }
 
@@ -72,7 +74,7 @@ export default function AccountSettings({ user, company, onShowToast }) {
           password: currentPassword,
         })
         if (signInError) {
-          onShowToast('Current password is incorrect', 'error')
+          showToast('Current password is incorrect', 'error')
           return
         }
 
@@ -82,10 +84,10 @@ export default function AccountSettings({ user, company, onShowToast }) {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      onShowToast('Password updated successfully', 'success')
+      showToast('Password updated successfully', 'success')
     } catch (err) {
       console.error('Error changing password:', err)
-      onShowToast(err.message || 'Failed to change password', 'error')
+      showToast(err.message || 'Failed to change password', 'error')
     } finally {
       setChangingPassword(false)
     }
@@ -195,7 +197,7 @@ export default function AccountSettings({ user, company, onShowToast }) {
       {/* MFA Section */}
       {isSupabaseConfigured && (
         <div className="account-section">
-          <MFASetup onShowToast={onShowToast} />
+          <MFASetup />
         </div>
       )}
     </div>

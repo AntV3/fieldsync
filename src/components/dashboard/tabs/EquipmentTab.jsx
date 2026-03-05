@@ -4,15 +4,16 @@
  * Currently rendered inline within FinancialsTab's overview section.
  * This component can be used standalone if equipment gets its own top-level tab.
  */
+import { useToast } from '../../../lib/ToastContext'
 import ProjectEquipmentCard from '../../equipment/ProjectEquipmentCard'
 
 export default function EquipmentTab({
   selectedProject,
   equipmentRefreshKey,
   onAddEquipment,
-  onEditEquipment,
-  onShowToast
+  onEditEquipment
 }) {
+  const { showToast } = useToast()
   return (
     <div className="pv-tab-panel equipment-tab animate-fade-in">
       <ProjectEquipmentCard
@@ -20,7 +21,6 @@ export default function EquipmentTab({
         project={selectedProject}
         onAddEquipment={onAddEquipment}
         onEditEquipment={onEditEquipment}
-        onShowToast={onShowToast}
       />
     </div>
   )
