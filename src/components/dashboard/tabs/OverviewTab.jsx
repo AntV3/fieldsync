@@ -3,6 +3,7 @@ import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, 
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import EarnedValueCard from '../../charts/EarnedValueCard'
+import DisposalSummary from '../../DisposalSummary'
 
 const PhotoTimeline = lazy(() => import('../../PhotoTimeline'))
 const PunchList = lazy(() => import('../../PunchList'))
@@ -166,7 +167,13 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Row 5: Photo Timeline + Punch List side by side */}
+      {/* Row 5: Disposal Loads */}
+      <DisposalSummary
+        project={selectedProject}
+        period="week"
+      />
+
+      {/* Row 6: Photo Timeline + Punch List side by side */}
       <div className="overview-two-col">
         <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
           <PhotoTimeline
@@ -185,7 +192,7 @@ export default function OverviewTab({
         </Suspense>
       </div>
 
-      {/* Row 6: Quick Nav + Exports */}
+      {/* Row 7: Quick Nav + Exports */}
       <div className="overview-bottom-strip">
         <div className="overview-quick-actions">
           <button className="overview-action-btn" onClick={() => onSetActiveTab('reports')}>
