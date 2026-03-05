@@ -55,7 +55,7 @@ export default function LandingPage() {
 
   const handleGetStarted = useCallback(() => {
     localStorage.setItem('fieldsync-has-visited', 'true')
-    navigate('/login')
+    navigate('/register')
   }, [navigate])
 
   const handleSignIn = useCallback(() => {
@@ -65,7 +65,11 @@ export default function LandingPage() {
 
   const handleQuickAccess = useCallback((mode) => {
     localStorage.setItem('fieldsync-has-visited', 'true')
-    navigate(`/login?mode=${mode}`)
+    if (mode === 'foreman') {
+      navigate('/login/field')
+    } else {
+      navigate('/login/office')
+    }
   }, [navigate])
 
   const handleScrollToFeatures = useCallback(() => {
