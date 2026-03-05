@@ -13,6 +13,11 @@
   overflow: hidden;
 }
 
+.photo-timeline-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
 .photo-timeline-card::after {
   content: '';
   position: absolute;
@@ -198,6 +203,7 @@
   overflow: hidden;
   cursor: pointer;
   background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
   transition: box-shadow var(--transition-smooth);
 }
 

@@ -13,6 +13,10 @@
   overflow: hidden;
 }
 
+.punch-list-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
 .punch-list-card::after {
   content: '';
   position: absolute;
@@ -70,7 +74,7 @@
   transition: opacity var(--transition-normal);
 }
 
-.punch-add-btn:hover { opacity: 0.9; }
+.punch-add-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-card-hover); }
 
 /* Progress bar */
 .punch-progress-bar {

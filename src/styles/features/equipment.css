@@ -240,6 +240,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
+  box-shadow: var(--shadow-card);
 }
 
 .equipment-catalog-header {
@@ -318,7 +319,7 @@
 
 .equipment-catalog-row:hover {
   background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .equipment-catalog-row.inactive {

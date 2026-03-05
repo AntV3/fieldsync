@@ -166,6 +166,11 @@
   transition: all var(--transition-smooth);
 }
 
+.tm-worker-card:hover {
+  background: var(--surface-hover);
+  transform: translateY(-1px);
+}
+
 .tm-worker-input {
   flex: 1;
   padding: 0.75rem;
@@ -233,7 +238,7 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .tm-add-btn:hover {
@@ -257,6 +262,7 @@
   background: var(--bg-card);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: all var(--transition-fast);
   position: relative;
@@ -307,6 +313,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: all var(--transition-smooth);
   text-align: left;
@@ -315,6 +322,7 @@
 
 .tm-item-card:hover {
   border-color: var(--accent-blue);
+  transform: translateY(-1px);
 }
 
 .tm-item-card.added {
@@ -3905,6 +3913,7 @@ END MIGRATED */
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
   transition: all var(--transition-smooth);
 }
 
@@ -3979,6 +3988,7 @@ END MIGRATED */
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
+  box-shadow: var(--shadow-card);
 }
 
 .tm-status-header {
@@ -4032,6 +4042,7 @@ END MIGRATED */
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
 }
 
 .tm-chart-card.wide {

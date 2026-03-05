@@ -109,7 +109,7 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .group-chip:hover {
@@ -153,7 +153,7 @@
   gap: 0.35rem;
   color: var(--text-muted);
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .cor-pill:hover {
@@ -187,7 +187,7 @@
   font-size: 0.7rem;
   cursor: pointer;
   color: var(--text-muted);
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .cor-toggle-btn:hover {
