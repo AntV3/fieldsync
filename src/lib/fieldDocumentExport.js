@@ -1,83 +1,283 @@
 /**
  * Field Document PDF Export
- * Exports field-submitted documents (daily reports, incident reports, crew check-ins)
- * as a consolidated or individual PDF report.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Exports field-submitted documents (daily reports, incident reports,
+ * crew check-ins) as clean, branded, professional PDF reports.
+ *
+ * Design system mirrors the COR and Invoice generators for a unified
+ * look across all FieldSync exports.
  */
 
 import { db } from './supabase'
-import { loadImagesAsBase64 } from './imageUtils'
+import { hexToRgb, loadImagesAsBase64 } from './imageUtils'
 
 const loadJsPDF = () => import('jspdf')
+const loadAutoTable = () => import('jspdf-autotable')
 
 const PAGE_WIDTH = 210 // A4 width in mm
-const MARGIN = 14
+const PAGE_HEIGHT = 297 // A4 height in mm
+const MARGIN = 20
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 
-/**
- * Format currency for display
- */
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0)
+// ── Design tokens ───────────────────────────────────────────────────────────
+
+const COLORS = {
+  dark: [17, 24, 39],       // near-black headings
+  text: [51, 65, 85],       // body text
+  mid: [71, 85, 105],       // secondary / labels
+  subtle: [148, 163, 184],  // light labels / rules
+  surface: [248, 250, 252], // table alt rows / boxes
+  border: [226, 232, 240],  // thin rules
+  white: [255, 255, 255],
+  green: [16, 185, 129],
+  amber: [217, 119, 6],
+  red: [220, 38, 38],
+  blue: [59, 130, 246],
 }
 
-/**
- * Format date for display
- */
+const SEVERITY = {
+  minor:     { color: [16, 185, 129],  label: 'MINOR' },
+  serious:   { color: [245, 158, 11],  label: 'SERIOUS' },
+  critical:  { color: [220, 38, 38],   label: 'CRITICAL' },
+  near_miss: { color: [59, 130, 246],  label: 'NEAR MISS' },
+}
+
+// ── Formatting helpers ──────────────────────────────────────────────────────
+
 const formatDate = (dateStr) => {
   if (!dateStr) return '—'
   const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T12:00:00'))
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+  })
+}
+
+const formatShortDate = (dateStr) => {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T12:00:00'))
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// ── Shared PDF primitives ───────────────────────────────────────────────────
+
+function getPrimaryColor(context) {
+  const hex = context?.branding?.primaryColor
+    || context?.company?.branding_color
+    || context?.company?.primary_color
+  return hex ? hexToRgb(hex) : [30, 58, 95]
 }
 
 /**
- * Add page footer
+ * Draw the branded header band at the top of the first page.
  */
-const addFooter = (doc, pageNum, totalPages) => {
-  const y = doc.internal.pageSize.height - 8
-  doc.setFontSize(7)
-  doc.setTextColor(128, 128, 128)
-  doc.text(`Page ${pageNum} of ${totalPages}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  doc.text(`Generated ${new Date().toLocaleString()} — FieldSync`, PAGE_WIDTH - MARGIN, y, { align: 'right' })
+function drawHeaderBand(doc, title, subtitle, primary, context) {
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const headerH = 38
+
+  doc.setFillColor(...primary)
+  doc.rect(0, 0, pageWidth, headerH, 'F')
+
+  // Company name
+  const companyName = context?.company?.name || ''
+  if (companyName) {
+    doc.setFontSize(13)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text(companyName, MARGIN, headerH / 2 - 4)
+
+    const contact = [context?.company?.phone, context?.company?.email].filter(Boolean)
+    if (contact.length) {
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(220, 230, 245)
+      doc.text(contact.join('  ·  '), MARGIN, headerH / 2 + 3)
+    }
+  }
+
+  // Title — right side
+  doc.setFontSize(20)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text(title, pageWidth - MARGIN, headerH / 2 - 1, { align: 'right' })
+
+  // Subtitle — right side below title
+  if (subtitle) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(220, 230, 245)
+    doc.text(subtitle, pageWidth - MARGIN, headerH / 2 + 8, { align: 'right' })
+  }
+
+  return headerH
 }
 
 /**
- * Check if we need a new page
+ * Draw a section title with accent bar.
  */
-const checkPage = (doc, y, needed = 30) => {
-  if (y + needed > doc.internal.pageSize.height - 20) {
+function drawSectionTitle(doc, title, y, primary) {
+  doc.setFillColor(...primary)
+  doc.rect(MARGIN, y, 3, 6, 'F')
+
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...COLORS.dark)
+  doc.text(title, MARGIN + 8, y + 5)
+
+  return y + 12
+}
+
+/**
+ * Draw a thin horizontal rule.
+ */
+function drawRule(doc, x1, y, x2, color = COLORS.border, weight = 0.3) {
+  doc.setDrawColor(...color)
+  doc.setLineWidth(weight)
+  doc.line(x1, y, x2, y)
+}
+
+/**
+ * Add page footers to every page of the document.
+ */
+function addPageFooters(doc, documentLabel) {
+  const totalPages = doc.internal.getNumberOfPages()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    const fy = pageHeight - 10
+
+    drawRule(doc, MARGIN, fy - 4, pageWidth - MARGIN, COLORS.border, 0.3)
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...COLORS.subtle)
+    doc.text(
+      `${documentLabel}  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      MARGIN, fy
+    )
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - MARGIN, fy, { align: 'right' })
+  }
+}
+
+/**
+ * Check if we need a new page, adding one if necessary.
+ */
+function checkPage(doc, y, needed = 30) {
+  if (y + needed > doc.internal.pageSize.getHeight() - 22) {
     doc.addPage()
-    return 20
+    return MARGIN
   }
   return y
 }
 
 /**
- * Export daily reports as PDF
- * @param {Array} reports - Daily report objects
- * @param {Object} project - Project info
- * @returns {Promise<void>}
+ * Draw project info strip.
  */
-export async function exportDailyReportsPDF(reports, project) {
+function drawProjectStrip(doc, project, y) {
+  doc.setFillColor(...COLORS.surface)
+  doc.roundedRect(MARGIN, y - 3, CONTENT_WIDTH, 10, 2, 2, 'F')
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...COLORS.mid)
+  doc.text('Project:', MARGIN + 5, y + 3)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...COLORS.dark)
+  const projLabel = (project?.name || 'Untitled')
+    + (project?.job_number ? `  (Job #${project.job_number})` : '')
+  doc.text(projLabel, MARGIN + 24, y + 3)
+
+  return y + 14
+}
+
+/**
+ * Render a photo grid into the document.
+ */
+function renderPhotoGrid(doc, photoImages, y) {
+  const photoWidth = 54
+  const photoHeight = 44
+  const photoGap = 5
+  const photosPerRow = 3
+  let xPos = MARGIN
+
+  for (let i = 0; i < photoImages.length; i++) {
+    if (i > 0 && i % photosPerRow === 0) {
+      xPos = MARGIN
+      y += photoHeight + photoGap
+    }
+
+    if (y + photoHeight > doc.internal.pageSize.getHeight() - 22) {
+      doc.addPage()
+      y = MARGIN
+      xPos = MARGIN
+    }
+
+    if (photoImages[i]) {
+      // Light shadow effect
+      doc.setFillColor(230, 230, 230)
+      doc.rect(xPos + 1, y + 1, photoWidth, photoHeight, 'F')
+      // Photo border
+      doc.setDrawColor(...COLORS.border)
+      doc.setLineWidth(0.5)
+      doc.rect(xPos, y, photoWidth, photoHeight, 'S')
+      doc.addImage(photoImages[i], 'JPEG', xPos, y, photoWidth, photoHeight)
+    } else {
+      doc.setFillColor(...COLORS.surface)
+      doc.rect(xPos, y, photoWidth, photoHeight, 'F')
+      doc.setDrawColor(...COLORS.border)
+      doc.setLineWidth(0.3)
+      doc.rect(xPos, y, photoWidth, photoHeight, 'S')
+      doc.setFontSize(7)
+      doc.setTextColor(...COLORS.subtle)
+      doc.text('Photo unavailable', xPos + photoWidth / 2, y + photoHeight / 2, { align: 'center' })
+    }
+
+    xPos += photoWidth + photoGap
+  }
+
+  return y + photoHeight + 8
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DAILY REPORTS PDF
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Export daily reports as a professional branded PDF.
+ *
+ * @param {Array}  reports  - Daily report objects
+ * @param {Object} project  - Project info
+ * @param {Object} [context] - Optional { company, branding } for branded header
+ */
+export async function exportDailyReportsPDF(reports, project, context = {}) {
   const jsPDFModule = await loadJsPDF()
   const jsPDF = jsPDFModule.default
+  await loadAutoTable()
   const doc = new jsPDF()
 
-  let y = 20
+  const primary = getPrimaryColor(context)
 
-  // Title
-  doc.setFontSize(18)
-  doc.setFont(undefined, 'bold')
-  doc.text('Daily Reports', PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 8
+  // ── Header band ──
+  const headerH = drawHeaderBand(doc, 'DAILY REPORTS', `${reports.length} report${reports.length !== 1 ? 's' : ''}`, primary, context)
+  let y = headerH + 12
 
-  doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
-  doc.text(`Project: ${project.name}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 6
-  doc.text(`${reports.length} report${reports.length !== 1 ? 's' : ''}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 12
+  // ── Project strip ──
+  y = drawProjectStrip(doc, project, y)
 
-  // Pre-load all report photos as base64 for embedding
+  // ── Date range summary ──
+  if (reports.length > 0) {
+    const dates = reports.map(r => r.report_date).filter(Boolean).sort()
+    if (dates.length > 1) {
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...COLORS.mid)
+      doc.text(`Covering: ${formatShortDate(dates[0])} — ${formatShortDate(dates[dates.length - 1])}`, MARGIN, y)
+      y += 8
+    }
+  }
+
+  // ── Pre-load all report photos ──
   const reportPhotoData = {}
   for (const report of reports) {
     if (report.photos?.length > 0) {
@@ -92,49 +292,66 @@ export async function exportDailyReportsPDF(reports, project) {
     }
   }
 
-  // Each report
+  // ── Each report ──
   for (let idx = 0; idx < reports.length; idx++) {
     const report = reports[idx]
-    y = checkPage(doc, y, 60)
+    y = checkPage(doc, y, 50)
 
-    // Report header
-    doc.setDrawColor(200, 200, 200)
-    doc.setFillColor(245, 247, 250)
-    doc.roundedRect(MARGIN, y - 2, CONTENT_WIDTH, 10, 2, 2, 'F')
+    // Report card header
+    doc.setFillColor(...primary)
+    doc.rect(MARGIN, y, 3, 12, 'F')
 
-    doc.setFontSize(11)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(30, 30, 30)
-    doc.text(`${formatDate(report.report_date)}`, MARGIN + 4, y + 5)
+    doc.setFillColor(...COLORS.surface)
+    doc.rect(MARGIN + 3, y, CONTENT_WIDTH - 3, 12, 'F')
 
-    const statusText = report.status === 'submitted' ? 'Submitted' : 'Draft'
-    doc.setFontSize(9)
-    doc.setFont(undefined, 'normal')
-    doc.text(statusText, PAGE_WIDTH - MARGIN - 4, y + 5, { align: 'right' })
-    y += 14
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLORS.dark)
+    doc.text(formatDate(report.report_date), MARGIN + 8, y + 8)
 
-    doc.setTextColor(0, 0, 0)
+    // Status badge
+    const isSubmitted = report.status === 'submitted'
+    const badgeColor = isSubmitted ? COLORS.green : COLORS.amber
+    const badgeText = isSubmitted ? 'SUBMITTED' : 'DRAFT'
+    const badgeW = doc.getTextWidth(badgeText) + 8
 
-    // Metrics row - use accurate counts from actual data
+    doc.setFillColor(...badgeColor)
+    doc.roundedRect(PAGE_WIDTH - MARGIN - badgeW - 4, y + 2, badgeW, 7, 1.5, 1.5, 'F')
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text(badgeText, PAGE_WIDTH - MARGIN - badgeW / 2 - 4, y + 7, { align: 'center' })
+
+    y += 16
+
+    // Metrics row
     const actualPhotos = report.photos?.length || report.photos_count || 0
     const actualTasks = report.completed_tasks?.length || report.tasks_completed || 0
-    doc.setFontSize(9)
     const metrics = [
       `Crew: ${report.crew_count || 0}`,
       `Tasks: ${actualTasks}/${report.tasks_total || 0}`,
       `T&M Tickets: ${report.tm_tickets_count || 0}`,
       `Photos: ${actualPhotos}`
     ]
-    doc.text(metrics.join('    |    '), MARGIN + 4, y)
+
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...COLORS.mid)
+    doc.text(metrics.join('    ·    '), MARGIN + 8, y)
     y += 7
 
-    // Crew list - grouped by class/role
+    // Crew list — grouped by role
     if (report.crew_list?.length > 0) {
-      doc.setFont(undefined, 'bold')
-      doc.text('Crew:', MARGIN + 4, y)
-      y += 5
+      y = checkPage(doc, y, 15)
 
-      // Group workers by role
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.mid)
+      doc.text('CREW', MARGIN + 8, y)
+      y += 1
+      drawRule(doc, MARGIN + 8, y, MARGIN + 40, COLORS.border)
+      y += 4
+
       const crewGroups = {}
       report.crew_list.forEach(w => {
         const role = w.role || 'Other'
@@ -144,307 +361,526 @@ export async function exportDailyReportsPDF(reports, project) {
 
       doc.setFontSize(8)
       for (const [role, workers] of Object.entries(crewGroups)) {
-        y = checkPage(doc, y, 8)
-        doc.setFont(undefined, 'bold')
-        doc.text(`${role} (${workers.length}):`, MARGIN + 8, y)
-        doc.setFont(undefined, 'normal')
+        y = checkPage(doc, y, 6)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(...COLORS.dark)
+        doc.text(`${role} (${workers.length}):`, MARGIN + 10, y)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...COLORS.text)
         const names = workers.map(w => w.name).join(', ')
-        const nameLines = doc.splitTextToSize(names, CONTENT_WIDTH - 50)
-        doc.text(nameLines, MARGIN + 50, y)
+        const nameLines = doc.splitTextToSize(names, CONTENT_WIDTH - 55)
+        doc.text(nameLines, MARGIN + 52, y)
         y += nameLines.length * 3.5 + 2
       }
-      doc.setFontSize(9)
-      y += 1
+      y += 2
     }
 
     // Field notes
     if (report.field_notes) {
       y = checkPage(doc, y, 15)
-      doc.setFont(undefined, 'bold')
-      doc.text('Field Notes:', MARGIN + 4, y)
-      doc.setFont(undefined, 'normal')
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.mid)
+      doc.text('FIELD NOTES', MARGIN + 8, y)
+      y += 1
+      drawRule(doc, MARGIN + 8, y, MARGIN + 40, COLORS.border)
       y += 4
-      const noteLines = doc.splitTextToSize(report.field_notes, CONTENT_WIDTH - 8)
-      doc.text(noteLines, MARGIN + 4, y)
-      y += noteLines.length * 4 + 2
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(...COLORS.text)
+      const noteLines = doc.splitTextToSize(report.field_notes, CONTENT_WIDTH - 16)
+      doc.text(noteLines, MARGIN + 10, y)
+      y += noteLines.length * 4 + 3
     }
 
     // Issues
     if (report.issues) {
       y = checkPage(doc, y, 15)
-      doc.setFont(undefined, 'bold')
-      doc.text('Issues:', MARGIN + 4, y)
-      doc.setFont(undefined, 'normal')
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.amber)
+      doc.text('ISSUES', MARGIN + 8, y)
+      y += 1
+      drawRule(doc, MARGIN + 8, y, MARGIN + 30, [245, 158, 11])
       y += 4
-      const issueLines = doc.splitTextToSize(report.issues, CONTENT_WIDTH - 8)
-      doc.text(issueLines, MARGIN + 4, y)
-      y += issueLines.length * 4 + 2
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(...COLORS.text)
+      const issueLines = doc.splitTextToSize(report.issues, CONTENT_WIDTH - 16)
+      doc.text(issueLines, MARGIN + 10, y)
+      y += issueLines.length * 4 + 3
     }
 
     // Photos
     const photoImages = reportPhotoData[report.id]
     if (photoImages?.length > 0) {
       y = checkPage(doc, y, 55)
-      doc.setFont(undefined, 'bold')
-      doc.text('Photos:', MARGIN + 4, y)
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.mid)
+      doc.text('PHOTOS', MARGIN + 8, y)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...COLORS.blue)
+      doc.text(`${photoImages.length} photo${photoImages.length !== 1 ? 's' : ''}`, MARGIN + 26, y)
       y += 5
 
-      const photoWidth = 55
-      const photoHeight = 45
-      const photoGap = 5
-      const photosPerRow = 3
-      let xPos = MARGIN + 4
-
-      for (let i = 0; i < photoImages.length; i++) {
-        if (i > 0 && i % photosPerRow === 0) {
-          xPos = MARGIN + 4
-          y += photoHeight + photoGap
-        }
-
-        if (y + photoHeight > doc.internal.pageSize.height - 20) {
-          doc.addPage()
-          y = 20
-          xPos = MARGIN + 4
-        }
-
-        doc.setDrawColor(200, 200, 200)
-        doc.setLineWidth(0.5)
-        doc.rect(xPos - 1, y - 1, photoWidth + 2, photoHeight + 2, 'S')
-        doc.addImage(photoImages[i], 'JPEG', xPos, y, photoWidth, photoHeight)
-        xPos += photoWidth + photoGap
-      }
-
-      y += photoHeight + 5
+      y = renderPhotoGrid(doc, photoImages, y)
     }
 
-    y += 8
+    y += 4
 
-    // Divider
+    // Divider between reports
     if (idx < reports.length - 1) {
-      doc.setDrawColor(220, 220, 220)
-      doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
-      y += 6
+      drawRule(doc, MARGIN, y, PAGE_WIDTH - MARGIN, COLORS.border, 0.5)
+      y += 8
     }
   }
 
-  const fileName = `${project.name}_Daily_Reports_${new Date().toISOString().split('T')[0]}.pdf`
+  // ── Footers ──
+  addPageFooters(doc, `Daily Reports — ${project?.name || ''}`)
+
+  const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Daily_Reports_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// INCIDENT / INJURY REPORTS PDF
+// ══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Export incident/injury reports as PDF
- * @param {Array} reports - Injury report objects
- * @param {Object} project - Project info
- * @returns {Promise<void>}
+ * Export incident/injury reports as a professional branded PDF.
+ *
+ * @param {Array}  reports  - Injury report objects
+ * @param {Object} project  - Project info
+ * @param {Object} [context] - Optional { company, branding }
  */
-export async function exportIncidentReportsPDF(reports, project) {
+export async function exportIncidentReportsPDF(reports, project, context = {}) {
   const jsPDFModule = await loadJsPDF()
   const jsPDF = jsPDFModule.default
+  await loadAutoTable()
   const doc = new jsPDF()
 
-  let y = 20
+  const primary = getPrimaryColor(context)
 
-  // Title
-  doc.setFontSize(18)
-  doc.setFont(undefined, 'bold')
-  doc.text('Incident / Injury Reports', PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 8
+  // ── Header band ──
+  const headerH = drawHeaderBand(doc, 'INCIDENT REPORTS', `${reports.length} report${reports.length !== 1 ? 's' : ''}`, primary, context)
+  let y = headerH + 12
 
-  doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
-  doc.text(`Project: ${project.name}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 6
-  doc.text(`${reports.length} report${reports.length !== 1 ? 's' : ''}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 12
+  // ── Project strip ──
+  y = drawProjectStrip(doc, project, y)
 
+  // ── Summary stats ──
+  const openCount = reports.filter(r => r.status === 'open').length
+  const closedCount = reports.filter(r => r.status !== 'open').length
+  const critCount = reports.filter(r => r.injury_type === 'critical').length
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...COLORS.mid)
+  const summary = [`Open: ${openCount}`, `Closed: ${closedCount}`]
+  if (critCount > 0) summary.push(`Critical: ${critCount}`)
+  doc.text(summary.join('    ·    '), MARGIN, y)
+  y += 10
+
+  // ── Each incident ──
   reports.forEach((report, idx) => {
     y = checkPage(doc, y, 50)
 
-    // Header bar
-    const severityColors = {
-      minor: [34, 197, 94],
-      serious: [245, 158, 11],
-      critical: [239, 68, 68],
-      near_miss: [59, 130, 246]
-    }
-    const color = severityColors[report.injury_type] || [128, 128, 128]
+    const sev = SEVERITY[report.injury_type] || { color: [128, 128, 128], label: (report.injury_type || 'UNKNOWN').toUpperCase() }
 
-    doc.setFillColor(...color)
-    doc.roundedRect(MARGIN, y - 2, 3, 14, 1, 1, 'F')
+    // Severity accent bar + card background
+    doc.setFillColor(...sev.color)
+    doc.rect(MARGIN, y, 3, 16, 'F')
 
-    doc.setFontSize(11)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(30, 30, 30)
-    doc.text(`${formatDate(report.incident_date)}`, MARGIN + 8, y + 4)
+    doc.setFillColor(...COLORS.surface)
+    doc.rect(MARGIN + 3, y, CONTENT_WIDTH - 3, 16, 'F')
 
-    doc.setFontSize(9)
-    const typeLabel = (report.injury_type || '').replace('_', ' ').toUpperCase()
-    doc.text(typeLabel, MARGIN + 8, y + 10)
+    // Date
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLORS.dark)
+    doc.text(formatDate(report.incident_date), MARGIN + 8, y + 6)
 
-    doc.setFont(undefined, 'normal')
-    doc.text(report.status === 'open' ? 'OPEN' : 'CLOSED', PAGE_WIDTH - MARGIN - 4, y + 4, { align: 'right' })
-    y += 16
+    // Severity badge
+    const badgeText = sev.label
+    const badgeW = doc.getTextWidth(badgeText) + 8
+    doc.setFillColor(...sev.color)
+    doc.roundedRect(MARGIN + 8, y + 9, badgeW, 5.5, 1, 1, 'F')
+    doc.setFontSize(6.5)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text(badgeText, MARGIN + 8 + badgeW / 2, y + 13, { align: 'center' })
 
-    doc.setTextColor(0, 0, 0)
+    // Status badge (right side)
+    const isOpen = report.status === 'open'
+    const statusColor = isOpen ? COLORS.amber : COLORS.green
+    const statusText = isOpen ? 'OPEN' : 'CLOSED'
+    const statusW = doc.getTextWidth(statusText) + 8
+    doc.setFillColor(...statusColor)
+    doc.roundedRect(PAGE_WIDTH - MARGIN - statusW - 4, y + 3, statusW, 7, 1.5, 1.5, 'F')
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text(statusText, PAGE_WIDTH - MARGIN - statusW / 2 - 4, y + 8, { align: 'center' })
+
+    y += 20
 
     // Description
     if (report.description) {
-      doc.setFontSize(9)
-      doc.setFont(undefined, 'bold')
-      doc.text('Description:', MARGIN + 4, y)
-      doc.setFont(undefined, 'normal')
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.mid)
+      doc.text('DESCRIPTION', MARGIN + 8, y)
+      y += 1
+      drawRule(doc, MARGIN + 8, y, MARGIN + 45, COLORS.border)
       y += 4
-      const lines = doc.splitTextToSize(report.description, CONTENT_WIDTH - 8)
-      doc.text(lines, MARGIN + 4, y)
-      y += lines.length * 4 + 2
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(...COLORS.text)
+      const lines = doc.splitTextToSize(report.description, CONTENT_WIDTH - 16)
+      doc.text(lines, MARGIN + 10, y)
+      y += lines.length * 4 + 3
     }
 
     // Location
     if (report.location) {
-      doc.setFont(undefined, 'bold')
-      doc.text('Location: ', MARGIN + 4, y)
-      doc.setFont(undefined, 'normal')
-      doc.text(report.location, MARGIN + 30, y)
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.mid)
+      doc.text('LOCATION', MARGIN + 8, y)
+      y += 1
+      drawRule(doc, MARGIN + 8, y, MARGIN + 35, COLORS.border)
+      y += 4
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(...COLORS.text)
+      doc.text(report.location, MARGIN + 10, y)
       y += 6
+    }
+
+    // Corrective actions
+    if (report.corrective_actions) {
+      y = checkPage(doc, y, 12)
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.green)
+      doc.text('CORRECTIVE ACTIONS', MARGIN + 8, y)
+      y += 1
+      drawRule(doc, MARGIN + 8, y, MARGIN + 55, [16, 185, 129])
+      y += 4
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(...COLORS.text)
+      const actionLines = doc.splitTextToSize(report.corrective_actions, CONTENT_WIDTH - 16)
+      doc.text(actionLines, MARGIN + 10, y)
+      y += actionLines.length * 4 + 3
     }
 
     y += 6
 
+    // Divider
     if (idx < reports.length - 1) {
-      doc.setDrawColor(220, 220, 220)
-      doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
-      y += 6
+      drawRule(doc, MARGIN, y, PAGE_WIDTH - MARGIN, COLORS.border, 0.5)
+      y += 8
     }
   })
 
-  const fileName = `${project.name}_Incident_Reports_${new Date().toISOString().split('T')[0]}.pdf`
+  // ── Footers ──
+  addPageFooters(doc, `Incident Reports — ${project?.name || ''}`)
+
+  const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Incident_Reports_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CREW CHECK-IN HISTORY PDF
+// ══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Export crew check-in history as PDF
- * @param {Array} checkins - Crew check-in objects
- * @param {Object} project - Project info
- * @returns {Promise<void>}
+ * Export crew check-in history as a professional branded PDF.
+ *
+ * @param {Array}  checkins - Crew check-in objects
+ * @param {Object} project  - Project info
+ * @param {Object} [context] - Optional { company, branding }
  */
-export async function exportCrewCheckinsPDF(checkins, project) {
+export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
   const jsPDFModule = await loadJsPDF()
   const jsPDF = jsPDFModule.default
+  const autoTableModule = await loadAutoTable()
+  const autoTable = autoTableModule.default
   const doc = new jsPDF()
 
-  let y = 20
+  const primary = getPrimaryColor(context)
 
-  doc.setFontSize(18)
-  doc.setFont(undefined, 'bold')
-  doc.text('Crew Check-In History', PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 8
+  // ── Header band ──
+  const headerH = drawHeaderBand(doc, 'CREW CHECK-INS', `${checkins.length} check-in${checkins.length !== 1 ? 's' : ''}`, primary, context)
+  let y = headerH + 12
 
-  doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
-  doc.text(`Project: ${project.name}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 6
-  doc.text(`${checkins.length} check-in${checkins.length !== 1 ? 's' : ''}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 12
+  // ── Project strip ──
+  y = drawProjectStrip(doc, project, y)
 
+  // ── Total workers summary ──
+  const totalWorkers = checkins.reduce((sum, c) => sum + (c.workers?.length || 0), 0)
+  const uniqueNames = new Set()
+  checkins.forEach(c => (c.workers || []).forEach(w => uniqueNames.add(w.name)))
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...COLORS.mid)
+  doc.text(`Total check-ins: ${totalWorkers}    ·    Unique workers: ${uniqueNames.size}`, MARGIN, y)
+  y += 10
+
+  // ── Each check-in ──
   checkins.forEach((checkin, idx) => {
     y = checkPage(doc, y, 30)
     const workers = checkin.workers || []
 
-    // Date header
-    doc.setFillColor(245, 247, 250)
-    doc.roundedRect(MARGIN, y - 2, CONTENT_WIDTH, 9, 2, 2, 'F')
+    // Date header card
+    doc.setFillColor(...primary)
+    doc.rect(MARGIN, y, 3, 10, 'F')
+
+    doc.setFillColor(...COLORS.surface)
+    doc.rect(MARGIN + 3, y, CONTENT_WIDTH - 3, 10, 'F')
 
     doc.setFontSize(10)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(30, 30, 30)
-    doc.text(formatDate(checkin.check_in_date), MARGIN + 4, y + 4)
-    doc.setFont(undefined, 'normal')
-    doc.text(`${workers.length} workers`, PAGE_WIDTH - MARGIN - 4, y + 4, { align: 'right' })
-    y += 12
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...COLORS.dark)
+    doc.text(formatDate(checkin.check_in_date), MARGIN + 8, y + 7)
 
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(9)
+    // Worker count badge
+    const countText = `${workers.length} worker${workers.length !== 1 ? 's' : ''}`
+    const countW = doc.getTextWidth(countText) + 8
+    doc.setFillColor(...primary)
+    doc.roundedRect(PAGE_WIDTH - MARGIN - countW - 4, y + 1.5, countW, 7, 1.5, 1.5, 'F')
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text(countText, PAGE_WIDTH - MARGIN - countW / 2 - 4, y + 6.5, { align: 'center' })
 
-    // Worker list as table
+    y += 14
+
+    // Worker table using autoTable
     if (workers.length > 0) {
-      doc.setFont(undefined, 'bold')
-      doc.text('Name', MARGIN + 4, y)
-      doc.text('Role', 110, y)
-      y += 5
-
-      doc.setFont(undefined, 'normal')
+      // Group workers by role for cleaner display
+      const roleGroups = {}
       workers.forEach(w => {
-        y = checkPage(doc, y, 6)
-        doc.text(w.name || '—', MARGIN + 4, y)
-        doc.text(w.role || 'Laborer', 110, y)
-        y += 4.5
+        const role = w.role || 'Laborer'
+        if (!roleGroups[role]) roleGroups[role] = []
+        roleGroups[role].push(w)
       })
+
+      const tableBody = []
+      let rowNum = 1
+      for (const [role, group] of Object.entries(roleGroups)) {
+        group.forEach(w => {
+          tableBody.push([
+            rowNum.toString(),
+            w.name || '—',
+            role,
+          ])
+          rowNum++
+        })
+      }
+
+      autoTable(doc, {
+        startY: y,
+        head: [['#', 'Name', 'Role']],
+        body: tableBody,
+        theme: 'plain',
+        styles: {
+          fontSize: 8,
+          cellPadding: { top: 2, bottom: 2, left: 4, right: 4 },
+          textColor: COLORS.text,
+        },
+        headStyles: {
+          fillColor: primary,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+        },
+        alternateRowStyles: { fillColor: COLORS.surface },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 'auto' },
+        },
+        margin: { left: MARGIN + 5, right: MARGIN + 5 },
+      })
+
+      y = doc.lastAutoTable.finalY + 6
     }
 
-    y += 6
+    y += 4
 
+    // Divider
     if (idx < checkins.length - 1) {
-      doc.setDrawColor(220, 220, 220)
-      doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
-      y += 5
+      drawRule(doc, MARGIN, y, PAGE_WIDTH - MARGIN, COLORS.border, 0.5)
+      y += 8
     }
   })
 
-  const fileName = `${project.name}_Crew_Checkins_${new Date().toISOString().split('T')[0]}.pdf`
+  // ── Footers ──
+  addPageFooters(doc, `Crew Check-Ins — ${project?.name || ''}`)
+
+  const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Crew_Checkins_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CONSOLIDATED FIELD DOCUMENTS PDF
+// ══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Export ALL field documents as a single consolidated PDF
+ * Export ALL field documents as a single consolidated PDF with a professional
+ * cover page and clearly separated sections.
+ *
  * @param {Object} params
- * @param {Array} params.dailyReports
- * @param {Array} params.incidentReports
- * @param {Array} params.crewCheckins
+ * @param {Array}  params.dailyReports
+ * @param {Array}  params.incidentReports
+ * @param {Array}  params.crewCheckins
  * @param {Object} params.project
- * @returns {Promise<void>}
+ * @param {Object} [params.context] - Optional { company, branding }
  */
-export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentReports = [], crewCheckins = [], project }) {
+export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentReports = [], crewCheckins = [], project, context = {} }) {
   const jsPDFModule = await loadJsPDF()
   const jsPDF = jsPDFModule.default
+  const autoTableModule = await loadAutoTable()
+  const autoTable = autoTableModule.default
   const doc = new jsPDF()
 
-  let y = 20
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const primary = getPrimaryColor(context)
 
-  // Cover page
-  doc.setFontSize(22)
-  doc.setFont(undefined, 'bold')
-  doc.text('Field Documents Report', PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 10
+  // ══════════════════════════════════════════════════════════════════════════
+  // COVER PAGE
+  // ══════════════════════════════════════════════════════════════════════════
 
-  doc.setFontSize(13)
-  doc.setFont(undefined, 'normal')
-  doc.text(`Project: ${project.name}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 8
+  // Full-width header band
+  const coverH = 56
+  doc.setFillColor(...primary)
+  doc.rect(0, 0, pageWidth, coverH, 'F')
+
+  // Company name
+  const companyName = context?.company?.name || ''
+  if (companyName) {
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text(companyName, MARGIN, 22)
+
+    const contact = [context?.company?.phone, context?.company?.email].filter(Boolean)
+    if (contact.length) {
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(220, 230, 245)
+      doc.text(contact.join('  ·  '), MARGIN, 30)
+    }
+  }
+
+  // Title
+  doc.setFontSize(24)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text('FIELD DOCUMENTS', pageWidth - MARGIN, 25, { align: 'right' })
 
   doc.setFontSize(10)
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, PAGE_WIDTH / 2, y, { align: 'center' })
-  y += 16
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(220, 230, 245)
+  doc.text('Consolidated Report', pageWidth - MARGIN, 35, { align: 'right' })
 
-  // Summary table
-  doc.setFontSize(11)
-  doc.setFont(undefined, 'bold')
-  doc.text('Document Summary', MARGIN, y)
-  y += 8
+  let y = coverH + 16
 
-  doc.setFontSize(10)
-  doc.setFont(undefined, 'normal')
-  const summaryItems = [
-    [`Daily Reports`, `${dailyReports.length}`],
-    [`Incident Reports`, `${incidentReports.length}`],
-    [`Crew Check-Ins`, `${crewCheckins.length}`]
+  // Project info
+  y = drawProjectStrip(doc, project, y)
+  y += 2
+
+  // Generation info
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...COLORS.mid)
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`, MARGIN, y)
+  y += 12
+
+  // ── Document summary table ──
+  y = drawSectionTitle(doc, 'Document Summary', y, primary)
+
+  const summaryTableBody = [
+    ['Daily Reports', dailyReports.length.toString(), dailyReports.length > 0 ? 'Included' : '—'],
+    ['Incident Reports', incidentReports.length.toString(), incidentReports.length > 0 ? 'Included' : '—'],
+    ['Crew Check-Ins', crewCheckins.length.toString(), crewCheckins.length > 0 ? 'Included' : '—'],
   ]
-  summaryItems.forEach(([label, count]) => {
-    doc.text(label, MARGIN + 4, y)
-    doc.text(count, 100, y)
-    y += 6
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Document Type', 'Count', 'Status']],
+    body: summaryTableBody,
+    theme: 'plain',
+    styles: {
+      fontSize: 9,
+      cellPadding: { top: 4, bottom: 4, left: 6, right: 6 },
+      textColor: COLORS.dark,
+    },
+    headStyles: {
+      fillColor: primary,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    alternateRowStyles: { fillColor: COLORS.surface },
+    columnStyles: {
+      0: { cellWidth: 70 },
+      1: { cellWidth: 30, halign: 'center' },
+      2: { cellWidth: 'auto', halign: 'center' },
+    },
+    margin: { left: MARGIN, right: MARGIN },
   })
 
-  // Daily Reports Section
+  y = doc.lastAutoTable.finalY + 12
+
+  // Key metrics
+  const totalCrewCount = dailyReports.reduce((s, r) => s + (r.crew_count || 0), 0)
+  const totalIncidents = incidentReports.length
+  const totalCheckins = crewCheckins.reduce((s, c) => s + (c.workers?.length || 0), 0)
+
+  if (totalCrewCount > 0 || totalIncidents > 0 || totalCheckins > 0) {
+    y = drawSectionTitle(doc, 'Key Metrics', y, primary)
+
+    const metricsBody = []
+    if (totalCrewCount > 0) metricsBody.push(['Total Crew-Days', totalCrewCount.toString()])
+    if (totalIncidents > 0) {
+      const openInc = incidentReports.filter(r => r.status === 'open').length
+      metricsBody.push(['Total Incidents', `${totalIncidents} (${openInc} open)`])
+    }
+    if (totalCheckins > 0) metricsBody.push(['Total Worker Check-Ins', totalCheckins.toString()])
+
+    autoTable(doc, {
+      startY: y,
+      body: metricsBody,
+      theme: 'plain',
+      styles: {
+        fontSize: 9,
+        cellPadding: { top: 3, bottom: 3, left: 6, right: 6 },
+        textColor: COLORS.dark,
+      },
+      alternateRowStyles: { fillColor: COLORS.surface },
+      columnStyles: {
+        0: { cellWidth: 70, fontStyle: 'bold', textColor: COLORS.mid },
+        1: { cellWidth: 'auto' },
+      },
+      margin: { left: MARGIN, right: MARGIN },
+    })
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DAILY REPORTS SECTION
+  // ══════════════════════════════════════════════════════════════════════════
+
   if (dailyReports.length > 0) {
     // Pre-load all report photos
     const reportPhotoData = {}
@@ -461,28 +897,48 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
       }
     }
 
+    // Section cover
     doc.addPage()
-    y = 20
+    y = MARGIN
 
-    doc.setFontSize(16)
-    doc.setFont(undefined, 'bold')
-    doc.text('Daily Reports', MARGIN, y)
-    y += 10
+    // Section header bar
+    doc.setFillColor(...primary)
+    doc.rect(MARGIN, y, CONTENT_WIDTH, 14, 'F')
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text('DAILY REPORTS', MARGIN + 8, y + 10)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`${dailyReports.length} report${dailyReports.length !== 1 ? 's' : ''}`, pageWidth - MARGIN - 8, y + 10, { align: 'right' })
+    y += 20
 
     for (let idx = 0; idx < dailyReports.length; idx++) {
       const report = dailyReports[idx]
       y = checkPage(doc, y, 40)
 
+      // Report header
+      doc.setFillColor(...primary)
+      doc.rect(MARGIN, y, 3, 10, 'F')
+      doc.setFillColor(...COLORS.surface)
+      doc.rect(MARGIN + 3, y, CONTENT_WIDTH - 3, 10, 'F')
+
       doc.setFontSize(10)
-      doc.setFont(undefined, 'bold')
-      doc.setTextColor(30, 30, 30)
-      doc.text(formatDate(report.report_date), MARGIN + 2, y)
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.dark)
+      doc.text(formatDate(report.report_date), MARGIN + 8, y + 7)
+
+      // Metrics inline
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...COLORS.mid)
       const consolidatedTasks = report.completed_tasks?.length || report.tasks_completed || 0
       const consolidatedPhotos = report.photos?.length || report.photos_count || 0
-      doc.text(`Crew: ${report.crew_count || 0} | Tasks: ${consolidatedTasks}/${report.tasks_total || 0} | T&M: ${report.tm_tickets_count || 0} | Photos: ${consolidatedPhotos}`, MARGIN + 60, y)
-      y += 6
+      doc.text(
+        `Crew: ${report.crew_count || 0}  ·  Tasks: ${consolidatedTasks}/${report.tasks_total || 0}  ·  T&M: ${report.tm_tickets_count || 0}  ·  Photos: ${consolidatedPhotos}`,
+        pageWidth - MARGIN - 5, y + 7, { align: 'right' }
+      )
+      y += 14
 
       // Crew grouped by class/role
       if (report.crew_list?.length > 0) {
@@ -493,36 +949,40 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
           crewGroups[role].push(w)
         })
 
-        doc.setTextColor(0, 0, 0)
         doc.setFontSize(8)
         for (const [role, workers] of Object.entries(crewGroups)) {
           y = checkPage(doc, y, 6)
-          doc.setFont(undefined, 'bold')
-          doc.text(`${role} (${workers.length}):`, MARGIN + 4, y)
-          doc.setFont(undefined, 'normal')
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(...COLORS.dark)
+          doc.text(`${role} (${workers.length}):`, MARGIN + 8, y)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(...COLORS.text)
           const names = workers.map(w => w.name).join(', ')
-          const nameLines = doc.splitTextToSize(names, CONTENT_WIDTH - 50)
-          doc.text(nameLines, MARGIN + 46, y)
+          const nameLines = doc.splitTextToSize(names, CONTENT_WIDTH - 55)
+          doc.text(nameLines, MARGIN + 50, y)
           y += nameLines.length * 3.5 + 1
         }
-        y += 2
+        y += 3
       }
 
-      doc.setTextColor(0, 0, 0)
+      doc.setTextColor(...COLORS.text)
       doc.setFontSize(9)
 
       if (report.field_notes) {
-        const lines = doc.splitTextToSize(report.field_notes, CONTENT_WIDTH - 4)
-        doc.text(lines, MARGIN + 2, y)
+        doc.setFont('helvetica', 'normal')
+        const lines = doc.splitTextToSize(report.field_notes, CONTENT_WIDTH - 12)
+        doc.text(lines, MARGIN + 6, y)
         y += lines.length * 4 + 2
       }
 
       if (report.issues) {
-        doc.setFont(undefined, 'bold')
-        doc.text('Issues: ', MARGIN + 2, y)
-        doc.setFont(undefined, 'normal')
-        const issueLines = doc.splitTextToSize(report.issues, CONTENT_WIDTH - 20)
-        doc.text(issueLines, MARGIN + 20, y)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(...COLORS.amber)
+        doc.text('Issues:', MARGIN + 6, y)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...COLORS.text)
+        const issueLines = doc.splitTextToSize(report.issues, CONTENT_WIDTH - 28)
+        doc.text(issueLines, MARGIN + 22, y)
         y += issueLines.length * 4 + 2
       }
 
@@ -530,135 +990,171 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
       const photoImages = reportPhotoData[report.id]
       if (photoImages?.length > 0) {
         y = checkPage(doc, y, 55)
-        doc.setFont(undefined, 'bold')
-        doc.setFontSize(9)
-        doc.text('Photos:', MARGIN + 2, y)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(...COLORS.mid)
+        doc.text('Photos:', MARGIN + 6, y)
         y += 5
 
-        const photoWidth = 55
-        const photoHeight = 45
-        const photoGap = 5
-        const photosPerRow = 3
-        let xPos = MARGIN + 2
-
-        for (let i = 0; i < photoImages.length; i++) {
-          if (i > 0 && i % photosPerRow === 0) {
-            xPos = MARGIN + 2
-            y += photoHeight + photoGap
-          }
-
-          if (y + photoHeight > doc.internal.pageSize.height - 20) {
-            doc.addPage()
-            y = 20
-            xPos = MARGIN + 2
-          }
-
-          doc.setDrawColor(200, 200, 200)
-          doc.setLineWidth(0.5)
-          doc.rect(xPos - 1, y - 1, photoWidth + 2, photoHeight + 2, 'S')
-          doc.addImage(photoImages[i], 'JPEG', xPos, y, photoWidth, photoHeight)
-          xPos += photoWidth + photoGap
-        }
-
-        y += photoHeight + 5
+        y = renderPhotoGrid(doc, photoImages, y)
       }
 
       y += 4
       if (idx < dailyReports.length - 1) {
-        doc.setDrawColor(220, 220, 220)
-        doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
-        y += 4
+        drawRule(doc, MARGIN, y, PAGE_WIDTH - MARGIN, COLORS.border, 0.5)
+        y += 6
       }
     }
   }
 
-  // Incident Reports Section
+  // ══════════════════════════════════════════════════════════════════════════
+  // INCIDENT REPORTS SECTION
+  // ══════════════════════════════════════════════════════════════════════════
+
   if (incidentReports.length > 0) {
     doc.addPage()
-    y = 20
+    y = MARGIN
 
-    doc.setFontSize(16)
-    doc.setFont(undefined, 'bold')
-    doc.text('Incident / Injury Reports', MARGIN, y)
-    y += 10
+    // Section header bar
+    doc.setFillColor(...primary)
+    doc.rect(MARGIN, y, CONTENT_WIDTH, 14, 'F')
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text('INCIDENT / INJURY REPORTS', MARGIN + 8, y + 10)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`${incidentReports.length} report${incidentReports.length !== 1 ? 's' : ''}`, pageWidth - MARGIN - 8, y + 10, { align: 'right' })
+    y += 20
 
     incidentReports.forEach((report, idx) => {
       y = checkPage(doc, y, 35)
 
-      doc.setFontSize(10)
-      doc.setFont(undefined, 'bold')
-      doc.setTextColor(30, 30, 30)
-      doc.text(formatDate(report.incident_date), MARGIN + 2, y)
-      doc.setFontSize(8)
-      doc.setFont(undefined, 'normal')
-      const typeLabel = (report.injury_type || '').replace('_', ' ').toUpperCase()
-      doc.text(`${typeLabel} — ${report.status?.toUpperCase() || ''}`, MARGIN + 60, y)
-      y += 6
+      const sev = SEVERITY[report.injury_type] || { color: [128, 128, 128], label: (report.injury_type || '').replace('_', ' ').toUpperCase() }
 
-      doc.setTextColor(0, 0, 0)
+      // Severity accent + header
+      doc.setFillColor(...sev.color)
+      doc.rect(MARGIN, y, 3, 12, 'F')
+      doc.setFillColor(...COLORS.surface)
+      doc.rect(MARGIN + 3, y, CONTENT_WIDTH - 3, 12, 'F')
+
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.dark)
+      doc.text(formatDate(report.incident_date), MARGIN + 8, y + 5)
+
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...COLORS.mid)
+      doc.text(`${sev.label}  ·  ${(report.status || '').toUpperCase()}`, MARGIN + 8, y + 10)
+      y += 16
+
+      doc.setTextColor(...COLORS.text)
       doc.setFontSize(9)
 
       if (report.description) {
-        const lines = doc.splitTextToSize(report.description, CONTENT_WIDTH - 4)
-        doc.text(lines, MARGIN + 2, y)
+        doc.setFont('helvetica', 'normal')
+        const lines = doc.splitTextToSize(report.description, CONTENT_WIDTH - 12)
+        doc.text(lines, MARGIN + 6, y)
         y += lines.length * 4 + 2
       }
 
       if (report.location) {
-        doc.text(`Location: ${report.location}`, MARGIN + 2, y)
-        y += 5
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(...COLORS.mid)
+        doc.setFontSize(8)
+        doc.text('Location: ', MARGIN + 6, y)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(...COLORS.text)
+        doc.setFontSize(9)
+        doc.text(report.location, MARGIN + 24, y)
+        y += 6
       }
 
-      y += 4
+      y += 6
       if (idx < incidentReports.length - 1) {
-        doc.setDrawColor(220, 220, 220)
-        doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
-        y += 4
+        drawRule(doc, MARGIN, y, PAGE_WIDTH - MARGIN, COLORS.border, 0.5)
+        y += 6
       }
     })
   }
 
-  // Crew Check-Ins Section
+  // ══════════════════════════════════════════════════════════════════════════
+  // CREW CHECK-INS SECTION
+  // ══════════════════════════════════════════════════════════════════════════
+
   if (crewCheckins.length > 0) {
     doc.addPage()
-    y = 20
+    y = MARGIN
 
-    doc.setFontSize(16)
-    doc.setFont(undefined, 'bold')
-    doc.text('Crew Check-In History', MARGIN, y)
-    y += 10
+    // Section header bar
+    doc.setFillColor(...primary)
+    doc.rect(MARGIN, y, CONTENT_WIDTH, 14, 'F')
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(255, 255, 255)
+    doc.text('CREW CHECK-IN HISTORY', MARGIN + 8, y + 10)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`${crewCheckins.length} check-in${crewCheckins.length !== 1 ? 's' : ''}`, pageWidth - MARGIN - 8, y + 10, { align: 'right' })
+    y += 20
 
     crewCheckins.forEach((checkin, idx) => {
       y = checkPage(doc, y, 20)
       const workers = checkin.workers || []
 
-      doc.setFontSize(10)
-      doc.setFont(undefined, 'bold')
-      doc.setTextColor(30, 30, 30)
-      doc.text(formatDate(checkin.check_in_date), MARGIN + 2, y)
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(8)
-      doc.text(`${workers.length} workers`, MARGIN + 60, y)
-      y += 6
+      // Date header card
+      doc.setFillColor(...primary)
+      doc.rect(MARGIN, y, 3, 10, 'F')
+      doc.setFillColor(...COLORS.surface)
+      doc.rect(MARGIN + 3, y, CONTENT_WIDTH - 3, 10, 'F')
 
-      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.dark)
+      doc.text(formatDate(checkin.check_in_date), MARGIN + 8, y + 7)
+
+      doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
+      doc.setTextColor(...COLORS.mid)
+      doc.text(`${workers.length} worker${workers.length !== 1 ? 's' : ''}`, pageWidth - MARGIN - 8, y + 7, { align: 'right' })
+      y += 14
 
       if (workers.length > 0) {
-        const workerList = workers.map(w => `${w.name} (${w.role || 'Laborer'})`).join(', ')
-        const lines = doc.splitTextToSize(workerList, CONTENT_WIDTH - 4)
-        doc.text(lines, MARGIN + 2, y)
-        y += lines.length * 3.5 + 3
+        // Group by role for compact display
+        const roleGroups = {}
+        workers.forEach(w => {
+          const role = w.role || 'Laborer'
+          if (!roleGroups[role]) roleGroups[role] = []
+          roleGroups[role].push(w)
+        })
+
+        doc.setFontSize(8)
+        for (const [role, group] of Object.entries(roleGroups)) {
+          y = checkPage(doc, y, 6)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(...COLORS.dark)
+          doc.text(`${role} (${group.length}):`, MARGIN + 8, y)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(...COLORS.text)
+          const names = group.map(w => w.name).join(', ')
+          const lines = doc.splitTextToSize(names, CONTENT_WIDTH - 55)
+          doc.text(lines, MARGIN + 50, y)
+          y += lines.length * 3.5 + 1
+        }
+        y += 3
       }
 
       if (idx < crewCheckins.length - 1) {
-        doc.setDrawColor(230, 230, 230)
-        doc.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
-        y += 3
+        drawRule(doc, MARGIN, y, PAGE_WIDTH - MARGIN, COLORS.border, 0.5)
+        y += 5
       }
     })
   }
 
-  const fileName = `${project.name}_Field_Documents_${new Date().toISOString().split('T')[0]}.pdf`
+  // ── Footers on every page ──
+  addPageFooters(doc, `Field Documents — ${project?.name || ''}`)
+
+  const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Field_Documents_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
 }
