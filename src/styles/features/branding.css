@@ -91,6 +91,8 @@
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
 }
 
 .settings-section h3 {
@@ -210,46 +212,6 @@
   object-fit: cover;
   border-radius: var(--radius-sm);
 }
-
-/* MIGRATED TO: src/styles/components/buttons.css
-.btn-secondary {
-  padding: 0.75rem 1.5rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-}
-
-.btn-secondary:hover {
-  border-color: var(--primary-color, var(--accent-blue));
-  color: var(--primary-color, var(--accent-blue));
-}
-
-.btn-primary {
-  padding: 0.75rem 1.5rem;
-  background: var(--primary-color, var(--accent-blue));
-  border: none;
-  border-radius: var(--radius-md);
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-normal);
-}
-
-.btn-primary:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-END MIGRATED */
 
 .help-text {
   font-size: 0.75rem;

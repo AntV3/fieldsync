@@ -101,11 +101,13 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
-  transition: border-color 0.15s;
+  transition: all var(--transition-smooth);
+  box-shadow: var(--shadow-card);
 }
 
 .member-card:hover {
   border-color: var(--text-muted);
+  box-shadow: var(--shadow-sm);
 }
 
 .member-card.pending {
@@ -196,7 +198,7 @@
 .role-select:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: var(--shadow-focus);
 }
 
 .role-select:disabled {
@@ -334,6 +336,7 @@
   border-radius: var(--radius-lg);
   padding: 1.25rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-card);
 }
 
 .project-team-header {

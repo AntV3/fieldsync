@@ -7,6 +7,23 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.punch-list-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.punch-list-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .punch-list-header {
@@ -57,7 +74,7 @@
   transition: opacity var(--transition-normal);
 }
 
-.punch-add-btn:hover { opacity: 0.9; }
+.punch-add-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-card-hover); }
 
 /* Progress bar */
 .punch-progress-bar {
@@ -223,7 +240,7 @@
   padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  transition: background var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .punch-item:hover {

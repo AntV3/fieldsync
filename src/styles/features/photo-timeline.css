@@ -7,6 +7,24 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 20px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.photo-timeline-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.photo-timeline-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .photo-timeline-header {
@@ -121,7 +139,7 @@
 .photo-date-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 59, 130, 246), 0.15);
+  box-shadow: var(--shadow-focus);
 }
 
 .photo-date-chevron {
@@ -185,6 +203,12 @@
   overflow: hidden;
   cursor: pointer;
   background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-smooth);
+}
+
+.photo-grid-item:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .photo-grid-item img {

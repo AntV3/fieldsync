@@ -126,7 +126,7 @@
   border-radius: var(--radius-lg);
   padding: 0.75rem;
   border: 1px solid rgba(16, 185, 129, 0.2);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .bo-metric-value {
@@ -369,11 +369,11 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
 }
 
 .daily-report-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .daily-report-card.submitted {
@@ -967,7 +967,13 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
+  position: relative;
+}
+
+.reports-section-card > *:first-child {
+  position: relative;
+  z-index: 1;
 }
 
 .reports-section-card:hover {
@@ -1063,8 +1069,9 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
+  position: relative;
 }
 
 .reports-insight-card:hover {
@@ -1726,6 +1733,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .activity-section-card.has-pending {

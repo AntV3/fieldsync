@@ -162,6 +162,13 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-smooth);
+}
+
+.tm-worker-card:hover {
+  background: var(--surface-hover);
+  transform: translateY(-1px);
 }
 
 .tm-worker-input {
@@ -231,7 +238,7 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .tm-add-btn:hover {
@@ -255,6 +262,7 @@
   background: var(--bg-card);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: all var(--transition-fast);
   position: relative;
@@ -305,14 +313,16 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
   text-align: left;
   position: relative;
 }
 
 .tm-item-card:hover {
   border-color: var(--accent-blue);
+  transform: translateY(-1px);
 }
 
 .tm-item-card.added {
@@ -490,6 +500,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   margin-bottom: 1rem;
   overflow: hidden;
 }
@@ -582,10 +593,10 @@
 
 @keyframes pulseReady {
   0%, 100% {
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    box-shadow: var(--shadow-card-hover);
   }
   50% {
-    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.5);
+    box-shadow: var(--shadow-card-hover);
   }
 }
 
@@ -943,7 +954,7 @@
   padding: 0.75rem 1rem;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
   margin: -1rem -1rem 1rem -1rem;
 }
 
@@ -1168,7 +1179,7 @@
   justify-content: center;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%);
+  background: var(--gradient-green);
   border-radius: 50%;
   color: white;
   margin-bottom: 1rem;
@@ -1336,7 +1347,8 @@
 }
 
 .tm-retry-all-btn:hover {
-  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* Photo Upload Success Indicator */
@@ -1470,7 +1482,7 @@
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-elevated);
 }
 
 .tm-sig-header {
@@ -1685,7 +1697,7 @@
 .tm-sig-field input:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: var(--shadow-focus);
 }
 
 .tm-sig-area {
@@ -1853,7 +1865,7 @@
 .tm-review-textarea:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: var(--shadow-focus);
 }
 
 .tm-review-textarea::placeholder {
@@ -1884,7 +1896,7 @@
   padding: 1.5rem;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-elevated);
 }
 
 .tm-batch-modal h3 {
@@ -3057,6 +3069,8 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
   overflow: hidden;
 }
 
@@ -3642,7 +3656,7 @@ END MIGRATED */
 .tm-search-input:focus {
   outline: none;
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: var(--shadow-focus);
 }
 
 .tm-search-input::placeholder {
@@ -3900,12 +3914,13 @@ END MIGRATED */
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-smooth);
 }
 
 .tm-summary-card:hover {
   border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .tm-card-icon {
@@ -3974,6 +3989,7 @@ END MIGRATED */
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
+  box-shadow: var(--shadow-card);
 }
 
 .tm-status-header {
@@ -4027,6 +4043,7 @@ END MIGRATED */
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
 }
 
 .tm-chart-card.wide {
@@ -4083,7 +4100,7 @@ END MIGRATED */
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .tm-tooltip-label {

@@ -198,12 +198,12 @@
 
 /* Light mode bottom strip */
 [data-theme="light"] .overview-bottom-strip {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 /* Light mode needs-attention */
 [data-theme="light"] .overview-needs-attention {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .overview-needs-attention__item:hover {
@@ -431,7 +431,18 @@
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-section-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .overview-section-card:hover {
@@ -850,7 +861,7 @@
 .crew-range-pill.active {
   background: var(--bg-elevated);
   color: var(--accent-blue);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .crew-chart-container {
@@ -866,7 +877,7 @@
 
 /* Light mode crew metrics */
 [data-theme="light"] .crew-metrics-card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .crew-stat {
@@ -950,14 +961,30 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-smooth);
   box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-stat-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .quick-stat-card:hover {
   border-color: var(--accent-primary);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.quick-stat-card:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
 }
 
 .quick-stat-icon {

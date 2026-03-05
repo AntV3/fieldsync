@@ -10,7 +10,18 @@
   padding: 14px 16px;
   margin-top: 1rem;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-billing-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .progress-billing-card:hover {
@@ -180,12 +191,12 @@
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .draw-item:hover {
   background: var(--bg-card);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .draw-item-info {

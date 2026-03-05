@@ -49,6 +49,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
 }
 
 .rate-label {
@@ -148,6 +150,8 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
 }
 
 .job-type-header {
@@ -667,7 +671,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-elevated);
   z-index: var(--z-dropdown);
   overflow: hidden;
 }
@@ -1227,7 +1231,7 @@
 }
 
 .material-request-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .material-request-card.urgent {
@@ -1493,7 +1497,7 @@
 }
 
 .daily-report-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .daily-report-card.submitted {
@@ -2627,7 +2631,7 @@
 .validated-input.has-error:focus,
 .validated-select.has-error:focus,
 .validated-textarea.has-error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  box-shadow: var(--shadow-focus);
 }
 
 .validated-input:disabled,

@@ -25,13 +25,24 @@
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.burn-rate-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .burn-rate-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .burn-rate-header {
@@ -263,13 +274,24 @@
   padding: 14px 16px;
   margin-bottom: 0;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.cost-contributors-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .cost-contributors-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .cost-contributors-header {
@@ -529,13 +551,24 @@
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.profitability-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .profitability-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .profitability-card.healthy {
