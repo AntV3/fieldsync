@@ -8,7 +8,6 @@ import { FinancialTrendChart } from '../../charts'
 import BurnRateCard from '../../BurnRateCard'
 import ProfitabilityCard from '../../ProfitabilityCard'
 import CostContributorsCard from '../../CostContributorsCard'
-import DisposalSummary from '../../DisposalSummary'
 import ProjectEquipmentCard from '../../equipment/ProjectEquipmentCard'
 import ProgressBillingCard from '../../billing/ProgressBillingCard'
 import ManDayCosts from '../../ManDayCosts'
@@ -171,17 +170,14 @@ export default function FinancialsTab({
                 />
               </div>
 
-              <div className="cost-disposal-row">
-                <CostContributorsCard
-                  laborCost={projectData?.laborCost || 0}
-                  haulOffCost={projectData?.haulOffCost || 0}
-                  materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
-                  customCosts={projectData?.customCosts || []}
-                  onAddCost={onAddCost}
-                  onDeleteCost={onDeleteCost}
-                />
-                <DisposalSummary project={selectedProject} period="week" />
-              </div>
+              <CostContributorsCard
+                laborCost={projectData?.laborCost || 0}
+                haulOffCost={projectData?.haulOffCost || 0}
+                materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                customCosts={projectData?.customCosts || []}
+                onAddCost={onAddCost}
+                onDeleteCost={onDeleteCost}
+              />
 
               <ProjectEquipmentCard
                 key={equipmentRefreshKey}

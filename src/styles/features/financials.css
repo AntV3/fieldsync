@@ -254,22 +254,6 @@
 }
 
 /* ============================================
-   Cost & Disposal Side-by-Side Row
-   ============================================ */
-.cost-disposal-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.875rem;
-  margin-bottom: 1rem;
-}
-
-@media (max-width: 900px) {
-  .cost-disposal-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ============================================
    Cost Contributors Card
    ============================================ */
 .cost-contributors-card {

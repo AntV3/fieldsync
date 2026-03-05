@@ -1381,7 +1381,13 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </div>
               )}
 
-              {/* Row 5: Photo Timeline + Punch List */}
+              {/* Row 5: Disposal Loads */}
+              <DisposalSummary
+                project={selectedProject}
+                period="week"
+              />
+
+              {/* Row 6: Photo Timeline + Punch List */}
               <div className="overview-two-col">
                 <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading photos...</div>}>
                   <PhotoTimeline
@@ -1400,7 +1406,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </Suspense>
               </div>
 
-              {/* Row 6: Quick Nav + Exports */}
+              {/* Row 7: Quick Nav + Exports */}
               <div className="overview-bottom-strip">
                 <div className="overview-quick-actions">
                   <button className="overview-action-btn" onClick={() => setActiveProjectTab('reports')}>
@@ -1548,23 +1554,16 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                         />
                       </div>
 
-                      {/* Cost Contributors & Disposal Summary Side-by-Side */}
-                      <div className="cost-disposal-row">
-                        <CostContributorsCard
-                          laborCost={projectData?.laborCost || 0}
-                          haulOffCost={projectData?.haulOffCost || 0}
-                          materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
-                          projectEquipmentCost={projectData?.projectEquipmentCost || 0}
-                          customCosts={projectData?.customCosts || []}
-                          onAddCost={handleAddCost}
-                          onDeleteCost={handleDeleteCost}
-                        />
-
-                        <DisposalSummary
-                          project={selectedProject}
-                          period="week"
-                        />
-                      </div>
+                      {/* Cost Contributors */}
+                      <CostContributorsCard
+                        laborCost={projectData?.laborCost || 0}
+                        haulOffCost={projectData?.haulOffCost || 0}
+                        materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                        projectEquipmentCost={projectData?.projectEquipmentCost || 0}
+                        customCosts={projectData?.customCosts || []}
+                        onAddCost={handleAddCost}
+                        onDeleteCost={handleDeleteCost}
+                      />
 
                       {/* Equipment Tracking */}
                       <ProjectEquipmentCard
