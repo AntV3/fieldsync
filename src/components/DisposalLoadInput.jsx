@@ -92,7 +92,9 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Disposal load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error adding load'
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error adding load'
       onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
@@ -107,7 +109,9 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Load removed', 'success')
     } catch (err) {
       console.error('Error deleting disposal load:', err)
-      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error removing load'
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error removing load'
       onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
@@ -122,7 +126,9 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error adding load'
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error adding load'
       onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
@@ -136,7 +142,9 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
-      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error updating load'
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error updating load'
       onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
@@ -155,7 +163,9 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
-      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN' : 'Error updating load'
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error updating load'
       onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
