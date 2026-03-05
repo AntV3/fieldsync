@@ -27,6 +27,7 @@ const PricingManager = lazy(() => import('./components/PricingManager'))
 const PublicView = lazy(() => import('./components/PublicView'))
 const SignaturePage = lazy(() => import('./components/SignaturePage'))
 const MembershipManager = lazy(() => import('./components/MembershipManager'))
+const AccountSettings = lazy(() => import('./components/AccountSettings'))
 const LandingPage = lazy(() => import('./components/landing/LandingPage'))
 
 // Loading fallback component
@@ -242,6 +243,7 @@ export default function App() {
                 {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
               </button>
             )}
+            <button className={`nav-tab ${location.pathname === '/account' ? 'active' : ''}`} onClick={() => navigate('/account')}>Account</button>
           </div>
           <div className="nav-user nav-user-desktop">
             <ThemeToggle compact />
@@ -329,6 +331,7 @@ export default function App() {
                     {pendingRequestCount > 0 && <span className="mobile-nav-badge">{pendingRequestCount}</span>}
                   </button>
                 )}
+                <button className={`mobile-nav-item ${location.pathname === '/account' ? 'active' : ''}`} onClick={() => { navigate('/account'); setShowMobileMenu(false) }}>Account</button>
               </div>
             </div>
             <div className="mobile-drawer-section">
@@ -421,6 +424,9 @@ export default function App() {
               ? officeLayout(<MembershipManager company={company} user={user} onShowToast={showToast} />)
               : <Navigate to="/dashboard" replace />
           )} />
+          <Route path="/account" element={requireAuth(officeLayout(
+            <AccountSettings user={user} company={company} onShowToast={showToast} />
+          ))} />
 
           {/* Root — Landing page for new visitors, fast-track for returning users */}
           <Route path="/" element={

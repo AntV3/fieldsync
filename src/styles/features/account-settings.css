@@ -1,0 +1,118 @@
+/* ============================================
+   Account Settings Page
+   ============================================ */
+
+.account-settings {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.account-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.account-settings-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.account-company-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+}
+
+.account-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.account-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.account-section-title h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.account-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.account-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.account-form input {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.account-form input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-focus);
+  outline: none;
+}
+
+.account-form input.input-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.account-form .form-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.account-form .btn {
+  align-self: flex-start;
+  margin-top: var(--space-xs);
+}
+
+@media (max-width: 640px) {
+  .account-settings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .account-section {
+    padding: var(--space-md);
+  }
+}
