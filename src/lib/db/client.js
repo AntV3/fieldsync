@@ -28,6 +28,7 @@ import {
 } from '../offlineManager'
 import { supabase, isSupabaseConfigured } from '../supabaseClient'
 import { observe } from '../observability'
+import { sanitize, validate } from '../sanitize'
 import {
   getFieldSession,
   setFieldSession,
@@ -164,7 +165,6 @@ export const escapePostgrestFilter = (input) => {
 }
 
 // Sanitize an object of form data before sending to the database
-import { sanitize, validate } from '../sanitize'
 export const sanitizeFormData = (data) => sanitize.object(data)
 export { sanitize, validate }
 
