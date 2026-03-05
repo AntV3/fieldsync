@@ -55,6 +55,17 @@ export default memo(function ProgressBillingCard({
 
   useEffect(() => {
     loadDrawRequests()
+
+    // Subscribe to real-time draw request changes
+    const subscription = drawRequestOps.subscribeToDrawRequests?.(project?.id, () => {
+      loadDrawRequests()
+    })
+
+    return () => {
+      if (subscription) {
+        drawRequestOps.unsubscribe?.(subscription)
+      }
+    }
   }, [loadDrawRequests])
 
   // Calculate billing totals from draw requests

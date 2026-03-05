@@ -347,5 +347,35 @@ export const drawRequestOps = {
    */
   calculateAmountFromPercent(percent, scheduledValue) {
     return Math.round((percent / 10000) * scheduledValue)
+  },
+
+  // ----------------------------------------
+  // Real-time Subscriptions
+  // ----------------------------------------
+
+  /**
+   * Subscribe to draw request changes for a project
+   * Fires when draw requests are created, updated (status changes), or deleted
+   */
+  subscribeToDrawRequests(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`draw_requests:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'draw_requests', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  /**
+   * Unsubscribe from a channel
+   */
+  unsubscribe(subscription) {
+    if (subscription && isSupabaseConfigured) {
+      supabase.removeChannel(subscription)
+    }
   }
 }

@@ -51,9 +51,19 @@ export default memo(function ProjectEquipmentCard({
     }
   }, [project?.id]) // onShowToast is stable (memoized in App.jsx)
 
-  // Load project equipment when project changes
+  // Load project equipment when project changes + subscribe to real-time updates
   useEffect(() => {
     loadEquipment()
+
+    const subscription = equipmentOps.subscribeToProjectEquipment?.(project?.id, () => {
+      loadEquipment()
+    })
+
+    return () => {
+      if (subscription) {
+        equipmentOps.unsubscribe?.(subscription)
+      }
+    }
   }, [loadEquipment])
 
   const handleMarkReturned = useCallback(async (equipmentItem) => {

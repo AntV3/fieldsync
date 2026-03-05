@@ -1586,6 +1586,36 @@ export const corOps = {
     return null
   },
 
+  // Subscribe to invoice changes for a project
+  // Fires when invoices are created, updated (status changes), or deleted
+  subscribeToInvoices(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`invoices:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'invoices', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to project cost changes for a project
+  // Fires when custom costs are added, updated, or deleted
+  subscribeToProjectCosts(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project_costs:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'project_costs', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
   // Subscribe to punch list item changes for a project
   // Fires when items are created, updated (status changes), or deleted
   subscribeToPunchList(projectId, callback) {
