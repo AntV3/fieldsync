@@ -138,6 +138,8 @@ export const TRANSLATIONS = {
     enterNameToSubmit: 'Enter name to submit',
     done: 'Done',
     skipSignature: 'Skip signature for now',
+    skipClientSignature: 'Skip client signature for now',
+    foremanSignatureRequired: 'Foreman signature required',
 
     // CrewHoursStep inline strings
     total: 'total',
@@ -315,6 +317,8 @@ export const TRANSLATIONS = {
     enterNameToSubmit: 'Ingrese nombre',
     done: 'Listo',
     skipSignature: 'Saltar firma por ahora',
+    skipClientSignature: 'Saltar firma del cliente por ahora',
+    foremanSignatureRequired: 'Firma del capataz requerida',
 
     // CrewHoursStep inline strings
     total: 'total',

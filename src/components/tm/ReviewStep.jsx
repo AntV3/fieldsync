@@ -131,6 +131,12 @@ export default function ReviewStep({
           <p className="tm-success-subtitle">
             {t('ticketSavedReady')}
           </p>
+          {!foremanSigned && (
+            <div className="tm-foreman-required-notice">
+              <AlertCircle size={18} />
+              <span>{t('foremanSignatureRequired')}</span>
+            </div>
+          )}
         </div>
 
         <div className="tm-success-summary">
