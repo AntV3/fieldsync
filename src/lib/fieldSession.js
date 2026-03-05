@@ -81,6 +81,13 @@ export const getFieldClient = () => {
         headers: {
           'x-field-session': session.token
         }
+      },
+      realtime: {
+        params: { eventsPerSecond: 0 }
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
       }
     })
     fieldClient._sessionToken = session.token
