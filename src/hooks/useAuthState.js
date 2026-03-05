@@ -120,7 +120,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
 
       // Navigate to dashboard if on login/root (preserve existing office routes)
       const isPublicRoute = locationPathname.startsWith('/view/') || locationPathname.startsWith('/sign/')
-      const isOfficeRoute = ['/dashboard', '/projects/new', '/pricing', '/branding', '/team'].includes(locationPathname)
+      const isOfficeRoute = ['/dashboard', '/projects/new', '/pricing', '/branding', '/team', '/account'].includes(locationPathname)
       if (!isPublicRoute && !isOfficeRoute && locationPathname !== '/field') {
         navigate('/dashboard', { replace: true })
       }
