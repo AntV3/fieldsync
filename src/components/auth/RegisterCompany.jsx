@@ -11,10 +11,29 @@ export default function RegisterCompany({ onShowToast }) {
   const [loading, setLoading] = useState(false)
   const [registerStep, setRegisterStep] = useState(1)
   const [registerCompanyName, setRegisterCompanyName] = useState('')
+  const [registerPhone, setRegisterPhone] = useState('')
+  const [registerTrade, setRegisterTrade] = useState('')
   const [registerName, setRegisterName] = useState('')
   const [registerEmail, setRegisterEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
   const [createdCompany, setCreatedCompany] = useState(null)
+
+  const TRADE_OPTIONS = [
+    'General Contracting',
+    'Demolition',
+    'Abatement',
+    'Electrical',
+    'Plumbing',
+    'HVAC',
+    'Concrete',
+    'Structural Steel',
+    'Roofing',
+    'Painting',
+    'Excavation / Earthwork',
+    'Landscaping',
+    'Fire Protection',
+    'Other'
+  ]
 
   const handleRegisterCompany = async () => {
     if (loading) return
@@ -85,7 +104,9 @@ export default function RegisterCompany({ onShowToast }) {
         p_user_name: registerName.trim(),
         p_company_name: registerCompanyName.trim(),
         p_company_code: companyCodeGenerated,
-        p_office_code: officeCodeGenerated
+        p_office_code: officeCodeGenerated,
+        p_phone: registerPhone.trim() || null,
+        p_trade: registerTrade || null
       })
 
       if (!rpcError && rpcResult) {
@@ -109,6 +130,8 @@ export default function RegisterCompany({ onShowToast }) {
           name: registerCompanyName.trim(),
           code: companyCodeGenerated,
           office_code: officeCodeGenerated,
+          phone: registerPhone.trim() || null,
+          trade: registerTrade || null,
           subscription_tier: 'free',
           owner_user_id: userId
         })
@@ -239,16 +262,27 @@ export default function RegisterCompany({ onShowToast }) {
               onChange={(e) => setRegisterCompanyName(e.target.value)}
               placeholder="Company Name"
               autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && registerCompanyName.trim()) {
-                  setRegisterStep(2)
-                }
-              }}
             />
+            <input
+              type="tel"
+              value={registerPhone}
+              onChange={(e) => setRegisterPhone(e.target.value)}
+              placeholder="Phone Number"
+            />
+            <select
+              value={registerTrade}
+              onChange={(e) => setRegisterTrade(e.target.value)}
+              className={!registerTrade ? 'select-placeholder' : ''}
+            >
+              <option value="">Select Trade / Specialty</option>
+              {TRADE_OPTIONS.map(trade => (
+                <option key={trade} value={trade}>{trade}</option>
+              ))}
+            </select>
             <button
               className="entry-login-btn"
               onClick={() => setRegisterStep(2)}
-              disabled={!registerCompanyName.trim()}
+              disabled={!registerCompanyName.trim() || !registerTrade}
             >
               Continue
             </button>
