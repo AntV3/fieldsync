@@ -328,7 +328,7 @@
 .hero-metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.875rem;
+  gap: 1rem;
   overflow: hidden;
 }
 
@@ -390,10 +390,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
   background: var(--blue-subtle);
+  transition: box-shadow var(--transition-normal);
 }
 
 .hero-metric-label {
@@ -420,9 +421,16 @@
   letter-spacing: var(--letter-spacing-tight);
 }
 
+.hero-metric-value--prominent {
+  font-size: 1.65rem;
+}
+
 @media (max-width: 480px) {
   .hero-metric-value {
     font-size: 1.1rem;
+  }
+  .hero-metric-value--prominent {
+    font-size: 1.2rem;
   }
 }
 
@@ -444,6 +452,17 @@
   font-weight: 500;
 }
 
+.hero-metric-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+  font-size: 0.675rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  width: fit-content;
+}
+
 .hero-metric-progress {
   margin-top: 0.25rem;
 }
@@ -453,6 +472,39 @@
   font-size: 0.65rem;
   color: var(--text-muted);
   margin-top: 0.2rem;
+}
+
+/* Decorative sparkline watermark */
+.hero-metric-sparkline {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 60px;
+  height: 24px;
+  pointer-events: none;
+  opacity: 0.7;
+  transition: opacity var(--transition-normal);
+}
+
+.hero-metric-card:hover .hero-metric-sparkline {
+  opacity: 1;
+}
+
+/* Green pulse indicator for positive profit */
+.hero-metric-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  margin-left: auto;
+  box-shadow: 0 0 6px var(--accent-green);
+  animation: hero-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hero-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--accent-green); }
+  50% { opacity: 0.5; box-shadow: 0 0 12px var(--accent-green); }
 }
 
 /* Financials Tab Split Layout */

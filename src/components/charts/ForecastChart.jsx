@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Legend
+  Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 import { TrendingUp, TrendingDown, Target, AlertTriangle, Clock, Zap } from 'lucide-react'
 import { chartColors, formatChartCurrency, tooltipStyle, animationConfig } from './chartConfig'
@@ -18,7 +18,10 @@ export default function ForecastChart({ forecast, contractValue, className = '' 
   if (!forecast) {
     return (
       <div className={`forecast-chart ${className}`}>
-        <div className="chart-empty-state">
+        <div className="chart-empty-state forecast-chart__empty-state">
+          <div className="forecast-chart__empty-icon">
+            <Target size={36} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+          </div>
           <p>Forecasting Unavailable</p>
           <span>Need more project data to generate forecasts</span>
         </div>
@@ -35,7 +38,11 @@ export default function ForecastChart({ forecast, contractValue, className = '' 
           <h3>Predictive Forecast</h3>
           <ConfidenceBadge level={confidence} />
         </div>
-        <div className="forecast-chart__tabs">
+        <div className="forecast-chart__tabs forecast-chart__tabs--segmented">
+          <div
+            className="forecast-chart__tabs-indicator"
+            style={{ transform: activeView === 'cost' ? 'translateX(0)' : 'translateX(100%)' }}
+          />
           <button
             className={`forecast-chart__tab ${activeView === 'cost' ? 'forecast-chart__tab--active' : ''}`}
             onClick={() => setActiveView('cost')}
@@ -109,13 +116,13 @@ function CostForecastView({ cost, contractValue }) {
       {/* Forecast methods comparison */}
       <div className="forecast-chart__methods">
         <span className="forecast-chart__methods-label">Forecast Methods:</span>
-        <span className="forecast-chart__method">CPI: {formatChartCurrency(cost.methods.cpiMethod)}</span>
-        <span className="forecast-chart__method">Trend: {formatChartCurrency(cost.methods.trendMethod)}</span>
-        <span className="forecast-chart__method">Composite: {formatChartCurrency(cost.methods.compositeMethod)}</span>
+        <span className="forecast-chart__method forecast-chart__method-pill">CPI: {formatChartCurrency(cost.methods.cpiMethod)}</span>
+        <span className="forecast-chart__method forecast-chart__method-pill">Trend: {formatChartCurrency(cost.methods.trendMethod)}</span>
+        <span className="forecast-chart__method forecast-chart__method-pill">Composite: {formatChartCurrency(cost.methods.compositeMethod)}</span>
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={280}>
         <AreaChart data={cost.weeklyForecast} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="forecastGradient" x1="0" y1="0" x2="0" y2="1">
@@ -203,7 +210,7 @@ function ScheduleForecastView({ schedule }) {
         />
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={280}>
         <LineChart data={schedule.weeklyProgress} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} />
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: chartColors.text }} tickLine={false} />
@@ -238,7 +245,8 @@ function ForecastMetric({ label, value, comparison, comparisonLabel, status = 'n
   }
 
   return (
-    <div className="forecast-metric">
+    <div className={`forecast-metric forecast-metric--${status}`}>
+      <div className="forecast-metric__accent" style={{ backgroundColor: statusColors[status] }} />
       <div className="forecast-metric__header">
         <Icon size={14} style={{ color: statusColors[status] }} />
         <span className="forecast-metric__label">{label}</span>
@@ -265,6 +273,10 @@ function ConfidenceBadge({ level }) {
       className="confidence-badge"
       style={{ color: colors[level], borderColor: colors[level] }}
     >
+      <span
+        className="confidence-badge__dot"
+        style={{ backgroundColor: colors[level] }}
+      />
       {level === 'high' ? 'High' : level === 'medium' ? 'Medium' : 'Low'} Confidence
     </span>
   )
@@ -285,13 +297,16 @@ function InsightCard({ insight }) {
   }
 
   const Icon = iconMap[insight.type] || Target
+  const color = colorMap[insight.type]
 
   return (
-    <div className={`forecast-insight forecast-insight--${insight.type}`}>
-      <Icon size={14} style={{ color: colorMap[insight.type], flexShrink: 0 }} />
-      <div>
-        <strong>{insight.title}</strong>
-        <span>{insight.description}</span>
+    <div className={`forecast-insight forecast-insight--${insight.type}`} style={{ borderLeftColor: color }}>
+      <div className="forecast-insight__icon-wrap" style={{ backgroundColor: color }}>
+        <Icon size={14} style={{ color: '#fff', flexShrink: 0 }} />
+      </div>
+      <div className="forecast-insight__body">
+        <strong className="forecast-insight__title">{insight.title}</strong>
+        <span className="forecast-insight__desc">{insight.description}</span>
         {insight.action && <span className="forecast-insight__action">{insight.action}</span>}
       </div>
     </div>

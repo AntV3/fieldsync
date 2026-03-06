@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { BarChart3, GitBranch, Banknote, Users, Award, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react'
 import { ForecastChart, CashFlowChart, ResourceCapacityChart } from '../../charts'
 import { BenchmarkComparison, useCompanyAverages, INDUSTRY_BENCHMARKS } from '../BenchmarkComparison'
 import { ProjectionsPanel } from '../ProjectionCard'
@@ -141,62 +142,172 @@ export default function AnalyticsTab({
 
   return (
     <div className="pv-tab-panel analytics-tab animate-fade-in">
-      {/* 1. Project Health Overview — the big picture */}
-      <ProjectHealthOverview
-        forecast={forecast}
-        cashFlow={cashFlow}
-        resourceData={resourceData}
-        progress={progress}
-        revisedContractValue={revisedContractValue}
-        projectData={projectData}
-        changeOrderValue={changeOrderValue}
-        selectedProject={selectedProject}
-      />
-
-      {/* 2. Projections summary */}
-      {projections && (
-        <ProjectionsPanel {...projections} />
-      )}
-
-      {/* 3. Predictive Forecast */}
-      <ForecastChart
-        forecast={forecast}
-        contractValue={revisedContractValue}
-      />
-
-      {/* 4. Scenarios */}
-      {scenarios.length > 0 && (
-        <div className="analytics-scenarios">
-          <h4 className="analytics-scenarios__title">What-If Scenarios</h4>
-          <div className="analytics-scenarios__grid">
-            {scenarios.map((scenario, i) => (
-              <div
-                key={i}
-                className={`analytics-scenario ${scenario.meetsDeadline && scenario.meetsMargin ? 'analytics-scenario--good' : scenario.meetsDeadline || scenario.meetsMargin ? 'analytics-scenario--partial' : 'analytics-scenario--bad'}`}
-              >
-                <div className="analytics-scenario__label">{scenario.label}</div>
-                <div className="analytics-scenario__values">
-                  <span>Cost: ${Math.round(scenario.projectedCost / 1000)}K</span>
-                  <span>Margin: {scenario.margin}%</span>
-                  <span>{scenario.slippage > 0 ? `+${scenario.slippage}d late` : scenario.slippage < 0 ? `${Math.abs(scenario.slippage)}d early` : 'On time'}</span>
+      {/* Executive Summary Banner */}
+      {forecast && (
+        <div className="analytics-executive-banner">
+          <div className="analytics-executive-banner__inner">
+            <h3 className="analytics-executive-banner__title">Executive Summary</h3>
+            <div className="analytics-executive-banner__items">
+              {forecast.cost && (
+                <div className="analytics-executive-banner__item">
+                  {forecast.cost.bestEstimate <= (revisedContractValue || 0)
+                    ? <TrendingDown size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--positive" />
+                    : <TrendingUp size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--negative" />
+                  }
+                  <span>Projected cost: <strong>${Math.round((forecast.cost.bestEstimate || 0) / 1000)}K</strong></span>
                 </div>
-              </div>
-            ))}
+              )}
+              {forecast.schedule && (
+                <div className="analytics-executive-banner__item">
+                  <Clock size={16} className="analytics-executive-banner__icon" />
+                  <span>
+                    {forecast.schedule.slippage > 0
+                      ? <>{forecast.schedule.slippage} days behind schedule</>
+                      : forecast.schedule.slippage < 0
+                        ? <>{Math.abs(forecast.schedule.slippage)} days ahead of schedule</>
+                        : <>On schedule</>
+                    }
+                  </span>
+                </div>
+              )}
+              {projections?.estimatedFinalMargin != null && (
+                <div className="analytics-executive-banner__item">
+                  {projections.estimatedFinalMargin >= 0
+                    ? <CheckCircle2 size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--positive" />
+                    : <AlertTriangle size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--negative" />
+                  }
+                  <span>Est. margin: <strong>{projections.estimatedFinalMargin.toFixed(1)}%</strong></span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
+      {/* 1. Project Health Overview — the big picture */}
+      <div className="analytics-section">
+        <ProjectHealthOverview
+          forecast={forecast}
+          cashFlow={cashFlow}
+          resourceData={resourceData}
+          progress={progress}
+          revisedContractValue={revisedContractValue}
+          projectData={projectData}
+          changeOrderValue={changeOrderValue}
+          selectedProject={selectedProject}
+        />
+      </div>
+
+      {/* 2. Projections summary */}
+      {projections && (
+        <div className="analytics-section">
+          <ProjectionsPanel {...projections} />
+        </div>
+      )}
+
+      <hr className="analytics-divider" />
+
+      {/* 3. Predictive Forecast */}
+      <div className="analytics-section">
+        <div className="analytics-section__header">
+          <BarChart3 size={20} className="analytics-section__header-icon" />
+          <h3 className="analytics-section__title">Predictive Forecast</h3>
+        </div>
+        <ForecastChart
+          forecast={forecast}
+          contractValue={revisedContractValue}
+        />
+      </div>
+
+      <hr className="analytics-divider" />
+
+      {/* 4. Scenarios */}
+      {scenarios.length > 0 && (
+        <>
+          <div className="analytics-section">
+            <div className="analytics-section__header">
+              <GitBranch size={20} className="analytics-section__header-icon" />
+              <h3 className="analytics-section__title">What-If Scenarios</h3>
+            </div>
+            <div className="analytics-scenarios">
+              <div className="analytics-scenarios__grid">
+                {scenarios.map((scenario, i) => {
+                  const isGood = scenario.meetsDeadline && scenario.meetsMargin
+                  const isPartial = scenario.meetsDeadline || scenario.meetsMargin
+                  const statusClass = isGood ? 'analytics-scenario--good' : isPartial ? 'analytics-scenario--partial' : 'analytics-scenario--bad'
+
+                  return (
+                    <div key={i} className={`analytics-scenario ${statusClass}`}>
+                      <div className="analytics-scenario__header">
+                        <span className="analytics-scenario__status-icon">
+                          {isGood
+                            ? <CheckCircle2 size={18} className="analytics-scenario__icon analytics-scenario__icon--good" />
+                            : isPartial
+                              ? <AlertTriangle size={18} className="analytics-scenario__icon analytics-scenario__icon--partial" />
+                              : <XCircle size={18} className="analytics-scenario__icon analytics-scenario__icon--bad" />
+                          }
+                        </span>
+                        <span className="analytics-scenario__label">{scenario.label}</span>
+                      </div>
+                      <div className="analytics-scenario__values">
+                        <div className="analytics-scenario__metric">
+                          <span className="analytics-scenario__metric-label">Cost</span>
+                          <span className="analytics-scenario__metric-value">${Math.round(scenario.projectedCost / 1000)}K</span>
+                        </div>
+                        <div className="analytics-scenario__metric">
+                          <span className="analytics-scenario__metric-label">Margin</span>
+                          <span className="analytics-scenario__metric-value">{scenario.margin}%</span>
+                        </div>
+                        <div className="analytics-scenario__metric">
+                          <span className="analytics-scenario__metric-label">Schedule</span>
+                          <span className="analytics-scenario__metric-value">
+                            {scenario.slippage > 0 ? `+${scenario.slippage}d late` : scenario.slippage < 0 ? `${Math.abs(scenario.slippage)}d early` : 'On time'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+          <hr className="analytics-divider" />
+        </>
+      )}
+
       {/* 5. Cash Flow */}
-      <CashFlowChart cashFlow={cashFlow} />
+      <div className="analytics-section">
+        <div className="analytics-section__header">
+          <Banknote size={20} className="analytics-section__header-icon" />
+          <h3 className="analytics-section__title">Cash Flow</h3>
+        </div>
+        <CashFlowChart cashFlow={cashFlow} />
+      </div>
+
+      <hr className="analytics-divider" />
 
       {/* 6. Resource Capacity — full width now */}
-      <ResourceCapacityChart resourceData={resourceData} />
+      <div className="analytics-section">
+        <div className="analytics-section__header">
+          <Users size={20} className="analytics-section__header-icon" />
+          <h3 className="analytics-section__title">Resource Capacity</h3>
+        </div>
+        <ResourceCapacityChart resourceData={resourceData} />
+      </div>
+
+      <hr className="analytics-divider" />
 
       {/* 7. Benchmarks */}
-      <BenchmarkComparison
-        projectMetrics={benchmarkMetrics}
-        companyAverages={companyAverages}
-      />
+      <div className="analytics-section">
+        <div className="analytics-section__header">
+          <Award size={20} className="analytics-section__header-icon" />
+          <h3 className="analytics-section__title">Industry Benchmarks</h3>
+        </div>
+        <BenchmarkComparison
+          projectMetrics={benchmarkMetrics}
+          companyAverages={companyAverages}
+        />
+      </div>
     </div>
   )
 }
