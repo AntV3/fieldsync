@@ -1300,7 +1300,7 @@
   margin-bottom: 1rem;
   box-shadow: var(--shadow-card);
   animation: chartFadeIn 0.4s ease;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .health-overview::before {
