@@ -1,21 +1,23 @@
 import { useMemo } from 'react'
-import { ForecastChart, CashFlowChart, ResourceCapacityChart, QualityMetricsChart } from '../../charts'
+import { ForecastChart, CashFlowChart, ResourceCapacityChart } from '../../charts'
 import { BenchmarkComparison, useCompanyAverages, INDUSTRY_BENCHMARKS } from '../BenchmarkComparison'
 import { ProjectionsPanel } from '../ProjectionCard'
+import ProjectHealthOverview from '../ProjectHealthOverview'
 import { generateProjectForecast, calculateScenarios } from '../../../lib/forecastCalculations'
 import { generateCashFlowProjection } from '../../../lib/cashFlowCalculations'
 import { analyzeResourceCapacity } from '../../../lib/resourceCalculations'
-import { calculateQualityMetrics } from '../../../lib/qualityCalculations'
 
 /**
  * AnalyticsTab
  *
- * Advanced analytics dashboard combining:
- * - Predictive Forecasting
- * - Cash Flow Projections
- * - Resource Capacity Planning
- * - Quality Metrics
- * - Industry Benchmarking
+ * Project analytics dashboard organized around project health:
+ * 1. Health Overview — at-a-glance status of budget, schedule, cash flow, resources
+ * 2. Financial Projections — where the project is heading cost/margin-wise
+ * 3. Predictive Forecast — detailed cost & schedule forecast with charts
+ * 4. What-If Scenarios — scenario modeling
+ * 5. Cash Flow — inflow/outflow projections
+ * 6. Resource Capacity — crew allocation and demand
+ * 7. Benchmarks — comparison to industry standards
  */
 export default function AnalyticsTab({
   selectedProject,
@@ -105,29 +107,6 @@ export default function AnalyticsTab({
     })
   }, [selectedProject, allProjects, crewCheckins, progress])
 
-  // ---- Quality Metrics ----
-  const quality = useMemo(() => {
-    if (!punchListItems || punchListItems.length === 0) {
-      // Return basic quality metrics even without punch list data
-      if (areas.length === 0) return null
-      return calculateQualityMetrics({
-        punchListItems: [],
-        areas,
-        dailyReports,
-        contractValue: revisedContractValue || 0,
-        totalCosts: projectData?.allCostsTotal || 0,
-      })
-    }
-
-    return calculateQualityMetrics({
-      punchListItems,
-      areas,
-      dailyReports,
-      contractValue: revisedContractValue || 0,
-      totalCosts: projectData?.allCostsTotal || 0,
-    })
-  }, [punchListItems, areas, dailyReports, revisedContractValue, projectData])
-
   // ---- Benchmarks ----
   const companyAverages = useCompanyAverages(allProjects)
   const benchmarkMetrics = useMemo(() => {
@@ -162,18 +141,30 @@ export default function AnalyticsTab({
 
   return (
     <div className="pv-tab-panel analytics-tab animate-fade-in">
-      {/* Projections summary */}
+      {/* 1. Project Health Overview — the big picture */}
+      <ProjectHealthOverview
+        forecast={forecast}
+        cashFlow={cashFlow}
+        resourceData={resourceData}
+        progress={progress}
+        revisedContractValue={revisedContractValue}
+        projectData={projectData}
+        changeOrderValue={changeOrderValue}
+        selectedProject={selectedProject}
+      />
+
+      {/* 2. Projections summary */}
       {projections && (
         <ProjectionsPanel {...projections} />
       )}
 
-      {/* Predictive Forecast */}
+      {/* 3. Predictive Forecast */}
       <ForecastChart
         forecast={forecast}
         contractValue={revisedContractValue}
       />
 
-      {/* Scenarios */}
+      {/* 4. Scenarios */}
       {scenarios.length > 0 && (
         <div className="analytics-scenarios">
           <h4 className="analytics-scenarios__title">What-If Scenarios</h4>
@@ -195,16 +186,13 @@ export default function AnalyticsTab({
         </div>
       )}
 
-      {/* Cash Flow */}
+      {/* 5. Cash Flow */}
       <CashFlowChart cashFlow={cashFlow} />
 
-      {/* Two-column layout for Resource + Quality */}
-      <div className="analytics-split">
-        <ResourceCapacityChart resourceData={resourceData} />
-        <QualityMetricsChart quality={quality} />
-      </div>
+      {/* 6. Resource Capacity — full width now */}
+      <ResourceCapacityChart resourceData={resourceData} />
 
-      {/* Benchmarks */}
+      {/* 7. Benchmarks */}
       <BenchmarkComparison
         projectMetrics={benchmarkMetrics}
         companyAverages={companyAverages}
