@@ -35,7 +35,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     crewCount: 0,
     tmTicketsToday: 0,
     dailyReportDone: false,
-    disposalLoadsToday: 0
+    disposalLoadsToday: 0,
+    trucksUsedToday: 0
   })
 
   // Theme
@@ -68,15 +69,19 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       const tickets = await db.getTMTickets?.(project.id) || []
       const todayTickets = tickets.filter(t => t.work_date === today)
 
-      // Load disposal loads for today
-      const disposal = await db.getDisposalLoads?.(project.id, today) || []
+      // Load disposal loads and truck count for today
+      const [disposal, truckData] = await Promise.all([
+        db.getDisposalLoads?.(project.id, today) || [],
+        db.getTruckCount?.(project.id, today)
+      ])
 
       setTodayStatus({
         crewCheckedIn,
         crewCount: crewWorkers.length,
         tmTicketsToday: todayTickets.length,
         dailyReportDone: false, // We'll track this separately
-        disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
+        disposalLoadsToday: (disposal || []).reduce((sum, d) => sum + (d.load_count || 1), 0),
+        trucksUsedToday: truckData?.truck_count || 0
       })
     } catch (error) {
       console.error('Error loading today status:', error)
@@ -124,6 +129,9 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
     const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedRefresh)
     if (haulSub) subs.push(haulSub)
+
+    const truckSub = db.subscribeToTruckCounts?.(project.id, debouncedRefresh)
+    if (truckSub) subs.push(truckSub)
 
     const reportSub = db.subscribeToDailyReports?.(project.id, debouncedRefresh)
     if (reportSub) subs.push(reportSub)

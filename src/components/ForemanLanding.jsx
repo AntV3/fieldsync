@@ -171,12 +171,18 @@ export default function ForemanLanding({
           badge: areasRemaining > 0 ? `${areasRemaining} left` : null,
           status: `${progress}% complete`
         }
-      case 'disposal':
+      case 'disposal': {
+        const loadsToday = todayStatus.disposalLoadsToday
+        const trucksToday = todayStatus.trucksUsedToday || 0
+        const parts = []
+        if (loadsToday > 0) parts.push(`${loadsToday} loads`)
+        if (trucksToday > 0) parts.push(`${trucksToday} truck${trucksToday !== 1 ? 's' : ''}`)
         return {
           done: false,
-          badge: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} today` : null,
-          status: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} logged` : 'Log loads'
+          badge: parts.length > 0 ? parts.join(', ') : null,
+          status: parts.length > 0 ? parts.join(', ') : 'Log loads'
         }
+      }
       case 'punchlist':
         return {
           done: punchListOpenCount !== null && punchListOpenCount === 0,

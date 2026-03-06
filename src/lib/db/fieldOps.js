@@ -277,6 +277,100 @@ export const fieldOps = {
   },
 
   // ============================================
+  // Disposal Truck Counts
+  // ============================================
+
+  // Get truck count for a specific date
+  async getTruckCount(projectId, date) {
+    if (!isSupabaseConfigured) return null
+
+    const client = getClient()
+    if (!client) return null
+
+    const { data, error } = await client
+      .from('disposal_truck_counts')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('work_date', date)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Error fetching truck count:', error)
+      return null
+    }
+    return data
+  },
+
+  // Set truck count for a specific date (upsert)
+  async setTruckCount(projectId, date, truckCount) {
+    if (!isSupabaseConfigured) return null
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { data, error } = await client
+      .from('disposal_truck_counts')
+      .upsert({
+        project_id: projectId,
+        work_date: date,
+        truck_count: truckCount,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'project_id,work_date'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      observe.error('database', { message: error.message, operation: 'setTruckCount', project_id: projectId })
+      throw error
+    }
+    return data
+  },
+
+  // Get truck counts history for the last N days
+  async getTruckCountHistory(projectId, days = 14) {
+    if (!isSupabaseConfigured) return []
+
+    const client = getClient()
+    if (!client) return []
+
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+
+    const { data, error } = await client
+      .from('disposal_truck_counts')
+      .select('*')
+      .eq('project_id', projectId)
+      .gte('work_date', startDate.toISOString().split('T')[0])
+      .lte('work_date', endDate.toISOString().split('T')[0])
+      .order('work_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching truck count history:', error)
+      return []
+    }
+    return data || []
+  },
+
+  // Subscribe to truck count changes
+  subscribeToTruckCounts(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`disposal_truck_counts:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'disposal_truck_counts', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // ============================================
   // Crew Management
   // ============================================
 

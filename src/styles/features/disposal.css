@@ -379,6 +379,37 @@
   border-radius: var(--radius-sm);
 }
 
+/* Trucks Used Section (Foreman Input) */
+.disposal-trucks-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.disposal-trucks-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.disposal-trucks-header svg {
+  color: var(--accent-blue);
+}
+
+.disposal-trucks-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* ============================================
    Disposal Summary Card (Office/PM View)
    ============================================ */
@@ -436,12 +467,46 @@
   font-size: 0.85rem;
 }
 
+/* Totals Row */
+.disposal-totals-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
 /* Total Count */
 .disposal-total {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
-  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.disposal-total.trucks {
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--border-color);
+}
+
+.disposal-trucks-detail {
+  width: 100%;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.disposal-daily-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.disposal-daily-trucks {
+  font-size: 0.75rem;
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
 }
 
 .total-number {
