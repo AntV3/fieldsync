@@ -98,8 +98,13 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-      if (!authUser?.id) {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !authUser?.id) {
+        // If there's an auth error (e.g., invalid refresh token), clean up the stale session
+        if (authError) {
+          console.warn('[auth] Session invalid, clearing:', authError.message)
+          await supabase.auth.signOut({ scope: 'local' })
+        }
         setLoading(false)
         return
       }
@@ -198,10 +203,19 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
     if (!isSupabaseConfigured) return
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event) => {
+      async (event, session) => {
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           const path = locationPathname
           if (path.startsWith('/sign/') || path.startsWith('/view/')) return
+          setUser(null)
+          setCompany(null)
+          setUserCompanies([])
+          setAuthReady(false)
+          navigate('/login', { replace: true })
+        } else if (event === 'TOKEN_REFRESHED' && !session) {
+          // Refresh token was invalid/expired — force sign out
+          console.warn('[auth] Token refresh failed, signing out')
+          await auth.signOut()
           setUser(null)
           setCompany(null)
           setUserCompanies([])
