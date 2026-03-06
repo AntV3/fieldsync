@@ -459,6 +459,7 @@ export const tmOps = {
         .from('t_and_m_tickets')
         .update(updateData)
         .eq('id', ticketId)
+        .in('status', ['pending', 'foreman_signed', 'client_signed'])
         .select()
         .single()
       if (error) throw error
@@ -488,6 +489,7 @@ export const tmOps = {
           approved_at: null
         })
         .eq('id', ticketId)
+        .in('status', ['pending', 'foreman_signed', 'client_signed'])
         .select()
         .single()
       if (error) throw error

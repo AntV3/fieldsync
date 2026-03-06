@@ -251,8 +251,8 @@ export const corOps = {
   async addCORLaborItem(corId, laborItem) {
     if (isSupabaseConfigured) {
       // Calculate totals
-      const regularTotal = Math.round(laborItem.regular_hours * laborItem.regular_rate)
-      const overtimeTotal = Math.round(laborItem.overtime_hours * laborItem.overtime_rate)
+      const regularTotal = Math.round((parseFloat(laborItem.regular_hours) || 0) * (parseInt(laborItem.regular_rate) || 0))
+      const overtimeTotal = Math.round((parseFloat(laborItem.overtime_hours) || 0) * (parseInt(laborItem.overtime_rate) || 0))
       const total = regularTotal + overtimeTotal
 
       const { data, error } = await supabase
@@ -472,7 +472,7 @@ export const corOps = {
 
   async addCORSubcontractorItem(corId, subItem) {
     if (isSupabaseConfigured) {
-      const total = Math.round(subItem.quantity * subItem.unit_cost)
+      const total = Math.round((Number(subItem.quantity) || 1) * (Number(subItem.unit_cost) || 0))
 
       const { data, error } = await supabase
         .from('change_order_subcontractors')
@@ -544,8 +544,8 @@ export const corOps = {
       }
 
       const items = laborItems.map((item, index) => {
-        const regularTotal = Math.round(item.regular_hours * item.regular_rate)
-        const overtimeTotal = Math.round(item.overtime_hours * item.overtime_rate)
+        const regularTotal = Math.round((parseFloat(item.regular_hours) || 0) * (parseInt(item.regular_rate) || 0))
+        const overtimeTotal = Math.round((parseFloat(item.overtime_hours) || 0) * (parseInt(item.overtime_rate) || 0))
         return {
           change_order_id: corId,
           labor_class: item.labor_class,
@@ -1197,6 +1197,7 @@ export const corOps = {
           submitted_at: new Date().toISOString()
         })
         .eq('id', corId)
+        .in('status', ['draft', 'rejected'])
         .select()
         .single()
       if (error) throw error
@@ -1212,9 +1213,12 @@ export const corOps = {
         .update({
           status: 'approved',
           approved_by: userId,
-          approved_at: new Date().toISOString()
+          approved_at: new Date().toISOString(),
+          // Clear any previous rejection
+          rejection_reason: null
         })
         .eq('id', corId)
+        .in('status', ['pending_approval'])
         .select()
         .single()
       if (error) throw error
@@ -1229,9 +1233,14 @@ export const corOps = {
         .from('change_orders')
         .update({
           status: 'rejected',
-          rejection_reason: reason
+          rejection_reason: reason,
+          rejected_at: new Date().toISOString(),
+          // Clear any previous approval
+          approved_by: null,
+          approved_at: null
         })
         .eq('id', corId)
+        .in('status', ['pending_approval'])
         .select()
         .single()
       if (error) throw error
@@ -1244,8 +1253,12 @@ export const corOps = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
-        .update({ status: 'billed' })
+        .update({
+          status: 'billed',
+          billed_at: new Date().toISOString()
+        })
         .eq('id', corId)
+        .in('status', ['approved'])
         .select()
         .single()
       if (error) throw error
@@ -1258,8 +1271,12 @@ export const corOps = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
-        .update({ status: 'closed' })
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString()
+        })
         .eq('id', corId)
+        .in('status', ['billed'])
         .select()
         .single()
       if (error) throw error
