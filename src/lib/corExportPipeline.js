@@ -225,6 +225,12 @@ export function createSnapshot(cor, tickets, options = {}) {
       // Photos (frozen URLs)
       photos: ticket.photos || [],
 
+      // Foreman signature (frozen)
+      foreman_signature_data: ticket.foreman_signature_data,
+      foreman_signature_name: ticket.foreman_signature_name,
+      foreman_signature_title: ticket.foreman_signature_title,
+      foreman_signature_date: ticket.foreman_signature_date,
+
       // Client verification (frozen)
       client_signature_data: ticket.client_signature_data,
       client_signature_name: ticket.client_signature_name,
