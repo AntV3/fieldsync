@@ -1,4 +1,5 @@
 import { TrendingDown, AlertCircle, CheckCircle } from 'lucide-react'
+import { InfoTooltip } from './ui'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -39,6 +40,7 @@ export default function ProfitabilityCard({
     <div className={`profitability-card ${status}`}>
       <div className="profitability-header">
         <h3>Profitability</h3>
+        <InfoTooltip text="Current Margin = (Revenue − Costs) ÷ Revenue × 100. Projected Final = Contract Value − (Costs ÷ Progress %) extrapolated to completion" />
         <div className={`profitability-status ${status}`}>
           <StatusIcon size={14} />
           <span>{statusLabel}</span>
