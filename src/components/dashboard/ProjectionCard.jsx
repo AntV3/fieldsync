@@ -1,5 +1,6 @@
 import React from 'react'
 import { TrendingUp, Calendar, DollarSign, Target } from 'lucide-react'
+import { InfoTooltip } from '../ui'
 
 /**
  * ProjectionCard
@@ -19,6 +20,7 @@ export function ProjectionCard({
   comparison,
   status = 'neutral',
   icon: Icon = TrendingUp,
+  tooltip,
   className = ''
 }) {
   const statusColors = {
@@ -32,6 +34,7 @@ export function ProjectionCard({
       <div className="projection-card__header">
         <Icon className="projection-card__header-icon" size={16} />
         <span className="projection-card__title">{title}</span>
+        {tooltip && <InfoTooltip text={tooltip} size={12} />}
       </div>
       <div className="projection-card__value">{value}</div>
       {comparison && (
@@ -129,6 +132,7 @@ export function ProjectionsPanel({
             comparison={costComparison}
             status={costStatus}
             icon={DollarSign}
+            tooltip="Actual Costs ÷ Progress % extrapolated to 100% completion"
           />
         )}
 
@@ -139,6 +143,7 @@ export function ProjectionsPanel({
             comparison={marginComparison}
             status={marginStatus}
             icon={TrendingUp}
+            tooltip="(Contract Value − Estimated Final Cost) ÷ Contract Value × 100"
           />
         )}
 
@@ -149,6 +154,7 @@ export function ProjectionsPanel({
             comparison={plannedCompletionDate ? `planned: ${formatDate(plannedCompletionDate)}` : null}
             status="neutral"
             icon={Calendar}
+            tooltip="Projected end date based on current progress rate and remaining work"
           />
         )}
       </div>
