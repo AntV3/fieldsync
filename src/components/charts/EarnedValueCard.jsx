@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { TrendingUp, TrendingDown, DollarSign, Clock, Target, AlertTriangle } from 'lucide-react'
+import { InfoTooltip } from '../ui'
 import { formatCurrency } from '../../lib/utils'
 import { calculateEarnedValue, generateSCurveData } from '../../lib/earnedValueCalculations'
 import { chartColors, tooltipStyle, formatChartCurrency } from './chartConfig'
@@ -72,6 +73,7 @@ export default function EarnedValueCard({
           <div className="ev-index-header">
             <DollarSign size={14} />
             <span>CPI</span>
+            <InfoTooltip text="Cost Performance Index = Earned Value ÷ Actual Costs. Above 1.0 = under budget" size={12} />
           </div>
           <div className="ev-index-value" style={{ color: ev.cpi >= 0.95 ? '#10b981' : ev.cpi >= 0.85 ? '#f59e0b' : '#ef4444' }}>
             {ev.cpi.toFixed(2)}
@@ -83,6 +85,7 @@ export default function EarnedValueCard({
           <div className="ev-index-header">
             <Clock size={14} />
             <span>SPI</span>
+            <InfoTooltip text="Schedule Performance Index = Earned Value ÷ Planned Value. Above 1.0 = ahead of schedule" size={12} />
           </div>
           <div className="ev-index-value" style={{ color: ev.spi >= 0.95 ? '#10b981' : ev.spi >= 0.85 ? '#f59e0b' : '#ef4444' }}>
             {ev.spi.toFixed(2)}
@@ -94,6 +97,7 @@ export default function EarnedValueCard({
           <div className="ev-index-header">
             {ev.vac >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
             <span>EAC</span>
+            <InfoTooltip text="Estimate at Completion = Actual Costs + (Budget − Earned Value) ÷ CPI" size={12} />
           </div>
           <div className="ev-index-value">
             {formatCurrency(ev.eac)}
@@ -105,6 +109,7 @@ export default function EarnedValueCard({
           <div className="ev-index-header">
             <Target size={14} />
             <span>ETC</span>
+            <InfoTooltip text="Estimate to Complete = EAC − Actual Costs. Remaining budget needed to finish" size={12} />
           </div>
           <div className="ev-index-value">
             {formatCurrency(ev.etc)}

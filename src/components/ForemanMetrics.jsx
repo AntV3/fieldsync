@@ -17,6 +17,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     tickets: [],
     crewHistory: [],
     disposalLoads: [],
+    truckCounts: [],
     dailyReports: []
   })
 
@@ -40,11 +41,12 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
       // Load all data in parallel
       const days = timeRange === 'week' ? 7 : 30
-      const [areas, tickets, disposalLoads, dailyReports] = await Promise.all([
+      const [areas, tickets, disposalLoads, dailyReports, truckCounts] = await Promise.all([
         db.getAreas(project.id),
         db.getTMTickets?.(project.id) || [],
         db.getDisposalLoadsHistory?.(project.id, days) || [],
-        db.getDailyReports?.(project.id) || []
+        db.getDailyReports?.(project.id) || [],
+        db.getTruckCountHistory?.(project.id, days) || []
       ])
 
       // Load crew history for each day (parallel for performance)
@@ -75,6 +77,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         tickets: tickets.filter(t => t.work_date >= startStr),
         crewHistory,
         disposalLoads: disposalLoads,
+        truckCounts: truckCounts || [],
         dailyReports: dailyReports.filter(r => r.report_date >= startStr)
       })
     } catch (error) {
@@ -110,6 +113,9 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedReload)
     if (haulSub) subs.push(haulSub)
 
+    const truckSub = db.subscribeToTruckCounts?.(project.id, debouncedReload)
+    if (truckSub) subs.push(truckSub)
+
     const reportSub = db.subscribeToDailyReports?.(project.id, debouncedReload)
     if (reportSub) subs.push(reportSub)
 
@@ -121,7 +127,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
   // Calculate derived metrics
   const derivedMetrics = useMemo(() => {
-    const { areas, tickets, crewHistory, disposalLoads, dailyReports } = metrics
+    const { areas, tickets, crewHistory, disposalLoads, truckCounts, dailyReports } = metrics
 
     // Progress stats
     const totalAreas = areas.length
@@ -144,6 +150,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
     // Disposal stats
     const totalLoads = disposalLoads.reduce((sum, d) => sum + (d.load_count || 0), 0)
+    const totalTrucks = (truckCounts || []).reduce((sum, t) => sum + (t.truck_count || 0), 0)
 
     // Daily reports
     const reportsSubmitted = dailyReports.filter(r => r.submitted).length
@@ -154,7 +161,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       progress: { totalAreas, completedAreas, inProgressAreas, notStartedAreas, progressPercent },
       crew: { totalManDays, avgCrewSize, daysWithCrew, history: crewHistory },
       tickets: { total: tickets.length, pending: pendingTickets, signed: signedTickets, totalValue: totalTicketValue },
-      disposal: { totalLoads },
+      disposal: { totalLoads, totalTrucks },
       reports: { submitted: reportsSubmitted, due: reportsDue, streak: reportStreak }
     }
   }, [metrics, timeRange])
@@ -302,7 +309,10 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
             <span className="card-label">Disposal Loads</span>
           </div>
           <div className="card-detail">
-            {timeRange === 'week' ? 'Last 7 days' : 'Last 30 days'}
+            {derivedMetrics.disposal.totalTrucks > 0
+              ? `${derivedMetrics.disposal.totalTrucks} trucks used`
+              : (timeRange === 'week' ? 'Last 7 days' : 'Last 30 days')
+            }
           </div>
         </div>
       </div>

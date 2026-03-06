@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { BarChart3, GitBranch, Banknote, Users, Award, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react'
+import { InfoTooltip } from '../../ui'
 import { ForecastChart, CashFlowChart, ResourceCapacityChart } from '../../charts'
 import { BenchmarkComparison, useCompanyAverages, INDUSTRY_BENCHMARKS } from '../BenchmarkComparison'
 import { ProjectionsPanel } from '../ProjectionCard'
@@ -156,6 +157,7 @@ export default function AnalyticsTab({
                     : <TrendingUp size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--negative" />
                   }
                   <span>Projected cost: <strong>${Math.round((forecast.cost.bestEstimate || 0) / 1000)}K</strong></span>
+                  <InfoTooltip text="Best estimate based on current spend rate extrapolated to 100% completion" size={12} />
                 </div>
               )}
               {forecast.schedule && (
@@ -178,6 +180,7 @@ export default function AnalyticsTab({
                     : <AlertTriangle size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--negative" />
                   }
                   <span>Est. margin: <strong>{projections.estimatedFinalMargin.toFixed(1)}%</strong></span>
+                  <InfoTooltip text="(Contract Value − Projected Cost) ÷ Contract Value × 100" size={12} />
                 </div>
               )}
             </div>
@@ -213,6 +216,7 @@ export default function AnalyticsTab({
         <div className="analytics-section__header">
           <BarChart3 size={20} className="analytics-section__header-icon" />
           <h3 className="analytics-section__title">Predictive Forecast</h3>
+          <InfoTooltip text="Uses historical cost and progress trends to project future costs, schedule, and completion probability" size={13} />
         </div>
         <ForecastChart
           forecast={forecast}
@@ -229,6 +233,7 @@ export default function AnalyticsTab({
             <div className="analytics-section__header">
               <GitBranch size={20} className="analytics-section__header-icon" />
               <h3 className="analytics-section__title">What-If Scenarios</h3>
+              <InfoTooltip text="Models best-case, worst-case, and likely outcomes by adjusting cost growth and schedule assumptions" size={13} />
             </div>
             <div className="analytics-scenarios">
               <div className="analytics-scenarios__grid">
@@ -260,13 +265,15 @@ export default function AnalyticsTab({
                                 ? `$${Math.round(scenario.projectedCost / 1_000)}K`
                                 : `$${Math.round(scenario.projectedCost)}`}
                           </span>
+                          <span className="analytics-scenario__metric-label">Cost <InfoTooltip text="Projected total cost under this scenario's assumptions" size={11} /></span>
+                          <span className="analytics-scenario__metric-value">${Math.round(scenario.projectedCost / 1000)}K</span>
                         </div>
                         <div className="analytics-scenario__metric">
-                          <span className="analytics-scenario__metric-label">Margin</span>
+                          <span className="analytics-scenario__metric-label">Margin <InfoTooltip text="(Contract − Projected Cost) ÷ Contract × 100" size={11} /></span>
                           <span className="analytics-scenario__metric-value">{scenario.margin}%</span>
                         </div>
                         <div className="analytics-scenario__metric">
-                          <span className="analytics-scenario__metric-label">Schedule</span>
+                          <span className="analytics-scenario__metric-label">Schedule <InfoTooltip text="Days ahead or behind the planned end date" size={11} /></span>
                           <span className="analytics-scenario__metric-value">
                             {scenario.slippage > 0 ? `+${scenario.slippage}d late` : scenario.slippage < 0 ? `${Math.abs(scenario.slippage)}d early` : 'On time'}
                           </span>
@@ -287,6 +294,7 @@ export default function AnalyticsTab({
         <div className="analytics-section__header">
           <Banknote size={20} className="analytics-section__header-icon" />
           <h3 className="analytics-section__title">Cash Flow</h3>
+          <InfoTooltip text="Inflows (billings & payments received) vs Outflows (labor, materials, equipment costs). Ratio = Total Inflows ÷ Total Outflows" size={13} />
         </div>
         <CashFlowChart cashFlow={cashFlow} />
       </div>
@@ -298,6 +306,7 @@ export default function AnalyticsTab({
         <div className="analytics-section__header">
           <Users size={20} className="analytics-section__header-icon" />
           <h3 className="analytics-section__title">Resource Capacity</h3>
+          <InfoTooltip text="Compares actual crew allocation vs estimated need based on project scope and timeline" size={13} />
         </div>
         <ResourceCapacityChart resourceData={resourceData} />
       </div>

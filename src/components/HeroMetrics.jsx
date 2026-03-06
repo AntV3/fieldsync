@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { DollarSign, TrendingUp, Receipt, PiggyBank } from 'lucide-react'
-import { HeroMetricsSkeleton, MiniProgress, TrendIndicator } from './ui'
+import { HeroMetricsSkeleton, MiniProgress, TrendIndicator, InfoTooltip } from './ui'
 
 /**
  * HeroMetrics - Top-level financial summary for project dashboard
@@ -51,7 +51,8 @@ const MetricCard = memo(function MetricCard({
   variant = 'default', // 'default' | 'success' | 'warning' | 'danger'
   trend,
   previousValue,
-  showPulse = false
+  showPulse = false,
+  tooltip
 }) {
   const variantColors = {
     default: 'var(--accent-blue)',
@@ -87,6 +88,7 @@ const MetricCard = memo(function MetricCard({
           <Icon size={20} />
         </div>
         <span className="hero-metric-label">{label}</span>
+        {tooltip && <InfoTooltip text={tooltip} />}
         {showPulse && <PulseIndicator />}
       </div>
 
@@ -180,6 +182,7 @@ export default memo(function HeroMetrics({
         formattedValue={formatCurrency(revisedContract)}
         subLabel={corApprovedValue > 0 ? `+${formatCurrency(corApprovedValue)} CORs` : null}
         variant="default"
+        tooltip="Original Contract + Approved CORs"
       />
 
       {/* Earned Revenue */}
@@ -193,6 +196,7 @@ export default memo(function HeroMetrics({
         variant="success"
         previousValue={previousData?.earnedRevenue}
         trend={previousData ? earnedRevenue : undefined}
+        tooltip="Sum of completed area values based on weighted progress of each bid item"
       />
 
       {/* Total Costs */}
@@ -206,6 +210,7 @@ export default memo(function HeroMetrics({
         variant={costVariant}
         previousValue={previousData?.totalCosts}
         trend={previousData ? totalCosts : undefined}
+        tooltip="Labor + Disposal + Materials + Equipment + Other Costs"
       />
 
       {/* Profit */}
@@ -219,6 +224,7 @@ export default memo(function HeroMetrics({
         previousValue={previousData?.profit}
         trend={previousData ? profit : undefined}
         showPulse={profit > 0}
+        tooltip="Earned Revenue − Total Costs. Margin = Profit ÷ Earned Revenue × 100"
       />
     </div>
   )

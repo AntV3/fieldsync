@@ -3,6 +3,7 @@ import {
   DollarSign, Clock, TrendingUp, TrendingDown, Users,
   CheckCircle2, AlertTriangle, XCircle, Activity, Minus
 } from 'lucide-react'
+import { InfoTooltip } from '../ui'
 
 /**
  * ProjectHealthOverview
@@ -51,6 +52,7 @@ export default function ProjectHealthOverview({
           </div>
           <div>
             <h3 className="health-overview__title">Project Health</h3>
+            <InfoTooltip text="Overall score = average of Budget, Schedule, Cash Flow, and Resource scores (0–100). Healthy ≥ 75, Warning ≥ 50, Critical < 50" size={13} />
             <span className="health-overview__subtitle">Real-time status across all dimensions</span>
           </div>
         </div>
@@ -69,6 +71,7 @@ export default function ProjectHealthOverview({
           value={budgetHealth.value}
           detail={budgetHealth.detail}
           score={budgetHealth.score}
+          tooltip="Projected final cost vs contract value. Healthy = under budget, Warning = 0–10% over, Critical = >10% over"
         />
         <HealthSignal
           label="Schedule"
@@ -77,6 +80,7 @@ export default function ProjectHealthOverview({
           value={scheduleHealth.value}
           detail={scheduleHealth.detail}
           score={scheduleHealth.score}
+          tooltip="Actual progress vs expected progress based on elapsed time. Slippage = projected end date − planned end date"
         />
         <HealthSignal
           label="Cash Flow"
@@ -85,6 +89,7 @@ export default function ProjectHealthOverview({
           value={cashFlowHealth.value}
           detail={cashFlowHealth.detail}
           score={cashFlowHealth.score}
+          tooltip="Cash Flow Ratio = Total Inflows ÷ Total Outflows. Healthy > 1.1x, Warning 0.8–1.1x, Critical < 0.8x"
         />
         <HealthSignal
           label="Resources"
@@ -93,6 +98,7 @@ export default function ProjectHealthOverview({
           value={resourceHealth.value}
           detail={resourceHealth.detail}
           score={resourceHealth.score}
+          tooltip="Crew allocated vs estimated need. Critical = <60% staffed, Warning = <85% staffed or scheduling conflicts"
         />
       </div>
 
@@ -220,7 +226,7 @@ function OverallHealthBadge({ score, status }) {
   )
 }
 
-function HealthSignal({ label, icon: Icon, status, value, detail, score }) {
+function HealthSignal({ label, icon: Icon, status, value, detail, score, tooltip }) {
   const statusColors = {
     healthy: 'var(--status-success)',
     warning: 'var(--status-warning)',
@@ -246,6 +252,7 @@ function HealthSignal({ label, icon: Icon, status, value, detail, score }) {
             <Icon size={16} />
           </div>
           <span className="health-signal__label">{label}</span>
+          {tooltip && <InfoTooltip text={tooltip} size={12} />}
           {(status === 'critical' || status === 'warning') && (
             <span className={`health-signal__pulse health-signal__pulse--${status}`} />
           )}

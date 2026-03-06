@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Flame } from 'lucide-react'
+import { InfoTooltip } from './ui'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -88,6 +89,7 @@ export default function BurnRateCard({
         <div className="burn-rate-title">
           <Flame size={18} className="burn-icon" />
           <h3>Burn Rate</h3>
+          <InfoTooltip text="Daily Burn = Total Costs ÷ Days Worked. Projected at Completion = Total Costs ÷ (Progress % ÷ 100)" />
         </div>
         <div className={`burn-status ${burnStatus}`}>
           <StatusIcon size={14} />
