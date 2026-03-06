@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS disposal_truck_counts (
 );
 
 -- Indexes
-CREATE INDEX idx_disposal_truck_counts_project ON disposal_truck_counts(project_id);
-CREATE INDEX idx_disposal_truck_counts_project_date ON disposal_truck_counts(project_id, work_date DESC);
+CREATE INDEX IF NOT EXISTS idx_disposal_truck_counts_project ON disposal_truck_counts(project_id);
+CREATE INDEX IF NOT EXISTS idx_disposal_truck_counts_project_date ON disposal_truck_counts(project_id, work_date DESC);
 
 -- Updated_at trigger
 CREATE OR REPLACE FUNCTION update_disposal_truck_counts_updated_at()
@@ -28,6 +28,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_disposal_truck_counts_updated_at ON disposal_truck_counts;
 CREATE TRIGGER trigger_disposal_truck_counts_updated_at
   BEFORE UPDATE ON disposal_truck_counts
   FOR EACH ROW
@@ -39,6 +40,7 @@ CREATE TRIGGER trigger_disposal_truck_counts_updated_at
 
 ALTER TABLE disposal_truck_counts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view truck counts for their projects" ON disposal_truck_counts;
 CREATE POLICY "Users can view truck counts for their projects"
   ON disposal_truck_counts FOR SELECT
   USING (
@@ -54,6 +56,7 @@ CREATE POLICY "Users can view truck counts for their projects"
     )
   );
 
+DROP POLICY IF EXISTS "Users can insert truck counts for assigned projects" ON disposal_truck_counts;
 CREATE POLICY "Users can insert truck counts for assigned projects"
   ON disposal_truck_counts FOR INSERT
   WITH CHECK (
@@ -69,6 +72,7 @@ CREATE POLICY "Users can insert truck counts for assigned projects"
     )
   );
 
+DROP POLICY IF EXISTS "Users can update truck counts for their projects" ON disposal_truck_counts;
 CREATE POLICY "Users can update truck counts for their projects"
   ON disposal_truck_counts FOR UPDATE
   USING (
@@ -84,6 +88,7 @@ CREATE POLICY "Users can update truck counts for their projects"
     )
   );
 
+DROP POLICY IF EXISTS "Users can delete truck counts for their projects" ON disposal_truck_counts;
 CREATE POLICY "Users can delete truck counts for their projects"
   ON disposal_truck_counts FOR DELETE
   USING (
