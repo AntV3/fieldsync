@@ -19,6 +19,8 @@ export const FORECAST_CONFIG = {
   confidenceLevels: { low: 1, medium: 1.5, high: 2 },
   // Forecast horizon in weeks
   maxForecastWeeks: 26,
+  // Minimum acceptable profit margin for scenario pass/fail
+  minMarginPercent: 15,
 }
 
 // ---- Core Forecasting ----
@@ -430,7 +432,7 @@ export function calculateScenarios(current, scenarios = []) {
   const defaultScenarios = [
     { label: 'Current Pace', paceMultiplier: 1.0, costMultiplier: 1.0 },
     { label: 'Add 25% Crew', paceMultiplier: 1.2, costMultiplier: 1.25 },
-    { label: 'Reduce 25% Crew', paceMultiplier: 0.8, costMultiplier: 0.75 },
+    { label: 'Reduce 25% Crew', paceMultiplier: 0.7, costMultiplier: 0.75 },
     { label: 'Overtime Push', paceMultiplier: 1.4, costMultiplier: 1.5 },
   ]
 
@@ -438,7 +440,7 @@ export function calculateScenarios(current, scenarios = []) {
   const { progressPercent, actualCosts, startDate, endDate } = current
   const bac = (current.contractValue || 0) + (current.changeOrderValue || 0)
 
-  if (!startDate || progressPercent <= 0) return []
+  if (!startDate || !endDate || progressPercent <= 0) return []
 
   const start = new Date(startDate)
   const end = new Date(endDate)
@@ -468,7 +470,7 @@ export function calculateScenarios(current, scenarios = []) {
       margin,
       daysToComplete,
       meetsDeadline: projectedEnd <= end,
-      meetsMargin: margin >= 15,
+      meetsMargin: margin >= FORECAST_CONFIG.minMarginPercent,
     }
   })
 }
