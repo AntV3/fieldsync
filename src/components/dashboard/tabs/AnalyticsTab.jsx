@@ -115,12 +115,13 @@ export default function AnalyticsTab({
 
     const totalCosts = projectData.allCostsTotal || 0
     const earnedRevenue = billable || 0
-    const contractVal = revisedContractValue || 0
+    // Use original contract value (excluding change orders) for change order rate
+    const originalContractValue = (revisedContractValue || 0) - (changeOrderValue || 0)
 
     return {
       profitMargin: earnedRevenue > 0 ? ((earnedRevenue - totalCosts) / earnedRevenue) * 100 : null,
       costRatio: earnedRevenue > 0 ? (totalCosts / earnedRevenue) * 100 : null,
-      changeOrderRate: contractVal > 0 ? (changeOrderValue / contractVal) * 100 : null,
+      changeOrderRate: originalContractValue > 0 ? (changeOrderValue / originalContractValue) * 100 : null,
       safetyIncidentRate: projectData.recentInjuryCount ?? 0,
     }
   }, [projectData, billable, revisedContractValue, changeOrderValue])

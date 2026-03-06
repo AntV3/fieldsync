@@ -76,7 +76,7 @@ export function calculateCurrentAllocation(projects, crewCheckins) {
       for (const checkin of projectCheckins) {
         const date = (checkin.check_in_date || checkin.created_at || '').split('T')[0]
         if (!dailyCounts[date]) dailyCounts[date] = 0
-        dailyCounts[date] += checkin.worker_count || 1
+        dailyCounts[date] += checkin.worker_count || (checkin.workers || []).length || 1
       }
 
       const daysWithCrew = Object.keys(dailyCounts).length
@@ -278,7 +278,7 @@ export function buildAllocationHeatmap(projects, crewCheckins) {
         if (!projectCrews[checkin.project_id]) {
           projectCrews[checkin.project_id] = { totalWorkers: 0, days: 0 }
         }
-        projectCrews[checkin.project_id].totalWorkers += checkin.worker_count || 1
+        projectCrews[checkin.project_id].totalWorkers += checkin.worker_count || (checkin.workers || []).length || 1
         projectCrews[checkin.project_id].days += 1
       }
     }
