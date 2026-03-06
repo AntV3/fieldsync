@@ -6,7 +6,7 @@ import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../lib/financialExport'
-import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, Menu, AlertTriangle, Package, Users, Shield, TrendingUp, TrendingDown, CheckCircle2, Camera, MapPin, Building2, Phone, ArrowRight } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, HardHat, Truck, Info, FolderOpen, Search, Download, FileText, Menu, AlertTriangle, Package, Users, Shield, TrendingUp, TrendingDown, CheckCircle2, Camera, MapPin, Building2, Phone, ArrowRight, BarChart3 } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import OverviewProgressGauge from './overview/OverviewProgressGauge'
@@ -44,6 +44,7 @@ const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
 const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
 const AddCostModal = lazy(() => import('./AddCostModal'))
 const DocumentsTab = lazy(() => import('./documents/DocumentsTab'))
+const AnalyticsTab = lazy(() => import('./dashboard/tabs/AnalyticsTab'))
 const CORLogPreview = lazy(() => import('./cor/CORLogPreview'))
 const CORList = lazy(() => import('./cor/CORList'))
 const TMList = lazy(() => import('./TMList'))
@@ -1227,6 +1228,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
       { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
+      { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
       { id: 'documents', label: 'Documents', Icon: FolderOpen },
       { id: 'info', label: 'Info', Icon: Info }
     ]
@@ -2111,6 +2113,26 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 </div>
               </div>
             </div>
+          )}
+
+          {/* ANALYTICS TAB */}
+          {activeProjectTab === 'analytics' && (
+            <Suspense fallback={<TicketSkeleton />}>
+              <AnalyticsTab
+                selectedProject={selectedProject}
+                projectData={projectData}
+                progress={progress}
+                billable={billable}
+                revisedContractValue={revisedContractValue}
+                changeOrderValue={changeOrderValue}
+                areas={areas}
+                allProjects={projects}
+                crewCheckins={projectData?.crewCheckins || []}
+                invoices={projectData?.invoices || []}
+                punchListItems={projectData?.punchListItems || []}
+                dailyReports={projectData?.dailyReports || []}
+              />
+            </Suspense>
           )}
 
           {/* DOCUMENTS TAB */}
