@@ -87,7 +87,8 @@ export const getFieldClient = () => {
       },
       auth: {
         autoRefreshToken: false,
-        persistSession: false
+        persistSession: false,
+        storageKey: 'fieldsync-field-auth-token'
       }
     })
     fieldClient._sessionToken = session.token
