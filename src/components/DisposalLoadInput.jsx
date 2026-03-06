@@ -22,6 +22,8 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const [showAddForm, setShowAddForm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [newLoad, setNewLoad] = useState({ type: 'concrete', count: 1 })
+  const [truckCount, setTruckCount] = useState(0)
+  const [savingTrucks, setSavingTrucks] = useState(false)
 
   // Format date for display
   const displayDate = parseLocalDate(date).toLocaleDateString('en-US', {
@@ -33,6 +35,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   useEffect(() => {
     loadDisposalData()
     loadHistory()
+    loadTruckCount()
   }, [project.id, date])
 
   const loadDisposalData = async () => {
@@ -73,6 +76,30 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       setHistory(historyArray)
     } catch (err) {
       console.error('Error loading disposal history:', err)
+    }
+  }
+
+  const loadTruckCount = async () => {
+    try {
+      const data = await db.getTruckCount(project.id, date)
+      setTruckCount(data?.truck_count || 0)
+    } catch (err) {
+      console.error('Error loading truck count:', err)
+    }
+  }
+
+  const handleTruckCountChange = async (delta) => {
+    const newCount = Math.max(0, truckCount + delta)
+    setTruckCount(newCount)
+    setSavingTrucks(true)
+    try {
+      await db.setTruckCount(project.id, date, newCount)
+    } catch (err) {
+      console.error('Error saving truck count:', err)
+      setTruckCount(truckCount) // revert on error
+      onShowToast?.('Error saving truck count', 'error')
+    } finally {
+      setSavingTrucks(false)
     }
   }
 
@@ -333,10 +360,35 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
         </button>
       )}
 
+      {/* Trucks Used Section */}
+      <div className="disposal-trucks-section">
+        <div className="disposal-trucks-header">
+          <Truck size={16} />
+          <span>Trucks Used</span>
+        </div>
+        <div className="disposal-trucks-controls">
+          <button
+            className="load-btn decrement"
+            onClick={() => handleTruckCountChange(-1)}
+            disabled={savingTrucks || truckCount <= 0}
+          >
+            <Minus size={16} />
+          </button>
+          <span className="load-count">{truckCount}</span>
+          <button
+            className="load-btn increment"
+            onClick={() => handleTruckCountChange(1)}
+            disabled={savingTrucks}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+
       {/* Summary */}
-      {totalLoads > 0 && (
+      {(totalLoads > 0 || truckCount > 0) && (
         <div className="disposal-summary">
-          <strong>{totalLoads}</strong> total load{totalLoads !== 1 ? 's' : ''} today
+          <strong>{totalLoads}</strong> total load{totalLoads !== 1 ? 's' : ''}{truckCount > 0 ? ` across ${truckCount} truck${truckCount !== 1 ? 's' : ''}` : ''} today
         </div>
       )}
 

@@ -15,6 +15,7 @@ const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { la
 
 export default function DisposalSummary({ project, period = 'week' }) {
   const [loads, setLoads] = useState([])
+  const [truckCounts, setTruckCounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
 
@@ -28,8 +29,12 @@ export default function DisposalSummary({ project, period = 'week' }) {
     try {
       setLoading(true)
       const days = period === 'week' ? 7 : period === 'month' ? 30 : 14
-      const data = await db.getDisposalLoadsHistory(project.id, days)
-      setLoads(data || [])
+      const [loadsData, trucksData] = await Promise.all([
+        db.getDisposalLoadsHistory(project.id, days),
+        db.getTruckCountHistory?.(project.id, days) || []
+      ])
+      setLoads(loadsData || [])
+      setTruckCounts(trucksData || [])
     } catch (err) {
       console.error('Error loading disposal summary:', err)
     } finally {
@@ -63,7 +68,15 @@ export default function DisposalSummary({ project, period = 'week' }) {
     .slice(0, 7)
 
   const totalLoads = loads.reduce((sum, l) => sum + l.load_count, 0)
-  const hasLoads = totalLoads > 0
+  const totalTrucks = truckCounts.reduce((sum, t) => sum + (t.truck_count || 0), 0)
+  const daysWithTrucks = truckCounts.filter(t => t.truck_count > 0).length
+  const hasLoads = totalLoads > 0 || totalTrucks > 0
+
+  // Build truck count lookup by date for daily breakdown
+  const truckCountByDate = truckCounts.reduce((acc, t) => {
+    acc[t.work_date] = t.truck_count
+    return acc
+  }, {})
 
   if (loading) {
     return (
@@ -100,9 +113,20 @@ export default function DisposalSummary({ project, period = 'week' }) {
       ) : (
         <>
           {/* Total */}
-          <div className="disposal-total">
-            <span className="disposal-total-value">{totalLoads}</span>
-            <span className="disposal-total-label">Total Loads</span>
+          <div className="disposal-totals-row">
+            <div className="disposal-total">
+              <span className="disposal-total-value">{totalLoads}</span>
+              <span className="disposal-total-label">Total Loads</span>
+            </div>
+            {totalTrucks > 0 && (
+              <div className="disposal-total trucks">
+                <span className="disposal-total-value">{totalTrucks}</span>
+                <span className="disposal-total-label">Trucks Used</span>
+                {daysWithTrucks > 0 && (
+                  <span className="disposal-trucks-detail">{daysWithTrucks} day{daysWithTrucks !== 1 ? 's' : ''}</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* By Type Breakdown */}
@@ -160,11 +184,18 @@ export default function DisposalSummary({ project, period = 'week' }) {
                   return acc
                 }, {})
 
+                const dayTrucks = truckCountByDate[day.date] || 0
+
                 return (
                   <div key={day.date} className="disposal-daily-row">
                     <div className="disposal-daily-header">
                       <span className="disposal-daily-date">{formattedDate}</span>
-                      <span className="disposal-daily-total">{day.total} loads</span>
+                      <div className="disposal-daily-stats">
+                        <span className="disposal-daily-total">{day.total} loads</span>
+                        {dayTrucks > 0 && (
+                          <span className="disposal-daily-trucks">{dayTrucks} truck{dayTrucks !== 1 ? 's' : ''}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="disposal-daily-types">
                       {Object.entries(dayLoadsByType).map(([type, count]) => {
