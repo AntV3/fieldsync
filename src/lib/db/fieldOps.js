@@ -32,7 +32,9 @@ export const fieldOps = {
     { value: 'concrete', label: 'Concrete' },
     { value: 'trash', label: 'Trash' },
     { value: 'metals', label: 'Metals' },
-    { value: 'hazardous_waste', label: 'Hazardous Waste' }
+    { value: 'hazardous_waste', label: 'Hazardous Waste' },
+    { value: 'copper', label: 'Copper' },
+    { value: 'asphalt', label: 'Asphalt' }
   ],
 
   // Get disposal loads for a specific date
