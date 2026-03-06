@@ -688,6 +688,10 @@
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .projection-card__header {
@@ -697,15 +701,20 @@
   margin-bottom: var(--space-sm);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
+  min-width: 0;
 }
 
 .projection-card__header-icon {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 .projection-card__title {
   font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .projection-card__value {
@@ -713,11 +722,18 @@
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .projection-card__comparison {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .projection-card__comparison--worse {
@@ -937,6 +953,7 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   padding: var(--space-md);
+  overflow: hidden;
 }
 
 .projections-panel__header {
@@ -957,7 +974,7 @@
 
 .projections-panel__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-md);
 }
 
@@ -1614,7 +1631,7 @@
   }
 
   .projections-panel__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
