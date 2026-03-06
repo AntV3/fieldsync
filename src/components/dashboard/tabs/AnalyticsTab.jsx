@@ -253,7 +253,13 @@ export default function AnalyticsTab({
                       <div className="analytics-scenario__values">
                         <div className="analytics-scenario__metric">
                           <span className="analytics-scenario__metric-label">Cost</span>
-                          <span className="analytics-scenario__metric-value">${Math.round(scenario.projectedCost / 1000)}K</span>
+                          <span className="analytics-scenario__metric-value">
+                            {scenario.projectedCost >= 1_000_000
+                              ? `$${(scenario.projectedCost / 1_000_000).toFixed(1)}M`
+                              : scenario.projectedCost >= 1_000
+                                ? `$${Math.round(scenario.projectedCost / 1_000)}K`
+                                : `$${Math.round(scenario.projectedCost)}`}
+                          </span>
                         </div>
                         <div className="analytics-scenario__metric">
                           <span className="analytics-scenario__metric-label">Margin</span>
