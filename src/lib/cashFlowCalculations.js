@@ -181,14 +181,22 @@ export function projectPayables(projects, costHistory, config) {
       const costDate = new Date(now.getFullYear(), now.getMonth() + m, 15)
       const payDate = new Date(costDate.getTime() + config.payableDays * 24 * 60 * 60 * 1000)
 
+      // Pro-rate first month based on remaining days
+      let adjustedCost = monthlyCost
+      if (m === 0) {
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+        const remainingDays = daysInMonth - now.getDate()
+        adjustedCost = monthlyCost * (remainingDays / daysInMonth)
+      }
+
       // Break down by category
-      const breakdown = estimateCostBreakdown(project, monthlyCost)
+      const breakdown = estimateCostBreakdown(project, adjustedCost)
 
       entries.push({
         type: m === 0 ? 'committed' : 'projected',
         projectId: project.id,
         projectName: project.name,
-        amount: Math.round(monthlyCost),
+        amount: Math.round(adjustedCost),
         date: costDate.toISOString().split('T')[0],
         payDate: payDate.toISOString().split('T')[0],
         status: m === 0 ? 'committed' : 'forecast',
@@ -274,9 +282,12 @@ export function calculateCashFlowMetrics(monthlyForecast, receivables, payables)
   // Months with negative cash flow
   const negativeMonths = monthlyForecast.filter(m => m.net < 0).length
 
-  // Cash conversion cycle (simplified)
-  const dso = receivables.totalOutstanding > 0
-    ? Math.round((receivables.totalOutstanding / totalInflows) * monthlyForecast.length * 30)
+  // Days Sales Outstanding (simplified)
+  // DSO = Outstanding Receivables / (Total Inflows / Days in Period)
+  const forecastDays = monthlyForecast.length * 30
+  const dailyRevenue = forecastDays > 0 ? totalInflows / forecastDays : 0
+  const dso = dailyRevenue > 0
+    ? Math.round(receivables.totalOutstanding / dailyRevenue)
     : 0
 
   // Lowest cumulative point (max cash need)
