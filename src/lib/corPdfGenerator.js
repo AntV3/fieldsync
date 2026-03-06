@@ -186,9 +186,9 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         head: [['Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
         body: group.items.map(item => [
           item.regular_hours?.toString() || '0',
-          formatCurrency(item.regular_rate),
-          item.overtime_hours?.toString() || '0',
-          formatCurrency(item.overtime_rate),
+          item.regular_rate ? formatCurrency(item.regular_rate) : '-',
+          item.overtime_hours ? item.overtime_hours.toString() : '-',
+          item.overtime_rate ? formatCurrency(item.overtime_rate) : '-',
           formatCurrency(item.total)
         ]),
         foot: [[
@@ -733,6 +733,78 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         yPos += photoHeight + 12
       }
 
+      // Foreman signature block
+      if (ticket.foreman_signature_data || ticket.foreman_signature_name) {
+        if (yPos > pageHeight - 50) {
+          doc.addPage()
+          yPos = margin
+        }
+
+        const foremanBlockHeight = 32
+        const foremanBlockWidth = pageWidth - (margin * 2)
+
+        doc.setFillColor(239, 246, 255)
+        doc.roundedRect(margin, yPos, foremanBlockWidth, foremanBlockHeight, 3, 3, 'F')
+
+        doc.setFillColor(59, 130, 246)
+        doc.rect(margin, yPos, 4, foremanBlockHeight, 'F')
+
+        doc.setDrawColor(191, 219, 254)
+        doc.setLineWidth(0.5)
+        doc.line(margin + 4, yPos, margin + foremanBlockWidth, yPos)
+
+        const foremanSealX = margin + 14
+        const foremanSealY = yPos + foremanBlockHeight / 2
+        doc.setFillColor(59, 130, 246)
+        doc.circle(foremanSealX, foremanSealY, 6, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(255, 255, 255)
+        doc.text('F', foremanSealX - 2, foremanSealY + 3)
+
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(59, 130, 246)
+        doc.text('FOREMAN', margin + 26, yPos + 10)
+
+        try {
+          if (ticket.foreman_signature_data) {
+            doc.addImage(ticket.foreman_signature_data, 'PNG', margin + 26, yPos + 13, 50, 16)
+          }
+
+          const foremanName = ticket.foreman_signature_name || 'Foreman'
+          const foremanTitle = ticket.foreman_signature_title || ''
+          const foremanDate = ticket.foreman_signature_date
+            ? formatDate(ticket.foreman_signature_date)
+            : ''
+
+          const foremanInfoX = margin + 85
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(foremanName, foremanInfoX, yPos + 12)
+
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(71, 85, 105)
+          if (foremanTitle) {
+            doc.text(foremanTitle, foremanInfoX, yPos + 18)
+          }
+          if (foremanDate) {
+            doc.setTextColor(100, 116, 139)
+            doc.text(`Signed: ${foremanDate}`, foremanInfoX, yPos + 24)
+          }
+        } catch (e) {
+          const foremanName = ticket.foreman_signature_name || 'Foreman'
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(`Signed by: ${foremanName}`, margin + 26, yPos + 20)
+        }
+
+        yPos += foremanBlockHeight + 6
+      }
+
       // Client verification block
       if (ticket.client_signature_data) {
         if (yPos > pageHeight - 50) {
@@ -1089,6 +1161,66 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
     }
 
     yPos += photoHeight + 12
+  }
+
+  // ============================================
+  // FOREMAN SIGNATURE BLOCK
+  // ============================================
+
+  if (ticket.foreman_signature_data || ticket.foreman_signature_name) {
+    if (yPos > pageHeight - 50) { doc.addPage(); yPos = margin }
+
+    const foremanBlockHeight = 34
+    const foremanBlockWidth = pageWidth - margin * 2
+
+    doc.setFillColor(239, 246, 255)
+    doc.roundedRect(margin, yPos, foremanBlockWidth, foremanBlockHeight, 3, 3, 'F')
+    doc.setFillColor(59, 130, 246)
+    doc.rect(margin, yPos, 4, foremanBlockHeight, 'F')
+    doc.setDrawColor(191, 219, 254)
+    doc.setLineWidth(0.5)
+    doc.line(margin + 4, yPos, margin + foremanBlockWidth, yPos)
+
+    const foremanSealX = margin + 14
+    const foremanSealY = yPos + foremanBlockHeight / 2
+    doc.setFillColor(59, 130, 246)
+    doc.circle(foremanSealX, foremanSealY, 6, 'F')
+    doc.setFontSize(9)
+    doc.setTextColor(255, 255, 255)
+    doc.text('F', foremanSealX - 2, foremanSealY + 3)
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(59, 130, 246)
+    doc.text('FOREMAN', margin + 26, yPos + 10)
+
+    try {
+      if (ticket.foreman_signature_data) {
+        doc.addImage(ticket.foreman_signature_data, 'PNG', margin + 26, yPos + 13, 50, 16)
+      }
+      const foremanInfoX = margin + 85
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(ticket.foreman_signature_name || 'Foreman', foremanInfoX, yPos + 12)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(71, 85, 105)
+      if (ticket.foreman_signature_title) {
+        doc.text(ticket.foreman_signature_title, foremanInfoX, yPos + 18)
+      }
+      if (ticket.foreman_signature_date) {
+        doc.setTextColor(100, 116, 139)
+        doc.text(`Signed: ${formatDate(ticket.foreman_signature_date)}`, foremanInfoX, yPos + 25)
+      }
+    } catch (e) {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(`Signed by: ${ticket.foreman_signature_name || 'Foreman'}`, margin + 26, yPos + 20)
+    }
+
+    yPos += foremanBlockHeight + 6
   }
 
   // ============================================
