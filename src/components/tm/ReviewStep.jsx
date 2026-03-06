@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw, Clock, ShieldCheck } from 'lucide-react'
+import { parseLocalDate } from '../../lib/utils'
 import EvidenceStep from './EvidenceStep'
 
 const formatTime12 = (timeStr) => {
@@ -145,11 +146,11 @@ export default function ReviewStep({
             <span className="tm-success-stat-label">{t('workersLabel')}</span>
           </div>
           <div className="tm-success-stat">
-            <span className="tm-success-stat-value">{totalRegHours + totalOTHours}</span>
+            <span className="tm-success-stat-value">{parseFloat((totalRegHours + totalOTHours).toFixed(1))}</span>
             <span className="tm-success-stat-label">{t('totalHours')}</span>
           </div>
           <div className="tm-success-stat">
-            <span className="tm-success-stat-value">{new Date(workDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            <span className="tm-success-stat-value">{(() => { const [y, m, d] = (workDate || '').split('-'); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); })()}</span>
             <span className="tm-success-stat-label">{t('workDate')}</span>
           </div>
         </div>
@@ -343,7 +344,7 @@ export default function ReviewStep({
               companyId={companyId}
               projectId={project.id}
               project={project}
-              documentTitle={`Time & Material Ticket - ${new Date(workDate).toLocaleDateString()}`}
+              documentTitle={`Time & Material Ticket - ${parseLocalDate(workDate).toLocaleDateString()}`}
               onClose={() => setShowSignatureLinkModal(false)}
               onShowToast={onShowToast}
             />
@@ -397,7 +398,7 @@ export default function ReviewStep({
           <button className="tm-edit-link" onClick={() => setStep(1)}>{t('edit')}</button>
         </div>
         <div className="tm-review-row">
-          <span>{new Date(workDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          <span>{parseLocalDate(workDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
           {cePcoNumber && <span>CE/PCO: {cePcoNumber}</span>}
         </div>
       </div>

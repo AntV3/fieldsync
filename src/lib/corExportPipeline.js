@@ -19,6 +19,7 @@
 
 import { supabase } from './supabase'
 import { observe } from './observability'
+import { calculateCORTotals } from './corCalculations'
 
 // ============================================
 // CONSTANTS
@@ -176,21 +177,8 @@ export function createSnapshot(cor, tickets, options = {}) {
       bond_percent: cor.bond_percent,
       license_fee_percent: cor.license_fee_percent,
 
-      // Calculated amounts (frozen)
-      labor_subtotal: cor.labor_subtotal,
-      materials_subtotal: cor.materials_subtotal,
-      equipment_subtotal: cor.equipment_subtotal,
-      subcontractors_subtotal: cor.subcontractors_subtotal,
-      labor_markup_amount: cor.labor_markup_amount,
-      materials_markup_amount: cor.materials_markup_amount,
-      equipment_markup_amount: cor.equipment_markup_amount,
-      subcontractors_markup_amount: cor.subcontractors_markup_amount,
-      liability_insurance_amount: cor.liability_insurance_amount,
-      bond_amount: cor.bond_amount,
-      license_fee_amount: cor.license_fee_amount,
-      cor_subtotal: cor.cor_subtotal,
-      additional_fees_total: cor.additional_fees_total,
-      cor_total: cor.cor_total,
+      // Calculated amounts (frozen, recalculated from line items for consistency)
+      ...calculateCORTotals(cor),
 
       // Signature data
       gc_signature_data: cor.gc_signature_data,

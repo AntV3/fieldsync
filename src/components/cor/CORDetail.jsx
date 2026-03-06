@@ -28,6 +28,7 @@ const formatTime12 = (timeStr) => {
 
 export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
   const [loading, setLoading] = useState(true)
+  const [actionInProgress, setActionInProgress] = useState(false)
   const [corData, setCORData] = useState(cor)
   const [showSignature, setShowSignature] = useState(false)
   const [showSignatureLink, setShowSignatureLink] = useState(false)
@@ -131,65 +132,81 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   }
 
   const handleApprove = async () => {
+    if (actionInProgress) return
+    if (corData.status !== 'pending_approval') {
+      onShowToast?.('COR is no longer pending approval', 'error')
+      return
+    }
     if (!confirm('Approve this change order request?')) return
-    setLoading(true)
+    setActionInProgress(true)
     try {
-      await db.approveCOR(corData.id)
-      setCORData({ ...corData, status: 'approved', approved_at: new Date().toISOString() })
+      const updated = await db.approveCOR(corData.id)
+      setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR approved', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error approving COR:', error)
       onShowToast?.('Error approving COR', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
   const handleReject = async () => {
+    if (actionInProgress) return
+    if (corData.status !== 'pending_approval') {
+      onShowToast?.('COR is no longer pending approval', 'error')
+      return
+    }
     const reason = prompt('Enter rejection reason (optional):')
     if (reason === null) return // User cancelled
 
-    setLoading(true)
+    setActionInProgress(true)
     try {
-      await db.rejectCOR(corData.id, reason)
-      setCORData({ ...corData, status: 'rejected', rejection_reason: reason })
+      const updated = await db.rejectCOR(corData.id, reason)
+      setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR rejected', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error rejecting COR:', error)
       onShowToast?.('Error rejecting COR', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
   const handleMarkBilled = async () => {
+    if (actionInProgress) return
+    if (corData.status !== 'approved') {
+      onShowToast?.('COR must be approved before marking as billed', 'error')
+      return
+    }
     if (!confirm('Mark this COR as billed?')) return
-    setLoading(true)
+    setActionInProgress(true)
     try {
-      await db.markCORAsBilled(corData.id)
-      setCORData({ ...corData, status: 'billed' })
+      const updated = await db.markCORAsBilled(corData.id)
+      setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR marked as billed', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error marking COR as billed:', error)
       onShowToast?.('Error updating status', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
   const handleSaveSignature = async (signatureData) => {
-    setLoading(true)
+    if (actionInProgress) return
+    setActionInProgress(true)
     try {
       await db.saveCORSignature?.(corData.id, signatureData.signature, signatureData.signerName)
-      setCORData({
-        ...corData,
+      setCORData(prev => ({
+        ...prev,
         gc_signature_data: signatureData.signature,
         gc_signature_name: signatureData.signerName,
         gc_signature_date: new Date().toISOString()
-      })
+      }))
       setShowSignature(false)
       onShowToast?.('Signature saved', 'success')
       onStatusChange?.()
@@ -197,28 +214,29 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       console.error('Error saving signature:', error)
       onShowToast?.('Error saving signature', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
-  const canSign = corData.status === 'approved' && !corData.gc_signature
+  const canSign = corData.status === 'approved' && !corData.gc_signature_data
 
   const handleUpdateCorNumber = async () => {
     if (!newCorNumber.trim()) {
       setEditingNumber(false)
       return
     }
-    setLoading(true)
+    if (actionInProgress) return
+    setActionInProgress(true)
     try {
       await db.updateCOR(corData.id, { cor_number: newCorNumber.trim() })
-      setCORData({ ...corData, cor_number: newCorNumber.trim() })
+      setCORData(prev => ({ ...prev, cor_number: newCorNumber.trim() }))
       setEditingNumber(false)
       onShowToast?.('COR number updated', 'success')
     } catch (error) {
       console.error('Error updating COR number:', error)
       onShowToast?.('Error updating COR number', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
@@ -885,24 +903,24 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
           <div className="footer-actions" role="group" aria-label="COR actions">
             {canEdit && (
-              <button className="btn btn-secondary" onClick={() => onEdit?.(corData)} disabled={loading} aria-label="Edit this COR">
+              <button className="btn btn-secondary" onClick={() => onEdit?.(corData)} disabled={actionInProgress} aria-label="Edit this COR">
                 <Edit3 size={16} aria-hidden="true" /> Edit
               </button>
             )}
 
             {canApprove && (
               <>
-                <button className="btn btn-danger" onClick={handleReject} disabled={loading} aria-label="Reject this COR">
+                <button className="btn btn-danger" onClick={handleReject} disabled={actionInProgress} aria-label="Reject this COR">
                   <XCircle size={16} aria-hidden="true" /> Reject
                 </button>
-                <button className="btn btn-success" onClick={handleApprove} disabled={loading} aria-label="Approve this COR">
+                <button className="btn btn-success" onClick={handleApprove} disabled={actionInProgress} aria-label="Approve this COR">
                   <CheckCircle size={16} aria-hidden="true" /> Approve
                 </button>
               </>
             )}
 
             {canSign && (
-              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={loading} aria-label="Get GC signature for this COR">
+              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={actionInProgress} aria-label="Get GC signature for this COR">
                 <PenTool size={16} aria-hidden="true" /> Get GC Signature
               </button>
             )}
@@ -912,7 +930,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
               <button
                 className="btn btn-secondary"
                 onClick={() => setShowSignatureLink(true)}
-                disabled={loading}
+                disabled={actionInProgress}
                 aria-label="Get shareable signature link"
               >
                 <Link size={16} aria-hidden="true" /> Get Signature Link
@@ -920,12 +938,12 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             )}
 
             {corData.status === 'approved' && (
-              <button className="btn btn-primary" onClick={handleMarkBilled} disabled={loading} aria-label="Mark this COR as billed">
+              <button className="btn btn-primary" onClick={handleMarkBilled} disabled={actionInProgress} aria-label="Mark this COR as billed">
                 <DollarSign size={16} aria-hidden="true" /> Mark Billed
               </button>
             )}
 
-            <button className="btn btn-ghost btn-small" onClick={() => exportCORDetail(corData, project)} aria-label="Export COR to CSV">
+            <button className="btn btn-ghost btn-small" onClick={() => { try { exportCORDetail(corData, project) } catch (e) { console.error('CSV export error:', e); onShowToast?.('Error exporting CSV', 'error') } }} aria-label="Export COR to CSV">
               <Download size={16} aria-hidden="true" /> Export CSV
             </button>
             <button className="btn btn-secondary" onClick={handleExportPDF} aria-label="Export COR to PDF">

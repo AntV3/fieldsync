@@ -202,21 +202,21 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       })
       setDynamicWorkers(updatedDynamic)
     } else {
-      setSupervision(supervision.map(s => {
+      setSupervision(prev => prev.map(s => {
         if (s && s.name && s.name.trim()) {
           updatedCount++
           return { ...s, timeStarted, timeEnded, hours, overtimeHours }
         }
         return s
       }))
-      setOperators(operators.map(o => {
+      setOperators(prev => prev.map(o => {
         if (o && o.name && o.name.trim()) {
           updatedCount++
           return { ...o, timeStarted, timeEnded, hours, overtimeHours }
         }
         return o
       }))
-      setLaborers(laborers.map(l => {
+      setLaborers(prev => prev.map(l => {
         if (l && l.name && l.name.trim()) {
           updatedCount++
           return { ...l, timeStarted, timeEnded, hours, overtimeHours }
@@ -775,7 +775,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     if (photo?.previewUrl) {
       URL.revokeObjectURL(photo.previewUrl)
     }
-    setPhotos(photos.filter(p => p.id !== photoId))
+    setPhotos(prev => prev.filter(p => p.id !== photoId))
   }
 
   // Computed values for summaries
@@ -847,6 +847,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Submit
   const handleSubmit = async () => {
+    // Guard against double-submit
+    if (submitting) return
+
     if (!submittedByName.trim()) {
       onShowToast('Enter your name to submit', 'error')
       return
@@ -965,17 +968,23 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }
       }
 
-      setSubmitProgress('Saving workers...')
-      await db.addTMWorkers(ticket.id, allWorkersForSubmit)
+      try {
+        setSubmitProgress('Saving workers...')
+        await db.addTMWorkers(ticket.id, allWorkersForSubmit)
 
-      if (items.length > 0) {
-        setSubmitProgress('Saving materials...')
-        await db.addTMItems(ticket.id, items.map(item => ({
-          material_equipment_id: item.material_equipment_id,
-          custom_name: item.custom_name || null,
-          custom_category: item.custom_category || null,
-          quantity: item.quantity
-        })))
+        if (items.length > 0) {
+          setSubmitProgress('Saving materials...')
+          await db.addTMItems(ticket.id, items.map(item => ({
+            material_equipment_id: item.material_equipment_id,
+            custom_name: item.custom_name || null,
+            custom_category: item.custom_category || null,
+            quantity: item.quantity
+          })))
+        }
+      } catch (workerItemsError) {
+        // Tag the error with ticketId so the outer catch can clean up the orphan
+        workerItemsError._ticketId = ticket.id
+        throw workerItemsError
       }
 
       if (selectedCorId) {
@@ -1001,6 +1010,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       setStep(5)
     } catch (error) {
       console.error('Error submitting T&M:', error)
+      // If ticket was created but workers/items failed, clean up the orphaned ticket
+      if (error._ticketId) {
+        try {
+          await db.deleteTMTicket(error._ticketId)
+        } catch (cleanupErr) {
+          console.error('Failed to clean up orphaned ticket:', cleanupErr)
+        }
+      }
       onShowToast('Error submitting T&M', 'error')
     } finally {
       setSubmitting(false)
