@@ -6,7 +6,9 @@ const LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', icon: '🧱' },
   { value: 'trash', label: 'Trash', icon: '🗑️' },
   { value: 'metals', label: 'Metals', icon: '🔩' },
-  { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' }
+  { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' },
+  { value: 'copper', label: 'Copper', icon: '🔶' },
+  { value: 'asphalt', label: 'Asphalt', icon: '🛣️' }
 ]
 
 const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
