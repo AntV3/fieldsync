@@ -332,7 +332,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
 
     try {
-      // Fetch detailed project data in parallel (12 queries for 1 project, not 12N)
+      // Fetch detailed project data in parallel (15 queries for 1 project, not 15N)
       const [
         projectAreas,
         tickets,
@@ -346,7 +346,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         crewHistory,
         materialRequests,
         weeklyDisposal,
-        projectEquipment
+        projectEquipment,
+        projectInvoices,
+        punchListItems
       ] = await Promise.all([
         safeAsync(() => db.getAreas(project.id), { fallback: [], context: { operation: 'getAreas', projectId: project.id } }),
         safeAsync(() => db.getTMTickets(project.id), { fallback: [], context: { operation: 'getTMTickets', projectId: project.id } }),
@@ -360,7 +362,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getCrewCheckinHistory(project.id, 60), { fallback: [], context: { operation: 'getCrewCheckinHistory', projectId: project.id } }),
         safeAsync(() => db.getMaterialRequests(project.id), { fallback: [], context: { operation: 'getMaterialRequests', projectId: project.id } }),
         safeAsync(() => db.getWeeklyDisposalSummary(project.id, 4), { fallback: [], context: { operation: 'getWeeklyDisposalSummary', projectId: project.id } }),
-        safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } })
+        safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } }),
+        safeAsync(() => db.getProjectInvoices(project.id), { fallback: [], context: { operation: 'getProjectInvoices', projectId: project.id } }),
+        safeAsync(() => db.getPunchListItems(project.id), { fallback: [], context: { operation: 'getPunchListItems', projectId: project.id } })
       ])
 
       // Calculate progress - use SOV values if available
@@ -417,6 +421,25 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       // Project equipment rental costs (daily rate * days on site, stored in cents)
       const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
       const allCostsTotal = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
+
+      // Total billed from invoices (for cash flow analytics)
+      const totalBilled = (projectInvoices || [])
+        .filter(inv => inv.status !== 'draft')
+        .reduce((sum, inv) => sum + (parseFloat(inv.total) || parseFloat(inv.amount) || 0), 0)
+
+      // Crew check-ins formatted for resource analytics (with worker_count for each entry)
+      const crewCheckins = (crewHistory || []).map(checkin => ({
+        ...checkin,
+        worker_count: (checkin.workers || []).length,
+      }))
+
+      // Recent injury count (last 30 days) for benchmark comparison
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const recentInjuryCount = injuryReports.filter(r => {
+        const incidentDate = new Date(r.incident_date || r.created_at)
+        return incidentDate >= thirtyDaysAgo
+      }).length
 
       // Profit calculations
       const currentProfit = billable - allCostsTotal
@@ -566,7 +589,15 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         // Safety analytics
         daysSinceLastInjury,
         injuryReports,
+        recentInjuryCount,
         oshaRecordable: injuryReports.filter(r => r.osha_recordable).length,
+        // Invoices & billing analytics
+        invoices: projectInvoices || [],
+        totalBilled,
+        // Crew check-ins for resource analytics
+        crewCheckins,
+        // Punch list items
+        punchListItems: punchListItems || [],
         // Completion
         completedAreasCount: completedAreas.length,
         hasError: false,
@@ -667,6 +698,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           hasScheduleData: false,
           hasLaborData: false,
           actualManDays: 0,
+          // Analytics data - loaded on-demand when selected
+          invoices: [],
+          totalBilled: 0,
+          crewCheckins: [],
+          punchListItems: [],
+          recentInjuryCount: 0,
           hasError: false,
           _detailsLoaded: false // Flag to indicate detailed data needs loading
         }
