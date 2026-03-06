@@ -43,16 +43,23 @@ export default function ProjectHealthOverview({
     : 'critical'
 
   return (
-    <div className="health-overview">
+    <div className="health-overview health-overview--executive">
       <div className="health-overview__header">
         <div className="health-overview__title-row">
-          <Activity size={20} />
-          <h3 className="health-overview__title">Project Health</h3>
+          <div className="health-overview__title-icon">
+            <Activity size={20} />
+          </div>
+          <div>
+            <h3 className="health-overview__title">Project Health</h3>
+            <span className="health-overview__subtitle">Real-time status across all dimensions</span>
+          </div>
         </div>
         {overallScore !== null && (
           <OverallHealthBadge score={overallScore} status={overallStatus} />
         )}
       </div>
+
+      <div className="health-overview__section-divider" />
 
       <div className="health-overview__signals">
         <HealthSignal
@@ -61,6 +68,7 @@ export default function ProjectHealthOverview({
           status={budgetHealth.status}
           value={budgetHealth.value}
           detail={budgetHealth.detail}
+          score={budgetHealth.score}
         />
         <HealthSignal
           label="Schedule"
@@ -68,6 +76,7 @@ export default function ProjectHealthOverview({
           status={scheduleHealth.status}
           value={scheduleHealth.value}
           detail={scheduleHealth.detail}
+          score={scheduleHealth.score}
         />
         <HealthSignal
           label="Cash Flow"
@@ -75,6 +84,7 @@ export default function ProjectHealthOverview({
           status={cashFlowHealth.status}
           value={cashFlowHealth.value}
           detail={cashFlowHealth.detail}
+          score={cashFlowHealth.score}
         />
         <HealthSignal
           label="Resources"
@@ -82,21 +92,30 @@ export default function ProjectHealthOverview({
           status={resourceHealth.status}
           value={resourceHealth.value}
           detail={resourceHealth.detail}
+          score={resourceHealth.score}
         />
       </div>
 
       {/* Key alerts - only show if there are actionable issues */}
       {signals.some(s => s.status === 'critical' || s.status === 'warning') && (
-        <div className="health-overview__alerts">
-          {signals
-            .filter(s => s.status === 'critical' || s.status === 'warning')
-            .map((s, i) => (
-              <div key={i} className={`health-alert health-alert--${s.status}`}>
-                <AlertTriangle size={14} />
-                <span>{s.alert}</span>
-              </div>
-            ))}
-        </div>
+        <>
+          <div className="health-overview__section-divider" />
+          <div className="health-overview__alerts">
+            <span className="health-overview__alerts-title">Action Items</span>
+            {signals
+              .filter(s => s.status === 'critical' || s.status === 'warning')
+              .map((s, i) => (
+                <div key={i} className={`health-alert health-alert--${s.status}`}>
+                  <div className="health-alert__icon-wrap">
+                    {s.status === 'critical' && <span className="health-alert__pulse health-alert__pulse--critical" />}
+                    {s.status === 'warning' && <span className="health-alert__pulse health-alert__pulse--warning" />}
+                    <AlertTriangle size={14} />
+                  </div>
+                  <span>{s.alert}</span>
+                </div>
+              ))}
+          </div>
+        </>
       )}
     </div>
   )
@@ -114,16 +133,94 @@ function OverallHealthBadge({ score, status }) {
     critical: 'At Risk',
   }
 
+  const color = colors[status]
+  const radius = 36
+  const strokeWidth = 5
+  const size = 88
+  const center = size / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = (score / 100) * circumference
+  const dashOffset = circumference - progress
+
   return (
-    <div className="health-badge" style={{ color: colors[status], borderColor: colors[status] }}>
-      {status === 'healthy' ? <CheckCircle2 size={14} /> : status === 'warning' ? <AlertTriangle size={14} /> : <XCircle size={14} />}
-      <span className="health-badge__score">{score}</span>
-      <span className="health-badge__label">{labels[status]}</span>
+    <div className={`health-badge-v2 health-badge-v2--${status}`}>
+      <div className="health-badge-v2__gauge">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          {/* Background glow */}
+          <defs>
+            <filter id={`health-glow-${status}`} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <linearGradient id={`health-grad-${status}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={color} stopOpacity="1" />
+              <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+            </linearGradient>
+          </defs>
+          {/* Track circle */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke="var(--bg-secondary)"
+            strokeWidth={strokeWidth + 1}
+            opacity="0.5"
+          />
+          {/* Progress arc */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke={`url(#health-grad-${status})`}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            transform={`rotate(-90 ${center} ${center})`}
+            filter={`url(#health-glow-${status})`}
+            style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          />
+          {/* Score text */}
+          <text
+            x={center}
+            y={center - 4}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill={color}
+            fontSize="22"
+            fontWeight="700"
+            fontFamily="inherit"
+          >
+            {score}
+          </text>
+          <text
+            x={center}
+            y={center + 14}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="var(--text-muted)"
+            fontSize="9"
+            fontWeight="500"
+            fontFamily="inherit"
+            letterSpacing="0.05em"
+          >
+            / 100
+          </text>
+        </svg>
+      </div>
+      <div className={`health-badge-v2__label health-badge-v2__label--${status}`}>
+        {status === 'critical' && <span className="health-badge-v2__pulse health-badge-v2__pulse--critical" />}
+        {status === 'warning' && <span className="health-badge-v2__pulse health-badge-v2__pulse--warning" />}
+        {status === 'healthy' ? <CheckCircle2 size={13} /> : status === 'warning' ? <AlertTriangle size={13} /> : <XCircle size={13} />}
+        <span>{labels[status]}</span>
+      </div>
     </div>
   )
 }
 
-function HealthSignal({ label, icon: Icon, status, value, detail }) {
+function HealthSignal({ label, icon: Icon, status, value, detail, score }) {
   const statusColors = {
     healthy: 'var(--status-success)',
     warning: 'var(--status-warning)',
@@ -136,18 +233,39 @@ function HealthSignal({ label, icon: Icon, status, value, detail }) {
     : status === 'critical' ? XCircle
     : Minus
 
+  // Mini sparkline bar segments (visual-only indicator of score)
+  const barSegments = 5
+  const filledSegments = Math.round((score || 0) / 100 * barSegments)
+
   return (
-    <div className={`health-signal health-signal--${status}`}>
-      <div className="health-signal__icon-row">
-        <Icon size={16} style={{ color: statusColors[status] }} />
-        <span className="health-signal__label">{label}</span>
-      </div>
-      <div className="health-signal__value" style={{ color: statusColors[status] }}>
-        {value}
-      </div>
-      <div className="health-signal__detail">{detail}</div>
-      <div className="health-signal__indicator">
-        <StatusIcon size={12} style={{ color: statusColors[status] }} />
+    <div className={`health-signal health-signal--${status} health-signal--v2`}>
+      <div className="health-signal__gradient-bg" />
+      <div className="health-signal__content">
+        <div className="health-signal__icon-row">
+          <div className="health-signal__icon-badge" style={{ color: statusColors[status] }}>
+            <Icon size={16} />
+          </div>
+          <span className="health-signal__label">{label}</span>
+          {(status === 'critical' || status === 'warning') && (
+            <span className={`health-signal__pulse health-signal__pulse--${status}`} />
+          )}
+        </div>
+        <div className="health-signal__value" style={{ color: statusColors[status] }}>
+          {value}
+        </div>
+        <div className="health-signal__detail">{detail}</div>
+        <div className="health-signal__sparkline">
+          {Array.from({ length: barSegments }).map((_, i) => (
+            <span
+              key={i}
+              className={`health-signal__spark-segment ${i < filledSegments ? 'health-signal__spark-segment--filled' : ''}`}
+              style={i < filledSegments ? { backgroundColor: statusColors[status] } : undefined}
+            />
+          ))}
+        </div>
+        <div className="health-signal__indicator">
+          <StatusIcon size={12} style={{ color: statusColors[status] }} />
+        </div>
       </div>
     </div>
   )

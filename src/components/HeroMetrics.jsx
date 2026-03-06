@@ -16,6 +16,30 @@ const formatCurrency = (amount) => {
   }).format(amount || 0)
 }
 
+/** Decorative spark line SVG watermark for bottom-right corner of cards */
+const SparkLineWatermark = ({ color }) => (
+  <svg
+    className="hero-metric-sparkline"
+    viewBox="0 0 60 24"
+    fill="none"
+    aria-hidden="true"
+  >
+    <path
+      d="M0 18 L8 14 L16 16 L24 8 L32 12 L40 4 L48 10 L56 2 L60 6"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity="0.18"
+    />
+  </svg>
+)
+
+/** Subtle green pulse dot for positive profit */
+const PulseIndicator = () => (
+  <span className="hero-metric-pulse" aria-label="Positive profit indicator" />
+)
+
 const MetricCard = memo(function MetricCard({
   icon: Icon,
   label,
@@ -26,7 +50,8 @@ const MetricCard = memo(function MetricCard({
   progressLabel,
   variant = 'default', // 'default' | 'success' | 'warning' | 'danger'
   trend,
-  previousValue
+  previousValue,
+  showPulse = false
 }) {
   const variantColors = {
     default: 'var(--accent-blue)',
@@ -42,17 +67,34 @@ const MetricCard = memo(function MetricCard({
     danger: 'var(--red-subtle)'
   }
 
+  const color = variantColors[variant]
+  const bg = variantBgs[variant]
+
   return (
-    <div className={`hero-metric-card hover-lift animate-fade-in-up`}>
+    <div
+      className="hero-metric-card hover-lift animate-fade-in-up"
+      style={{ borderTop: `2px solid ${color}` }}
+    >
       <div className="hero-metric-header">
-        <div className="hero-metric-icon" style={{ color: variantColors[variant], background: variantBgs[variant] }}>
-          <Icon size={18} />
+        <div
+          className="hero-metric-icon"
+          style={{
+            color,
+            background: bg,
+            boxShadow: `0 0 12px ${color}33, 0 0 4px ${color}22`
+          }}
+        >
+          <Icon size={20} />
         </div>
         <span className="hero-metric-label">{label}</span>
+        {showPulse && <PulseIndicator />}
       </div>
 
       <div className="hero-metric-value-row">
-        <span className={`hero-metric-value hero-metric-${variant}`}>
+        <span
+          className={`hero-metric-value hero-metric-value--prominent hero-metric-${variant}`}
+          style={{ background: `${color}0D`, padding: '0.1em 0.35em', borderRadius: '6px' }}
+        >
           {formattedValue}
         </span>
         {trend !== undefined && previousValue !== undefined && (
@@ -66,7 +108,9 @@ const MetricCard = memo(function MetricCard({
       </div>
 
       {subLabel && (
-        <span className="hero-metric-sublabel">{subLabel}</span>
+        <span className="hero-metric-sublabel hero-metric-pill" style={{ background: bg, color }}>
+          {subLabel}
+        </span>
       )}
 
       {progress !== undefined && (
@@ -83,6 +127,9 @@ const MetricCard = memo(function MetricCard({
           )}
         </div>
       )}
+
+      {/* Decorative sparkline watermark */}
+      <SparkLineWatermark color={color} />
     </div>
   )
 })
@@ -171,6 +218,7 @@ export default memo(function HeroMetrics({
         variant={profitVariant}
         previousValue={previousData?.profit}
         trend={previousData ? profit : undefined}
+        showPulse={profit > 0}
       />
     </div>
   )
