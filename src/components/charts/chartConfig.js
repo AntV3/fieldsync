@@ -46,6 +46,8 @@ export const tooltipStyle = {
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
     padding: '12px 16px',
+    zIndex: 'var(--z-tooltip)',
+    position: 'relative',
   },
   labelStyle: {
     color: 'var(--text-primary)',

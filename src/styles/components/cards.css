@@ -17,7 +17,7 @@
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Subtle surface gradient overlay for depth */
@@ -242,7 +242,7 @@
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .burn-rate-card::after,
@@ -365,7 +365,7 @@
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease, visibility 0.15s ease;
-  z-index: 100;
+  z-index: var(--z-tooltip);
 }
 
 /* Tooltip arrow */

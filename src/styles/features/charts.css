@@ -12,7 +12,7 @@
   box-shadow: var(--shadow-card);
   transition: all var(--transition-smooth);
   animation: chartFadeIn 0.4s ease;
-  overflow: hidden;
+  overflow: visible;
   min-width: 0;
   position: relative;
 }
@@ -141,7 +141,7 @@
 /* Chart Container */
 .chart-container {
   margin: 0 -0.5rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Quick Stats Row */
@@ -180,6 +180,8 @@
   padding: 0.875rem 1rem;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   min-width: 180px;
+  z-index: var(--z-tooltip);
+  position: relative;
 }
 
 .chart-tooltip-date {
@@ -256,6 +258,7 @@
 /* Recharts overrides */
 .recharts-tooltip-wrapper {
   outline: none !important;
+  z-index: var(--z-tooltip) !important;
 }
 
 .recharts-legend-wrapper {

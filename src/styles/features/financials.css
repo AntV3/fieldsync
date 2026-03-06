@@ -27,7 +27,7 @@
   box-shadow: var(--shadow-card);
   transition: all var(--transition-smooth);
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -553,7 +553,7 @@
   box-shadow: var(--shadow-card);
   transition: all var(--transition-smooth);
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
