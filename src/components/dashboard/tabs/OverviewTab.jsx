@@ -76,8 +76,8 @@ export default function OverviewTab({
           totalCosts={projectData?.allCostsTotal || 0}
           laborCost={projectData?.laborCost || 0}
           disposalCost={projectData?.haulOffCost || 0}
-          equipmentCost={projectData?.materialsEquipmentCost || 0}
-          materialsCost={0}
+          equipmentCost={projectData?.projectEquipmentCost || 0}
+          materialsCost={projectData?.materialsEquipmentCost || 0}
           otherCost={projectData?.customCostTotal || 0}
           contractValue={revisedContractValue}
         />

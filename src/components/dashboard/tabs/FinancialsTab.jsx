@@ -157,6 +157,9 @@ export default function FinancialsTab({
                   daysWorked={projectData?.totalBurnDays || 0}
                   laborCost={projectData?.laborCost || 0}
                   materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                  projectEquipmentCost={projectData?.projectEquipmentCost || 0}
+                  disposalCost={projectData?.haulOffCost || 0}
+                  customCostTotal={projectData?.customCostTotal || 0}
                   progress={progress}
                   contractValue={revisedContractValue}
                   laborByDate={projectData?.laborByDate || []}
@@ -174,6 +177,7 @@ export default function FinancialsTab({
                 laborCost={projectData?.laborCost || 0}
                 haulOffCost={projectData?.haulOffCost || 0}
                 materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                projectEquipmentCost={projectData?.projectEquipmentCost || 0}
                 customCosts={projectData?.customCosts || []}
                 onAddCost={onAddCost}
                 onDeleteCost={onDeleteCost}
