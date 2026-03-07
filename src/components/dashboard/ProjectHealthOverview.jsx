@@ -51,8 +51,10 @@ export default function ProjectHealthOverview({
             <Activity size={20} />
           </div>
           <div>
-            <h3 className="health-overview__title">Project Health</h3>
-            <InfoTooltip text="Overall score = average of Budget, Schedule, Cash Flow, and Resource scores (0–100). Healthy ≥ 75, Warning ≥ 50, Critical < 50" size={13} />
+            <div className="health-overview__title-with-tooltip">
+              <h3 className="health-overview__title">Project Health</h3>
+              <InfoTooltip text="Overall score = average of Budget, Schedule, Cash Flow, and Resource scores (0–100). Healthy ≥ 75, Warning ≥ 50, Critical < 50" size={13} />
+            </div>
             <span className="health-overview__subtitle">Real-time status across all dimensions</span>
           </div>
         </div>

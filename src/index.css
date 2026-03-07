@@ -24119,6 +24119,12 @@ END MIGRATED */
   margin-bottom: 0.875rem;
 }
 
+.profitability-title-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .profitability-header h3 {
   margin: 0;
   font-size: 0.95rem;
