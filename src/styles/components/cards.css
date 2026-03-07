@@ -17,7 +17,7 @@
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* Subtle surface gradient overlay for depth */
@@ -242,7 +242,7 @@
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .burn-rate-card::after,
@@ -337,65 +337,55 @@
   opacity: 0.6;
   transition: opacity 0.15s ease, color 0.15s ease;
   flex-shrink: 0;
+  outline: none;
 }
 
-.info-tooltip-wrapper:hover .info-tooltip-icon {
+.info-tooltip-wrapper:hover .info-tooltip-icon,
+.info-tooltip-icon:focus {
   opacity: 1;
   color: var(--text-secondary, #6b7280);
 }
 
-.info-tooltip-bubble {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+/* Fixed-position tooltip bubble — escapes all overflow/stacking contexts */
+.info-tooltip-bubble--fixed {
+  position: fixed;
+  transform: translateX(-50%) translateY(-100%) translateY(-10px);
   background: var(--bg-card, #1f2937);
   color: var(--text-primary, #f3f4f6);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #374151);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   white-space: normal;
   width: max-content;
-  max-width: 260px;
+  max-width: 280px;
   pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
-  z-index: var(--z-tooltip);
+  z-index: 9999;
+  animation: tooltipFadeIn 0.12s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-100%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(-100%) translateY(-10px); }
 }
 
 /* Tooltip arrow */
-.info-tooltip-bubble::after {
+.info-tooltip-bubble--fixed::after {
   content: '';
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border: 5px solid transparent;
+  border: 6px solid transparent;
   border-top-color: var(--border-color, #374151);
-}
-
-.info-tooltip-wrapper:hover .info-tooltip-bubble {
-  opacity: 1;
-  visibility: visible;
 }
 
 /* Keep tooltip on screen when near left/right edges */
 @media (max-width: 640px) {
-  .info-tooltip-bubble {
-    left: auto;
-    right: -8px;
-    transform: none;
+  .info-tooltip-bubble--fixed {
     max-width: 220px;
-  }
-
-  .info-tooltip-bubble::after {
-    left: auto;
-    right: 12px;
-    transform: none;
   }
 }
