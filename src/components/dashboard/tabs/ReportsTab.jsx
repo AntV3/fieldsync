@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, Users, Shield, Package, Truck, FileText, Camera, HardHat, DollarSign, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
+import { ClipboardList, Users, Shield, Package, Truck, HardHat, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { TicketSkeleton } from '../../ui'
 
@@ -39,19 +39,27 @@ export default function ReportsTab({
             </div>
           </div>
           <div className="reports-metric">
-            <div className="reports-metric-value">{projectData?.totalTickets || 0}</div>
-            <div className="reports-metric-label">Time & Material</div>
-            {(projectData?.pendingTickets || 0) > 0 && (
-              <div className="reports-metric-status" style={{ background: '#fef3c7', color: '#92400e' }}>
-                {projectData.pendingTickets} pending
-              </div>
-            )}
+            <div className="reports-metric-icon">
+              <HardHat size={24} />
+            </div>
+            <div className="reports-metric-content">
+              <div className="reports-metric-value">{projectData?.completedAreasCount || 0}/{areas.length}</div>
+              <div className="reports-metric-label">Areas Complete</div>
+            </div>
           </div>
           <div className="reports-metric">
             <div className="reports-metric-value">{projectData?.totalPhotosFromTickets || 0}</div>
             <div className="reports-metric-label">Photos Captured</div>
           </div>
         </div>
+        {projectData?.lastDailyReport && (
+          <div className="reports-hero-footer">
+            <span className="reports-last-filed">
+              Last report: {new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {' '}({Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))}d ago)
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Two-Column Layout: Crew + Safety */}
@@ -276,70 +284,6 @@ export default function ReportsTab({
                 )}
               </>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Field Activity Summary */}
-      <div className="reports-insight-card reports-activity-summary">
-        <div className="reports-insight-header">
-          <div className="reports-insight-title">
-            <ClipboardList size={18} />
-            <h3>Field Activity Summary</h3>
-          </div>
-          <div className="reports-activity-badges">
-            {projectData?.lastDailyReport && (
-              <span className="reports-last-filed">
-                Last report: {new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                {' '}({Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))}d ago)
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="reports-insight-body">
-          <div className="reports-activity-grid">
-            <div className="reports-activity-stat">
-              <div className="reports-activity-stat-icon"><ClipboardList size={16} /></div>
-              <div className="reports-activity-stat-info">
-                <strong>{projectData?.dailyReportsCount || 0}</strong>
-                <span>Daily Reports Filed</span>
-              </div>
-            </div>
-            <div className="reports-activity-stat">
-              <div className="reports-activity-stat-icon"><FileText size={16} /></div>
-              <div className="reports-activity-stat-info">
-                <strong>{projectData?.totalTickets || 0}</strong>
-                <span>Time & Material Tickets</span>
-              </div>
-            </div>
-            <div className="reports-activity-stat">
-              <div className="reports-activity-stat-icon"><Camera size={16} /></div>
-              <div className="reports-activity-stat-info">
-                <strong>{projectData?.totalPhotosFromTickets || 0}</strong>
-                <span>Photos Documented</span>
-              </div>
-            </div>
-            <div className="reports-activity-stat">
-              <div className="reports-activity-stat-icon"><HardHat size={16} /></div>
-              <div className="reports-activity-stat-info">
-                <strong>{projectData?.completedAreasCount || 0}/{areas.length}</strong>
-                <span>Work Areas Complete</span>
-              </div>
-            </div>
-            <div className="reports-activity-stat">
-              <div className="reports-activity-stat-icon"><DollarSign size={16} /></div>
-              <div className="reports-activity-stat-info">
-                <strong>{formatCurrency(projectData?.allCostsTotal || 0)}</strong>
-                <span>Total Costs Tracked</span>
-              </div>
-            </div>
-            <div className="reports-activity-stat">
-              <div className="reports-activity-stat-icon"><Users size={16} /></div>
-              <div className="reports-activity-stat-info">
-                <strong>{projectData?.laborManDays || 0}</strong>
-                <span>Total Man-Days</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
