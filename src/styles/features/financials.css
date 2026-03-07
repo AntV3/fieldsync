@@ -68,6 +68,11 @@
   color: var(--accent-amber);
 }
 
+/* Remove double spacing - parent gap handles it */
+.burn-rate-title .info-tooltip-wrapper {
+  margin-left: 0;
+}
+
 .burn-status {
   display: flex;
   align-items: center;
@@ -588,6 +593,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.875rem;
+}
+
+.profitability-title-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .profitability-header h3 {

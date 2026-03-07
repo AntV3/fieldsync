@@ -328,8 +328,19 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   margin-left: 4px;
   cursor: help;
+  flex-shrink: 0;
+  /* Fixed dimensions prevent the icon from overlapping adjacent elements */
+  width: max-content;
+  height: max-content;
+  min-width: 16px;
+  min-height: 16px;
+  vertical-align: middle;
+  /* Isolate from parent stacking/overflow */
+  isolation: isolate;
+  z-index: 1;
 }
 
 .info-tooltip-icon {
@@ -338,6 +349,7 @@
   transition: opacity 0.15s ease, color 0.15s ease;
   flex-shrink: 0;
   outline: none;
+  display: block;
 }
 
 .info-tooltip-wrapper:hover .info-tooltip-icon,

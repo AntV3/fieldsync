@@ -49,12 +49,19 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
 }
 
 .risk-score__number {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   line-height: 1;
+}
+
+.risk-score__label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .risk-score__label {
@@ -702,6 +709,10 @@
   font-size: var(--font-size-sm);
   color: var(--text-muted);
   min-width: 0;
+}
+
+.projection-card__header .info-tooltip-wrapper {
+  margin-left: 0;
 }
 
 .projection-card__header-icon {
