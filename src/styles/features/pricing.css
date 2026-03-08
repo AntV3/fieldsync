@@ -2091,7 +2091,12 @@
 =================== */
 
 .man-day-costs {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg, 1.5rem);
+}
+
+.man-day-costs.card {
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
 }
 
 .man-day-header {
@@ -2116,6 +2121,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--accent-green);
+  font-variant-numeric: tabular-nums;
 }
 
 .man-day-toggle {

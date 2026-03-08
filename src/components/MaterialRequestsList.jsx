@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Package, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { parseLocalDate } from '../lib/utils'
+import { EmptyState } from './ui'
 
 export default function MaterialRequestsList({ project, company, onShowToast }) {
   const [requests, setRequests] = useState([])
@@ -351,15 +352,16 @@ export default function MaterialRequestsList({ project, company, onShowToast }) 
       </div>
 
       {filteredRequests.length === 0 ? (
-        <div className="material-empty-state">
-          <span className="empty-icon"><Package size={32} /></span>
-          <p>No {filter === 'all' ? '' : filter} material requests{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
-          {viewMode === 'recent' && totalRequestsCount > 0 && (
+        <EmptyState
+          icon={Package}
+          title={`No ${filter === 'all' ? '' : filter} material requests${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+          message="Requests from field crews will appear here"
+          action={viewMode === 'recent' && totalRequestsCount > 0 ? (
             <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
               View All Requests
             </button>
-          )}
-        </div>
+          ) : null}
+        />
       ) : (
         <div className="material-requests">
           {/* Render requests - with month grouping in 'all' mode */}

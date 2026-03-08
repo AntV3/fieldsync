@@ -326,7 +326,7 @@ export default function ForemanLanding({
       )}
 
       {/* Pinned Actions Grid */}
-      <div className="fm-pinned-grid">
+      <div className="fm-pinned-grid stagger-children">
         {pinnedIds.map(renderPinnedAction)}
       </div>
 
@@ -551,9 +551,9 @@ export default function ForemanLanding({
           padding: 1.375rem 1rem;
           background: var(--bg-card);
           border: 1px solid var(--border-color);
-          border-radius: 14px;
+          border-radius: var(--radius-xl, 16px);
           cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all var(--transition-normal, 0.25s cubic-bezier(0.4, 0, 0.2, 1));
           min-height: 114px;
           position: relative;
           box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.1));
@@ -594,10 +594,11 @@ export default function ForemanLanding({
         .fm-pinned-card.completed {
           border-color: rgba(34, 197, 94, 0.4);
           background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+          box-shadow: var(--shadow-glow-green, 0 0 20px rgba(16, 185, 129, 0.15));
         }
 
         .fm-pinned-card.completed::before {
-          background: linear-gradient(90deg, #22c55e, #16a34a);
+          background: var(--gradient-green, linear-gradient(90deg, #22c55e, #16a34a));
           opacity: 1;
         }
 

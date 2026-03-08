@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
@@ -8,6 +8,17 @@ import WorkDetailsStep from './tm/WorkDetailsStep'
 import CrewHoursStep from './tm/CrewHoursStep'
 import MaterialsStep from './tm/MaterialsStep'
 import ReviewStep from './tm/ReviewStep'
+
+// Step configuration for the enhanced stepper
+const STEPS = [
+  { num: 1, label: 'Details', shortLabel: 'Info' },
+  { num: 2, label: 'Crew', shortLabel: 'Crew' },
+  { num: 3, label: 'Materials', shortLabel: 'Mat.' },
+  { num: 4, label: 'Review', shortLabel: 'Rev.' }
+]
+
+// Draft auto-save key
+const getDraftKey = (projectId) => `tm_draft_${projectId}`
 
 // Generate secure random ID
 const generateRandomId = () => {
@@ -90,6 +101,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const photosRef = useRef(photos)
   photosRef.current = photos
 
+  // Draft resume state
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false)
+  const [hasDraft, setHasDraft] = useState(false)
+  const draftSaveTimerRef = useRef(null)
+
   // Revoke blob URLs on unmount to prevent ERR_FILE_NOT_FOUND and memory leaks
   useEffect(() => {
     return () => {
@@ -98,6 +114,86 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       })
     }
   }, [])
+
+  // Check for existing draft on mount
+  useEffect(() => {
+    try {
+      const draftKey = getDraftKey(project?.id)
+      const saved = localStorage.getItem(draftKey)
+      if (saved) {
+        setHasDraft(true)
+        setShowDraftPrompt(true)
+      }
+    } catch { /* localStorage unavailable */ }
+  }, [project?.id])
+
+  // Auto-save draft on step changes and input changes (debounced)
+  const saveDraft = useCallback(() => {
+    if (!project?.id || step >= 5) return
+    try {
+      const draftData = {
+        step,
+        workDate,
+        cePcoNumber,
+        notes,
+        supervision: supervision.map(s => ({ name: s.name, hours: s.hours, overtimeHours: s.overtimeHours, role: s.role })),
+        operators: operators.map(o => ({ name: o.name, hours: o.hours, overtimeHours: o.overtimeHours })),
+        laborers: laborers.map(l => ({ name: l.name, hours: l.hours, overtimeHours: l.overtimeHours })),
+        items,
+        submittedByName,
+        selectedCorId,
+        savedAt: Date.now()
+      }
+      localStorage.setItem(getDraftKey(project.id), JSON.stringify(draftData))
+    } catch { /* localStorage unavailable */ }
+  }, [project?.id, step, workDate, cePcoNumber, notes, supervision, operators, laborers, items, submittedByName, selectedCorId])
+
+  // Save draft when step changes
+  useEffect(() => {
+    if (step < 5 && !showDraftPrompt) {
+      saveDraft()
+    }
+  }, [step, saveDraft, showDraftPrompt])
+
+  // Debounced save on input changes
+  useEffect(() => {
+    if (showDraftPrompt) return
+    clearTimeout(draftSaveTimerRef.current)
+    draftSaveTimerRef.current = setTimeout(saveDraft, 1000)
+    return () => clearTimeout(draftSaveTimerRef.current)
+  }, [notes, cePcoNumber, submittedByName, saveDraft, showDraftPrompt])
+
+  // Resume draft
+  const resumeDraft = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(getDraftKey(project?.id)))
+      if (saved) {
+        if (saved.workDate) setWorkDate(saved.workDate)
+        if (saved.cePcoNumber) setCePcoNumber(saved.cePcoNumber)
+        if (saved.notes) setNotes(saved.notes)
+        if (saved.items) setItems(saved.items)
+        if (saved.submittedByName) setSubmittedByName(saved.submittedByName)
+        if (saved.selectedCorId) setSelectedCorId(saved.selectedCorId)
+        if (saved.supervision?.length) setSupervision(saved.supervision.map(s => ({ ...s, timeStarted: '', timeEnded: '' })))
+        if (saved.operators?.length) setOperators(saved.operators.map(o => ({ ...o, timeStarted: '', timeEnded: '' })))
+        if (saved.laborers?.length) setLaborers(saved.laborers.map(l => ({ ...l, timeStarted: '', timeEnded: '' })))
+        if (saved.step && saved.step < 5) setStep(saved.step)
+        onShowToast('Draft restored', 'success')
+      }
+    } catch { /* parse error */ }
+    setShowDraftPrompt(false)
+  }
+
+  // Discard draft
+  const discardDraft = () => {
+    try { localStorage.removeItem(getDraftKey(project?.id)) } catch {}
+    setShowDraftPrompt(false)
+  }
+
+  // Clear draft on successful submit
+  const clearDraft = () => {
+    try { localStorage.removeItem(getDraftKey(project?.id)) } catch {}
+  }
 
   // Load today's crew and assignable CORs on mount
   useEffect(() => {
@@ -1006,6 +1102,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       // They will be cleaned up on component unmount via the photosRef effect.
 
       setSubmittedTicket(ticket)
+      clearDraft()
       onShowToast('Time & Material ticket submitted!', 'success')
       setStep(5)
     } catch (error) {
@@ -1027,6 +1124,27 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   return (
     <div className="tm-wizard">
+      {/* Draft Resume Prompt */}
+      {showDraftPrompt && (
+        <div className="tm-draft-prompt animate-fade-in-down">
+          <div className="tm-draft-prompt-content">
+            <AlertCircle size={20} />
+            <div className="tm-draft-prompt-text">
+              <strong>{t('draftFound') || 'Draft found'}</strong>
+              <span>{t('resumeDraftQuestion') || 'Resume where you left off?'}</span>
+            </div>
+          </div>
+          <div className="tm-draft-prompt-actions">
+            <button className="btn btn-secondary btn-sm" onClick={discardDraft}>
+              {t('startFresh') || 'Start Fresh'}
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={resumeDraft}>
+              {t('resumeDraft') || 'Resume Draft'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="tm-wizard-header">
         {step < 5 ? (
@@ -1062,6 +1180,21 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           )}
         </div>
       </div>
+
+      {/* Enhanced Step Progress Bar */}
+      {step < 5 && (
+        <div className="tm-stepper-bar">
+          {STEPS.map((s, idx) => (
+            <div key={s.num} className={`tm-stepper-step ${step > s.num ? 'completed' : step === s.num ? 'active' : ''}`}>
+              <div className="tm-stepper-circle">
+                {step > s.num ? <Check size={12} /> : s.num}
+              </div>
+              <span className="tm-stepper-label">{s.shortLabel}</span>
+              {idx < STEPS.length - 1 && <div className="tm-stepper-line" />}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Step 1: Work Details */}
       {step === 1 && (

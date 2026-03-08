@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
+import { CardSkeleton } from './ui/Skeleton'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -166,7 +167,10 @@ export default function DailyReport({ project, onShowToast, onClose }) {
           <button className="back-btn-simple" onClick={onClose}>←</button>
           <h2>Daily Report</h2>
         </div>
-        <div className="daily-report-loading">Compiling report...</div>
+        <div style={{ padding: '1rem' }}>
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
       </div>
     )
   }
@@ -201,7 +205,8 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
       {isSubmitted && (
         <div className="daily-report-submitted-banner">
-          ✓ Submitted {new Date(report.submitted_at).toLocaleTimeString()}
+          <CheckCircle size={16} />
+          <span>Report Submitted {new Date(report.submitted_at).toLocaleTimeString()}</span>
         </div>
       )}
 

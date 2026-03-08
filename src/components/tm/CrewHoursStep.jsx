@@ -1,4 +1,5 @@
-import { HardHat, Copy, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { HardHat, Copy, Clock, AlertCircle, Loader2, Search } from 'lucide-react'
 import WorkerRow from './WorkerRow'
 import BatchHoursModal from './BatchHoursModal'
 
@@ -55,6 +56,18 @@ export default function CrewHoursStep({
 }) {
   const namedWorkerCount = namedWorkers.length
 
+  // Crew search filter
+  const [crewSearch, setCrewSearch] = useState('')
+
+  const filteredCrew = useMemo(() => {
+    if (!crewSearch.trim()) return todaysCrew
+    const query = crewSearch.toLowerCase()
+    return todaysCrew.filter(w =>
+      w.name.toLowerCase().includes(query) ||
+      (w.role || '').toLowerCase().includes(query)
+    )
+  }, [todaysCrew, crewSearch])
+
   return (
     <div className="tm-step-content">
       {/* Crew Summary Bar */}
@@ -104,8 +117,21 @@ export default function CrewHoursStep({
             <h4><HardHat size={16} /> {t('selectTMWorkers')}</h4>
             <span className="tm-section-hint">{t('tapToAdd')}</span>
           </div>
+          {/* Search filter for large crews */}
+          {todaysCrew.length > 6 && (
+            <div className="tm-crew-search">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder={t('searchWorkers') || 'Search workers...'}
+                value={crewSearch}
+                onChange={(e) => setCrewSearch(e.target.value)}
+                className="tm-crew-search-input"
+              />
+            </div>
+          )}
           <div className="tm-crew-grid">
-              {todaysCrew.map((worker, index) => {
+              {filteredCrew.map((worker, index) => {
                 // Check if already added (in legacy or dynamic sections)
                 const inLegacy =
                   supervision.some(s => s.name.toLowerCase() === worker.name.toLowerCase()) ||
