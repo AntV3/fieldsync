@@ -74,12 +74,16 @@ export const documentOps = {
   async updateFolder(folderId, updates) {
     const client = getClient()
 
+    // Allowlist: only permit safe fields to be updated
+    const ALLOWED_FIELDS = ['name', 'description', 'icon', 'color', 'sort_order']
+    const filtered = { updated_at: new Date().toISOString() }
+    for (const key of ALLOWED_FIELDS) {
+      if (key in updates) filtered[key] = updates[key]
+    }
+
     const { data, error } = await client
       .from('document_folders')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
+      .update(filtered)
       .eq('id', folderId)
       .select()
       .single()
@@ -95,10 +99,12 @@ export const documentOps = {
     const client = getClient()
 
     // First, unassign all documents from this folder
-    await client
+    const { error: unassignError } = await client
       .from('documents')
       .update({ folder_id: null })
       .eq('folder_id', folderId)
+
+    if (unassignError) throw unassignError
 
     // Then delete the folder
     const { error } = await client
@@ -117,15 +123,20 @@ export const documentOps = {
     const client = getClient()
 
     // folderOrder is array of { id, sort_order }
-    const updates = folderOrder.map(({ id, sort_order }) =>
-      client
-        .from('document_folders')
-        .update({ sort_order, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('project_id', projectId)
+    const results = await Promise.all(
+      folderOrder.map(({ id, sort_order }) =>
+        client
+          .from('document_folders')
+          .update({ sort_order, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .eq('project_id', projectId)
+      )
     )
 
-    await Promise.all(updates)
+    // Check for any errors in the parallel updates
+    for (const result of results) {
+      if (result.error) throw result.error
+    }
     return true
   },
 
@@ -417,10 +428,12 @@ export const documentOps = {
     const newVersion = (versions?.[0]?.version || 1) + 1
 
     // Mark all previous versions as not current
-    await client
+    const { error: markError } = await client
       .from('documents')
       .update({ is_current: false })
       .or(`id.eq.${parentDocumentId},parent_document_id.eq.${parentDocumentId}`)
+
+    if (markError) throw markError
 
     // Upload the new version
     const result = await this.uploadDocument(companyId, projectId, file, {

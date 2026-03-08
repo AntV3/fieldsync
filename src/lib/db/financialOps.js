@@ -52,7 +52,7 @@ export const financialOps = {
       return data
     } catch (error) {
       console.error('Error saving export snapshot:', error)
-      return null
+      throw error
     }
   },
 
@@ -206,10 +206,12 @@ export const financialOps = {
 
     try {
       // Mark previous snapshots as not current
-      await supabase
+      const { error: markError } = await supabase
         .from('cor_export_snapshots')
         .update({ is_current: false })
         .eq('cor_id', snapshot.corId)
+
+      if (markError) throw markError
 
       const user = await supabase.auth.getUser()
 
@@ -235,10 +237,16 @@ export const financialOps = {
       if (error) throw error
 
       // Update COR's last snapshot version
-      await supabase
+      const { error: versionError } = await supabase
         .from('change_orders')
         .update({ last_snapshot_version: snapshot.corVersion })
         .eq('id', snapshot.corId)
+
+      if (versionError) {
+        // Snapshot was inserted but COR version not updated - log and throw
+        observe.error('database', { message: versionError.message, operation: 'saveCORSnapshot:versionUpdate', extra: { corId: snapshot.corId } })
+        throw versionError
+      }
 
       return data
     } catch (error) {
@@ -252,9 +260,11 @@ export const financialOps = {
     if (!isSupabaseConfigured) return
 
     try {
-      await supabase.rpc('update_cor_aggregated_stats', { p_cor_id: corId })
+      const { error } = await supabase.rpc('update_cor_aggregated_stats', { p_cor_id: corId })
+      if (error) throw error
     } catch (error) {
       console.error('Error updating COR aggregated stats:', error)
+      throw error
     }
   },
 
@@ -360,8 +370,11 @@ export const financialOps = {
       return null
     }
 
-    // Increment view count
-    await supabase.rpc('increment_share_view_count', { token })
+    // Increment view count (fire-and-forget is acceptable for analytics)
+    const { error: viewCountError } = await supabase.rpc('increment_share_view_count', { token })
+    if (viewCountError) {
+      console.warn('Failed to increment share view count:', viewCountError)
+    }
 
     return data
   },
@@ -408,9 +421,16 @@ export const financialOps = {
       return localData.projectShares[shareIndex]
     }
 
+    // Allowlist: only permit safe fields to be updated
+    const ALLOWED_FIELDS = ['permissions', 'expires_at', 'is_active']
+    const filtered = { updated_at: new Date().toISOString() }
+    for (const key of ALLOWED_FIELDS) {
+      if (key in updates) filtered[key] = updates[key]
+    }
+
     const { data, error } = await supabase
       .from('project_shares')
-      .update(updates)
+      .update(filtered)
       .eq('id', shareId)
       .select()
       .single()
@@ -712,16 +732,20 @@ export const financialOps = {
   // Bulk set notification preferences for multiple users on a project
   async setProjectNotificationPreferences(projectId, userPreferences) {
     // userPreferences is an array of { userId, notificationTypes }
-    const results = []
-    for (const pref of userPreferences) {
-      if (pref.notificationTypes && pref.notificationTypes.length > 0) {
-        const result = await this.setNotificationPreference(projectId, pref.userId, pref.notificationTypes)
-        results.push(result)
-      } else {
-        await this.removeNotificationPreference(projectId, pref.userId)
-      }
-    }
-    return results
+    // Process in parallel for better performance
+    const toSet = userPreferences.filter(p => p.notificationTypes?.length > 0)
+    const toRemove = userPreferences.filter(p => !p.notificationTypes?.length)
+
+    const [setResults] = await Promise.all([
+      Promise.all(toSet.map(pref =>
+        this.setNotificationPreference(projectId, pref.userId, pref.notificationTypes)
+      )),
+      Promise.all(toRemove.map(pref =>
+        this.removeNotificationPreference(projectId, pref.userId)
+      ))
+    ])
+
+    return setResults
   },
 
   // ============================================
@@ -920,12 +944,16 @@ export const financialOps = {
   // Update a dump site
   async updateDumpSite(dumpSiteId, updates) {
     if (isSupabaseConfigured) {
+      // Allowlist: only permit safe fields to be updated
+      const ALLOWED_FIELDS = ['name', 'address', 'notes', 'active']
+      const filtered = { updated_at: new Date().toISOString() }
+      for (const key of ALLOWED_FIELDS) {
+        if (key in updates) filtered[key] = updates[key]
+      }
+
       const { data, error } = await supabase
         .from('dump_sites')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(filtered)
         .eq('id', dumpSiteId)
         .select()
         .single()
@@ -954,50 +982,25 @@ export const financialOps = {
   // Set rate for a waste type at a dump site
   async setDumpSiteRate(dumpSiteId, wasteType, estimatedCostPerLoad, unit = 'load') {
     if (isSupabaseConfigured) {
-      // First check if rate exists
-      const { data: existing } = await supabase
+      // Use upsert to avoid race condition with check-then-act
+      const { data, error } = await supabase
         .from('dump_site_rates')
-        .select('id')
-        .eq('dump_site_id', dumpSiteId)
-        .eq('waste_type', wasteType)
-        .maybeSingle()
+        .upsert({
+          dump_site_id: dumpSiteId,
+          waste_type: wasteType,
+          estimated_cost_per_load: estimatedCostPerLoad,
+          unit
+        }, {
+          onConflict: 'dump_site_id,waste_type'
+        })
+        .select()
+        .single()
 
-      if (existing) {
-        // Update existing rate
-        const { data, error } = await supabase
-          .from('dump_site_rates')
-          .update({
-            estimated_cost_per_load: estimatedCostPerLoad,
-            unit
-          })
-          .eq('id', existing.id)
-          .select()
-          .single()
-
-        if (error) {
-          console.error('Error updating dump site rate:', error)
-          throw error
-        }
-        return data
-      } else {
-        // Insert new rate
-        const { data, error } = await supabase
-          .from('dump_site_rates')
-          .insert({
-            dump_site_id: dumpSiteId,
-            waste_type: wasteType,
-            estimated_cost_per_load: estimatedCostPerLoad,
-            unit
-          })
-          .select()
-          .single()
-
-        if (error) {
-          console.error('Error inserting dump site rate:', error)
-          throw error
-        }
-        return data
+      if (error) {
+        console.error('Error setting dump site rate:', error)
+        throw error
       }
+      return data
     }
     // Demo mode
     const localData = getLocalData()
@@ -1110,7 +1113,7 @@ export const financialOps = {
   async calculateHaulOffCosts(projectId) {
     const haulOffs = await this.getHaulOffs(projectId)
 
-    let totalCost = 0
+    let totalCostCents = 0
     let totalLoads = 0
     const byWasteType = {}
     const byDate = []
@@ -1119,10 +1122,11 @@ export const financialOps = {
     const dateMap = {}
 
     haulOffs.forEach(h => {
-      const cost = parseFloat(h.estimated_cost) || 0
+      // Convert to integer cents to avoid floating-point accumulation errors
+      const costCents = Math.round((parseFloat(h.estimated_cost) || 0) * 100)
       const loads = parseInt(h.loads) || 0
 
-      totalCost += cost
+      totalCostCents += costCents
       totalLoads += loads
 
       // By waste type
@@ -1130,14 +1134,14 @@ export const financialOps = {
         byWasteType[h.waste_type] = { loads: 0, cost: 0 }
       }
       byWasteType[h.waste_type].loads += loads
-      byWasteType[h.waste_type].cost += cost
+      byWasteType[h.waste_type].cost += costCents / 100
 
       // By date
       if (!dateMap[h.work_date]) {
         dateMap[h.work_date] = { date: h.work_date, loads: 0, cost: 0 }
       }
       dateMap[h.work_date].loads += loads
-      dateMap[h.work_date].cost += cost
+      dateMap[h.work_date].cost += costCents / 100
     })
 
     // Convert dateMap to sorted array
@@ -1147,6 +1151,7 @@ export const financialOps = {
 
     const daysWithHaulOff = byDate.length
 
+    const totalCost = totalCostCents / 100
     return {
       totalCost,
       totalLoads,

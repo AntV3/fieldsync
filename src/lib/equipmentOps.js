@@ -47,9 +47,20 @@ export const equipmentOps = {
       return null
     }
 
+    // Allowlist: only permit expected fields
+    const ALLOWED_FIELDS = [
+      'company_id', 'name', 'description', 'category', 'is_owned', 'is_active',
+      'daily_rate', 'weekly_rate', 'monthly_rate', 'make', 'model',
+      'year', 'serial_number', 'notes'
+    ]
+    const filtered = {}
+    for (const key of ALLOWED_FIELDS) {
+      if (key in equipment) filtered[key] = equipment[key]
+    }
+
     const { data, error } = await supabase
       .from('equipment')
-      .insert(equipment)
+      .insert(filtered)
       .select()
       .single()
 
@@ -70,9 +81,20 @@ export const equipmentOps = {
       return null
     }
 
+    // Allowlist: only permit safe fields to be updated
+    const ALLOWED_FIELDS = [
+      'name', 'description', 'category', 'is_owned', 'is_active',
+      'daily_rate', 'weekly_rate', 'monthly_rate', 'make', 'model',
+      'year', 'serial_number', 'notes'
+    ]
+    const filtered = { updated_at: new Date().toISOString() }
+    for (const key of ALLOWED_FIELDS) {
+      if (key in updates) filtered[key] = updates[key]
+    }
+
     const { data, error } = await supabase
       .from('equipment')
-      .update(updates)
+      .update(filtered)
       .eq('id', equipmentId)
       .select()
       .single()
@@ -199,9 +221,18 @@ export const equipmentOps = {
       return null
     }
 
+    // Allowlist: only permit safe fields to be updated
+    const ALLOWED_FIELDS = [
+      'daily_rate', 'start_date', 'end_date', 'notes', 'status'
+    ]
+    const filtered = { updated_at: new Date().toISOString() }
+    for (const key of ALLOWED_FIELDS) {
+      if (key in updates) filtered[key] = updates[key]
+    }
+
     const { data, error } = await supabase
       .from('project_equipment')
-      .update(updates)
+      .update(filtered)
       .eq('id', projectEquipmentId)
       .select(`
         *,

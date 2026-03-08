@@ -176,6 +176,12 @@ export const drawRequestOps = {
    * Update draw request status
    */
   async updateDrawRequestStatus(drawRequestId, status) {
+    // Validate status is a known enum value
+    const VALID_STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'paid']
+    if (!VALID_STATUSES.includes(status)) {
+      throw new Error(`Invalid draw request status: ${status}`)
+    }
+
     const updates = { status }
 
     // Add timestamp based on status
@@ -275,12 +281,19 @@ export const drawRequestOps = {
     }
 
     // Calculate scheduled value for each area
-    return (data || []).map((area, index) => ({
-      area_id: area.id,
-      item_number: String(index + 1),
-      description: area.name,
-      scheduled_value: Math.round((area.square_footage || 0) * (area.price_per_sqft || 0) * 100) // Convert to cents
-    }))
+    // Convert to cents first to avoid floating-point errors in multiplication
+    return (data || []).map((area, index) => {
+      const sqft = Math.round((area.square_footage || 0) * 100) // cents-per-sqft precision
+      const pricePerSqft = Math.round((area.price_per_sqft || 0) * 100) // cents
+      // sqft (in hundredths) * price (in cents) / 100 = total in cents
+      const scheduledValue = Math.round((sqft * pricePerSqft) / 100)
+      return {
+        area_id: area.id,
+        item_number: String(index + 1),
+        description: area.name,
+        scheduled_value: scheduledValue
+      }
+    })
   },
 
   /**

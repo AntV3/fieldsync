@@ -252,7 +252,7 @@ export const DEFAULT_PERCENTAGES = {
   subcontractors_markup: 500, // 5.00%
   liability_insurance: 144, // 1.44%
   bond: 100, // 1.00%
-  license_fee: 10 // 0.10% (approximation of 0.101%)
+  license_fee: 10 // 0.10%
 }
 
 // Labor classes for dropdown
