@@ -1,94 +1,73 @@
-import { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react'
+import Toast from '../components/Toast'
 
 /**
  * ToastContext - Global toast notification system
- * Eliminates the need to pass onShowToast through props
+ * Supports stacking multiple toasts with proper animations
  *
  * @example
- * // In any component:
  * const { showToast } = useToast()
  * showToast('Operation successful!', 'success')
  */
 
 const ToastContext = createContext(null)
 
-export function ToastProvider({ children }) {
-  const [toast, setToast] = useState(null)
-  const [queue, setQueue] = useState([])
+let toastIdCounter = 0
 
-  const hideToast = useCallback(() => {
-    setToast(null)
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([])
+  const maxToasts = 3
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const showToast = useCallback((message, type = 'info', duration = 3000) => {
-    // If there's already a toast, queue this one
-    if (toast) {
-      setQueue(prev => [...prev, { message, type, duration }])
-      return
-    }
+  const showToast = useCallback((message, type = 'info', duration) => {
+    const id = ++toastIdCounter
+    const newToast = { id, message, type, duration }
 
-    setToast({ message, type, duration })
+    setToasts(prev => {
+      // Keep only the most recent toasts
+      const updated = [...prev, newToast]
+      if (updated.length > maxToasts) {
+        return updated.slice(-maxToasts)
+      }
+      return updated
+    })
 
-    // Auto-dismiss after duration
-    if (duration > 0) {
-      setTimeout(() => {
-        setToast(null)
-      }, duration)
-    }
-  }, [toast])
+    return id
+  }, [])
 
-  // Process queue when current toast is dismissed
-  const processQueue = useCallback(() => {
-    if (queue.length > 0) {
-      const [next, ...rest] = queue
-      setQueue(rest)
-      setTimeout(() => {
-        showToast(next.message, next.type, next.duration)
-      }, 300) // Small delay between toasts
-    }
-  }, [queue, showToast])
-
-  // Handle toast close
-  const handleClose = useCallback(() => {
-    hideToast()
-    processQueue()
-  }, [hideToast, processQueue])
-
-  // Convenience methods for different toast types
-  const success = useCallback((message, duration) => {
-    showToast(message, 'success', duration)
-  }, [showToast])
-
-  const error = useCallback((message, duration) => {
-    showToast(message, 'error', duration)
-  }, [showToast])
-
-  const warning = useCallback((message, duration) => {
-    showToast(message, 'warning', duration)
-  }, [showToast])
-
-  const info = useCallback((message, duration) => {
-    showToast(message, 'info', duration)
-  }, [showToast])
+  // Convenience methods
+  const success = useCallback((message, duration) => showToast(message, 'success', duration), [showToast])
+  const error = useCallback((message, duration) => showToast(message, 'error', duration), [showToast])
+  const warning = useCallback((message, duration) => showToast(message, 'warning', duration), [showToast])
+  const info = useCallback((message, duration) => showToast(message, 'info', duration), [showToast])
 
   const value = useMemo(() => ({
-    toast,
+    toast: toasts[0] || null, // Backward compat
     showToast,
-    hideToast: handleClose,
+    hideToast: () => toasts.length > 0 && removeToast(toasts[0].id),
     success,
     error,
     warning,
     info
-  }), [toast, showToast, handleClose, success, error, warning, info])
+  }), [toasts, showToast, removeToast, success, error, warning, info])
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {toast && (
-        <div className="toast-container">
-          <div className={`toast ${toast.type}`} onClick={handleClose}>
-            {toast.message}
-          </div>
+      {toasts.length > 0 && (
+        <div className="toast-container" role="region" aria-label="Notifications">
+          {toasts.map((t) => (
+            <Toast
+              key={t.id}
+              message={t.message}
+              type={t.type}
+              duration={t.duration}
+              onClose={() => removeToast(t.id)}
+            />
+          ))}
         </div>
       )}
     </ToastContext.Provider>
@@ -98,24 +77,12 @@ export function ToastProvider({ children }) {
 /**
  * useToast - Hook to access toast notifications
  * @returns {Object} Toast controls
- *
- * @example
- * const { showToast, success, error } = useToast()
- *
- * // Generic toast
- * showToast('Message', 'success')
- *
- * // Convenience methods
- * success('Saved successfully!')
- * error('Something went wrong')
  */
 export function useToast() {
   const context = useContext(ToastContext)
-
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider')
   }
-
   return context
 }
 

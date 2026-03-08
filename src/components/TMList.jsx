@@ -4,7 +4,7 @@ import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
-import { TicketSkeleton, CountBadge } from './ui'
+import { TicketSkeleton, CountBadge, EmptyState } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
 import { exportTMTicketsCSV } from '../lib/financialExport'
@@ -1358,14 +1358,16 @@ export default function TMList({
           )}
 
           {filteredTickets.length === 0 ? (
-        <div className="tm-empty-state">
-          <p>No {filter === 'all' ? '' : filter} Time & Material tickets{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
-          {viewMode === 'recent' && totalTicketsCount > 0 && (
+        <EmptyState
+          icon={FileText}
+          title={`No ${filter === 'all' ? '' : filter} T&M tickets${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+          message="T&M tickets created in the field will appear here"
+          action={viewMode === 'recent' && totalTicketsCount > 0 ? (
             <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
               View All Tickets
             </button>
-          )}
-        </div>
+          ) : null}
+        />
       ) : (
         <div className="tm-tickets stagger-children">
           {/* Select All Row */}
