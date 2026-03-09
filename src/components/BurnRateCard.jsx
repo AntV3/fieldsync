@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Flame } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, Flame } from 'lucide-react'
 import { InfoTooltip } from './ui'
 
 // Helper to format currency
@@ -37,6 +37,10 @@ export default function BurnRateCard({
   materialsEquipmentByDate = []
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [showCostDetail, setShowCostDetail] = useState(false)
+
+  // Count how many secondary cost categories exist
+  const secondaryCostCount = [materialsEquipmentCost, projectEquipmentCost, customCostTotal].filter(c => c > 0).length
 
   // Calculate burn status relative to progress
   const expectedBurnAtProgress = contractValue * (progress / 100) * 0.6 // Assume 60% cost ratio as healthy
@@ -118,31 +122,48 @@ export default function BurnRateCard({
           <span className="burn-summary-label">Labor</span>
           <span className="burn-summary-value">{formatCurrency(laborCost)}</span>
         </div>
-        {materialsEquipmentCost > 0 && (
+        {secondaryCostCount > 0 && (
           <>
             <div className="burn-summary-divider"></div>
-            <div className="burn-summary-item">
-              <span className="burn-summary-label">Materials</span>
-              <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
-            </div>
+            <button
+              className="burn-cost-detail-toggle"
+              onClick={() => setShowCostDetail(!showCostDetail)}
+              type="button"
+            >
+              {showCostDetail ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              <span>{secondaryCostCount} more categor{secondaryCostCount === 1 ? 'y' : 'ies'}</span>
+            </button>
           </>
         )}
-        {projectEquipmentCost > 0 && (
+        {showCostDetail && (
           <>
-            <div className="burn-summary-divider"></div>
-            <div className="burn-summary-item">
-              <span className="burn-summary-label">Equipment Rental</span>
-              <span className="burn-summary-value">{formatCurrency(projectEquipmentCost)}</span>
-            </div>
-          </>
-        )}
-        {customCostTotal > 0 && (
-          <>
-            <div className="burn-summary-divider"></div>
-            <div className="burn-summary-item">
-              <span className="burn-summary-label">Other</span>
-              <span className="burn-summary-value">{formatCurrency(customCostTotal)}</span>
-            </div>
+            {materialsEquipmentCost > 0 && (
+              <>
+                <div className="burn-summary-divider"></div>
+                <div className="burn-summary-item">
+                  <span className="burn-summary-label">Materials</span>
+                  <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
+                </div>
+              </>
+            )}
+            {projectEquipmentCost > 0 && (
+              <>
+                <div className="burn-summary-divider"></div>
+                <div className="burn-summary-item">
+                  <span className="burn-summary-label">Equipment Rental</span>
+                  <span className="burn-summary-value">{formatCurrency(projectEquipmentCost)}</span>
+                </div>
+              </>
+            )}
+            {customCostTotal > 0 && (
+              <>
+                <div className="burn-summary-divider"></div>
+                <div className="burn-summary-item">
+                  <span className="burn-summary-label">Other</span>
+                  <span className="burn-summary-value">{formatCurrency(customCostTotal)}</span>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

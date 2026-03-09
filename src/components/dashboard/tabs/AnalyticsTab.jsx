@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { BarChart3, GitBranch, Banknote, Users, Award, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react'
-import { InfoTooltip } from '../../ui'
+import { InfoTooltip, CollapsibleSection } from '../../ui'
 import { ForecastChart, CashFlowChart, ResourceCapacityChart } from '../../charts'
 import { BenchmarkComparison, useCompanyAverages, INDUSTRY_BENCHMARKS } from '../BenchmarkComparison'
 import { ProjectionsPanel } from '../ProjectionCard'
@@ -205,7 +205,14 @@ export default function AnalyticsTab({
       {/* 2. Projections summary */}
       {projections && (
         <div className="analytics-section">
-          <ProjectionsPanel {...projections} />
+          <CollapsibleSection
+            title="Financial Projections"
+            icon={<TrendingUp size={18} />}
+            defaultOpen
+            summary={`Est. cost: $${Math.round((projections.estimatedCompletionCost || 0) / 1000)}K · Margin: ${projections.estimatedFinalMargin?.toFixed(1) ?? '--'}%`}
+          >
+            <ProjectionsPanel {...projections} />
+          </CollapsibleSection>
         </div>
       )}
 
@@ -213,15 +220,16 @@ export default function AnalyticsTab({
 
       {/* 3. Predictive Forecast */}
       <div className="analytics-section">
-        <div className="analytics-section__header">
-          <BarChart3 size={20} className="analytics-section__header-icon" />
-          <h3 className="analytics-section__title">Predictive Forecast</h3>
-          <InfoTooltip text="Uses historical cost and progress trends to project future costs, schedule, and completion probability" size={13} />
-        </div>
-        <ForecastChart
-          forecast={forecast}
-          contractValue={revisedContractValue}
-        />
+        <CollapsibleSection
+          title="Predictive Forecast"
+          icon={<BarChart3 size={18} />}
+          summary={forecast?.schedule ? (forecast.schedule.slippage > 0 ? `${forecast.schedule.slippage}d behind` : forecast.schedule.slippage < 0 ? `${Math.abs(forecast.schedule.slippage)}d ahead` : 'On schedule') : 'No data'}
+        >
+          <ForecastChart
+            forecast={forecast}
+            contractValue={revisedContractValue}
+          />
+        </CollapsibleSection>
       </div>
 
       <hr className="analytics-divider" />
@@ -230,11 +238,12 @@ export default function AnalyticsTab({
       {scenarios.length > 0 && (
         <>
           <div className="analytics-section">
-            <div className="analytics-section__header">
-              <GitBranch size={20} className="analytics-section__header-icon" />
-              <h3 className="analytics-section__title">What-If Scenarios</h3>
-              <InfoTooltip text="Models best-case, worst-case, and likely outcomes by adjusting cost growth and schedule assumptions" size={13} />
-            </div>
+            <CollapsibleSection
+              title="What-If Scenarios"
+              icon={<GitBranch size={18} />}
+              badge={`${scenarios.length}`}
+              summary={scenarios[1] ? `Likely margin: ${scenarios[1].margin}%` : undefined}
+            >
             <div className="analytics-scenarios">
               <div className="analytics-scenarios__grid">
                 {scenarios.map((scenario, i) => {
@@ -284,6 +293,7 @@ export default function AnalyticsTab({
                 })}
               </div>
             </div>
+            </CollapsibleSection>
           </div>
           <hr className="analytics-divider" />
         </>
@@ -291,38 +301,42 @@ export default function AnalyticsTab({
 
       {/* 5. Cash Flow */}
       <div className="analytics-section">
-        <div className="analytics-section__header">
-          <Banknote size={20} className="analytics-section__header-icon" />
-          <h3 className="analytics-section__title">Cash Flow</h3>
-          <InfoTooltip text="Inflows (billings & payments received) vs Outflows (labor, materials, equipment costs). Ratio = Total Inflows ÷ Total Outflows" size={13} />
-        </div>
-        <CashFlowChart cashFlow={cashFlow} />
+        <CollapsibleSection
+          title="Cash Flow"
+          icon={<Banknote size={18} />}
+          summary={cashFlow ? `Ratio: ${cashFlow.ratio?.toFixed(1) ?? '--'}x` : 'No data'}
+        >
+          <CashFlowChart cashFlow={cashFlow} />
+        </CollapsibleSection>
       </div>
 
       <hr className="analytics-divider" />
 
-      {/* 6. Resource Capacity — full width now */}
+      {/* 6. Resource Capacity */}
       <div className="analytics-section">
-        <div className="analytics-section__header">
-          <Users size={20} className="analytics-section__header-icon" />
-          <h3 className="analytics-section__title">Resource Capacity</h3>
-          <InfoTooltip text="Compares actual crew allocation vs estimated need based on project scope and timeline" size={13} />
-        </div>
-        <ResourceCapacityChart resourceData={resourceData} />
+        <CollapsibleSection
+          title="Resource Capacity"
+          icon={<Users size={18} />}
+          summary={resourceData ? `${resourceData.currentAllocation ?? '--'} crew allocated` : 'No data'}
+        >
+          <ResourceCapacityChart resourceData={resourceData} />
+        </CollapsibleSection>
       </div>
 
       <hr className="analytics-divider" />
 
       {/* 7. Benchmarks */}
       <div className="analytics-section">
-        <div className="analytics-section__header">
-          <Award size={20} className="analytics-section__header-icon" />
-          <h3 className="analytics-section__title">Industry Benchmarks</h3>
-        </div>
-        <BenchmarkComparison
-          projectMetrics={benchmarkMetrics}
-          companyAverages={companyAverages}
-        />
+        <CollapsibleSection
+          title="Industry Benchmarks"
+          icon={<Award size={18} />}
+          summary={benchmarkMetrics.profitMargin != null ? `Margin: ${benchmarkMetrics.profitMargin.toFixed(1)}%` : undefined}
+        >
+          <BenchmarkComparison
+            projectMetrics={benchmarkMetrics}
+            companyAverages={companyAverages}
+          />
+        </CollapsibleSection>
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
-import { FileSpreadsheet, Plus, ChevronRight } from 'lucide-react'
+import { FileSpreadsheet, Plus, ChevronRight, ChevronDown } from 'lucide-react'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 
@@ -182,29 +182,64 @@ export default memo(function ProgressBillingCard({
         </div>
       </div>
 
-      {/* Recent Draw Requests */}
-      {loading ? (
-        <div className="progress-billing-loading">
-          <div className="loading-spinner small" />
-        </div>
-      ) : drawRequests.length === 0 ? (
-        <div className="progress-billing-empty">
-          <p>No draw requests yet</p>
-          {originalContract > 0 && (
-            <button
-              className="btn btn-sm btn-outline"
-              onClick={() => onCreateDraw?.()}
-            >
-              <Plus size={14} />
-              Create First Draw Request
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="progress-billing-draws">
-          <div className="draws-header">
-            <span>Recent Draws</span>
-          </div>
+      {/* Recent Draw Requests — collapsed by default */}
+      <RecentDraws
+        loading={loading}
+        drawRequests={drawRequests}
+        originalContract={originalContract}
+        onCreateDraw={onCreateDraw}
+        onViewDraw={onViewDraw}
+        formatDate={formatDate}
+        formatCurrency={formatCurrency}
+        getStatusBadge={getStatusBadge}
+      />
+    </div>
+  )
+})
+
+function RecentDraws({ loading, drawRequests, originalContract, onCreateDraw, onViewDraw, formatDate, formatCurrency, getStatusBadge }) {
+  const [showDraws, setShowDraws] = useState(false)
+
+  if (loading) {
+    return (
+      <div className="progress-billing-loading">
+        <div className="loading-spinner small" />
+      </div>
+    )
+  }
+
+  if (drawRequests.length === 0) {
+    return (
+      <div className="progress-billing-empty">
+        <p>No draw requests yet</p>
+        {originalContract > 0 && (
+          <button
+            className="btn btn-sm btn-outline"
+            onClick={() => onCreateDraw?.()}
+          >
+            <Plus size={14} />
+            Create First Draw Request
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="progress-billing-draws">
+      <button
+        className="draws-header draws-header-toggle"
+        onClick={() => setShowDraws(!showDraws)}
+        type="button"
+      >
+        {showDraws ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span>Recent Draws</span>
+        {!showDraws && (
+          <span className="draws-header-count">{drawRequests.length} draw{drawRequests.length !== 1 ? 's' : ''}</span>
+        )}
+      </button>
+      {showDraws && (
+        <>
           <div className="draws-list">
             {drawRequests.slice(0, 3).map(dr => (
               <button
@@ -229,8 +264,8 @@ export default memo(function ProgressBillingCard({
               View all {drawRequests.length} draws
             </button>
           )}
-        </div>
+        </>
       )}
     </div>
   )
-})
+}
