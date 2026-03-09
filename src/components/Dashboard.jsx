@@ -10,11 +10,11 @@ import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
 import { TicketSkeleton } from './ui'
 
-// Tab components
-import OverviewTab from './dashboard/tabs/OverviewTab'
-import FinancialsTab from './dashboard/tabs/FinancialsTab'
-import ReportsTab from './dashboard/tabs/ReportsTab'
-import InfoTab from './dashboard/tabs/InfoTab'
+// Lazy load tab components - only load the active tab's code
+const OverviewTab = lazy(() => import('./dashboard/tabs/OverviewTab'))
+const FinancialsTab = lazy(() => import('./dashboard/tabs/FinancialsTab'))
+const ReportsTab = lazy(() => import('./dashboard/tabs/ReportsTab'))
+const InfoTab = lazy(() => import('./dashboard/tabs/InfoTab'))
 
 // Lazy load modals and conditionally rendered heavy components
 const ShareModal = lazy(() => import('./ShareModal'))

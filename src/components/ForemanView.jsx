@@ -47,9 +47,12 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
   useEffect(() => {
     if (project?.id) {
-      loadAreas()
-      loadTodayStatus()
-      loadPunchListCount()
+      // Parallelize independent data loads for faster initial render
+      Promise.all([
+        loadAreas(),
+        loadTodayStatus(),
+        loadPunchListCount()
+      ])
     }
   }, [project?.id])
 
@@ -58,22 +61,21 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // Load crew check-in for today (returns single object with .workers array, or null)
-      const crew = await db.getCrewCheckin(project.id, today)
+      // Parallelize all three independent queries instead of running sequentially
+      const [crew, todayTicketCount, truckData] = await Promise.all([
+        db.getCrewCheckin(project.id, today),
+        // Use date-filtered count query instead of loading ALL tickets then filtering
+        db.getTMTicketCountByDate?.(project.id, today) ??
+          db.getTMTickets?.(project.id).then(tickets => (tickets || []).filter(t => t.work_date === today).length),
+        db.getTruckCount?.(project.id, today)
+      ])
+
       const crewWorkers = crew?.workers || []
-      const crewCheckedIn = crewWorkers.length > 0
-
-      // Load T&M tickets for today
-      const tickets = await db.getTMTickets?.(project.id) || []
-      const todayTickets = tickets.filter(t => t.work_date === today)
-
-      // Load truck count for today
-      const truckData = await db.getTruckCount?.(project.id, today)
 
       setTodayStatus({
-        crewCheckedIn,
+        crewCheckedIn: crewWorkers.length > 0,
         crewCount: crewWorkers.length,
-        tmTicketsToday: todayTickets.length,
+        tmTicketsToday: typeof todayTicketCount === 'number' ? todayTicketCount : 0,
         dailyReportDone: false, // We'll track this separately
         trucksUsedToday: truckData?.truck_count || 0
       })
@@ -98,60 +100,70 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   }
 
   // Real-time subscriptions for live updates
+  // Use targeted refresh functions to avoid full-page reloads for every change
   const refreshTimeoutRef = useRef(null)
+  const pendingRefreshRef = useRef({ areas: false, status: false, punchList: false })
 
-  const debouncedRefresh = useCallback(() => {
+  const debouncedRefresh = useCallback((targets = { areas: true, status: true }) => {
+    // Track what actually needs refreshing
+    if (targets.areas) pendingRefreshRef.current.areas = true
+    if (targets.status) pendingRefreshRef.current.status = true
+    if (targets.punchList) pendingRefreshRef.current.punchList = true
+
     if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
+    // 1000ms debounce for field apps on potentially unstable mobile connections
     refreshTimeoutRef.current = setTimeout(() => {
-      loadAreas()
-      loadTodayStatus()
-    }, 300)
+      const pending = pendingRefreshRef.current
+      const refreshes = []
+      if (pending.areas) refreshes.push(loadAreas())
+      if (pending.status) refreshes.push(loadTodayStatus())
+      if (pending.punchList) refreshes.push(loadPunchListCount())
+      Promise.all(refreshes)
+      pendingRefreshRef.current = { areas: false, status: false, punchList: false }
+    }, 1000)
   }, [project?.id])
 
   useEffect(() => {
     if (!project?.id) return
     const subs = []
 
-    const areaSub = db.subscribeToAreas?.(project.id, debouncedRefresh)
+    // Areas: refresh areas + progress
+    const areaSub = db.subscribeToAreas?.(project.id, () => debouncedRefresh({ areas: true }))
     if (areaSub) subs.push(areaSub)
 
-    const crewSub = db.subscribeToCrewCheckins?.(project.id, debouncedRefresh)
+    // Crew/TM/trucks/reports: only refresh today's status (not areas)
+    const crewSub = db.subscribeToCrewCheckins?.(project.id, () => debouncedRefresh({ status: true }))
     if (crewSub) subs.push(crewSub)
 
-    const tmSub = db.subscribeToTMTickets?.(project.id, debouncedRefresh)
+    const tmSub = db.subscribeToTMTickets?.(project.id, () => debouncedRefresh({ status: true }))
     if (tmSub) subs.push(tmSub)
 
-    const truckSub = db.subscribeToTruckCounts?.(project.id, debouncedRefresh)
+    const truckSub = db.subscribeToTruckCounts?.(project.id, () => debouncedRefresh({ status: true }))
     if (truckSub) subs.push(truckSub)
 
-    const reportSub = db.subscribeToDailyReports?.(project.id, debouncedRefresh)
+    const reportSub = db.subscribeToDailyReports?.(project.id, () => debouncedRefresh({ status: true }))
     if (reportSub) subs.push(reportSub)
 
-    // COR status changes from office (approvals, rejections)
-    const corSub = db.subscribeToCORs?.(project.id, debouncedRefresh)
+    // COR/material request/project changes: no need to reload areas or today status
+    const corSub = db.subscribeToCORs?.(project.id, () => debouncedRefresh({ status: false }))
     if (corSub) subs.push(corSub)
 
-    // Material request responses from office
-    const matReqSub = db.subscribeToMaterialRequests?.(project.id, debouncedRefresh)
+    const matReqSub = db.subscribeToMaterialRequests?.(project.id, () => debouncedRefresh({ status: false }))
     if (matReqSub) subs.push(matReqSub)
 
-    // Project-level changes from office (name, dates, budget)
-    const projectSub = db.subscribeToProject?.(project.id, debouncedRefresh)
+    const projectSub = db.subscribeToProject?.(project.id, () => debouncedRefresh({ areas: true, status: true }))
     if (projectSub) subs.push(projectSub)
 
-    // Punch list changes (office resolves items, or field teammate creates items)
-    const punchSub = db.subscribeToPunchList?.(project.id, () => {
-      loadPunchListCount()
-      debouncedRefresh()
-    })
+    // Punch list: only refresh punch list count
+    const punchSub = db.subscribeToPunchList?.(project.id, () => debouncedRefresh({ punchList: true }))
     if (punchSub) subs.push(punchSub)
 
-    // Materials/equipment pricing changes from office
+    // Materials/equipment pricing changes from office - no UI impact in field view
     if (companyId) {
-      const materialsSub = db.subscribeToMaterialsEquipment?.(companyId, debouncedRefresh)
+      const materialsSub = db.subscribeToMaterialsEquipment?.(companyId, () => debouncedRefresh({ status: false }))
       if (materialsSub) subs.push(materialsSub)
 
-      const laborSub = db.subscribeToLaborRates?.(companyId, debouncedRefresh)
+      const laborSub = db.subscribeToLaborRates?.(companyId, () => debouncedRefresh({ status: false }))
       if (laborSub) subs.push(laborSub)
     }
 
