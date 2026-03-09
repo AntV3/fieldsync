@@ -4,11 +4,13 @@ import { safeAsync } from '../lib/errorHandler'
 import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
+import useFinancialsState from '../hooks/useFinancialsState'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, Search, AlertTriangle, BarChart3 } from 'lucide-react'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { SmartAlerts } from './dashboard/SmartAlerts'
-import { TicketSkeleton } from './ui'
+import { CollapsibleSection, TicketSkeleton } from './ui'
+import FinancialsModals from './dashboard/FinancialsModals'
 
 // Lazy load tab components - only load the active tab's code
 const OverviewTab = lazy(() => import('./dashboard/tabs/OverviewTab'))
@@ -19,12 +21,6 @@ const InfoTab = lazy(() => import('./dashboard/tabs/InfoTab'))
 // Lazy load modals and conditionally rendered heavy components
 const ShareModal = lazy(() => import('./ShareModal'))
 const NotificationSettings = lazy(() => import('./NotificationSettings'))
-const CORForm = lazy(() => import('./cor/CORForm'))
-const CORDetail = lazy(() => import('./cor/CORDetail'))
-const CORLog = lazy(() => import('./cor/CORLog'))
-const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
-const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
-const AddCostModal = lazy(() => import('./AddCostModal'))
 const DocumentsTab = lazy(() => import('./documents/DocumentsTab'))
 const AnalyticsTab = lazy(() => import('./dashboard/tabs/AnalyticsTab'))
 
@@ -37,25 +33,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showShareModal, setShowShareModal] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
-  const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors' | 'tickets'
-  const [financialsSidebarCollapsed, setFinancialsSidebarCollapsed] = useState(true) // Start collapsed for more real estate
-  const [financialsSidebarMobileOpen, setFinancialsSidebarMobileOpen] = useState(false) // For mobile sidebar overlay
-  const [corListExpanded, setCORListExpanded] = useState(false) // Whether the full card list is shown below the log
-  const [corDisplayMode, setCORDisplayMode] = useState('list') // 'list' | 'log' - for layout expansion
-  const [tmViewMode, setTMViewMode] = useState('preview') // 'preview' | 'full'
-  const [showCORForm, setShowCORForm] = useState(false)
-  const [editingCOR, setEditingCOR] = useState(null)
-  const [showCORDetail, setShowCORDetail] = useState(false)
-  const [viewingCOR, setViewingCOR] = useState(null)
-  const [corRefreshKey, setCORRefreshKey] = useState(0)
-  const [showAddCostModal, setShowAddCostModal] = useState(false)
-  const [savingCost, setSavingCost] = useState(false)
-  const [showEquipmentModal, setShowEquipmentModal] = useState(false)
-  const [editingEquipment, setEditingEquipment] = useState(null)
-  const [equipmentRefreshKey, setEquipmentRefreshKey] = useState(0)
-  const [showDrawRequestModal, setShowDrawRequestModal] = useState(false)
-  const [editingDrawRequest, setEditingDrawRequest] = useState(null)
-  const [drawRequestRefreshKey, setDrawRequestRefreshKey] = useState(0)
+
+  // Financials state (sidebar, COR, T&M, equipment, draw requests, costs)
+  const financialsState = useFinancialsState()
 
   // Universal Search (Cmd+K)
   const { isOpen: isSearchOpen, setIsOpen: setSearchOpen, close: closeSearch } = useUniversalSearch()
@@ -105,7 +85,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         pendingAreasRefreshRef.current = false
       }
       if (pendingCORRefreshRef.current) {
-        setCORRefreshKey(prev => prev + 1)
+        financialsState.refreshCORs()
         pendingCORRefreshRef.current = false
       }
       // Invalidate detail cache for the selected project so real-time data is fresh
@@ -175,7 +155,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
-    if (financialsSidebarMobileOpen) {
+    if (financialsState.financialsSidebarMobileOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
@@ -184,7 +164,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     return () => {
       document.body.style.overflow = ''
     }
-  }, [financialsSidebarMobileOpen])
+  }, [financialsState.financialsSidebarMobileOpen])
 
   // Handle navigation from notifications
   // Use a ref to prevent re-running this effect when projects data refreshes
@@ -271,10 +251,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   // When navigating to tickets section, switch to full mode to show dashboard
   useEffect(() => {
-    if (financialsSection === 'tickets') {
-      setTMViewMode('full')
+    if (financialsState.financialsSection === 'tickets') {
+      financialsState.onViewAllTickets()
     }
-  }, [financialsSection])
+  }, [financialsState.financialsSection])
 
   // Load detailed data for a single project (on-demand, with caching)
   // This replaces the previous N+1 pattern where ALL project details were loaded upfront
@@ -739,12 +719,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         setActiveProjectTab('reports')
       } else if (target === 'cors') {
         setActiveProjectTab('financials')
-        setFinancialsSection('cors')
+        financialsState.setFinancialsSection('cors')
       } else {
         setActiveProjectTab('overview')
       }
     }
-  }, [projects])
+  }, [projects, financialsState.setFinancialsSection])
 
   // Auto-archive projects that have been complete for 30+ days
   useEffect(() => {
@@ -766,46 +746,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [projectsData.length]) // Run when projects data loads
 
-  // Memoized callbacks for child components to prevent unnecessary re-renders
-  const handleAddEquipment = useCallback(() => {
-    setEditingEquipment(null)
-    setShowEquipmentModal(true)
-  }, [])
-
-  const handleEditEquipment = useCallback((item) => {
-    setEditingEquipment(item)
-    setShowEquipmentModal(true)
-  }, [])
-
-  const handleCreateDraw = useCallback(() => {
-    setEditingDrawRequest(null)
-    setShowDrawRequestModal(true)
-  }, [])
-
-  const handleViewDraw = useCallback((drawRequest) => {
-    setEditingDrawRequest(drawRequest)
-    setShowDrawRequestModal(true)
-  }, [])
-
-  const handleViewAllTickets = useCallback(() => {
-    setTMViewMode('full')
-  }, [])
-
-  const handleToggleFinancialsSidebar = useCallback(() => {
-    setFinancialsSidebarCollapsed(prev => !prev)
-  }, [])
-
-  const handleToggleMobileSidebar = useCallback(() => {
-    setFinancialsSidebarMobileOpen(prev => !prev)
-  }, [])
-
-  const handleCloseMobileSidebar = useCallback(() => {
-    setFinancialsSidebarMobileOpen(false)
-  }, [])
-
-  const handleToggleCORList = useCallback(() => {
-    setCORListExpanded(prev => !prev)
-  }, [])
+  // Financials callbacks are now in useFinancialsState hook
 
   // Field document export handler
   const handleExportFieldDocuments = useCallback(async (type = 'all') => {
@@ -842,32 +783,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [selectedProject, company, onShowToast])
 
-  const handleBackToTMPreview = useCallback(() => {
-    setTMViewMode('preview')
-  }, [])
-
-  const handleViewFullCORLog = useCallback(() => {
-    setCORDisplayMode('log')
-  }, [])
-
-  const handleCreateCOR = useCallback(() => {
-    setEditingCOR(null)
-    setShowCORForm(true)
-  }, [])
-
-  const handleViewCOR = useCallback((cor) => {
-    setViewingCOR(cor)
-    setShowCORDetail(true)
-  }, [])
-
-  const handleEditCOR = useCallback((cor) => {
-    setEditingCOR(cor)
-    setShowCORForm(true)
-  }, [])
-
-  const handleAddCost = useCallback(() => {
-    setShowAddCostModal(true)
-  }, [])
 
   const handleDeleteCost = useCallback(async (costId) => {
     try {
@@ -1274,9 +1189,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           </div>
         </div>
 
-        {/* Tab Content */}
+        {/* Tab Content — Data-driven rendering */}
         <div className="pv-tab-content" role="tabpanel" id={`tabpanel-${activeProjectTab}`} aria-labelledby={`tab-${activeProjectTab}`}>
-          {/* OVERVIEW TAB */}
           {activeProjectTab === 'overview' && (
             <OverviewTab
               selectedProject={selectedProject}
@@ -1295,8 +1209,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               onExportFieldDocuments={handleExportFieldDocuments}
             />
           )}
-
-          {/* FINANCIALS TAB */}
           {activeProjectTab === 'financials' && (
             <FinancialsTab
               selectedProject={selectedProject}
@@ -1308,38 +1220,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               changeOrderValue={changeOrderValue}
               revisedContractValue={revisedContractValue}
               areas={areas}
-              financialsSection={financialsSection}
-              setFinancialsSection={setFinancialsSection}
-              financialsSidebarCollapsed={financialsSidebarCollapsed}
-              financialsSidebarMobileOpen={financialsSidebarMobileOpen}
-              onToggleFinancialsSidebar={handleToggleFinancialsSidebar}
-              onToggleMobileSidebar={handleToggleMobileSidebar}
-              onCloseMobileSidebar={handleCloseMobileSidebar}
               financialsNavStats={financialsNavStats}
-              corListExpanded={corListExpanded}
-              corRefreshKey={corRefreshKey}
-              corDisplayMode={corDisplayMode}
-              setCORDisplayMode={setCORDisplayMode}
-              onToggleCORList={handleToggleCORList}
-              onCreateCOR={handleCreateCOR}
-              onViewCOR={handleViewCOR}
-              onEditCOR={handleEditCOR}
-              tmViewMode={tmViewMode}
-              onViewAllTickets={handleViewAllTickets}
-              onBackToTMPreview={handleBackToTMPreview}
-              equipmentRefreshKey={equipmentRefreshKey}
-              onAddEquipment={handleAddEquipment}
-              onEditEquipment={handleEditEquipment}
-              drawRequestRefreshKey={drawRequestRefreshKey}
-              onCreateDraw={handleCreateDraw}
-              onViewDraw={handleViewDraw}
-              onAddCost={handleAddCost}
               onDeleteCost={handleDeleteCost}
               onShowToast={onShowToast}
+              {...financialsState}
             />
           )}
-
-          {/* REPORTS TAB */}
           {activeProjectTab === 'reports' && (
             <ReportsTab
               selectedProject={selectedProject}
@@ -1350,8 +1236,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               onShowToast={onShowToast}
             />
           )}
-
-          {/* ANALYTICS TAB */}
           {activeProjectTab === 'analytics' && (
             <Suspense fallback={<TicketSkeleton />}>
               <AnalyticsTab
@@ -1370,8 +1254,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               />
             </Suspense>
           )}
-
-          {/* DOCUMENTS TAB */}
           {activeProjectTab === 'documents' && (
             <div className="pv-tab-panel documents-tab">
               <Suspense fallback={<TicketSkeleton />}>
@@ -1384,8 +1266,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               </Suspense>
             </div>
           )}
-
-          {/* INFO TAB */}
           {activeProjectTab === 'info' && (
             <InfoTab
               selectedProject={selectedProject}
@@ -1429,148 +1309,19 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           </div>
         )}
 
-        {/* COR Form Modal */}
-        {showCORForm && (
-          <Suspense fallback={null}>
-            <CORForm
-              project={selectedProject}
-              company={company}
-              areas={areas}
-              existingCOR={editingCOR}
-              onClose={() => {
-                setShowCORForm(false)
-                setEditingCOR(null)
-              }}
-              onSaved={() => {
-                setShowCORForm(false)
-                setEditingCOR(null)
-                setCORRefreshKey(prev => prev + 1)
-              }}
-              onShowToast={onShowToast}
-            />
-          </Suspense>
-        )}
-
-        {/* COR Detail Modal */}
-        {showCORDetail && viewingCOR && (
-          <Suspense fallback={null}>
-            <CORDetail
-              cor={viewingCOR}
-              project={selectedProject}
-              company={company}
-              areas={areas}
-              onClose={() => {
-                setShowCORDetail(false)
-                setViewingCOR(null)
-              }}
-              onEdit={(cor) => {
-                setShowCORDetail(false)
-                setViewingCOR(null)
-                setEditingCOR(cor)
-                setShowCORForm(true)
-              }}
-              onShowToast={onShowToast}
-              onStatusChange={() => {
-                setCORRefreshKey(prev => prev + 1)
-                debouncedRefresh({ refreshCOR: true })
-              }}
-            />
-          </Suspense>
-        )}
-
-        {/* COR Log Modal */}
-        {corDisplayMode === 'log' && selectedProject && (
-          <div className="cor-log-modal-overlay" onClick={() => setCORDisplayMode('list')}>
-            <div className="cor-log-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="cor-log-modal-header">
-                <h2>Change Order Log</h2>
-                <button
-                  className="cor-log-modal-close"
-                  onClick={() => setCORDisplayMode('list')}
-                  title="Close"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="cor-log-modal-content">
-                <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
-                  <CORLog project={selectedProject} company={company} onShowToast={onShowToast} />
-                </Suspense>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Add Cost Modal */}
-        {showAddCostModal && (
-          <Suspense fallback={null}>
-            <AddCostModal
-              onClose={() => setShowAddCostModal(false)}
-              saving={savingCost}
-              onSave={async (costData) => {
-                try {
-                  setSavingCost(true)
-                  await db.addProjectCost(selectedProject.id, company.id, costData)
-                  setShowAddCostModal(false)
-                  // Invalidate cache so fresh financial data is loaded
-                  projectDetailsCacheRef.current.delete(selectedProject.id)
-                  loadProjects()
-                  onShowToast('Cost added successfully', 'success')
-                } catch (err) {
-                  console.error('Error adding cost:', err)
-                  onShowToast('Error adding cost', 'error')
-                } finally {
-                  setSavingCost(false)
-                }
-              }}
-            />
-          </Suspense>
-        )}
-
-        {/* Equipment Modal */}
-        {showEquipmentModal && (
-          <Suspense fallback={null}>
-            <EquipmentModal
-              project={selectedProject}
-              company={company}
-              user={user}
-              editItem={editingEquipment}
-              onSave={() => {
-                setShowEquipmentModal(false)
-                setEditingEquipment(null)
-                setEquipmentRefreshKey(prev => prev + 1)
-                onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success')
-              }}
-              onClose={() => {
-                setShowEquipmentModal(false)
-                setEditingEquipment(null)
-              }}
-            />
-          </Suspense>
-        )}
-
-        {/* Draw Request Modal */}
-        {showDrawRequestModal && (
-          <Suspense fallback={null}>
-            <DrawRequestModal
-              project={selectedProject}
-              company={company}
-              areas={areas}
-              corStats={projectsData.find(p => p.id === selectedProject?.id)?.corStats}
-              editDrawRequest={editingDrawRequest}
-              onSave={() => {
-                setShowDrawRequestModal(false)
-                setEditingDrawRequest(null)
-                setDrawRequestRefreshKey(prev => prev + 1)
-                onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success')
-              }}
-              onClose={() => {
-                setShowDrawRequestModal(false)
-                setEditingDrawRequest(null)
-              }}
-            />
-          </Suspense>
-        )}
+        {/* Financial Modals (COR, Equipment, Draw Request, Cost) */}
+        <FinancialsModals
+          selectedProject={selectedProject}
+          company={company}
+          user={user}
+          areas={areas}
+          projectsData={projectsData}
+          onShowToast={onShowToast}
+          debouncedRefresh={debouncedRefresh}
+          projectDetailsCacheRef={projectDetailsCacheRef}
+          loadProjects={loadProjects}
+          {...financialsState}
+        />
       </div>
     )
   }
@@ -1601,7 +1352,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           <div className="bo-project-count">{projects.length} Active Project{projects.length !== 1 ? 's' : ''}</div>
         </div>
 
-        {/* Main Financial Bar */}
+        {/* Tier 1: At-a-Glance — Always visible */}
         <div className="bo-financial">
           <div className="bo-progress-bar">
             <div
@@ -1624,35 +1375,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               <span className="bo-metric-label">Remaining to Bill</span>
             </div>
           </div>
-
-          {/* Change Orders Summary - Only show if there are change orders */}
-          {totalChangeOrders > 0 && (
-            <div className="bo-change-orders">
-              <div className="bo-co-item">
-                <span className="bo-co-label">Original Contracts</span>
-                <span className="bo-co-value">{formatCurrency(totalOriginalContract)}</span>
-              </div>
-              <div className="bo-co-item bo-co-added">
-                <span className="bo-co-label">+ Change Orders ({projectsWithChangeOrders} project{projectsWithChangeOrders !== 1 ? 's' : ''})</span>
-                <span className="bo-co-value">+{formatCurrency(totalChangeOrders)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Pending CORs - Unapproved extra work (not yet part of contract value) */}
-          {totalPendingCORCount > 0 && (
-            <div className="bo-pending-cors">
-              <div className="bo-pending-cor-item">
-                <span className="bo-pending-cor-icon">!</span>
-                <span className="bo-pending-cor-label">Pending CORs</span>
-                <span className="bo-pending-cor-value">{formatCurrency(totalPendingCORValue)}</span>
-                <span className="bo-pending-cor-count">({totalPendingCORCount} pending)</span>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Project Health Summary */}
+        {/* Project Health Summary — Always visible */}
         <div className="bo-health">
           <div className="bo-health-title">Project Health</div>
           <div className="bo-health-pills">
@@ -1683,51 +1408,96 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           </div>
         </div>
 
-        {/* Schedule Performance Summary */}
-        {hasAnyScheduleData && (
-          <div className="bo-schedule">
-            <div className="bo-schedule-title">Schedule Performance</div>
-            <div className="bo-schedule-pills">
-              {scheduleAhead > 0 && (
-                <div className="bo-pill ahead">
-                  <span className="bo-pill-count">{scheduleAhead}</span>
-                  <span className="bo-pill-label">Ahead</span>
+        {/* Tier 2: Portfolio Details — Collapsible for less clutter */}
+        {(totalChangeOrders > 0 || totalPendingCORCount > 0 || hasAnyScheduleData) && (
+          <CollapsibleSection
+            title="Portfolio Details"
+            variant="compact"
+            summary={[
+              totalChangeOrders > 0 && `${formatCurrency(totalChangeOrders)} in COs`,
+              totalPendingCORCount > 0 && `${totalPendingCORCount} pending`,
+              hasAnyScheduleData && `${scheduleBehind > 0 ? scheduleBehind + ' behind' : 'on track'}`
+            ].filter(Boolean).join(' · ')}
+          >
+            {/* Change Orders Summary */}
+            {totalChangeOrders > 0 && (
+              <div className="bo-change-orders">
+                <div className="bo-co-item">
+                  <span className="bo-co-label">Original Contracts</span>
+                  <span className="bo-co-value">{formatCurrency(totalOriginalContract)}</span>
                 </div>
-              )}
-              {scheduleOnTrack > 0 && (
-                <div className="bo-pill schedule-on-track">
-                  <span className="bo-pill-count">{scheduleOnTrack}</span>
-                  <span className="bo-pill-label">On Track</span>
+                <div className="bo-co-item bo-co-added">
+                  <span className="bo-co-label">+ Change Orders ({projectsWithChangeOrders} project{projectsWithChangeOrders !== 1 ? 's' : ''})</span>
+                  <span className="bo-co-value">+{formatCurrency(totalChangeOrders)}</span>
                 </div>
-              )}
-              {scheduleBehind > 0 && (
-                <div className="bo-pill behind">
-                  <span className="bo-pill-count">{scheduleBehind}</span>
-                  <span className="bo-pill-label">Behind</span>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Labor Performance (if any projects have planned man-days) */}
-            {hasAnyLaborData && (
-              <div className="bo-labor-summary">
-                <span className="bo-labor-label">Man-Days:</span>
-                {laborUnder > 0 && (
-                  <span className="bo-labor-badge under">{laborUnder} under</span>
-                )}
-                {laborOnTrack > 0 && (
-                  <span className="bo-labor-badge on-track">{laborOnTrack} on track</span>
-                )}
-                {laborOver > 0 && (
-                  <span className="bo-labor-badge over">{laborOver} over</span>
+            {/* Pending CORs */}
+            {totalPendingCORCount > 0 && (
+              <div className="bo-pending-cors">
+                <div className="bo-pending-cor-item">
+                  <span className="bo-pending-cor-icon">!</span>
+                  <span className="bo-pending-cor-label">Pending CORs</span>
+                  <span className="bo-pending-cor-value">{formatCurrency(totalPendingCORValue)}</span>
+                  <span className="bo-pending-cor-count">({totalPendingCORCount} pending)</span>
+                </div>
+              </div>
+            )}
+
+            {/* Schedule Performance */}
+            {hasAnyScheduleData && (
+              <div className="bo-schedule">
+                <div className="bo-schedule-title">Schedule Performance</div>
+                <div className="bo-schedule-pills">
+                  {scheduleAhead > 0 && (
+                    <div className="bo-pill ahead">
+                      <span className="bo-pill-count">{scheduleAhead}</span>
+                      <span className="bo-pill-label">Ahead</span>
+                    </div>
+                  )}
+                  {scheduleOnTrack > 0 && (
+                    <div className="bo-pill schedule-on-track">
+                      <span className="bo-pill-count">{scheduleOnTrack}</span>
+                      <span className="bo-pill-label">On Track</span>
+                    </div>
+                  )}
+                  {scheduleBehind > 0 && (
+                    <div className="bo-pill behind">
+                      <span className="bo-pill-count">{scheduleBehind}</span>
+                      <span className="bo-pill-label">Behind</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Labor Performance */}
+                {hasAnyLaborData && (
+                  <div className="bo-labor-summary">
+                    <span className="bo-labor-label">Man-Days:</span>
+                    {laborUnder > 0 && (
+                      <span className="bo-labor-badge under">{laborUnder} under</span>
+                    )}
+                    {laborOnTrack > 0 && (
+                      <span className="bo-labor-badge on-track">{laborOnTrack} on track</span>
+                    )}
+                    {laborOver > 0 && (
+                      <span className="bo-labor-badge over">{laborOver} over</span>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
+          </CollapsibleSection>
         )}
       </div>
 
-      {/* Smart Alerts - Actionable insights requiring attention */}
+      {/* Projects Header */}
+      <div className="dashboard-header">
+        <h2>Projects</h2>
+        <span className="project-count">{projects.length} active</span>
+      </div>
+
+      {/* Smart Alerts — Below projects header for better flow */}
       {riskAnalysis.allAlerts.length > 0 && (
         <div className={`smart-alerts-section${riskAnalysis.criticalCount > 0 ? ' smart-alerts-section--has-critical' : riskAnalysis.allAlerts.some(a => a.type === 'warning') ? ' smart-alerts-section--has-warning' : ''}`}>
           <div className="smart-alerts-header">
@@ -1752,12 +1522,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           />
         </div>
       )}
-
-      {/* Projects Header */}
-      <div className="dashboard-header">
-        <h2>Projects</h2>
-        <span className="project-count">{projects.length} active</span>
-      </div>
 
       {/* Project Grid */}
       <div className="project-list">
@@ -1789,7 +1553,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           if (project) {
             handleSelectProject(project)
             setActiveProjectTab('financials')
-            setFinancialsSection('tickets')
+            financialsState.setFinancialsSection('tickets')
           }
         }}
         onSelectCOR={(cor) => {
@@ -1798,9 +1562,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           if (project) {
             handleSelectProject(project)
             setActiveProjectTab('financials')
-            setFinancialsSection('cors')
-            setViewingCOR(cor)
-            setShowCORDetail(true)
+            financialsState.setFinancialsSection('cors')
+            financialsState.onViewCOR(cor)
           }
         }}
         onShowToast={onShowToast}

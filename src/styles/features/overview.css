@@ -1411,3 +1411,51 @@
   color: var(--text-tertiary);
 }
 
+/* ============================================
+   Export Dropdown
+   ============================================ */
+.overview-export-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.overview-export-dropdown .overview-action-btn {
+  gap: 0.35rem;
+}
+
+.overview-export-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.3));
+  min-width: 170px;
+  z-index: 50;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+.overview-export-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.overview-export-menu button:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary);
+}
+
+.overview-export-menu button:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+

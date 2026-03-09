@@ -1,6 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, Users, Shield, Package, HardHat, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
-import { formatCurrency } from '../../../lib/utils'
+import { ClipboardList, Users, Package, HardHat, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
 import { TicketSkeleton, CollapsibleSection } from '../../ui'
 
 const DailyReportsList = lazy(() => import('../../DailyReportsList'))
@@ -62,7 +61,7 @@ export default function ReportsTab({
         )}
       </div>
 
-      {/* Two-Column Layout: Crew + Safety */}
+      {/* Two-Column Layout: Crew Analytics + Material Requests (paired) */}
       <div className="reports-two-col">
         {/* Crew Analytics Card */}
         <div className="reports-insight-card">
@@ -123,62 +122,7 @@ export default function ReportsTab({
           </div>
         </div>
 
-        {/* Safety Dashboard Card */}
-        <div className="reports-insight-card">
-          <div className="reports-insight-header">
-            <div className="reports-insight-title">
-              <Shield size={18} />
-              <h3>Safety Dashboard</h3>
-            </div>
-            <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
-              {(projectData?.injuryReportsCount || 0) > 0
-                ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
-                : 'No incidents'
-              }
-            </span>
-          </div>
-          <div className="reports-insight-body">
-            <div className="reports-safety-hero">
-              <div className={`reports-safety-days ${(projectData?.daysSinceLastInjury === null || projectData?.daysSinceLastInjury > 30) ? 'excellent' : projectData?.daysSinceLastInjury > 7 ? 'good' : 'caution'}`}>
-                <span className="reports-safety-days-value">
-                  {projectData?.daysSinceLastInjury !== null ? projectData.daysSinceLastInjury : '--'}
-                </span>
-                <span className="reports-safety-days-label">
-                  {projectData?.daysSinceLastInjury !== null ? 'Days Since Last Incident' : 'No Incidents Recorded'}
-                </span>
-              </div>
-            </div>
-            <CollapsibleSection
-              title="Safety Breakdown"
-              variant="compact"
-              summary={`${projectData?.injuryReportsCount || 0} incidents, ${projectData?.oshaRecordable || 0} OSHA`}
-            >
-              <div className="reports-stat-grid">
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.injuryReportsCount || 0}</span>
-                  <span className="reports-stat-label">Total Incidents</span>
-                </div>
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.oshaRecordable || 0}</span>
-                  <span className="reports-stat-label">OSHA Recordable</span>
-                </div>
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.reportsWithIssues || 0}</span>
-                  <span className="reports-stat-label">Reports w/ Issues</span>
-                </div>
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.laborManDays || 0}</span>
-                  <span className="reports-stat-label">Total Man-Days</span>
-                </div>
-              </div>
-            </CollapsibleSection>
-          </div>
-        </div>
-      </div>
-
-      {/* Material Requests + Disposal Summary Row */}
-      <div className="reports-two-col">
-        {/* Material Requests */}
+        {/* Material Requests Card (now paired with Crew Analytics) */}
         <div className="reports-insight-card">
           <div className="reports-insight-header">
             <div className="reports-insight-title">
@@ -251,37 +195,51 @@ export default function ReportsTab({
         </div>
       </div>
 
-      {/* Daily Reports Section */}
-      <div className="reports-section-card">
-        <div className="reports-section-header">
-          <div className="reports-section-title">
-            <ClipboardList size={18} />
-            <h3>Daily Reports</h3>
-          </div>
-          <span className="reports-section-count">{projectData?.dailyReportsCount || 0} total</span>
-        </div>
+      {/* Daily Reports Section (collapsible) */}
+      <CollapsibleSection
+        title="Daily Reports"
+        defaultOpen={true}
+        badge={`${projectData?.dailyReportsCount || 0}`}
+        variant="card"
+      >
         <div className="reports-section-content">
           <Suspense fallback={<TicketSkeleton />}>
             <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
           </Suspense>
         </div>
-      </div>
+      </CollapsibleSection>
 
-      {/* Injury Reports Section */}
-      <div className={`reports-section-card ${(projectData?.injuryReportsCount || 0) > 0 ? 'has-warning' : ''}`}>
-        <div className="reports-section-header">
-          <div className="reports-section-title">
-            <span className={`reports-section-icon ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
-              {(projectData?.injuryReportsCount || 0) > 0 ? '\u26A0' : '\u2713'}
+      {/* Safety & Injury Reports Section (collapsible, with safety stat in header) */}
+      <CollapsibleSection
+        title="Safety & Injury Reports"
+        defaultOpen={true}
+        badge={
+          (projectData?.injuryReportsCount || 0) > 0
+            ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
+            : 'No incidents'
+        }
+        variant="card"
+        summary={
+          projectData?.daysSinceLastInjury !== null
+            ? `${projectData.daysSinceLastInjury} days since last incident`
+            : 'No incidents recorded'
+        }
+      >
+        {/* Safety stats inline */}
+        <div className="reports-safety-inline">
+          <div className={`reports-safety-days-compact ${(projectData?.daysSinceLastInjury === null || projectData?.daysSinceLastInjury > 30) ? 'excellent' : projectData?.daysSinceLastInjury > 7 ? 'good' : 'caution'}`}>
+            <span className="reports-safety-days-value">
+              {projectData?.daysSinceLastInjury !== null ? projectData.daysSinceLastInjury : '--'}
             </span>
-            <h3>Safety & Injury Reports</h3>
+            <span className="reports-safety-days-label">
+              {projectData?.daysSinceLastInjury !== null ? 'Days Safe' : 'No Incidents'}
+            </span>
           </div>
-          <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
-            {(projectData?.injuryReportsCount || 0) > 0
-              ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
-              : 'No incidents'
-            }
-          </span>
+          <div className="reports-safety-stats-row">
+            <span className="reports-safety-stat">{projectData?.injuryReportsCount || 0} total</span>
+            <span className="reports-safety-stat">{projectData?.oshaRecordable || 0} OSHA</span>
+            <span className="reports-safety-stat">{projectData?.laborManDays || 0} man-days</span>
+          </div>
         </div>
         <div className="reports-section-content">
           <Suspense fallback={<TicketSkeleton />}>
@@ -294,7 +252,7 @@ export default function ReportsTab({
             />
           </Suspense>
         </div>
-      </div>
+      </CollapsibleSection>
     </div>
   )
 }
