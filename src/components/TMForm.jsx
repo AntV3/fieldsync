@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react'
+import TMCapabilitiesModal from './tm/TMCapabilitiesModal'
 import { db } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
 import { TRANSLATIONS } from './tm/translations'
@@ -50,6 +51,7 @@ const calculateHoursFromTimeRange = (startTime, endTime) => {
 export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1)
   const [workDate, setWorkDate] = useState(getLocalDateString())
+  const [showCapabilities, setShowCapabilities] = useState(false)
 
   // Post-submit signature state
   const [submittedTicket, setSubmittedTicket] = useState(null)
@@ -1124,6 +1126,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   return (
     <div className="tm-wizard">
+      <TMCapabilitiesModal isOpen={showCapabilities} onClose={() => setShowCapabilities(false)} />
       {/* Draft Resume Prompt */}
       {showDraftPrompt && (
         <div className="tm-draft-prompt animate-fade-in-down">
@@ -1160,6 +1163,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {step === 5 && (t('submitted'))}
         </h2>
         <div className="tm-header-right">
+          {step < 5 && (
+            <button className="capabilities-help-btn" onClick={() => setShowCapabilities(true)} title="What can T&M tickets do?" type="button">
+              <HelpCircle size={16} />
+            </button>
+          )}
           {step < 4 && (
             <button
               className="tm-lang-toggle"
