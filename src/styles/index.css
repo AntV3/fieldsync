@@ -26,6 +26,7 @@
 @import './components/skeleton.css';
 @import './components/nav.css';
 @import './components/collapsible.css';
+@import './components/capabilities-modal.css';
 
 /* Features */
 @import './features/animations.css';

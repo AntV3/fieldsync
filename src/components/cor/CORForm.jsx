@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react'
+import CORCapabilitiesModal from './CORCapabilitiesModal'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -21,6 +22,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
   const [showTicketSelector, setShowTicketSelector] = useState(false)
+  const [showCapabilities, setShowCapabilities] = useState(false)
   const [importedTicketIds, setImportedTicketIds] = useState([]) // Track tickets imported for backup docs
 
   // Expandable sections
@@ -573,8 +575,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       <div className="modal-content cor-form-modal cor-form-simplified" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{existingCOR ? 'Edit Change Order Request' : 'New Change Order Request'}</h2>
+          <button className="capabilities-help-btn" onClick={() => setShowCapabilities(true)} title="What can CORs do?" type="button">
+            <HelpCircle size={18} />
+          </button>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
+        <CORCapabilitiesModal isOpen={showCapabilities} onClose={() => setShowCapabilities(false)} />
 
         <div className="modal-body cor-form-body">
           {/* Required: Title and Description */}
