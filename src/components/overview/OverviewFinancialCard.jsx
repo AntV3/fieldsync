@@ -9,7 +9,6 @@ export const OverviewFinancialCard = memo(function OverviewFinancialCard({
   earnedRevenue = 0,
   totalCosts = 0,
   laborCost = 0,
-  disposalCost = 0,
   equipmentCost = 0,
   materialsCost = 0,
   otherCost = 0,
@@ -33,7 +32,6 @@ export const OverviewFinancialCard = memo(function OverviewFinancialCard({
   // Calculate cost breakdown percentages for the stacked bar
   const costBreakdown = [
     { key: 'labor', value: laborCost, color: chartColors.labor, label: 'Labor' },
-    { key: 'disposal', value: disposalCost, color: chartColors.disposal, label: 'Disposal' },
     { key: 'equipment', value: equipmentCost, color: chartColors.equipment, label: 'Equipment' },
     { key: 'materials', value: materialsCost, color: chartColors.materials, label: 'Materials' },
     { key: 'other', value: otherCost, color: chartColors.other, label: 'Other' }

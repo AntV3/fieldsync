@@ -4,7 +4,7 @@
  * Validates that data flows correctly in both directions:
  *   Office → Field: documents, COR approvals, project changes
  *   Field → Office: T&M tickets, crew check-ins, area updates,
- *                   disposal loads, daily reports, punch list items
+ *                   daily reports, punch list items
  *
  * Run with: npm test
  */
@@ -59,7 +59,6 @@ vi.mock('../lib/supabase', () => {
       subscribeToCrewCheckins: vi.fn(() => mockChannel),
       subscribeToTMTickets: vi.fn(() => mockChannel),
       subscribeToDailyReports: vi.fn(() => mockChannel),
-      subscribeToHaulOffs: vi.fn(() => mockChannel),
       subscribeToCORs: vi.fn(() => mockChannel),
       subscribeToMaterialRequests: vi.fn(() => mockChannel),
       subscribeToProject: vi.fn(() => mockChannel),
@@ -87,7 +86,6 @@ function collectSubscribedTables(dbMock) {
     'subscribeToCrewCheckins',
     'subscribeToTMTickets',
     'subscribeToDailyReports',
-    'subscribeToHaulOffs',
     'subscribeToCORs',
     'subscribeToMaterialRequests',
     'subscribeToProject',
@@ -127,11 +125,6 @@ describe('Field → Office sync: subscriptions registered in ForemanView', () =>
   it('ForemanView registers T&M ticket subscription so office sees new tickets in real-time', () => {
     db.subscribeToTMTickets('proj-1', vi.fn())
     expect(db.subscribeToTMTickets).toHaveBeenCalledWith('proj-1', expect.any(Function))
-  })
-
-  it('ForemanView registers disposal (haul-off) subscription so office sees load counts', () => {
-    db.subscribeToHaulOffs('proj-1', vi.fn())
-    expect(db.subscribeToHaulOffs).toHaveBeenCalledWith('proj-1', expect.any(Function))
   })
 
   it('ForemanView registers daily report subscription so office sees end-of-day reports', () => {
@@ -266,7 +259,6 @@ describe('Sync direction matrix: all data types have bidirectional paths', () =>
     { name: 'T&M Tickets',     subscription: 'subscribeToTMTickets' },
     { name: 'Crew Check-ins',  subscription: 'subscribeToCrewCheckins' },
     { name: 'Area Progress',   subscription: 'subscribeToAreas' },
-    { name: 'Disposal Loads',  subscription: 'subscribeToHaulOffs' },
     { name: 'Daily Reports',   subscription: 'subscribeToDailyReports' },
     { name: 'Punch List Items',subscription: 'subscribeToPunchList' }
   ]

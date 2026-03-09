@@ -28,7 +28,6 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
       work_type: selectedProject.work_type || 'demolition',
       job_type: selectedProject.job_type || 'standard',
       pin: selectedProject.pin || '',
-      default_dump_site_id: selectedProject.default_dump_site_id || '',
       areas: areas.map(a => ({
         id: a.id,
         name: a.name,
@@ -129,8 +128,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
         contract_value: contractVal,
         work_type: editData.work_type || 'demolition',
         job_type: editData.job_type || 'standard',
-        pin: editData.pin || null,
-        default_dump_site_id: editData.default_dump_site_id || null
+        pin: editData.pin || null
       }, company?.id)
 
       const existingAreaIds = areas.map(a => a.id)

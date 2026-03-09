@@ -182,7 +182,6 @@ Company (multi-tenant root)
       ├── ChangeOrder (labor, materials, equipment, subcontractors)
       ├── MaterialRequest
       ├── Message (crew ↔ office)
-      ├── HaulOff (disposal tracking)
       └── ProjectShare (public access token)
 ```
 

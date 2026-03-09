@@ -345,8 +345,7 @@ body {
 /* Dashboard Cards */
 [data-theme="light"] .burn-rate-card,
 [data-theme="light"] .profitability-card,
-[data-theme="light"] .cost-contributors-card,
-[data-theme="light"] .disposal-summary-card {
+[data-theme="light"] .cost-contributors-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
 }
@@ -627,45 +626,6 @@ body {
 [data-theme="light"] .ticket-pco,
 [data-theme="light"] .tm-ticket-pco {
   background: var(--status-neutral-bg);
-  color: var(--text-primary);
-}
-
-/* ============================================
-   Light Mode: Disposal Load Input
-   ============================================ */
-
-[data-theme="light"] .disposal-load-input {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .disposal-header {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .disposal-date {
-  color: var(--text-secondary);
-}
-
-[data-theme="light"] .quick-add-btn {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .disposal-load-row {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .load-label,
-[data-theme="light"] .load-count {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .load-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 

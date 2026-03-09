@@ -233,8 +233,7 @@
 /* Dashboard Analytics Cards */
 .burn-rate-card,
 .profitability-card,
-.cost-contributors-card,
-.disposal-summary-card {
+.cost-contributors-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
@@ -247,8 +246,7 @@
 
 .burn-rate-card::after,
 .profitability-card::after,
-.cost-contributors-card::after,
-.disposal-summary-card::after {
+.cost-contributors-card::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -259,8 +257,7 @@
 
 .burn-rate-card:hover,
 .profitability-card:hover,
-.cost-contributors-card:hover,
-.disposal-summary-card:hover {
+.cost-contributors-card:hover {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-1px);
 }

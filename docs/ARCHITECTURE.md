@@ -202,7 +202,6 @@ db = {
 
   // Users & Memberships (10+ methods)
   // Crew & Daily Reports (5+ methods)
-  // Disposal & Materials (5+ methods)
   // ... etc
 }
 ```
@@ -233,7 +232,6 @@ companies                    # Multi-tenant root
     ├── crew_checkins       # Daily labor log
     ├── daily_reports
     ├── injury_reports
-    ├── disposal_loads      # Dump tracking
     └── project_shares      # Public access tokens
 ```
 

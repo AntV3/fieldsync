@@ -734,7 +734,7 @@ Field: CrewCheckin loads classes → Shows dropdown (names only, no rates)
 3. **Quick Selection for Materials & Equipment**
    - Added quick select panel in COR form Steps 4 (Materials) and 5 (Equipment)
    - Search bar to filter items from company library
-   - Category tabs (All, Containment, PPE, Disposal for materials)
+   - Category tabs (All, Containment, PPE for materials)
    - Grid of clickable items showing name and cost per unit
    - One tap adds item with default pricing and quantity of 1
    - "Add Custom" button still available for manual entry of items not in library
@@ -761,8 +761,7 @@ Field: CrewCheckin loads classes → Shows dropdown (names only, no rates)
 - COR materials/equipment unit costs
 - AddCostModal amount field
 - MaterialsManager cost_per_unit
-- DumpSiteManager rates
-- Pricing section materials and dump sites
+- Pricing section materials
 
 ---
 
@@ -962,8 +961,6 @@ Field creates T&M → Gets Client Signature → Ticket goes to Office
 - `messages` - SELECT, INSERT, UPDATE
 - `daily_reports`, `injury_reports` - SELECT, INSERT
 - `material_requests` - SELECT, INSERT
-- `disposal_loads` - SELECT, INSERT, UPDATE, DELETE
-- `dump_sites` - SELECT
 - `t_and_m_tickets`, `t_and_m_workers`, `t_and_m_items` - SELECT, INSERT
 - `change_orders` - SELECT
 - `change_order_ticket_associations` - SELECT, INSERT
@@ -991,11 +988,9 @@ Field creates T&M → Gets Client Signature → Ticket goes to Office
 ### Foreman UI Refactor
 **Changes:**
 - Converted Crew Check-in from inline component to action button card
-- Converted Disposal Loads from inline component to action button card
-- Both now open in full-screen views with back button and header
+- Now opens in full-screen view with back button and header
 - Relabeled "Today's Crew" to "Crew Check-in"
 - Added tab color differentiation: blue for Actions, green for Progress
-- Removed deprecated Haul-Off feature (replaced by Disposal Loads)
 
 **Files:** `src/components/ForemanView.jsx`, `src/index.css`
 
@@ -1136,15 +1131,6 @@ Field creates T&M → Gets Client Signature → Ticket goes to Office
 **Files:** `supabase/migrations/20241229_atomic_ticket_cor_association.sql`
 
 ---
-
-### Disposal Loads Feature
-**Addition:** New disposal/dump load tracking system:
-- `disposal_loads` table with project, date, dump site, material type, weight, cost
-- `dump_sites` table for managing dump locations
-- Field UI for logging loads
-- Office UI for viewing summaries
-
-**Files:** `supabase/migrations/20241229_disposal_loads.sql`, `src/components/DisposalLoadInput.jsx`, `src/components/DisposalSummary.jsx`
 
 ---
 

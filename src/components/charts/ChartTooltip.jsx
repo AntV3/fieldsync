@@ -139,7 +139,7 @@ export default function ChartTooltip({ active, payload, label }) {
       </div>
 
       {/* Daily breakdown if available */}
-      {(data.dailyRevenue > 0 || data.dailyLabor > 0 || data.dailyMaterials > 0 || data.dailyHaulOff > 0 || data.dailyCustom > 0 || data.dailyTM > 0) && (
+      {(data.dailyRevenue > 0 || data.dailyLabor > 0 || data.dailyMaterials > 0 || data.dailyCustom > 0 || data.dailyTM > 0) && (
         <div className="chart-tooltip-daily">
           <div className="chart-tooltip-daily-label">Today's Activity</div>
           {data.dailyRevenue > 0 && (
@@ -157,11 +157,6 @@ export default function ChartTooltip({ active, payload, label }) {
           {data.dailyMaterials > 0 && (
             <div className="chart-tooltip-daily-row">
               Materials: {formatCurrency(data.dailyMaterials)}
-            </div>
-          )}
-          {data.dailyHaulOff > 0 && (
-            <div className="chart-tooltip-daily-row">
-              Disposal: {formatCurrency(data.dailyHaulOff)}
             </div>
           )}
           {data.dailyCustom > 0 && (

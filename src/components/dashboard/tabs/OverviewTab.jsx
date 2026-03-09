@@ -3,8 +3,6 @@ import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, 
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import EarnedValueCard from '../../charts/EarnedValueCard'
-import DisposalSummary from '../../DisposalSummary'
-
 const PhotoTimeline = lazy(() => import('../../PhotoTimeline'))
 const PunchList = lazy(() => import('../../PunchList'))
 
@@ -75,7 +73,6 @@ export default function OverviewTab({
           earnedRevenue={billable}
           totalCosts={projectData?.allCostsTotal || 0}
           laborCost={projectData?.laborCost || 0}
-          disposalCost={projectData?.haulOffCost || 0}
           equipmentCost={projectData?.projectEquipmentCost || 0}
           materialsCost={projectData?.materialsEquipmentCost || 0}
           otherCost={projectData?.customCostTotal || 0}
@@ -167,13 +164,7 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Row 5: Disposal Loads */}
-      <DisposalSummary
-        project={selectedProject}
-        period="week"
-      />
-
-      {/* Row 6: Photo Timeline + Punch List side by side */}
+      {/* Row 5: Photo Timeline + Punch List side by side */}
       <div className="overview-two-col">
         <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
           <PhotoTimeline
