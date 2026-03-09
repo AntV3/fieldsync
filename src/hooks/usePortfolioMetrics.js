@@ -36,20 +36,31 @@ export default function usePortfolioMetrics(projectsData) {
 
     // Single pass over all projects
     for (const p of projectsData) {
-      // Portfolio
+      // Portfolio: contract values are always available from summary data
       totalOriginalContract += p.contract_value || 0
-      totalChangeOrders += p.changeOrderValue || 0
-      totalEarned += p.billable || 0
-      totalPendingCORValue += p.corPendingValue || 0
-      totalPendingCORCount += p.corPendingCount || 0
 
-      // Health
+      // Financial metrics: only include projects with detailed data loaded
+      // to avoid counting placeholder zeros as real data
+      if (p._detailsLoaded) {
+        totalChangeOrders += p.changeOrderValue || 0
+        totalEarned += p.billable || 0
+        totalPendingCORValue += p.corPendingValue || 0
+        totalPendingCORCount += p.corPendingCount || 0
+      }
+
+      // Health: progress is available from summary, but billable-based checks
+      // require detailed data to be accurate
       const contractVal = p.revisedContractValue || p.contract_value
       if (p.progress >= 100) complete++
-      if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
-      if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
-      if (p.billable > contractVal) overBudget++
-      if ((p.changeOrderValue || 0) > 0) withChangeOrders++
+      if (p._detailsLoaded) {
+        if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
+        if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
+        if (p.billable > contractVal) overBudget++
+        if ((p.changeOrderValue || 0) > 0) withChangeOrders++
+      } else {
+        // Without detailed data, assume active projects are on-track
+        if (p.progress < 100) onTrack++
+      }
 
       // Schedule
       if (p.hasScheduleData) {

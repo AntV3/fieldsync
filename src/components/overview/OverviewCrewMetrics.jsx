@@ -39,10 +39,21 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   const [exporting, setExporting] = useState(false)
   const [showTimeline, setShowTimeline] = useState(false)
 
-  // Load all crew check-in history and T&M tickets
+  // Load all crew check-in history and T&M tickets, with real-time subscriptions
   useEffect(() => {
     if (!project?.id) return
     loadData()
+
+    // Subscribe to real-time crew check-in and T&M ticket changes
+    const subs = []
+    const crewSub = db.subscribeToCrewCheckins?.(project.id, () => loadData())
+    if (crewSub) subs.push(crewSub)
+    const tmSub = db.subscribeToTMTickets?.(project.id, () => loadData())
+    if (tmSub) subs.push(tmSub)
+
+    return () => {
+      subs.forEach(sub => db.unsubscribe?.(sub))
+    }
   }, [project?.id])
 
   const loadData = async () => {
