@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react'
 import { ClipboardList, Users, Shield, Package, HardHat, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
-import { TicketSkeleton } from '../../ui'
+import { TicketSkeleton, CollapsibleSection } from '../../ui'
 
 const DailyReportsList = lazy(() => import('../../DailyReportsList'))
 const InjuryReportsList = lazy(() => import('../../InjuryReportsList'))
@@ -71,6 +71,7 @@ export default function ReportsTab({
               <Users size={18} />
               <h3>Crew Analytics</h3>
             </div>
+            <span className="reports-section-count">{projectData?.uniqueWorkerCount || 0} workers</span>
           </div>
           <div className="reports-insight-body">
             <div className="reports-stat-grid">
@@ -98,20 +99,26 @@ export default function ReportsTab({
               </div>
             )}
             {projectData?.crewByDate && Object.keys(projectData.crewByDate).length > 0 && (
-              <div className="reports-mini-chart">
-                <div className="reports-mini-chart-label">Recent Crew Size</div>
-                <div className="reports-mini-bars">
-                  {Object.keys(projectData.crewByDate).sort().slice(-14).map(date => {
-                    const count = projectData.crewByDate[date]
-                    const max = projectData.peakCrewSize || 1
-                    return (
-                      <div key={date} className="reports-mini-bar-wrap" title={`${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count} workers`}>
-                        <div className="reports-mini-bar" style={{ height: `${(count / max) * 100}%` }}></div>
-                      </div>
-                    )
-                  })}
+              <CollapsibleSection
+                title="Crew Size Trend"
+                variant="compact"
+                summary={`Last ${Math.min(Object.keys(projectData.crewByDate).length, 14)} days`}
+              >
+                <div className="reports-mini-chart">
+                  <div className="reports-mini-chart-label">Recent Crew Size</div>
+                  <div className="reports-mini-bars">
+                    {Object.keys(projectData.crewByDate).sort().slice(-14).map(date => {
+                      const count = projectData.crewByDate[date]
+                      const max = projectData.peakCrewSize || 1
+                      return (
+                        <div key={date} className="reports-mini-bar-wrap" title={`${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count} workers`}>
+                          <div className="reports-mini-bar" style={{ height: `${(count / max) * 100}%` }}></div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+              </CollapsibleSection>
             )}
           </div>
         </div>
@@ -141,24 +148,30 @@ export default function ReportsTab({
                 </span>
               </div>
             </div>
-            <div className="reports-stat-grid">
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.injuryReportsCount || 0}</span>
-                <span className="reports-stat-label">Total Incidents</span>
+            <CollapsibleSection
+              title="Safety Breakdown"
+              variant="compact"
+              summary={`${projectData?.injuryReportsCount || 0} incidents, ${projectData?.oshaRecordable || 0} OSHA`}
+            >
+              <div className="reports-stat-grid">
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.injuryReportsCount || 0}</span>
+                  <span className="reports-stat-label">Total Incidents</span>
+                </div>
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.oshaRecordable || 0}</span>
+                  <span className="reports-stat-label">OSHA Recordable</span>
+                </div>
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.reportsWithIssues || 0}</span>
+                  <span className="reports-stat-label">Reports w/ Issues</span>
+                </div>
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.laborManDays || 0}</span>
+                  <span className="reports-stat-label">Total Man-Days</span>
+                </div>
               </div>
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.oshaRecordable || 0}</span>
-                <span className="reports-stat-label">OSHA Recordable</span>
-              </div>
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.reportsWithIssues || 0}</span>
-                <span className="reports-stat-label">Reports w/ Issues</span>
-              </div>
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.laborManDays || 0}</span>
-                <span className="reports-stat-label">Total Man-Days</span>
-              </div>
-            </div>
+            </CollapsibleSection>
           </div>
         </div>
       </div>
@@ -203,29 +216,35 @@ export default function ReportsTab({
                     <span>{projectData?.deliveredMaterialRequests || 0} Delivered</span>
                   </div>
                 </div>
-                <div className="reports-recent-list">
-                  {(projectData?.materialRequests || []).slice(0, 3).map(req => (
-                    <div key={req.id} className={`reports-recent-item ${req.status}`}>
-                      <div className="reports-recent-item-main">
-                        <span className={`reports-recent-item-status ${req.status}`}>{req.status}</span>
-                        <span className="reports-recent-item-date">
-                          {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </span>
-                      </div>
-                      <div className="reports-recent-item-detail">
-                        {(req.items || []).slice(0, 2).map((item, i) => (
-                          <span key={i}>{item.name}{item.quantity ? ` (${item.quantity})` : ''}</span>
-                        ))}
-                        {(req.items || []).length > 2 && (
-                          <span className="reports-recent-more">+{(req.items || []).length - 2} more</span>
+                <CollapsibleSection
+                  title="Recent Requests"
+                  variant="compact"
+                  badge={`${(projectData?.materialRequests || []).length}`}
+                >
+                  <div className="reports-recent-list">
+                    {(projectData?.materialRequests || []).slice(0, 3).map(req => (
+                      <div key={req.id} className={`reports-recent-item ${req.status}`}>
+                        <div className="reports-recent-item-main">
+                          <span className={`reports-recent-item-status ${req.status}`}>{req.status}</span>
+                          <span className="reports-recent-item-date">
+                            {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="reports-recent-item-detail">
+                          {(req.items || []).slice(0, 2).map((item, i) => (
+                            <span key={i}>{item.name}{item.quantity ? ` (${item.quantity})` : ''}</span>
+                          ))}
+                          {(req.items || []).length > 2 && (
+                            <span className="reports-recent-more">+{(req.items || []).length - 2} more</span>
+                          )}
+                        </div>
+                        {req.priority === 'urgent' && (
+                          <span className="reports-urgent-tag">URGENT</span>
                         )}
                       </div>
-                      {req.priority === 'urgent' && (
-                        <span className="reports-urgent-tag">URGENT</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </CollapsibleSection>
               </>
             )}
           </div>

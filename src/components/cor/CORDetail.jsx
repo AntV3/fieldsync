@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
+import { CollapsibleSection } from '../ui'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -391,192 +392,220 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
             {/* Labor Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Users size={16} />
-                  <span>Labor</span>
+              <CollapsibleSection
+                title="Labor"
+                icon={<Users size={16} />}
+                summary={formatCurrency(totals.labor_subtotal)}
+                badge={corData.change_order_labor?.length > 0 ? `${corData.change_order_labor.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Users size={16} />
+                    <span>Labor</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.labor_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.labor_subtotal)}</span>
-              </div>
 
-              {corData.change_order_labor?.length > 0 ? (
-                <div className="category-items">
-                  {groupLaborByClassAndType(corData.change_order_labor).map((group, gIdx) => (
-                    <div key={gIdx} className="labor-group">
-                      <div className="labor-group-header">
-                        <span className="labor-group-label">{group.label}</span>
-                        <span className="labor-group-subtotal">{formatCurrency(group.subtotal)}</span>
-                      </div>
-                      <table className="pricing-table">
-                        <thead>
-                          <tr>
-                            <th>Reg Hrs</th>
-                            <th>Reg Rate</th>
-                            <th>OT Hrs</th>
-                            <th>OT Rate</th>
-                            <th className="text-right">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.items.map((item, idx) => (
-                            <tr key={idx}>
-                              <td>{item.regular_hours}</td>
-                              <td>${centsToDollars(item.regular_rate)}/hr</td>
-                              <td>{item.overtime_hours || '-'}</td>
-                              <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
-                              <td className="text-right">{formatCurrency(item.total)}</td>
+                {corData.change_order_labor?.length > 0 ? (
+                  <div className="category-items">
+                    {groupLaborByClassAndType(corData.change_order_labor).map((group, gIdx) => (
+                      <div key={gIdx} className="labor-group">
+                        <div className="labor-group-header">
+                          <span className="labor-group-label">{group.label}</span>
+                          <span className="labor-group-subtotal">{formatCurrency(group.subtotal)}</span>
+                        </div>
+                        <table className="pricing-table">
+                          <thead>
+                            <tr>
+                              <th>Reg Hrs</th>
+                              <th>Reg Rate</th>
+                              <th>OT Hrs</th>
+                              <th>OT Rate</th>
+                              <th className="text-right">Total</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="category-empty">No labor items</div>
-              )}
+                          </thead>
+                          <tbody>
+                            {group.items.map((item, idx) => (
+                              <tr key={idx}>
+                                <td>{item.regular_hours}</td>
+                                <td>${centsToDollars(item.regular_rate)}/hr</td>
+                                <td>{item.overtime_hours || '-'}</td>
+                                <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
+                                <td className="text-right">{formatCurrency(item.total)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="category-empty">No labor items</div>
+                )}
 
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.labor_markup_percent || 1500)})</span>
-                <span>+{formatCurrency(totals.labor_markup_amount)}</span>
-              </div>
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.labor_markup_percent || 1500)})</span>
+                  <span>+{formatCurrency(totals.labor_markup_amount)}</span>
+                </div>
+              </CollapsibleSection>
             </div>
 
             {/* Materials Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Package size={16} />
-                  <span>Materials</span>
+              <CollapsibleSection
+                title="Materials"
+                icon={<Package size={16} />}
+                summary={formatCurrency(totals.materials_subtotal)}
+                badge={corData.change_order_materials?.length > 0 ? `${corData.change_order_materials.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Package size={16} />
+                    <span>Materials</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.materials_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.materials_subtotal)}</span>
-              </div>
 
-              {corData.change_order_materials?.length > 0 ? (
-                <div className="category-items">
-                  <table className="pricing-table">
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Source</th>
-                        <th>Qty</th>
-                        <th>Unit</th>
-                        <th>Unit Cost</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {corData.change_order_materials.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.description}</td>
-                          <td>{item.source_reference || item.source_type}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.unit}</td>
-                          <td>${centsToDollars(item.unit_cost)}</td>
-                          <td className="text-right">{formatCurrency(item.total)}</td>
+                {corData.change_order_materials?.length > 0 ? (
+                  <div className="category-items">
+                    <table className="pricing-table">
+                      <thead>
+                        <tr>
+                          <th>Description</th>
+                          <th>Source</th>
+                          <th>Qty</th>
+                          <th>Unit</th>
+                          <th>Unit Cost</th>
+                          <th className="text-right">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="category-empty">No material items</div>
-              )}
+                      </thead>
+                      <tbody>
+                        {corData.change_order_materials.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.description}</td>
+                            <td>{item.source_reference || item.source_type}</td>
+                            <td>{item.quantity}</td>
+                            <td>{item.unit}</td>
+                            <td>${centsToDollars(item.unit_cost)}</td>
+                            <td className="text-right">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="category-empty">No material items</div>
+                )}
 
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.materials_markup_percent || 1500)})</span>
-                <span>+{formatCurrency(totals.materials_markup_amount)}</span>
-              </div>
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.materials_markup_percent || 1500)})</span>
+                  <span>+{formatCurrency(totals.materials_markup_amount)}</span>
+                </div>
+              </CollapsibleSection>
             </div>
 
             {/* Equipment Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Truck size={16} />
-                  <span>Equipment</span>
+              <CollapsibleSection
+                title="Equipment"
+                icon={<Truck size={16} />}
+                summary={formatCurrency(totals.equipment_subtotal)}
+                badge={corData.change_order_equipment?.length > 0 ? `${corData.change_order_equipment.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Truck size={16} />
+                    <span>Equipment</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.equipment_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.equipment_subtotal)}</span>
-              </div>
 
-              {corData.change_order_equipment?.length > 0 ? (
-                <div className="category-items">
-                  <table className="pricing-table">
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Source</th>
-                        <th>Qty</th>
-                        <th>Unit</th>
-                        <th>Unit Cost</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {corData.change_order_equipment.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.description}</td>
-                          <td>{item.source_reference || item.source_type}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.unit}</td>
-                          <td>${centsToDollars(item.unit_cost)}</td>
-                          <td className="text-right">{formatCurrency(item.total)}</td>
+                {corData.change_order_equipment?.length > 0 ? (
+                  <div className="category-items">
+                    <table className="pricing-table">
+                      <thead>
+                        <tr>
+                          <th>Description</th>
+                          <th>Source</th>
+                          <th>Qty</th>
+                          <th>Unit</th>
+                          <th>Unit Cost</th>
+                          <th className="text-right">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="category-empty">No equipment items</div>
-              )}
+                      </thead>
+                      <tbody>
+                        {corData.change_order_equipment.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.description}</td>
+                            <td>{item.source_reference || item.source_type}</td>
+                            <td>{item.quantity}</td>
+                            <td>{item.unit}</td>
+                            <td>${centsToDollars(item.unit_cost)}</td>
+                            <td className="text-right">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="category-empty">No equipment items</div>
+                )}
 
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.equipment_markup_percent || 1500)})</span>
-                <span>+{formatCurrency(totals.equipment_markup_amount)}</span>
-              </div>
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.equipment_markup_percent || 1500)})</span>
+                  <span>+{formatCurrency(totals.equipment_markup_amount)}</span>
+                </div>
+              </CollapsibleSection>
             </div>
 
             {/* Subcontractors Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Briefcase size={16} />
-                  <span>Subcontractors</span>
+              <CollapsibleSection
+                title="Subcontractors"
+                icon={<Briefcase size={16} />}
+                summary={formatCurrency(totals.subcontractors_subtotal)}
+                badge={corData.change_order_subcontractors?.length > 0 ? `${corData.change_order_subcontractors.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Briefcase size={16} />
+                    <span>Subcontractors</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.subcontractors_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.subcontractors_subtotal)}</span>
-              </div>
 
-              {corData.change_order_subcontractors?.length > 0 ? (
-                <div className="category-items">
-                  <table className="pricing-table">
-                    <thead>
-                      <tr>
-                        <th>Company</th>
-                        <th>Description</th>
-                        <th>Source</th>
-                        <th className="text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {corData.change_order_subcontractors.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.company_name}</td>
-                          <td>{item.description}</td>
-                          <td>{item.source_reference || item.source_type}</td>
-                          <td className="text-right">{formatCurrency(item.total)}</td>
+                {corData.change_order_subcontractors?.length > 0 ? (
+                  <div className="category-items">
+                    <table className="pricing-table">
+                      <thead>
+                        <tr>
+                          <th>Company</th>
+                          <th>Description</th>
+                          <th>Source</th>
+                          <th className="text-right">Amount</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="category-empty">No subcontractor items</div>
-              )}
+                      </thead>
+                      <tbody>
+                        {corData.change_order_subcontractors.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.company_name}</td>
+                            <td>{item.description}</td>
+                            <td>{item.source_reference || item.source_type}</td>
+                            <td className="text-right">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="category-empty">No subcontractor items</div>
+                )}
 
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.subcontractors_markup_percent || 500)})</span>
-                <span>+{formatCurrency(totals.subcontractors_markup_amount)}</span>
-              </div>
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.subcontractors_markup_percent || 500)})</span>
+                  <span>+{formatCurrency(totals.subcontractors_markup_amount)}</span>
+                </div>
+              </CollapsibleSection>
             </div>
 
             {/* COR Subtotal */}
@@ -587,39 +616,45 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
             {/* Additional Fees */}
             <div className="pricing-category fees-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Percent size={16} />
-                  <span>Additional Fees</span>
-                </div>
-                <span className="category-subtotal">{formatCurrency(totals.additional_fees_total)}</span>
-              </div>
-
-              <div className="fees-list">
-                <div className="fee-row">
-                  <div className="fee-label">
-                    <Shield size={14} />
-                    <span>Liability Insurance ({formatPercent(corData.liability_insurance_percent || 144)})</span>
+              <CollapsibleSection
+                title="Additional Fees"
+                icon={<Percent size={16} />}
+                summary={formatCurrency(totals.additional_fees_total)}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Percent size={16} />
+                    <span>Additional Fees</span>
                   </div>
-                  <span className="fee-amount">{formatCurrency(totals.liability_insurance_amount)}</span>
+                  <span className="category-subtotal">{formatCurrency(totals.additional_fees_total)}</span>
                 </div>
 
-                <div className="fee-row">
-                  <div className="fee-label">
-                    <FileText size={14} />
-                    <span>Bond ({formatPercent(corData.bond_percent || 100)})</span>
+                <div className="fees-list">
+                  <div className="fee-row">
+                    <div className="fee-label">
+                      <Shield size={14} />
+                      <span>Liability Insurance ({formatPercent(corData.liability_insurance_percent || 144)})</span>
+                    </div>
+                    <span className="fee-amount">{formatCurrency(totals.liability_insurance_amount)}</span>
                   </div>
-                  <span className="fee-amount">{formatCurrency(totals.bond_amount)}</span>
-                </div>
 
-                <div className="fee-row">
-                  <div className="fee-label">
-                    <Building2 size={14} />
-                    <span>City License Fee ({formatPercent(corData.license_fee_percent || 10)})</span>
+                  <div className="fee-row">
+                    <div className="fee-label">
+                      <FileText size={14} />
+                      <span>Bond ({formatPercent(corData.bond_percent || 100)})</span>
+                    </div>
+                    <span className="fee-amount">{formatCurrency(totals.bond_amount)}</span>
                   </div>
-                  <span className="fee-amount">{formatCurrency(totals.license_fee_amount)}</span>
+
+                  <div className="fee-row">
+                    <div className="fee-label">
+                      <Building2 size={14} />
+                      <span>City License Fee ({formatPercent(corData.license_fee_percent || 10)})</span>
+                    </div>
+                    <span className="fee-amount">{formatCurrency(totals.license_fee_amount)}</span>
+                  </div>
                 </div>
-              </div>
+              </CollapsibleSection>
             </div>
 
             {/* COR Total */}
