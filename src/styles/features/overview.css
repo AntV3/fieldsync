@@ -1336,3 +1336,78 @@
   }
 }
 
+/* -- Progressive Disclosure: Cost breakdown toggle -- */
+.cost-breakdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.cost-breakdown-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.cost-breakdown-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cost-breakdown-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+/* -- Progressive Disclosure: Crew timeline toggle -- */
+.crew-timeline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 8px 6px;
+  margin-top: 4px;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.crew-timeline-toggle:hover {
+  color: var(--text-primary);
+}
+
+.crew-timeline-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.crew-timeline-chevron.open {
+  transform: rotate(180deg);
+}
+
+.crew-timeline-summary {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+

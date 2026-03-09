@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useMemo, useCallback } from 'react'
-import { Users, HardHat, Wrench, Calendar, Download, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, HardHat, Wrench, Calendar, Download, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
@@ -37,6 +37,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   const [timeRange, setTimeRange] = useState('14d')
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [showTimeline, setShowTimeline] = useState(false)
 
   // Load all crew check-in history and T&M tickets
   useEffect(() => {
@@ -430,69 +431,83 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         </div>
       )}
 
-      {/* Day-by-day timeline chart */}
-      <div className="crew-timeline-section">
-        <div className="crew-timeline-header">
-          <span className="crew-timeline-title">Daily Breakdown</span>
-          <div className="crew-time-range-pills">
-            {TIME_RANGES.map(range => (
-              <button
-                key={range.id}
-                className={`crew-range-pill ${timeRange === range.id ? 'active' : ''}`}
-                onClick={() => setTimeRange(range.id)}
+      {/* Day-by-day timeline chart — collapsed by default */}
+      <button
+        className="crew-timeline-toggle"
+        onClick={() => setShowTimeline(!showTimeline)}
+        type="button"
+      >
+        <ChevronDown size={14} className={`crew-timeline-chevron ${showTimeline ? 'open' : ''}`} />
+        <span>Daily Breakdown</span>
+        {!showTimeline && chartData.length > 0 && (
+          <span className="crew-timeline-summary">Last {chartData.length} days</span>
+        )}
+      </button>
+
+      {showTimeline && (
+        <div className="crew-timeline-section">
+          <div className="crew-timeline-header">
+            <span className="crew-timeline-title">Daily Breakdown</span>
+            <div className="crew-time-range-pills">
+              {TIME_RANGES.map(range => (
+                <button
+                  key={range.id}
+                  className={`crew-range-pill ${timeRange === range.id ? 'active' : ''}`}
+                  onClick={() => setTimeRange(range.id)}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="crew-chart-container">
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart
+                data={chartData}
+                onClick={(e) => e?.activePayload?.[0] && handleBarClick(e.activePayload[0].payload)}
+                style={{ cursor: 'pointer' }}
               >
-                {range.label}
-              </button>
-            ))}
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis
+                  dataKey="displayDate"
+                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                  axisLine={{ stroke: 'var(--border-color)' }}
+                  tickLine={false}
+                  interval={timeRange === '30d' ? 4 : timeRange === '14d' ? 1 : 0}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                  width={30}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontSize: '0.75rem', paddingTop: 4 }}
+                  iconType="circle"
+                  iconSize={8}
+                />
+                <Bar
+                  dataKey="contract"
+                  name="Contract"
+                  stackId="crew"
+                  fill={CREW_COLORS.contract}
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="tm"
+                  name="Time & Material (Extra Work)"
+                  stackId="crew"
+                  fill={CREW_COLORS.tm}
+                  radius={[3, 3, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
-
-        <div className="crew-chart-container">
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart
-              data={chartData}
-              onClick={(e) => e?.activePayload?.[0] && handleBarClick(e.activePayload[0].payload)}
-              style={{ cursor: 'pointer' }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-                axisLine={{ stroke: 'var(--border-color)' }}
-                tickLine={false}
-                interval={timeRange === '30d' ? 4 : timeRange === '14d' ? 1 : 0}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-                axisLine={false}
-                tickLine={false}
-                allowDecimals={false}
-                width={30}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: '0.75rem', paddingTop: 4 }}
-                iconType="circle"
-                iconSize={8}
-              />
-              <Bar
-                dataKey="contract"
-                name="Contract"
-                stackId="crew"
-                fill={CREW_COLORS.contract}
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="tm"
-                name="Time & Material (Extra Work)"
-                stackId="crew"
-                fill={CREW_COLORS.tm}
-                radius={[3, 3, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      )}
 
       {/* Empty state */}
       {todayMetrics.total === 0 && (
