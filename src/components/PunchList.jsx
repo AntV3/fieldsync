@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save } from 'lucide-react'
+import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save, ChevronDown, ChevronRight } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
 import { ConfirmDialog } from './ui'
 
@@ -28,6 +28,8 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
   const [filterArea, setFilterArea] = useState('all')
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [expandedNotes, setExpandedNotes] = useState(new Set())
   const [formData, setFormData] = useState({
     description: '',
     area_id: '',
@@ -80,9 +82,11 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     return items.filter(item => {
       if (filterStatus !== 'all' && item.status !== filterStatus) return false
       if (filterArea !== 'all' && item.area_id !== filterArea) return false
+      // When not filtering by a specific status, hide completed items unless toggled on
+      if (filterStatus === 'all' && !showCompleted && item.status === 'complete') return false
       return true
     })
-  }, [items, filterStatus, filterArea])
+  }, [items, filterStatus, filterArea, showCompleted])
 
   const stats = useMemo(() => {
     const open = items.filter(i => i.status === 'open').length
@@ -193,6 +197,15 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
   const getStatusConfig = (status) =>
     STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0]
 
+  const toggleNotes = (itemId) => {
+    setExpandedNotes(prev => {
+      const next = new Set(prev)
+      if (next.has(itemId)) next.delete(itemId)
+      else next.add(itemId)
+      return next
+    })
+  }
+
   return (
     <div className="punch-list-card">
       {/* Header */}
@@ -249,6 +262,15 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
                 ))}
               </select>
             </div>
+          )}
+          {filterStatus === 'all' && stats.complete > 0 && (
+            <button
+              className="punch-show-completed-btn"
+              onClick={() => setShowCompleted(!showCompleted)}
+            >
+              {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {showCompleted ? 'Hide' : 'Show'} {stats.complete} completed
+            </button>
           )}
         </div>
       )}
@@ -395,7 +417,19 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
                   </div>
 
                   {item.notes && (
-                    <div className="punch-item-notes">{item.notes}</div>
+                    <div className="punch-item-notes-toggle">
+                      <button
+                        className="punch-notes-btn"
+                        onClick={(e) => { e.stopPropagation(); toggleNotes(item.id) }}
+                        type="button"
+                      >
+                        {expandedNotes.has(item.id) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        <span>Notes</span>
+                      </button>
+                      {expandedNotes.has(item.id) && (
+                        <div className="punch-item-notes">{item.notes}</div>
+                      )}
+                    </div>
                   )}
                 </div>
 

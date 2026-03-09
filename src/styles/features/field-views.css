@@ -1290,4 +1290,16 @@
   position: relative;
 }
 
+/* -- Progressive Disclosure: Injury report card compact summary -- */
+.report-summary-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.report-footer-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #94a3b8);
+}
 
