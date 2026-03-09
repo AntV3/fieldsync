@@ -1,9 +1,82 @@
 /* ============================================
-   Project Detail View - Compact Layout
+   Layout Grid & Project Detail View
+   Enterprise Dashboard - 12-column fluid grid
+   ============================================
+
+   Grid: 12 columns, 24px gutters
+   Card min width: 280px
+   Max content: 1440px (centered beyond)
+   All measurements on 8px grid
    ============================================ */
 
+/* ---- Dashboard Grid System ---- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns, 12), 1fr);
+  gap: var(--grid-gutter, 24px);
+  max-width: var(--content-max-width, 1440px);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+/* Grid span utilities */
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+.col-span-3 { grid-column: span 3; }
+.col-span-4 { grid-column: span 4; }
+.col-span-5 { grid-column: span 5; }
+.col-span-6 { grid-column: span 6; }
+.col-span-7 { grid-column: span 7; }
+.col-span-8 { grid-column: span 8; }
+.col-span-9 { grid-column: span 9; }
+.col-span-10 { grid-column: span 10; }
+.col-span-11 { grid-column: span 11; }
+.col-span-12 { grid-column: span 12; }
+
+/* Responsive grid breakpoints */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: var(--space-4);
+    padding: 0 var(--space-4);
+  }
+
+  .col-span-3,
+  .col-span-4 { grid-column: span 4; }
+  .col-span-5,
+  .col-span-6 { grid-column: span 4; }
+  .col-span-7,
+  .col-span-8 { grid-column: span 8; }
+  .col-span-9,
+  .col-span-10,
+  .col-span-11,
+  .col-span-12 { grid-column: span 8; }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    padding: 0 var(--space-3);
+  }
+
+  .col-span-1,
+  .col-span-2,
+  .col-span-3,
+  .col-span-4,
+  .col-span-5,
+  .col-span-6,
+  .col-span-7,
+  .col-span-8,
+  .col-span-9,
+  .col-span-10,
+  .col-span-11,
+  .col-span-12 { grid-column: span 4; }
+}
+
+/* ---- Project Detail View ---- */
 .project-detail-view {
-  max-width: 100%;
+  max-width: var(--content-max-width, 1440px);
   margin: 0 auto;
 }
 
@@ -36,15 +109,16 @@
 .metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1rem;
+  border-radius: 8px;
+  padding: var(--space-4);
   text-align: center;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .metric-card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .metric-label {
@@ -57,11 +131,12 @@
 
 .metric-value {
   font-family: var(--font-data);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--text-data-medium);
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
+  text-align: right;
 }
 
 .metric-value.accent {
@@ -101,9 +176,9 @@
 }
 
 .info-tag.type {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
+  background: rgba(0, 145, 213, 0.1);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
   text-transform: capitalize;
 }
 
@@ -292,8 +367,8 @@ END MIGRATED */
 .field-area-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: 1.25rem;
+  border-radius: 8px;
+  padding: var(--space-5);
 }
 
 .field-area-name {
@@ -309,16 +384,17 @@ END MIGRATED */
 }
 
 .field-status-btn {
-  padding: 1rem;
-  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  border-radius: 6px;
   border: 2px solid var(--border-color);
   background: var(--bg-elevated);
   color: var(--text-secondary);
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--text-h3);
+  font-weight: var(--font-weight-semibold);
   font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.2s ease;
+  min-height: 44px;
 }
 
 .field-status-btn:hover {
@@ -365,11 +441,11 @@ END MIGRATED */
   border: 1px solid var(--border-color);
 }
 
-/* Project List - Grid Layout */
+/* Project List - Grid Layout (card min width: 280px per spec) */
 .project-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width, 280px), 1fr));
+  gap: var(--grid-gutter, 24px);
 }
 
 /* MIGRATED TO: src/styles/components/cards.css
@@ -459,17 +535,17 @@ END MIGRATED */
 .toast-notification {
   display: flex;
   align-items: center;
-  gap: var(--space-sm, 0.5rem);
-  padding: 0.875rem 1rem;
-  background: var(--glass-bg, rgba(26, 26, 31, 0.92));
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.92));
   backdrop-filter: var(--glass-backdrop, blur(12px));
   -webkit-backdrop-filter: var(--glass-backdrop, blur(12px));
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-elevated, 0 12px 40px rgba(0, 0, 0, 0.25));
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.06));
+  border-radius: 8px;
+  box-shadow: var(--shadow-elevated);
   color: var(--text-primary);
-  font-size: var(--font-size-sm, 0.875rem);
-  font-weight: var(--font-weight-medium, 500);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-medium);
   position: relative;
   overflow: hidden;
   min-width: 280px;

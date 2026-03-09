@@ -1,10 +1,10 @@
 /* ============================================
-   Light Theme Overrides
+   Theme Overrides - Enterprise Dashboard
    ============================================
 
-   These overrides supplement the design tokens in
-   variables.css for components that need additional
-   light-mode styling beyond token switching.
+   Theme-specific component overrides.
+   Light theme is now default in :root.
+   Dark mode uses [data-theme="dark"].
 
    WCAG 2.1 AA contrast ratios maintained throughout.
    ============================================ */

@@ -1,9 +1,16 @@
 /* ============================================
-   Typography Styles
+   Typography System - Enterprise Dashboard
    ============================================
 
-   Heading, paragraph, and text utility styles.
+   Type scale based on 8-point grid system.
+   Primary: Inter (UI), JetBrains Mono (data/numbers)
+   Max 3 weights per screen: 400, 500, 600
    Uses design tokens from variables.css.
+
+   Accessibility:
+   - Minimum contrast 4.5:1 body text, 7:1 small text
+   - Never font-weight below 400 for text < 12px
+   - Tabular figures for all aligned data columns
    ============================================ */
 
 /* Headings */
@@ -14,40 +21,54 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: var(--letter-spacing-tight);
 }
 
+/* Display: Dashboard titles, page headers */
 h1 {
-  font-size: var(--font-size-3xl);
+  font-size: var(--text-display);
   font-weight: var(--font-weight-bold);
-  letter-spacing: -0.025em;
-}
-
-h2 {
-  font-size: var(--font-size-2xl);
+  line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
-h3 {
-  font-size: var(--font-size-xl);
+/* H1: Section headers, major card titles */
+h2 {
+  font-size: var(--text-h1);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
+/* H2: Subsection headers, widget titles */
+h3 {
+  font-size: var(--text-h2);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* H3: Card headers, metric labels */
 h4 {
-  font-size: var(--font-size-lg);
+  font-size: var(--text-h3);
+  line-height: 1.4;
+  letter-spacing: var(--letter-spacing-normal);
 }
 
 h5, h6 {
-  font-size: var(--font-size-md);
+  font-size: var(--text-body);
   letter-spacing: var(--letter-spacing-normal);
+  line-height: 1.5;
 }
 
 /* Paragraphs */
 p {
+  font-size: var(--text-body);
   color: var(--text-secondary);
-  line-height: var(--line-height-normal);
+  line-height: 1.5;
 }
 
 /* Small text */
 small {
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
+  font-size: var(--text-small);
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  letter-spacing: 0.01em;
 }
 
 /* Strong/Bold */
@@ -58,7 +79,7 @@ strong, b {
 /* Code/Monospace */
 code, pre, kbd {
   font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-size: var(--text-body);
 }
 
 code {
@@ -69,12 +90,12 @@ code {
 
 pre {
   background: var(--bg-elevated);
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
   overflow-x: auto;
 }
 
-/* Text utilities */
+/* Text color utilities */
 .text-primary {
   color: var(--text-primary);
 }
@@ -84,11 +105,11 @@ pre {
 }
 
 .text-muted {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
 }
 
 .text-success {
-  color: var(--accent-green);
+  color: var(--color-success);
 }
 
 .text-warning {
@@ -96,32 +117,32 @@ pre {
 }
 
 .text-danger {
-  color: var(--accent-red);
+  color: var(--color-accent-warm);
 }
 
 .text-info {
-  color: var(--accent-blue);
+  color: var(--color-accent);
 }
 
-/* Text size utilities */
+/* Text size utilities (mapped to type scale) */
 .text-xs {
-  font-size: var(--font-size-xs);
+  font-size: var(--text-small);
 }
 
 .text-sm {
-  font-size: var(--font-size-sm);
+  font-size: var(--text-body);
 }
 
 .text-md {
-  font-size: var(--font-size-md);
+  font-size: var(--text-h3);
 }
 
 .text-lg {
-  font-size: var(--font-size-lg);
+  font-size: var(--text-h2);
 }
 
 .text-xl {
-  font-size: var(--font-size-xl);
+  font-size: var(--text-h1);
 }
 
 /* Text alignment */
@@ -177,36 +198,55 @@ pre {
 
 /* Section Headers - consistent pattern for titled sections */
 .section-title {
-  font-size: var(--font-size-sm);
+  font-size: var(--text-small);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-caps);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-4);
 }
 
 /* ---- Data Display Typography ---- */
-/* Tabular numbers for financial/metric displays - prevents alignment jitter */
+/* Tabular numbers for financial/metric displays */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* Data values: use monospaced data font with tabular figures */
+/* Data values: monospaced data font with tabular figures */
 .data-value {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.01em;
 }
 
-/* KPI / hero metric values */
+/* KPI / hero metric values (--text-data-large: 28px) */
 .kpi-value {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums lining-nums;
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
+  font-size: var(--text-data-large);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
   letter-spacing: -0.02em;
   color: var(--text-primary);
+}
+
+/* Secondary metric values (--text-data-medium: 20px) */
+.metric-value-secondary {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--text-data-medium);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* Small data values (--text-data-small: 14px) */
+.metric-value-small {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--text-data-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
 }
 
 /* Number alignment: right-align numbers in columns */
@@ -215,11 +255,19 @@ pre {
   font-variant-numeric: tabular-nums;
 }
 
+/* Micro text: tags, badges, axis labels (10px) */
+.text-micro {
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
 /* Label hierarchy for dashboards */
 .label-uppercase {
-  font-size: var(--font-size-xs);
+  font-size: var(--text-small);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-caps);
   line-height: var(--line-height-normal);

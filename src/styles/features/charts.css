@@ -1,17 +1,29 @@
 /* ============================================
-   Financial Chart Components
+   Financial Chart Components - Enterprise Dashboard
+   ============================================
+
+   Data Visualization Standards:
+   - Monochromatic scales for single-series
+   - Max 3 distinct hues for multi-series
+   - Line strokes: 2px primary, 1.5px secondary
+   - Axis labels: 10px medium, Data labels: 12px regular
+   - Legend: 12px with 8px spacing
+
+   Color Scales (from variables.css):
+   Primary Blue: --data-100 through --data-10
+   Secondary: --data-alt-100, --data-alt-60, --data-alt-30
    ============================================ */
 
 /* Financial Trend Chart Container */
 .financial-trend-chart {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  margin-bottom: 1rem;
+  border-radius: 8px;
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
   box-shadow: var(--shadow-card);
-  transition: all var(--transition-smooth);
-  animation: chartFadeIn 0.4s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  animation: chartFadeIn 0.3s ease;
   overflow: visible;
   min-width: 0;
   position: relative;
@@ -27,7 +39,8 @@
 }
 
 .financial-trend-chart:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .financial-trend-chart.empty {
@@ -178,8 +191,8 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--glass-border, var(--border-color));
-  border-radius: var(--radius-lg);
-  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  padding: var(--space-3) var(--space-4);
   box-shadow: var(--shadow-elevated);
   min-width: 180px;
   z-index: var(--z-tooltip);
@@ -276,6 +289,43 @@
 
 .recharts-legend-item-text {
   color: var(--text-secondary) !important;
+  font-size: var(--text-small) !important;
+}
+
+/* ---- Data Visualization Color Scale Classes ---- */
+/* Use these classes for chart elements to ensure monochromatic consistency */
+.chart-color-100 { color: var(--data-100); fill: var(--data-100); stroke: var(--data-100); }
+.chart-color-80 { color: var(--data-80); fill: var(--data-80); stroke: var(--data-80); }
+.chart-color-60 { color: var(--data-60); fill: var(--data-60); stroke: var(--data-60); }
+.chart-color-40 { color: var(--data-40); fill: var(--data-40); stroke: var(--data-40); }
+.chart-color-20 { color: var(--data-20); fill: var(--data-20); stroke: var(--data-20); }
+.chart-color-10 { color: var(--data-10); fill: var(--data-10); stroke: var(--data-10); }
+
+/* Secondary scale for comparison series */
+.chart-color-alt-100 { color: var(--data-alt-100); fill: var(--data-alt-100); stroke: var(--data-alt-100); }
+.chart-color-alt-60 { color: var(--data-alt-60); fill: var(--data-alt-60); stroke: var(--data-alt-60); }
+.chart-color-alt-30 { color: var(--data-alt-30); fill: var(--data-alt-30); stroke: var(--data-alt-30); }
+
+/* Line chart stroke widths per spec */
+.chart-line-primary { stroke-width: 2px; opacity: 1; }
+.chart-line-secondary { stroke-width: 1.5px; opacity: 0.6; }
+
+/* Axis labels: 10px medium weight */
+.recharts-cartesian-axis-tick-value {
+  font-size: var(--text-micro) !important;
+  font-weight: var(--font-weight-medium) !important;
+  fill: var(--text-tertiary) !important;
+}
+
+/* Data labels: 12px regular */
+.recharts-label {
+  font-size: var(--text-small) !important;
+  fill: var(--text-secondary) !important;
+}
+
+/* Legend: 12px with 8px spacing */
+.recharts-legend-wrapper {
+  padding-top: var(--space-2) !important;
 }
 
 /* Chart Animations */
