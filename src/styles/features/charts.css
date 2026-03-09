@@ -188,8 +188,6 @@
 /* Chart Tooltip - elevated surface with backdrop blur */
 .chart-tooltip {
   background: var(--elevation-3, var(--bg-card));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--glass-border, var(--border-color));
   border-radius: 8px;
   padding: var(--space-3) var(--space-4);
@@ -469,7 +467,7 @@
 }
 
 .chart-section-dimmed {
-  opacity: 0.35;
+  opacity: 0.55;
   transition: opacity var(--transition-micro);
 }
 

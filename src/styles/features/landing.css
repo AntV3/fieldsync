@@ -36,9 +36,7 @@
 }
 
 .lp-nav-scrolled {
-  background: rgba(10, 10, 11, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-primary);
   border-bottom-color: #2a2a32;
 }
 
@@ -135,7 +133,6 @@
   letter-spacing: 0.03em;
   margin-bottom: 2rem;
   animation: fadeInUp 0.6s ease both;
-  backdrop-filter: blur(8px);
 }
 
 .lp-hero-title {
@@ -350,7 +347,6 @@
   font-size: 0.8rem;
   font-weight: 500;
   white-space: nowrap;
-  backdrop-filter: blur(4px);
   transition: border-color 0.3s ease, color 0.3s ease;
 }
 

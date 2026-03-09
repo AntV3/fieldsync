@@ -125,9 +125,7 @@ body {
    ============================================ */
 
 [data-theme="light"] .modal-overlay {
-  background: rgba(15, 23, 42, 0.25);
-  backdrop-filter: blur(6px) saturate(140%);
-  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  background: rgba(15, 23, 42, 0.4);
 }
 
 [data-theme="light"] .modal-content {

@@ -22,14 +22,12 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
+  background: var(--bg-primary);
   padding: 1rem 0 0;
   margin: -1rem -1rem 0;
   padding-left: 1rem;
   padding-right: 1rem;
   border-bottom: 1px solid var(--border-light);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
 }
 
 .pv-header-row {
