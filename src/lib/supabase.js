@@ -9,7 +9,7 @@
  *   db/tmOps.js        — T&M Tickets, Photos
  *   db/companyOps.js   — Company, Memberships, Punch list
  *   db/fieldOps.js     — Crew, Daily Reports, Messaging, Material Requests, Injuries, Disposal
- *   db/financialOps.js — COR/Exports, Sharing, Notifications, Dump Sites
+ *   db/financialOps.js — COR/Exports, Sharing, Notifications
  *   db/documentOps.js  — Documents, Folders
  *   db/client.js       — Shared deps (supabase client, offline cache, helpers)
  */

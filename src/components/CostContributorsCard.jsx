@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Plus, HardHat, Truck, Wrench, Package, Users, MoreHorizontal, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, HardHat, Wrench, Package, Users, MoreHorizontal, Trash2 } from 'lucide-react'
 import { CostDonut } from './charts'
 
 // Helper to format currency
@@ -15,7 +15,6 @@ const formatCurrency = (amount) => {
 // Category display info
 const categoryInfo = {
   labor: { label: 'Labor', Icon: HardHat, color: '#3b82f6' },
-  disposal: { label: 'Disposal', Icon: Truck, color: '#10b981' },
   equipment: { label: 'Equipment', Icon: Wrench, color: '#f59e0b' },
   materials: { label: 'Materials', Icon: Package, color: '#8b5cf6' },
   subcontractor: { label: 'Subcontractor', Icon: Users, color: '#ec4899' },
@@ -24,7 +23,6 @@ const categoryInfo = {
 
 export default function CostContributorsCard({
   laborCost = 0,
-  haulOffCost = 0,
   materialsEquipmentCost = 0,
   projectEquipmentCost = 0,
   customCosts = [],
@@ -45,17 +43,6 @@ export default function CostContributorsCard({
       amount: laborCost,
       source: 'auto',
       description: 'From crew check-ins'
-    })
-  }
-
-  // Disposal (auto-tracked from haul-offs)
-  if (haulOffCost > 0) {
-    costBreakdown.push({
-      category: 'disposal',
-      label: 'Disposal',
-      amount: haulOffCost,
-      source: 'auto',
-      description: 'From haul-off logs'
     })
   }
 
@@ -165,12 +152,11 @@ export default function CostContributorsCard({
       {costBreakdown.length === 0 ? (
         <div className="cost-empty">
           <p>No costs recorded yet</p>
-          <small>Costs will appear as crew checks in and haul-offs are logged</small>
+          <small>Costs will appear as crew checks in</small>
         </div>
       ) : showChart ? (
         <CostDonut
           laborCost={laborCost}
-          haulOffCost={haulOffCost}
           materialsEquipmentCost={materialsEquipmentCost}
           projectEquipmentCost={projectEquipmentCost}
           customCosts={customCosts}

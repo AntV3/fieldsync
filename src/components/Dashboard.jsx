@@ -43,7 +43,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [corListExpanded, setCORListExpanded] = useState(false) // Whether the full card list is shown below the log
   const [corDisplayMode, setCORDisplayMode] = useState('list') // 'list' | 'log' - for layout expansion
   const [tmViewMode, setTMViewMode] = useState('preview') // 'preview' | 'full'
-  const [dumpSites, setDumpSites] = useState([])
   const [showCORForm, setShowCORForm] = useState(false)
   const [editingCOR, setEditingCOR] = useState(null)
   const [showCORDetail, setShowCORDetail] = useState(false)
@@ -131,7 +130,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   useEffect(() => {
     if (company?.id) {
       loadProjects()
-      loadDumpSites()
     }
   }, [company?.id])
 
@@ -161,8 +159,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       onMaterialsEquipmentChange: () => debouncedRefresh(), // Pricing updates
       onLaborRateChange: () => debouncedRefresh(), // Labor rate updates
       onPunchListChange: () => debouncedRefresh(), // Punch list items created/resolved by field
-      onDisposalLoadChange: () => debouncedRefresh(), // Disposal loads from field
-      onHaulOffChange: () => debouncedRefresh(), // Haul-off tracking from field
       onInvoiceChange: () => debouncedRefresh(), // Invoice created/updated/paid
       onDrawRequestChange: () => debouncedRefresh(), // Draw request changes
       onProjectEquipmentChange: () => debouncedRefresh(), // Equipment added/removed/returned
@@ -189,15 +185,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       document.body.style.overflow = ''
     }
   }, [financialsSidebarMobileOpen])
-
-  const loadDumpSites = async () => {
-    try {
-      const sites = await db.getDumpSites(company.id)
-      setDumpSites(sites || [])
-    } catch (error) {
-      console.error('Error loading dump sites:', error)
-    }
-  }
 
   // Handle navigation from notifications
   // Use a ref to prevent re-running this effect when projects data refreshes
@@ -239,12 +226,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         debouncedRefresh()
       })
       if (checkinsSub) subscriptions.push(checkinsSub)
-
-      // Haul offs subscription
-      const haulOffsSub = db.subscribeToHaulOffs?.(projectId, () => {
-        debouncedRefresh()
-      })
-      if (haulOffsSub) subscriptions.push(haulOffsSub)
 
       // CORs subscription - also refreshes COR list
       const corsSub = db.subscribeToCORs?.(projectId, () => {
@@ -315,12 +296,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         dailyReports,
         injuryReports,
         laborCosts,
-        haulOffCosts,
         customCosts,
         corStats,
         crewHistory,
         materialRequests,
-        weeklyDisposal,
         projectEquipment,
         projectInvoices,
         punchListItems
@@ -331,12 +310,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getDailyReports(project.id, 100), { fallback: [], context: { operation: 'getDailyReports', projectId: project.id } }),
         safeAsync(() => db.getInjuryReports(project.id), { fallback: [], context: { operation: 'getInjuryReports', projectId: project.id } }),
         safeAsync(() => db.calculateManDayCosts(project.id, company?.id, project.work_type || 'demolition', project.job_type || 'standard'), { fallback: null, context: { operation: 'calculateManDayCosts', projectId: project.id } }),
-        safeAsync(() => db.calculateHaulOffCosts(project.id), { fallback: null, context: { operation: 'calculateHaulOffCosts', projectId: project.id } }),
         safeAsync(() => db.getProjectCosts(project.id), { fallback: [], context: { operation: 'getProjectCosts', projectId: project.id } }),
         safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } }),
         safeAsync(() => db.getCrewCheckinHistory(project.id, 60), { fallback: [], context: { operation: 'getCrewCheckinHistory', projectId: project.id } }),
         safeAsync(() => db.getMaterialRequests(project.id), { fallback: [], context: { operation: 'getMaterialRequests', projectId: project.id } }),
-        safeAsync(() => db.getWeeklyDisposalSummary(project.id, 4), { fallback: [], context: { operation: 'getWeeklyDisposalSummary', projectId: project.id } }),
         safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } }),
         safeAsync(() => db.getProjectInvoices(project.id), { fallback: [], context: { operation: 'getProjectInvoices', projectId: project.id } }),
         safeAsync(() => db.getPunchListItems(project.id), { fallback: [], context: { operation: 'getPunchListItems', projectId: project.id } })
@@ -392,10 +369,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
-      const haulOffCost = haulOffCosts?.totalCost || 0
       // Project equipment rental costs (daily rate * days on site, stored in cents)
       const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
-      const allCostsTotal = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
+      const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
       // Total billed from invoices (for cash flow analytics)
       const totalBilled = (projectInvoices || [])
@@ -424,7 +400,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       const laborDays = laborCosts?.byDate?.length || 0
       const materialsDays = materialsEquipmentByDateArray.length
       const totalBurnDays = Math.max(laborDays, materialsDays)
-      const totalBurn = laborCost + haulOffCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
+      const totalBurn = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
       const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
       // Schedule insights
@@ -468,11 +444,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       const reportsWithIssues = dailyReports.filter(r => r.issues && r.issues.trim().length > 0).length
       const totalPhotosFromTickets = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
 
-      // Disposal totals from weekly data
-      const disposalTotalLoads = (weeklyDisposal || []).reduce((sum, w) => {
-        return sum + (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0)
-      }, 0)
-
       // Days since last injury
       const lastInjuryDate = injuryReports.length > 0
         ? new Date(injuryReports[0]?.incident_date || injuryReports[0]?.created_at)
@@ -511,11 +482,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         materialsEquipmentCost,
         materialsEquipmentByDate: materialsEquipmentByDateArray,
         projectEquipmentCost,
-        haulOffCost,
-        haulOffLoads: haulOffCosts?.totalLoads || 0,
-        haulOffDays: haulOffCosts?.daysWithHaulOff || 0,
-        haulOffByType: haulOffCosts?.byWasteType || {},
-        haulOffByDate: haulOffCosts?.byDate || [],
         customCosts,
         customCostTotal,
         totalBurn,
@@ -558,9 +524,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         reportsWithIssues,
         totalPhotosFromTickets,
         dailyReports,
-        // Disposal trends
-        weeklyDisposal: weeklyDisposal || [],
-        disposalTotalLoads,
         // Safety analytics
         daysSinceLastInjury,
         injuryReports,
@@ -647,11 +610,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           materialsEquipmentCost: 0,
           materialsEquipmentByDate: [],
           projectEquipmentCost: 0,
-          haulOffCost: 0,
-          haulOffLoads: 0,
-          haulOffDays: 0,
-          haulOffByType: {},
-          haulOffByDate: [],
           customCosts: [],
           customCostTotal: 0,
           totalBurn: 0,
@@ -1151,19 +1109,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Default Dump Site</label>
-              <select
-                value={editData.default_dump_site_id}
-                onChange={(e) => handleEditChange('default_dump_site_id', e.target.value)}
-              >
-                <option value="">-- Select Dump Site --</option>
-                {dumpSites.map(site => (
-                  <option key={site.id} value={site.id}>{site.name}</option>
-                ))}
-              </select>
-              <span className="form-hint">Used for haul-off tracking and cost estimates</span>
-            </div>
           </div>
 
           <div className="card">
@@ -1428,7 +1373,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               areas={areas}
               changeOrderValue={changeOrderValue}
               revisedContractValue={revisedContractValue}
-              dumpSites={dumpSites}
               company={company}
               user={user}
               isAdmin={isAdmin}

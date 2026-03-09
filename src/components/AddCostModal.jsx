@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, DollarSign, HardHat, Package, Wrench, Users, MoreHorizontal, Truck } from 'lucide-react'
+import { X, DollarSign, HardHat, Package, Wrench, Users, MoreHorizontal } from 'lucide-react'
 
 // Category options with icons
 const categories = [
@@ -7,7 +7,6 @@ const categories = [
   { value: 'materials', label: 'Materials', Icon: Package, description: 'Materials and supplies' },
   { value: 'equipment', label: 'Equipment', Icon: Wrench, description: 'Equipment rental or purchase' },
   { value: 'subcontractor', label: 'Subcontractor', Icon: Users, description: 'Subcontractor work' },
-  { value: 'disposal', label: 'Disposal', Icon: Truck, description: 'Additional disposal costs' },
   { value: 'other', label: 'Other', Icon: MoreHorizontal, description: 'Miscellaneous costs' }
 ]
 

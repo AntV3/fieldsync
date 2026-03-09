@@ -20,7 +20,6 @@ export const chartColors = {
 
   // Cost categories
   labor: '#6366f1',        // Indigo
-  disposal: '#14b8a6',     // Teal
   equipment: '#f97316',    // Orange
   materials: '#a855f7',    // Purple
   subcontractor: '#ec4899', // Pink
@@ -66,11 +65,6 @@ export const costCategories = {
     label: 'Labor',
     color: chartColors.labor,
     icon: 'HardHat',
-  },
-  disposal: {
-    label: 'Disposal',
-    color: chartColors.disposal,
-    icon: 'Trash2',
   },
   equipment: {
     label: 'Equipment',

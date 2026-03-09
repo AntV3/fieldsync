@@ -72,7 +72,6 @@ export default function FinancialsTab({
             earnedRevenue: billable,
             approvedCORs: null,
             laborByDate: projectData?.laborByDate,
-            haulOffByDate: projectData?.haulOffByDate,
             customCosts: projectData?.customCosts
           })}
         >
@@ -81,8 +80,7 @@ export default function FinancialsTab({
         <button
           className="btn btn-ghost btn-small"
           onClick={() => exportToQuickBooksIIF(selectedProject, {
-            totalLaborCost: projectData?.laborCost || 0,
-            totalDisposalCost: projectData?.haulOffCost || 0
+            totalLaborCost: projectData?.laborCost || 0
           })}
         >
           <Download size={14} /> QuickBooks
@@ -158,7 +156,6 @@ export default function FinancialsTab({
                   laborCost={projectData?.laborCost || 0}
                   materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
                   projectEquipmentCost={projectData?.projectEquipmentCost || 0}
-                  disposalCost={projectData?.haulOffCost || 0}
                   customCostTotal={projectData?.customCostTotal || 0}
                   progress={progress}
                   contractValue={revisedContractValue}
@@ -175,7 +172,6 @@ export default function FinancialsTab({
 
               <CostContributorsCard
                 laborCost={projectData?.laborCost || 0}
-                haulOffCost={projectData?.haulOffCost || 0}
                 materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
                 projectEquipmentCost={projectData?.projectEquipmentCost || 0}
                 customCosts={projectData?.customCosts || []}

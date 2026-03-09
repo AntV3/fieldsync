@@ -220,8 +220,7 @@ export const projectOps = {
           lastActivityAt: p.last_activity_at,
           dailyReportsThisWeek: Number(p.daily_reports_this_week) || 0,
           corCount: Number(p.cor_count) || 0,
-          pendingCorCount: Number(p.pending_cor_count) || 0,
-          disposalLoadsToday: Number(p.disposal_loads_today) || 0
+          pendingCorCount: Number(p.pending_cor_count) || 0
         }))
       } catch (error) {
         observe.error('database', { message: error.message, operation: 'getProjectDashboardSummary', company_id: companyId })
@@ -1269,18 +1268,6 @@ export const projectOps = {
       channel.on('postgres_changes',
         { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onPunchListChange?.(payload)
-      )
-
-      // Disposal loads / haul-offs (field logs loads, office sees real-time)
-      channel.on('postgres_changes',
-        { event: '*', schema: 'public', table: 'disposal_loads', filter: `project_id=eq.${projectId}` },
-        (payload) => callbacks.onDisposalLoadChange?.(payload)
-      )
-
-      // Haul-off tracking (field logs haul-offs with dump site info)
-      channel.on('postgres_changes',
-        { event: '*', schema: 'public', table: 'haul_offs', filter: `project_id=eq.${projectId}` },
-        (payload) => callbacks.onHaulOffChange?.(payload)
       )
 
       // Invoices (office creates/updates, both sides see changes)

@@ -243,7 +243,7 @@
   color: var(--text-secondary);
 }
 
-.burn-labor, .burn-hauloff {
+.burn-labor {
   color: var(--text-primary);
 }
 
@@ -872,8 +872,7 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .burn-details-header span:nth-child(3),
-  .burn-details-row .burn-hauloff {
+  .burn-details-header span:nth-child(3) {
     display: none;
   }
 

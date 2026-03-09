@@ -9,7 +9,7 @@ import { chartColors, costCategories } from '../components/charts/chartConfig'
 
 /**
  * Build cumulative time-series for the Financial Trend Chart
- * Merges labor, disposal, materials/equipment, T&M, and COR data by date
+ * Merges labor, materials/equipment, T&M, and COR data by date
  * Uses actual area completion dates for revenue tracking
  *
  * @param {Object} projectData - Computed project data from Dashboard
@@ -24,7 +24,6 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   const contractValue = project?.contract_value || 0
   const revisedContractValue = contractValue + changeOrderValue
   const laborByDate = projectData?.laborByDate || []
-  const haulOffByDate = projectData?.haulOffByDate || []
   const materialsEquipmentByDate = projectData?.materialsEquipmentByDate || []
   const customCosts = projectData?.customCosts || []
 
@@ -32,7 +31,6 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   const dateSet = new Set()
 
   laborByDate.forEach(d => dateSet.add(d.date))
-  haulOffByDate.forEach(d => dateSet.add(d.date))
   materialsEquipmentByDate.forEach(d => dateSet.add(d.date))
   customCosts.forEach(c => {
     if (c.cost_date) dateSet.add(c.cost_date)
@@ -155,11 +153,9 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     sortedDates.forEach(date => {
       const laborDay = laborByDate.find(d => d.date === date)
       const laborCost = laborDay?.cost || 0
-      const haulOffDay = haulOffByDate.find(d => d.date === date)
-      const haulOffCost = haulOffDay?.cost || 0
       const materialsEquipmentCost = materialsEquipmentByDateMap[date] || 0
       const customCost = customByDate[date] || 0
-      totalCostForFallback += laborCost + materialsEquipmentCost + haulOffCost + customCost
+      totalCostForFallback += laborCost + materialsEquipmentCost + customCost
     })
   }
 
@@ -176,18 +172,14 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     const laborDay = laborByDate.find(d => d.date === date)
     const laborCost = laborDay?.cost || 0
 
-    // Find haul-off cost for this date
-    const haulOffDay = haulOffByDate.find(d => d.date === date)
-    const haulOffCost = haulOffDay?.cost || 0
-
     // Materials/equipment cost for this date (from T&M tickets)
     const materialsEquipmentCost = materialsEquipmentByDateMap[date] || 0
 
     // Custom costs for this date
     const customCost = customByDate[date] || 0
 
-    // Accumulate all costs (labor + materials/equipment + disposal + custom)
-    const dailyTotalCost = laborCost + materialsEquipmentCost + haulOffCost + customCost
+    // Accumulate all costs (labor + materials/equipment + custom)
+    const dailyTotalCost = laborCost + materialsEquipmentCost + customCost
     cumulativeCost += dailyTotalCost
 
     // Accumulate T&M billing value (what we charge client)
@@ -224,7 +216,6 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       dailyLabor: Math.round(laborCost),
       dailyRevenue: Math.round(dailyRevenue),
       dailyMaterials: Math.round(materialsEquipmentCost),
-      dailyHaulOff: Math.round(haulOffCost),
       dailyCustom: Math.round(customCost),
       dailyTM: Math.round(tmDayValue),
       dailyTotal: Math.round(dailyTotalCost),
@@ -259,11 +250,10 @@ export function filterByTimeRange(data, days) {
  * Build cost distribution data for donut chart
  *
  * @param {number} laborCost - Total labor cost
- * @param {number} haulOffCost - Total disposal cost
  * @param {Array} customCosts - Array of custom cost entries
  * @returns {Array} Chart-ready segments
  */
-export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCosts = [], materialsEquipmentCost = 0, projectEquipmentCost = 0) {
+export function buildCostDistribution(laborCost = 0, _unused = 0, customCosts = [], materialsEquipmentCost = 0, projectEquipmentCost = 0) {
   const segments = []
 
   // Add labor if present
@@ -273,16 +263,6 @@ export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCost
       value: laborCost,
       color: chartColors.labor,
       category: 'labor',
-    })
-  }
-
-  // Add disposal if present
-  if (haulOffCost > 0) {
-    segments.push({
-      name: 'Disposal',
-      value: haulOffCost,
-      color: chartColors.disposal,
-      category: 'disposal',
     })
   }
 
@@ -394,35 +374,26 @@ export function buildCORFunnel(corStats) {
  * Build daily burn data for sparkline
  *
  * @param {Array} laborByDate - Daily labor costs
- * @param {Array} haulOffByDate - Daily haul-off costs
  * @param {number} limit - Max number of days to include
  * @returns {Array} Sparkline data points
  */
-export function buildBurnSparkline(laborByDate = [], haulOffByDate = [], limit = 14) {
-  // Merge and sort by date
+export function buildBurnSparkline(laborByDate = [], _unused = [], limit = 14) {
+  // Build by date
   const dateMap = {}
 
   laborByDate.forEach(d => {
     if (!dateMap[d.date]) {
-      dateMap[d.date] = { date: d.date, labor: 0, haulOff: 0 }
+      dateMap[d.date] = { date: d.date, labor: 0 }
     }
     dateMap[d.date].labor = d.cost || 0
-  })
-
-  haulOffByDate.forEach(d => {
-    if (!dateMap[d.date]) {
-      dateMap[d.date] = { date: d.date, labor: 0, haulOff: 0 }
-    }
-    dateMap[d.date].haulOff = d.cost || 0
   })
 
   // Convert to array and sort
   const data = Object.values(dateMap)
     .map(d => ({
       date: d.date,
-      total: d.labor + d.haulOff,
+      total: d.labor,
       labor: d.labor,
-      haulOff: d.haulOff,
     }))
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 

@@ -1396,94 +1396,6 @@
   font-size: 0.8rem;
 }
 
-/* Disposal Chart */
-.reports-disposal-chart {
-  margin-bottom: 0.75rem;
-}
-
-.reports-disposal-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  height: 100px;
-  padding: 0.5rem 0;
-}
-
-.reports-disposal-bar-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-}
-
-.reports-disposal-bar-stack {
-  width: 100%;
-  max-width: 40px;
-  display: flex;
-  flex-direction: column;
-  border-radius: 3px 3px 0 0;
-  overflow: hidden;
-  margin-top: auto;
-}
-
-.reports-disposal-seg {
-  min-height: 2px;
-}
-
-.reports-disposal-seg.concrete { background: #6b7280; }
-.reports-disposal-seg.trash { background: var(--accent-amber); }
-.reports-disposal-seg.metals { background: var(--accent-blue); }
-.reports-disposal-seg.hazardous { background: var(--accent-red); }
-
-.reports-disposal-bar-label {
-  font-size: 0.6rem;
-  color: var(--text-muted);
-  margin-top: 0.35rem;
-  white-space: nowrap;
-}
-
-.reports-disposal-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.reports-disposal-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.reports-disposal-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-
-.reports-disposal-dot.concrete { background: #6b7280; }
-.reports-disposal-dot.trash { background: var(--accent-amber); }
-.reports-disposal-dot.metals { background: var(--accent-blue); }
-.reports-disposal-dot.hazardous { background: var(--accent-red); }
-
-.reports-disposal-cost {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.reports-disposal-cost strong {
-  color: var(--text-primary);
-}
-
 /* Field Activity Summary */
 .reports-activity-summary {
   grid-column: 1 / -1;
@@ -1559,9 +1471,6 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .reports-disposal-bars {
-    height: 80px;
-  }
 }
 
 @media (max-width: 480px) {

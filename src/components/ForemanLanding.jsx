@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Users, FileText, ClipboardList, CheckSquare, Truck,
+  Users, FileText, ClipboardList, CheckSquare,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
   Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck
 } from 'lucide-react'
@@ -40,12 +40,6 @@ const ALL_ACTIONS = {
     label: 'Update Progress',
     icon: CheckSquare,
     description: 'Mark tasks complete'
-  },
-  disposal: {
-    id: 'disposal',
-    label: 'Disposal Loads',
-    icon: Truck,
-    description: 'Log haul-off loads'
   },
   docs: {
     id: 'docs',
@@ -171,18 +165,6 @@ export default function ForemanLanding({
           badge: areasRemaining > 0 ? `${areasRemaining} left` : null,
           status: `${progress}% complete`
         }
-      case 'disposal': {
-        const loadsToday = todayStatus.disposalLoadsToday
-        const trucksToday = todayStatus.trucksUsedToday || 0
-        const parts = []
-        if (loadsToday > 0) parts.push(`${loadsToday} loads`)
-        if (trucksToday > 0) parts.push(`${trucksToday} truck${trucksToday !== 1 ? 's' : ''}`)
-        return {
-          done: false,
-          badge: parts.length > 0 ? parts.join(', ') : null,
-          status: parts.length > 0 ? parts.join(', ') : 'Log loads'
-        }
-      }
       case 'punchlist':
         return {
           done: punchListOpenCount !== null && punchListOpenCount === 0,

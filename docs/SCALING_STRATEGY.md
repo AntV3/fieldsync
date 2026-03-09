@@ -99,7 +99,6 @@ async getTMTickets(projectId, { cursor, limit = 50 } = {}) {
 1. `t_and_m_tickets` - Highest row count
 2. `areas` - Can reach millions
 3. `daily_reports` - Grows linearly with time
-4. `disposal_loads` - High frequency logging
 
 ---
 

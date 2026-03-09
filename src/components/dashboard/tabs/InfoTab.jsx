@@ -8,7 +8,6 @@ export default function InfoTab({
   areas,
   changeOrderValue,
   revisedContractValue,
-  dumpSites,
   company,
   user,
   isAdmin,
@@ -228,14 +227,6 @@ export default function InfoTab({
             <div className="info-detail-row">
               <span className="info-detail-label">Approved Change Orders</span>
               <span className="info-detail-value positive">+{formatCurrency(changeOrderValue)}</span>
-            </div>
-          )}
-          {selectedProject.default_dump_site_id && (
-            <div className="info-detail-row">
-              <span className="info-detail-label">Default Dump Site</span>
-              <span className="info-detail-value">
-                {dumpSites.find(s => s.id === selectedProject.default_dump_site_id)?.name || 'Unknown'}
-              </span>
             </div>
           )}
         </div>

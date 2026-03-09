@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import {
-  TrendingUp, Users, FileText, Truck, Calendar,
+  TrendingUp, Users, FileText, Calendar,
   CheckCircle2, Clock, DollarSign, ArrowLeft
 } from 'lucide-react'
 
@@ -16,7 +16,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     areas: [],
     tickets: [],
     crewHistory: [],
-    disposalLoads: [],
     truckCounts: [],
     dailyReports: []
   })
@@ -41,10 +40,9 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
       // Load all data in parallel
       const days = timeRange === 'week' ? 7 : 30
-      const [areas, tickets, disposalLoads, dailyReports, truckCounts] = await Promise.all([
+      const [areas, tickets, dailyReports, truckCounts] = await Promise.all([
         db.getAreas(project.id),
         db.getTMTickets?.(project.id) || [],
-        db.getDisposalLoadsHistory?.(project.id, days) || [],
         db.getDailyReports?.(project.id) || [],
         db.getTruckCountHistory?.(project.id, days) || []
       ])
@@ -76,7 +74,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         areas,
         tickets: tickets.filter(t => t.work_date >= startStr),
         crewHistory,
-        disposalLoads: disposalLoads,
         truckCounts: truckCounts || [],
         dailyReports: dailyReports.filter(r => r.report_date >= startStr)
       })
@@ -110,9 +107,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const tmSub = db.subscribeToTMTickets?.(project.id, debouncedReload)
     if (tmSub) subs.push(tmSub)
 
-    const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedReload)
-    if (haulSub) subs.push(haulSub)
-
     const truckSub = db.subscribeToTruckCounts?.(project.id, debouncedReload)
     if (truckSub) subs.push(truckSub)
 
@@ -127,7 +121,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
   // Calculate derived metrics
   const derivedMetrics = useMemo(() => {
-    const { areas, tickets, crewHistory, disposalLoads, truckCounts, dailyReports } = metrics
+    const { areas, tickets, crewHistory, truckCounts, dailyReports } = metrics
 
     // Progress stats
     const totalAreas = areas.length
@@ -148,8 +142,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const signedTickets = tickets.filter(t => t.status === 'signed' || t.status === 'approved').length
     const totalTicketValue = tickets.reduce((sum, t) => sum + (t.total_amount || 0), 0)
 
-    // Disposal stats
-    const totalLoads = disposalLoads.reduce((sum, d) => sum + (d.load_count || 0), 0)
     const totalTrucks = (truckCounts || []).reduce((sum, t) => sum + (t.truck_count || 0), 0)
 
     // Daily reports
@@ -161,7 +153,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       progress: { totalAreas, completedAreas, inProgressAreas, notStartedAreas, progressPercent },
       crew: { totalManDays, avgCrewSize, daysWithCrew, history: crewHistory },
       tickets: { total: tickets.length, pending: pendingTickets, signed: signedTickets, totalValue: totalTicketValue },
-      disposal: { totalLoads, totalTrucks },
       reports: { submitted: reportsSubmitted, due: reportsDue, streak: reportStreak }
     }
   }, [metrics, timeRange])
@@ -300,21 +291,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           </div>
         </div>
 
-        <div className="summary-card disposal-card">
-          <div className="card-icon">
-            <Truck size={24} />
-          </div>
-          <div className="card-content">
-            <span className="card-value">{derivedMetrics.disposal.totalLoads}</span>
-            <span className="card-label">Disposal Loads</span>
-          </div>
-          <div className="card-detail">
-            {derivedMetrics.disposal.totalTrucks > 0
-              ? `${derivedMetrics.disposal.totalTrucks} trucks used`
-              : (timeRange === 'week' ? 'Last 7 days' : 'Last 30 days')
-            }
-          </div>
-        </div>
       </div>
 
       {/* Charts Section */}
@@ -574,11 +550,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           color: #f59e0b;
         }
 
-        .disposal-card .card-icon {
-          background: #f3e8ff;
-          color: #8b5cf6;
-        }
-
         [data-theme="dark"] .progress-card .card-icon {
           background: #1e3a5f;
         }
@@ -589,10 +560,6 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
         [data-theme="dark"] .tickets-card .card-icon {
           background: #451a03;
-        }
-
-        [data-theme="dark"] .disposal-card .card-icon {
-          background: #3b0764;
         }
 
         .card-content {

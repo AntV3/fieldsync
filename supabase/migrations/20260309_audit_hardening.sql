@@ -5,25 +5,7 @@
 -- ============================================================
 
 -- ============================================================
--- 1. RC-2: Add unique constraint on dump_site_rates
---    Required for the upsert-based setDumpSiteRate() to work
---    atomically instead of the old check-then-act pattern.
--- ============================================================
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'dump_site_rates_site_waste_unique'
-  ) THEN
-    ALTER TABLE dump_site_rates
-      ADD CONSTRAINT dump_site_rates_site_waste_unique
-      UNIQUE (dump_site_id, waste_type);
-  END IF;
-END $$;
-
--- ============================================================
--- 2. SEC-5 / IV-2: Add CHECK constraints on status columns
+-- 1. SEC-5 / IV-2: Add CHECK constraints on status columns
 --    Defense-in-depth: even if client code is bypassed, the DB
 --    rejects invalid status values.
 -- ============================================================
