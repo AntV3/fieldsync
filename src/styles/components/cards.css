@@ -6,16 +6,18 @@
    Professional, elevated card design with depth and polish.
    ============================================ */
 
-/* Base Card */
+/* Base Card - per Enterprise Dashboard spec:
+   border-radius: 8px, 1px solid border, subtle shadow
+   hover: 4px elevation + translateY(-1px) */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
-  margin-bottom: var(--space-lg);
+  border-radius: 8px;
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
   animation: fadeIn 0.3s ease;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -31,7 +33,8 @@
 }
 
 .card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 /* Focus-within state for keyboard navigation */
@@ -44,10 +47,10 @@
 .section-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
+  border-radius: 8px;
+  padding: var(--space-3);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .section-card:hover {
@@ -58,20 +61,20 @@
 .info-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
+  border-radius: 8px;
+  padding: var(--space-4);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-smooth);
+  transition: box-shadow 0.2s ease;
 }
 
 /* Project Card */
 .project-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1rem 1.125rem;
+  border-radius: 8px;
+  padding: var(--space-4);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
@@ -90,9 +93,9 @@
 }
 
 .project-card:hover {
-  border-color: var(--accent-blue);
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .project-card:active {
@@ -253,10 +256,10 @@
 .cost-contributors-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
+  border-radius: 8px;
+  padding: var(--space-4);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-smooth), border-color var(--transition-smooth), transform var(--transition-smooth);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -275,7 +278,7 @@
 .burn-rate-card:hover,
 .profitability-card:hover,
 .cost-contributors-card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
 }
 
@@ -283,8 +286,8 @@
 .card-skeleton {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
+  border-radius: 8px;
+  padding: var(--space-4);
   animation: pulse 2s infinite;
 }
 

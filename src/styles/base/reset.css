@@ -1,9 +1,14 @@
 /* ============================================
-   Reset & Base Styles
+   Reset & Base Styles - Enterprise Dashboard
    ============================================
 
    Normalizes browser defaults and sets up
    foundational styling for the app.
+
+   Font: Inter (primary), JetBrains Mono (data)
+   Anti-patterns avoided:
+   - No pure white (#FFFFFF) backgrounds (uses #F5F5F5)
+   - No pure black text (uses #202020)
    ============================================ */
 
 /* Box-sizing reset */
@@ -24,7 +29,7 @@ html {
 
 /* Core body styles */
 body {
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -83,7 +88,7 @@ h6 {
 
 /* Focus visible for keyboard users */
 :focus-visible {
-  outline: 2px solid var(--accent-blue);
+  outline: 2px solid var(--color-accent, #0091D5);
   outline-offset: 2px;
 }
 
@@ -92,7 +97,7 @@ h6 {
   outline: none;
 }
 
-/* Reduced motion preference */
+/* Reduced motion preference (max 300ms per spec) */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -5,20 +5,23 @@
    Consolidated button components using design tokens.
    ============================================ */
 
-/* Base Button */
+/* Base Button - Enterprise Dashboard spec:
+   border-radius: 6px, font-weight: 500
+   Primary: --color-accent background, white text
+   Secondary: transparent, 1px border */
 .btn {
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  border-radius: 6px;
   border: none;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-medium);
   font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-smooth);
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
+  gap: var(--space-1);
   position: relative;
   isolation: isolate;
 }
@@ -40,50 +43,43 @@
   flex-shrink: 0;
 }
 
-/* Primary Button */
+/* Primary Button - --color-accent (#0091D5) per spec */
 .btn-primary {
-  background: var(--gradient-blue);
+  background: var(--color-accent);
   color: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .btn-primary:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3), 0 2px 6px rgba(0, 0, 0, 0.1);
+  filter: brightness(0.9);
+  box-shadow: 0 2px 8px rgba(0, 145, 213, 0.3);
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
-  filter: brightness(0.95);
+  transform: scale(0.97);
+  box-shadow: 0 1px 3px rgba(0, 145, 213, 0.2);
+  filter: brightness(0.85);
 }
 
 .btn-primary:disabled {
-  background: var(--text-muted);
+  background: var(--text-tertiary);
   transform: none;
   box-shadow: none;
 }
 
-/* Secondary Button */
+/* Secondary Button - transparent + 1px border per spec */
 .btn-secondary {
-  background: var(--bg-elevated);
+  background: transparent;
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-subtle);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--bg-card);
-  border-color: var(--primary-color, var(--accent-blue));
-  color: var(--primary-color, var(--accent-blue));
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--bg-elevated);
 }
 
 .btn-secondary:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transform: scale(0.97);
 }
 
 /* Ghost Button (outline only) */
@@ -110,72 +106,68 @@
   border-color: var(--text-muted);
 }
 
-/* Danger Button */
+/* Danger Button - coral #EA6A47, never pure red */
 .btn-danger {
-  background: var(--gradient-amber);
-  background: linear-gradient(135deg, var(--accent-red) 0%, #dc2626 100%);
+  background: var(--color-accent-warm);
   color: white;
-  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);
+  box-shadow: 0 1px 3px rgba(234, 106, 71, 0.15);
 }
 
 .btn-danger:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+  filter: brightness(0.9);
+  box-shadow: 0 2px 8px rgba(234, 106, 71, 0.3);
 }
 
 .btn-danger:active:not(:disabled) {
-  transform: translateY(0);
-  filter: brightness(0.95);
+  transform: scale(0.97);
+  filter: brightness(0.85);
 }
 
 /* Success Button */
 .btn-success {
-  background: var(--gradient-green);
+  background: var(--color-success);
   color: white;
-  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 1px 3px rgba(46, 134, 95, 0.15);
 }
 
 .btn-success:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  filter: brightness(0.9);
+  box-shadow: 0 2px 8px rgba(46, 134, 95, 0.3);
 }
 
 .btn-success:active:not(:disabled) {
-  transform: translateY(0);
-  filter: brightness(0.95);
+  transform: scale(0.97);
+  filter: brightness(0.85);
 }
 
 /* Warning Button */
 .btn-warning {
-  background: var(--gradient-amber);
+  background: var(--status-warning);
   color: white;
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 1px 3px rgba(245, 166, 35, 0.15);
 }
 
 .btn-warning:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  filter: brightness(0.9);
+  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
 }
 
 .btn-warning:active:not(:disabled) {
-  transform: translateY(0);
-  filter: brightness(0.95);
+  transform: scale(0.97);
+  filter: brightness(0.85);
 }
 
 /* Size Variants */
 .btn-small,
 .btn-sm {
-  padding: var(--space-xs) var(--space-sm);
-  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-small);
 }
 
 .btn-large,
 .btn-lg {
-  padding: var(--space-md) var(--space-lg);
-  font-size: var(--font-size-md);
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--text-h3);
 }
 
 .btn-full {
@@ -245,15 +237,15 @@
 /* Toggle Button (used for project type selection) */
 .toggle-btn {
   flex: 1;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-2) var(--space-4);
   border: 2px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: 6px;
   background: var(--bg-elevated);
   color: var(--text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: var(--text-body);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
   font-family: inherit;
 }
 
@@ -262,10 +254,10 @@
 }
 
 .toggle-btn.active {
-  border-color: var(--primary-color, var(--accent-blue));
-  background: var(--gradient-blue);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
   color: white;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 145, 213, 0.25);
 }
 
 /* Loading Spinner (used in buttons and inline states) */
