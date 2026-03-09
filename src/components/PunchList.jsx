@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
+import { ConfirmDialog } from './ui'
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: '#ef4444' },
@@ -26,6 +27,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterArea, setFilterArea] = useState('all')
   const [saving, setSaving] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [formData, setFormData] = useState({
     description: '',
     area_id: '',
@@ -150,8 +152,12 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
   }
 
   const handleDelete = async (itemId) => {
-    if (!confirm('Delete this punch item?')) return
+    setDeleteConfirm(itemId)
+  }
 
+  const confirmDelete = async () => {
+    const itemId = deleteConfirm
+    setDeleteConfirm(null)
     try {
       await db.deletePunchListItem(itemId, projectId)
       onShowToast?.('Item deleted', 'success')
@@ -406,6 +412,15 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
           })}
         </div>
       )}
+      <ConfirmDialog
+        isOpen={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={confirmDelete}
+        title="Delete Punch Item"
+        message="Are you sure you want to delete this punch item? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   )
 }

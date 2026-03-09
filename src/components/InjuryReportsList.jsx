@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronRight, Calendar, ShieldAlert } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
-import { ErrorState } from './ui'
+import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import InjuryReportCard from './InjuryReportCard'
 import Toast from './Toast'
@@ -429,16 +429,16 @@ export default function InjuryReportsList({ project, companyId, company, user, o
         </div>
 
         {filteredReports.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🏥</div>
-            <h4>No Injury Reports{viewMode === 'recent' ? ' in the last 7 days' : ''}</h4>
-            <p>Click "File Injury Report" to document a workplace incident</p>
-            {viewMode === 'recent' && reports.length > 0 && (
-              <button className="btn-secondary" onClick={() => setViewMode('all')}>
+          <EmptyState
+            icon={ShieldAlert}
+            title={`No Injury Reports${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+            message='Click "File Injury Report" to document a workplace incident'
+            action={viewMode === 'recent' && reports.length > 0 ? (
+              <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
                 View All Reports
               </button>
-            )}
-          </div>
+            ) : null}
+          />
         ) : (
           <div className="reports-list">
             {/* Render reports - with month grouping in 'all' mode */}

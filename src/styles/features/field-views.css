@@ -61,6 +61,42 @@
   margin-top: 0.25rem;
 }
 
+/* Crew search bar */
+.crew-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.crew-search-bar:focus-within {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-focus);
+}
+
+.crew-search-bar svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.crew-search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.crew-search-bar input::placeholder {
+  color: var(--text-muted);
+}
+
 .crew-list {
   display: flex;
   flex-direction: column;
@@ -75,6 +111,23 @@
   background: var(--bg-primary);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.crew-member:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Flash animation when worker is just added */
+@keyframes crewAddFlash {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15); }
+  100% { box-shadow: var(--shadow-card); }
+}
+
+.crew-member.just-added {
+  animation: crewAddFlash 0.6s ease-out;
 }
 
 .crew-member-info {
@@ -125,7 +178,9 @@
   padding: 0.5rem 0.75rem;
   margin-bottom: 0.375rem;
   border-left: 3px solid var(--accent-blue);
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--glass-bg, rgba(59, 130, 246, 0.06));
+  backdrop-filter: var(--glass-backdrop, none);
+  -webkit-backdrop-filter: var(--glass-backdrop, none);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
@@ -295,8 +350,9 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-smooth);
+  transition: all var(--transition-normal);
   min-width: 100px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
 }
 
 .crew-quick-add-btn:hover {
@@ -569,11 +625,16 @@
 }
 
 .daily-report-submitted-banner {
-  background: rgba(34, 197, 94, 0.15);
+  background: var(--gradient-green, linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.1)));
   color: var(--accent-green);
   padding: 0.75rem;
   text-align: center;
-  font-weight: 500;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .daily-report-content {

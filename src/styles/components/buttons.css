@@ -28,6 +28,12 @@
   cursor: not-allowed;
 }
 
+/* Universal press micro-interaction */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 0.1s;
+}
+
 .btn svg {
   width: 18px;
   height: 18px;

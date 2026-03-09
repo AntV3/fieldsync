@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
-import { HardHat, UserPlus, X, RotateCcw } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { HardHat, UserPlus, X, RotateCcw, Search, Users } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { ListItemSkeleton } from './ui/Skeleton'
+import { EmptyState } from './ui/ErrorState'
 
 // Helper to get/set dismissed workers from localStorage per project
 const getDismissedWorkers = (projectId) => {
@@ -29,6 +31,11 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const [recentWorkers, setRecentWorkers] = useState([])
   const [loadingRecent, setLoadingRecent] = useState(true)
 
+  // Search filter for checked-in crew
+  const [crewSearch, setCrewSearch] = useState('')
+  // Track just-added workers for flash animation
+  const [justAdded, setJustAdded] = useState(null)
+
   // Dismissed workers (removed from quick-add list)
   const [dismissedNames, setDismissedNames] = useState([])
   const [editingQuickAdd, setEditingQuickAdd] = useState(false)
@@ -37,6 +44,23 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const [laborCategories, setLaborCategories] = useState([])
   const [laborClasses, setLaborClasses] = useState([])
   const [loadingClasses, setLoadingClasses] = useState(true)
+
+  // Clear just-added flash after animation
+  useEffect(() => {
+    if (justAdded) {
+      const timer = setTimeout(() => setJustAdded(null), 700)
+      return () => clearTimeout(timer)
+    }
+  }, [justAdded])
+
+  // Filter workers by search
+  const filteredWorkers = useMemo(() => {
+    if (!crewSearch.trim()) return workers
+    const q = crewSearch.toLowerCase()
+    return workers.filter(w =>
+      w.name.toLowerCase().includes(q) || (w.role || '').toLowerCase().includes(q)
+    )
+  }, [workers, crewSearch])
 
   // Fallback roles if no custom labor classes are set up
   const defaultRoles = ['Foreman', 'Laborer', 'Supervisor', 'Operator']
@@ -150,6 +174,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
 
       await db.saveCrewCheckin(project.id, updatedWorkers)
       setWorkers(updatedWorkers)
+      setJustAdded(newWorker.name.trim().toLowerCase())
 
       // Reset form but keep same role selected for quick entry
       setNewWorker({ ...newWorker, name: '' })
@@ -197,6 +222,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       }]
       await db.saveCrewCheckin(project.id, updatedWorkers)
       setWorkers(updatedWorkers)
+      setJustAdded(recentWorker.name.toLowerCase())
       onShowToast(`${recentWorker.name} checked in`, 'success')
     } catch (err) {
       console.error('Error adding worker:', err)
@@ -313,7 +339,8 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   }
 
   const hasCustomClasses = laborClasses.length > 0
-  const groupedWorkers = hasCustomClasses ? groupWorkersByCategory(workers) : null
+  const displayWorkers = crewSearch.trim() ? filteredWorkers : workers
+  const groupedWorkers = hasCustomClasses ? groupWorkersByCategory(displayWorkers) : null
   const groupedRecentWorkers = hasCustomClasses ? groupWorkersByCategory(availableRecentWorkers) : null
 
   if (loading || loadingClasses) {
@@ -323,7 +350,11 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
           <h3><HardHat size={18} className="inline-icon" /> Today's Crew</h3>
           <span className="crew-date">{today}</span>
         </div>
-        <div className="crew-loading">Loading...</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem 0' }}>
+          <ListItemSkeleton />
+          <ListItemSkeleton />
+          <ListItemSkeleton />
+        </div>
       </div>
     )
   }
@@ -335,11 +366,24 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
         <span className="crew-date">{today}</span>
       </div>
 
-      {workers.length === 0 ? (
-        <div className="crew-empty">
-          <p>No crew checked in yet</p>
-          <p className="crew-empty-hint">Add your crew for the day</p>
+      {workers.length > 0 && workers.length > 6 && (
+        <div className="crew-search-bar">
+          <Search size={14} />
+          <input
+            type="text"
+            placeholder="Search crew..."
+            value={crewSearch}
+            onChange={(e) => setCrewSearch(e.target.value)}
+          />
         </div>
+      )}
+
+      {workers.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No crew checked in yet"
+          message="Add your crew for the day using quick-add or the manual form below"
+        />
       ) : groupedWorkers ? (
         <div className="crew-list crew-list-grouped">
           {groupedWorkers.map((group) => (
@@ -349,7 +393,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
                 <span className="crew-category-count">{group.workers.length}</span>
               </div>
               {group.workers.map((worker) => (
-                <div key={worker.name} className="crew-member">
+                <div key={worker.name} className={`crew-member${justAdded === worker.name.toLowerCase() ? ' just-added' : ''}`}>
                   <div className="crew-member-info">
                     <span className="crew-member-name">{worker.name}</span>
                     <span className={`crew-member-role ${(worker.role || 'laborer').toLowerCase().replace(/\s+/g, '-')}`}>
@@ -370,8 +414,8 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
         </div>
       ) : (
         <div className="crew-list">
-          {workers.map((worker) => (
-            <div key={worker.name} className="crew-member">
+          {displayWorkers.map((worker) => (
+            <div key={worker.name} className={`crew-member${justAdded === worker.name.toLowerCase() ? ' just-added' : ''}`}>
               <div className="crew-member-info">
                 <span className="crew-member-name">{worker.name}</span>
                 <span className={`crew-member-role ${(worker.role || 'laborer').toLowerCase().replace(/\s+/g, '-')}`}>

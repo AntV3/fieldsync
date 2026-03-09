@@ -153,6 +153,7 @@
 .pv-tab.active {
   color: var(--primary-color);
   border-bottom-color: var(--primary-color);
+  border-image: var(--gradient-blue) 1;
   font-weight: var(--font-weight-semibold);
 }
 
@@ -202,6 +203,7 @@
   gap: 1rem;
   overflow-x: hidden;
   min-width: 0;
+  animation: tabFadeIn 0.2s ease-out;
   animation: fadeIn 0.2s ease;
 }
 
@@ -538,6 +540,11 @@
 @keyframes hero-pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--accent-green); }
   50% { opacity: 0.5; box-shadow: 0 0 12px var(--accent-green); }
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Financials Tab Split Layout */
