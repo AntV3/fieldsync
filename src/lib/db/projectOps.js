@@ -275,66 +275,69 @@ export const projectOps = {
     const results = { projects: [], tickets: [], cors: [], workers: [] }
 
     try {
-      // Search projects
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('id, name, job_number, address, status')
-        .eq('company_id', companyId)
-        .eq('status', 'active')
-        .or(`name.ilike.%${searchQuery}%,job_number.ilike.%${searchQuery}%,address.ilike.%${searchQuery}%`)
-        .limit(limit)
+      // Run all four searches in parallel for performance
+      const [projectsResult, ticketsResult, corsResult, checkinsResult] = await Promise.all([
+        // Search projects
+        supabase
+          .from('projects')
+          .select('id, name, job_number, address, status')
+          .eq('company_id', companyId)
+          .eq('status', 'active')
+          .or(`name.ilike.%${searchQuery}%,job_number.ilike.%${searchQuery}%,address.ilike.%${searchQuery}%`)
+          .limit(limit),
 
-      results.projects = projects || []
+        // Search T&M tickets
+        supabase
+          .from('t_and_m_tickets')
+          .select(`
+            id, notes, work_date, status, project_id,
+            projects!inner(id, name, company_id)
+          `)
+          .eq('projects.company_id', companyId)
+          .ilike('notes', `%${searchQuery}%`)
+          .order('work_date', { ascending: false })
+          .limit(limit),
 
-      // Search T&M tickets
-      const { data: tickets } = await supabase
-        .from('t_and_m_tickets')
-        .select(`
-          id, notes, work_date, status, project_id,
-          projects!inner(id, name, company_id)
-        `)
-        .eq('projects.company_id', companyId)
-        .ilike('notes', `%${searchQuery}%`)
-        .order('work_date', { ascending: false })
-        .limit(limit)
+        // Search Change Orders
+        supabase
+          .from('change_orders')
+          .select(`
+            id, cor_number, title, status, project_id,
+            projects!inner(id, name, company_id)
+          `)
+          .eq('projects.company_id', companyId)
+          .or(`title.ilike.%${searchQuery}%,cor_number.ilike.%${searchQuery}%`)
+          .order('created_at', { ascending: false })
+          .limit(limit),
 
-      results.tickets = (tickets || []).map(t => ({
+        // Search workers from recent crew check-ins
+        supabase
+          .from('crew_checkins')
+          .select(`
+            workers,
+            project_id,
+            projects!inner(id, name, company_id)
+          `)
+          .eq('projects.company_id', companyId)
+          .order('check_in_date', { ascending: false })
+          .limit(50)
+      ])
+
+      results.projects = projectsResult.data || []
+
+      results.tickets = (ticketsResult.data || []).map(t => ({
         ...t,
         projectName: t.projects?.name || 'Unknown Project'
       }))
 
-      // Search Change Orders
-      const { data: cors } = await supabase
-        .from('change_orders')
-        .select(`
-          id, cor_number, title, status, project_id,
-          projects!inner(id, name, company_id)
-        `)
-        .eq('projects.company_id', companyId)
-        .or(`title.ilike.%${searchQuery}%,cor_number.ilike.%${searchQuery}%`)
-        .order('created_at', { ascending: false })
-        .limit(limit)
-
-      results.cors = (cors || []).map(c => ({
+      results.cors = (corsResult.data || []).map(c => ({
         ...c,
         projectName: c.projects?.name || 'Unknown Project'
       }))
 
-      // Search workers from recent crew check-ins
-      const { data: checkins } = await supabase
-        .from('crew_checkins')
-        .select(`
-          workers,
-          project_id,
-          projects!inner(id, name, company_id)
-        `)
-        .eq('projects.company_id', companyId)
-        .order('check_in_date', { ascending: false })
-        .limit(50)
-
       // Extract unique workers matching query (use rawQuery for client-side matching)
       const workerMap = new Map()
-      ;(checkins || []).forEach(checkin => {
+      ;(checkinsResult.data || []).forEach(checkin => {
         (checkin.workers || []).forEach(worker => {
           if (worker?.name && worker.name.toLowerCase().includes(rawQuery)) {
             const key = worker.name.toLowerCase()

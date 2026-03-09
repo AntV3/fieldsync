@@ -67,10 +67,30 @@ export const corOps = {
   // Update COR fields (not line items)
   async updateCOR(corId, updates) {
     if (isSupabaseConfigured) {
+      // Allowlist: only permit safe fields to be updated
+      const ALLOWED_FIELDS = [
+        'title', 'description', 'scope_of_work', 'period_start', 'period_end',
+        'area_id', 'group_name',
+        'labor_markup_percent', 'materials_markup_percent',
+        'equipment_markup_percent', 'subcontractors_markup_percent',
+        'liability_insurance_percent', 'bond_percent', 'license_fee_percent',
+        'cor_total', 'labor_subtotal', 'materials_subtotal',
+        'equipment_subtotal', 'subcontractors_subtotal',
+        'labor_markup_amount', 'materials_markup_amount',
+        'equipment_markup_amount', 'subcontractors_markup_amount',
+        'liability_insurance_amount', 'bond_amount', 'license_fee_amount',
+        'additional_fees_total', 'cor_subtotal',
+        'notes', 'internal_notes'
+      ]
+      const filtered = {}
+      for (const key of ALLOWED_FIELDS) {
+        if (key in updates) filtered[key] = updates[key]
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
-          ...updates,
+          ...filtered,
           updated_at: new Date().toISOString()
         })
         .eq('id', corId)
@@ -658,18 +678,24 @@ export const corOps = {
       }
 
       // Build items - requires migration_complete_fixes.sql for company_name column
-      const items = subItems.map((item, index) => ({
-        change_order_id: corId,
-        company_name: item.company_name || '',
-        description: item.description || '',
-        quantity: item.quantity || 1,
-        unit: item.unit || 'lump sum',
-        unit_cost: item.unit_cost || item.total || item.amount || 0,
-        total: item.total || item.amount || 0,
-        source_type: item.source_type || 'invoice',
-        source_reference: item.source_reference || null,
-        sort_order: item.sort_order ?? index
-      }))
+      const items = subItems.map((item, index) => {
+        const quantity = Number(item.quantity) || 1
+        const unitCost = Math.round(Number(item.unit_cost) || Number(item.total) || Number(item.amount) || 0)
+        const total = Math.round(quantity * unitCost)
+
+        return {
+          change_order_id: corId,
+          company_name: item.company_name || '',
+          description: item.description || '',
+          quantity,
+          unit: item.unit || 'lump sum',
+          unit_cost: unitCost,
+          total,
+          source_type: item.source_type || 'invoice',
+          source_reference: item.source_reference || null,
+          sort_order: item.sort_order ?? index
+        }
+      })
 
       const { data, error } = await client
         .from('change_order_subcontractors')
@@ -717,19 +743,30 @@ export const corOps = {
       // Clear existing line items first
       await this.clearCORLineItems(corId)
 
-      // Add new line items
-      const results = await Promise.all([
+      // Add new line items - use allSettled to attempt all inserts even if one fails
+      const promises = await Promise.allSettled([
         laborItems?.length > 0 ? this.addBulkLaborItems(corId, laborItems) : [],
         materialItems?.length > 0 ? this.addBulkMaterialItems(corId, materialItems) : [],
         equipmentItems?.length > 0 ? this.addBulkEquipmentItems(corId, equipmentItems) : [],
         subcontractorItems?.length > 0 ? this.addBulkSubcontractorItems(corId, subcontractorItems) : []
       ])
 
+      // Check for any failures and throw with details
+      const failures = promises
+        .map((p, i) => ({ result: p, category: ['labor', 'materials', 'equipment', 'subcontractors'][i] }))
+        .filter(p => p.result.status === 'rejected')
+
+      if (failures.length > 0) {
+        const failedCategories = failures.map(f => f.category).join(', ')
+        const firstError = failures[0].result.reason
+        throw new Error(`Failed to save line items for: ${failedCategories}. ${firstError?.message || firstError}`)
+      }
+
       return {
-        labor: results[0],
-        materials: results[1],
-        equipment: results[2],
-        subcontractors: results[3]
+        labor: promises[0].value,
+        materials: promises[1].value,
+        equipment: promises[2].value,
+        subcontractors: promises[3].value
       }
     }
     return null
@@ -1036,24 +1073,17 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
-      // Delete existing line items from this ticket
-      await client
-        .from('change_order_labor')
-        .delete()
-        .eq('change_order_id', corId)
-        .eq('source_ticket_id', ticketId)
+      // Delete existing line items from this ticket (parallel for performance)
+      const deleteResults = await Promise.all([
+        client.from('change_order_labor').delete().eq('change_order_id', corId).eq('source_ticket_id', ticketId),
+        client.from('change_order_materials').delete().eq('change_order_id', corId).eq('source_ticket_id', ticketId),
+        client.from('change_order_equipment').delete().eq('change_order_id', corId).eq('source_ticket_id', ticketId)
+      ])
 
-      await client
-        .from('change_order_materials')
-        .delete()
-        .eq('change_order_id', corId)
-        .eq('source_ticket_id', ticketId)
-
-      await client
-        .from('change_order_equipment')
-        .delete()
-        .eq('change_order_id', corId)
-        .eq('source_ticket_id', ticketId)
+      // Check for delete errors before re-importing
+      for (const result of deleteResults) {
+        if (result.error) throw result.error
+      }
 
       // Re-import fresh data
       return this.importTicketDataToCOR(ticketId, corId, companyId, workType, jobType)
@@ -1296,6 +1326,7 @@ export const corOps = {
           status: 'approved' // Auto-approve when signed
         })
         .eq('id', corId)
+        .in('status', ['pending_approval']) // Only allow signing CORs that are pending approval
         .select()
         .single()
       if (error) throw error
@@ -1495,9 +1526,31 @@ export const corOps = {
     return null
   },
 
-  // Update change order status
+  // Update change order status (with valid transition enforcement)
   async updateChangeOrderStatus(changeOrderId, status) {
     if (isSupabaseConfigured) {
+      // Enforce valid status values and transitions
+      const VALID_TRANSITIONS = {
+        draft: ['pending_approval'],
+        pending_approval: ['approved', 'rejected', 'draft'],
+        approved: ['billed', 'draft'],
+        rejected: ['draft', 'pending_approval'],
+        billed: ['closed'],
+        closed: []
+      }
+      const VALID_STATUSES = Object.keys(VALID_TRANSITIONS)
+      if (!VALID_STATUSES.includes(status)) {
+        throw new Error(`Invalid status: ${status}`)
+      }
+
+      // Determine which current statuses can transition to the target status
+      const allowedFromStatuses = VALID_STATUSES.filter(
+        s => VALID_TRANSITIONS[s].includes(status)
+      )
+      if (allowedFromStatuses.length === 0) {
+        throw new Error(`No valid transition to status: ${status}`)
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
@@ -1505,6 +1558,7 @@ export const corOps = {
           updated_at: new Date().toISOString()
         })
         .eq('id', changeOrderId)
+        .in('status', allowedFromStatuses)
         .select()
         .single()
 
