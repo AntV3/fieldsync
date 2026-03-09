@@ -126,17 +126,20 @@
   --radius-full: 9999px;
 
   /* ---- Typography ---- */
+  /* 2-font system: DM Sans for UI, Space Mono for data/numbers */
   --font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-data: 'Space Mono', 'SF Mono', Monaco, 'Cascadia Code', monospace;
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 
-  --font-size-xs: 0.75rem;   /* 12px */
-  --font-size-sm: 0.875rem;  /* 14px */
-  --font-size-md: 1rem;      /* 16px */
-  --font-size-lg: 1.125rem;  /* 18px */
-  --font-size-xl: 1.25rem;   /* 20px */
-  --font-size-2xl: 1.5rem;   /* 24px */
-  --font-size-3xl: 1.875rem; /* 30px */
-  --font-size-4xl: 2.25rem;  /* 36px */
+  /* Type scale: clear hierarchy - headers (24-32), labels (12-14), values (16-20) */
+  --font-size-xs: 0.75rem;   /* 12px - labels, captions */
+  --font-size-sm: 0.875rem;  /* 14px - labels, secondary text */
+  --font-size-md: 1rem;      /* 16px - body text */
+  --font-size-lg: 1.125rem;  /* 18px - large body / value text */
+  --font-size-xl: 1.25rem;   /* 20px - metric values */
+  --font-size-2xl: 1.5rem;   /* 24px - section headers */
+  --font-size-3xl: 1.875rem; /* 30px - page headers */
+  --font-size-4xl: 2.25rem;  /* 36px - hero values */
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
@@ -153,12 +156,13 @@
   --letter-spacing-wide: 0.01em;
   --letter-spacing-caps: 0.04em;
 
-  /* ---- Transitions ---- */
+  /* ---- Transitions (150-300ms for micro-interactions) ---- */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition-smooth: 300ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-micro: 180ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ---- Z-Index Scale ---- */
   --z-dropdown: 100;
@@ -178,6 +182,18 @@
   --threshold-cost-healthy: 0.60;
   --threshold-cost-warning: 0.75;
   --threshold-cost-critical: 0.85;
+
+  /* ---- Elevation System (Dark Mode Sophistication) ---- */
+  /* Surfaces get lighter with elevation, not just shadowed */
+  --elevation-0: var(--bg-primary);        /* Base canvas */
+  --elevation-1: var(--bg-secondary);      /* Cards at rest */
+  --elevation-2: var(--bg-card);           /* Cards hovered / raised */
+  --elevation-3: var(--bg-elevated);       /* Popovers, dropdowns */
+  --elevation-4: #2a2a32;                  /* Modals, dialogs */
+
+  /* ---- Data Display ---- */
+  /* Tabular figures prevent alignment jitter in number columns */
+  --data-font-features: 'tnum' 1, 'lnum' 1;
 
   /* ---- Semantic Aliases ---- */
   /* These are shorthand aliases used across feature styles.
@@ -285,6 +301,13 @@
   --gradient-card-dark: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   --gradient-card-subtle: linear-gradient(160deg, rgba(0, 0, 0, 0.01) 0%, transparent 40%);
   --gradient-section: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+
+  /* ---- Elevation System (Light Mode) ---- */
+  --elevation-0: #f8fafc;
+  --elevation-1: #ffffff;
+  --elevation-2: #ffffff;
+  --elevation-3: #ffffff;
+  --elevation-4: #ffffff;
 
   /* ---- Semantic Aliases (light mode overrides) ---- */
   /* In light mode, --bg-elevated is white, so hover needs a grey tone */

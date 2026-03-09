@@ -280,10 +280,12 @@
 }
 
 .overview-metric-value {
+  font-family: var(--font-data);
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .overview-metric-value.green {
@@ -696,11 +698,12 @@
 }
 
 .crew-stat-value {
+  font-family: var(--font-data);
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .crew-stat-label {
@@ -1003,11 +1006,12 @@
 }
 
 .quick-stat-value {
+  font-family: var(--font-data);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
   display: block;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
 }
 
@@ -1093,11 +1097,12 @@
 }
 
 .gauge-value {
+  font-family: var(--font-data);
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--letter-spacing-tight);
 }
 
@@ -1152,11 +1157,12 @@
 }
 
 .financial-metric-value {
+  font-family: var(--font-data);
   font-size: 1.5rem;
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: 1.1;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--letter-spacing-tight);
 }
 

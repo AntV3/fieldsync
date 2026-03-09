@@ -34,6 +34,12 @@
   box-shadow: var(--shadow-card-hover);
 }
 
+/* Focus-within state for keyboard navigation */
+.card:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
 /* Section Card (similar to card but smaller padding) */
 .section-card {
   background: var(--bg-card);
@@ -94,7 +100,16 @@
   box-shadow: var(--shadow-card-active);
 }
 
-.project-card:hover::before {
+/* Keyboard focus mimics hover */
+.project-card:focus-visible {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-card-hover);
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.project-card:hover::before,
+.project-card:focus-visible::before {
   opacity: 1;
 }
 
@@ -116,10 +131,11 @@
 
 .project-card-value {
   color: var(--text-muted);
+  font-family: var(--font-data);
   font-size: var(--font-size-xs);
   margin-top: var(--space-xs);
   font-weight: var(--font-weight-medium);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* Enhanced Project Card */
@@ -164,11 +180,12 @@
 
 .project-stat .stat-value {
   display: block;
+  font-family: var(--font-data);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   letter-spacing: var(--letter-spacing-wide);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .project-stat .stat-value.negative {

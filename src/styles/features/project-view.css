@@ -83,11 +83,12 @@
 }
 
 .pv-metric-value {
+  font-family: var(--font-data);
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--letter-spacing-tight);
   white-space: nowrap;
   overflow: hidden;
@@ -437,11 +438,12 @@
 }
 
 .hero-metric-value {
+  font-family: var(--font-data);
   font-size: 1.35rem;
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: 1.2;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--letter-spacing-tight);
   white-space: nowrap;
   overflow: hidden;

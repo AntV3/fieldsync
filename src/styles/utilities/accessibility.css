@@ -215,3 +215,33 @@ th {
 table:focus-within tbody tr:focus-within {
   background: var(--bg-tertiary);
 }
+
+/* ---- Keyboard Navigation Enhancements ---- */
+/* Visible focus indicators for all interactive dashboard elements */
+.metric-card--clickable:focus-visible,
+.project-card:focus-visible,
+.project-row:focus-visible,
+.quick-stat-card:focus-visible,
+.smart-alert__action-btn:focus-visible,
+.overview-action-btn:focus-visible,
+.time-range-selector button:focus-visible,
+.crew-range-pill:focus-visible {
+  outline: 2px solid var(--border-focus, #3b82f6);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ---- ARIA Live Region Styling ---- */
+/* Announce metric updates to screen readers */
+[aria-live="polite"] {
+  position: relative;
+}
+
+/* ---- Print Focus Reset ---- */
+@media print {
+  *:focus,
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
