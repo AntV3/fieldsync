@@ -60,9 +60,9 @@ export default function OverviewTab({
   }
 
   return (
-    <div className="pv-tab-panel overview-tab animate-fade-in">
-      {/* Row 1: Hero - Progress + Financials */}
-      <div className="overview-hero-split">
+    <div className="pv-tab-panel overview-tab animate-fade-in" role="region" aria-label="Project overview">
+      {/* Row 1: Hero - Progress + Financials (Critical KPIs above the fold) */}
+      <div className="overview-hero-split" role="region" aria-label="Progress and financial summary">
         <OverviewProgressGauge
           progress={progress}
           areasComplete={areasComplete}
@@ -89,7 +89,7 @@ export default function OverviewTab({
         />
 
         {/* Right: Work Areas */}
-        <div className="overview-section-card overview-work-areas-card">
+        <div className="overview-section-card overview-work-areas-card" role="region" aria-label="Work areas">
           <div className="section-card-header">
             <h3>Work Areas</h3>
             <div className="section-card-badges">
@@ -98,10 +98,10 @@ export default function OverviewTab({
               {areasNotStarted > 0 && <span className="section-badge pending">{areasNotStarted} Pending</span>}
             </div>
           </div>
-          <div className="work-areas-list work-areas-scroll stagger-areas">
+          <div className="work-areas-list work-areas-scroll stagger-areas" role="list">
             {areas.map(area => (
-              <div key={area.id} className={`work-area-item ${area.status}`}>
-                <div className="work-area-status">
+              <div key={area.id} className={`work-area-item ${area.status}`} role="listitem" aria-label={`${area.name}: ${area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In progress' : 'Not started'}`}>
+                <div className="work-area-status" aria-hidden="true">
                   {area.status === 'done' && <span className="status-icon done">&#10003;</span>}
                   {area.status === 'working' && <span className="status-icon working">&#9679;</span>}
                   {area.status === 'not_started' && <span className="status-icon pending">&#9675;</span>}
@@ -139,11 +139,11 @@ export default function OverviewTab({
 
       {/* Row 4: Needs Attention (only shown when there are items) */}
       {attentionItems.length > 0 && (
-        <div className="overview-needs-attention">
+        <div className="overview-needs-attention" role="alert" aria-label={`${attentionItems.length} items need attention`}>
           <div className="overview-needs-attention__header">
-            <AlertTriangle size={15} className="overview-needs-attention__icon" />
+            <AlertTriangle size={15} className="overview-needs-attention__icon" aria-hidden="true" />
             <span className="overview-needs-attention__title">Needs Attention</span>
-            <span className="overview-needs-attention__count">{attentionItems.length}</span>
+            <span className="overview-needs-attention__count" aria-label={`${attentionItems.length} items`}>{attentionItems.length}</span>
           </div>
           <div className="overview-needs-attention__items">
             {attentionItems.map(item => {

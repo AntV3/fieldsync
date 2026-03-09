@@ -1219,36 +1219,55 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             )}
           </div>
 
-          {/* Key Metrics Bar */}
-          <div className="pv-metrics-bar">
+          {/* Key Metrics Bar - Critical KPIs above the fold (F-pattern) */}
+          <div className="pv-metrics-bar" role="region" aria-label="Key project metrics">
             <div className="pv-metric">
-              <span className="pv-metric-value">{progress}%</span>
+              <span className="pv-metric-value" aria-label={`${progress} percent complete`}>{progress}%</span>
               <span className="pv-metric-label">Complete</span>
             </div>
-            <div className="pv-metric-divider"></div>
+            <div className="pv-metric-divider" aria-hidden="true"></div>
             <div className="pv-metric">
               <span className="pv-metric-value">{formatCurrency(billable)}</span>
               <span className="pv-metric-label">Billed</span>
             </div>
-            <div className="pv-metric-divider"></div>
+            <div className="pv-metric-divider" aria-hidden="true"></div>
             <div className="pv-metric">
               <span className="pv-metric-value highlight">{formatCurrency(revisedContractValue - billable)}</span>
               <span className="pv-metric-label">Remaining</span>
             </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="pv-tabs">
+          {/* Tab Navigation - ARIA tablist for keyboard navigation */}
+          <div className="pv-tabs" role="tablist" aria-label="Project dashboard tabs">
             {tabs.map(tab => (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={activeProjectTab === tab.id}
+                aria-controls={`tabpanel-${tab.id}`}
+                id={`tab-${tab.id}`}
                 className={`pv-tab ${activeProjectTab === tab.id ? 'active' : ''} ${tab.badge > 0 ? 'has-badge' : ''}`}
                 onClick={() => setActiveProjectTab(tab.id)}
+                tabIndex={activeProjectTab === tab.id ? 0 : -1}
+                onKeyDown={(e) => {
+                  const tabIds = tabs.map(t => t.id)
+                  const currentIndex = tabIds.indexOf(tab.id)
+                  let nextIndex = -1
+                  if (e.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabIds.length
+                  else if (e.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabIds.length) % tabIds.length
+                  else if (e.key === 'Home') nextIndex = 0
+                  else if (e.key === 'End') nextIndex = tabIds.length - 1
+                  if (nextIndex !== -1) {
+                    e.preventDefault()
+                    setActiveProjectTab(tabIds[nextIndex])
+                    document.getElementById(`tab-${tabIds[nextIndex]}`)?.focus()
+                  }
+                }}
               >
-                <tab.Icon size={16} className="pv-tab-icon" />
+                <tab.Icon size={16} className="pv-tab-icon" aria-hidden="true" />
                 <span className="pv-tab-label">{tab.label}</span>
                 {tab.badge > 0 && (
-                  <span className="pv-tab-badge">{tab.badge}</span>
+                  <span className="pv-tab-badge" aria-label={`${tab.badge} items`}>{tab.badge}</span>
                 )}
               </button>
             ))}
@@ -1256,7 +1275,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         </div>
 
         {/* Tab Content */}
-        <div className="pv-tab-content">
+        <div className="pv-tab-content" role="tabpanel" id={`tabpanel-${activeProjectTab}`} aria-labelledby={`tab-${activeProjectTab}`}>
           {/* OVERVIEW TAB */}
           {activeProjectTab === 'overview' && (
             <OverviewTab

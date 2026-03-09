@@ -56,10 +56,11 @@
 }
 
 .metric-value {
+  font-family: var(--font-data);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
 }
 

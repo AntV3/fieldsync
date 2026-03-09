@@ -154,7 +154,8 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .burn-summary-divider {
@@ -268,7 +269,8 @@
 .burn-amount {
   position: relative;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* ============================================
@@ -448,7 +450,8 @@
 .cost-amount {
   font-weight: 600;
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .cost-percent {
@@ -663,7 +666,8 @@
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .profit-metric-value.negative {
@@ -728,7 +732,8 @@
 .profit-value {
   font-weight: 600;
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .profit-value.negative {

@@ -172,13 +172,15 @@
   font-weight: 600;
 }
 
-/* Chart Tooltip */
+/* Chart Tooltip - elevated surface with backdrop blur */
 .chart-tooltip {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--elevation-3, var(--bg-card));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border, var(--border-color));
   border-radius: var(--radius-lg);
   padding: 0.875rem 1rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-elevated);
   min-width: 180px;
   z-index: var(--z-tooltip);
   position: relative;
@@ -222,9 +224,12 @@
 }
 
 .chart-tooltip-value {
+  font-family: var(--font-data, inherit);
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .chart-tooltip-daily {
@@ -397,6 +402,76 @@
   color: var(--text-secondary);
 }
 
+/* ---- Chart Data Values ---- */
+/* All numeric values in charts use data font */
+.quick-stat .stat-value,
+.donut-center-value,
+.donut-legend-value {
+  font-family: var(--font-data, inherit);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---- Chart Interactive States ---- */
+/* Cross-filtering: visual feedback when chart section is selected */
+.chart-section-selected {
+  opacity: 1;
+  transition: opacity var(--transition-micro);
+}
+
+.chart-section-dimmed {
+  opacity: 0.35;
+  transition: opacity var(--transition-micro);
+}
+
+/* Time-range brush selection indicator */
+.time-range-selector button {
+  transition: all var(--transition-micro);
+  min-height: 36px;
+}
+
+.time-range-selector button.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Chart loading skeleton > spinner (perceived performance) */
+.chart-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  min-height: 300px;
+}
+
+.chart-loading-skeleton__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-loading-skeleton__bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  padding-top: var(--space-lg);
+}
+
+.chart-loading-skeleton__bar {
+  flex: 1;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .chart-header {
@@ -406,6 +481,11 @@
 
   .time-range-selector {
     justify-content: center;
+  }
+
+  .time-range-selector button {
+    min-height: 44px;
+    padding: 0.5rem 0.875rem;
   }
 
   .chart-quick-stats {

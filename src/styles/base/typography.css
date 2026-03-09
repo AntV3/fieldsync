@@ -185,9 +185,44 @@ pre {
   margin-bottom: var(--space-md);
 }
 
-/* Tabular numbers for financial/metric displays */
+/* ---- Data Display Typography ---- */
+/* Tabular numbers for financial/metric displays - prevents alignment jitter */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Data values: use monospaced data font with tabular figures */
+.data-value {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
+}
+
+/* KPI / hero metric values */
+.kpi-value {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+/* Number alignment: right-align numbers in columns */
+.num-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Label hierarchy for dashboards */
+.label-uppercase {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  line-height: var(--line-height-normal);
 }
 
 /* Gradient text utility */
