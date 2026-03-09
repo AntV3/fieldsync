@@ -1322,6 +1322,104 @@ export const projectOps = {
     return channel.subscribe()
   },
 
+  // Subscribe to a single project's changes (name, dates, budget)
+  subscribeToProject(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to change orders (CORs) for a project
+  subscribeToCORs(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`change_orders:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'change_orders', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to invoice changes for a project
+  subscribeToInvoices(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`invoices:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'invoices', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to custom project cost entries
+  subscribeToProjectCosts(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project_costs:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'project_costs', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to punch list item changes for a project
+  subscribeToPunchList(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`punch_list_items:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to materials/equipment pricing changes (company-wide)
+  subscribeToMaterialsEquipment(companyId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`materials_equipment:${companyId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'materials_equipment', filter: `company_id=eq.${companyId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to labor rate changes (company-wide)
+  subscribeToLaborRates(companyId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`labor_rates:${companyId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'labor_rates', filter: `company_id=eq.${companyId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
   unsubscribe(subscription) {
     if (subscription && isSupabaseConfigured) {
       supabase.removeChannel(subscription)

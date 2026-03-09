@@ -1,7 +1,7 @@
 /**
  * Documents domain – folders, CRUD, linking, approval, search & audit logging.
  */
-import { getClient, observe, validate, escapePostgrestFilter } from './client'
+import { getClient, observe, validate, escapePostgrestFilter, supabase, isSupabaseConfigured } from './client'
 
 export const documentOps = {
   // ---- FOLDERS ----
@@ -776,5 +776,37 @@ export const documentOps = {
       triggered_by: 'user',
       user_id: (await client.auth.getUser()).data?.user?.id
     })
+  },
+
+  // ============================================
+  // Real-time Subscriptions
+  // ============================================
+
+  // Subscribe to document changes for a project
+  subscribeToDocuments(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`documents:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'documents', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to document folder changes for a project
+  subscribeToDocumentFolders(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`document_folders:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'document_folders', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
   }
 }
