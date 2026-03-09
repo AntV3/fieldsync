@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { BarChart3, FileText, ClipboardList, Receipt, ChevronRight, ChevronLeft, PanelLeftOpen, X } from 'lucide-react'
+import { BarChart3, FileText, ClipboardList, Receipt, Truck, ChevronRight, ChevronLeft, PanelLeftOpen, X } from 'lucide-react'
 import { CountBadge } from './ui'
 
 /**
@@ -44,6 +44,14 @@ const NAV_ITEMS = [
     icon: Receipt,
     description: 'Invoices & billing',
     step: 3
+  },
+  {
+    id: 'equipment',
+    label: 'Equipment',
+    shortLabel: 'Equip',
+    icon: Truck,
+    description: 'Tracking & costs',
+    step: null
   }
 ]
 

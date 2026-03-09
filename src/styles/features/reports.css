@@ -1701,3 +1701,73 @@
   padding: 1rem;
 }
 
+/* ============================================
+   Safety Inline Stats (merged into injury section header)
+   ============================================ */
+.reports-safety-inline {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-color);
+}
+
+.reports-safety-days-compact {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  white-space: nowrap;
+}
+
+.reports-safety-days-compact.excellent {
+  background: var(--status-success-bg, rgba(5, 150, 105, 0.15));
+  color: var(--status-success, #059669);
+}
+
+.reports-safety-days-compact.good {
+  background: var(--status-info-bg, rgba(59, 130, 246, 0.15));
+  color: var(--status-info, #3b82f6);
+}
+
+.reports-safety-days-compact.caution {
+  background: var(--status-warning-bg, rgba(217, 119, 6, 0.15));
+  color: var(--status-warning, #d97706);
+}
+
+.reports-safety-days-compact .reports-safety-days-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.reports-safety-days-compact .reports-safety-days-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.reports-safety-stats-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.reports-safety-stat {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .reports-safety-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+

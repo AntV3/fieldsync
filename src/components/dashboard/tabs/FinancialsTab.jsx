@@ -28,6 +28,8 @@ export default function FinancialsTab({
   changeOrderValue,
   revisedContractValue,
   areas,
+  financialsNavStats,
+  // From useFinancialsState (spread)
   financialsSection,
   setFinancialsSection,
   financialsSidebarCollapsed,
@@ -35,8 +37,6 @@ export default function FinancialsTab({
   onToggleFinancialsSidebar,
   onToggleMobileSidebar,
   onCloseMobileSidebar,
-  financialsNavStats,
-  // COR state
   corListExpanded,
   corRefreshKey,
   corDisplayMode,
@@ -45,20 +45,17 @@ export default function FinancialsTab({
   onCreateCOR,
   onViewCOR,
   onEditCOR,
-  // T&M state
   tmViewMode,
   onViewAllTickets,
   onBackToTMPreview,
-  // Equipment
   equipmentRefreshKey,
   onAddEquipment,
   onEditEquipment,
-  // Billing
   drawRequestRefreshKey,
   onCreateDraw,
   onViewDraw,
-  // Costs
   onAddCost,
+  // Additional
   onDeleteCost,
   onShowToast
 }) {
@@ -139,74 +136,64 @@ export default function FinancialsTab({
           {/* OVERVIEW SECTION */}
           {financialsSection === 'overview' && (
             <div className="financials-overview animate-fade-in">
-              <FinancialTrendChart
-                projectData={projectData}
-                project={selectedProject}
-                tmTickets={projectData?.tmTickets || []}
-                corStats={projectData?.corStats}
-                areas={areas}
-                changeOrderValue={changeOrderValue}
-              />
+              {/* Performance Group */}
+              <div className="financials-group">
+                <div className="financials-group-label">Performance</div>
+                <FinancialTrendChart
+                  projectData={projectData}
+                  project={selectedProject}
+                  tmTickets={projectData?.tmTickets || []}
+                  corStats={projectData?.corStats}
+                  areas={areas}
+                  changeOrderValue={changeOrderValue}
+                />
 
-              <div className="financials-analysis-row stagger-children">
-                <BurnRateCard
-                  dailyBurn={projectData?.dailyBurn || 0}
-                  totalBurn={projectData?.totalBurn || 0}
-                  daysWorked={projectData?.totalBurnDays || 0}
+                <div className="financials-analysis-row stagger-children">
+                  <BurnRateCard
+                    dailyBurn={projectData?.dailyBurn || 0}
+                    totalBurn={projectData?.totalBurn || 0}
+                    daysWorked={projectData?.totalBurnDays || 0}
+                    laborCost={projectData?.laborCost || 0}
+                    materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                    projectEquipmentCost={projectData?.projectEquipmentCost || 0}
+                    customCostTotal={projectData?.customCostTotal || 0}
+                    progress={progress}
+                    contractValue={revisedContractValue}
+                    laborByDate={projectData?.laborByDate || []}
+                    materialsEquipmentByDate={projectData?.materialsEquipmentByDate || []}
+                  />
+                  <ProfitabilityCard
+                    revenue={billable}
+                    totalCosts={projectData?.allCostsTotal || 0}
+                    contractValue={revisedContractValue}
+                    progress={progress}
+                  />
+                </div>
+              </div>
+
+              {/* Costs Group */}
+              <div className="financials-group">
+                <div className="financials-group-label">Cost Breakdown</div>
+                <CostContributorsCard
                   laborCost={projectData?.laborCost || 0}
                   materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
                   projectEquipmentCost={projectData?.projectEquipmentCost || 0}
-                  customCostTotal={projectData?.customCostTotal || 0}
-                  progress={progress}
-                  contractValue={revisedContractValue}
-                  laborByDate={projectData?.laborByDate || []}
-                  materialsEquipmentByDate={projectData?.materialsEquipmentByDate || []}
+                  customCosts={projectData?.customCosts || []}
+                  onAddCost={onAddCost}
+                  onDeleteCost={onDeleteCost}
                 />
-                <ProfitabilityCard
-                  revenue={billable}
-                  totalCosts={projectData?.allCostsTotal || 0}
-                  contractValue={revisedContractValue}
-                  progress={progress}
-                />
+
+                <details className="financials-details">
+                  <summary className="financials-details-summary">
+                    <HardHat size={16} />
+                    <span>Labor Details</span>
+                    <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
+                  </summary>
+                  <div className="financials-details-content">
+                    <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+                  </div>
+                </details>
               </div>
-
-              <CostContributorsCard
-                laborCost={projectData?.laborCost || 0}
-                materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
-                projectEquipmentCost={projectData?.projectEquipmentCost || 0}
-                customCosts={projectData?.customCosts || []}
-                onAddCost={onAddCost}
-                onDeleteCost={onDeleteCost}
-              />
-
-              <ProjectEquipmentCard
-                key={equipmentRefreshKey}
-                project={selectedProject}
-                onAddEquipment={onAddEquipment}
-                onEditEquipment={onEditEquipment}
-                onShowToast={onShowToast}
-              />
-
-              <ProgressBillingCard
-                key={drawRequestRefreshKey}
-                project={selectedProject}
-                areas={areas}
-                corStats={projectData?.corStats}
-                onCreateDraw={onCreateDraw}
-                onViewDraw={onViewDraw}
-                onShowToast={onShowToast}
-              />
-
-              <details className="financials-details">
-                <summary className="financials-details-summary">
-                  <HardHat size={16} />
-                  <span>Labor Details</span>
-                  <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
-                </summary>
-                <div className="financials-details-content">
-                  <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
-                </div>
-              </details>
             </div>
           )}
 
@@ -274,6 +261,15 @@ export default function FinancialsTab({
           {/* BILLING SECTION */}
           {financialsSection === 'billing' && (
             <div className="financials-billing animate-fade-in">
+              <ProgressBillingCard
+                key={drawRequestRefreshKey}
+                project={selectedProject}
+                areas={areas}
+                corStats={projectData?.corStats}
+                onCreateDraw={onCreateDraw}
+                onViewDraw={onViewDraw}
+                onShowToast={onShowToast}
+              />
               <Suspense fallback={<TicketSkeleton />}>
                 <BillingCenter
                   project={selectedProject}
@@ -282,6 +278,19 @@ export default function FinancialsTab({
                   onShowToast={onShowToast}
                 />
               </Suspense>
+            </div>
+          )}
+
+          {/* EQUIPMENT SECTION */}
+          {financialsSection === 'equipment' && (
+            <div className="financials-equipment animate-fade-in">
+              <ProjectEquipmentCard
+                key={equipmentRefreshKey}
+                project={selectedProject}
+                onAddEquipment={onAddEquipment}
+                onEditEquipment={onEditEquipment}
+                onShowToast={onShowToast}
+              />
             </div>
           )}
         </div>

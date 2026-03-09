@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react'
-import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, ArrowRight } from 'lucide-react'
+import { useState, useRef, useEffect, Suspense, lazy } from 'react'
+import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, ArrowRight, ChevronDown } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import EarnedValueCard from '../../charts/EarnedValueCard'
@@ -195,24 +195,46 @@ export default function OverviewTab({
             <span>{projectData?.totalTickets || 0} T&M Tickets</span>
           </button>
           <span className="overview-action-divider" />
-          <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('all')}>
-            <Download size={15} />
-            <span>Export All</span>
-          </button>
-          <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('daily')}>
-            <Download size={14} />
-            <span>Daily</span>
-          </button>
-          <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('incidents')}>
-            <Download size={14} />
-            <span>Incidents</span>
-          </button>
-          <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('crew')}>
-            <Download size={14} />
-            <span>Crew</span>
-          </button>
+          <ExportDropdown onExport={onExportFieldDocuments} />
         </div>
       </div>
+    </div>
+  )
+}
+
+function ExportDropdown({ onExport }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handleClickOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  const handleExport = (type) => {
+    onExport(type)
+    setOpen(false)
+  }
+
+  return (
+    <div className="overview-export-dropdown" ref={ref}>
+      <button className="overview-action-btn export" onClick={() => setOpen(prev => !prev)}>
+        <Download size={15} />
+        <span>Export</span>
+        <ChevronDown size={13} />
+      </button>
+      {open && (
+        <div className="overview-export-menu">
+          <button onClick={() => handleExport('all')}>Export All</button>
+          <button onClick={() => handleExport('daily')}>Daily Reports</button>
+          <button onClick={() => handleExport('incidents')}>Incident Reports</button>
+          <button onClick={() => handleExport('crew')}>Crew Check-ins</button>
+        </div>
+      )}
     </div>
   )
 }

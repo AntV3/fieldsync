@@ -945,3 +945,28 @@
   font-weight: 500;
 }
 
+/* ============================================
+   Financials Group — Visual grouping of related cards
+   ============================================ */
+.financials-group {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.financials-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.financials-group-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 0.75rem;
+  padding-left: 2px;
+}
+
