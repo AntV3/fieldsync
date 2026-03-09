@@ -78,11 +78,16 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
 
     if (!selectedCompany) return { noAccess: true }
 
-    const { data: fullCompany } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('id', selectedCompany.id)
-      .single()
+    // If getUserCompanies already returned full company data, use it directly
+    // to avoid a redundant query
+    const fullCompany = selectedCompany.name && selectedCompany.id
+      ? selectedCompany
+      : await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', selectedCompany.id)
+          .single()
+          .then(res => res.data)
 
     setCompany(fullCompany)
     setAuthReady(true)
