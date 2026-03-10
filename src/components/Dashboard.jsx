@@ -892,9 +892,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   }), [projectData?.corTotalCount, projectData?.totalTickets, projectData?.corPendingCount, projectData?.pendingTickets])
 
   // Destructure memoized values for cleaner usage below
-  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount } = portfolioMetrics
+  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount, backlog, totalCosts, totalProfit, grossMargin, hasCostData, totalBilled, unbilledRevenue, totalExposure, atRiskExposure, overBudgetExposure } = portfolioMetrics
   const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
-  const { scheduleAhead, scheduleOnTrack, scheduleBehind, laborOver, laborUnder, laborOnTrack, hasAnyScheduleData, hasAnyLaborData } = scheduleMetrics
+  const { scheduleAhead, scheduleOnTrack, scheduleBehind, laborOver, laborUnder, laborOnTrack, hasAnyScheduleData, hasAnyLaborData, behindScheduleExposure } = scheduleMetrics
 
   if (loading) {
     return (
@@ -1601,130 +1601,143 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           <div className="bo-project-count">{projects.length} Active Project{projects.length !== 1 ? 's' : ''}</div>
         </div>
 
-        {/* Main Financial Bar */}
+        {/* Hero Financial Metrics */}
         <div className="bo-financial">
-          <div className="bo-progress-bar">
-            <div
-              className="bo-progress-fill"
-              style={{ width: `${Math.min(weightedCompletion, 100)}%` }}
-            ></div>
-          </div>
-          <div className="bo-financial-row">
-            <div className="bo-metric primary">
-              <span className="bo-metric-value">{formatCurrency(totalEarned)}</span>
-              <span className="bo-metric-label">Earned Revenue</span>
-            </div>
-            <div className="bo-metric-separator">of</div>
-            <div className="bo-metric primary">
-              <span className="bo-metric-value">{formatCurrency(totalPortfolioValue)}</span>
-              <span className="bo-metric-label">Total Portfolio</span>
-            </div>
-            <div className="bo-metric highlight">
-              <span className="bo-metric-value">{formatCurrency(totalRemaining)}</span>
-              <span className="bo-metric-label">Remaining to Bill</span>
+          {/* Portfolio Value Hero */}
+          <div className="bo-hero-row">
+            <div className="bo-hero-metric">
+              <span className="bo-hero-value">{formatCurrency(totalPortfolioValue)}</span>
+              <span className="bo-hero-label">Total Portfolio Value</span>
+              {totalChangeOrders > 0 && (
+                <span className="bo-hero-detail">
+                  {formatCurrency(totalOriginalContract)} + {formatCurrency(totalChangeOrders)} COs
+                  <span className="bo-hero-detail-count">({projectsWithChangeOrders} project{projectsWithChangeOrders !== 1 ? 's' : ''})</span>
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Change Orders Summary - Only show if there are change orders */}
-          {totalChangeOrders > 0 && (
-            <div className="bo-change-orders">
-              <div className="bo-co-item">
-                <span className="bo-co-label">Original Contracts</span>
-                <span className="bo-co-value">{formatCurrency(totalOriginalContract)}</span>
-              </div>
-              <div className="bo-co-item bo-co-added">
-                <span className="bo-co-label">+ Change Orders ({projectsWithChangeOrders} project{projectsWithChangeOrders !== 1 ? 's' : ''})</span>
-                <span className="bo-co-value">+{formatCurrency(totalChangeOrders)}</span>
-              </div>
+          {/* Completion Progress */}
+          <div className="bo-completion">
+            <div className="bo-completion-header">
+              <span className="bo-completion-pct">{weightedCompletion}%</span>
+              <span className="bo-completion-label">earned</span>
+              <span className="bo-completion-amounts">{formatCurrency(totalEarned)} of {formatCurrency(totalPortfolioValue)}</span>
             </div>
-          )}
-
-          {/* Pending CORs - Unapproved extra work (not yet part of contract value) */}
-          {totalPendingCORCount > 0 && (
-            <div className="bo-pending-cors">
-              <div className="bo-pending-cor-item">
-                <span className="bo-pending-cor-icon">!</span>
-                <span className="bo-pending-cor-label">Pending CORs</span>
-                <span className="bo-pending-cor-value">{formatCurrency(totalPendingCORValue)}</span>
-                <span className="bo-pending-cor-count">({totalPendingCORCount} pending)</span>
-              </div>
+            <div className="bo-progress-bar">
+              <div
+                className="bo-progress-fill"
+                style={{ width: `${Math.min(weightedCompletion, 100)}%` }}
+              ></div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Project Health Summary */}
-        <div className="bo-health">
-          <div className="bo-health-title">Project Health</div>
-          <div className="bo-health-pills">
-            {projectsComplete > 0 && (
-              <div className="bo-pill complete">
-                <span className="bo-pill-count">{projectsComplete}</span>
-                <span className="bo-pill-label">Complete</span>
+          {/* Key Metrics Grid */}
+          <div className="bo-metrics-grid">
+            <div className="bo-kpi backlog">
+              <span className="bo-kpi-value">{formatCurrency(backlog)}</span>
+              <span className="bo-kpi-label">Backlog</span>
+              <span className="bo-kpi-context">remaining to earn</span>
+            </div>
+            {hasCostData && (
+              <div className={`bo-kpi margin ${grossMargin >= 20 ? 'healthy' : grossMargin >= 10 ? 'watch' : 'danger'}`}>
+                <span className="bo-kpi-value">{grossMargin}%</span>
+                <span className="bo-kpi-label">Gross Margin</span>
+                <span className="bo-kpi-context">{formatCurrency(totalProfit)} profit</span>
               </div>
             )}
-            {projectsOnTrack > 0 && (
-              <div className="bo-pill on-track">
-                <span className="bo-pill-count">{projectsOnTrack}</span>
-                <span className="bo-pill-label">On Track</span>
+            {totalExposure > 0 && (
+              <div className="bo-kpi exposure">
+                <span className="bo-kpi-value">{formatCurrency(totalExposure)}</span>
+                <span className="bo-kpi-label">At-Risk Exposure</span>
+                <span className="bo-kpi-context">{projectsAtRisk + projectsOverBudget} project{projectsAtRisk + projectsOverBudget !== 1 ? 's' : ''} flagged</span>
               </div>
             )}
-            {projectsAtRisk > 0 && (
-              <div className="bo-pill at-risk">
-                <span className="bo-pill-count">{projectsAtRisk}</span>
-                <span className="bo-pill-label">At Risk</span>
-              </div>
-            )}
-            {projectsOverBudget > 0 && (
-              <div className="bo-pill over-budget">
-                <span className="bo-pill-count">{projectsOverBudget}</span>
-                <span className="bo-pill-label">Over Budget</span>
+            {totalPendingCORCount > 0 && (
+              <div className="bo-kpi pending">
+                <span className="bo-kpi-value">{formatCurrency(totalPendingCORValue)}</span>
+                <span className="bo-kpi-label">Pending CORs</span>
+                <span className="bo-kpi-context">{totalPendingCORCount} awaiting approval</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Schedule Performance Summary */}
-        {hasAnyScheduleData && (
-          <div className="bo-schedule">
-            <div className="bo-schedule-title">Schedule Performance</div>
-            <div className="bo-schedule-pills">
-              {scheduleAhead > 0 && (
-                <div className="bo-pill ahead">
-                  <span className="bo-pill-count">{scheduleAhead}</span>
-                  <span className="bo-pill-label">Ahead</span>
+        {/* Project Health + Schedule — Combined Status Strip */}
+        <div className="bo-status-strip">
+          <div className="bo-status-group">
+            <div className="bo-status-title">Project Health</div>
+            <div className="bo-health-pills">
+              {projectsComplete > 0 && (
+                <div className="bo-pill complete">
+                  <span className="bo-pill-count">{projectsComplete}</span>
+                  <span className="bo-pill-label">Complete</span>
                 </div>
               )}
-              {scheduleOnTrack > 0 && (
-                <div className="bo-pill schedule-on-track">
-                  <span className="bo-pill-count">{scheduleOnTrack}</span>
+              {projectsOnTrack > 0 && (
+                <div className="bo-pill on-track">
+                  <span className="bo-pill-count">{projectsOnTrack}</span>
                   <span className="bo-pill-label">On Track</span>
                 </div>
               )}
-              {scheduleBehind > 0 && (
-                <div className="bo-pill behind">
-                  <span className="bo-pill-count">{scheduleBehind}</span>
-                  <span className="bo-pill-label">Behind</span>
+              {projectsAtRisk > 0 && (
+                <div className="bo-pill at-risk">
+                  <span className="bo-pill-count">{projectsAtRisk}</span>
+                  <span className="bo-pill-label">At Risk</span>
+                  {atRiskExposure > 0 && <span className="bo-pill-exposure">{formatCurrency(atRiskExposure)}</span>}
+                </div>
+              )}
+              {projectsOverBudget > 0 && (
+                <div className="bo-pill over-budget">
+                  <span className="bo-pill-count">{projectsOverBudget}</span>
+                  <span className="bo-pill-label">Over Budget</span>
+                  {overBudgetExposure > 0 && <span className="bo-pill-exposure">{formatCurrency(overBudgetExposure)}</span>}
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Labor Performance (if any projects have planned man-days) */}
-            {hasAnyLaborData && (
-              <div className="bo-labor-summary">
-                <span className="bo-labor-label">Man-Days:</span>
-                {laborUnder > 0 && (
-                  <span className="bo-labor-badge under">{laborUnder} under</span>
+          {hasAnyScheduleData && (
+            <div className="bo-status-group">
+              <div className="bo-status-title">Schedule</div>
+              <div className="bo-health-pills">
+                {scheduleAhead > 0 && (
+                  <div className="bo-pill ahead">
+                    <span className="bo-pill-count">{scheduleAhead}</span>
+                    <span className="bo-pill-label">Ahead</span>
+                  </div>
                 )}
-                {laborOnTrack > 0 && (
-                  <span className="bo-labor-badge on-track">{laborOnTrack} on track</span>
+                {scheduleOnTrack > 0 && (
+                  <div className="bo-pill schedule-on-track">
+                    <span className="bo-pill-count">{scheduleOnTrack}</span>
+                    <span className="bo-pill-label">On Track</span>
+                  </div>
                 )}
-                {laborOver > 0 && (
-                  <span className="bo-labor-badge over">{laborOver} over</span>
+                {scheduleBehind > 0 && (
+                  <div className="bo-pill behind">
+                    <span className="bo-pill-count">{scheduleBehind}</span>
+                    <span className="bo-pill-label">Behind</span>
+                    {behindScheduleExposure > 0 && <span className="bo-pill-exposure">{formatCurrency(behindScheduleExposure)}</span>}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
+              {hasAnyLaborData && (
+                <div className="bo-labor-summary">
+                  <span className="bo-labor-label">Man-Days:</span>
+                  {laborUnder > 0 && (
+                    <span className="bo-labor-badge under">{laborUnder} under</span>
+                  )}
+                  {laborOnTrack > 0 && (
+                    <span className="bo-labor-badge on-track">{laborOnTrack} on track</span>
+                  )}
+                  {laborOver > 0 && (
+                    <span className="bo-labor-badge over">{laborOver} over</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Smart Alerts - Actionable insights requiring attention */}

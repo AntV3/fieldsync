@@ -19,12 +19,22 @@ export default function usePortfolioMetrics(projectsData) {
     let totalPendingCORValue = 0
     let totalPendingCORCount = 0
 
+    // Cost & profit accumulators (from projects with loaded details)
+    let totalCosts = 0
+    let totalProfit = 0
+    let projectsWithCostData = 0
+    let totalBilled = 0
+
     // Health accumulators
     let complete = 0
     let onTrack = 0
     let atRisk = 0
     let overBudget = 0
     let withChangeOrders = 0
+
+    // Dollar-weighted health (exposure in dollars, not just counts)
+    let atRiskExposure = 0
+    let overBudgetExposure = 0
 
     // Schedule accumulators
     let ahead = 0
@@ -33,9 +43,12 @@ export default function usePortfolioMetrics(projectsData) {
     let overLabor = 0
     let underLabor = 0
     let onTrackLabor = 0
+    let behindScheduleExposure = 0
 
     // Single pass over all projects
     for (const p of projectsData) {
+      const contractVal = p.revisedContractValue || p.contract_value || 0
+
       // Portfolio
       totalOriginalContract += p.contract_value || 0
       totalChangeOrders += p.changeOrderValue || 0
@@ -43,18 +56,34 @@ export default function usePortfolioMetrics(projectsData) {
       totalPendingCORValue += p.corPendingValue || 0
       totalPendingCORCount += p.corPendingCount || 0
 
+      // Cost & profit (only from projects with detailed data loaded)
+      if (p._detailsLoaded) {
+        totalCosts += p.allCostsTotal || 0
+        totalProfit += p.currentProfit || 0
+        totalBilled += p.totalBilled || 0
+        projectsWithCostData++
+      }
+
       // Health
-      const contractVal = p.revisedContractValue || p.contract_value
       if (p.progress >= 100) complete++
       if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
-      if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
-      if (p.billable > contractVal) overBudget++
+      if (p.billable > contractVal * 0.9 && p.progress < 90) {
+        atRisk++
+        atRiskExposure += contractVal
+      }
+      if (p.billable > contractVal) {
+        overBudget++
+        overBudgetExposure += (p.billable || 0) - contractVal
+      }
       if ((p.changeOrderValue || 0) > 0) withChangeOrders++
 
       // Schedule
       if (p.hasScheduleData) {
         if (p.scheduleStatus === 'ahead') ahead++
-        else if (p.scheduleStatus === 'behind') behind++
+        else if (p.scheduleStatus === 'behind') {
+          behind++
+          behindScheduleExposure += contractVal
+        }
         else schedOnTrack++
       }
       if (p.hasLaborData) {
@@ -65,6 +94,9 @@ export default function usePortfolioMetrics(projectsData) {
     }
 
     const totalPortfolioValue = totalOriginalContract + totalChangeOrders
+    const backlog = totalPortfolioValue - totalEarned
+    const grossMargin = totalEarned > 0 ? ((totalEarned - totalCosts) / totalEarned) * 100 : 0
+    const totalExposure = atRiskExposure + overBudgetExposure
 
     return {
       portfolioMetrics: {
@@ -72,19 +104,32 @@ export default function usePortfolioMetrics(projectsData) {
         totalChangeOrders,
         totalPortfolioValue,
         totalEarned,
-        totalRemaining: totalPortfolioValue - totalEarned,
+        totalRemaining: backlog,
+        backlog,
         weightedCompletion: totalPortfolioValue > 0
           ? Math.round((totalEarned / totalPortfolioValue) * 100)
           : 0,
         totalPendingCORValue,
-        totalPendingCORCount
+        totalPendingCORCount,
+        // New high-impact metrics
+        totalCosts,
+        totalProfit,
+        grossMargin: Math.round(grossMargin * 10) / 10,
+        hasCostData: projectsWithCostData > 0,
+        totalBilled,
+        unbilledRevenue: totalEarned - totalBilled,
+        totalExposure,
+        atRiskExposure,
+        overBudgetExposure,
       },
       projectHealth: {
         projectsComplete: complete,
         projectsOnTrack: onTrack,
         projectsAtRisk: atRisk,
         projectsOverBudget: overBudget,
-        projectsWithChangeOrders: withChangeOrders
+        projectsWithChangeOrders: withChangeOrders,
+        atRiskExposure,
+        overBudgetExposure,
       },
       scheduleMetrics: {
         scheduleAhead: ahead,
@@ -94,7 +139,8 @@ export default function usePortfolioMetrics(projectsData) {
         laborUnder: underLabor,
         laborOnTrack: onTrackLabor,
         hasAnyScheduleData: ahead + schedOnTrack + behind > 0,
-        hasAnyLaborData: overLabor + underLabor + onTrackLabor > 0
+        hasAnyLaborData: overLabor + underLabor + onTrackLabor > 0,
+        behindScheduleExposure,
       }
     }
   }, [projectsData])
