@@ -67,8 +67,6 @@
   max-width: 420px;
   position: relative;
   box-shadow: var(--shadow-elevated);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .login-header {

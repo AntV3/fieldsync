@@ -80,7 +80,6 @@
   box-shadow: var(--shadow-elevated);
   z-index: var(--z-dropdown);
   overflow: hidden;
-  backdrop-filter: blur(8px);
 }
 
 .notification-header {

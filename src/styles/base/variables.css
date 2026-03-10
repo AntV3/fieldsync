@@ -107,9 +107,9 @@
   --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
 
   /* ---- Glass / Surface Effects ---- */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-backdrop: blur(12px);
+  --glass-bg: var(--bg-surface);
+  --glass-border: var(--border-subtle);
+  --glass-backdrop: none;
   --surface-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 50%);
 
   /* ---- Semantic Surfaces ---- */
@@ -267,6 +267,26 @@
 }
 
 /* ============================================
+   Light Mode Explicit (overrides legacy index.css)
+   ============================================ */
+[data-theme="light"] {
+  --bg-primary: var(--bg-canvas);
+  --bg-secondary: var(--bg-elevated);
+  --bg-tertiary: #EFEFEF;
+  --bg-card: var(--bg-surface);
+  --bg-elevated: #FAFAFA;
+  --bg-input: var(--bg-surface);
+  --text-primary: #202020;
+  --text-secondary: #5F5F5F;
+  --text-muted: #8A8A8A;
+  --text-inverse: var(--bg-surface);
+  --text-color: #202020;
+  --border-color: var(--border-subtle);
+  --border-light: #ECECEC;
+  --hover-bg: var(--bg-elevated);
+}
+
+/* ============================================
    Dark Mode Palette (Required per spec)
    ============================================ */
 [data-theme="dark"] {
@@ -329,8 +349,8 @@
   --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
 
   /* ---- Dark Glass / Surface Effects ---- */
-  --glass-bg: rgba(30, 30, 46, 0.9);
-  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-bg: var(--bg-surface);
+  --glass-border: var(--border-subtle);
   --surface-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
 
   /* ---- Dark Semantic Surfaces ---- */
