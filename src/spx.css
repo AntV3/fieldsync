@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+/*
+ * FieldSync SpaceX Design System
+ * Tailwind CSS v4 theme configuration
+ */
+
+@theme {
+  /* ── Color System ── */
+  --color-bg-primary: #0F1112;
+  --color-bg-secondary: #181C1F;
+  --color-bg-tertiary: #22272B;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A7A9AC;
+
+  --color-accent-blue: #005288;
+  --color-accent-blue-light: #0170AB;
+
+  --color-status-green: #4CAF50;
+  --color-status-blue: #2196F3;
+  --color-status-amber: #FFA726;
+  --color-status-red: #F44336;
+
+  --color-overlay-dark: rgba(15, 17, 18, 0.90);
+  --color-overlay-panel: rgba(33, 44, 48, 0.92);
+
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-default: rgba(255, 255, 255, 0.08);
+  --color-border-input: rgba(255, 255, 255, 0.12);
+  --color-border-muted: rgba(255, 255, 255, 0.05);
+  --color-border-overlay: rgba(255, 255, 255, 0.10);
+  --color-border-timeline: rgba(255, 255, 255, 0.15);
+
+  /* ── Typography ── */
+  --font-family-display: 'D-DIN', 'DIN', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-family-body: 'D-DIN', 'DIN', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+
+  /* ── Spacing (8px base) ── */
+  --spacing-1: 8px;
+  --spacing-2: 16px;
+  --spacing-3: 24px;
+  --spacing-4: 32px;
+  --spacing-6: 48px;
+  --spacing-8: 64px;
+
+  /* ── Animation ── */
+  --animate-fade-in: fade-in 0.4s ease-out;
+  --animate-slide-in-right: slide-in-right 0.2s ease-in-out;
+  --animate-pulse-slow: pulse-slow 2s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Global Base Styles ── */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-family-body);
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  *, *::before, *::after {
+    border-radius: 0 !important;
+  }
+}
+
+/* ── Utility Classes ── */
+@utility tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility tracking-spx-hero {
+  letter-spacing: 0.12em;
+}
+
+@utility tracking-spx-h1 {
+  letter-spacing: 0.10em;
+}
+
+@utility tracking-spx-h2 {
+  letter-spacing: 0.08em;
+}
+
+@utility tracking-spx-h3 {
+  letter-spacing: 0.06em;
+}
+
+@utility tracking-spx-label {
+  letter-spacing: 0.08em;
+}
+
+@utility tracking-spx-nav {
+  letter-spacing: 0.10em;
+}
+
+@utility text-spx-hero {
+  font-size: clamp(48px, 6vw, 80px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+@utility text-spx-h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+@utility text-spx-h2 {
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+@utility text-spx-h3 {
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+@utility text-spx-body {
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.6;
+}
+
+@utility text-spx-label {
+  font-size: clamp(12px, 1vw, 13px);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+@utility text-spx-data {
+  font-size: clamp(24px, 3vw, 48px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+@utility text-spx-data-lg {
+  font-size: clamp(36px, 4vw, 48px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1.1;
+}

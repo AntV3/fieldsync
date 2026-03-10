@@ -29,6 +29,7 @@ const SignaturePage = lazy(() => import('./components/SignaturePage'))
 const MembershipManager = lazy(() => import('./components/MembershipManager'))
 const AccountSettings = lazy(() => import('./components/AccountSettings'))
 const LandingPage = lazy(() => import('./components/landing/LandingPage'))
+const SpxDashboard = lazy(() => import('./components/spx/SpxDashboard'))
 
 // Loading fallback component
 function PageLoader() {
@@ -441,6 +442,15 @@ export default function App() {
                     </Suspense>
                   </ErrorBoundary>
                 )
+          } />
+
+          {/* SpaceX-styled v2 dashboard */}
+          <Route path="/v2" element={
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <SpxDashboard />
+              </Suspense>
+            </ErrorBoundary>
           } />
 
           {/* 404 catch-all */}
