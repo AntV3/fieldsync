@@ -381,14 +381,9 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-[data-theme="light"] .bo-financial-row {
+[data-theme="light"] .bo-kpi {
   background: var(--bg-secondary);
   border-color: var(--border-color);
-}
-
-[data-theme="light"] .bo-metric.highlight {
-  background: var(--green-subtle);
-  border-color: rgba(5, 150, 105, 0.2);
 }
 
 /* Smart alerts */
