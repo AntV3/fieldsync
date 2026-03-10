@@ -1,30 +1,22 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { db, equipmentOps } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
-import { formatCurrency, calculateProgress, calculateValueProgress, getOverallStatus, getOverallStatusLabel, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
+import { formatCurrency, calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, Search, AlertTriangle, BarChart3 } from 'lucide-react'
-import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
-import { SmartAlerts } from './dashboard/SmartAlerts'
+import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3 } from 'lucide-react'
+import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
+import ProjectEditForm from './dashboard/ProjectEditForm'
+import PortfolioView from './dashboard/PortfolioView'
+import DashboardModals from './dashboard/DashboardModals'
 
 // Lazy load tab components - only load the active tab's code
 const OverviewTab = lazy(() => import('./dashboard/tabs/OverviewTab'))
 const FinancialsTab = lazy(() => import('./dashboard/tabs/FinancialsTab'))
 const ReportsTab = lazy(() => import('./dashboard/tabs/ReportsTab'))
 const InfoTab = lazy(() => import('./dashboard/tabs/InfoTab'))
-
-// Lazy load modals and conditionally rendered heavy components
-const ShareModal = lazy(() => import('./ShareModal'))
-const NotificationSettings = lazy(() => import('./NotificationSettings'))
-const CORForm = lazy(() => import('./cor/CORForm'))
-const CORDetail = lazy(() => import('./cor/CORDetail'))
-const CORLog = lazy(() => import('./cor/CORLog'))
-const DrawRequestModal = lazy(() => import('./billing/DrawRequestModal'))
-const EquipmentModal = lazy(() => import('./equipment/EquipmentModal'))
-const AddCostModal = lazy(() => import('./AddCostModal'))
 const DocumentsTab = lazy(() => import('./documents/DocumentsTab'))
 const AnalyticsTab = lazy(() => import('./dashboard/tabs/AnalyticsTab'))
 
@@ -891,11 +883,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     ticketPending: projectData?.pendingTickets || 0
   }), [projectData?.corTotalCount, projectData?.totalTickets, projectData?.corPendingCount, projectData?.pendingTickets])
 
-  // Destructure memoized values for cleaner usage below
-  const { totalOriginalContract, totalChangeOrders, totalPortfolioValue, totalEarned, totalRemaining, weightedCompletion, totalPendingCORValue, totalPendingCORCount, backlog, totalCosts, totalProfit, grossMargin, hasCostData, totalBilled, unbilledRevenue, totalExposure, atRiskExposure, overBudgetExposure } = portfolioMetrics
-  const { projectsComplete, projectsOnTrack, projectsAtRisk, projectsOverBudget, projectsWithChangeOrders } = projectHealth
-  const { scheduleAhead, scheduleOnTrack, scheduleBehind, laborOver, laborUnder, laborOnTrack, hasAnyScheduleData, hasAnyLaborData, behindScheduleExposure } = scheduleMetrics
-
   if (loading) {
     return (
       <div className="loading">
@@ -912,261 +899,18 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
     // Edit Mode
     if (editMode && editData) {
-      const totalWeight = editData.areas.reduce((sum, a) => sum + (parseFloat(a.weight) || 0), 0)
-
       return (
-        <div>
-          <button className="btn btn-secondary btn-small" onClick={handleCancelEdit} style={{ marginBottom: '1.5rem' }}>
-            ← Cancel
-          </button>
-
-          <h1>Edit Project</h1>
-          <p className="subtitle">Update project details</p>
-
-          {/* Basic Info */}
-          <div className="card">
-            <h3>Basic Info</h3>
-            <div className="form-row">
-              <div className="form-group" style={{ flex: 2 }}>
-                <label>Project Name *</label>
-                <input
-                  type="text"
-                  value={editData.name}
-                  onChange={(e) => handleEditChange('name', e.target.value)}
-                  placeholder="e.g., Downtown Office Demolition"
-                />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Job Number</label>
-                <input
-                  type="text"
-                  value={editData.job_number}
-                  onChange={(e) => handleEditChange('job_number', e.target.value)}
-                  placeholder="e.g., 2024-001"
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Project Address</label>
-              <input
-                type="text"
-                value={editData.address}
-                onChange={(e) => handleEditChange('address', e.target.value)}
-                placeholder="123 Main St, City, State 12345"
-              />
-            </div>
-          </div>
-
-          {/* Client & Contractor Info */}
-          <div className="card">
-            <h3>Contractor</h3>
-            <div className="form-group">
-              <label>General Contractor</label>
-              <input
-                type="text"
-                value={editData.general_contractor}
-                onChange={(e) => handleEditChange('general_contractor', e.target.value)}
-                placeholder="e.g., ABC Construction"
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Contact Name</label>
-                <input
-                  type="text"
-                  value={editData.contractor_contact}
-                  onChange={(e) => handleEditChange('contractor_contact', e.target.value)}
-                  placeholder="e.g., John Smith"
-                />
-              </div>
-              <div className="form-group">
-                <label>Position</label>
-                <input
-                  type="text"
-                  value={editData.contractor_position}
-                  onChange={(e) => handleEditChange('contractor_position', e.target.value)}
-                  placeholder="e.g., Project Manager"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Phone</label>
-                <input
-                  type="tel"
-                  value={editData.contractor_phone}
-                  onChange={(e) => handleEditChange('contractor_phone', e.target.value)}
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={editData.contractor_email}
-                  onChange={(e) => handleEditChange('contractor_email', e.target.value)}
-                  placeholder="john@contractor.com"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <h3>Client</h3>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Contact Name</label>
-                <input
-                  type="text"
-                  value={editData.client_contact}
-                  onChange={(e) => handleEditChange('client_contact', e.target.value)}
-                  placeholder="e.g., Jane Doe"
-                />
-              </div>
-              <div className="form-group">
-                <label>Position</label>
-                <input
-                  type="text"
-                  value={editData.client_position}
-                  onChange={(e) => handleEditChange('client_position', e.target.value)}
-                  placeholder="e.g., Owner Representative"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Phone</label>
-                <input
-                  type="tel"
-                  value={editData.client_phone}
-                  onChange={(e) => handleEditChange('client_phone', e.target.value)}
-                  placeholder="(555) 987-6543"
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={editData.client_email}
-                  onChange={(e) => handleEditChange('client_email', e.target.value)}
-                  placeholder="jane@client.com"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Financial & Project Settings */}
-          <div className="card">
-            <h3>Financials & Settings</h3>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Contract Value ($) *</label>
-                <input
-                  type="number"
-                  value={editData.contract_value}
-                  onChange={(e) => handleEditChange('contract_value', e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="form-group">
-                <label>Foreman PIN</label>
-                <input
-                  type="text"
-                  value={editData.pin}
-                  onChange={(e) => handleEditChange('pin', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="4 digits"
-                  maxLength={4}
-                />
-                <span className="form-hint">Used for field crew access</span>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Work Type</label>
-                <select
-                  value={editData.work_type}
-                  onChange={(e) => handleEditChange('work_type', e.target.value)}
-                >
-                  <option value="demolition">Demolition</option>
-                  <option value="environmental">Environmental</option>
-                </select>
-                <span className="form-hint">Affects labor rate calculations</span>
-              </div>
-              <div className="form-group">
-                <label>Job Type</label>
-                <select
-                  value={editData.job_type}
-                  onChange={(e) => handleEditChange('job_type', e.target.value)}
-                >
-                  <option value="standard">Standard</option>
-                  <option value="prevailing_wage">Prevailing Wage</option>
-                </select>
-              </div>
-            </div>
-
-          </div>
-
-          <div className="card">
-            <h3>Areas</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Weights must total 100%.
-            </p>
-
-            {editData.areas.map((area, index) => (
-              <div key={index} className="area-row">
-                <input
-                  type="text"
-                  placeholder="Area name"
-                  value={area.name}
-                  onChange={(e) => handleAreaEditChange(index, 'name', e.target.value)}
-                />
-                <input
-                  type="number"
-                  placeholder="%"
-                  value={area.weight}
-                  onChange={(e) => handleAreaEditChange(index, 'weight', e.target.value)}
-                />
-                <button className="remove-btn" onClick={() => handleRemoveArea(index)}>
-                  ×
-                </button>
-              </div>
-            ))}
-
-            <div className="weight-total">
-              <span className="weight-total-label">Total Weight:</span>
-              <span className={`weight-total-value ${Math.abs(totalWeight - 100) <= 0.01 ? 'valid' : 'invalid'}`}>
-                {totalWeight}%
-              </span>
-            </div>
-
-            <button className="btn btn-secondary" onClick={handleAddArea}>
-              + Add Area
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-            <button 
-              className="btn btn-primary" 
-              onClick={handleSaveEdit}
-              disabled={saving}
-              style={{ flex: 1 }}
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-
-          <button
-            className="btn btn-danger btn-full"
-            onClick={() => handleDeleteProject(loadProjects)}
-          >
-            Delete Project
-          </button>
-        </div>
+        <ProjectEditForm
+          editData={editData}
+          saving={saving}
+          onCancel={handleCancelEdit}
+          onEditChange={handleEditChange}
+          onAreaEditChange={handleAreaEditChange}
+          onAddArea={handleAddArea}
+          onRemoveArea={handleRemoveArea}
+          onSave={handleSaveEdit}
+          onDelete={() => handleDeleteProject(loadProjects)}
+        />
       )
     }
 
@@ -1401,176 +1145,56 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           )}
         </div>
 
-        {/* Share Modal */}
-        {showShareModal && (
-          <Suspense fallback={null}>
-            <ShareModal
-              project={selectedProject}
-              user={user}
-              onClose={() => setShowShareModal(false)}
-              onShareCreated={(share) => {
-                onShowToast('Share link created successfully!', 'success')
-              }}
-            />
-          </Suspense>
-        )}
-
-        {/* Notification Settings Modal */}
-        {showNotificationSettings && (
-          <div className="notification-settings-modal">
-            <Suspense fallback={null}>
-              <NotificationSettings
-                project={selectedProject}
-                company={company}
-                onShowToast={onShowToast}
-                onClose={() => setShowNotificationSettings(false)}
-              />
-            </Suspense>
-          </div>
-        )}
-
-        {/* COR Form Modal */}
-        {showCORForm && (
-          <Suspense fallback={null}>
-            <CORForm
-              project={selectedProject}
-              company={company}
-              areas={areas}
-              existingCOR={editingCOR}
-              onClose={() => {
-                setShowCORForm(false)
-                setEditingCOR(null)
-              }}
-              onSaved={() => {
-                setShowCORForm(false)
-                setEditingCOR(null)
-                setCORRefreshKey(prev => prev + 1)
-              }}
-              onShowToast={onShowToast}
-            />
-          </Suspense>
-        )}
-
-        {/* COR Detail Modal */}
-        {showCORDetail && viewingCOR && (
-          <Suspense fallback={null}>
-            <CORDetail
-              cor={viewingCOR}
-              project={selectedProject}
-              company={company}
-              areas={areas}
-              onClose={() => {
-                setShowCORDetail(false)
-                setViewingCOR(null)
-              }}
-              onEdit={(cor) => {
-                setShowCORDetail(false)
-                setViewingCOR(null)
-                setEditingCOR(cor)
-                setShowCORForm(true)
-              }}
-              onShowToast={onShowToast}
-              onStatusChange={() => {
-                setCORRefreshKey(prev => prev + 1)
-                debouncedRefresh({ refreshCOR: true })
-              }}
-            />
-          </Suspense>
-        )}
-
-        {/* COR Log Modal */}
-        {corDisplayMode === 'log' && selectedProject && (
-          <div className="cor-log-modal-overlay" onClick={() => setCORDisplayMode('list')}>
-            <div className="cor-log-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="cor-log-modal-header">
-                <h2>Change Order Log</h2>
-                <button
-                  className="cor-log-modal-close"
-                  onClick={() => setCORDisplayMode('list')}
-                  title="Close"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="cor-log-modal-content">
-                <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
-                  <CORLog project={selectedProject} company={company} onShowToast={onShowToast} />
-                </Suspense>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Add Cost Modal */}
-        {showAddCostModal && (
-          <Suspense fallback={null}>
-            <AddCostModal
-              onClose={() => setShowAddCostModal(false)}
-              saving={savingCost}
-              onSave={async (costData) => {
-                try {
-                  setSavingCost(true)
-                  await db.addProjectCost(selectedProject.id, company.id, costData)
-                  setShowAddCostModal(false)
-                  // Invalidate cache so fresh financial data is loaded
-                  projectDetailsCacheRef.current.delete(selectedProject.id)
-                  loadProjects()
-                  onShowToast('Cost added successfully', 'success')
-                } catch (err) {
-                  console.error('Error adding cost:', err)
-                  onShowToast('Error adding cost', 'error')
-                } finally {
-                  setSavingCost(false)
-                }
-              }}
-            />
-          </Suspense>
-        )}
-
-        {/* Equipment Modal */}
-        {showEquipmentModal && (
-          <Suspense fallback={null}>
-            <EquipmentModal
-              project={selectedProject}
-              company={company}
-              user={user}
-              editItem={editingEquipment}
-              onSave={() => {
-                setShowEquipmentModal(false)
-                setEditingEquipment(null)
-                setEquipmentRefreshKey(prev => prev + 1)
-                onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success')
-              }}
-              onClose={() => {
-                setShowEquipmentModal(false)
-                setEditingEquipment(null)
-              }}
-            />
-          </Suspense>
-        )}
-
-        {/* Draw Request Modal */}
-        {showDrawRequestModal && (
-          <Suspense fallback={null}>
-            <DrawRequestModal
-              project={selectedProject}
-              company={company}
-              areas={areas}
-              corStats={projectsData.find(p => p.id === selectedProject?.id)?.corStats}
-              editDrawRequest={editingDrawRequest}
-              onSave={() => {
-                setShowDrawRequestModal(false)
-                setEditingDrawRequest(null)
-                setDrawRequestRefreshKey(prev => prev + 1)
-                onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success')
-              }}
-              onClose={() => {
-                setShowDrawRequestModal(false)
-                setEditingDrawRequest(null)
-              }}
-            />
-          </Suspense>
-        )}
+        <DashboardModals
+          selectedProject={selectedProject}
+          company={company}
+          user={user}
+          areas={areas}
+          showShareModal={showShareModal}
+          onCloseShareModal={() => setShowShareModal(false)}
+          onShareCreated={() => onShowToast('Share link created successfully!', 'success')}
+          onShowToast={onShowToast}
+          showNotificationSettings={showNotificationSettings}
+          onCloseNotificationSettings={() => setShowNotificationSettings(false)}
+          showCORForm={showCORForm}
+          editingCOR={editingCOR}
+          onCloseCORForm={() => { setShowCORForm(false); setEditingCOR(null) }}
+          onCORSaved={() => { setShowCORForm(false); setEditingCOR(null); setCORRefreshKey(prev => prev + 1) }}
+          showCORDetail={showCORDetail}
+          viewingCOR={viewingCOR}
+          onCloseCORDetail={() => { setShowCORDetail(false); setViewingCOR(null) }}
+          onEditCORFromDetail={(cor) => { setShowCORDetail(false); setViewingCOR(null); setEditingCOR(cor); setShowCORForm(true) }}
+          onCORStatusChange={() => { setCORRefreshKey(prev => prev + 1); debouncedRefresh({ refreshCOR: true }) }}
+          corDisplayMode={corDisplayMode}
+          onCloseCORLog={() => setCORDisplayMode('list')}
+          showAddCostModal={showAddCostModal}
+          savingCost={savingCost}
+          onCloseAddCostModal={() => setShowAddCostModal(false)}
+          onSaveCost={async (costData) => {
+            try {
+              setSavingCost(true)
+              await db.addProjectCost(selectedProject.id, company.id, costData)
+              setShowAddCostModal(false)
+              projectDetailsCacheRef.current.delete(selectedProject.id)
+              loadProjects()
+              onShowToast('Cost added successfully', 'success')
+            } catch (err) {
+              console.error('Error adding cost:', err)
+              onShowToast('Error adding cost', 'error')
+            } finally {
+              setSavingCost(false)
+            }
+          }}
+          showEquipmentModal={showEquipmentModal}
+          editingEquipment={editingEquipment}
+          onEquipmentSaved={() => { setShowEquipmentModal(false); setEditingEquipment(null); setEquipmentRefreshKey(prev => prev + 1); onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success') }}
+          onCloseEquipmentModal={() => { setShowEquipmentModal(false); setEditingEquipment(null) }}
+          showDrawRequestModal={showDrawRequestModal}
+          editingDrawRequest={editingDrawRequest}
+          projectsData={projectsData}
+          onDrawRequestSaved={() => { setShowDrawRequestModal(false); setEditingDrawRequest(null); setDrawRequestRefreshKey(prev => prev + 1); onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success') }}
+          onCloseDrawRequestModal={() => { setShowDrawRequestModal(false); setEditingDrawRequest(null) }}
+        />
       </div>
     )
   }
@@ -1586,339 +1210,41 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     )
   }
 
-  // Portfolio overview - uses memoized values from above
+  // Portfolio overview
   return (
-    <div>
-      {/* Business Overview - High Level Portfolio Health */}
-      <div className="business-overview">
-        <div className="bo-header">
-          <h2 className="bo-title">Portfolio Overview</h2>
-          <button className="search-trigger-btn" onClick={() => setSearchOpen(true)}>
-            <Search size={16} />
-            <span>Search</span>
-            <span className="shortcut">⌘K</span>
-          </button>
-          <div className="bo-project-count">{projects.length} Active Project{projects.length !== 1 ? 's' : ''}</div>
-        </div>
-
-        {/* Hero Financial Metrics */}
-        <div className="bo-financial">
-          {/* Portfolio Value Hero */}
-          <div className="bo-hero-row">
-            <div className="bo-hero-metric">
-              <span className="bo-hero-value">{formatCurrency(totalPortfolioValue)}</span>
-              <span className="bo-hero-label">Total Portfolio Value</span>
-              {totalChangeOrders > 0 && (
-                <span className="bo-hero-detail">
-                  {formatCurrency(totalOriginalContract)} + {formatCurrency(totalChangeOrders)} COs
-                  <span className="bo-hero-detail-count">({projectsWithChangeOrders} project{projectsWithChangeOrders !== 1 ? 's' : ''})</span>
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Completion Progress */}
-          <div className="bo-completion">
-            <div className="bo-completion-header">
-              <span className="bo-completion-pct">{weightedCompletion}%</span>
-              <span className="bo-completion-label">earned</span>
-              <span className="bo-completion-amounts">{formatCurrency(totalEarned)} of {formatCurrency(totalPortfolioValue)}</span>
-            </div>
-            <div className="bo-progress-bar">
-              <div
-                className="bo-progress-fill"
-                style={{ width: `${Math.min(weightedCompletion, 100)}%` }}
-              ></div>
-            </div>
-          </div>
-
-          {/* Key Metrics Grid */}
-          <div className="bo-metrics-grid">
-            <div className="bo-kpi backlog">
-              <span className="bo-kpi-value">{formatCurrency(backlog)}</span>
-              <span className="bo-kpi-label">Backlog</span>
-              <span className="bo-kpi-context">remaining to earn</span>
-            </div>
-            {hasCostData && (
-              <div className={`bo-kpi margin ${grossMargin >= 20 ? 'healthy' : grossMargin >= 10 ? 'watch' : 'danger'}`}>
-                <span className="bo-kpi-value">{grossMargin}%</span>
-                <span className="bo-kpi-label">Gross Margin</span>
-                <span className="bo-kpi-context">{formatCurrency(totalProfit)} profit</span>
-              </div>
-            )}
-            {totalExposure > 0 && (
-              <div className="bo-kpi exposure">
-                <span className="bo-kpi-value">{formatCurrency(totalExposure)}</span>
-                <span className="bo-kpi-label">At-Risk Exposure</span>
-                <span className="bo-kpi-context">{projectsAtRisk + projectsOverBudget} project{projectsAtRisk + projectsOverBudget !== 1 ? 's' : ''} flagged</span>
-              </div>
-            )}
-            {totalPendingCORCount > 0 && (
-              <div className="bo-kpi pending">
-                <span className="bo-kpi-value">{formatCurrency(totalPendingCORValue)}</span>
-                <span className="bo-kpi-label">Pending CORs</span>
-                <span className="bo-kpi-context">{totalPendingCORCount} awaiting approval</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Project Health + Schedule — Combined Status Strip */}
-        <div className="bo-status-strip">
-          <div className="bo-status-group">
-            <div className="bo-status-title">Project Health</div>
-            <div className="bo-health-pills">
-              {projectsComplete > 0 && (
-                <div className="bo-pill complete">
-                  <span className="bo-pill-count">{projectsComplete}</span>
-                  <span className="bo-pill-label">Complete</span>
-                </div>
-              )}
-              {projectsOnTrack > 0 && (
-                <div className="bo-pill on-track">
-                  <span className="bo-pill-count">{projectsOnTrack}</span>
-                  <span className="bo-pill-label">On Track</span>
-                </div>
-              )}
-              {projectsAtRisk > 0 && (
-                <div className="bo-pill at-risk">
-                  <span className="bo-pill-count">{projectsAtRisk}</span>
-                  <span className="bo-pill-label">At Risk</span>
-                  {atRiskExposure > 0 && <span className="bo-pill-exposure">{formatCurrency(atRiskExposure)}</span>}
-                </div>
-              )}
-              {projectsOverBudget > 0 && (
-                <div className="bo-pill over-budget">
-                  <span className="bo-pill-count">{projectsOverBudget}</span>
-                  <span className="bo-pill-label">Over Budget</span>
-                  {overBudgetExposure > 0 && <span className="bo-pill-exposure">{formatCurrency(overBudgetExposure)}</span>}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {hasAnyScheduleData && (
-            <div className="bo-status-group">
-              <div className="bo-status-title">Schedule</div>
-              <div className="bo-health-pills">
-                {scheduleAhead > 0 && (
-                  <div className="bo-pill ahead">
-                    <span className="bo-pill-count">{scheduleAhead}</span>
-                    <span className="bo-pill-label">Ahead</span>
-                  </div>
-                )}
-                {scheduleOnTrack > 0 && (
-                  <div className="bo-pill schedule-on-track">
-                    <span className="bo-pill-count">{scheduleOnTrack}</span>
-                    <span className="bo-pill-label">On Track</span>
-                  </div>
-                )}
-                {scheduleBehind > 0 && (
-                  <div className="bo-pill behind">
-                    <span className="bo-pill-count">{scheduleBehind}</span>
-                    <span className="bo-pill-label">Behind</span>
-                    {behindScheduleExposure > 0 && <span className="bo-pill-exposure">{formatCurrency(behindScheduleExposure)}</span>}
-                  </div>
-                )}
-              </div>
-              {hasAnyLaborData && (
-                <div className="bo-labor-summary">
-                  <span className="bo-labor-label">Man-Days:</span>
-                  {laborUnder > 0 && (
-                    <span className="bo-labor-badge under">{laborUnder} under</span>
-                  )}
-                  {laborOnTrack > 0 && (
-                    <span className="bo-labor-badge on-track">{laborOnTrack} on track</span>
-                  )}
-                  {laborOver > 0 && (
-                    <span className="bo-labor-badge over">{laborOver} over</span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Smart Alerts - Actionable insights requiring attention */}
-      {riskAnalysis.allAlerts.length > 0 && (
-        <div className={`smart-alerts-section${riskAnalysis.criticalCount > 0 ? ' smart-alerts-section--has-critical' : riskAnalysis.allAlerts.some(a => a.type === 'warning') ? ' smart-alerts-section--has-warning' : ''}`}>
-          <div className="smart-alerts-header">
-            <div className="smart-alerts-header__left">
-              <AlertTriangle className="smart-alerts-header__icon" size={18} />
-              <h3 className="smart-alerts-header__title">Needs Attention</h3>
-            </div>
-            {riskAnalysis.criticalCount > 0 ? (
-              <span className="smart-alerts-count-badge smart-alerts-count-badge--critical">
-                {riskAnalysis.criticalCount} critical
-              </span>
-            ) : (
-              <span className="smart-alerts-count-badge smart-alerts-count-badge--warning">
-                {riskAnalysis.allAlerts.length} item{riskAnalysis.allAlerts.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          <SmartAlerts
-            alerts={riskAnalysis.allAlerts}
-            onAction={handleAlertAction}
-            maxVisible={3}
-          />
-        </div>
-      )}
-
-      {/* Projects Header */}
-      <div className="dashboard-header">
-        <h2>Projects</h2>
-        <span className="project-count">{projects.length} active</span>
-      </div>
-
-      {/* Project Grid */}
-      <div className="project-list">
-        {projectsData.map(project => {
-          const projectRisk = riskAnalysis.projectRisks.find(r => r.projectId === project.id)
-          return (
-            <EnhancedProjectCard
-              key={project.id}
-              project={project}
-              riskScore={projectRisk?.riskScore}
-              riskStatus={projectRisk?.riskStatus}
-              onClick={() => handleSelectProject(project)}
-            />
-          )
-        })}
-      </div>
-
-      {/* Universal Search Modal */}
-      <UniversalSearch
-        isOpen={isSearchOpen}
-        onClose={closeSearch}
-        companyId={company?.id}
-        onSelectProject={(project) => {
+    <PortfolioView
+      projects={projects}
+      projectsData={projectsData}
+      portfolioMetrics={portfolioMetrics}
+      projectHealth={projectHealth}
+      scheduleMetrics={scheduleMetrics}
+      riskAnalysis={riskAnalysis}
+      isSearchOpen={isSearchOpen}
+      setSearchOpen={setSearchOpen}
+      closeSearch={closeSearch}
+      company={company}
+      onSelectProject={handleSelectProject}
+      onAlertAction={handleAlertAction}
+      onShowToast={onShowToast}
+      onSelectTicket={(ticket) => {
+        const project = projects.find(p => p.id === ticket.project_id)
+        if (project) {
           handleSelectProject(project)
-        }}
-        onSelectTicket={(ticket) => {
-          // Navigate to project and open T&M tab
-          const project = projects.find(p => p.id === ticket.project_id)
-          if (project) {
-            handleSelectProject(project)
-            setActiveProjectTab('financials')
-            setFinancialsSection('tickets')
-          }
-        }}
-        onSelectCOR={(cor) => {
-          // Navigate to project and open COR
-          const project = projects.find(p => p.id === cor.project_id)
-          if (project) {
-            handleSelectProject(project)
-            setActiveProjectTab('financials')
-            setFinancialsSection('cors')
-            setViewingCOR(cor)
-            setShowCORDetail(true)
-          }
-        }}
-        onShowToast={onShowToast}
-      />
-    </div>
-  )
-}
-
-// Enhanced Project Card with more details
-function EnhancedProjectCard({ project, riskScore, riskStatus, onClick }) {
-  const status = getOverallStatus(project.areas || [])
-  const statusLabel = getOverallStatusLabel(project.areas || [])
-  const profit = project.contract_value - project.billable
-  const isAtRisk = project.billable > project.contract_value * 0.9 && project.progress < 90
-
-  // Risk badge colors
-  const riskColors = {
-    healthy: { bg: 'var(--status-success-bg, #064e3b)', color: 'var(--status-success, #059669)' },
-    warning: { bg: 'var(--status-warning-bg, #78350f)', color: 'var(--status-warning, #d97706)' },
-    critical: { bg: 'var(--status-danger-bg, #7f1d1d)', color: 'var(--status-danger, #dc2626)' }
-  }
-  const riskStyle = riskColors[riskStatus] || riskColors.healthy
-
-  return (
-    <div className={`project-card enhanced ${isAtRisk ? 'at-risk' : ''}`} onClick={onClick}>
-      <div className="project-card-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* Risk Score Badge */}
-          {typeof riskScore === 'number' && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                background: riskStyle.bg,
-                color: riskStyle.color
-              }}
-              title={`Risk Score: ${riskScore}`}
-              aria-label={`Risk score ${riskScore}, ${riskStatus}`}
-            >
-              {riskScore}
-            </span>
-          )}
-          <div>
-            <div className="project-card-name">{project.name}</div>
-            <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
-          </div>
-        </div>
-        <span className={`status-badge ${status}`}>{statusLabel}</span>
-      </div>
-
-      {/* Stats Row */}
-      <div className="project-stats-row">
-        <div className="project-stat">
-          <span className="stat-value">{project.progress}%</span>
-          <span className="stat-label">Complete</span>
-        </div>
-        <div className="project-stat">
-          <span className="stat-value">{formatCurrency(project.billable)}</span>
-          <span className="stat-label">Billable</span>
-        </div>
-        <div className="project-stat">
-          <span className={`stat-value ${profit < 0 ? 'negative' : ''}`}>
-            {formatCurrency(Math.abs(profit))}
-          </span>
-          <span className="stat-label">{profit >= 0 ? 'Remaining' : 'Over Budget'}</span>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="mini-progress-bar">
-        <div className="mini-progress-fill" style={{ width: `${project.progress}%` }}></div>
-      </div>
-
-      {/* Badges Row */}
-      {(project.pendingTickets > 0 || project.totalTickets > 0) && (
-        <div className="project-badges">
-          {project.pendingTickets > 0 && (
-            <span className="badge pending">{project.pendingTickets} Pending</span>
-          )}
-          {project.approvedTickets > 0 && (
-            <span className="badge approved">{project.approvedTickets} Approved</span>
-          )}
-        </div>
-      )}
-
-      {/* Schedule Badge */}
-      {project.hasScheduleData && (
-        <div className="project-schedule-badge">
-          <span className={`schedule-indicator ${project.scheduleStatus}`}>
-            {project.scheduleLabel}
-          </span>
-          {project.hasLaborData && project.laborLabel && (
-            <span className={`labor-indicator ${project.laborStatus}`}>
-              {project.laborLabel}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+          setActiveProjectTab('financials')
+          setFinancialsSection('tickets')
+        }
+      }}
+      onSelectCOR={(cor) => {
+        const project = projects.find(p => p.id === cor.project_id)
+        if (project) {
+          handleSelectProject(project)
+          setActiveProjectTab('financials')
+          setFinancialsSection('cors')
+          setViewingCOR(cor)
+          setShowCORDetail(true)
+        }
+      }}
+    />
   )
 }
 
