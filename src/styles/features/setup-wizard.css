@@ -1,0 +1,309 @@
+/* Setup Wizard Styles */
+
+.setup-wizard {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-md, 1rem);
+  padding-bottom: 100px;
+}
+
+.setup-wizard-header {
+  text-align: center;
+  margin-bottom: var(--space-md, 1rem);
+}
+
+.setup-wizard-header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.setup-wizard-header .subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Stepper Bar */
+.setup-stepper-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 12px);
+  margin-bottom: var(--space-lg, 1.5rem);
+  gap: 0;
+}
+
+.setup-stepper-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 0.25rem);
+  position: relative;
+  flex: 1;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.setup-stepper-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full, 9999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold, 700);
+  border: 2px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  transition: all 250ms ease;
+  flex-shrink: 0;
+}
+
+.setup-stepper-step.active .setup-stepper-circle {
+  border-color: var(--accent-blue);
+  background: var(--accent-blue);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.setup-stepper-step.completed .setup-stepper-circle {
+  border-color: var(--accent-green);
+  background: var(--accent-green);
+  color: white;
+}
+
+.setup-stepper-label {
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: color 150ms ease;
+}
+
+.setup-stepper-step.active .setup-stepper-label {
+  color: var(--accent-blue);
+}
+
+.setup-stepper-step.completed .setup-stepper-label {
+  color: var(--accent-green);
+}
+
+/* Step Content */
+.setup-wizard-body {
+  min-height: 300px;
+}
+
+.wizard-step-content {
+  animation: wizardFadeIn 250ms ease;
+}
+
+@keyframes wizardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wizard-step-header {
+  margin-bottom: var(--space-md, 1rem);
+}
+
+.wizard-step-header h2 {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold, 700);
+  margin-bottom: 0.25rem;
+}
+
+.wizard-step-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.wizard-section-title {
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold, 600);
+  margin-bottom: var(--space-sm, 0.5rem);
+  color: var(--text-secondary);
+}
+
+/* Navigation Bar */
+.setup-wizard-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: var(--space-md, 1rem);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  z-index: 50;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.setup-wizard-nav-spacer {
+  flex: 1;
+}
+
+.setup-wizard-nav .btn {
+  min-width: 120px;
+}
+
+/* Review Step Styles */
+.wizard-review-card {
+  margin-bottom: var(--space-sm, 0.5rem);
+}
+
+.wizard-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm, 0.5rem);
+}
+
+.wizard-review-header h3 {
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.wizard-review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm, 0.5rem);
+}
+
+.wizard-review-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wizard-review-item-wide {
+  grid-column: 1 / -1;
+}
+
+.wizard-review-label {
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wizard-review-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* Review Tasks */
+.wizard-review-task-group {
+  margin-bottom: var(--space-sm, 0.5rem);
+}
+
+.wizard-review-task-group-name {
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--space-xs, 0.25rem) 0;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--space-xs, 0.25rem);
+}
+
+.wizard-review-task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs, 0.25rem) 0;
+  font-size: 0.85rem;
+  gap: var(--space-sm, 0.5rem);
+}
+
+.wizard-review-task-row:not(:last-child) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.wizard-review-task-name {
+  flex: 1;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wizard-review-task-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 0.5rem);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.wizard-review-task-weight {
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-primary);
+  min-width: 45px;
+  text-align: right;
+}
+
+.wizard-review-task-totals {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-sm, 0.5rem);
+  margin-top: var(--space-xs, 0.25rem);
+  border-top: 2px solid var(--border-color);
+  font-size: 0.85rem;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-primary);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .setup-wizard {
+    padding: var(--space-sm, 0.5rem);
+    padding-bottom: 90px;
+  }
+
+  .setup-stepper-bar {
+    padding: var(--space-xs, 0.25rem);
+    border-radius: var(--radius-md, 8px);
+  }
+
+  .setup-stepper-label {
+    font-size: 0.6rem;
+  }
+
+  .setup-stepper-circle {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+  }
+
+  .wizard-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-wizard-nav {
+    padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  }
+
+  .setup-wizard-nav .btn {
+    min-width: 100px;
+  }
+}
