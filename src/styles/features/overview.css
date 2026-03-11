@@ -439,12 +439,7 @@
 }
 
 .overview-section-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--gradient-card-subtle);
-  pointer-events: none;
+  display: none;
 }
 
 .overview-section-card:hover {
@@ -971,12 +966,7 @@
 }
 
 .quick-stat-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--gradient-card-subtle);
-  pointer-events: none;
+  display: none;
 }
 
 .quick-stat-card:hover {
@@ -1055,14 +1045,7 @@
 }
 
 .overview-hero-split::after {
-  content: '';
-  position: absolute;
-  bottom: -50px;
-  right: -50px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 /* Progress Gauge */

@@ -110,7 +110,7 @@
   --glass-bg: var(--bg-surface);
   --glass-border: var(--border-subtle);
   --glass-backdrop: none;
-  --surface-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 50%);
+  --surface-shine: none;
 
   /* ---- Semantic Surfaces ---- */
   --surface-primary: var(--bg-surface);
@@ -139,7 +139,7 @@
   --gradient-amber: linear-gradient(135deg, #F5A623 0%, #D4901E 100%);
   --gradient-hero: linear-gradient(135deg, var(--bg-canvas) 0%, var(--data-10) 50%, var(--bg-elevated) 100%);
   --gradient-card-dark: linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
-  --gradient-card-subtle: linear-gradient(160deg, rgba(0, 0, 0, 0.01) 0%, transparent 40%);
+  --gradient-card-subtle: none;
   --gradient-section: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-canvas) 100%);
 
   /* ---- Spacing Scale (8px base unit) ---- */
@@ -351,7 +351,7 @@
   /* ---- Dark Glass / Surface Effects ---- */
   --glass-bg: var(--bg-surface);
   --glass-border: var(--border-subtle);
-  --surface-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  --surface-shine: none;
 
   /* ---- Dark Semantic Surfaces ---- */
   --surface-primary: var(--bg-card);
@@ -378,10 +378,10 @@
   --gradient-blue: linear-gradient(135deg, #1C4E80 0%, #3DAEE0 100%);
   --gradient-green: linear-gradient(135deg, #2E865F 0%, #3FA87A 100%);
   --gradient-amber: linear-gradient(135deg, #D4901E 0%, #F5A623 100%);
-  --gradient-hero: linear-gradient(135deg, #181824 0%, #1E2E3E 50%, #181824 100%);
-  --gradient-card-dark: linear-gradient(145deg, #1E1E2E 0%, #181824 100%);
-  --gradient-card-subtle: linear-gradient(160deg, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
-  --gradient-section: linear-gradient(180deg, #181824 0%, #1E1E2E 100%);
+  --gradient-hero: #181824;
+  --gradient-card-dark: var(--bg-card);
+  --gradient-card-subtle: none;
+  --gradient-section: var(--bg-primary);
 
   /* ---- Dark Elevation ---- */
   --elevation-0: #181824;

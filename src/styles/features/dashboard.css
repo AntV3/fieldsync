@@ -375,12 +375,7 @@
 }
 
 .metric-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--gradient-card-subtle);
-  pointer-events: none;
+  display: none;
 }
 
 .metric-card:hover {
