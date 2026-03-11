@@ -178,12 +178,7 @@
 }
 
 .analytics-executive-banner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--gradient-card-subtle, linear-gradient(135deg, rgba(59, 130, 246, 0.03), rgba(16, 185, 129, 0.03)));
-  border-radius: inherit;
-  pointer-events: none;
+  display: none;
 }
 
 .analytics-executive-banner::after {
@@ -259,20 +254,7 @@
 }
 
 .forecast-chart::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(
-    circle at top left,
-    var(--surface-shine, rgba(255, 255, 255, 0.04)) 0%,
-    transparent 70%
-  );
-  border-radius: var(--radius-lg) 0 0 0;
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .forecast-chart__tabs {
@@ -539,20 +521,7 @@
 }
 
 .cash-flow-chart::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(
-    circle at top left,
-    var(--surface-shine, rgba(255, 255, 255, 0.04)) 0%,
-    transparent 70%
-  );
-  border-radius: var(--radius-lg) 0 0 0;
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .chart-subtitle {
