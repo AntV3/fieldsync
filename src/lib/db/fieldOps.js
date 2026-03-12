@@ -188,7 +188,13 @@ export const fieldOps = {
       return checkin
     }
 
-    const sanitizedWorkers = Array.isArray(workers) ? sanitize.object(workers) : workers
+    const sanitizedWorkers = Array.isArray(workers) ? workers.map(w => {
+      // Preserve base64 signature data which exceeds sanitize.text() maxLength
+      const sigData = w.signature_data
+      const sanitized = sanitize.object({ ...w, signature_data: undefined })
+      if (sigData) sanitized.signature_data = sigData
+      return sanitized
+    }) : workers
     const { data, error } = await client
       .from('crew_checkins')
       .upsert({

@@ -666,6 +666,9 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
 
     // Worker table using autoTable
     if (workers.length > 0) {
+      // Check if any workers have signatures
+      const hasSignatures = workers.some(w => w.signature_data)
+
       // Group workers by role for cleaner display
       const roleGroups = {}
       workers.forEach(w => {
@@ -678,18 +681,41 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
       let rowNum = 1
       for (const [role, group] of Object.entries(roleGroups)) {
         group.forEach(w => {
-          tableBody.push([
+          const row = [
             rowNum.toString(),
             w.name || '—',
             role,
-          ])
+          ]
+          if (hasSignatures) {
+            row.push(w.ssn_last4 || '—')
+            row.push(w.signature_data ? 'Signed' : '—')
+          }
+          tableBody.push(row)
           rowNum++
         })
       }
 
+      const tableHead = hasSignatures
+        ? [['#', 'Name', 'Role', 'SSN Last 4', 'Status']]
+        : [['#', 'Name', 'Role']]
+
+      const columnStyles = hasSignatures
+        ? {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 'auto' },
+            3: { cellWidth: 22, halign: 'center' },
+            4: { cellWidth: 20, halign: 'center' },
+          }
+        : {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 80 },
+            2: { cellWidth: 'auto' },
+          }
+
       autoTable(doc, {
         startY: y,
-        head: [['#', 'Name', 'Role']],
+        head: tableHead,
         body: tableBody,
         theme: 'plain',
         styles: {
@@ -704,15 +730,65 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
           fontSize: 8,
         },
         alternateRowStyles: { fillColor: COLORS.surface },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 80 },
-          2: { cellWidth: 'auto' },
-        },
+        columnStyles,
         margin: { left: MARGIN + 5, right: MARGIN + 5 },
       })
 
       y = doc.lastAutoTable.finalY + 6
+
+      // Render signature images for signed workers
+      if (hasSignatures) {
+        const signedWorkers = workers.filter(w => w.signature_data)
+        if (signedWorkers.length > 0) {
+          y = checkPage(doc, y, 20)
+
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(...COLORS.dark)
+          doc.text('Signatures', MARGIN + 5, y)
+          y += 4
+
+          signedWorkers.forEach(w => {
+            y = checkPage(doc, y, 28)
+
+            // Signature row: name + printed name + signature image + SSN
+            const sigX = MARGIN + 5
+            const sigImgW = 50
+            const sigImgH = 15
+
+            // Name label
+            doc.setFontSize(7.5)
+            doc.setFont('helvetica', 'bold')
+            doc.setTextColor(...COLORS.dark)
+            doc.text(w.printed_name || w.name || '—', sigX, y + 4)
+
+            // SSN last 4
+            doc.setFont('helvetica', 'normal')
+            doc.setTextColor(...COLORS.mid)
+            doc.text(`SSN: ••••${w.ssn_last4 || ''}`, sigX + 60, y + 4)
+
+            // Signed timestamp
+            if (w.signed_at) {
+              doc.setFontSize(6.5)
+              doc.text(formatShortDate(w.signed_at), sigX + 90, y + 4)
+            }
+
+            // Signature image
+            try {
+              doc.addImage(w.signature_data, 'PNG', sigX, y + 6, sigImgW, sigImgH)
+            } catch {
+              doc.setFontSize(7)
+              doc.setTextColor(...COLORS.subtle)
+              doc.text('[signature]', sigX, y + 14)
+            }
+
+            // Signature line
+            drawRule(doc, sigX, y + 22, sigX + sigImgW, COLORS.border, 0.3)
+
+            y += 26
+          })
+        }
+      }
     }
 
     y += 4

@@ -793,6 +793,22 @@
   font-weight: 400;
 }
 
+.crew-name-tag.signed {
+  border-color: var(--accent-green, #22c55e);
+}
+
+.crew-name-signed-icon {
+  color: var(--accent-green, #22c55e);
+  flex-shrink: 0;
+}
+
+.crew-name-ssn {
+  font-size: 0.6rem;
+  opacity: 0.6;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
 [data-theme="light"] .crew-name-tag.contract {
   background: var(--status-info-bg);
   color: var(--status-info);

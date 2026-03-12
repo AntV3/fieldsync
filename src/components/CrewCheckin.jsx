@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { HardHat, UserPlus, X, RotateCcw, Search, Users } from 'lucide-react'
+import { HardHat, UserPlus, X, RotateCcw, Search, Users, Pen, CheckCircle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { ListItemSkeleton } from './ui/Skeleton'
 import { EmptyState } from './ui/ErrorState'
+import CrewSignatureCapture from './CrewSignatureCapture'
 
 // Helper to get/set dismissed workers from localStorage per project
 const getDismissedWorkers = (projectId) => {
@@ -44,6 +45,9 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
   const [laborCategories, setLaborCategories] = useState([])
   const [laborClasses, setLaborClasses] = useState([])
   const [loadingClasses, setLoadingClasses] = useState(true)
+
+  // Worker currently being signed in (null = no modal open)
+  const [signingWorker, setSigningWorker] = useState(null)
 
   // Clear just-added flash after animation
   useEffect(() => {
@@ -258,6 +262,40 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
     onShowToast?.('All workers restored to quick-add', 'success')
   }
 
+  // Handle crew member signature save
+  const handleSignatureSave = async (signatureData) => {
+    if (!signingWorker) return
+
+    setSaving(true)
+    try {
+      const updatedWorkers = workers.map(w => {
+        if (w.name.toLowerCase() === signingWorker.toLowerCase()) {
+          return {
+            ...w,
+            printed_name: signatureData.printed_name,
+            ssn_last4: signatureData.ssn_last4,
+            signature_data: signatureData.signature_data,
+            signed_at: signatureData.signed_at
+          }
+        }
+        return w
+      })
+
+      await db.saveCrewCheckin(project.id, updatedWorkers)
+      setWorkers(updatedWorkers)
+      setSigningWorker(null)
+      onShowToast?.('Signature captured', 'success')
+    } catch (err) {
+      console.error('Error saving signature:', err)
+      onShowToast?.('Error saving signature', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Count signed workers
+  const signedCount = workers.filter(w => w.signature_data).length
+
   // Get dismissed worker details for the restore list
   const dismissedWorkerDetails = recentWorkers.filter(
     rw => dismissedNames.includes(rw.name.toLowerCase())
@@ -393,20 +431,38 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
                 <span className="crew-category-count">{group.workers.length}</span>
               </div>
               {group.workers.map((worker) => (
-                <div key={worker.name} className={`crew-member${justAdded === worker.name.toLowerCase() ? ' just-added' : ''}`}>
+                <div key={worker.name} className={`crew-member${justAdded === worker.name.toLowerCase() ? ' just-added' : ''}${worker.signature_data ? ' signed' : ''}`}>
                   <div className="crew-member-info">
                     <span className="crew-member-name">{worker.name}</span>
                     <span className={`crew-member-role ${(worker.role || 'laborer').toLowerCase().replace(/\s+/g, '-')}`}>
                       {worker.role}
                     </span>
+                    {worker.signature_data && (
+                      <span className="crew-member-signed-badge">
+                        <CheckCircle size={12} /> Signed
+                        {worker.ssn_last4 && <span className="crew-ssn-display">SSN: ••{worker.ssn_last4.slice(-2)}</span>}
+                      </span>
+                    )}
                   </div>
-                  <button
-                    className="crew-remove-btn"
-                    onClick={() => handleRemoveWorker(worker.name)}
-                    disabled={saving}
-                  >
-                    ×
-                  </button>
+                  <div className="crew-member-actions">
+                    {!worker.signature_data && (
+                      <button
+                        className="crew-signin-btn"
+                        onClick={() => setSigningWorker(worker.name)}
+                        disabled={saving}
+                        title="Sign in"
+                      >
+                        <Pen size={14} />
+                      </button>
+                    )}
+                    <button
+                      className="crew-remove-btn"
+                      onClick={() => handleRemoveWorker(worker.name)}
+                      disabled={saving}
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -415,20 +471,38 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
       ) : (
         <div className="crew-list">
           {displayWorkers.map((worker) => (
-            <div key={worker.name} className={`crew-member${justAdded === worker.name.toLowerCase() ? ' just-added' : ''}`}>
+            <div key={worker.name} className={`crew-member${justAdded === worker.name.toLowerCase() ? ' just-added' : ''}${worker.signature_data ? ' signed' : ''}`}>
               <div className="crew-member-info">
                 <span className="crew-member-name">{worker.name}</span>
                 <span className={`crew-member-role ${(worker.role || 'laborer').toLowerCase().replace(/\s+/g, '-')}`}>
                   {worker.role}
                 </span>
+                {worker.signature_data && (
+                  <span className="crew-member-signed-badge">
+                    <CheckCircle size={12} /> Signed
+                    {worker.ssn_last4 && <span className="crew-ssn-display">SSN: ••{worker.ssn_last4.slice(-2)}</span>}
+                  </span>
+                )}
               </div>
-              <button
-                className="crew-remove-btn"
-                onClick={() => handleRemoveWorker(worker.name)}
-                disabled={saving}
-              >
-                ×
-              </button>
+              <div className="crew-member-actions">
+                {!worker.signature_data && (
+                  <button
+                    className="crew-signin-btn"
+                    onClick={() => setSigningWorker(worker.name)}
+                    disabled={saving}
+                    title="Sign in"
+                  >
+                    <Pen size={14} />
+                  </button>
+                )}
+                <button
+                  className="crew-remove-btn"
+                  onClick={() => handleRemoveWorker(worker.name)}
+                  disabled={saving}
+                >
+                  ×
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -596,7 +670,23 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
 
       <div className="crew-count">
         {workers.length} {workers.length === 1 ? 'person' : 'people'} on site
+        {workers.length > 0 && (
+          <span className="crew-signed-count">
+            {signedCount === workers.length
+              ? ' · All signed in'
+              : ` · ${signedCount} of ${workers.length} signed`}
+          </span>
+        )}
       </div>
+
+      {/* Signature capture modal */}
+      {signingWorker && (
+        <CrewSignatureCapture
+          workerName={signingWorker}
+          onSave={handleSignatureSave}
+          onClose={() => setSigningWorker(null)}
+        />
+      )}
     </div>
   )
 }
