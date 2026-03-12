@@ -1777,6 +1777,53 @@
   border-color: rgba(217, 119, 6, 0.15);
 }
 
+/* ---- Key Projections Row (inside Health Overview) ---- */
+.health-overview__projections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.health-overview__projections-title {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.health-overview__projections-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.health-overview__projection-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  flex: 1;
+  min-width: 140px;
+}
+
+.health-overview__projection-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.health-overview__projection-value {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* ---- Analytics Tab Layout ---- */
 .analytics-tab {
   display: flex;

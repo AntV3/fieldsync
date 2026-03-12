@@ -1,7 +1,8 @@
 import React from 'react'
 import {
   DollarSign, Clock, TrendingUp, TrendingDown, Users,
-  CheckCircle2, AlertTriangle, XCircle, Activity, Minus
+  CheckCircle2, AlertTriangle, XCircle, Activity, Minus,
+  Target, Calendar, Percent
 } from 'lucide-react'
 import { InfoTooltip } from '../ui'
 
@@ -20,6 +21,7 @@ export default function ProjectHealthOverview({
   projectData,
   changeOrderValue,
   selectedProject,
+  projections,
 }) {
   // ---- Budget Health ----
   const budgetHealth = getBudgetHealth(forecast, revisedContractValue, projectData)
@@ -103,6 +105,14 @@ export default function ProjectHealthOverview({
           tooltip="Crew allocated vs estimated need. Critical = <60% staffed, Warning = <85% staffed or scheduling conflicts"
         />
       </div>
+
+      {/* Key Projections — compact row of 3 forward-looking metrics */}
+      {projections && (
+        <>
+          <div className="health-overview__section-divider" />
+          <KeyProjectionsRow projections={projections} />
+        </>
+      )}
 
       {/* Key alerts - only show if there are actionable issues */}
       {signals.some(s => s.status === 'critical' || s.status === 'warning') && (
@@ -228,7 +238,7 @@ function OverallHealthBadge({ score, status }) {
   )
 }
 
-function HealthSignal({ label, icon: Icon, status, value, detail, score, tooltip }) {
+function HealthSignal({ label, icon: Icon, status, value, detail, tooltip }) {
   const statusColors = {
     healthy: 'var(--status-success)',
     warning: 'var(--status-warning)',
@@ -240,10 +250,6 @@ function HealthSignal({ label, icon: Icon, status, value, detail, score, tooltip
     : status === 'warning' ? AlertTriangle
     : status === 'critical' ? XCircle
     : Minus
-
-  // Mini sparkline bar segments (visual-only indicator of score)
-  const barSegments = 5
-  const filledSegments = Math.round((score || 0) / 100 * barSegments)
 
   return (
     <div className={`health-signal health-signal--${status} health-signal--v2`}>
@@ -263,18 +269,63 @@ function HealthSignal({ label, icon: Icon, status, value, detail, score, tooltip
           {value}
         </div>
         <div className="health-signal__detail">{detail}</div>
-        <div className="health-signal__sparkline">
-          {Array.from({ length: barSegments }).map((_, i) => (
-            <span
-              key={i}
-              className={`health-signal__spark-segment ${i < filledSegments ? 'health-signal__spark-segment--filled' : ''}`}
-              style={i < filledSegments ? { backgroundColor: statusColors[status] } : undefined}
-            />
-          ))}
-        </div>
         <div className="health-signal__indicator">
           <StatusIcon size={12} style={{ color: statusColors[status] }} />
         </div>
+      </div>
+    </div>
+  )
+}
+
+function KeyProjectionsRow({ projections }) {
+  const { estimatedCompletionCost, estimatedFinalMargin, estimatedCompletionDate, originalBudget, plannedCompletionDate } = projections
+
+  const costStatus = !estimatedCompletionCost || !originalBudget
+    ? 'neutral'
+    : estimatedCompletionCost <= originalBudget ? 'better' : 'worse'
+
+  const marginStatus = estimatedFinalMargin == null
+    ? 'neutral'
+    : estimatedFinalMargin >= 15 ? 'better' : estimatedFinalMargin >= 0 ? 'warning' : 'worse'
+
+  const statusColors = {
+    better: 'var(--status-success)',
+    worse: 'var(--status-danger)',
+    warning: 'var(--status-warning)',
+    neutral: 'var(--text-muted)',
+  }
+
+  return (
+    <div className="health-overview__projections">
+      <span className="health-overview__projections-title">Key Projections</span>
+      <div className="health-overview__projections-row">
+        {estimatedCompletionCost != null && (
+          <div className="health-overview__projection-item">
+            <Target size={14} style={{ color: statusColors[costStatus] }} />
+            <span className="health-overview__projection-label">Est. Cost</span>
+            <span className="health-overview__projection-value" style={{ color: statusColors[costStatus] }}>
+              ${formatCompact(estimatedCompletionCost)}
+            </span>
+          </div>
+        )}
+        {estimatedFinalMargin != null && (
+          <div className="health-overview__projection-item">
+            <Percent size={14} style={{ color: statusColors[marginStatus] }} />
+            <span className="health-overview__projection-label">Margin</span>
+            <span className="health-overview__projection-value" style={{ color: statusColors[marginStatus] }}>
+              {estimatedFinalMargin.toFixed(1)}%
+            </span>
+          </div>
+        )}
+        {estimatedCompletionDate && (
+          <div className="health-overview__projection-item">
+            <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
+            <span className="health-overview__projection-label">Est. Finish</span>
+            <span className="health-overview__projection-value">
+              {new Date(estimatedCompletionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -466,4 +517,4 @@ function formatCompact(value) {
   return value.toFixed(0)
 }
 
-export { HealthSignal, OverallHealthBadge }
+export { HealthSignal, OverallHealthBadge, KeyProjectionsRow }

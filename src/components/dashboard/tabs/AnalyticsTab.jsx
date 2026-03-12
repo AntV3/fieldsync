@@ -1,25 +1,16 @@
 import { useMemo } from 'react'
-import { BarChart3, GitBranch, Banknote, Users, Award, TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react'
-import { InfoTooltip, CollapsibleSection } from '../../ui'
-import { ForecastChart, CashFlowChart, ResourceCapacityChart } from '../../charts'
-import { BenchmarkComparison, useCompanyAverages, INDUSTRY_BENCHMARKS } from '../BenchmarkComparison'
-import { ProjectionsPanel } from '../ProjectionCard'
+import { BarChart3 } from 'lucide-react'
+import { CollapsibleSection } from '../../ui'
+import { ForecastChart } from '../../charts'
 import ProjectHealthOverview from '../ProjectHealthOverview'
-import { generateProjectForecast, calculateScenarios } from '../../../lib/forecastCalculations'
-import { generateCashFlowProjection } from '../../../lib/cashFlowCalculations'
-import { analyzeResourceCapacity } from '../../../lib/resourceCalculations'
+import { generateProjectForecast } from '../../../lib/forecastCalculations'
 
 /**
  * AnalyticsTab
  *
- * Project analytics dashboard organized around project health:
- * 1. Health Overview — at-a-glance status of budget, schedule, cash flow, resources
- * 2. Financial Projections — where the project is heading cost/margin-wise
- * 3. Predictive Forecast — detailed cost & schedule forecast with charts
- * 4. What-If Scenarios — scenario modeling
- * 5. Cash Flow — inflow/outflow projections
- * 6. Resource Capacity — crew allocation and demand
- * 7. Benchmarks — comparison to industry standards
+ * Streamlined project analytics focused on what a PM/owner needs:
+ * 1. Project Health — at-a-glance status with key projections
+ * 2. Forecast — predictive cost & schedule chart (collapsible)
  */
 export default function AnalyticsTab({
   selectedProject,
@@ -29,12 +20,6 @@ export default function AnalyticsTab({
   revisedContractValue,
   changeOrderValue,
   areas,
-  // Portfolio data (for multi-project views)
-  allProjects = [],
-  crewCheckins = [],
-  invoices = [],
-  punchListItems = [],
-  dailyReports = [],
 }) {
   // ---- Predictive Forecast ----
   const forecast = useMemo(() => {
@@ -55,79 +40,7 @@ export default function AnalyticsTab({
     })
   }, [selectedProject, projectData, progress, billable, changeOrderValue])
 
-  // ---- Scenarios ----
-  const scenarios = useMemo(() => {
-    if (!selectedProject || progress <= 0) return []
-    return calculateScenarios({
-      contractValue: selectedProject.contract_value || selectedProject.contractValue || 0,
-      changeOrderValue: changeOrderValue || 0,
-      progressPercent: progress,
-      actualCosts: projectData?.allCostsTotal || billable || 0,
-      startDate: selectedProject.start_date || selectedProject.startDate,
-      endDate: selectedProject.end_date || selectedProject.endDate,
-    })
-  }, [selectedProject, projectData, progress, billable, changeOrderValue])
-
-  // ---- Cash Flow ----
-  const cashFlow = useMemo(() => {
-    const projects = allProjects.length > 0 ? allProjects : selectedProject ? [{
-      id: selectedProject.id,
-      name: selectedProject.name,
-      contractValue: selectedProject.contract_value || selectedProject.contractValue || 0,
-      changeOrderValue: changeOrderValue || 0,
-      progress,
-      totalCosts: projectData?.allCostsTotal || 0,
-      totalBilled: projectData?.totalBilled || 0,
-      startDate: selectedProject.start_date || selectedProject.startDate,
-      endDate: selectedProject.end_date || selectedProject.endDate,
-    }] : []
-
-    if (projects.length === 0) return null
-
-    return generateCashFlowProjection({
-      projects,
-      invoices,
-    })
-  }, [selectedProject, allProjects, projectData, invoices, progress, changeOrderValue])
-
-  // ---- Resource Capacity ----
-  const resourceData = useMemo(() => {
-    const projects = allProjects.length > 0 ? allProjects : selectedProject ? [{
-      id: selectedProject.id,
-      name: selectedProject.name,
-      progress,
-      contractValue: selectedProject.contract_value || selectedProject.contractValue || 0,
-      startDate: selectedProject.start_date || selectedProject.startDate,
-      endDate: selectedProject.end_date || selectedProject.endDate,
-    }] : []
-
-    if (projects.length === 0 || crewCheckins.length === 0) return null
-
-    return analyzeResourceCapacity({
-      projects,
-      crewCheckins,
-    })
-  }, [selectedProject, allProjects, crewCheckins, progress])
-
-  // ---- Benchmarks ----
-  const companyAverages = useCompanyAverages(allProjects)
-  const benchmarkMetrics = useMemo(() => {
-    if (!projectData) return {}
-
-    const totalCosts = projectData.allCostsTotal || 0
-    const earnedRevenue = billable || 0
-    // Use original contract value (excluding change orders) for change order rate
-    const originalContractValue = (revisedContractValue || 0) - (changeOrderValue || 0)
-
-    return {
-      profitMargin: earnedRevenue > 0 ? ((earnedRevenue - totalCosts) / earnedRevenue) * 100 : null,
-      costRatio: earnedRevenue > 0 ? (totalCosts / earnedRevenue) * 100 : null,
-      changeOrderRate: originalContractValue > 0 ? (changeOrderValue / originalContractValue) * 100 : null,
-      safetyIncidentRate: projectData.recentInjuryCount ?? 0,
-    }
-  }, [projectData, billable, revisedContractValue, changeOrderValue])
-
-  // ---- Projections (from forecast) ----
+  // ---- Projections (derived from forecast) ----
   const projections = useMemo(() => {
     if (!forecast || !forecast.cost) return null
     return {
@@ -142,199 +55,42 @@ export default function AnalyticsTab({
     }
   }, [forecast, revisedContractValue, selectedProject])
 
+  // Forecast summary for collapsible header
+  const forecastSummary = forecast?.schedule
+    ? (forecast.schedule.slippage > 0
+      ? `${forecast.schedule.slippage}d behind`
+      : forecast.schedule.slippage < 0
+        ? `${Math.abs(forecast.schedule.slippage)}d ahead`
+        : 'On schedule')
+    : 'No data'
+
   return (
     <div className="pv-tab-panel analytics-tab animate-fade-in">
-      {/* Executive Summary Banner */}
-      {forecast && (
-        <div className="analytics-executive-banner">
-          <div className="analytics-executive-banner__inner">
-            <h3 className="analytics-executive-banner__title">Executive Summary</h3>
-            <div className="analytics-executive-banner__items">
-              {forecast.cost && (
-                <div className="analytics-executive-banner__item">
-                  {forecast.cost.bestEstimate <= (revisedContractValue || 0)
-                    ? <TrendingDown size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--positive" />
-                    : <TrendingUp size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--negative" />
-                  }
-                  <span>Projected cost: <strong>${Math.round((forecast.cost.bestEstimate || 0) / 1000)}K</strong></span>
-                  <InfoTooltip text="Best estimate based on current spend rate extrapolated to 100% completion" size={12} />
-                </div>
-              )}
-              {forecast.schedule && (
-                <div className="analytics-executive-banner__item">
-                  <Clock size={16} className="analytics-executive-banner__icon" />
-                  <span>
-                    {forecast.schedule.slippage > 0
-                      ? <>{forecast.schedule.slippage} days behind schedule</>
-                      : forecast.schedule.slippage < 0
-                        ? <>{Math.abs(forecast.schedule.slippage)} days ahead of schedule</>
-                        : <>On schedule</>
-                    }
-                  </span>
-                </div>
-              )}
-              {projections?.estimatedFinalMargin != null && (
-                <div className="analytics-executive-banner__item">
-                  {projections.estimatedFinalMargin >= 0
-                    ? <CheckCircle2 size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--positive" />
-                    : <AlertTriangle size={16} className="analytics-executive-banner__icon analytics-executive-banner__icon--negative" />
-                  }
-                  <span>Est. margin: <strong>{projections.estimatedFinalMargin.toFixed(1)}%</strong></span>
-                  <InfoTooltip text="(Contract Value − Projected Cost) ÷ Contract Value × 100" size={12} />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 1. Project Health Overview — the big picture */}
+      {/* 1. Project Health — always visible */}
       <div className="analytics-section">
         <ProjectHealthOverview
           forecast={forecast}
-          cashFlow={cashFlow}
-          resourceData={resourceData}
+          cashFlow={null}
+          resourceData={null}
           progress={progress}
           revisedContractValue={revisedContractValue}
           projectData={projectData}
           changeOrderValue={changeOrderValue}
           selectedProject={selectedProject}
+          projections={projections}
         />
       </div>
 
-      {/* 2. Projections summary */}
-      {projections && (
-        <div className="analytics-section">
-          <CollapsibleSection
-            title="Financial Projections"
-            icon={<TrendingUp size={18} />}
-            defaultOpen
-            summary={`Est. cost: $${Math.round((projections.estimatedCompletionCost || 0) / 1000)}K · Margin: ${projections.estimatedFinalMargin?.toFixed(1) ?? '--'}%`}
-          >
-            <ProjectionsPanel {...projections} />
-          </CollapsibleSection>
-        </div>
-      )}
-
-      <hr className="analytics-divider" />
-
-      {/* 3. Predictive Forecast */}
+      {/* 2. Forecast — collapsible drill-down */}
       <div className="analytics-section">
         <CollapsibleSection
-          title="Predictive Forecast"
+          title="Forecast"
           icon={<BarChart3 size={18} />}
-          summary={forecast?.schedule ? (forecast.schedule.slippage > 0 ? `${forecast.schedule.slippage}d behind` : forecast.schedule.slippage < 0 ? `${Math.abs(forecast.schedule.slippage)}d ahead` : 'On schedule') : 'No data'}
+          summary={forecastSummary}
         >
           <ForecastChart
             forecast={forecast}
             contractValue={revisedContractValue}
-          />
-        </CollapsibleSection>
-      </div>
-
-      <hr className="analytics-divider" />
-
-      {/* 4. Scenarios */}
-      {scenarios.length > 0 && (
-        <>
-          <div className="analytics-section">
-            <CollapsibleSection
-              title="What-If Scenarios"
-              icon={<GitBranch size={18} />}
-              badge={`${scenarios.length}`}
-              summary={scenarios[1] ? `Likely margin: ${scenarios[1].margin}%` : undefined}
-            >
-            <div className="analytics-scenarios">
-              <div className="analytics-scenarios__grid">
-                {scenarios.map((scenario, i) => {
-                  const isGood = scenario.meetsDeadline && scenario.meetsMargin
-                  const isPartial = scenario.meetsDeadline || scenario.meetsMargin
-                  const statusClass = isGood ? 'analytics-scenario--good' : isPartial ? 'analytics-scenario--partial' : 'analytics-scenario--bad'
-
-                  return (
-                    <div key={i} className={`analytics-scenario ${statusClass}`}>
-                      <div className="analytics-scenario__header">
-                        <span className="analytics-scenario__status-icon">
-                          {isGood
-                            ? <CheckCircle2 size={18} className="analytics-scenario__icon analytics-scenario__icon--good" />
-                            : isPartial
-                              ? <AlertTriangle size={18} className="analytics-scenario__icon analytics-scenario__icon--partial" />
-                              : <XCircle size={18} className="analytics-scenario__icon analytics-scenario__icon--bad" />
-                          }
-                        </span>
-                        <span className="analytics-scenario__label">{scenario.label}</span>
-                      </div>
-                      <div className="analytics-scenario__values">
-                        <div className="analytics-scenario__metric">
-                          <span className="analytics-scenario__metric-label">Cost</span>
-                          <span className="analytics-scenario__metric-value">
-                            {scenario.projectedCost >= 1_000_000
-                              ? `$${(scenario.projectedCost / 1_000_000).toFixed(1)}M`
-                              : scenario.projectedCost >= 1_000
-                                ? `$${Math.round(scenario.projectedCost / 1_000)}K`
-                                : `$${Math.round(scenario.projectedCost)}`}
-                          </span>
-                          <span className="analytics-scenario__metric-label">Cost <InfoTooltip text="Projected total cost under this scenario's assumptions" size={11} /></span>
-                          <span className="analytics-scenario__metric-value">${Math.round(scenario.projectedCost / 1000)}K</span>
-                        </div>
-                        <div className="analytics-scenario__metric">
-                          <span className="analytics-scenario__metric-label">Margin <InfoTooltip text="(Contract − Projected Cost) ÷ Contract × 100" size={11} /></span>
-                          <span className="analytics-scenario__metric-value">{scenario.margin}%</span>
-                        </div>
-                        <div className="analytics-scenario__metric">
-                          <span className="analytics-scenario__metric-label">Schedule <InfoTooltip text="Days ahead or behind the planned end date" size={11} /></span>
-                          <span className="analytics-scenario__metric-value">
-                            {scenario.slippage > 0 ? `+${scenario.slippage}d late` : scenario.slippage < 0 ? `${Math.abs(scenario.slippage)}d early` : 'On time'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-            </CollapsibleSection>
-          </div>
-          <hr className="analytics-divider" />
-        </>
-      )}
-
-      {/* 5. Cash Flow */}
-      <div className="analytics-section">
-        <CollapsibleSection
-          title="Cash Flow"
-          icon={<Banknote size={18} />}
-          summary={cashFlow ? `Ratio: ${cashFlow.ratio?.toFixed(1) ?? '--'}x` : 'No data'}
-        >
-          <CashFlowChart cashFlow={cashFlow} />
-        </CollapsibleSection>
-      </div>
-
-      <hr className="analytics-divider" />
-
-      {/* 6. Resource Capacity */}
-      <div className="analytics-section">
-        <CollapsibleSection
-          title="Resource Capacity"
-          icon={<Users size={18} />}
-          summary={resourceData ? `${resourceData.currentAllocation ?? '--'} crew allocated` : 'No data'}
-        >
-          <ResourceCapacityChart resourceData={resourceData} />
-        </CollapsibleSection>
-      </div>
-
-      <hr className="analytics-divider" />
-
-      {/* 7. Benchmarks */}
-      <div className="analytics-section">
-        <CollapsibleSection
-          title="Industry Benchmarks"
-          icon={<Award size={18} />}
-          summary={benchmarkMetrics.profitMargin != null ? `Margin: ${benchmarkMetrics.profitMargin.toFixed(1)}%` : undefined}
-        >
-          <BenchmarkComparison
-            projectMetrics={benchmarkMetrics}
-            companyAverages={companyAverages}
           />
         </CollapsibleSection>
       </div>

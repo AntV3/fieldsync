@@ -67,7 +67,7 @@ export default function ForecastChart({ forecast, contractValue, className = '' 
       {/* Insights */}
       {insights && insights.length > 0 && (
         <div className="forecast-chart__insights">
-          {insights.slice(0, 3).map((insight, i) => (
+          {insights.slice(0, 2).map((insight, i) => (
             <InsightCard key={i} insight={insight} />
           ))}
         </div>
@@ -100,25 +100,11 @@ function CostForecastView({ cost, contractValue }) {
           icon={Clock}
         />
         <ForecastMetric
-          label="Confidence Range"
-          value={`${formatChartCurrency(cost.range.optimistic)} - ${formatChartCurrency(cost.range.pessimistic)}`}
-          status="neutral"
-          icon={TrendingUp}
-        />
-        <ForecastMetric
           label="Burn Rate"
           value={cost.burnRateTrend === 'accelerating' ? 'Accelerating' : cost.burnRateTrend === 'decelerating' ? 'Decelerating' : 'Stable'}
           status={cost.burnRateTrend === 'accelerating' ? 'worse' : cost.burnRateTrend === 'decelerating' ? 'better' : 'neutral'}
           icon={Zap}
         />
-      </div>
-
-      {/* Forecast methods comparison */}
-      <div className="forecast-chart__methods">
-        <span className="forecast-chart__methods-label">Forecast Methods:</span>
-        <span className="forecast-chart__method forecast-chart__method-pill">CPI: {formatChartCurrency(cost.methods.cpiMethod)}</span>
-        <span className="forecast-chart__method forecast-chart__method-pill">Trend: {formatChartCurrency(cost.methods.trendMethod)}</span>
-        <span className="forecast-chart__method forecast-chart__method-pill">Composite: {formatChartCurrency(cost.methods.compositeMethod)}</span>
       </div>
 
       {/* Chart */}
