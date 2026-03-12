@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useMemo, useCallback } from 'react'
-import { Users, HardHat, Wrench, Calendar, Download, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
+import { Users, HardHat, Wrench, Calendar, Download, ChevronLeft, ChevronRight, ChevronDown, CheckCircle } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
@@ -219,6 +219,9 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       doc.text(`Contract Workers: ${todayMetrics.contract.length}`, 14, y); y += 5
       doc.text(`Time & Material Workers: ${todayMetrics.tm.length}`, 14, y); y += 10
 
+      // Check if any workers have signatures
+      const hasSignatures = selectedDayWorkers.some(w => w.signature_data)
+
       // Contract Workers
       if (todayMetrics.contract.length > 0) {
         doc.setFontSize(12)
@@ -228,13 +231,23 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         doc.setFontSize(9)
         doc.setFont(undefined, 'bold')
         doc.text('Name', 14, y)
-        doc.text('Role', 100, y); y += 5
+        doc.text('Role', 80, y)
+        if (hasSignatures) {
+          doc.text('SSN Last 4', 130, y)
+          doc.text('Signed', 160, y)
+        }
+        y += 5
 
         doc.setFont(undefined, 'normal')
         todayMetrics.contract.forEach(w => {
           if (y > 270) { doc.addPage(); y = 20 }
           doc.text(w.name, 14, y)
-          doc.text(w.role || '—', 100, y); y += 5
+          doc.text(w.role || '—', 80, y)
+          if (hasSignatures) {
+            doc.text(w.ssn_last4 || '—', 130, y)
+            doc.text(w.signature_data ? 'Yes' : '—', 160, y)
+          }
+          y += 5
         })
         y += 8
       }
@@ -249,13 +262,23 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         doc.setFontSize(9)
         doc.setFont(undefined, 'bold')
         doc.text('Name', 14, y)
-        doc.text('Role', 100, y); y += 5
+        doc.text('Role', 80, y)
+        if (hasSignatures) {
+          doc.text('SSN Last 4', 130, y)
+          doc.text('Signed', 160, y)
+        }
+        y += 5
 
         doc.setFont(undefined, 'normal')
         todayMetrics.tm.forEach(w => {
           if (y > 270) { doc.addPage(); y = 20 }
           doc.text(w.name, 14, y)
-          doc.text(w.role || '—', 100, y); y += 5
+          doc.text(w.role || '—', 80, y)
+          if (hasSignatures) {
+            doc.text(w.ssn_last4 || '—', 130, y)
+            doc.text(w.signature_data ? 'Yes' : '—', 160, y)
+          }
+          y += 5
         })
         y += 8
       }
@@ -400,10 +423,14 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
               </div>
               <div className="crew-name-tags">
                 {todayMetrics.contract.map((w, i) => (
-                  <span key={i} className="crew-name-tag contract">
+                  <span key={i} className={`crew-name-tag contract${w.signature_data ? ' signed' : ''}`}>
+                    {w.signature_data && <CheckCircle size={11} className="crew-name-signed-icon" />}
                     {w.name}
                     {w.role && w.role !== 'Laborer' && (
                       <span className="crew-name-role">{w.role}</span>
+                    )}
+                    {w.ssn_last4 && (
+                      <span className="crew-name-ssn">••{w.ssn_last4.slice(-2)}</span>
                     )}
                   </span>
                 ))}
@@ -418,10 +445,14 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
               </div>
               <div className="crew-name-tags">
                 {todayMetrics.tm.map((w, i) => (
-                  <span key={i} className="crew-name-tag tm">
+                  <span key={i} className={`crew-name-tag tm${w.signature_data ? ' signed' : ''}`}>
+                    {w.signature_data && <CheckCircle size={11} className="crew-name-signed-icon" />}
                     {w.name}
                     {w.role && w.role !== 'Laborer' && (
                       <span className="crew-name-role">{w.role}</span>
+                    )}
+                    {w.ssn_last4 && (
+                      <span className="crew-name-ssn">••{w.ssn_last4.slice(-2)}</span>
                     )}
                   </span>
                 ))}
