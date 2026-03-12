@@ -1,16 +1,11 @@
 import { Suspense, lazy } from 'react'
-import { HardHat, Menu, Download } from 'lucide-react'
-import { formatCurrency } from '../../../lib/utils'
+import { Menu, Download } from 'lucide-react'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../../../lib/financialExport'
 import HeroMetrics from '../../HeroMetrics'
 import FinancialsNav from '../../FinancialsNav'
 import { FinancialTrendChart } from '../../charts'
 import BurnRateCard from '../../BurnRateCard'
 import ProfitabilityCard from '../../ProfitabilityCard'
-import CostContributorsCard from '../../CostContributorsCard'
-import ProjectEquipmentCard from '../../equipment/ProjectEquipmentCard'
-import ProgressBillingCard from '../../billing/ProgressBillingCard'
-import ManDayCosts from '../../ManDayCosts'
 import { TicketSkeleton } from '../../ui'
 
 const TMList = lazy(() => import('../../TMList'))
@@ -18,6 +13,14 @@ const CORLogPreview = lazy(() => import('../../cor/CORLogPreview'))
 const CORList = lazy(() => import('../../cor/CORList'))
 const BillingCenter = lazy(() => import('../../billing/BillingCenter'))
 
+/**
+ * FinancialsTab
+ *
+ * Streamlined financial management:
+ * - Hero metrics (contract, revenue, costs, profit)
+ * - Overview: Trend chart + Burn Rate + Profitability
+ * - Change Orders, T&M Tickets, Billing (via sidebar nav)
+ */
 export default function FinancialsTab({
   selectedProject,
   company,
@@ -86,7 +89,8 @@ export default function FinancialsTab({
           <Download size={14} /> QuickBooks
         </button>
       </div>
-      {/* Key Metrics - Hero Section (Always visible) */}
+
+      {/* Key Metrics - Hero Section */}
       <HeroMetrics
         contractValue={selectedProject?.contract_value || 0}
         earnedRevenue={billable}
@@ -119,7 +123,7 @@ export default function FinancialsTab({
           />
         )}
 
-        {/* Sidebar Navigation - Always visible, collapsible */}
+        {/* Sidebar Navigation */}
         <div className={`financials-sidebar ${financialsSidebarCollapsed ? 'collapsed' : ''} ${financialsSidebarMobileOpen ? 'mobile-open' : ''}`}>
           <FinancialsNav
             activeSection={financialsSection}
@@ -136,7 +140,7 @@ export default function FinancialsTab({
 
         {/* Main Content Area */}
         <div className="financials-main">
-          {/* OVERVIEW SECTION */}
+          {/* OVERVIEW SECTION — Trend + Burn Rate + Profitability */}
           {financialsSection === 'overview' && (
             <div className="financials-overview animate-fade-in">
               <FinancialTrendChart
@@ -169,44 +173,6 @@ export default function FinancialsTab({
                   progress={progress}
                 />
               </div>
-
-              <CostContributorsCard
-                laborCost={projectData?.laborCost || 0}
-                materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
-                projectEquipmentCost={projectData?.projectEquipmentCost || 0}
-                customCosts={projectData?.customCosts || []}
-                onAddCost={onAddCost}
-                onDeleteCost={onDeleteCost}
-              />
-
-              <ProjectEquipmentCard
-                key={equipmentRefreshKey}
-                project={selectedProject}
-                onAddEquipment={onAddEquipment}
-                onEditEquipment={onEditEquipment}
-                onShowToast={onShowToast}
-              />
-
-              <ProgressBillingCard
-                key={drawRequestRefreshKey}
-                project={selectedProject}
-                areas={areas}
-                corStats={projectData?.corStats}
-                onCreateDraw={onCreateDraw}
-                onViewDraw={onViewDraw}
-                onShowToast={onShowToast}
-              />
-
-              <details className="financials-details">
-                <summary className="financials-details-summary">
-                  <HardHat size={16} />
-                  <span>Labor Details</span>
-                  <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
-                </summary>
-                <div className="financials-details-content">
-                  <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
-                </div>
-              </details>
             </div>
           )}
 

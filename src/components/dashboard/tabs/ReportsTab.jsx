@@ -1,11 +1,19 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, Users, Shield, Package, HardHat, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
-import { formatCurrency } from '../../../lib/utils'
+import { ClipboardList, Users, Shield, Package, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
 import { TicketSkeleton, CollapsibleSection } from '../../ui'
 
 const DailyReportsList = lazy(() => import('../../DailyReportsList'))
 const InjuryReportsList = lazy(() => import('../../InjuryReportsList'))
 
+/**
+ * ReportsTab
+ *
+ * Streamlined field reporting — answers "What's happening on-site?"
+ * 1. Crew Analytics + Safety Dashboard (side by side)
+ * 2. Material Requests pipeline
+ * 3. Daily Reports list
+ * 4. Injury Reports list
+ */
 export default function ReportsTab({
   selectedProject,
   company,
@@ -16,53 +24,7 @@ export default function ReportsTab({
 }) {
   return (
     <div className="pv-tab-panel reports-tab">
-      {/* Hero Metrics - High Level Project Pulse */}
-      <div className="reports-hero">
-        <div className="reports-hero-grid">
-          <div className="reports-metric primary">
-            <div className="reports-metric-icon">
-              <ClipboardList size={24} />
-            </div>
-            <div className="reports-metric-content">
-              <div className="reports-metric-value">{projectData?.dailyReportsCount || 0}</div>
-              <div className="reports-metric-label">Daily Reports</div>
-            </div>
-          </div>
-          <div className="reports-metric">
-            <div className="reports-metric-value">{projectData?.recentDailyReports || 0}</div>
-            <div className="reports-metric-label">This Week</div>
-            <div className="reports-metric-bar">
-              <div
-                className="reports-metric-fill"
-                style={{ width: `${Math.min((projectData?.recentDailyReports || 0) / 7 * 100, 100)}%` }}
-              ></div>
-            </div>
-          </div>
-          <div className="reports-metric">
-            <div className="reports-metric-icon">
-              <HardHat size={24} />
-            </div>
-            <div className="reports-metric-content">
-              <div className="reports-metric-value">{projectData?.completedAreasCount || 0}/{areas.length}</div>
-              <div className="reports-metric-label">Areas Complete</div>
-            </div>
-          </div>
-          <div className="reports-metric">
-            <div className="reports-metric-value">{projectData?.totalPhotosFromTickets || 0}</div>
-            <div className="reports-metric-label">Photos Captured</div>
-          </div>
-        </div>
-        {projectData?.lastDailyReport && (
-          <div className="reports-hero-footer">
-            <span className="reports-last-filed">
-              Last report: {new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              {' '}({Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))}d ago)
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Two-Column Layout: Crew + Safety */}
+      {/* Row 1: Crew + Safety side by side */}
       <div className="reports-two-col">
         {/* Crew Analytics Card */}
         <div className="reports-insight-card">
@@ -176,9 +138,8 @@ export default function ReportsTab({
         </div>
       </div>
 
-      {/* Material Requests + Disposal Summary Row */}
-      <div className="reports-two-col">
-        {/* Material Requests */}
+      {/* Row 2: Material Requests pipeline */}
+      {(projectData?.totalMaterialRequests || 0) > 0 && (
         <div className="reports-insight-card">
           <div className="reports-insight-header">
             <div className="reports-insight-title">
@@ -188,70 +149,31 @@ export default function ReportsTab({
             <span className="reports-section-count">{projectData?.totalMaterialRequests || 0} total</span>
           </div>
           <div className="reports-insight-body">
-            {(projectData?.totalMaterialRequests || 0) === 0 ? (
-              <div className="reports-empty-state">
-                <Package size={32} />
-                <p>No material requests yet</p>
-                <span>Requests from the field will appear here</span>
-              </div>
-            ) : (
-              <>
-                <div className="reports-material-pipeline">
-                  {projectData?.urgentMaterialRequests > 0 && (
-                    <div className="reports-material-status urgent">
-                      <AlertTriangle size={14} />
-                      <span>{projectData.urgentMaterialRequests} Urgent</span>
-                    </div>
-                  )}
-                  <div className="reports-material-status pending">
-                    <span className="reports-material-dot"></span>
-                    <span>{projectData?.pendingMaterialRequests || 0} Pending</span>
-                  </div>
-                  <div className="reports-material-status ordered">
-                    <span className="reports-material-dot"></span>
-                    <span>{projectData?.orderedMaterialRequests || 0} Ordered</span>
-                  </div>
-                  <div className="reports-material-status delivered">
-                    <CheckCircle2 size={14} />
-                    <span>{projectData?.deliveredMaterialRequests || 0} Delivered</span>
-                  </div>
+            <div className="reports-material-pipeline">
+              {projectData?.urgentMaterialRequests > 0 && (
+                <div className="reports-material-status urgent">
+                  <AlertTriangle size={14} />
+                  <span>{projectData.urgentMaterialRequests} Urgent</span>
                 </div>
-                <CollapsibleSection
-                  title="Recent Requests"
-                  variant="compact"
-                  badge={`${(projectData?.materialRequests || []).length}`}
-                >
-                  <div className="reports-recent-list">
-                    {(projectData?.materialRequests || []).slice(0, 3).map(req => (
-                      <div key={req.id} className={`reports-recent-item ${req.status}`}>
-                        <div className="reports-recent-item-main">
-                          <span className={`reports-recent-item-status ${req.status}`}>{req.status}</span>
-                          <span className="reports-recent-item-date">
-                            {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </span>
-                        </div>
-                        <div className="reports-recent-item-detail">
-                          {(req.items || []).slice(0, 2).map((item, i) => (
-                            <span key={i}>{item.name}{item.quantity ? ` (${item.quantity})` : ''}</span>
-                          ))}
-                          {(req.items || []).length > 2 && (
-                            <span className="reports-recent-more">+{(req.items || []).length - 2} more</span>
-                          )}
-                        </div>
-                        {req.priority === 'urgent' && (
-                          <span className="reports-urgent-tag">URGENT</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-              </>
-            )}
+              )}
+              <div className="reports-material-status pending">
+                <span className="reports-material-dot"></span>
+                <span>{projectData?.pendingMaterialRequests || 0} Pending</span>
+              </div>
+              <div className="reports-material-status ordered">
+                <span className="reports-material-dot"></span>
+                <span>{projectData?.orderedMaterialRequests || 0} Ordered</span>
+              </div>
+              <div className="reports-material-status delivered">
+                <CheckCircle2 size={14} />
+                <span>{projectData?.deliveredMaterialRequests || 0} Delivered</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Daily Reports Section */}
+      {/* Row 3: Daily Reports */}
       <div className="reports-section-card">
         <div className="reports-section-header">
           <div className="reports-section-title">
@@ -267,7 +189,7 @@ export default function ReportsTab({
         </div>
       </div>
 
-      {/* Injury Reports Section */}
+      {/* Row 4: Injury Reports */}
       <div className={`reports-section-card ${(projectData?.injuryReportsCount || 0) > 0 ? 'has-warning' : ''}`}>
         <div className="reports-section-header">
           <div className="reports-section-title">
