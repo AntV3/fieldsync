@@ -1176,7 +1176,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
     y += 20
 
     crewCheckins.forEach((checkin, idx) => {
-      y = checkPage(doc, y, 20)
+      y = checkPage(doc, y, 30)
       const workers = checkin.workers || []
 
       // Date header card
@@ -1190,14 +1190,23 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
       doc.setTextColor(...COLORS.dark)
       doc.text(formatDate(checkin.check_in_date), MARGIN + 8, y + 7)
 
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.setTextColor(...COLORS.mid)
-      doc.text(`${workers.length} worker${workers.length !== 1 ? 's' : ''}`, pageWidth - MARGIN - 8, y + 7, { align: 'right' })
+      // Worker count badge
+      const countText = `${workers.length} worker${workers.length !== 1 ? 's' : ''}`
+      const countW = doc.getTextWidth(countText) + 8
+      doc.setFillColor(...primary)
+      doc.roundedRect(pageWidth - MARGIN - countW - 4, y + 1.5, countW, 7, 1.5, 1.5, 'F')
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(255, 255, 255)
+      doc.text(countText, pageWidth - MARGIN - countW / 2 - 4, y + 6.5, { align: 'center' })
+
       y += 14
 
       if (workers.length > 0) {
-        // Group by role for compact display
+        // Check if any workers have signatures
+        const hasSignatures = workers.some(w => w.signature_data)
+
+        // Group workers by role
         const roleGroups = {}
         workers.forEach(w => {
           const role = w.role || 'Laborer'
@@ -1205,25 +1214,124 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
           roleGroups[role].push(w)
         })
 
-        doc.setFontSize(8)
+        const tableBody = []
+        let rowNum = 1
         for (const [role, group] of Object.entries(roleGroups)) {
-          y = checkPage(doc, y, 6)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(...COLORS.dark)
-          doc.text(`${role} (${group.length}):`, MARGIN + 8, y)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(...COLORS.text)
-          const names = group.map(w => w.name).join(', ')
-          const lines = doc.splitTextToSize(names, CONTENT_WIDTH - 55)
-          doc.text(lines, MARGIN + 50, y)
-          y += lines.length * 3.5 + 1
+          group.forEach(w => {
+            const row = [
+              rowNum.toString(),
+              w.name || '—',
+              role,
+            ]
+            if (hasSignatures) {
+              row.push(w.ssn_last4 || '—')
+              row.push(w.signature_data ? 'Signed' : '—')
+            }
+            tableBody.push(row)
+            rowNum++
+          })
         }
-        y += 3
+
+        const tableHead = hasSignatures
+          ? [['#', 'Name', 'Role', 'SSN Last 4', 'Status']]
+          : [['#', 'Name', 'Role']]
+
+        const columnStyles = hasSignatures
+          ? {
+              0: { cellWidth: 10, halign: 'center' },
+              1: { cellWidth: 50 },
+              2: { cellWidth: 'auto' },
+              3: { cellWidth: 22, halign: 'center' },
+              4: { cellWidth: 20, halign: 'center' },
+            }
+          : {
+              0: { cellWidth: 10, halign: 'center' },
+              1: { cellWidth: 80 },
+              2: { cellWidth: 'auto' },
+            }
+
+        autoTable(doc, {
+          startY: y,
+          head: tableHead,
+          body: tableBody,
+          theme: 'plain',
+          styles: {
+            fontSize: 8,
+            cellPadding: { top: 2, bottom: 2, left: 4, right: 4 },
+            textColor: COLORS.text,
+          },
+          headStyles: {
+            fillColor: primary,
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 8,
+          },
+          alternateRowStyles: { fillColor: COLORS.surface },
+          columnStyles,
+          margin: { left: MARGIN + 5, right: MARGIN + 5 },
+        })
+
+        y = doc.lastAutoTable.finalY + 6
+
+        // Render signature images for signed workers
+        if (hasSignatures) {
+          const signedWorkers = workers.filter(w => w.signature_data)
+          if (signedWorkers.length > 0) {
+            y = checkPage(doc, y, 20)
+
+            doc.setFontSize(8)
+            doc.setFont('helvetica', 'bold')
+            doc.setTextColor(...COLORS.dark)
+            doc.text('Signatures', MARGIN + 5, y)
+            y += 4
+
+            signedWorkers.forEach(w => {
+              y = checkPage(doc, y, 28)
+
+              const sigX = MARGIN + 5
+              const sigImgW = 50
+              const sigImgH = 15
+
+              // Name label
+              doc.setFontSize(7.5)
+              doc.setFont('helvetica', 'bold')
+              doc.setTextColor(...COLORS.dark)
+              doc.text(w.printed_name || w.name || '—', sigX, y + 4)
+
+              // SSN last 4
+              doc.setFont('helvetica', 'normal')
+              doc.setTextColor(...COLORS.mid)
+              doc.text(`SSN: ••••${w.ssn_last4 || ''}`, sigX + 60, y + 4)
+
+              // Signed timestamp
+              if (w.signed_at) {
+                doc.setFontSize(6.5)
+                doc.text(formatShortDate(w.signed_at), sigX + 90, y + 4)
+              }
+
+              // Signature image
+              try {
+                doc.addImage(w.signature_data, 'PNG', sigX, y + 6, sigImgW, sigImgH)
+              } catch {
+                doc.setFontSize(7)
+                doc.setTextColor(...COLORS.subtle)
+                doc.text('[signature]', sigX, y + 14)
+              }
+
+              // Signature line
+              drawRule(doc, sigX, y + 22, sigX + sigImgW, COLORS.border, 0.3)
+
+              y += 26
+            })
+          }
+        }
       }
+
+      y += 4
 
       if (idx < crewCheckins.length - 1) {
         drawRule(doc, MARGIN, y, PAGE_WIDTH - MARGIN, COLORS.border, 0.5)
-        y += 5
+        y += 8
       }
     })
   }
