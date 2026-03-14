@@ -9,6 +9,7 @@ import WorkDetailsStep from './tm/WorkDetailsStep'
 import CrewHoursStep from './tm/CrewHoursStep'
 import MaterialsStep from './tm/MaterialsStep'
 import ReviewStep from './tm/ReviewStep'
+import CustomFieldSection from './ui/CustomFieldSection'
 
 // Step configuration for the enhanced stepper
 const STEPS = [
@@ -79,6 +80,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [submitProgress, setSubmitProgress] = useState('')
+  const [customFieldValues, setCustomFieldValues] = useState({})
 
   // Crew check-in state
   const [todaysCrew, setTodaysCrew] = useState([])
@@ -995,6 +997,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         throw new Error('Failed to create ticket - no ticket ID returned')
       }
 
+      // Save trade-specific custom fields
+      if (Object.keys(customFieldValues).length > 0) {
+        await db.saveCustomFieldData(project.id, 'tm_ticket', ticket.id, customFieldValues)
+      }
+
       // Compress and upload photos
       let photoUrls = []
       const pendingPhotos = photos.filter(p => p.status === 'pending')
@@ -1206,17 +1213,25 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
       {/* Step 1: Work Details */}
       {step === 1 && (
-        <WorkDetailsStep
-          project={project}
-          workDate={workDate}
-          setWorkDate={setWorkDate}
-          cePcoNumber={cePcoNumber}
-          setCePcoNumber={setCePcoNumber}
-          notes={notes}
-          setNotes={setNotes}
-          t={t}
-          lang={lang}
-        />
+        <>
+          <WorkDetailsStep
+            project={project}
+            workDate={workDate}
+            setWorkDate={setWorkDate}
+            cePcoNumber={cePcoNumber}
+            setCePcoNumber={setCePcoNumber}
+            notes={notes}
+            setNotes={setNotes}
+            t={t}
+            lang={lang}
+          />
+          <CustomFieldSection
+            formType="tm_ticket"
+            projectId={project.id}
+            values={customFieldValues}
+            onChange={setCustomFieldValues}
+          />
+        </>
       )}
 
       {/* Step 2: Crew & Hours */}

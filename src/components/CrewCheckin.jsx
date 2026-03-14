@@ -4,6 +4,7 @@ import { db } from '../lib/supabase'
 import { ListItemSkeleton } from './ui/Skeleton'
 import { EmptyState } from './ui/ErrorState'
 import CrewSignatureCapture from './CrewSignatureCapture'
+import CustomFieldSection from './ui/CustomFieldSection'
 
 // Helper to get/set dismissed workers from localStorage per project
 const getDismissedWorkers = (projectId) => {
@@ -667,6 +668,13 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
           <span>Add New Person</span>
         </button>
       )}
+
+      {/* Trade-Specific Custom Fields */}
+      <CustomFieldSection
+        formType="crew_checkin"
+        projectId={project.id}
+        entityId={project.id}
+      />
 
       <div className="crew-count">
         {workers.length} {workers.length === 1 ? 'person' : 'people'} on site

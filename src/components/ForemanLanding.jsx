@@ -4,6 +4,7 @@ import {
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
   Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck
 } from 'lucide-react'
+import { useTradeConfig } from '../lib/TradeConfigContext'
 
 /**
  * ForemanLanding - Mobile-first landing page for foremen
@@ -15,8 +16,8 @@ import {
  * - Zero training required UX
  */
 
-// All available actions with their config
-const ALL_ACTIONS = {
+// Base actions available to all trades
+const BASE_ACTIONS = {
   crew: {
     id: 'crew',
     label: 'Crew Check-in',
@@ -68,8 +69,8 @@ const ALL_ACTIONS = {
   }
 }
 
-// Default pinned actions (sensible defaults for new users)
-const DEFAULT_PINNED = ['crew', 'tm', 'report', 'progress']
+// Fallback default pinned actions
+const FALLBACK_PINNED = ['crew', 'tm', 'report', 'progress']
 
 // Storage key generator
 const getPinStorageKey = (projectId) => `fm_pinned_${projectId}`
@@ -85,6 +86,29 @@ export default function ForemanLanding({
   onNavigate,
   onShowToast
 }) {
+  // Trade config for dynamic actions
+  const tradeConfig = useTradeConfig()
+  const configuredActions = tradeConfig?.resolvedConfig?.field_actions
+
+  // Resolve available actions: base actions filtered by trade config
+  const ALL_ACTIONS = useMemo(() => {
+    if (!configuredActions || configuredActions.length === 0) return BASE_ACTIONS
+    // Filter base actions to only those in the config, preserving all base action metadata
+    const filtered = {}
+    for (const actionId of configuredActions) {
+      if (BASE_ACTIONS[actionId]) {
+        filtered[actionId] = BASE_ACTIONS[actionId]
+      }
+    }
+    // Always ensure at least the base actions are available
+    return Object.keys(filtered).length > 0 ? filtered : BASE_ACTIONS
+  }, [configuredActions])
+
+  const DEFAULT_PINNED = useMemo(() => {
+    if (configuredActions?.length >= 4) return configuredActions.slice(0, 4)
+    return FALLBACK_PINNED
+  }, [configuredActions])
+
   // Pinned actions state
   const [pinnedIds, setPinnedIds] = useState(() => {
     try {

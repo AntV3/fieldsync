@@ -2,13 +2,15 @@ import { DollarSign, HardHat, FileText, LayoutGrid, Building2, Phone, MapPin, In
 import { formatCurrency } from '../../../lib/utils'
 import ProjectTeam from '../../ProjectTeam'
 import MFASetup from '../../MFASetup'
+import ProjectTradeOverrides from '../../settings/ProjectTradeOverrides'
+import { useTradeConfig } from '../../../lib/TradeConfigContext'
 
 export default function SettingsTab({
   selectedProject,
   company,
   user,
   isAdmin,
-  projectData,
+  _projectData,
   areas,
   areasComplete,
   areasWorking,
@@ -48,10 +50,7 @@ export default function SettingsTab({
             <HardHat size={20} />
           </div>
           <div className="info-quick-content">
-            <span className="info-quick-value">
-              {selectedProject.work_type === 'environmental' ? 'Environmental' : 'Demolition'}
-            </span>
-            <span className="info-quick-label">Work Type</span>
+            <TradeNameDisplay workType={selectedProject.work_type} />
           </div>
         </div>
         <div className="info-quick-card">
@@ -225,10 +224,30 @@ export default function SettingsTab({
         </div>
       </details>
 
+      {/* Trade Configuration */}
+      <ProjectTradeOverrides
+        projectId={selectedProject.id}
+        onShowToast={onShowToast}
+      />
+
       {/* Account Security */}
       <div className="info-section-card">
         <MFASetup onShowToast={onShowToast} />
       </div>
     </div>
+  )
+}
+
+function TradeNameDisplay({ workType }) {
+  const { resolvedConfig } = useTradeConfig()
+  const tradeName = resolvedConfig?.trade_name
+
+  const displayName = tradeName || (workType === 'environmental' ? 'Environmental' : workType === 'abatement' ? 'Abatement' : 'Demolition')
+
+  return (
+    <>
+      <span className="info-quick-value">{displayName}</span>
+      <span className="info-quick-label">Trade / Work Type</span>
+    </>
   )
 }
