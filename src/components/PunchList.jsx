@@ -139,7 +139,10 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
       loadItems()
     } catch (err) {
       console.error('Error saving punch item:', err)
-      onShowToast?.(err.message || 'Error saving item', 'error')
+      const msg = err.message?.includes('row-level security')
+        ? 'Permission denied — please re-enter your PIN and try again'
+        : (err.message || 'Error saving item')
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }

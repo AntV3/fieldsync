@@ -28,42 +28,20 @@ CREATE INDEX IF NOT EXISTS idx_punch_list_area ON punch_list_items(area_id);
 -- Row Level Security
 ALTER TABLE punch_list_items ENABLE ROW LEVEL SECURITY;
 
--- Users can read punch items for projects they belong to
+-- Unified policies using can_access_project() — works for both
+-- authenticated (office) and anon (field/foreman) users.
 CREATE POLICY punch_list_select ON punch_list_items
-  FOR SELECT USING (
-    company_id IN (
-      SELECT uc.company_id FROM user_companies uc
-      WHERE uc.user_id = auth.uid()
-      AND uc.status = 'active'
-    )
-  );
+  FOR SELECT USING (can_access_project(project_id));
 
--- Users can insert punch items for their company's projects
 CREATE POLICY punch_list_insert ON punch_list_items
-  FOR INSERT WITH CHECK (
-    company_id IN (
-      SELECT uc.company_id FROM user_companies uc
-      WHERE uc.user_id = auth.uid()
-      AND uc.status = 'active'
-    )
-  );
+  FOR INSERT WITH CHECK (can_access_project(project_id));
 
--- Users can update punch items for their company's projects
 CREATE POLICY punch_list_update ON punch_list_items
-  FOR UPDATE USING (
-    company_id IN (
-      SELECT uc.company_id FROM user_companies uc
-      WHERE uc.user_id = auth.uid()
-      AND uc.status = 'active'
-    )
-  );
+  FOR UPDATE
+  USING (can_access_project(project_id))
+  WITH CHECK (can_access_project(project_id));
 
--- Users can delete punch items for their company's projects
 CREATE POLICY punch_list_delete ON punch_list_items
-  FOR DELETE USING (
-    company_id IN (
-      SELECT uc.company_id FROM user_companies uc
-      WHERE uc.user_id = auth.uid()
-      AND uc.status = 'active'
-    )
-  );
+  FOR DELETE USING (can_access_project(project_id));
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON punch_list_items TO anon;
