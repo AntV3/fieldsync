@@ -254,7 +254,7 @@ function AllocationBar({ name, current, needed, progress, status }) {
             display: 'inline-block',
             flexShrink: 0,
           }} />
-          {name.length > 25 ? name.slice(0, 25) + '...' : name}
+          {name}
         </span>
         <span className="allocation-bar__values" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: statusColors[utilizationStatus], fontWeight: 600 }}>{current}</span>

@@ -4342,6 +4342,7 @@ END MIGRATED */
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
+  min-width: 0;
 }
 
 .tm-card-value {
@@ -4349,6 +4350,9 @@ END MIGRATED */
   font-weight: 700;
   color: var(--text-color);
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tm-card-label {
@@ -4444,6 +4448,7 @@ END MIGRATED */
 
 .tm-chart-container {
   width: 100%;
+  overflow: visible;
 }
 
 /* Chart Legend */
@@ -4461,6 +4466,7 @@ END MIGRATED */
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8125rem;
+  min-width: 0;
 }
 
 .tm-legend-color {
@@ -4472,6 +4478,9 @@ END MIGRATED */
 
 .tm-legend-label {
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tm-legend-value {
@@ -4517,6 +4526,9 @@ END MIGRATED */
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tm-role-hours {

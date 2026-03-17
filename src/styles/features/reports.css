@@ -99,6 +99,9 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bo-hero-detail {
@@ -144,6 +147,9 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bo-progress-bar {
@@ -211,6 +217,9 @@
   letter-spacing: 0.06em;
   margin-top: 0.3rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bo-kpi-context {
@@ -327,6 +336,9 @@
 .bo-pill-label {
   font-weight: 500;
   opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bo-pill-exposure {

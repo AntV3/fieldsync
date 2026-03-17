@@ -417,6 +417,9 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.025em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card__icon {
@@ -434,6 +437,9 @@
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
   margin-bottom: var(--space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card__value--sm {
@@ -447,6 +453,9 @@
 .metric-card__subtext {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card__trend {

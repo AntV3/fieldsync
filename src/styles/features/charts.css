@@ -171,6 +171,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .quick-stat .stat-label {
@@ -183,6 +184,9 @@
 .quick-stat .stat-value {
   font-size: 1.1rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Chart Tooltip - elevated surface with backdrop blur */
@@ -404,6 +408,8 @@
   cursor: pointer;
   transition: all var(--transition-normal);
   font-size: 0.8125rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .donut-legend-item:hover,
@@ -420,12 +426,17 @@
 
 .donut-legend-name {
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .donut-legend-value {
   font-weight: 500;
   color: var(--text-color);
   margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Donut tooltip additions */
