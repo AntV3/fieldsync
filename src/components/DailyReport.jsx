@@ -3,6 +3,7 @@ import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, Image
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 import { CardSkeleton } from './ui/Skeleton'
+import CustomFieldSection from './ui/CustomFieldSection'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -13,6 +14,8 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const [photos, setPhotos] = useState([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [submitProgress, setSubmitProgress] = useState('')
+  const [customFieldValues, setCustomFieldValues] = useState({})
+  const customFieldRef = useRef(null)
 
   // Keep a ref to the latest photos so the cleanup runs against current values
   const photosRef = useRef(photos)
@@ -134,6 +137,11 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         reportData.photos = uploadedPaths
       }
       await db.saveDailyReport(project.id, reportData)
+
+      // Save custom trade-specific fields
+      if (Object.keys(customFieldValues).length > 0) {
+        await db.saveCustomFieldData(project.id, 'daily_report', project.id, customFieldValues)
+      }
 
       // Then submit
       const result = await db.submitDailyReport(project.id, 'Field')
@@ -352,6 +360,17 @@ export default function DailyReport({ project, onShowToast, onClose }) {
             disabled={isSubmitted}
           />
         </div>
+
+        {/* Trade-Specific Custom Fields */}
+        <CustomFieldSection
+          ref={customFieldRef}
+          formType="daily_report"
+          projectId={project.id}
+          entityId={report?.id}
+          values={customFieldValues}
+          onChange={setCustomFieldValues}
+          disabled={isSubmitted}
+        />
       </div>
 
       {/* Submit Button */}

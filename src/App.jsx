@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { isSupabaseConfigured, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
+import { TradeConfigProvider } from './lib/TradeConfigContext'
 import { ThemeProvider } from './lib/ThemeContext'
 import { useToast } from './lib/ToastContext'
 import useAuthState from './hooks/useAuthState'
@@ -28,6 +29,7 @@ const PublicView = lazy(() => import('./components/PublicView'))
 const SignaturePage = lazy(() => import('./components/SignaturePage'))
 const MembershipManager = lazy(() => import('./components/MembershipManager'))
 const AccountSettings = lazy(() => import('./components/AccountSettings'))
+const TradeProfileSettings = lazy(() => import('./components/settings/TradeProfileSettings'))
 const LandingPage = lazy(() => import('./components/landing/LandingPage'))
 const SpxDashboard = lazy(() => import('./components/spx/SpxDashboard'))
 
@@ -362,6 +364,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <BrandingProvider companyId={company?.id}>
+        <TradeConfigProvider companyId={company?.id}>
         <Routes>
           {/* Public routes - no auth required */}
           <Route path="/view/:token" element={
@@ -397,10 +400,12 @@ export default function App() {
           <Route path="/field" element={
             foremanProject ? (
               <BrandingProvider companyId={foremanProject.company_id}>
-                <ErrorBoundary>
-                  <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onShowToast={showToast} onExit={handleExitForeman} />
-                </ErrorBoundary>
-                <OfflineIndicator />
+                <TradeConfigProvider companyId={foremanProject.company_id} projectId={foremanProject.id}>
+                  <ErrorBoundary>
+                    <ForemanView project={foremanProject} companyId={foremanProject.company_id} foremanName={foremanName} onShowToast={showToast} onExit={handleExitForeman} />
+                  </ErrorBoundary>
+                  <OfflineIndicator />
+                </TradeConfigProvider>
               </BrandingProvider>
             ) : (
               <Navigate to="/login" replace />
@@ -428,6 +433,11 @@ export default function App() {
           <Route path="/account" element={requireAuth(officeLayout(
             <AccountSettings user={user} company={company} onShowToast={showToast} />
           ))} />
+          <Route path="/trade-settings" element={requireAuth(
+            isAdmin
+              ? officeLayout(<TradeProfileSettings onShowToast={showToast} />)
+              : <Navigate to="/dashboard" replace />
+          )} />
 
           {/* Root — Landing page for new visitors, fast-track for returning users */}
           <Route path="/" element={
@@ -456,6 +466,7 @@ export default function App() {
           {/* 404 catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </TradeConfigProvider>
       </BrandingProvider>
     </ThemeProvider>
   )

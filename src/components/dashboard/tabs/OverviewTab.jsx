@@ -3,6 +3,7 @@ import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, 
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import EarnedValueCard from '../../charts/EarnedValueCard'
+import TradeKPICard from '../TradeKPICard'
 const PhotoTimeline = lazy(() => import('../../PhotoTimeline'))
 const PunchList = lazy(() => import('../../PunchList'))
 
@@ -136,6 +137,9 @@ export default function OverviewTab({
           areas={areas}
         />
       )}
+
+      {/* Trade-Specific KPIs */}
+      <TradeKPICard projectId={selectedProject?.id} projectData={projectData} />
 
       {/* Row 4: Needs Attention (only shown when there are items) */}
       {attentionItems.length > 0 && (

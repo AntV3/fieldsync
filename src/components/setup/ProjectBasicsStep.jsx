@@ -1,5 +1,12 @@
+import { useTradeConfig } from '../../lib/TradeConfigContext'
+
 export default function ProjectBasicsStep({ data, onChange }) {
   const update = (field, value) => onChange({ ...data, [field]: value })
+  const { resolvedConfig, companyConfig, loading: tradeLoading } = useTradeConfig()
+
+  // If company has a trade config, show the trade name; otherwise show the legacy toggle
+  const hasTradeConfig = !!companyConfig
+  const tradeName = resolvedConfig?.trade_name || companyConfig?.trade_template_id
 
   return (
     <div className="wizard-step-content">
@@ -70,22 +77,29 @@ export default function ProjectBasicsStep({ data, onChange }) {
         <div className="form-row-2">
           <div className="form-group">
             <label>Work Type</label>
-            <div className="project-type-toggle">
-              <button
-                type="button"
-                className={`toggle-btn ${data.workType === 'demolition' ? 'active' : ''}`}
-                onClick={() => update('workType', 'demolition')}
-              >
-                Demolition
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${data.workType === 'abatement' ? 'active' : ''}`}
-                onClick={() => update('workType', 'abatement')}
-              >
-                Abatement
-              </button>
-            </div>
+            {hasTradeConfig ? (
+              <div className="trade-type-display">
+                <span className="trade-type-badge">{tradeName || 'Custom'}</span>
+                <span className="trade-type-hint">Configured in Trade Profile settings</span>
+              </div>
+            ) : (
+              <div className="project-type-toggle">
+                <button
+                  type="button"
+                  className={`toggle-btn ${data.workType === 'demolition' ? 'active' : ''}`}
+                  onClick={() => update('workType', 'demolition')}
+                >
+                  Demolition
+                </button>
+                <button
+                  type="button"
+                  className={`toggle-btn ${data.workType === 'abatement' ? 'active' : ''}`}
+                  onClick={() => update('workType', 'abatement')}
+                >
+                  Abatement
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
