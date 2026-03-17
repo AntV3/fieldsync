@@ -355,17 +355,35 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
           <div className="tm-chart-card">
             <h4 className="tm-chart-title">Status Distribution</h4>
             <div className="tm-chart-container">
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
                     data={metrics.byStatus}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
+                    innerRadius={45}
+                    outerRadius={70}
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ cx, cy, midAngle, outerRadius: or, name, percent }) => {
+                      const RADIAN = Math.PI / 180
+                      const radius = or + 16
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN)
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN)
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill="var(--text-secondary)"
+                          textAnchor={x > cx ? 'start' : 'end'}
+                          dominantBaseline="central"
+                          fontSize={12}
+                          fontWeight={500}
+                        >
+                          {name} {(percent * 100).toFixed(0)}%
+                        </text>
+                      )
+                    }}
                     labelLine={false}
                   >
                     {metrics.byStatus.map((entry, index) => (
