@@ -38,7 +38,11 @@ function PageLoader() {
   return (
     <div className="page-loader">
       <Logo className="loading-logo" />
-      <div className="spinner"></div>
+      <div className="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </div>
   )
 }
@@ -187,7 +191,11 @@ export default function App() {
         <BrandingProvider companyId={company?.id}>
           <div className="loading-screen">
             <Logo className="loading-logo" />
-            <div className="spinner"></div>
+            <div className="loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
         </BrandingProvider>
       </ThemeProvider>
