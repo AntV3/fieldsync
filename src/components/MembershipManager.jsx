@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { AlertTriangle, UserCheck, UserX, UserMinus, Users, ChevronDown, Shield, User, Briefcase } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 
 const ACCESS_LEVEL_OPTIONS = [
   { value: 'member', label: 'Member', icon: User, description: 'Standard access to projects' },
@@ -175,7 +176,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
     return (
       <div className="membership-manager">
         <div className="loading">
-          <div className="spinner"></div>
+          <LoadingDots />
           Loading team members...
         </div>
       </div>

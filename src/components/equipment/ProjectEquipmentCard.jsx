@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { Truck, Plus, Calendar, RotateCcw, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { equipmentOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 
@@ -135,7 +136,7 @@ export default memo(function ProjectEquipmentCard({
 
       {loading ? (
         <div className="equipment-loading">
-          <div className="loading-spinner small" />
+          <LoadingDots size="small" />
         </div>
       ) : projectEquipment.length === 0 ? (
         <div className="equipment-empty">

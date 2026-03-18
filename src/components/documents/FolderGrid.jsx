@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Download, ArrowLeft, Loader2, File, Image, FileSpreadsheet, ChevronRight } from 'lucide-react'
+import { Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Download, ArrowLeft, File, Image, FileSpreadsheet, ChevronRight } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 
 // Icon mapping
@@ -139,7 +140,7 @@ export default function FolderGrid({ projectId, onShowToast }) {
     return (
       <div className="field-docs">
         <div className="field-docs-loading">
-          <Loader2 size={24} className="spinner" />
+          <LoadingDots />
           <span>Loading...</span>
         </div>
       </div>
@@ -173,7 +174,7 @@ export default function FolderGrid({ projectId, onShowToast }) {
         <div className="field-docs-list">
           {loadingDocs ? (
             <div className="field-docs-loading">
-              <Loader2 size={24} className="spinner" />
+              <LoadingDots />
               <span>Loading...</span>
             </div>
           ) : documents.length === 0 ? (

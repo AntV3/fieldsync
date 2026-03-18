@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download, Camera, HardHat, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { db } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
@@ -285,7 +286,7 @@ export default function SignaturePage({ signatureToken }) {
     return (
       <div className="signature-page">
         <div className="signature-page-loading">
-          <div className="loading-spinner"></div>
+          <LoadingDots />
           <p>Loading document...</p>
         </div>
       </div>
@@ -346,7 +347,7 @@ export default function SignaturePage({ signatureToken }) {
               >
                 {downloading ? (
                   <>
-                    <span className="btn-spinner"></span>
+                    <LoadingDots size="small" />
                     Generating PDF...
                   </>
                 ) : (
@@ -579,7 +580,7 @@ export default function SignaturePage({ signatureToken }) {
             >
               {downloading ? (
                 <>
-                  <span className="btn-spinner"></span>
+                  <LoadingDots size="small" />
                   Generating PDF...
                 </>
               ) : (
@@ -1242,7 +1243,7 @@ export default function SignaturePage({ signatureToken }) {
             >
               {downloading ? (
                 <>
-                  <span className="download-spinner"></span>
+                  <LoadingDots size="small" />
                   Generating PDF...
                 </>
               ) : (

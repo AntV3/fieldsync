@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Edit3, Check, X, Loader2, ChevronDown } from 'lucide-react'
+import { Edit3, Check, X, ChevronDown } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { formatCurrency } from '../../lib/corCalculations'
 
 // Available status options for editing
@@ -159,7 +160,7 @@ export default function CORLogRow({
         </td>
         <td className="col-actions">
           {isSaving ? (
-            <Loader2 size={16} className="spin" />
+            <LoadingDots size="small" />
           ) : (
             <div className="cor-log-edit-actions">
               <button

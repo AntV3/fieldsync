@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { X, Plus, Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Trash2, Edit2, GripVertical, Loader2 } from 'lucide-react'
+import { X, Plus, Folder, FileText, Map, Shield, FileSignature, Camera, ClipboardList, AlertTriangle, HelpCircle, Send, Trash2, Edit2, GripVertical } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 
 // Available icons for folders
@@ -192,7 +193,7 @@ export default function FolderManager({
                     title="Delete folder"
                   >
                     {deleting === folder.id ? (
-                      <Loader2 size={16} className="spinner" />
+                      <LoadingDots size="small" />
                     ) : (
                       <Trash2 size={16} />
                     )}
@@ -311,7 +312,7 @@ export default function FolderManager({
                 >
                   {saving ? (
                     <>
-                      <Loader2 size={16} className="spinner" />
+                      <LoadingDots size="small" />
                       Saving...
                     </>
                   ) : editingFolder ? (

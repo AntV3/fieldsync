@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Calendar, ShieldAlert } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
@@ -347,7 +348,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
   if (loading) {
     return (
       <div className="loading-container">
-        <div className="spinner"></div>
+        <LoadingDots />
         <p>Loading injury reports...</p>
       </div>
     )
@@ -1151,18 +1152,6 @@ export default function InjuryReportsList({ project, companyId, company, user, o
           padding: 3rem;
         }
 
-        .spinner {
-          width: 40px;
-          height: 40px;
-          border: 4px solid var(--border-color);
-          border-top-color: var(--accent-primary);
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
 
         @media (max-width: 768px) {
           .report-header {

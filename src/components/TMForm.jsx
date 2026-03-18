@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react'
+import { Globe, Check, PenLine, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import TMCapabilitiesModal from './tm/TMCapabilitiesModal'
 import { db } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
@@ -1384,7 +1385,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
             >
               {submitting ? (
                 <>
-                  <Loader2 size={20} className="tm-spinner" />
+                  <LoadingDots size="small" />
                   <span className="tm-submit-text">{submitProgress || t('submitting')}</span>
                 </>
               ) : !submittedByName.trim() ? (

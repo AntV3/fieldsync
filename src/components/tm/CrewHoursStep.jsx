@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { HardHat, Copy, Clock, AlertCircle, Loader2, Search } from 'lucide-react'
+import { HardHat, Copy, Clock, AlertCircle, Search } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import WorkerRow from './WorkerRow'
 import BatchHoursModal from './BatchHoursModal'
 
@@ -297,7 +298,7 @@ export default function CrewHoursStep({
       {/* Loading indicator for labor classes */}
       {loadingLaborClasses && (
         <div className="tm-loading-labor-classes">
-          <Loader2 size={20} className="tm-spinner" />
+          <LoadingDots size="small" />
           <span>{t('loadingLaborClasses')}</span>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { FileSpreadsheet, Plus, ChevronRight, ChevronDown } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 
@@ -203,7 +204,7 @@ function RecentDraws({ loading, drawRequests, originalContract, onCreateDraw, on
   if (loading) {
     return (
       <div className="progress-billing-loading">
-        <div className="loading-spinner small" />
+        <LoadingDots size="small" />
       </div>
     )
   }

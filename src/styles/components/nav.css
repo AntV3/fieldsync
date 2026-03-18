@@ -56,6 +56,26 @@
   animation-delay: 0.4s;
 }
 
+/* Small dots variant - for inline/button usage */
+.loading-dots--small {
+  gap: 0.3rem;
+}
+
+.loading-dots--small span {
+  width: 6px;
+  height: 6px;
+}
+
+/* Large dots variant - for full-page loading */
+.loading-dots--large {
+  gap: 0.6rem;
+}
+
+.loading-dots--large span {
+  width: 10px;
+  height: 10px;
+}
+
 @keyframes loading-dot-pulse {
   0%, 80%, 100% {
     opacity: 0.3;
