@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Camera, ChevronDown, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Camera, ChevronDown, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
 
 /**
@@ -7,7 +7,7 @@ import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
  * Shows construction progress documentation for disputes, owner reports, and team review.
  * Uses a date dropdown to keep the overview page compact.
  */
-export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
+export default function PhotoTimeline({ projectId, projectName, areas = [], onShowToast }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedArea, setSelectedArea] = useState('all')
@@ -15,6 +15,9 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [downloading, setDownloading] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [viewMode, setViewMode] = useState('date') // 'date' or 'all'
+  const [failedImages, setFailedImages] = useState(new Set())
 
   // Load photos for the project
   const loadPhotos = useCallback(async () => {
@@ -24,9 +27,6 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     }
 
     try {
-      // Get photos from T&M tickets and daily reports
-      // t_and_m_tickets.photos requires migration 20260227_fix_project_cascade_delete
-      // daily_reports.photos requires migration 20260227_daily_reports_photos
       const [tmResult, reportResult] = await Promise.all([
         supabase
           .from('t_and_m_tickets')
@@ -42,7 +42,6 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
 
       const allPhotos = []
 
-      // Process T&M ticket photos
       if (tmResult.data) {
         for (const ticket of tmResult.data) {
           const photoUrls = Array.isArray(ticket.photos) ? ticket.photos : []
@@ -61,7 +60,6 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
         }
       }
 
-      // Process daily report photos (requires migration 20260227_daily_reports_photos.sql)
       if (reportResult.data) {
         for (const report of reportResult.data) {
           const photoUrls = Array.isArray(report.photos) ? report.photos : []
@@ -80,7 +78,7 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
         }
       }
 
-      // Resolve stored paths/public URLs to signed URLs (bucket is now private)
+      // Resolve stored paths/public URLs to signed URLs
       const rawUrls = allPhotos.map(p => p.url)
       const signedUrls = await db.resolvePhotoUrls(rawUrls)
       signedUrls.forEach((signed, i) => { allPhotos[i].url = signed })
@@ -88,7 +86,6 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
       const validPhotos = allPhotos.filter(p => p.url)
       setPhotos(validPhotos)
 
-      // Auto-select the most recent date
       if (validPhotos.length > 0) {
         const dates = [...new Set(validPhotos.map(p => p.date))].sort((a, b) => b.localeCompare(a))
         setSelectedDate(dates[0])
@@ -104,26 +101,32 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     loadPhotos()
   }, [loadPhotos])
 
-  // Filter photos by selected area
   const filteredPhotos = useMemo(() => {
     if (selectedArea === 'all') return photos
     return photos.filter(p => p.areaId === selectedArea)
   }, [photos, selectedArea])
 
-  // Get unique dates sorted descending
   const availableDates = useMemo(() => {
     const dates = [...new Set(filteredPhotos.map(p => p.date))]
     return dates.sort((a, b) => b.localeCompare(a))
   }, [filteredPhotos])
 
-  // Photos for the selected date
   const selectedDatePhotos = useMemo(() => {
     if (!selectedDate) return []
     return filteredPhotos.filter(p => p.date === selectedDate)
   }, [filteredPhotos, selectedDate])
 
-  // All photos in flat list for lightbox navigation (scoped to selected date)
-  const flatPhotos = useMemo(() => selectedDatePhotos, [selectedDatePhotos])
+  // Photos grouped by date for 'all' view
+  const photosByDate = useMemo(() => {
+    const groups = {}
+    for (const date of availableDates) {
+      groups[date] = filteredPhotos.filter(p => p.date === date)
+    }
+    return groups
+  }, [filteredPhotos, availableDates])
+
+  const displayPhotos = viewMode === 'all' ? filteredPhotos : selectedDatePhotos
+  const flatPhotos = displayPhotos
 
   const openLightbox = (photo) => {
     const idx = flatPhotos.findIndex(p => p.id === photo.id)
@@ -141,6 +144,18 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     }
   }
 
+  // Keyboard navigation in lightbox
+  useEffect(() => {
+    if (!lightboxPhoto) return
+    const handleKey = (e) => {
+      if (e.key === 'Escape') closeLightbox()
+      else if (e.key === 'ArrowLeft') navigateLightbox(-1)
+      else if (e.key === 'ArrowRight') navigateLightbox(1)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [lightboxPhoto, lightboxIndex, flatPhotos.length])
+
   const formatDate = (dateStr) => {
     const date = new Date(dateStr + 'T00:00:00')
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
@@ -155,6 +170,10 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     if (!areaId) return null
     const area = areas.find(a => a.id === areaId)
     return area?.name || null
+  }
+
+  const handleImageError = (photoId) => {
+    setFailedImages(prev => new Set(prev).add(photoId))
   }
 
   // Download all photos for the selected date
@@ -190,7 +209,34 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
     }
   }
 
-  // When area filter changes, ensure selectedDate is still valid
+  // Export progress photos as a professional PDF document
+  const exportPhotosPDF = async () => {
+    if (filteredPhotos.length === 0 || exporting) return
+
+    setExporting(true)
+    try {
+      const { exportProgressPhotosPDF } = await import('../lib/progressPhotoExport')
+      await exportProgressPhotosPDF({
+        photos: filteredPhotos,
+        photosByDate,
+        availableDates,
+        projectName: projectName || 'Project',
+        areas,
+        getAreaName,
+      })
+      if (onShowToast) {
+        onShowToast('Progress photos report exported', 'success')
+      }
+    } catch (err) {
+      console.error('Error exporting photos PDF:', err)
+      if (onShowToast) {
+        onShowToast('Failed to export photos report', 'error')
+      }
+    } finally {
+      setExporting(false)
+    }
+  }
+
   useEffect(() => {
     if (availableDates.length > 0 && !availableDates.includes(selectedDate)) {
       setSelectedDate(availableDates[0])
@@ -218,22 +264,37 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
           <span className="photo-count-badge">{filteredPhotos.length}</span>
         </div>
 
-        {/* Area filter */}
-        {areas.length > 0 && (
-          <div className="photo-area-filter">
-            <Filter size={14} />
-            <select
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
-              className="photo-area-select"
+        <div className="photo-header-actions">
+          {/* Area filter */}
+          {areas.length > 0 && (
+            <div className="photo-area-filter">
+              <Filter size={14} />
+              <select
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+                className="photo-area-select"
+              >
+                <option value="all">All Areas</option>
+                {areas.map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Export PDF button */}
+          {filteredPhotos.length > 0 && (
+            <button
+              className="photo-export-btn"
+              onClick={exportPhotosPDF}
+              disabled={exporting}
+              title="Export progress photos as PDF report"
             >
-              <option value="all">All Areas</option>
-              {areas.map(area => (
-                <option key={area.id} value={area.id}>{area.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
+              <FileText size={14} />
+              {exporting ? 'Exporting...' : 'Export PDF'}
+            </button>
+          )}
+        </div>
       </div>
 
       {filteredPhotos.length === 0 ? (
@@ -244,71 +305,161 @@ export default function PhotoTimeline({ projectId, areas = [], onShowToast }) {
         </div>
       ) : (
         <div className="photo-timeline-body">
-          {/* Date selector row */}
+          {/* Controls row */}
           <div className="photo-date-selector-row">
-            <div className="photo-date-selector">
-              <Calendar size={14} />
-              <select
-                value={selectedDate || ''}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="photo-date-select"
-              >
-                {availableDates.map(date => (
-                  <option key={date} value={date}>
-                    {formatDateShort(date)} ({filteredPhotos.filter(p => p.date === date).length} photo{filteredPhotos.filter(p => p.date === date).length !== 1 ? 's' : ''})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="photo-date-chevron" />
+            <div className="photo-controls-left">
+              {/* View mode toggle */}
+              <div className="photo-view-toggle">
+                <button
+                  className={`photo-view-btn ${viewMode === 'date' ? 'active' : ''}`}
+                  onClick={() => setViewMode('date')}
+                >
+                  By Date
+                </button>
+                <button
+                  className={`photo-view-btn ${viewMode === 'all' ? 'active' : ''}`}
+                  onClick={() => setViewMode('all')}
+                >
+                  All Photos
+                </button>
+              </div>
+
+              {/* Date selector (only in date view) */}
+              {viewMode === 'date' && (
+                <div className="photo-date-selector">
+                  <Calendar size={14} />
+                  <select
+                    value={selectedDate || ''}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="photo-date-select"
+                  >
+                    {availableDates.map(date => (
+                      <option key={date} value={date}>
+                        {formatDateShort(date)} ({filteredPhotos.filter(p => p.date === date).length})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="photo-date-chevron" />
+                </div>
+              )}
             </div>
 
             <div className="photo-date-actions">
               <span className="photo-date-showing">
-                {selectedDatePhotos.length} photo{selectedDatePhotos.length !== 1 ? 's' : ''}
+                {viewMode === 'date'
+                  ? `${selectedDatePhotos.length} photo${selectedDatePhotos.length !== 1 ? 's' : ''}`
+                  : `${filteredPhotos.length} total`
+                }
               </span>
-              <button
-                className="photo-download-btn"
-                onClick={downloadSelectedPhotos}
-                disabled={downloading || selectedDatePhotos.length === 0}
-                title={`Download ${selectedDatePhotos.length} photo${selectedDatePhotos.length !== 1 ? 's' : ''}`}
-              >
-                <Download size={14} />
-                {downloading ? 'Downloading...' : 'Download'}
-              </button>
+              {viewMode === 'date' && (
+                <button
+                  className="photo-download-btn"
+                  onClick={downloadSelectedPhotos}
+                  disabled={downloading || selectedDatePhotos.length === 0}
+                  title={`Download ${selectedDatePhotos.length} photo${selectedDatePhotos.length !== 1 ? 's' : ''}`}
+                >
+                  <Download size={14} />
+                  {downloading ? 'Downloading...' : 'Download'}
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Photo grid for selected date */}
-          <div className="photo-grid">
-            {selectedDatePhotos.map(photo => (
-              <div
-                key={photo.id}
-                className="photo-grid-item"
-                onClick={() => openLightbox(photo)}
-              >
-                <img
-                  src={photo.url}
-                  alt={photo.description || 'Project photo'}
-                  loading="lazy"
-                />
-                <div className="photo-grid-overlay">
-                  <ZoomIn size={16} />
-                </div>
-                <div className="photo-grid-meta">
-                  <span className="photo-source-badge">{photo.source}</span>
-                  {getAreaName(photo.areaId) && (
-                    <span className="photo-area-badge">
-                      <MapPin size={10} />
-                      {getAreaName(photo.areaId)}
-                    </span>
+          {/* Photo display */}
+          {viewMode === 'date' ? (
+            // Single date grid
+            <div className="photo-grid">
+              {selectedDatePhotos.map(photo => (
+                <div
+                  key={photo.id}
+                  className="photo-grid-item"
+                  onClick={() => openLightbox(photo)}
+                >
+                  {failedImages.has(photo.id) ? (
+                    <div className="photo-grid-placeholder">
+                      <Camera size={20} />
+                      <span>Unable to load</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={photo.url}
+                      alt={photo.description || 'Project photo'}
+                      loading="lazy"
+                      onError={() => handleImageError(photo.id)}
+                    />
+                  )}
+                  <div className="photo-grid-overlay">
+                    <ZoomIn size={18} />
+                  </div>
+                  <div className="photo-grid-meta">
+                    <span className="photo-source-badge">{photo.source}</span>
+                    {getAreaName(photo.areaId) && (
+                      <span className="photo-area-badge">
+                        <MapPin size={10} />
+                        {getAreaName(photo.areaId)}
+                      </span>
+                    )}
+                  </div>
+                  {photo.description && (
+                    <div className="photo-grid-description">
+                      <p>{photo.description}</p>
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            // All dates grouped view
+            <div className="photo-all-dates">
+              {availableDates.map(date => (
+                <div key={date} className="photo-date-group">
+                  <div className="photo-date-group-header">
+                    <Calendar size={14} />
+                    <span className="photo-date-group-label">{formatDate(date)}</span>
+                    <span className="photo-date-group-count">{photosByDate[date]?.length || 0}</span>
+                  </div>
+                  <div className="photo-grid">
+                    {(photosByDate[date] || []).map(photo => (
+                      <div
+                        key={photo.id}
+                        className="photo-grid-item"
+                        onClick={() => openLightbox(photo)}
+                      >
+                        {failedImages.has(photo.id) ? (
+                          <div className="photo-grid-placeholder">
+                            <Camera size={20} />
+                            <span>Unable to load</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={photo.url}
+                            alt={photo.description || 'Project photo'}
+                            loading="lazy"
+                            onError={() => handleImageError(photo.id)}
+                          />
+                        )}
+                        <div className="photo-grid-overlay">
+                          <ZoomIn size={18} />
+                        </div>
+                        <div className="photo-grid-meta">
+                          <span className="photo-source-badge">{photo.source}</span>
+                          {getAreaName(photo.areaId) && (
+                            <span className="photo-area-badge">
+                              <MapPin size={10} />
+                              {getAreaName(photo.areaId)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Date count summary */}
-          {availableDates.length > 1 && (
+          {viewMode === 'date' && availableDates.length > 1 && (
             <div className="photo-dates-summary">
               {availableDates.length} date{availableDates.length !== 1 ? 's' : ''} with photos
             </div>
