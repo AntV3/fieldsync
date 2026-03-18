@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ArrowLeft, Check } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db, supabase } from '../../lib/supabase'
 import { isValidEmail, StepIndicator, PasswordInput } from './authUtils'
 import Logo from '../Logo'
@@ -265,7 +266,7 @@ export default function JoinCompany({ onShowToast }) {
               onClick={verifyJoinCode}
               disabled={loading || companyCode.length < 2}
             >
-              {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
+              {loading ? <LoadingDots size="small" /> : <ChevronRight size={20} />}
             </button>
           </div>
         </div>
@@ -305,7 +306,7 @@ export default function JoinCompany({ onShowToast }) {
               onClick={verifyOfficeCode}
               disabled={loading || !officeCode.trim()}
             >
-              {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
+              {loading ? <LoadingDots size="small" /> : <ChevronRight size={20} />}
             </button>
           </div>
         </div>
@@ -357,7 +358,7 @@ export default function JoinCompany({ onShowToast }) {
           >
             {loading ? (
               <span className="btn-loading">
-                <div className="spinner-small" />
+                <LoadingDots size="small" />
                 Creating account...
               </span>
             ) : 'Join Company'}

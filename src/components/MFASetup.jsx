@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Shield, ShieldCheck, ShieldOff, Copy, Check, X, Loader2 } from 'lucide-react'
+import { Shield, ShieldCheck, ShieldOff, Copy, Check, X } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { supabase } from '../lib/supabase'
 
 export default function MFASetup({ onShowToast, onClose }) {
@@ -108,7 +109,7 @@ export default function MFASetup({ onShowToast, onClose }) {
       </div>
 
       {step === 'loading' && (
-        <div className="mfa-loading"><Loader2 size={24} className="spinner" /> Loading...</div>
+        <div className="mfa-loading"><LoadingDots size="small" /> Loading...</div>
       )}
 
       {step === 'overview' && (
@@ -173,7 +174,7 @@ export default function MFASetup({ onShowToast, onClose }) {
                 onClick={verifyEnrollment}
                 disabled={verifyCode.length !== 6 || verifying}
               >
-                {verifying ? <><Loader2 size={14} className="spinner" /> Verifying...</> : 'Verify & Enable'}
+                {verifying ? <><LoadingDots size="small" /> Verifying...</> : 'Verify & Enable'}
               </button>
             </div>
             {error && <p className="mfa-error">{error}</p>}

@@ -14,6 +14,7 @@ import RegisterCompany from './components/auth/RegisterCompany'
 import Logo from './components/Logo'
 import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
+import LoadingDots from './components/ui/LoadingDots'
 import OfflineIndicator from './components/OfflineIndicator'
 import InstallPrompt from './components/InstallPrompt'
 import MFAChallenge from './components/MFAChallenge'
@@ -38,11 +39,7 @@ function PageLoader() {
   return (
     <div className="page-loader">
       <Logo className="loading-logo" />
-      <div className="loading-dots">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <LoadingDots />
     </div>
   )
 }

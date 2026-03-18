@@ -6,6 +6,7 @@ import {
   ArrowLeft, ChevronDown, ChevronRight,
   Clock, CheckCircle2, Moon, Sun
 } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
@@ -363,7 +364,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         <div className="fm-progress-content">
           {loading ? (
             <div className="fm-loading">
-              <div className="spinner"></div>
+              <LoadingDots />
               <span>Loading...</span>
             </div>
           ) : areas.length === 0 ? (

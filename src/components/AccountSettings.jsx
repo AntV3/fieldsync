@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { User, Mail, Lock, Save, Loader2 } from 'lucide-react'
+import { User, Mail, Lock, Save } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import MFASetup from './MFASetup'
 
@@ -134,7 +135,7 @@ export default function AccountSettings({ user, company, onShowToast }) {
             className="btn btn-primary"
             disabled={saving || name.trim() === user?.name}
           >
-            {saving ? <><Loader2 size={14} className="spinner" /> Saving...</> : <><Save size={14} /> Save Profile</>}
+            {saving ? <><LoadingDots size="small" /> Saving...</> : <><Save size={14} /> Save Profile</>}
           </button>
         </form>
       </div>
@@ -186,7 +187,7 @@ export default function AccountSettings({ user, company, onShowToast }) {
               className="btn btn-primary"
               disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
             >
-              {changingPassword ? <><Loader2 size={14} className="spinner" /> Updating...</> : <><Lock size={14} /> Update Password</>}
+              {changingPassword ? <><LoadingDots size="small" /> Updating...</> : <><Lock size={14} /> Update Password</>}
             </button>
           </form>
         </div>

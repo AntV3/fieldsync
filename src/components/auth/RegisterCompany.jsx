@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { supabase } from '../../lib/supabase'
 import { isValidEmail, generateCode, StepIndicator, PasswordInput } from './authUtils'
 import Logo from '../Logo'
@@ -302,7 +303,7 @@ export default function RegisterCompany({ onShowToast }) {
           >
             {loading ? (
               <span className="btn-loading">
-                <div className="spinner-small" />
+                <LoadingDots size="small" />
                 Setting up company...
               </span>
             ) : 'Create Company'}

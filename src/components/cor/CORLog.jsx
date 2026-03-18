@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { FileSpreadsheet, FileText, Loader2, RefreshCw, Clock, CheckCircle, XCircle, Search, X } from 'lucide-react'
+import { FileSpreadsheet, FileText, RefreshCw, Clock, CheckCircle, XCircle, Search, X } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { useFilteredPagination } from '../../hooks/useFilteredPagination'
@@ -350,7 +351,7 @@ export default function CORLog({ project, company, onShowToast }) {
   if (loading) {
     return (
       <div className="cor-log cor-log-loading">
-        <Loader2 size={24} className="spin" />
+        <LoadingDots />
         <span>Loading COR Log...</span>
       </div>
     )

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ArrowLeft } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 import Logo from '../Logo'
 
@@ -217,7 +218,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
               onClick={submitCompanyCode}
               disabled={loading || companyCode.length < 2}
             >
-              {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
+              {loading ? <LoadingDots size="small" /> : <ChevronRight size={20} />}
             </button>
           </div>
         </div>
@@ -283,7 +284,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
 
         {loading && (
           <div className="entry-loading">
-            <div className="spinner"></div>
+            <LoadingDots />
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { Truck, Plus, Edit2, Trash2, Check, X, Building2, Package } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { equipmentOps } from '../../lib/supabase'
 
 /**
@@ -180,7 +181,7 @@ export default memo(function EquipmentCatalog({
 
       {loading ? (
         <div className="equipment-catalog-loading">
-          <div className="loading-spinner" />
+          <LoadingDots />
         </div>
       ) : (
         <div className="equipment-catalog-list">

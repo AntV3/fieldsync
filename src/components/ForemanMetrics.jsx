@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
+import LoadingDots from './ui/LoadingDots'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -219,7 +220,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           <h2>Project Metrics</h2>
         </div>
         <div className="loading-state">
-          <div className="spinner"></div>
+          <LoadingDots />
           <p>Loading metrics...</p>
         </div>
       </div>

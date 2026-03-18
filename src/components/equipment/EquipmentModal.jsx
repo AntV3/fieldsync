@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { X, Truck, DollarSign, Calendar, Save } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { equipmentOps } from '../../lib/supabase'
 
 /**
@@ -284,7 +285,7 @@ export default memo(function EquipmentModal({
             >
               {saving ? (
                 <>
-                  <div className="loading-spinner small" />
+                  <LoadingDots size="small" />
                   Saving...
                 </>
               ) : (

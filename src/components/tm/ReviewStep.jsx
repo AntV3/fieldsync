@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
-import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw, Clock, ShieldCheck } from 'lucide-react'
+import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, RotateCcw, Clock, ShieldCheck } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { parseLocalDate } from '../../lib/utils'
 import EvidenceStep from './EvidenceStep'
 
@@ -177,7 +178,7 @@ export default function ReviewStep({
                       disabled={photo.status === 'uploading' || photo.status === 'compressing'}
                     >
                       {photo.status === 'uploading' || photo.status === 'compressing' ? (
-                        <Loader2 size={16} className="tm-spinner" />
+                        <LoadingDots size="small" />
                       ) : (
                         <>
                           <RotateCcw size={16} />

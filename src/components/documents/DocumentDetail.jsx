@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Download, Archive, CheckCircle, XCircle, Clock, FileText, User, Calendar, Folder, Eye, Link2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Download, Archive, CheckCircle, XCircle, Clock, FileText, User, Calendar, Folder, Eye, Link2 } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 import { DOCUMENT_CATEGORIES, DOCUMENT_VISIBILITY_LABELS } from '../../lib/constants'
 
@@ -257,7 +258,7 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
           <h3>Version History</h3>
           {loadingVersions ? (
             <div className="versions-loading">
-              <Loader2 size={20} className="spinner" />
+              <LoadingDots size="small" />
               Loading versions...
             </div>
           ) : versions.length === 0 ? (
@@ -324,7 +325,7 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
                 onClick={handleReject}
                 disabled={!rejectReason.trim() || processing}
               >
-                {processing ? <Loader2 size={16} className="spinner" /> : <XCircle size={16} />}
+                {processing ? <LoadingDots size="small" /> : <XCircle size={16} />}
                 Reject Document
               </button>
             </div>

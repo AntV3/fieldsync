@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import Logo from './Logo'
@@ -59,7 +60,7 @@ export default function PublicView({ shareToken }) {
     return (
       <div className="public-view">
         <div className="loading-container">
-          <div className="spinner"></div>
+          <LoadingDots />
           <p>Loading project...</p>
         </div>
 
@@ -643,15 +644,6 @@ const publicViewStyles = `
     justify-content: center;
     min-height: 100vh;
     padding: 2rem;
-  }
-
-  .spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid #e5e7eb;
-    border-top-color: var(--primary-color, #3b82f6);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
   }
 
   @keyframes spin {

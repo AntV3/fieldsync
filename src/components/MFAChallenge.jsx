@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Shield, Loader2 } from 'lucide-react'
+import { Shield } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { supabase } from '../lib/supabase'
 
 export default function MFAChallenge({ factorId, onVerified, onCancel }) {
@@ -65,7 +66,7 @@ export default function MFAChallenge({ factorId, onVerified, onCancel }) {
           onClick={handleVerify}
           disabled={code.length !== 6 || verifying}
         >
-          {verifying ? <><Loader2 size={14} className="spinner" /> Verifying...</> : 'Verify'}
+          {verifying ? <><LoadingDots size="small" /> Verifying...</> : 'Verify'}
         </button>
       </div>
     </div>

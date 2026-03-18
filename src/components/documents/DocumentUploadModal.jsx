@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
-import { X, Upload, CloudUpload, File, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { X, Upload, CloudUpload, File, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 import { DOCUMENT_CATEGORIES, ALLOWED_FILE_TYPES, DOCUMENT_VISIBILITY_LABELS, APPROVAL_REQUIRED_CATEGORIES } from '../../lib/constants'
 import { compressImage } from '../../lib/imageUtils'
@@ -263,7 +264,7 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
                       </div>
                       {status === 'done' && <CheckCircle size={16} style={{ color: '#10b981' }} />}
                       {status === 'error' && <XCircle size={16} style={{ color: '#ef4444' }} />}
-                      {(status === 'compressing' || status === 'uploading') && <Loader2 size={16} className="spinner" />}
+                      {(status === 'compressing' || status === 'uploading') && <LoadingDots size="small" />}
                       {!uploading && (
                         <button
                           className="dropzone-file-remove"
@@ -377,7 +378,7 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
         <div className="modal-footer">
           {uploading ? (
             <div className="upload-progress">
-              <Loader2 size={20} className="spinner" />
+              <LoadingDots size="small" />
               <span>{uploadProgress}</span>
             </div>
           ) : (

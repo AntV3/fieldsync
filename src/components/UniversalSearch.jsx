@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, FolderOpen, FileText, Users, ClipboardList, ChevronRight, Command } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { db } from '../lib/supabase'
 
 export default function UniversalSearch({
@@ -182,7 +183,7 @@ export default function UniversalSearch({
         <div className="universal-search-results">
           {loading ? (
             <div className="universal-search-loading">
-              <div className="spinner-small"></div>
+              <LoadingDots size="small" />
               <span>Searching...</span>
             </div>
           ) : !query.trim() ? (

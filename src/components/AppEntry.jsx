@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
+import LoadingDots from './ui/LoadingDots'
 import { db, supabase } from '../lib/supabase'
 import Logo from './Logo'
 
@@ -798,7 +799,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
                 onClick={submitCompanyCode}
                 disabled={loading || companyCode.length < 2}
               >
-                {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
+                {loading ? <LoadingDots size="small" /> : <ChevronRight size={20} />}
               </button>
             </div>
           </div>
@@ -864,7 +865,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
 
           {loading && (
             <div className="entry-loading">
-              <div className="spinner"></div>
+              <LoadingDots />
             </div>
           )}
         </div>
@@ -993,7 +994,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
                 onClick={verifyJoinCode}
                 disabled={loading || companyCode.length < 2}
               >
-                {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
+                {loading ? <LoadingDots size="small" /> : <ChevronRight size={20} />}
               </button>
             </div>
           </div>
@@ -1033,7 +1034,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
                 onClick={verifyOfficeCode}
                 disabled={loading || !officeCode.trim()}
               >
-                {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
+                {loading ? <LoadingDots size="small" /> : <ChevronRight size={20} />}
               </button>
             </div>
           </div>
@@ -1085,7 +1086,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
             >
               {loading ? (
                 <span className="btn-loading">
-                  <div className="spinner-small" />
+                  <LoadingDots size="small" />
                   Creating account...
                 </span>
               ) : 'Join Company'}
@@ -1233,7 +1234,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               >
                 {loading ? (
                   <span className="btn-loading">
-                    <div className="spinner-small" />
+                    <LoadingDots size="small" />
                     Setting up company...
                   </span>
                 ) : 'Create Company'}

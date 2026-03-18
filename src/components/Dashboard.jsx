@@ -8,6 +8,7 @@ import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReport
 import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3 } from 'lucide-react'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
+import LoadingDots from './ui/LoadingDots'
 import ProjectEditForm from './dashboard/ProjectEditForm'
 import PortfolioView from './dashboard/PortfolioView'
 import DashboardModals from './dashboard/DashboardModals'
@@ -886,7 +887,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   if (loading) {
     return (
       <div className="loading">
-        <div className="spinner"></div>
+        <LoadingDots />
         Loading projects...
       </div>
     )

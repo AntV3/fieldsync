@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { X, FileSpreadsheet, Calendar, Percent, Save, Download } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 
@@ -251,7 +252,7 @@ export default memo(function DrawRequestModal({
         {loading ? (
           <div className="modal-body">
             <div className="draw-request-loading">
-              <div className="loading-spinner" />
+              <LoadingDots />
               <p>Loading schedule of values...</p>
             </div>
           </div>
@@ -476,7 +477,7 @@ export default memo(function DrawRequestModal({
               >
                 {saving ? (
                   <>
-                    <div className="loading-spinner small" />
+                    <LoadingDots size="small" />
                     Saving...
                   </>
                 ) : (

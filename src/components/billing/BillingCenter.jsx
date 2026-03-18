@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Receipt, Plus, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, AlertCircle, Eye, X } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { downloadInvoicePDF } from '../../lib/invoicePdfGenerator'
@@ -255,7 +256,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
     return (
       <div className="billing-center loading">
         <div className="billing-loading">
-          <div className="spinner" />
+          <LoadingDots />
           <span>Loading billing data...</span>
         </div>
       </div>

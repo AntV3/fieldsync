@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBranding } from '../lib/BrandingContext'
+import LoadingDots from './ui/LoadingDots'
 import { supabase } from '../lib/supabase'
 
 export default function BrandingSettings({ company, onShowToast }) {
@@ -160,7 +161,7 @@ export default function BrandingSettings({ company, onShowToast }) {
   if (loading) {
     return (
       <div className="settings-loading">
-        <div className="spinner"></div>
+        <LoadingDots />
         <p>Loading branding settings...</p>
       </div>
     )

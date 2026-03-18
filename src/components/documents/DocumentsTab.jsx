@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Upload, Search, FolderOpen, Loader2, X, ArrowLeft, Folder, FileText, Download, File, Image, FileSpreadsheet, Plus, Eye, Archive, CheckCircle, Settings2 } from 'lucide-react'
+import { Upload, Search, FolderOpen, X, ArrowLeft, Folder, FileText, Download, File, Image, FileSpreadsheet, Plus, Eye, Archive, CheckCircle, Settings2 } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 import { DOCUMENTS_PER_PAGE } from '../../lib/constants'
 import DocumentUploadModal from './DocumentUploadModal'
@@ -285,7 +286,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     return (
       <div className="docs-container">
         <div className="docs-loading">
-          <Loader2 size={24} className="spinner" />
+          <LoadingDots />
           <span>Loading documents...</span>
         </div>
       </div>
@@ -337,7 +338,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
                 <X size={16} />
               </button>
             )}
-            {searching && <Loader2 size={16} className="spinner" />}
+            {searching && <LoadingDots size="small" />}
           </div>
         </div>
 
@@ -353,7 +354,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
         <div className="docs-list">
           {loadingDocs ? (
             <div className="docs-loading">
-              <Loader2 size={24} className="spinner" />
+              <LoadingDots />
               <span>Loading...</span>
             </div>
           ) : displayDocs.length === 0 ? (
@@ -459,7 +460,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
               <X size={16} />
             </button>
           )}
-          {searching && <Loader2 size={16} className="spinner" />}
+          {searching && <LoadingDots size="small" />}
         </div>
 
         <button className="docs-manage-btn" onClick={() => setShowFolderManager(true)}>

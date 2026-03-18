@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Receipt, Plus, Trash2, FileText, Loader2 } from 'lucide-react'
+import { X, Receipt, Plus, Trash2, FileText } from 'lucide-react'
+import LoadingDots from '../ui/LoadingDots'
 import { db } from '../../lib/supabase'
 import { formatCurrency, dollarsToCents } from '../../lib/corCalculations'
 
@@ -201,7 +202,7 @@ export default function InvoiceModal({
       <div className="modal-overlay">
         <div className="modal-content invoice-modal">
           <div className="invoice-loading">
-            <Loader2 size={24} className="spinning" />
+            <LoadingDots />
             <span>Loading...</span>
           </div>
         </div>
@@ -444,7 +445,7 @@ export default function InvoiceModal({
           >
             {saving ? (
               <>
-                <Loader2 size={16} className="spinning" />
+                <LoadingDots size="small" />
                 Creating...
               </>
             ) : (
