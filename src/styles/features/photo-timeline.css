@@ -49,6 +49,13 @@
   font-size: 15px;
 }
 
+.photo-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .photo-count-badge {
   background: var(--bg-secondary);
   color: var(--text-secondary);
@@ -73,6 +80,33 @@
   font-size: 13px;
   color: var(--text-primary);
   cursor: pointer;
+}
+
+/* Export PDF button */
+.photo-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--accent, #1e3a5f);
+  border: 1px solid var(--accent, #1e3a5f);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+}
+
+.photo-export-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.photo-export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Loading & empty states */
@@ -100,13 +134,54 @@
   gap: 12px;
 }
 
-/* Date selector row */
+/* Controls row */
 .photo-date-selector-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.photo-controls-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* View toggle */
+.photo-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.photo-view-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+}
+
+.photo-view-btn:first-child {
+  border-right: 1px solid var(--border-color);
+}
+
+.photo-view-btn.active {
+  background: var(--accent, #1e3a5f);
+  color: white;
+  font-weight: 600;
+}
+
+.photo-view-btn:hover:not(.active) {
+  background: var(--bg-hover);
 }
 
 .photo-date-selector {
@@ -123,12 +198,12 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 8px 32px 8px 12px;
+  padding: 6px 28px 6px 10px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
-  min-width: 200px;
+  min-width: 180px;
   transition: border-color var(--transition-normal);
 }
 
@@ -166,11 +241,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   cursor: pointer;
@@ -189,26 +264,27 @@
   cursor: not-allowed;
 }
 
-/* Photo grid */
+/* Photo grid — larger, more professional thumbnails */
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .photo-grid-item {
   position: relative;
-  aspect-ratio: 1;
-  border-radius: var(--radius-md);
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
   background: var(--bg-secondary);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-smooth);
+  transition: box-shadow var(--transition-smooth), transform var(--transition-smooth);
 }
 
 .photo-grid-item:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .photo-grid-item img {
@@ -219,7 +295,20 @@
 }
 
 .photo-grid-item:hover img {
-  transform: scale(1.05);
+  transform: scale(1.04);
+}
+
+.photo-grid-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  opacity: 0.6;
 }
 
 .photo-grid-overlay {
@@ -228,7 +317,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0,0,0,0.25);
   opacity: 0;
   transition: opacity var(--transition-normal);
   color: white;
@@ -243,11 +332,11 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 4px 6px;
+  padding: 6px 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+  background: linear-gradient(transparent, rgba(0,0,0,0.55));
 }
 
 .photo-source-badge,
@@ -255,12 +344,75 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 600;
   color: white;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+}
+
+.photo-grid-description {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 10px;
+  background: linear-gradient(rgba(0,0,0,0.5), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.photo-grid-item:hover .photo-grid-description {
+  opacity: 1;
+}
+
+.photo-grid-description p {
+  margin: 0;
+  font-size: 11px;
+  color: white;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* All-dates grouped view */
+.photo-all-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.photo-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.photo-date-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.photo-date-group-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.photo-date-group-count {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: 1px 7px;
+  border-radius: var(--radius-lg);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 /* Dates summary */
@@ -276,10 +428,11 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-tooltip);
-  background: rgba(0,0,0,0.9);
+  background: rgba(0,0,0,0.92);
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(4px);
 }
 
 .photo-lightbox-content {
@@ -295,55 +448,65 @@
   max-width: 100%;
   max-height: 75vh;
   object-fit: contain;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 
 .photo-lightbox-close {
   position: absolute;
-  top: -40px;
+  top: -44px;
   right: 0;
-  background: none;
+  background: rgba(255,255,255,0.1);
   border: none;
   color: white;
   cursor: pointer;
   padding: 8px;
+  border-radius: 50%;
+  transition: background var(--transition-normal);
+}
+
+.photo-lightbox-close:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .photo-lightbox-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.12);
   border: none;
   color: white;
   cursor: pointer;
-  padding: 12px;
+  padding: 14px;
   border-radius: 50%;
   transition: background var(--transition-normal);
+  backdrop-filter: blur(4px);
 }
 
 .photo-lightbox-nav:hover {
   background: rgba(255,255,255,0.3);
 }
 
-.photo-lightbox-nav.prev { left: -50px; }
-.photo-lightbox-nav.next { right: -50px; }
+.photo-lightbox-nav.prev { left: -56px; }
+.photo-lightbox-nav.next { right: -56px; }
 
 .photo-lightbox-info {
-  margin-top: 12px;
+  margin-top: 14px;
   text-align: center;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255,255,255,0.85);
   font-size: 13px;
 }
 
 .photo-lightbox-date {
   font-weight: 600;
   color: white;
+  font-size: 14px;
 }
 
 .photo-lightbox-source {
   font-size: 12px;
-  opacity: 0.7;
+  opacity: 0.6;
+  margin-top: 2px;
 }
 
 .photo-lightbox-area {
@@ -359,17 +522,19 @@
   font-size: 12px;
   max-width: 500px;
   opacity: 0.7;
+  line-height: 1.4;
 }
 
 .photo-lightbox-counter {
-  margin-top: 8px;
+  margin-top: 10px;
   font-size: 12px;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 @media (max-width: 768px) {
   .photo-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
   }
 
   .photo-lightbox-nav.prev { left: 8px; }
@@ -380,12 +545,22 @@
     align-items: stretch;
   }
 
+  .photo-controls-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .photo-date-select {
     min-width: unset;
     width: 100%;
   }
 
   .photo-date-actions {
+    justify-content: space-between;
+  }
+
+  .photo-header-actions {
+    width: 100%;
     justify-content: space-between;
   }
 }
