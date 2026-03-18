@@ -162,9 +162,10 @@ export async function detectBatchConflicts(pendingActions, fetchServerRecord) {
 
       const conflict = detectConflict(action.payload, serverRecord)
       results.push({ action, conflict })
-    } catch {
-      // Can't fetch server record — skip conflict check, will retry on next sync
-      results.push({ action, conflict: { hasConflict: false, conflicts: [], error: true } })
+    } catch (err) {
+      // Can't fetch server record — flag as error so caller can decide to retry
+      console.warn('Conflict detection fetch failed:', err?.message)
+      results.push({ action, conflict: { hasConflict: false, conflicts: [], fetchError: true } })
     }
   }
 
