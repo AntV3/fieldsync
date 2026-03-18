@@ -104,6 +104,12 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const refreshTimeoutRef = useRef(null)
   const pendingRefreshRef = useRef({ areas: false, status: false, punchList: false })
 
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
+
   const debouncedRefresh = useCallback((targets = { areas: true, status: true }) => {
     // Track what actually needs refreshing
     if (targets.areas) pendingRefreshRef.current.areas = true
@@ -112,14 +118,15 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
     if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
     // 1000ms debounce for field apps on potentially unstable mobile connections
-    refreshTimeoutRef.current = setTimeout(() => {
+    refreshTimeoutRef.current = setTimeout(async () => {
+      if (!mountedRef.current) return
       const pending = pendingRefreshRef.current
+      pendingRefreshRef.current = { areas: false, status: false, punchList: false }
       const refreshes = []
       if (pending.areas) refreshes.push(loadAreas())
       if (pending.status) refreshes.push(loadTodayStatus())
       if (pending.punchList) refreshes.push(loadPunchListCount())
-      Promise.all(refreshes)
-      pendingRefreshRef.current = { areas: false, status: false, punchList: false }
+      await Promise.all(refreshes)
     }, 1000)
   }, [project?.id])
 

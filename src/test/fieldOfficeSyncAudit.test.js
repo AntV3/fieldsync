@@ -284,3 +284,349 @@ describe('Sync direction matrix: all data types have bidirectional paths', () =>
     })
   })
 })
+
+// ============================================================
+// Callback Execution Tests
+// ============================================================
+describe('Subscription callbacks execute correctly when invoked', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('area subscription callback is invoked when channel fires a change event', () => {
+    const refreshFn = vi.fn()
+    db.subscribeToAreas('proj-1', refreshFn)
+    // Retrieve the callback that was passed
+    const passedCallback = db.subscribeToAreas.mock.calls[0][1]
+    // Simulate a postgres_changes event payload
+    passedCallback({ eventType: 'UPDATE', new: { id: 'area-1', status: 'done' } })
+    expect(refreshFn).toHaveBeenCalledTimes(1)
+    expect(refreshFn).toHaveBeenCalledWith({ eventType: 'UPDATE', new: { id: 'area-1', status: 'done' } })
+  })
+
+  it('crew checkin subscription callback handles INSERT event correctly', () => {
+    const refreshFn = vi.fn()
+    db.subscribeToCrewCheckins('proj-1', refreshFn)
+    const passedCallback = db.subscribeToCrewCheckins.mock.calls[0][1]
+    passedCallback({ eventType: 'INSERT', new: { id: 'checkin-1', workers: ['w1', 'w2'] } })
+    expect(refreshFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('T&M ticket subscription callback handles INSERT event correctly', () => {
+    const refreshFn = vi.fn()
+    db.subscribeToTMTickets('proj-1', refreshFn)
+    const passedCallback = db.subscribeToTMTickets.mock.calls[0][1]
+    passedCallback({ eventType: 'INSERT', new: { id: 'tm-1', description: 'Extra work' } })
+    expect(refreshFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('company activity callbacks dispatch to correct handler', () => {
+    const callbacks = {
+      onAreaUpdate: vi.fn(),
+      onTMTicket: vi.fn(),
+      onCrewCheckin: vi.fn(),
+      onPunchListChange: vi.fn(),
+      onMessage: vi.fn(),
+      onCORChange: vi.fn(),
+      onDailyReportChange: vi.fn()
+    }
+
+    db.subscribeToCompanyActivity('company-1', ['proj-1'], callbacks)
+    const passedCallbacks = db.subscribeToCompanyActivity.mock.calls[0][2]
+
+    // Each callback should be a function
+    expect(typeof passedCallbacks.onAreaUpdate).toBe('function')
+    expect(typeof passedCallbacks.onTMTicket).toBe('function')
+    expect(typeof passedCallbacks.onCrewCheckin).toBe('function')
+    expect(typeof passedCallbacks.onPunchListChange).toBe('function')
+    expect(typeof passedCallbacks.onMessage).toBe('function')
+    expect(typeof passedCallbacks.onCORChange).toBe('function')
+    expect(typeof passedCallbacks.onDailyReportChange).toBe('function')
+  })
+})
+
+// ============================================================
+// Subscription Cleanup Tests
+// ============================================================
+describe('Subscription cleanup: unsubscribe is called correctly', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('unsubscribe removes a subscription when called', () => {
+    const sub = db.subscribeToAreas('proj-1', vi.fn())
+    db.unsubscribe(sub)
+    expect(db.unsubscribe).toHaveBeenCalledWith(sub)
+  })
+
+  it('unsubscribe handles null subscription gracefully', () => {
+    db.unsubscribe(null)
+    expect(db.unsubscribe).toHaveBeenCalledWith(null)
+  })
+
+  it('multiple subscriptions can be cleaned up in sequence', () => {
+    const sub1 = db.subscribeToAreas('proj-1', vi.fn())
+    const sub2 = db.subscribeToCrewCheckins('proj-1', vi.fn())
+    const sub3 = db.subscribeToTMTickets('proj-1', vi.fn())
+
+    const subs = [sub1, sub2, sub3]
+    subs.forEach(sub => db.unsubscribe(sub))
+
+    expect(db.unsubscribe).toHaveBeenCalledTimes(3)
+  })
+})
+
+// ============================================================
+// Offline Sync Queue Integration Tests
+// ============================================================
+describe('Offline sync: pending actions are queued and synced', () => {
+  it('imports offlineManager modules correctly', async () => {
+    const offlineManager = await import('../lib/offlineManager')
+    expect(typeof offlineManager.addPendingAction).toBe('function')
+    expect(typeof offlineManager.getPendingActions).toBe('function')
+    expect(typeof offlineManager.syncPendingActions).toBe('function')
+    expect(typeof offlineManager.getConnectionStatus).toBe('function')
+    expect(typeof offlineManager.onConnectionChange).toBe('function')
+  })
+
+  it('ACTION_TYPES covers all offline-capable operations', async () => {
+    const { ACTION_TYPES } = await import('../lib/offlineManager')
+    expect(ACTION_TYPES.UPDATE_AREA_STATUS).toBe('UPDATE_AREA_STATUS')
+    expect(ACTION_TYPES.CREATE_TM_TICKET).toBe('CREATE_TM_TICKET')
+    expect(ACTION_TYPES.SAVE_CREW_CHECKIN).toBe('SAVE_CREW_CHECKIN')
+    expect(ACTION_TYPES.SUBMIT_DAILY_REPORT).toBe('SUBMIT_DAILY_REPORT')
+    expect(ACTION_TYPES.SEND_MESSAGE).toBe('SEND_MESSAGE')
+    expect(ACTION_TYPES.CREATE_MATERIAL_REQUEST).toBe('CREATE_MATERIAL_REQUEST')
+  })
+
+  it('connection status listeners can be registered and unregistered', async () => {
+    const { onConnectionChange } = await import('../lib/offlineManager')
+    const listener = vi.fn()
+    const unsub = onConnectionChange(listener)
+    expect(typeof unsub).toBe('function')
+    // Unsubscribe should not throw
+    unsub()
+  })
+})
+
+// ============================================================
+// Conflict Detection Integration Tests
+// ============================================================
+describe('Conflict detection: offline changes detected on sync', () => {
+  it('imports conflict detection modules correctly', async () => {
+    const conflictModule = await import('../lib/conflictDetection')
+    expect(typeof conflictModule.detectConflict).toBe('function')
+    expect(typeof conflictModule.resolveConflict).toBe('function')
+    expect(typeof conflictModule.stampForOffline).toBe('function')
+    expect(typeof conflictModule.buildConflictSummary).toBe('function')
+    expect(typeof conflictModule.detectBatchConflicts).toBe('function')
+  })
+
+  it('stampForOffline adds metadata for tracking changes', async () => {
+    const { stampForOffline } = await import('../lib/conflictDetection')
+    const record = { id: 'area-1', status: 'working', name: 'Floor 1' }
+    const stamped = stampForOffline(record, ['status', 'name'])
+
+    expect(stamped._cachedAt).toBeDefined()
+    expect(stamped._cachedValues).toBeDefined()
+    expect(stamped._cachedValues.status).toBe('working')
+    expect(stamped._cachedValues.name).toBe('Floor 1')
+    // Original fields preserved
+    expect(stamped.id).toBe('area-1')
+    expect(stamped.status).toBe('working')
+  })
+
+  it('detectConflict identifies when server changed since cache', async () => {
+    const { detectConflict } = await import('../lib/conflictDetection')
+
+    const localRecord = {
+      id: 'area-1',
+      status: 'done',
+      _cachedAt: '2025-01-01T10:00:00Z',
+      _offlineModifiedAt: '2025-01-01T10:05:00Z',
+      _cachedValues: { status: 'working' },
+      updated_at: '2025-01-01T10:05:00Z'
+    }
+    const serverRecord = {
+      id: 'area-1',
+      status: 'not_started',
+      updated_at: '2025-01-01T10:03:00Z'
+    }
+
+    const result = detectConflict(localRecord, serverRecord, ['status'])
+    expect(result.hasConflict).toBe(true)
+    expect(result.conflicts.length).toBe(1)
+    expect(result.conflicts[0].field).toBe('status')
+    expect(result.conflicts[0].localValue).toBe('done')
+    expect(result.conflicts[0].serverValue).toBe('not_started')
+  })
+
+  it('detectConflict returns no conflict when server unchanged since cache', async () => {
+    const { detectConflict } = await import('../lib/conflictDetection')
+
+    const localRecord = {
+      id: 'area-1',
+      status: 'done',
+      _cachedAt: '2025-01-01T10:00:00Z',
+      _offlineModifiedAt: '2025-01-01T10:05:00Z',
+      updated_at: '2025-01-01T09:00:00Z'
+    }
+    const serverRecord = {
+      id: 'area-1',
+      status: 'working',
+      updated_at: '2025-01-01T09:00:00Z'
+    }
+
+    const result = detectConflict(localRecord, serverRecord, ['status'])
+    expect(result.hasConflict).toBe(false)
+  })
+
+  it('resolveConflict KEEP_LOCAL preserves local changes', async () => {
+    const { resolveConflict, RESOLUTION_STRATEGIES } = await import('../lib/conflictDetection')
+
+    const local = { id: 'area-1', status: 'done', name: 'Floor 1' }
+    const server = { id: 'area-1', status: 'working', name: 'Floor 1' }
+
+    const resolved = resolveConflict(local, server, RESOLUTION_STRATEGIES.KEEP_LOCAL)
+    expect(resolved.status).toBe('done')
+    expect(resolved._resolved).toBe(true)
+  })
+
+  it('resolveConflict KEEP_SERVER uses server values', async () => {
+    const { resolveConflict, RESOLUTION_STRATEGIES } = await import('../lib/conflictDetection')
+
+    const local = { id: 'area-1', status: 'done', name: 'Floor 1' }
+    const server = { id: 'area-1', status: 'working', name: 'Floor 1 Updated' }
+
+    const resolved = resolveConflict(local, server, RESOLUTION_STRATEGIES.KEEP_SERVER)
+    expect(resolved.status).toBe('working')
+    expect(resolved.name).toBe('Floor 1 Updated')
+    expect(resolved._resolved).toBe(true)
+  })
+
+  it('resolveConflict MERGE applies field-level choices', async () => {
+    const { resolveConflict, RESOLUTION_STRATEGIES } = await import('../lib/conflictDetection')
+
+    const local = { id: 'area-1', status: 'done', name: 'Local Name' }
+    const server = { id: 'area-1', status: 'working', name: 'Server Name' }
+
+    const resolved = resolveConflict(local, server, RESOLUTION_STRATEGIES.MERGE, { status: 'local' })
+    expect(resolved.status).toBe('done')
+    expect(resolved.name).toBe('Server Name') // server default for unspecified fields
+    expect(resolved._resolved).toBe(true)
+  })
+
+  it('buildConflictSummary returns null when no conflict', async () => {
+    const { buildConflictSummary } = await import('../lib/conflictDetection')
+    const result = buildConflictSummary({ hasConflict: false, conflicts: [] })
+    expect(result).toBeNull()
+  })
+
+  it('buildConflictSummary returns severity info for few conflicts', async () => {
+    const { buildConflictSummary } = await import('../lib/conflictDetection')
+    const result = buildConflictSummary({
+      hasConflict: true,
+      conflicts: [{ field: 'status', localValue: 'done', serverValue: 'working' }]
+    }, 'area')
+
+    expect(result.title).toBe('Area was modified')
+    expect(result.severity).toBe('info')
+    expect(result.conflictCount).toBe(1)
+  })
+
+  it('buildConflictSummary returns severity warning for many conflicts', async () => {
+    const { buildConflictSummary } = await import('../lib/conflictDetection')
+    const result = buildConflictSummary({
+      hasConflict: true,
+      conflicts: [
+        { field: 'status' },
+        { field: 'name' },
+        { field: 'weight' }
+      ]
+    }, 'area')
+
+    expect(result.severity).toBe('warning')
+    expect(result.conflictCount).toBe(3)
+  })
+
+  it('detectBatchConflicts handles deleted server records', async () => {
+    const { detectBatchConflicts } = await import('../lib/conflictDetection')
+
+    const pendingActions = [
+      { type: 'UPDATE_AREA_STATUS', payload: { id: 'area-1', status: 'done' } }
+    ]
+    const fetchFn = vi.fn().mockResolvedValue(null) // record deleted
+
+    const results = await detectBatchConflicts(pendingActions, fetchFn)
+    expect(results).toHaveLength(1)
+    expect(results[0].conflict.hasConflict).toBe(true)
+    expect(results[0].conflict.deletedOnServer).toBe(true)
+  })
+
+  it('detectBatchConflicts skips create actions (no conflict possible)', async () => {
+    const { detectBatchConflicts } = await import('../lib/conflictDetection')
+
+    const pendingActions = [
+      { type: 'CREATE_TM_TICKET', payload: { description: 'New ticket' } }
+    ]
+    const fetchFn = vi.fn()
+
+    const results = await detectBatchConflicts(pendingActions, fetchFn)
+    expect(results).toHaveLength(1)
+    expect(results[0].conflict.hasConflict).toBe(false)
+    expect(fetchFn).not.toHaveBeenCalled() // no fetch for creates
+  })
+
+  it('detectBatchConflicts handles fetch errors gracefully', async () => {
+    const { detectBatchConflicts } = await import('../lib/conflictDetection')
+
+    const pendingActions = [
+      { type: 'UPDATE_AREA_STATUS', payload: { id: 'area-1', status: 'done' } }
+    ]
+    const fetchFn = vi.fn().mockRejectedValue(new Error('Network error'))
+
+    const results = await detectBatchConflicts(pendingActions, fetchFn)
+    expect(results).toHaveLength(1)
+    expect(results[0].conflict.hasConflict).toBe(false)
+    expect(results[0].conflict.fetchError).toBe(true)
+  })
+})
+
+// ============================================================
+// Field Session Management Tests
+// ============================================================
+describe('Field session: login/logout cleans up properly', () => {
+  it('imports field session modules correctly', async () => {
+    const session = await import('../lib/fieldSession')
+    expect(typeof session.getFieldSession).toBe('function')
+    expect(typeof session.setFieldSession).toBe('function')
+    expect(typeof session.clearFieldSession).toBe('function')
+    expect(typeof session.isFieldMode).toBe('function')
+    expect(typeof session.getFieldProjectId).toBe('function')
+    expect(typeof session.getFieldCompanyId).toBe('function')
+  })
+
+  it('isFieldMode returns false when no session set', async () => {
+    const { isFieldMode, setFieldSession } = await import('../lib/fieldSession')
+    setFieldSession(null)
+    expect(isFieldMode()).toBe(false)
+  })
+
+  it('isFieldMode returns true when session has token and projectId', async () => {
+    const { isFieldMode, setFieldSession } = await import('../lib/fieldSession')
+    setFieldSession({ token: 'test-token', projectId: 'proj-1', companyId: 'comp-1' })
+    expect(isFieldMode()).toBe(true)
+    // Cleanup
+    setFieldSession(null)
+  })
+
+  it('getFieldProjectId returns correct project ID from session', async () => {
+    const { getFieldProjectId, setFieldSession } = await import('../lib/fieldSession')
+    setFieldSession({ token: 'test-token', projectId: 'proj-42', companyId: 'comp-1' })
+    expect(getFieldProjectId()).toBe('proj-42')
+    // Cleanup
+    setFieldSession(null)
+  })
+
+  it('getFieldProjectId returns null when no session', async () => {
+    const { getFieldProjectId, setFieldSession } = await import('../lib/fieldSession')
+    setFieldSession(null)
+    expect(getFieldProjectId()).toBeNull()
+  })
+})

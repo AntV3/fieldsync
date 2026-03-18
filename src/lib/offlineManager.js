@@ -245,14 +245,14 @@ export const addPendingAction = async (type, payload, metadata = {}) => {
     last_error: null
   }
 
-  return new Promise((resolve, reject) => {
+  return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(STORES.PENDING_ACTIONS, 'readwrite')
     const request = store.add(action)
     request.onsuccess = () => {
       resolve(request.result)
     }
     request.onerror = () => reject(request.error)
-  })
+  }))
 }
 
 // Get all pending actions
@@ -436,6 +436,7 @@ if (typeof window !== 'undefined') {
 // ============================================
 
 let isSyncing = false
+const MAX_ACTION_RETRIES = 10
 
 // Check if an idempotency key was already synced (prevents double-replay after crash)
 const wasAlreadySynced = async (idempotencyKey) => {
@@ -487,6 +488,12 @@ export const syncPendingActions = async (db, options = {}) => {
     // Process update actions sequentially (need conflict detection)
     for (const action of updateActions) {
       try {
+        // Skip actions that exceeded max retries
+        if ((action.attempts || 0) >= MAX_ACTION_RETRIES) {
+          results.failed++
+          continue
+        }
+
         if (action.idempotency_key && await wasAlreadySynced(action.idempotency_key)) {
           await removePendingAction(action.id)
           results.synced++
@@ -494,7 +501,7 @@ export const syncPendingActions = async (db, options = {}) => {
         }
 
         // Check for conflicts on update actions
-        if (action.payload?.id) {
+        if (action.payload?.id || action.payload?.areaId) {
           const serverRecord = await fetchServerRecord(db, action.type, action.payload)
           if (serverRecord) {
             const cachedRecord = await getFromStore(STORES.AREAS, action.payload.areaId || action.payload.id)
@@ -526,16 +533,20 @@ export const syncPendingActions = async (db, options = {}) => {
           attempts: (action.attempts || 0) + 1,
           last_error: error.message,
           last_attempt: new Date().toISOString()
-        })
+        }).catch(() => {})
       }
     }
 
     // Batch create actions in parallel (no conflict risk, 3-5x faster sync)
     if (createActions.length > 0) {
+      // Filter out actions that exceeded max retries
+      const retryableActions = createActions.filter(a => (a.attempts || 0) < MAX_ACTION_RETRIES)
+      results.failed += createActions.length - retryableActions.length
+
       // Process in batches of 5 to avoid overwhelming the server
       const BATCH_SIZE = 5
-      for (let i = 0; i < createActions.length; i += BATCH_SIZE) {
-        const batch = createActions.slice(i, i + BATCH_SIZE)
+      for (let i = 0; i < retryableActions.length; i += BATCH_SIZE) {
+        const batch = retryableActions.slice(i, i + BATCH_SIZE)
         const batchResults = await Promise.allSettled(
           batch.map(async (action) => {
             if (action.idempotency_key && await wasAlreadySynced(action.idempotency_key)) {
@@ -543,6 +554,7 @@ export const syncPendingActions = async (db, options = {}) => {
               return { status: 'skipped' }
             }
             await processAction(action, db)
+            // Mark as synced BEFORE removing from queue to prevent orphaned actions on crash
             await markAsSynced(action.idempotency_key)
             await removePendingAction(action.id)
             return { status: 'synced' }
@@ -559,7 +571,7 @@ export const syncPendingActions = async (db, options = {}) => {
               attempts: (action.attempts || 0) + 1,
               last_error: batchResults[j].reason?.message || 'Unknown error',
               last_attempt: new Date().toISOString()
-            })
+            }).catch(() => {})
           }
         }
       }

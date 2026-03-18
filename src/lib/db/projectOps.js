@@ -1025,9 +1025,10 @@ export const projectOps = {
       }
 
       const client = getClient()
+      const now = new Date().toISOString()
       let query = client
         .from('areas')
-        .update({ status })
+        .update({ status, updated_at: now })
         .eq('id', id)
 
       // Add project_id check if provided (prevents cross-tenant access)
@@ -1047,9 +1048,9 @@ export const projectOps = {
         throw error
       }
 
-      // Update cache with server response
+      // Update cache with server response (awaited to prevent stale reads)
       if (data) {
-        updateCachedAreaStatus(id, status).catch(err => console.error('Failed to update cached area status:', err))
+        await updateCachedAreaStatus(id, status).catch(err => console.error('Failed to update cached area status:', err))
       }
 
       return data

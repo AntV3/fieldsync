@@ -451,7 +451,7 @@ export const fieldOps = {
 
     // Count photos from T&M tickets AND report-level photos
     const tmPhotosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
-    const reportPhotosCount = existingReport?.data?.photos?.length || 0
+    const reportPhotosCount = existingReport?.photos?.length || 0
     const photosCount = tmPhotosCount + reportPhotosCount
 
     return {
@@ -768,12 +768,16 @@ export const fieldOps = {
     const client = getClient()
     const senderType = viewerType === 'field' ? 'office' : 'field'
 
-    await client
+    const { error } = await client
       .from('messages')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('project_id', projectId)
       .eq('sender_type', senderType)
       .eq('is_read', false)
+
+    if (error) {
+      console.error('Failed to mark messages as read:', error.message)
+    }
   },
 
   // ============================================

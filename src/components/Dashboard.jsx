@@ -68,6 +68,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const refreshTimeoutRef = useRef(null)
   const pendingAreasRefreshRef = useRef(false)
   const pendingCORRefreshRef = useRef(false)
+  const mountedRef = useRef(true)
+
+  // Refs to hold latest versions of load functions, preventing stale closures in debouncedRefresh
+  const loadAreasRef = useRef(null)
+  const loadProjectsRef = useRef(null)
 
   // Cache for project details to avoid re-fetching when switching between projects
   // Key: projectId, Value: { data: enhancedProjectData, timestamp: Date.now() }
@@ -76,6 +81,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   // Debounced refresh function that coalesces multiple rapid refresh requests
   // This prevents 5+ loadProjects() calls when multiple subscriptions fire at once
+  // Uses refs to always call the latest versions of loadAreas/loadProjects
   const debouncedRefresh = useCallback((options = {}) => {
     const { refreshAreas = false, refreshCOR = false, projectId = null } = options
 
@@ -91,9 +97,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     // Schedule a single refresh after debounce period (150ms)
     // This is fast enough to feel "live" but prevents cascading calls
     refreshTimeoutRef.current = setTimeout(async () => {
-      // Execute pending refreshes
+      if (!mountedRef.current) return
+      // Execute pending refreshes via refs to avoid stale closures
       if (pendingAreasRefreshRef.current) {
-        await loadAreas(pendingAreasRefreshRef.current)
+        await loadAreasRef.current?.(pendingAreasRefreshRef.current)
         pendingAreasRefreshRef.current = false
       }
       if (pendingCORRefreshRef.current) {
@@ -105,13 +112,15 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         projectDetailsCacheRef.current.delete(projectId)
       }
       // Always refresh projects to update metrics
-      await loadProjects()
+      await loadProjectsRef.current?.()
     }, 150)
   }, [])
 
-  // Cleanup debounce timeout on unmount
+  // Cleanup debounce timeout and mounted flag on unmount
   useEffect(() => {
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current)
       }
@@ -650,6 +659,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       console.error('Error loading areas:', error)
     }
   }
+
+  // Keep refs in sync so debouncedRefresh always calls the latest versions
+  loadAreasRef.current = loadAreas
+  loadProjectsRef.current = loadProjects
 
   const handleSelectProject = async (project) => {
     // Set the project immediately for responsive UI

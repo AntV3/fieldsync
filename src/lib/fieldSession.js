@@ -59,6 +59,8 @@ export const clearFieldSession = async () => {
       // Ignore errors during logout
     }
   }
+  // Clear cached client to prevent stale token usage after logout
+  fieldClient = null
   setFieldSession(null)
 }
 
