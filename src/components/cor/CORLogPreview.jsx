@@ -31,6 +31,7 @@ export default function CORLogPreview({
   showingList,       // Whether the list is currently expanded
   onViewFullLog,     // Opens full COR log modal (with edit capabilities)
   onCreateCOR,
+  onViewCOR,         // Opens full COR detail view
 }) {
   const [logEntries, setLogEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -178,7 +179,16 @@ export default function CORLogPreview({
             </thead>
             <tbody>
               {sortedEntries.map(entry => (
-                <tr key={entry.id}>
+                <tr key={entry.id} onClick={() => onViewCOR?.({
+                  id: entry.changeOrder?.id,
+                  cor_number: entry.changeOrder?.corNumber,
+                  title: entry.changeOrder?.title,
+                  cor_total: entry.changeOrder?.corTotal,
+                  status: entry.changeOrder?.status,
+                  created_at: entry.changeOrder?.createdAt,
+                  approved_at: entry.changeOrder?.approvedAt,
+                  approved_by: entry.changeOrder?.approvedBy
+                })} style={{ cursor: 'pointer' }} className="cor-log-preview-row-clickable">
                   <td className="cor-number">{entry.changeOrder?.corNumber || '—'}</td>
                   <td className="cor-title">{entry.changeOrder?.title || 'Untitled'}</td>
                   <td className="cor-amount">{formatCurrency(entry.changeOrder?.corTotal || 0)}</td>

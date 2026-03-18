@@ -72,7 +72,7 @@ export default function CORList({
   }
 
   // View mode state - default to 'all' in preview mode so we can limit by count
-  const [viewMode, setViewMode] = useState(previewMode ? 'all' : 'recent') // 'recent' | 'all'
+  const [viewMode, setViewMode] = useState('all') // 'recent' | 'all'
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
@@ -789,7 +789,7 @@ export default function CORList({
               </button>
             </div>
             <div className="cor-log-modal-content">
-              <CORLog project={project} company={company} onShowToast={onShowToast} />
+              <CORLog project={project} company={company} onShowToast={onShowToast} onViewCOR={onViewCOR} />
             </div>
           </div>
         </div>
