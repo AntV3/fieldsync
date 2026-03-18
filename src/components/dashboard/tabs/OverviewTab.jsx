@@ -173,6 +173,7 @@ export default function OverviewTab({
         <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
           <PhotoTimeline
             projectId={selectedProject?.id}
+            projectName={selectedProject?.name}
             areas={areas}
             onShowToast={onShowToast}
           />
