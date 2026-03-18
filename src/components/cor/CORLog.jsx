@@ -23,7 +23,7 @@ const STATUS_CATEGORIES = {
   void: ['rejected', 'closed']
 }
 
-export default function CORLog({ project, company, onShowToast }) {
+export default function CORLog({ project, company, onShowToast, onViewCOR }) {
   const [logEntries, setLogEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
@@ -383,6 +383,7 @@ export default function CORLog({ project, company, onShowToast }) {
             onEdit={() => setEditingId(entry.id)}
             onSave={(updates) => handleSave(entry.id, updates, entry.changeOrder.id)}
             onCancel={() => setEditingId(null)}
+            onViewCOR={onViewCOR}
             statusDisplay={STATUS_DISPLAY}
           />
         ))}

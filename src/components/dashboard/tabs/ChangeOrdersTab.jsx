@@ -34,6 +34,7 @@ export default function ChangeOrdersTab({
             showingList={corListExpanded}
             onViewFullLog={() => setCORDisplayMode('log')}
             onCreateCOR={onCreateCOR}
+            onViewCOR={onViewCOR}
           />
         </Suspense>
       </div>
