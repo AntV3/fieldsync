@@ -69,7 +69,7 @@ export const fieldOps = {
         onConflict: 'project_id,work_date'
       })
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       observe.error('database', { message: error.message, operation: 'setTruckCount', project_id: projectId })
@@ -207,7 +207,7 @@ export const fieldOps = {
         onConflict: 'project_id,check_in_date'
       })
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       // If network error, queue for later
@@ -498,7 +498,7 @@ export const fieldOps = {
         onConflict: 'project_id,report_date'
       })
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       // If network error, cache locally
@@ -593,7 +593,7 @@ export const fieldOps = {
         onConflict: 'project_id,report_date'
       })
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       // If network error, queue for later
@@ -778,149 +778,6 @@ export const fieldOps = {
     if (error) {
       console.error('Failed to mark messages as read:', error.message)
     }
-  },
-
-  // ============================================
-  // Material Requests
-  // ============================================
-
-  async createMaterialRequest(projectId, items, requestedBy, neededBy = null, priority = 'normal', notes = null) {
-    if (!isSupabaseConfigured) return null
-
-    // If offline, queue the request
-    if (!getConnectionStatus()) {
-      const request = {
-        id: generateTempId(),
-        project_id: projectId,
-        items: items,
-        requested_by: requestedBy,
-        needed_by: neededBy,
-        priority: priority,
-        notes: notes,
-        status: 'pending_sync',
-        created_at: new Date().toISOString(),
-        _offline: true
-      }
-      await addPendingAction(ACTION_TYPES.CREATE_MATERIAL_REQUEST, {
-        projectId,
-        items,
-        requestedBy,
-        neededBy,
-        priority,
-        notes
-      })
-      return request
-    }
-
-    const { data, error } = await supabase
-      .from('material_requests')
-      .insert({
-        project_id: projectId,
-        items: items,
-        requested_by: requestedBy,
-        needed_by: neededBy,
-        priority: priority,
-        notes: notes
-      })
-      .select()
-      .single()
-
-    if (error) {
-      // If network error, queue for later
-      if (error.message?.includes('fetch') || error.message?.includes('network')) {
-        const request = {
-          id: generateTempId(),
-          project_id: projectId,
-          items: items,
-          requested_by: requestedBy,
-          status: 'pending_sync',
-          _offline: true
-        }
-        await addPendingAction(ACTION_TYPES.CREATE_MATERIAL_REQUEST, {
-          projectId,
-          items,
-          requestedBy,
-          neededBy,
-          priority,
-          notes
-        })
-        return request
-      }
-      console.error('Error creating material request:', error)
-      throw error
-    }
-    return data
-  },
-
-  // Get material requests for a project
-  async getMaterialRequests(projectId, status = null) {
-    if (!isSupabaseConfigured) return []
-
-    let query = supabase
-      .from('material_requests')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false })
-
-    if (status) {
-      query = query.eq('status', status)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching material requests:', error)
-      return []
-    }
-    return data || []
-  },
-
-  // Get pending requests count (for badge)
-  async getPendingRequestsCount(projectId) {
-    if (!isSupabaseConfigured) return 0
-
-    const { count, error } = await supabase
-      .from('material_requests')
-      .select('*', { count: 'exact', head: true })
-      .eq('project_id', projectId)
-      .eq('status', 'pending')
-
-    if (error) return 0
-    return count || 0
-  },
-
-  // Update material request status (office action)
-  async updateMaterialRequest(requestId, status, respondedBy, responseNotes = null, expectedDelivery = null) {
-    if (!isSupabaseConfigured) return null
-
-    const updateData = {
-      status: status,
-      responded_by: respondedBy,
-      responded_at: new Date().toISOString(),
-      response_notes: responseNotes,
-      updated_at: new Date().toISOString()
-    }
-
-    if (expectedDelivery) {
-      updateData.expected_delivery = expectedDelivery
-    }
-
-    if (status === 'delivered') {
-      updateData.delivered_at = new Date().toISOString()
-    }
-
-    const { data, error } = await supabase
-      .from('material_requests')
-      .update(updateData)
-      .eq('id', requestId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating material request:', error)
-      throw error
-    }
-    return data
   },
 
   // ============================================

@@ -772,10 +772,9 @@ export const financialOps = {
     if (!localData.notificationPresets) {
       // Return default presets
       return [
-        { id: 'preset-1', name: 'Project Manager', notification_types: ['message', 'material_request', 'injury_report', 'tm_ticket'], company_id: companyId },
+        { id: 'preset-1', name: 'Project Manager', notification_types: ['message', 'injury_report', 'tm_ticket'], company_id: companyId },
         { id: 'preset-2', name: 'Safety Officer', notification_types: ['injury_report'], company_id: companyId },
-        { id: 'preset-3', name: 'Purchasing', notification_types: ['material_request'], company_id: companyId },
-        { id: 'preset-4', name: 'Accounting', notification_types: ['tm_ticket'], company_id: companyId }
+        { id: 'preset-3', name: 'Accounting', notification_types: ['tm_ticket'], company_id: companyId }
       ]
     }
     return localData.notificationPresets.filter(np => np.company_id === companyId)

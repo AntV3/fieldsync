@@ -228,8 +228,7 @@ export const ACTION_TYPES = {
   CREATE_TM_TICKET: 'CREATE_TM_TICKET',
   SAVE_CREW_CHECKIN: 'SAVE_CREW_CHECKIN',
   SUBMIT_DAILY_REPORT: 'SUBMIT_DAILY_REPORT',
-  SEND_MESSAGE: 'SEND_MESSAGE',
-  CREATE_MATERIAL_REQUEST: 'CREATE_MATERIAL_REQUEST'
+  SEND_MESSAGE: 'SEND_MESSAGE'
 }
 
 // Add action to pending queue with idempotency key to prevent double-replay
@@ -635,16 +634,6 @@ const processAction = async (action, db) => {
         payload.senderType,
         payload.senderName,
         payload.content
-      )
-
-    case ACTION_TYPES.CREATE_MATERIAL_REQUEST:
-      return db.createMaterialRequest(
-        payload.projectId,
-        payload.items,
-        payload.requestedBy,
-        payload.neededBy,
-        payload.priority,
-        payload.notes
       )
 
     default:

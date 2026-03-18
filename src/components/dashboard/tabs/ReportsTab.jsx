@@ -1,6 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, Users, Shield, Package, HardHat, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown } from 'lucide-react'
-import { formatCurrency } from '../../../lib/utils'
+import { ClipboardList, Users, Shield, HardHat, TrendingUp, TrendingDown } from 'lucide-react'
 import { TicketSkeleton, CollapsibleSection } from '../../ui'
 
 const DailyReportsList = lazy(() => import('../../DailyReportsList'))
@@ -172,81 +171,6 @@ export default function ReportsTab({
                 </div>
               </div>
             </CollapsibleSection>
-          </div>
-        </div>
-      </div>
-
-      {/* Material Requests + Disposal Summary Row */}
-      <div className="reports-two-col">
-        {/* Material Requests */}
-        <div className="reports-insight-card">
-          <div className="reports-insight-header">
-            <div className="reports-insight-title">
-              <Package size={18} />
-              <h3>Material Requests</h3>
-            </div>
-            <span className="reports-section-count">{projectData?.totalMaterialRequests || 0} total</span>
-          </div>
-          <div className="reports-insight-body">
-            {(projectData?.totalMaterialRequests || 0) === 0 ? (
-              <div className="reports-empty-state">
-                <Package size={32} />
-                <p>No material requests yet</p>
-                <span>Requests from the field will appear here</span>
-              </div>
-            ) : (
-              <>
-                <div className="reports-material-pipeline">
-                  {projectData?.urgentMaterialRequests > 0 && (
-                    <div className="reports-material-status urgent">
-                      <AlertTriangle size={14} />
-                      <span>{projectData.urgentMaterialRequests} Urgent</span>
-                    </div>
-                  )}
-                  <div className="reports-material-status pending">
-                    <span className="reports-material-dot"></span>
-                    <span>{projectData?.pendingMaterialRequests || 0} Pending</span>
-                  </div>
-                  <div className="reports-material-status ordered">
-                    <span className="reports-material-dot"></span>
-                    <span>{projectData?.orderedMaterialRequests || 0} Ordered</span>
-                  </div>
-                  <div className="reports-material-status delivered">
-                    <CheckCircle2 size={14} />
-                    <span>{projectData?.deliveredMaterialRequests || 0} Delivered</span>
-                  </div>
-                </div>
-                <CollapsibleSection
-                  title="Recent Requests"
-                  variant="compact"
-                  badge={`${(projectData?.materialRequests || []).length}`}
-                >
-                  <div className="reports-recent-list">
-                    {(projectData?.materialRequests || []).slice(0, 3).map(req => (
-                      <div key={req.id} className={`reports-recent-item ${req.status}`}>
-                        <div className="reports-recent-item-main">
-                          <span className={`reports-recent-item-status ${req.status}`}>{req.status}</span>
-                          <span className="reports-recent-item-date">
-                            {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </span>
-                        </div>
-                        <div className="reports-recent-item-detail">
-                          {(req.items || []).slice(0, 2).map((item, i) => (
-                            <span key={i}>{item.name}{item.quantity ? ` (${item.quantity})` : ''}</span>
-                          ))}
-                          {(req.items || []).length > 2 && (
-                            <span className="reports-recent-more">+{(req.items || []).length - 2} more</span>
-                          )}
-                        </div>
-                        {req.priority === 'urgent' && (
-                          <span className="reports-urgent-tag">URGENT</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-              </>
-            )}
           </div>
         </div>
       </div>
