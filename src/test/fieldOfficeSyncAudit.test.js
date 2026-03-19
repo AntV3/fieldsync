@@ -392,7 +392,6 @@ describe('Offline sync: pending actions are queued and synced', () => {
     expect(ACTION_TYPES.SAVE_CREW_CHECKIN).toBe('SAVE_CREW_CHECKIN')
     expect(ACTION_TYPES.SUBMIT_DAILY_REPORT).toBe('SUBMIT_DAILY_REPORT')
     expect(ACTION_TYPES.SEND_MESSAGE).toBe('SEND_MESSAGE')
-    expect(ACTION_TYPES.CREATE_MATERIAL_REQUEST).toBe('CREATE_MATERIAL_REQUEST')
   })
 
   it('connection status listeners can be registered and unregistered', async () => {

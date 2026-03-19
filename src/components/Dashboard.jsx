@@ -150,7 +150,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     // Uses debounced refresh to coalesce rapid updates from multiple sources
     const subscription = db.subscribeToCompanyActivity?.(company.id, currentIds, {
       onMessage: () => debouncedRefresh(),
-      onMaterialRequest: () => debouncedRefresh(),
       onTMTicket: () => debouncedRefresh(),
       onCrewCheckin: () => debouncedRefresh(), // Crew check-ins affect labor costs
       onAreaUpdate: () => debouncedRefresh(), // Area updates affect progress
@@ -252,12 +251,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       })
       if (tmSub) subscriptions.push(tmSub)
 
-      // Material requests subscription
-      const matReqSub = db.subscribeToMaterialRequests?.(projectId, () => {
-        debouncedRefresh()
-      })
-      if (matReqSub) subscriptions.push(matReqSub)
-
       // Messages subscription
       const msgSub = db.subscribeToMessages?.(projectId, () => {
         debouncedRefresh()
@@ -300,7 +293,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         customCosts,
         corStats,
         crewHistory,
-        materialRequests,
         projectEquipment,
         projectInvoices,
         punchListItems
@@ -314,7 +306,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getProjectCosts(project.id), { fallback: [], context: { operation: 'getProjectCosts', projectId: project.id } }),
         safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } }),
         safeAsync(() => db.getCrewCheckinHistory(project.id, 60), { fallback: [], context: { operation: 'getCrewCheckinHistory', projectId: project.id } }),
-        safeAsync(() => db.getMaterialRequests(project.id), { fallback: [], context: { operation: 'getMaterialRequests', projectId: project.id } }),
         safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } }),
         safeAsync(() => db.getProjectInvoices(project.id), { fallback: [], context: { operation: 'getProjectInvoices', projectId: project.id } }),
         safeAsync(() => db.getPunchListItems(project.id), { fallback: [], context: { operation: 'getPunchListItems', projectId: project.id } })
@@ -435,12 +426,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         ? priorCrewDates.reduce((s, d) => s + crewByDate[d], 0) / priorCrewDates.length
         : 0
 
-      // Material request analytics
-      const pendingMaterialRequests = (materialRequests || []).filter(r => r.status === 'pending').length
-      const orderedMaterialRequests = (materialRequests || []).filter(r => r.status === 'ordered').length
-      const deliveredMaterialRequests = (materialRequests || []).filter(r => r.status === 'delivered').length
-      const urgentMaterialRequests = (materialRequests || []).filter(r => r.priority === 'urgent' && r.status === 'pending').length
-
       // Daily report field notes analysis
       const reportsWithIssues = dailyReports.filter(r => r.issues && r.issues.trim().length > 0).length
       const totalPhotosFromTickets = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
@@ -514,13 +499,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         crewDaysTracked: crewDates.length,
         crewTrend: priorCrewAvg > 0 ? ((recentCrewAvg - priorCrewAvg) / priorCrewAvg * 100) : 0,
         recentCrewAvg,
-        // Material requests
-        materialRequests: materialRequests || [],
-        pendingMaterialRequests,
-        orderedMaterialRequests,
-        deliveredMaterialRequests,
-        urgentMaterialRequests,
-        totalMaterialRequests: (materialRequests || []).length,
         // Field activity insights
         reportsWithIssues,
         totalPhotosFromTickets,

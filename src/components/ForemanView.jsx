@@ -151,12 +151,9 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     const reportSub = db.subscribeToDailyReports?.(project.id, () => debouncedRefresh({ status: true }))
     if (reportSub) subs.push(reportSub)
 
-    // COR/material request/project changes: no need to reload areas or today status
+    // COR/project changes: no need to reload areas or today status
     const corSub = db.subscribeToCORs?.(project.id, () => debouncedRefresh({ status: false }))
     if (corSub) subs.push(corSub)
-
-    const matReqSub = db.subscribeToMaterialRequests?.(project.id, () => debouncedRefresh({ status: false }))
-    if (matReqSub) subs.push(matReqSub)
 
     const projectSub = db.subscribeToProject?.(project.id, () => debouncedRefresh({ areas: true, status: true }))
     if (projectSub) subs.push(projectSub)

@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, ArrowRight } from 'lucide-react'
+import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import EarnedValueCard from '../../charts/EarnedValueCard'
@@ -24,23 +24,6 @@ export default function OverviewTab({
   onExportFieldDocuments
 }) {
   const attentionItems = []
-  if (projectData?.urgentMaterialRequests > 0) {
-    attentionItems.push({
-      id: 'urgent-materials',
-      type: 'warning',
-      icon: AlertTriangle,
-      label: `${projectData.urgentMaterialRequests} urgent material request${projectData.urgentMaterialRequests !== 1 ? 's' : ''}`,
-      tab: 'reports'
-    })
-  } else if (projectData?.pendingMaterialRequests > 0) {
-    attentionItems.push({
-      id: 'pending-materials',
-      type: 'info',
-      icon: Package,
-      label: `${projectData.pendingMaterialRequests} material request${projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending`,
-      tab: 'reports'
-    })
-  }
   if (projectData?.pendingTickets > 0) {
     attentionItems.push({
       id: 'pending-tm',

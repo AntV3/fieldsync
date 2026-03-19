@@ -1144,20 +1144,6 @@ export const projectOps = {
     return null
   },
 
-  // Subscribe to material requests for a project
-  subscribeToMaterialRequests(projectId, callback) {
-    if (isSupabaseConfigured) {
-      return supabase
-        .channel(`material_requests:${projectId}`)
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'material_requests', filter: `project_id=eq.${projectId}` },
-          callback
-        )
-        .subscribe()
-    }
-    return null
-  },
-
   // Subscribe to daily reports for a project
   subscribeToDailyReports(projectId, callback) {
     if (isSupabaseConfigured) {
@@ -1227,12 +1213,6 @@ export const projectOps = {
       channel.on('postgres_changes',
         { event: '*', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onMessage?.(payload)
-      )
-
-      // Material requests
-      channel.on('postgres_changes',
-        { event: '*', schema: 'public', table: 'material_requests', filter: `project_id=eq.${projectId}` },
-        (payload) => callbacks.onMaterialRequest?.(payload)
       )
 
       // T&M Tickets

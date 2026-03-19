@@ -8,7 +8,7 @@
  *   db/laborOps.js     — Materials, Equipment, Labor rates
  *   db/tmOps.js        — T&M Tickets, Photos
  *   db/companyOps.js   — Company, Memberships, Punch list
- *   db/fieldOps.js     — Crew, Daily Reports, Messaging, Material Requests, Injuries, Disposal
+ *   db/fieldOps.js     — Crew, Daily Reports, Messaging, Injuries, Disposal
  *   db/financialOps.js — COR/Exports, Sharing, Notifications
  *   db/documentOps.js  — Documents, Folders
  *   db/client.js       — Shared deps (supabase client, offline cache, helpers)
