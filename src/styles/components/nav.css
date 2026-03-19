@@ -340,3 +340,33 @@
   }
 }
 
+/* ============================================
+   SpaceX Navigation Enhancements
+   ============================================ */
+
+/* Active tab SpaceX-style accent underline */
+.nav-tab.active,
+.tab-btn.active {
+  position: relative;
+}
+
+.nav-tab.active::after,
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 2px;
+  background: var(--gradient-accent, var(--color-accent));
+  border-radius: var(--radius-full);
+}
+
+/* Nav item hover enhancement */
+.nav-tab:hover,
+.tab-btn:hover {
+  background: var(--hover-overlay);
+  border-radius: var(--radius-sm);
+}
+

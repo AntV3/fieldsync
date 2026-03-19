@@ -6,10 +6,10 @@
  */
 
 @theme {
-  /* ── Color System ── */
-  --color-bg-primary: #0F1112;
-  --color-bg-secondary: #181C1F;
-  --color-bg-tertiary: #22272B;
+  /* ── Color System (aligned with main dark theme) ── */
+  --color-bg-primary: #121418;
+  --color-bg-secondary: #1A1D22;
+  --color-bg-tertiary: #222730;
 
   --color-text-primary: #FFFFFF;
   --color-text-secondary: #A7A9AC;
@@ -22,8 +22,8 @@
   --color-status-amber: #FFA726;
   --color-status-red: #F44336;
 
-  --color-overlay-dark: rgba(15, 17, 18, 0.90);
-  --color-overlay-panel: rgba(33, 44, 48, 0.92);
+  --color-overlay-dark: rgba(12, 14, 18, 0.85);
+  --color-overlay-panel: rgba(26, 29, 34, 0.90);
 
   --color-border-subtle: rgba(255, 255, 255, 0.06);
   --color-border-default: rgba(255, 255, 255, 0.08);

@@ -770,3 +770,35 @@ END MIGRATED */
   }
 }
 
+/* ============================================
+   SpaceX Layout Utilities
+   ============================================ */
+
+/* Gap utilities using spacing tokens */
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+
+/* Auto-fill grid for responsive card layouts */
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
+  gap: var(--grid-gutter);
+}
+
+/* Prevent grid children overflow */
+.grid-auto-fill > *,
+.grid > * {
+  min-width: 0;
+}
+
+/* Responsive gutter enhancement */
+@media (min-width: 1440px) {
+  :root {
+    --grid-gutter: 28px;
+  }
+}
+

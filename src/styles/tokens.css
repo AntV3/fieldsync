@@ -131,6 +131,7 @@
   animation: toast-enter var(--duration-normal) var(--ease-out);
   box-shadow: var(--shadow-lg);
   max-width: 100%;
+  border-left: 4px solid transparent;
 }
 
 .toast-exit {
@@ -141,24 +142,28 @@
   background: var(--status-success-bg, #064e3b);
   color: var(--status-success, #059669);
   border: 1px solid var(--status-success, #059669);
+  border-left: 4px solid var(--status-success, #059669);
 }
 
 .toast-error {
   background: var(--status-danger-bg, #7f1d1d);
   color: var(--status-danger, #dc2626);
   border: 1px solid var(--status-danger, #dc2626);
+  border-left: 4px solid var(--status-danger, #dc2626);
 }
 
 .toast-warning {
   background: var(--status-warning-bg, #78350f);
   color: var(--status-warning, #d97706);
   border: 1px solid var(--status-warning, #d97706);
+  border-left: 4px solid var(--status-warning, #d97706);
 }
 
 .toast-info {
-  background: var(--accent-bg, #1e3a5f);
-  color: var(--accent, #3b82f6);
-  border: 1px solid var(--accent, #3b82f6);
+  background: var(--status-info-bg, #1e3a5f);
+  color: var(--status-info, #3b82f6);
+  border: 1px solid var(--status-info, #3b82f6);
+  border-left: 4px solid var(--status-info, #3b82f6);
 }
 
 .toast-message {
