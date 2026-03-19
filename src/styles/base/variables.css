@@ -112,6 +112,10 @@
   --glass-backdrop: none;
   --surface-shine: none;
 
+  /* ---- SpaceX Accent Gradient ---- */
+  --gradient-accent: linear-gradient(135deg, #005288 0%, #0170AB 100%);
+  --shadow-card-glow: none;
+
   /* ---- Semantic Surfaces ---- */
   --surface-primary: var(--bg-surface);
   --surface-secondary: var(--bg-elevated);
@@ -149,6 +153,7 @@
   --space-4: 16px;    /* 1rem    - Card padding, section gaps */
   --space-5: 24px;    /* 1.5rem  - Major section separation */
   --space-6: 32px;    /* 2rem    - Page-level padding */
+  --space-7: 40px;    /* 2.5rem  - Section breathing room */
   --space-8: 48px;    /* 3rem    - Hero sections, dashboard gaps */
   --space-10: 64px;   /* 4rem    - Page margins, major layout divisions */
 
@@ -165,17 +170,19 @@
   --radius-sm: 4px;       /* Dense data */
   --radius-md: 6px;       /* Standard interactive */
   --radius-lg: 8px;       /* Standard cards */
-  --radius-xl: 8px;       /* Same as lg - no border-radius > 12px per spec */
+  --radius-xl: 10px;      /* Elevated cards, panels */
+  --radius-2xl: 12px;     /* Hero cards, modals */
   --radius-full: 9999px;
 
   /* ---- Typography ---- */
-  /* 2-font system: Inter for UI, JetBrains Mono for data/numbers */
+  /* 3-font system: Inter for UI, D-DIN for display/headings, JetBrains Mono for data */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-display: 'D-DIN', 'DIN', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-data: 'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', monospace;
   --font-mono: 'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', monospace;
 
   /* ---- Type Scale (8-point grid system) ---- */
-  --text-display: 2rem;         /* 32px - Dashboard titles, page headers */
+  --text-display: 2.25rem;      /* 36px - Dashboard titles, page headers */
   --text-h1: 1.5rem;            /* 24px - Section headers, major card titles */
   --text-h2: 1.25rem;           /* 20px - Subsection headers, widget titles */
   --text-h3: 1rem;              /* 16px - Card headers, metric labels */
@@ -185,6 +192,7 @@
   --text-data-large: 1.75rem;   /* 28px - Primary KPI values */
   --text-data-medium: 1.25rem;  /* 20px - Secondary metrics */
   --text-data-small: 0.875rem;  /* 14px - Tabular data, small numbers */
+  --text-overline: 0.6875rem;   /* 11px - Overline labels, eyebrow text */
 
   /* Legacy font size aliases */
   --font-size-xs: var(--text-small);
@@ -211,7 +219,8 @@
   --letter-spacing-tight: -0.02em;
   --letter-spacing-normal: 0;
   --letter-spacing-wide: 0.01em;
-  --letter-spacing-caps: 0.04em;
+  --letter-spacing-caps: 0.06em;       /* SpaceX-style uppercase tracking */
+  --letter-spacing-display: 0.08em;    /* Hero/display headings */
 
   /* ---- Transitions (max 300ms per spec) ---- */
   --transition-fast: 150ms ease;
@@ -290,28 +299,28 @@
    Dark Mode Palette (Required per spec)
    ============================================ */
 [data-theme="dark"] {
-  /* ---- Dark Backgrounds ---- */
-  --bg-canvas: #181824;
-  --bg-surface: #1E1E2E;
-  --bg-elevated: #252538;
-  --bg-primary: #181824;
-  --bg-secondary: #1E1E2E;
-  --bg-tertiary: #252538;
-  --bg-card: #1E1E2E;
-  --bg-input: #252538;
+  /* ---- Dark Backgrounds (SpaceX aerospace charcoal) ---- */
+  --bg-canvas: #121418;
+  --bg-surface: #1A1D22;
+  --bg-elevated: #222730;
+  --bg-primary: #121418;
+  --bg-secondary: #1A1D22;
+  --bg-tertiary: #262B33;
+  --bg-card: #1A1D22;
+  --bg-input: #222730;
 
   /* ---- Dark Text ---- */
-  --text-primary: #F0F0F5;
-  --text-secondary: #A0A0B0;
-  --text-tertiary: #6A6A7A;
-  --text-muted: #6A6A7A;
-  --text-inverse: #181824;
-  --text-color: #F0F0F5;
+  --text-primary: #EAEDF2;
+  --text-secondary: #8B919A;
+  --text-tertiary: #5A6070;
+  --text-muted: #5A6070;
+  --text-inverse: #121418;
+  --text-color: #EAEDF2;
 
-  /* ---- Dark Borders ---- */
-  --border-subtle: #2A2A3C;
-  --border-color: #2A2A3C;
-  --border-light: #222233;
+  /* ---- Dark Borders (neutral, less purple) ---- */
+  --border-subtle: #2A2F38;
+  --border-color: #2A2F38;
+  --border-light: #1E2329;
 
   /* ---- Dark Accent Colors ---- */
   --accent-blue: #3DAEE0;
@@ -322,36 +331,39 @@
 
   /* ---- Dark Status Colors ---- */
   --status-success: #3FA87A;
-  --status-success-bg: #1A3D2D;
+  --status-success-bg: #162E22;
   --status-warning: #D4901E;
-  --status-warning-bg: #3D2D0F;
+  --status-warning-bg: #2E2410;
   --status-danger: #E27050;
-  --status-danger-bg: #3D1F1A;
+  --status-danger-bg: #2E1A16;
   --status-info: #3DAEE0;
-  --status-info-bg: #1A2D3D;
-  --status-neutral: #6A6A7A;
-  --status-neutral-bg: #2A2A3C;
+  --status-info-bg: #162430;
+  --status-neutral: #5A6070;
+  --status-neutral-bg: #262B33;
 
   /* ---- Dark Progress & Charts ---- */
-  --progress-bg: #2A2A3C;
-  --chart-grid: #2A2A3C;
+  --progress-bg: #2A2F38;
+  --chart-grid: #2A2F38;
 
-  /* ---- Dark Shadows ---- */
-  --shadow-color: rgba(0, 0, 0, 0.3);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.15);
-  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.15);
-  --shadow-card-active: 0 2px 8px rgba(0, 0, 0, 0.2), 0 0 2px rgba(0, 0, 0, 0.12);
-  --shadow-glow-blue: 0 0 20px rgba(61, 174, 224, 0.15), 0 0 60px rgba(61, 174, 224, 0.05);
-  --shadow-glow-green: 0 0 20px rgba(63, 168, 122, 0.15), 0 0 60px rgba(63, 168, 122, 0.05);
-  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.15);
-  --shadow-focus: 0 0 0 3px rgba(61, 174, 224, 0.2);
-  --shadow-focus-error: 0 0 0 3px rgba(240, 132, 90, 0.2);
-  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
+  /* ---- Dark Shadows (deeper, more layered) ---- */
+  --shadow-color: rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.24), 0 0 1px rgba(0, 0, 0, 0.12);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-card-active: 0 2px 8px rgba(0, 0, 0, 0.22), 0 0 2px rgba(0, 0, 0, 0.14);
+  --shadow-card-glow: 0 0 0 1px rgba(0, 82, 136, 0.15), 0 8px 32px rgba(0, 82, 136, 0.08);
+  --shadow-glow-blue: 0 0 24px rgba(1, 112, 171, 0.2), 0 0 80px rgba(1, 112, 171, 0.06);
+  --shadow-glow-green: 0 0 24px rgba(63, 168, 122, 0.18), 0 0 80px rgba(63, 168, 122, 0.06);
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-border-glow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(1, 112, 171, 0.25);
+  --shadow-focus-error: 0 0 0 3px rgba(240, 132, 90, 0.25);
+  --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.25);
 
   /* ---- Dark Glass / Surface Effects ---- */
-  --glass-bg: var(--bg-surface);
-  --glass-border: var(--border-subtle);
-  --surface-shine: none;
+  --glass-bg: rgba(26, 29, 34, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-backdrop: blur(16px) saturate(180%);
+  --surface-shine: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
 
   /* ---- Dark Semantic Surfaces ---- */
   --surface-primary: var(--bg-card);
@@ -360,11 +372,11 @@
   --surface-hover: var(--bg-elevated);
   --surface-inset: var(--bg-primary);
 
-  /* ---- Dark Subtle Backgrounds ---- */
-  --blue-subtle: rgba(61, 174, 224, 0.08);
-  --green-subtle: rgba(63, 168, 122, 0.08);
-  --amber-subtle: rgba(245, 184, 74, 0.08);
-  --red-subtle: rgba(240, 132, 90, 0.08);
+  /* ---- Dark Subtle Backgrounds (slightly more visible) ---- */
+  --blue-subtle: rgba(1, 112, 171, 0.10);
+  --green-subtle: rgba(63, 168, 122, 0.10);
+  --amber-subtle: rgba(245, 184, 74, 0.10);
+  --red-subtle: rgba(240, 132, 90, 0.10);
 
   /* ---- Dark Overlays ---- */
   --hover-overlay: rgba(255, 255, 255, 0.04);
@@ -374,21 +386,22 @@
   --primary-color: #3DAEE0;
   --secondary-color: #1C4E80;
 
-  /* ---- Dark Gradients ---- */
+  /* ---- Dark Gradients (SpaceX aerospace subtle gradients) ---- */
   --gradient-blue: linear-gradient(135deg, #1C4E80 0%, #3DAEE0 100%);
   --gradient-green: linear-gradient(135deg, #2E865F 0%, #3FA87A 100%);
   --gradient-amber: linear-gradient(135deg, #D4901E 0%, #F5A623 100%);
-  --gradient-hero: #181824;
-  --gradient-card-dark: var(--bg-card);
-  --gradient-card-subtle: none;
-  --gradient-section: var(--bg-primary);
+  --gradient-accent: linear-gradient(135deg, #005288 0%, #0170AB 100%);
+  --gradient-hero: linear-gradient(165deg, #121418 0%, #1A2030 50%, #121418 100%);
+  --gradient-card-dark: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+  --gradient-card-subtle: linear-gradient(180deg, rgba(255, 255, 255, 0.015) 0%, transparent 100%);
+  --gradient-section: linear-gradient(180deg, #1A1D22 0%, #121418 100%);
 
-  /* ---- Dark Elevation ---- */
-  --elevation-0: #181824;
-  --elevation-1: #1E1E2E;
-  --elevation-2: #252538;
-  --elevation-3: #2A2A3C;
-  --elevation-4: #303045;
+  /* ---- Dark Elevation (SpaceX charcoal scale) ---- */
+  --elevation-0: #121418;
+  --elevation-1: #1A1D22;
+  --elevation-2: #222730;
+  --elevation-3: #2A2F38;
+  --elevation-4: #323840;
 
   /* ---- Dark Aliases ---- */
   --bg-hover: var(--bg-elevated);

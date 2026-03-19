@@ -125,7 +125,7 @@ body {
    ============================================ */
 
 [data-theme="light"] .modal-overlay {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.45);
 }
 
 [data-theme="light"] .modal-content {
@@ -1132,4 +1132,165 @@ body {
   background: var(--bg-secondary);
   border-color: var(--border-color);
   color: var(--text-primary);
+}
+
+/* ============================================
+   Dark Mode: SpaceX Glass Surfaces & Enhanced Depth
+   ============================================ */
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .section-card,
+[data-theme="dark"] .info-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card), var(--shadow-border-glow);
+}
+
+[data-theme="dark"] .card:hover,
+[data-theme="dark"] .section-card:hover {
+  box-shadow: var(--shadow-card-hover), var(--shadow-border-glow);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .project-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card), var(--shadow-border-glow);
+}
+
+[data-theme="dark"] .project-card:hover {
+  border-color: rgba(1, 112, 171, 0.3);
+  box-shadow: var(--shadow-card-glow);
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .project-card::before {
+  background: var(--gradient-accent, linear-gradient(135deg, #005288 0%, #0170AB 100%));
+  height: 3px;
+}
+
+/* ============================================
+   Dark Mode: Enhanced Interactive Feedback
+   ============================================ */
+
+[data-theme="dark"] .btn-primary {
+  box-shadow: 0 1px 3px rgba(0, 82, 136, 0.3), 0 0 0 1px rgba(1, 112, 171, 0.2);
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(0, 82, 136, 0.35), 0 0 0 1px rgba(1, 112, 171, 0.4);
+}
+
+[data-theme="dark"] .btn-secondary {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .btn-ghost:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ============================================
+   Dark Mode: Visual Hierarchy Refinements
+   ============================================ */
+
+[data-theme="dark"] .section-header {
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+[data-theme="dark"] .card-title {
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+/* ============================================
+   Dark Mode: Dashboard Cards Glass Treatment
+   ============================================ */
+
+[data-theme="dark"] .burn-rate-card,
+[data-theme="dark"] .profitability-card,
+[data-theme="dark"] .cost-contributors-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card), var(--shadow-border-glow);
+}
+
+[data-theme="dark"] .burn-rate-card:hover,
+[data-theme="dark"] .profitability-card:hover,
+[data-theme="dark"] .cost-contributors-card:hover {
+  box-shadow: var(--shadow-card-hover), var(--shadow-border-glow);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   Dark Mode: Enhanced Modal Overlay
+   ============================================ */
+
+[data-theme="dark"] .modal-overlay {
+  background: rgba(8, 10, 14, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+[data-theme="dark"] .modal-content {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-elevated), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-2xl);
+}
+
+/* ============================================
+   Dark Mode: Navigation Glass Effect
+   ============================================ */
+
+[data-theme="dark"] .nav {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .sidebar {
+  background: var(--bg-surface);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.02);
+}
+
+/* ============================================
+   Dark Mode: Input Focus Glow
+   ============================================ */
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  border-color: rgba(1, 112, 171, 0.5);
+  box-shadow: 0 0 0 3px rgba(1, 112, 171, 0.15), inset 0 0 0 1px rgba(1, 112, 171, 0.3);
+}
+
+/* ============================================
+   Dark Mode: Toast Glass Treatment
+   ============================================ */
+
+[data-theme="dark"] .toast {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-elevated);
 }
