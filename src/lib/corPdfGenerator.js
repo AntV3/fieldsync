@@ -200,6 +200,19 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
 
     const laborGroups = groupLaborByClassAndType(cor.change_order_labor)
 
+    // Build a lookup of ticket dates by labor class for source attribution
+    const laborSourceMap = {}
+    for (const ticket of tickets) {
+      const workDate = ticket.work_date || ticket.ticket_date
+      for (const worker of (ticket.t_and_m_workers || [])) {
+        const className = (worker.labor_class || worker.role || 'laborer').toLowerCase()
+        if (!laborSourceMap[className]) laborSourceMap[className] = []
+        if (workDate && !laborSourceMap[className].includes(workDate)) {
+          laborSourceMap[className].push(workDate)
+        }
+      }
+    }
+
     for (const group of laborGroups) {
       if (yPos > pageHeight - 60) {
         doc.addPage()
@@ -210,6 +223,23 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(71, 85, 105)
       doc.text(group.label, margin, yPos)
+
+      // Show source T&M ticket dates for this labor class
+      const groupClassName = (group.items[0]?.labor_class || '').toLowerCase()
+      const sourceDates = laborSourceMap[groupClassName] || []
+      if (sourceDates.length > 0) {
+        const sortedDates = sourceDates.sort()
+        const dateStr = sortedDates.map(d => formatDate(d)).join(', ')
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(100, 116, 139)
+        const sourceText = `Source: T&M Ticket${sortedDates.length > 1 ? 's' : ''} — ${dateStr}`
+        const maxSourceWidth = pageWidth - (margin * 2) - doc.getTextWidth(group.label) - 10
+        const truncatedSource = doc.getTextWidth(sourceText) > maxSourceWidth
+          ? doc.splitTextToSize(sourceText, maxSourceWidth)[0]
+          : sourceText
+        doc.text(truncatedSource, pageWidth - margin, yPos, { align: 'right' })
+      }
       yPos += 4
 
       autoTable(doc, {
@@ -431,9 +461,10 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     startY: yPos,
     body: summaryData,
     margin: { left: margin, right: margin },
+    tableWidth: pageWidth - (margin * 2),
     columnStyles: {
-      0: { cellWidth: 120 },
-      1: { cellWidth: 50, halign: 'right' }
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 45, halign: 'right' }
     },
     bodyStyles: { fontSize: 9, cellPadding: 2.5 },
     alternateRowStyles: { fillColor: [250, 251, 253] },
@@ -471,9 +502,10 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     startY: yPos,
     body: feesData,
     margin: { left: margin, right: margin },
+    tableWidth: pageWidth - (margin * 2),
     columnStyles: {
-      0: { cellWidth: 120 },
-      1: { cellWidth: 50, halign: 'right' }
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 45, halign: 'right' }
     },
     bodyStyles: { fontSize: 8.5, cellPadding: 2.5, textColor: [100, 116, 139] },
     theme: 'plain'
@@ -549,10 +581,14 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     }
     yPos += 15
 
-    // Summary box
+    // Summary box - dynamic height based on ticket count
+    const ticketBreakdownHeight = (tickets.length > 0 && tickets.length <= 8)
+      ? 9 + (tickets.length * 4.5)
+      : 0
+    const summaryBoxHeight = 55 + ticketBreakdownHeight
     doc.setFillColor(248, 250, 252)
     doc.setDrawColor(226, 232, 240)
-    doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 55, 3, 3, 'FD')
+    doc.roundedRect(margin, yPos, pageWidth - (margin * 2), summaryBoxHeight, 3, 3, 'FD')
 
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
@@ -589,6 +625,23 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       summaryY += 7
     }
 
+    // Show per-ticket hour breakdown for traceability
+    if (tickets.length > 0 && tickets.length <= 8) {
+      doc.setFontSize(8)
+      doc.setTextColor(100, 116, 139)
+      doc.text('Hours by T&M Ticket:', summaryCol1, summaryY)
+      summaryY += 5
+      for (const ticket of tickets) {
+        const tDate = formatDate(ticket.work_date || ticket.ticket_date)
+        const tRegHrs = (ticket.t_and_m_workers || []).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0)
+        const tOTHrs = (ticket.t_and_m_workers || []).reduce((s, w) => s + (parseFloat(w.overtime_hours) || 0), 0)
+        const otLabel = tOTHrs > 0 ? ` + ${tOTHrs.toFixed(1)} OT` : ''
+        doc.text(`${tDate}: ${tRegHrs.toFixed(1)} reg hrs${otLabel}`, summaryCol1 + 5, summaryY)
+        summaryY += 4.5
+      }
+      doc.setFontSize(10)
+    }
+
     doc.text('Photo Evidence:', summaryCol1, summaryY)
     doc.setFont('helvetica', 'bold')
     doc.text(`${snapshot.totals.photoCount} photos`, summaryCol2, summaryY)
@@ -601,7 +654,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     doc.setTextColor(...verifiedColor)
     doc.text(`${snapshot.totals.verifiedTicketCount} of ${tickets.length} tickets`, summaryCol2, summaryY)
 
-    yPos += 70
+    yPos += summaryBoxHeight + 15
 
     // Document ID and timestamp
     doc.setFontSize(9)

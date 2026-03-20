@@ -20,6 +20,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
   const [foremanName, setForemanName] = useState('')
 
   const loginInProgressRef = useRef(false)
+  const checkInProgressRef = useRef(false)
 
   // Shared logic: load user profile, companies, and select active company
   const loadUserAndCompany = useCallback(async (authUserId) => {
@@ -97,6 +98,10 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
 
   // checkAuth: called on mount and auth state changes
   const checkAuth = useCallback(async () => {
+    // Prevent concurrent auth checks (avoids duplicate 406 requests from stale tokens)
+    if (checkInProgressRef.current) return
+    checkInProgressRef.current = true
+
     try {
       if (!isSupabaseConfigured) {
         setLoading(false)
@@ -138,6 +143,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
       console.error('Auth check error:', error)
     } finally {
       setLoading(false)
+      checkInProgressRef.current = false
     }
   }, [navigate, locationPathname, loadUserAndCompany, showToast])
 
