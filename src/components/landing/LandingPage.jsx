@@ -5,6 +5,7 @@ import HeroSection from './HeroSection'
 import CapabilityStrip from './CapabilityStrip'
 import AppShowcase from './AppShowcase'
 import FeatureGrid from './FeatureGrid'
+import HowItWorks from './HowItWorks'
 import SignInCTA from './SignInCTA'
 import LandingFooter from './LandingFooter'
 
@@ -73,7 +74,7 @@ export default function LandingPage() {
   }, [navigate])
 
   const handleScrollToFeatures = useCallback(() => {
-    const el = document.getElementById('features')
+    const el = document.getElementById('how-it-works')
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' })
     }
@@ -102,6 +103,7 @@ export default function LandingPage() {
         <CapabilityStrip />
         <AppShowcase />
         <FeatureGrid />
+        <HowItWorks />
         <SignInCTA
           onGetStarted={handleGetStarted}
           onSignIn={handleSignIn}

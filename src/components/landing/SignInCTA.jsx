@@ -4,13 +4,12 @@ export default function SignInCTA({ onGetStarted, onSignIn }) {
   return (
     <section className="lp-cta lp-animate">
       <div className="lp-cta-content">
-        <h2 className="lp-cta-heading">How much revenue is sitting in unsubmitted draw requests right now?</h2>
+        <h2 className="lp-cta-heading">How much extra work is going unbilled right now?</h2>
         <p className="lp-cta-desc">
-          Every day without verified field data is another day your billing is based on estimates.
-          Another day project managers spend chasing updates instead of managing projects.
-          Another day owners lack the visibility to make confident decisions.
-          FieldSync deploys in minutes, requires no training for field crews, and connects your entire operation from the first update.
-          Start today and submit your next draw with data behind every line item.
+          Every change order that doesn't get documented is revenue left on the table.
+          Every T&amp;M ticket that gets lost is work your crew did for free.
+          FieldSync deploys in minutes, requires no training for field crews, and captures every COR and T&amp;M ticket the moment extra work happens.
+          Start today and never lose another dollar of billable work.
         </p>
         <div className="lp-cta-actions">
           <button className="lp-btn-primary" onClick={onGetStarted}>

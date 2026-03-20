@@ -1,30 +1,30 @@
-import { RefreshCw, Smartphone, ToggleRight, DollarSign, WifiOff, Shield } from 'lucide-react'
+import { FileText, Clock, Camera, PenTool, WifiOff, Shield } from 'lucide-react'
 
 const FEATURES = [
   {
-    icon: RefreshCw,
-    title: 'Real-Time Sync',
-    desc: 'When a task is completed in the field, your office dashboard reflects it immediately. No waiting for end-of-day calls, no reconciling outdated spreadsheets. Progress is live, verified, and visible to everyone who needs it.',
+    icon: FileText,
+    title: 'Instant COR Creation',
+    desc: 'Field crews create Change Order Requests on the spot — description, scope, cost estimate, and supporting photos. CORs flow to the office instantly for review and approval. No paperwork, no delays, no lost revenue.',
   },
   {
-    icon: Smartphone,
-    title: 'One-Tap Updates',
-    desc: 'Field crews update task status with a single tap — no training, no learning curve. Superintendents spend less time on documentation and more time managing the work. Every update is automatically logged with a timestamp and location.',
+    icon: Clock,
+    title: 'T&M Ticket Tracking',
+    desc: 'Log crew hours, materials, and equipment for every T&M event as it happens. Each ticket is timestamped and geotagged so there\'s never a dispute about what work was performed, when, or by whom.',
   },
   {
-    icon: ToggleRight,
-    title: 'Binary Progress',
-    desc: 'Tasks are either In Progress or Complete. No ambiguous percentages, no subjective estimates. When a GC or owner asks for proof of progress, every status change is timestamped, geotagged, and documented.',
+    icon: Camera,
+    title: 'Photo Documentation',
+    desc: 'Attach timestamped, geotagged photos directly to CORs and T&M tickets. Visual proof of conditions, work performed, and materials used — captured in the moment and linked to the right record automatically.',
   },
   {
-    icon: DollarSign,
-    title: 'Faster, Verified Billing',
-    desc: 'Draw requests backed by real-time field data — not estimates. Every line item ties directly to verified task completions with timestamps and documentation. Submit with confidence and reduce the time between work completed and payment received.',
+    icon: PenTool,
+    title: 'Digital Signatures',
+    desc: 'Capture GC and owner signatures on CORs and T&M tickets right from the field. Signed approvals are logged with timestamp and location so every authorization is defensible and audit-ready.',
   },
   {
     icon: WifiOff,
     title: 'Offline-First',
-    desc: 'No cell service on site? Work continues uninterrupted. Every update is captured locally and syncs automatically the moment connectivity returns. Your data integrity is never compromised by jobsite conditions.',
+    desc: 'No cell service on site? CORs and T&M tickets are captured locally and sync automatically the moment connectivity returns. Your crews never miss documenting extra work because of jobsite conditions.',
   },
   {
     icon: Shield,
@@ -36,12 +36,11 @@ const FEATURES = [
 export default function FeatureGrid() {
   return (
     <section className="lp-features" id="features">
-      <div className="lp-features-label">Built for Construction Teams</div>
-      <h2 className="lp-features-heading">The visibility and control your projects demand</h2>
+      <div className="lp-features-label">Built for Change Orders & T&M</div>
+      <h2 className="lp-features-heading">Capture every dollar of extra work</h2>
       <p className="lp-features-desc">
-        Miscommunication between the field and the office is the most expensive problem in construction.
-        Delayed updates lead to inaccurate billing. Unverified progress holds up draw requests. Critical decisions get made on outdated information.
-        FieldSync was purpose-built to solve these problems — giving project managers, owners, and superintendents the tools to run projects with full transparency.
+        Extra work happens on every project. The difference is whether it gets documented and billed.
+        FieldSync gives your field crews the tools to create CORs and T&amp;M tickets in seconds — with the documentation to back up every line item.
       </p>
 
       <div className="lp-features-grid">

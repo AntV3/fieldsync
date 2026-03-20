@@ -5,15 +5,13 @@ export default function AppShowcase({ onVisible }) {
 
   return (
     <section className="lp-showcase lp-animate" ref={ref}>
-      <span className="lp-showcase-label">Complete Project Oversight — Field to Finance</span>
+      <span className="lp-showcase-label">CORs & T&M Tickets — Created in the Field, Visible Everywhere</span>
       <h2 className="lp-showcase-heading">
-        Your field crews report. Your office sees it. Instantly.
+        Extra work happens. Now you can capture every dollar of it.
       </h2>
       <p className="lp-showcase-desc">
-        Superintendents get a streamlined mobile interface built for jobsite conditions — simple, fast, and designed to stay out of the way.
-        Project managers and owners get a live command center with real-time task progress, earned revenue, and field documentation the moment it's captured.
-        No waiting for end-of-day reports. No chasing superintendents for updates. No submitting draws based on estimates.
-        Every update is timestamped, verified, and ready for billing.
+        Field crews create Change Order Requests and T&amp;M tickets on the spot — with photos, crew hours, materials, and digital signatures.
+        The office sees them the instant they're submitted. No lost paperwork. No end-of-week surprises. Every piece of extra work is documented, approved, and billable.
       </p>
 
       <div className="lp-showcase-frame">
@@ -24,10 +22,10 @@ export default function AppShowcase({ onVisible }) {
               Field<span>Sync</span>
             </div>
             <div className="lp-mock-tabs">
-              <div className="lp-mock-tab active">Overview</div>
-              <div className="lp-mock-tab">Financials</div>
+              <div className="lp-mock-tab">Overview</div>
+              <div className="lp-mock-tab active">CORs</div>
+              <div className="lp-mock-tab">T&amp;M</div>
               <div className="lp-mock-tab">Reports</div>
-              <div className="lp-mock-tab">Documents</div>
             </div>
           </div>
 
@@ -42,53 +40,42 @@ export default function AppShowcase({ onVisible }) {
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="lp-mock-progress-container">
-              <div className="lp-mock-progress-label">
-                <span>Overall Progress</span>
-                <span>68%</span>
-              </div>
-              <div className="lp-mock-progress-bar">
-                <div className="lp-mock-progress-fill" />
-              </div>
-            </div>
-
             {/* Metrics Row */}
             <div className="lp-mock-metrics">
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Earned</div>
-                <div className="lp-mock-metric-value">$847K</div>
-                <div className="lp-mock-metric-trend positive">+12.3%</div>
+                <div className="lp-mock-metric-label">Open CORs</div>
+                <div className="lp-mock-metric-value">4</div>
+                <div className="lp-mock-metric-trend neutral">$38.2K pending</div>
               </div>
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Costs</div>
-                <div className="lp-mock-metric-value">$512K</div>
-                <div className="lp-mock-metric-trend neutral">On budget</div>
+                <div className="lp-mock-metric-label">T&amp;M This Week</div>
+                <div className="lp-mock-metric-value">12</div>
+                <div className="lp-mock-metric-trend positive">All documented</div>
               </div>
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Margin</div>
-                <div className="lp-mock-metric-value">$335K</div>
-                <div className="lp-mock-metric-trend positive">39.6%</div>
+                <div className="lp-mock-metric-label">Approved</div>
+                <div className="lp-mock-metric-value">$124K</div>
+                <div className="lp-mock-metric-trend positive">Ready to bill</div>
               </div>
             </div>
 
             {/* Activity Feed */}
             <div className="lp-mock-activity">
-              <div className="lp-mock-activity-title">Live Field Activity</div>
+              <div className="lp-mock-activity-title">Recent COR & T&M Activity</div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot blue" />
-                Crew check-in: 8 workers on site
+                COR #12 created — Added fire stopping, 3rd floor
                 <span className="lp-mock-activity-time">Just now</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot green" />
-                3rd Floor Electrical — marked Done
-                <span className="lp-mock-activity-time">4m ago</span>
+                T&M #47 approved — 6 hrs, $2,340 — signed by GC
+                <span className="lp-mock-activity-time">8m ago</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot amber" />
-                T&M Ticket #47 — photo attached
-                <span className="lp-mock-activity-time">12m ago</span>
+                COR #11 — owner signature requested
+                <span className="lp-mock-activity-time">22m ago</span>
               </div>
             </div>
           </div>

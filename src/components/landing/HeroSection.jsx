@@ -14,9 +14,8 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
       </h1>
 
       <p className="lp-hero-subtitle">
-        Project managers lose hours chasing field updates. Owners approve draws without verified progress. Superintendents document work that never makes it to the office.
-        FieldSync connects the entire project lifecycle — from task completion in the field to draw requests on your desk — so nothing falls through the cracks.
-        Real-time visibility for owners. Verified progress for project managers. A tool that actually works for superintendents.
+        Change orders get lost. T&amp;M tickets go undocumented. Extra work happens in the field but never makes it to billing.
+        FieldSync lets your crews create CORs and T&amp;M tickets in seconds — with photos, timestamps, and signatures — so every dollar of extra work is captured, approved, and ready to bill.
         One platform. One source of truth. Every job.
       </p>
 

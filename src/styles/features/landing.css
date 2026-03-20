@@ -767,6 +767,111 @@
   margin: 0;
 }
 
+/* ---- How It Works ---- */
+
+.lp-how-it-works {
+  padding: var(--lp-section-padding) 2rem;
+  max-width: var(--lp-max-width);
+  margin: 0 auto;
+}
+
+.lp-how-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3b82f6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.lp-how-heading {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  margin: 0 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.lp-how-desc {
+  font-size: 1rem;
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto 3.5rem;
+  line-height: 1.6;
+}
+
+.lp-how-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  position: relative;
+}
+
+.lp-how-step {
+  position: relative;
+  text-align: center;
+  padding: 1.75rem 1.25rem;
+  background: rgba(20, 20, 22, 0.6);
+  border: 1px solid #2a2a32;
+  border-radius: 14px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lp-how-step:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-elevated);
+}
+
+.lp-how-step-number {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  color: rgba(59, 130, 246, 0.5);
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+}
+
+.lp-how-step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-radius: 12px;
+  margin: 0 auto 1.25rem;
+  color: #3b82f6;
+  transition: all 0.3s ease;
+}
+
+.lp-how-step:hover .lp-how-step-icon {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: scale(1.05);
+}
+
+.lp-how-step-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.5rem;
+}
+
+.lp-how-step-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.lp-how-step-connector {
+  display: none;
+}
+
 /* ---- Sign In CTA ---- */
 
 .lp-cta {
@@ -891,6 +996,10 @@
     grid-template-columns: repeat(3, 1fr);
   }
 
+  .lp-how-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .lp-showcase-frame {
     max-width: 700px;
   }
@@ -995,8 +1104,13 @@
     max-width: 320px;
   }
 
+  .lp-how-steps {
+    grid-template-columns: 1fr;
+  }
+
   .lp-showcase,
   .lp-features,
+  .lp-how-it-works,
   .lp-cta {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
