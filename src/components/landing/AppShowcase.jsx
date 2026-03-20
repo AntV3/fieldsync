@@ -5,13 +5,13 @@ export default function AppShowcase({ onVisible }) {
 
   return (
     <section className="lp-showcase lp-animate" ref={ref}>
-      <span className="lp-showcase-label">CORs & T&M Tickets — Created in the Field, Visible Everywhere</span>
+      <span className="lp-showcase-label">Time and Material Tickets — Logged in the Field, Visible Everywhere</span>
       <h2 className="lp-showcase-heading">
-        Extra work happens. Now you can capture every dollar of it.
+        Real-time oversight on every project you're running.
       </h2>
       <p className="lp-showcase-desc">
-        Field crews create Change Order Requests and T&amp;M tickets on the spot — with photos, crew hours, materials, and digital signatures.
-        The office sees them the instant they're submitted. No lost paperwork. No end-of-week surprises. Every piece of extra work is documented, approved, and billable.
+        Field crews log descriptions, photos, crew hours, and materials used on Time and Material tickets — the office sees them the instant they're submitted.
+        The office handles cost estimates and creates Change Orders with all the field data already attached. No lost paperwork. No end-of-week surprises. Complete visibility from field to office.
       </p>
 
       <div className="lp-showcase-frame">
@@ -23,8 +23,8 @@ export default function AppShowcase({ onVisible }) {
             </div>
             <div className="lp-mock-tabs">
               <div className="lp-mock-tab">Overview</div>
-              <div className="lp-mock-tab active">CORs</div>
-              <div className="lp-mock-tab">T&amp;M</div>
+              <div className="lp-mock-tab active">Change Orders</div>
+              <div className="lp-mock-tab">Time &amp; Material</div>
               <div className="lp-mock-tab">Reports</div>
             </div>
           </div>
@@ -43,12 +43,12 @@ export default function AppShowcase({ onVisible }) {
             {/* Metrics Row */}
             <div className="lp-mock-metrics">
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Open CORs</div>
+                <div className="lp-mock-metric-label">Open Change Orders</div>
                 <div className="lp-mock-metric-value">4</div>
                 <div className="lp-mock-metric-trend neutral">$38.2K pending</div>
               </div>
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">T&amp;M This Week</div>
+                <div className="lp-mock-metric-label">Time &amp; Material This Week</div>
                 <div className="lp-mock-metric-value">12</div>
                 <div className="lp-mock-metric-trend positive">All documented</div>
               </div>
@@ -61,20 +61,20 @@ export default function AppShowcase({ onVisible }) {
 
             {/* Activity Feed */}
             <div className="lp-mock-activity">
-              <div className="lp-mock-activity-title">Recent COR & T&M Activity</div>
+              <div className="lp-mock-activity-title">Recent Activity</div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot blue" />
-                COR #12 created — Added fire stopping, 3rd floor
+                Time and Material #47 logged — 6 hrs, fire stopping, 3rd floor
                 <span className="lp-mock-activity-time">Just now</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot green" />
-                T&M #47 approved — 6 hrs, $2,340 — signed by GC
+                Change Order #12 created — Added fire stopping scope
                 <span className="lp-mock-activity-time">8m ago</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot amber" />
-                COR #11 — owner signature requested
+                Time and Material #46 — associated with Change Order #11
                 <span className="lp-mock-activity-time">22m ago</span>
               </div>
             </div>

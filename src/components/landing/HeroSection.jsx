@@ -14,8 +14,9 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
       </h1>
 
       <p className="lp-hero-subtitle">
-        Change orders get lost. T&amp;M tickets go undocumented. Extra work happens in the field but never makes it to billing.
-        FieldSync lets your crews create CORs and T&amp;M tickets in seconds — with photos, timestamps, and signatures — so every dollar of extra work is captured, approved, and ready to bill.
+        Extra work happens in the field but never makes it to the office. Change Orders go undocumented. Time and Material tickets get lost.
+        FieldSync gives your field crews the tools to log descriptions, photos, crew hours, and materials in seconds — and gives your office real-time oversight on every project.
+        Real-time visibility for owners. Verified progress for project managers. A tool that actually works for superintendents.
         One platform. One source of truth. Every job.
       </p>
 

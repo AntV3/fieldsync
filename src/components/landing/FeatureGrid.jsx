@@ -3,28 +3,28 @@ import { FileText, Clock, Camera, PenTool, WifiOff, Shield } from 'lucide-react'
 const FEATURES = [
   {
     icon: FileText,
-    title: 'Instant COR Creation',
-    desc: 'Field crews create Change Order Requests on the spot — description, scope, cost estimate, and supporting photos. CORs flow to the office instantly for review and approval. No paperwork, no delays, no lost revenue.',
+    title: 'Time and Material Tickets',
+    desc: 'Field crews create Time and Material tickets on the spot — logging descriptions, crew hours, materials used, and photos. Everything flows to the office instantly. No paperwork, no delays, no lost documentation.',
   },
   {
     icon: Clock,
-    title: 'T&M Ticket Tracking',
-    desc: 'Log crew hours, materials, and equipment for every T&M event as it happens. Each ticket is timestamped and geotagged so there\'s never a dispute about what work was performed, when, or by whom.',
+    title: 'Real-Time Field Logging',
+    desc: 'Descriptions, crew hours, materials, and equipment are logged as work happens. Each entry is timestamped and geotagged so there\'s never a dispute about what work was performed, when, or by whom.',
   },
   {
     icon: Camera,
     title: 'Photo Documentation',
-    desc: 'Attach timestamped, geotagged photos directly to CORs and T&M tickets. Visual proof of conditions, work performed, and materials used — captured in the moment and linked to the right record automatically.',
+    desc: 'Attach timestamped, geotagged photos directly to Time and Material tickets. Visual proof of conditions, work performed, and materials used — captured in the moment and linked to the right record automatically.',
   },
   {
     icon: PenTool,
     title: 'Digital Signatures',
-    desc: 'Capture GC and owner signatures on CORs and T&M tickets right from the field. Signed approvals are logged with timestamp and location so every authorization is defensible and audit-ready.',
+    desc: 'Capture GC and owner signatures on Time and Material tickets right from the field. Signed approvals are logged with timestamp and location so every authorization is defensible and audit-ready.',
   },
   {
     icon: WifiOff,
     title: 'Offline-First',
-    desc: 'No cell service on site? CORs and T&M tickets are captured locally and sync automatically the moment connectivity returns. Your crews never miss documenting extra work because of jobsite conditions.',
+    desc: 'No cell service on site? Time and Material tickets are captured locally and sync automatically the moment connectivity returns. Your crews never miss documenting extra work because of jobsite conditions.',
   },
   {
     icon: Shield,
@@ -36,11 +36,11 @@ const FEATURES = [
 export default function FeatureGrid() {
   return (
     <section className="lp-features" id="features">
-      <div className="lp-features-label">Built for Change Orders & T&M</div>
-      <h2 className="lp-features-heading">Capture every dollar of extra work</h2>
+      <div className="lp-features-label">Real-Time Oversight on Every Project</div>
+      <h2 className="lp-features-heading">Field logs the work. Office sees it instantly.</h2>
       <p className="lp-features-desc">
-        Extra work happens on every project. The difference is whether it gets documented and billed.
-        FieldSync gives your field crews the tools to create CORs and T&amp;M tickets in seconds — with the documentation to back up every line item.
+        Extra work happens on every project. The difference is whether it gets documented.
+        FieldSync gives your field crews the tools to log descriptions, photos, crew hours, and materials — while giving your office real-time visibility and the data they need for cost estimates and Change Orders.
       </p>
 
       <div className="lp-features-grid">
