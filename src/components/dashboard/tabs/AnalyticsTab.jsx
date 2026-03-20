@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
-import { BarChart3, TrendingUp } from 'lucide-react'
+import { BarChart3, TrendingUp, Users, Shield, TrendingDown } from 'lucide-react'
 import { CollapsibleSection } from '../../ui'
 import { ForecastChart } from '../../charts'
 import { ProjectionsPanel } from '../ProjectionCard'
 import ProjectHealthOverview from '../ProjectHealthOverview'
+import EarnedValueCard from '../../charts/EarnedValueCard'
+import TradeKPICard from '../TradeKPICard'
 import { generateProjectForecast } from '../../../lib/forecastCalculations'
 import { generateCashFlowProjection } from '../../../lib/cashFlowCalculations'
 import { analyzeResourceCapacity } from '../../../lib/resourceCalculations'
@@ -29,6 +31,7 @@ export default function AnalyticsTab({
   invoices = [],
   punchListItems = [],
   dailyReports = [],
+  onShowToast,
 }) {
   // ---- Predictive Forecast ----
   const forecast = useMemo(() => {
@@ -121,7 +124,141 @@ export default function AnalyticsTab({
         />
       </div>
 
-      {/* 2. Financial Projections */}
+      {/* 2. Crew & Safety Analytics */}
+      <div className="analytics-two-col">
+        {/* Crew Analytics Card */}
+        <div className="reports-insight-card">
+          <div className="reports-insight-header">
+            <div className="reports-insight-title">
+              <Users size={18} />
+              <h3>Crew Analytics</h3>
+            </div>
+            <span className="reports-section-count">{projectData?.uniqueWorkerCount || 0} workers</span>
+          </div>
+          <div className="reports-insight-body">
+            <div className="reports-stat-grid">
+              <div className="reports-stat">
+                <span className="reports-stat-value">{projectData?.uniqueWorkerCount || 0}</span>
+                <span className="reports-stat-label">Total Workers</span>
+              </div>
+              <div className="reports-stat">
+                <span className="reports-stat-value">{projectData?.avgCrewSize || 0}</span>
+                <span className="reports-stat-label">Avg Crew / Day</span>
+              </div>
+              <div className="reports-stat">
+                <span className="reports-stat-value">{projectData?.peakCrewSize || 0}</span>
+                <span className="reports-stat-label">Peak Crew Size</span>
+              </div>
+              <div className="reports-stat">
+                <span className="reports-stat-value">{projectData?.crewDaysTracked || 0}</span>
+                <span className="reports-stat-label">Days Tracked</span>
+              </div>
+            </div>
+            {(projectData?.crewTrend || 0) !== 0 && (
+              <div className={`reports-trend-badge ${projectData.crewTrend > 0 ? 'up' : 'down'}`}>
+                {projectData.crewTrend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                <span>{Math.abs(Math.round(projectData.crewTrend))}% {projectData.crewTrend > 0 ? 'increase' : 'decrease'} vs prior week</span>
+              </div>
+            )}
+            {projectData?.crewByDate && Object.keys(projectData.crewByDate).length > 0 && (
+              <CollapsibleSection
+                title="Crew Size Trend"
+                variant="compact"
+                summary={`Last ${Math.min(Object.keys(projectData.crewByDate).length, 14)} days`}
+              >
+                <div className="reports-mini-chart">
+                  <div className="reports-mini-chart-label">Recent Crew Size</div>
+                  <div className="reports-mini-bars">
+                    {Object.keys(projectData.crewByDate).sort().slice(-14).map(date => {
+                      const count = projectData.crewByDate[date]
+                      const max = projectData.peakCrewSize || 1
+                      return (
+                        <div key={date} className="reports-mini-bar-wrap" title={`${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count} workers`}>
+                          <div className="reports-mini-bar" style={{ height: `${(count / max) * 100}%` }}></div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </CollapsibleSection>
+            )}
+          </div>
+        </div>
+
+        {/* Safety Dashboard Card */}
+        <div className="reports-insight-card">
+          <div className="reports-insight-header">
+            <div className="reports-insight-title">
+              <Shield size={18} />
+              <h3>Safety Dashboard</h3>
+            </div>
+            <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
+              {(projectData?.injuryReportsCount || 0) > 0
+                ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
+                : 'No incidents'
+              }
+            </span>
+          </div>
+          <div className="reports-insight-body">
+            <div className="reports-safety-hero">
+              <div className={`reports-safety-days ${(projectData?.daysSinceLastInjury === null || projectData?.daysSinceLastInjury > 30) ? 'excellent' : projectData?.daysSinceLastInjury > 7 ? 'good' : 'caution'}`}>
+                <span className="reports-safety-days-value">
+                  {projectData?.daysSinceLastInjury !== null ? projectData.daysSinceLastInjury : '--'}
+                </span>
+                <span className="reports-safety-days-label">
+                  {projectData?.daysSinceLastInjury !== null ? 'Days Since Last Incident' : 'No Incidents Recorded'}
+                </span>
+              </div>
+            </div>
+            <CollapsibleSection
+              title="Safety Breakdown"
+              variant="compact"
+              summary={`${projectData?.injuryReportsCount || 0} incidents, ${projectData?.oshaRecordable || 0} OSHA`}
+            >
+              <div className="reports-stat-grid">
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.injuryReportsCount || 0}</span>
+                  <span className="reports-stat-label">Total Incidents</span>
+                </div>
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.oshaRecordable || 0}</span>
+                  <span className="reports-stat-label">OSHA Recordable</span>
+                </div>
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.reportsWithIssues || 0}</span>
+                  <span className="reports-stat-label">Reports w/ Issues</span>
+                </div>
+                <div className="reports-stat">
+                  <span className="reports-stat-value">{projectData?.laborManDays || 0}</span>
+                  <span className="reports-stat-label">Total Man-Days</span>
+                </div>
+              </div>
+            </CollapsibleSection>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Earned Value Analysis */}
+      {selectedProject?.contract_value > 0 && (
+        <div className="analytics-section">
+          <EarnedValueCard
+            contractValue={selectedProject.contract_value}
+            changeOrderValue={changeOrderValue || 0}
+            progressPercent={progress}
+            actualCosts={projectData?.allCostsTotal || 0}
+            startDate={selectedProject.start_date}
+            endDate={selectedProject.end_date}
+            areas={areas}
+          />
+        </div>
+      )}
+
+      {/* 4. Trade-Specific KPIs */}
+      <div className="analytics-section">
+        <TradeKPICard projectId={selectedProject?.id} projectData={projectData} />
+      </div>
+
+      {/* 5. Financial Projections */}
       {projections && (
         <div className="analytics-section">
           <CollapsibleSection
@@ -135,7 +272,7 @@ export default function AnalyticsTab({
         </div>
       )}
 
-      {/* 3. Predictive Forecast */}
+      {/* 6. Predictive Forecast */}
       <div className="analytics-section">
         <CollapsibleSection
           title="Predictive Forecast"
