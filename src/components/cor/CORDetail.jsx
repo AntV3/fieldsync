@@ -297,7 +297,45 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       // Fall back to direct client-side generation from a local snapshot.
       console.warn('Export pipeline unavailable, using direct generation:', pipelineError?.message)
       try {
-        const snapshot = createSnapshot(corData, associatedTickets)
+        // Enrich labor items with missing rates from pricing tab before snapshot
+        const enrichedCOR = { ...corData }
+        if (enrichedCOR.change_order_labor?.length > 0 && company?.id) {
+          try {
+            const workType = project?.work_type || 'demolition'
+            const classRates = await db.getAllLaborClassRates?.(company.id)
+            const rateLookup = {}
+            if (classRates?.length > 0) {
+              classRates.forEach(lc => {
+                const match = lc.labor_class_rates?.find(r => r.work_type === workType)
+                if (match) {
+                  rateLookup[lc.name.toLowerCase()] = { regular_rate: match.regular_rate, overtime_rate: match.overtime_rate }
+                }
+              })
+            }
+            if (Object.keys(rateLookup).length === 0) {
+              const legacyRates = await db.getLaborRates?.(company.id, workType, project?.job_type || 'standard')
+              legacyRates?.forEach(r => {
+                rateLookup[(r.role || r.name)?.toLowerCase()] = { regular_rate: r.regular_rate, overtime_rate: r.overtime_rate }
+              })
+            }
+            if (Object.keys(rateLookup).length > 0) {
+              enrichedCOR.change_order_labor = enrichedCOR.change_order_labor.map(item => {
+                if (!item.regular_rate && !item.overtime_rate) {
+                  const rate = rateLookup[(item.labor_class || '').toLowerCase()]
+                  if (rate) {
+                    const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+                    const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+                    const regHrs = parseFloat(item.regular_hours) || 0
+                    const otHrs = parseFloat(item.overtime_hours) || 0
+                    return { ...item, regular_rate: regRate, overtime_rate: otRate, regular_total: Math.round(regHrs * regRate), overtime_total: Math.round(otHrs * otRate), total: Math.round(regHrs * regRate) + Math.round(otHrs * otRate) }
+                  }
+                }
+                return item
+              })
+            }
+          } catch (e) { /* best-effort */ }
+        }
+        const snapshot = createSnapshot(enrichedCOR, associatedTickets)
         await generatePDFFromSnapshot(snapshot, { project, company, branding })
         onShowToast?.('PDF downloaded', 'success')
       } catch (fallbackError) {
