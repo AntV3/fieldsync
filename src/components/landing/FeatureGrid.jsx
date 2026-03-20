@@ -1,4 +1,4 @@
-import { FileText, Clock, Camera, PenTool, WifiOff, Shield } from 'lucide-react'
+import { FileText, Clock, Camera, PenTool, WifiOff, Shield, BarChart3 } from 'lucide-react'
 
 const FEATURES = [
   {
@@ -25,6 +25,11 @@ const FEATURES = [
     icon: WifiOff,
     title: 'Offline-First',
     desc: 'No cell service on site? Time and Material tickets are captured locally and sync automatically the moment connectivity returns. Your crews never miss documenting extra work because of jobsite conditions.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Analytics & Project Overview',
+    desc: 'See project health, financial projections, and predictive forecasts at a glance — across every job. Portfolio-level dashboards surface budget risks, earned value, and cost trends in real time so you can make informed decisions before problems become costly.',
   },
   {
     icon: Shield,
