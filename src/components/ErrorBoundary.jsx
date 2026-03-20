@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import { reportError } from '../lib/errorReporter'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -13,8 +14,8 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({ error, errorInfo })
-    // Log error to console for debugging
     console.error('ErrorBoundary caught an error:', error, errorInfo)
+    reportError(error, { type: 'react_error_boundary', componentStack: errorInfo?.componentStack })
 
     // Check if this is a chunk loading failure (stale deployment)
     const isChunkError = error?.message?.includes('Failed to fetch dynamically imported module') ||

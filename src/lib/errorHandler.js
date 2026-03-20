@@ -20,6 +20,7 @@
  */
 
 import { observe } from './observability'
+import { reportError } from './errorReporter'
 
 // Error severity levels
 export const ErrorSeverity = {
@@ -156,6 +157,11 @@ export function handleError(error, options = {}) {
       name: error?.name
     }
   })
+
+  // Report to external error tracking
+  if (severity === ErrorSeverity.ERROR || severity === ErrorSeverity.CRITICAL) {
+    reportError(error, { category, severity, operation, companyId, projectId, userId })
+  }
 
   // Show user feedback unless silent
   if (!silent && showToast) {

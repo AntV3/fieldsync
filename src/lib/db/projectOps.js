@@ -601,21 +601,30 @@ export const projectOps = {
         }
       }
 
+      // deviceId is always set (getDeviceId generates one if missing)
+      // This is the server-side rate limiting identifier since IP is unavailable client-side
       const deviceId = getDeviceId()
 
-      // Try session-based validation first (requires DB migration)
+      // Session-based validation with server-side rate limiting
       const { data, error } = await supabase
         .rpc('validate_pin_and_create_session', {
           p_pin: pin,
           p_company_code: companyCode,
           p_device_id: deviceId,
-          p_ip_address: null // IP is not available client-side
+          p_ip_address: null
         })
 
       if (error) {
-        // RPC failed — fall back to direct PIN query so foreman can still log in
-        console.warn('[PIN Auth] RPC unavailable, using direct PIN lookup:', error.message)
-        return await this._pinFallbackDirectQuery(pin, companyCode, rateLimitKey, lockoutKey, MAX_ATTEMPTS, LOCKOUT_MS)
+        // RPC unavailable — do NOT fall back to an unprotected direct query.
+        // If the RPC doesn't exist, the security migration hasn't been applied,
+        // which means the database is not ready for production use.
+        console.error('[PIN Auth] RPC unavailable:', error.message)
+        return {
+          success: false,
+          rateLimited: false,
+          project: null,
+          error: 'Authentication service unavailable. Please contact your administrator.'
+        }
       }
 
       if (!data || data.length === 0) {
@@ -719,101 +728,8 @@ export const projectOps = {
     }
   },
 
-  // Fallback PIN validation using direct table queries.
-  // Used when the validate_pin_and_create_session RPC is unavailable
-  // (e.g. database migration not yet applied). This is safe because
-  // if the RPC doesn't exist, the old open RLS policies are still active.
-  async _pinFallbackDirectQuery(pin, companyCode, rateLimitKey, lockoutKey, maxAttempts, lockoutMs) {
-    try {
-      // Look up company by code (case-insensitive)
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .ilike('code', companyCode.trim())
-        .single()
-
-      if (companyError || !company) {
-        return { success: false, rateLimited: false, project: null }
-      }
-
-      // Look up project by PIN within company
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('pin', pin.trim())
-        .eq('company_id', company.id)
-        .eq('status', 'active')
-        .single()
-
-      if (projectError || !project) {
-        // Count as failed attempt
-        let attempts = parseInt(localStorage.getItem(rateLimitKey) || '0')
-        attempts++
-        localStorage.setItem(rateLimitKey, attempts.toString())
-        if (attempts >= maxAttempts) {
-          localStorage.setItem(lockoutKey, (Date.now() + lockoutMs).toString())
-          return {
-            success: false,
-            rateLimited: true,
-            project: null,
-            error: 'Too many failed attempts. Please try again in a few minutes.'
-          }
-        }
-        return { success: false, rateLimited: false, project: null }
-      }
-
-      // SUCCESS: Clear rate limit counters
-      localStorage.removeItem(rateLimitKey)
-      localStorage.removeItem(lockoutKey)
-
-      // Create a server-side field session via the SECURITY DEFINER RPC.
-      // Direct INSERT into field_sessions is blocked by RLS, so we must
-      // use the RPC. If it also fails (e.g., function has a bug or
-      // doesn't exist on older DBs), we still store a local-only session
-      // so the app can navigate; old DBs without field_sessions don't
-      // require session-based RLS anyway.
-      let sessionToken = null
-      try {
-        const deviceId = typeof getDeviceId === 'function' ? getDeviceId() : null
-        const { data: sessionData, error: sessionError } = await supabase
-          .rpc('validate_pin_and_create_session', {
-            p_pin: pin.trim(),
-            p_company_code: companyCode.trim(),
-            p_device_id: deviceId,
-            p_ip_address: null
-          })
-
-        if (!sessionError && sessionData?.length > 0 && sessionData[0].success) {
-          sessionToken = sessionData[0].session_token
-        } else if (sessionError) {
-          console.warn('[PIN Auth] Fallback session creation failed:', sessionError.message)
-        }
-      } catch {
-        // RPC may not exist on older databases — proceed without server session
-      }
-
-      // Always store a field session so the app knows we're in foreman mode.
-      // With a valid server token, RLS policies will validate via x-field-session.
-      // Without one (old DB), the app still navigates and old RLS policies apply.
-      setFieldSession({
-        token: sessionToken || `local_${Date.now()}`,
-        projectId: project.id,
-        companyId: company.id,
-        projectName: project.name,
-        companyName: company.name,
-        createdAt: new Date().toISOString()
-      })
-
-      return {
-        success: true,
-        rateLimited: false,
-        project: project
-      }
-    } catch (err) {
-      console.error('[PIN Auth] Fallback query failed:', err)
-      return { success: false, rateLimited: false, project: null, error: 'Connection error. Please try again.' }
-    }
-  },
+  // _pinFallbackDirectQuery removed — it bypassed server-side rate limiting.
+  // The validate_pin_and_create_session RPC is now required for PIN auth.
 
   // Check if PIN is already in use
   async isPinAvailable(pin, excludeProjectId = null) {

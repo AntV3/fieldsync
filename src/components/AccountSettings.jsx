@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User, Mail, Lock, Save, Loader2 } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { sanitize } from '../lib/sanitize'
 import MFASetup from './MFASetup'
 
 export default function AccountSettings({ user, company, onShowToast }) {
@@ -19,12 +20,12 @@ export default function AccountSettings({ user, company, onShowToast }) {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) {
+    const safeName = sanitize.text(name, { allowNewlines: false })
+    if (!safeName) {
       onShowToast('Name cannot be empty', 'error')
       return
     }
-    if (trimmed === user?.name) return
+    if (safeName === user?.name) return
 
     setSaving(true)
     try {
@@ -32,12 +33,12 @@ export default function AccountSettings({ user, company, onShowToast }) {
         // Update users table
         const { error } = await supabase
           .from('users')
-          .update({ name: trimmed, updated_at: new Date().toISOString() })
+          .update({ name: safeName, updated_at: new Date().toISOString() })
           .eq('id', user.id)
         if (error) throw error
 
         // Update auth metadata
-        await supabase.auth.updateUser({ data: { name: trimmed } })
+        await supabase.auth.updateUser({ data: { name: safeName } })
       }
       onShowToast('Profile updated', 'success')
     } catch (err) {

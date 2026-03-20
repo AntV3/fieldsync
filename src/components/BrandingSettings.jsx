@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBranding } from '../lib/BrandingContext'
 import { supabase } from '../lib/supabase'
+import { sanitize } from '../lib/sanitize'
 
 export default function BrandingSettings({ company, onShowToast }) {
   const { branding, updateBranding, uploadBrandingImage, loading } = useBranding()
@@ -80,7 +81,11 @@ export default function BrandingSettings({ company, onShowToast }) {
   const canCustomDomain = tier === 'enterprise'
 
   const handleInputChange = (field, value) => {
-    setLocalBranding(prev => ({ ...prev, [field]: value }))
+    // Sanitize text inputs; skip for booleans and color values
+    const safeValue = typeof value === 'string' && !field.includes('color')
+      ? sanitize.text(value, { allowNewlines: false })
+      : value
+    setLocalBranding(prev => ({ ...prev, [field]: safeValue }))
   }
 
   const handleImageUpload = async (file, type) => {

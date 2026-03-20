@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ArrowLeft } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import { sanitize } from '../../lib/sanitize'
 import Logo from '../Logo'
 
 export default function FieldLogin({ onForemanAccess, onShowToast }) {
@@ -103,12 +104,13 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
 
   // Submit foreman name
   const handleForemanNameSubmit = () => {
-    if (!foremanName.trim()) {
+    const safeName = sanitize.text(foremanName, { allowNewlines: false })
+    if (!safeName) {
       onShowToast('Enter your name to continue', 'error')
       return
     }
-    try { localStorage.setItem('fieldsync_foreman_name', foremanName.trim()) } catch { /* ignore */ }
-    onForemanAccess(foundProject, foremanName.trim())
+    try { localStorage.setItem('fieldsync_foreman_name', safeName) } catch { /* ignore */ }
+    onForemanAccess(foundProject, safeName)
   }
 
   // Number pad handler

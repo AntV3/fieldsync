@@ -2,11 +2,15 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ToastProvider } from './lib/ToastContext'
+import { installGlobalErrorHandlers } from './lib/errorReporter'
 import App from './App'
 import './spx.css' // SpaceX design system (Tailwind v4)
 import './styles/tokens.css' // Design system tokens (load first)
 import './index.css'
 import './styles/index.css' // New modular styles (overrides legacy where needed)
+
+// Install global error handlers for unhandled errors/rejections
+installGlobalErrorHandlers()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
