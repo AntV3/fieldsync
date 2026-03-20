@@ -249,6 +249,108 @@ export const companyOps = {
   },
 
   // ============================================
+  // Invitations
+  // ============================================
+
+  async createInvitation(companyId, createdBy, {
+    accessLevel = 'member',
+    companyRole = null,
+    invitedEmail = null,
+    maxUses = 1,
+    expiresInHours = 72
+  } = {}) {
+    if (!isSupabaseConfigured) return null
+
+    const roleForRLS = accessLevel === 'administrator' ? 'admin' : 'member'
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString()
+
+    // Generate 16-char alphanumeric token
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    const bytes = crypto.getRandomValues(new Uint8Array(16))
+    const token = Array.from(bytes).map(b => chars[b % chars.length]).join('')
+
+    const { data, error } = await supabase
+      .from('company_invitations')
+      .insert({
+        company_id: companyId,
+        invite_token: token,
+        created_by: createdBy,
+        invited_role: roleForRLS,
+        invited_access_level: accessLevel,
+        invited_company_role: companyRole || null,
+        invited_email: invitedEmail?.toLowerCase()?.trim() || null,
+        max_uses: maxUses,
+        expires_at: expiresAt
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async getCompanyInvitations(companyId) {
+    if (!isSupabaseConfigured) return []
+
+    const { data, error } = await supabase
+      .from('company_invitations')
+      .select(`
+        *,
+        creator:users!company_invitations_created_by_fkey(name, email)
+      `)
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching invitations:', error)
+      return []
+    }
+    return data || []
+  },
+
+  async getInvitationByToken(token) {
+    if (!isSupabaseConfigured) return null
+
+    const { data, error } = await supabase
+      .from('company_invitations')
+      .select('*, companies(id, name)')
+      .eq('invite_token', token)
+      .eq('status', 'active')
+      .single()
+
+    if (error) return null
+
+    // Validate expiration and usage client-side too
+    if (data.expires_at && new Date(data.expires_at) < new Date()) return null
+    if (data.max_uses && data.use_count >= data.max_uses) return null
+
+    return data
+  },
+
+  async acceptInvitation(token, userId) {
+    if (!isSupabaseConfigured) return { success: false, error: 'Not configured' }
+
+    const { data, error } = await supabase.rpc('accept_invitation', {
+      p_invite_token: token,
+      p_user_id: userId
+    })
+
+    if (error) throw error
+    return data
+  },
+
+  async revokeInvitation(invitationId) {
+    if (!isSupabaseConfigured) return
+
+    const { error } = await supabase
+      .from('company_invitations')
+      .update({ status: 'revoked', updated_at: new Date().toISOString() })
+      .eq('id', invitationId)
+
+    if (error) throw error
+  },
+
+  // ============================================
   // Project Team Management
   // ============================================
 

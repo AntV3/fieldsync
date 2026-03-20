@@ -32,6 +32,7 @@ const AccountSettings = lazy(() => import('./components/AccountSettings'))
 const TradeProfileSettings = lazy(() => import('./components/settings/TradeProfileSettings'))
 const LandingPage = lazy(() => import('./components/landing/LandingPage'))
 const SpxDashboard = lazy(() => import('./components/spx/SpxDashboard'))
+const AcceptInvite = lazy(() => import('./components/auth/AcceptInvite'))
 
 // Loading fallback component
 function PageLoader() {
@@ -396,6 +397,15 @@ export default function App() {
           <Route path="/register" element={guestOnly(
             <RegisterCompany onShowToast={showToast} />
           )} />
+
+          {/* Accept invitation - accessible to both guests and authenticated users */}
+          <Route path="/invite/:token" element={
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <AcceptInvite onShowToast={showToast} />
+              </Suspense>
+            </ErrorBoundary>
+          } />
 
           {/* Pending approval */}
           <Route path="/pending" element={
