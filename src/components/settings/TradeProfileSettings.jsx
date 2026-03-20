@@ -15,7 +15,7 @@ const FIELD_TYPES = [
 
 const FORM_TYPES = [
   { value: 'daily_report', label: 'Daily Report' },
-  { value: 'tm_ticket', label: 'T&M Ticket' },
+  { value: 'tm_ticket', label: 'Time and Material Ticket' },
   { value: 'crew_checkin', label: 'Crew Check-in' },
   { value: 'injury_report', label: 'Injury Report' }
 ]
@@ -210,7 +210,7 @@ export default function TradeProfileSettings({ onShowToast }) {
         </button>
         {expandedSections.roles && (
           <div className="trade-section-body">
-            <p className="form-help">Define the worker roles used in your trade. These appear in crew check-ins and T&M tickets.</p>
+            <p className="form-help">Define the worker roles used in your trade. These appear in crew check-ins and Time and Material tickets.</p>
             <div className="trade-roles-list">
               {workerRoles.map((role, i) => (
                 <div key={i} className="trade-role-item">

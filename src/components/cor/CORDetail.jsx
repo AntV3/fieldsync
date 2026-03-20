@@ -264,6 +264,17 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     return corData.change_order_ticket_associations?.map(assoc => assoc.t_and_m_tickets).filter(Boolean) || []
   }, [corData.change_order_ticket_associations])
 
+  // Build lookup from ticket ID to ticket date for source attribution
+  const ticketDateLookup = useMemo(() => {
+    const lookup = {}
+    for (const ticket of associatedTickets) {
+      if (ticket.id) {
+        lookup[ticket.id] = formatDate(ticket.work_date || ticket.ticket_date)
+      }
+    }
+    return lookup
+  }, [associatedTickets])
+
   // Calculate total hours for a ticket
   const getTicketHours = (ticket) => {
     const workers = ticket.t_and_m_workers || []
@@ -446,36 +457,58 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
                 {corData.change_order_labor?.length > 0 ? (
                   <div className="category-items">
-                    {groupLaborByClassAndType(corData.change_order_labor).map((group, gIdx) => (
-                      <div key={gIdx} className="labor-group">
-                        <div className="labor-group-header">
-                          <span className="labor-group-label">{group.label}</span>
-                          <span className="labor-group-subtotal">{formatCurrency(group.subtotal)}</span>
-                        </div>
-                        <table className="pricing-table">
-                          <thead>
-                            <tr>
-                              <th>Reg Hrs</th>
-                              <th>Reg Rate</th>
-                              <th>OT Hrs</th>
-                              <th>OT Rate</th>
-                              <th className="text-right">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {group.items.map((item, idx) => (
-                              <tr key={idx}>
-                                <td>{item.regular_hours}</td>
-                                <td>${centsToDollars(item.regular_rate)}/hr</td>
-                                <td>{item.overtime_hours || '-'}</td>
-                                <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
-                                <td className="text-right">{formatCurrency(item.total)}</td>
+                    {groupLaborByClassAndType(corData.change_order_labor).map((group, gIdx) => {
+                      // Collect unique source ticket dates for this labor group
+                      const sourceDates = [...new Set(
+                        group.items
+                          .filter(item => item.source_ticket_id && ticketDateLookup[item.source_ticket_id])
+                          .map(item => ticketDateLookup[item.source_ticket_id])
+                      )]
+                      const hasManualItems = group.items.some(item => !item.source_ticket_id)
+
+                      return (
+                        <div key={gIdx} className="labor-group">
+                          <div className="labor-group-header">
+                            <div className="labor-group-label-row">
+                              <span className="labor-group-label">{group.label}</span>
+                              {sourceDates.length > 0 && (
+                                <span className="labor-source-badge" title={`Hours from Time and Material Ticket${sourceDates.length > 1 ? 's' : ''}: ${sourceDates.join(', ')}`}>
+                                  Source: Time and Material Ticket{sourceDates.length > 1 ? 's' : ''} — {sourceDates.join(', ')}
+                                </span>
+                              )}
+                              {hasManualItems && sourceDates.length === 0 && (
+                                <span className="labor-source-badge manual" title="Manually entered hours">
+                                  Source: Manual Entry
+                                </span>
+                              )}
+                            </div>
+                            <span className="labor-group-subtotal">{formatCurrency(group.subtotal)}</span>
+                          </div>
+                          <table className="pricing-table">
+                            <thead>
+                              <tr>
+                                <th>Reg Hrs</th>
+                                <th>Reg Rate</th>
+                                <th>OT Hrs</th>
+                                <th>OT Rate</th>
+                                <th className="text-right">Total</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ))}
+                            </thead>
+                            <tbody>
+                              {group.items.map((item, idx) => (
+                                <tr key={idx}>
+                                  <td>{item.regular_hours}</td>
+                                  <td>${centsToDollars(item.regular_rate)}/hr</td>
+                                  <td>{item.overtime_hours || '-'}</td>
+                                  <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
+                                  <td className="text-right">{formatCurrency(item.total)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="category-empty">No labor items</div>

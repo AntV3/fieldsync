@@ -86,7 +86,7 @@ export default function ChartTooltip({ active, payload, label }) {
                 className="chart-tooltip-dot"
                 style={{ backgroundColor: chartColors.tmValue }}
               />
-              T&M Value
+              Time and Material Value
             </span>
             <span className="chart-tooltip-value">
               {formatCurrency(data.tmValue)}
@@ -166,7 +166,7 @@ export default function ChartTooltip({ active, payload, label }) {
           )}
           {data.dailyTM > 0 && (
             <div className="chart-tooltip-daily-row">
-              T&M Added: {formatCurrency(data.dailyTM)}
+              Time and Material Added: {formatCurrency(data.dailyTM)}
             </div>
           )}
           {data.dailyTotal > 0 && (

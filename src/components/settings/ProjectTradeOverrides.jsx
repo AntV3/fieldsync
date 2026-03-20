@@ -5,7 +5,7 @@ import { WIDGET_REGISTRY } from '../../lib/widgetRegistry'
 
 const FORM_TYPES = [
   { value: 'daily_report', label: 'Daily Report' },
-  { value: 'tm_ticket', label: 'T&M Ticket' },
+  { value: 'tm_ticket', label: 'Time and Material Ticket' },
   { value: 'crew_checkin', label: 'Crew Check-in' },
   { value: 'injury_report', label: 'Injury Report' }
 ]

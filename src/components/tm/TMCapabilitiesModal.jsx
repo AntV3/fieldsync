@@ -36,7 +36,7 @@ const sections = [
 
 export default function TMCapabilitiesModal({ isOpen, onClose }) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="T&M Ticket Capabilities" size="medium">
+    <Modal isOpen={isOpen} onClose={onClose} title="Time and Material Ticket Capabilities" size="medium">
       <p className="capabilities-intro">
         Time & Materials tickets let field crews document work as it happens — hours, materials, and photos — right from their phone.
       </p>

@@ -224,7 +224,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       doc.setTextColor(71, 85, 105)
       doc.text(group.label, margin, yPos)
 
-      // Show source T&M ticket dates for this labor class
+      // Show source Time and Material ticket dates for this labor class
       const groupClassName = (group.items[0]?.labor_class || '').toLowerCase()
       const sourceDates = laborSourceMap[groupClassName] || []
       if (sourceDates.length > 0) {
@@ -233,7 +233,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         doc.setFontSize(7)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(100, 116, 139)
-        const sourceText = `Source: T&M Ticket${sortedDates.length > 1 ? 's' : ''} — ${dateStr}`
+        const sourceText = `Source: Time and Material Ticket${sortedDates.length > 1 ? 's' : ''} — ${dateStr}`
         const maxSourceWidth = pageWidth - (margin * 2) - doc.getTextWidth(group.label) - 10
         const truncatedSource = doc.getTextWidth(sourceText) > maxSourceWidth
           ? doc.splitTextToSize(sourceText, maxSourceWidth)[0]
@@ -629,7 +629,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     if (tickets.length > 0 && tickets.length <= 8) {
       doc.setFontSize(8)
       doc.setTextColor(100, 116, 139)
-      doc.text('Hours by T&M Ticket:', summaryCol1, summaryY)
+      doc.text('Hours by Time and Material Ticket:', summaryCol1, summaryY)
       summaryY += 5
       for (const ticket of tickets) {
         const tDate = formatDate(ticket.work_date || ticket.ticket_date)
@@ -1424,7 +1424,7 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(148, 163, 184)
     doc.text(
-      `T&M Ticket  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      `Time and Material Ticket  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
       margin, footerY
     )
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })

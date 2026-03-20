@@ -1124,7 +1124,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           console.error('Failed to clean up orphaned ticket:', cleanupErr)
         }
       }
-      onShowToast('Error submitting T&M', 'error')
+      onShowToast('Error submitting Time and Material ticket', 'error')
     } finally {
       setSubmitting(false)
       setSubmitProgress('')
@@ -1171,7 +1171,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </h2>
         <div className="tm-header-right">
           {step < 5 && (
-            <button className="capabilities-help-btn" onClick={() => setShowCapabilities(true)} title="What can T&M tickets do?" type="button">
+            <button className="capabilities-help-btn" onClick={() => setShowCapabilities(true)} title="What can Time and Material tickets do?" type="button">
               <HelpCircle size={16} />
             </button>
           )}

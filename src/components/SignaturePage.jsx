@@ -888,7 +888,7 @@ export default function SignaturePage({ signatureToken }) {
                 style={{ cursor: 'pointer', marginBottom: backupExpanded ? '1rem' : 0 }}
               >
                 <div className="backup-header-left">
-                  <span>View All T&M Tickets</span>
+                  <span>View All Time and Material Tickets</span>
                 </div>
                 <div className="backup-header-toggle">
                   {backupExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
@@ -1232,7 +1232,7 @@ export default function SignaturePage({ signatureToken }) {
             <h4>Download Your Copy</h4>
             <p className="download-description">
               {isFullySigned
-                ? 'Download a PDF copy of this fully signed COR including all T&M backup documentation.'
+                ? 'Download a PDF copy of this fully signed COR including all Time and Material backup documentation.'
                 : 'Download a PDF copy of this COR for your records. Signature status will be included.'}
             </p>
             <button

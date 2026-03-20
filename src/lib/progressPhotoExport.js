@@ -380,7 +380,7 @@ export async function exportProgressPhotosPDF({
     const tmCount = datePhotos.filter(p => p.source === 'Time & Material').length
     const drCount = datePhotos.filter(p => p.source === 'Daily Report').length
     const sources = []
-    if (tmCount > 0) sources.push(`T&M: ${tmCount}`)
+    if (tmCount > 0) sources.push(`Time and Material: ${tmCount}`)
     if (drCount > 0) sources.push(`Daily: ${drCount}`)
     doc.setTextColor(...COLORS.mid)
     doc.text(sources.join(', '), MARGIN + 90, y)

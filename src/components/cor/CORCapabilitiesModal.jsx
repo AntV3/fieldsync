@@ -14,8 +14,8 @@ const sections = [
   },
   {
     icon: FileInput,
-    title: 'Import from T&M Tickets',
-    desc: 'Pull crew hours and materials directly from field T&M tickets to use as backup documentation for your change order.'
+    title: 'Import from Time and Material Tickets',
+    desc: 'Pull crew hours and materials directly from field Time and Material tickets to use as backup documentation for your change order.'
   },
   {
     icon: GitPullRequestArrow,
