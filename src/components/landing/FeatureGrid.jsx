@@ -4,44 +4,44 @@ const FEATURES = [
   {
     icon: RefreshCw,
     title: 'Real-Time Sync',
-    desc: 'The second a foreman taps Done, your office knows. Not at end of shift. Not after three missed calls. The moment it happens — it\'s on your screen.',
+    desc: 'When a task is completed in the field, your office dashboard reflects it immediately. No waiting for end-of-day calls, no reconciling outdated spreadsheets. Progress is live, verified, and visible to everyone who needs it.',
   },
   {
     icon: Smartphone,
     title: 'One-Tap Updates',
-    desc: 'No training. No manual. No IT. Your crew already knows how to use their phone — that\'s the whole qualification. One tap and it\'s logged.',
+    desc: 'Field crews update task status with a single tap — no training, no learning curve. Superintendents spend less time on documentation and more time managing the work. Every update is automatically logged with a timestamp and location.',
   },
   {
     icon: ToggleRight,
     title: 'Binary Progress',
-    desc: 'Working or Done. That\'s it. No "about 70%" that means nothing when a GC demands proof. Every status is timestamped, geotagged, and airtight.',
+    desc: 'Tasks are either In Progress or Complete. No ambiguous percentages, no subjective estimates. When a GC or owner asks for proof of progress, every status change is timestamped, geotagged, and documented.',
   },
   {
     icon: DollarSign,
-    title: 'Defensible Billing',
-    desc: 'Stop submitting draws on faith. Every line item backed by real field data with a timestamp. Disputes don\'t just lose — they never get started.',
+    title: 'Faster, Verified Billing',
+    desc: 'Draw requests backed by real-time field data — not estimates. Every line item ties directly to verified task completions with timestamps and documentation. Submit with confidence and reduce the time between work completed and payment received.',
   },
   {
     icon: WifiOff,
     title: 'Offline-First',
-    desc: 'No cell signal in the basement or the back forty? Crews keep working. The moment connectivity returns, every update syncs automatically. The gap never opens.',
+    desc: 'No cell service on site? Work continues uninterrupted. Every update is captured locally and syncs automatically the moment connectivity returns. Your data integrity is never compromised by jobsite conditions.',
   },
   {
     icon: Shield,
     title: 'Enterprise Security',
-    desc: 'MFA, role-based access, and session-controlled field entry — built for projects worth protecting. Fort Knox security that your crew will never notice.',
+    desc: 'Multi-factor authentication, role-based access controls, and session management built for projects of any scale. Your project data is protected with enterprise-grade security that requires zero effort from field teams.',
   },
 ]
 
 export default function FeatureGrid() {
   return (
     <section className="lp-features" id="features">
-      <div className="lp-features-label">Why Teams Switch to FieldSync</div>
-      <h2 className="lp-features-heading">Everything that breaks between field and office — fixed</h2>
+      <div className="lp-features-label">Built for Construction Teams</div>
+      <h2 className="lp-features-heading">The visibility and control your projects demand</h2>
       <p className="lp-features-desc">
-        Phone calls get missed. Texts get buried. Spreadsheets go stale before lunch.
-        That communication breakdown between your crews and your back office isn't just frustrating — it has a price tag on every single job.
-        Every feature in FieldSync exists to eliminate that cost. Permanently.
+        Miscommunication between the field and the office is the most expensive problem in construction.
+        Delayed updates lead to inaccurate billing. Unverified progress holds up draw requests. Critical decisions get made on outdated information.
+        FieldSync was purpose-built to solve these problems — giving project managers, owners, and superintendents the tools to run projects with full transparency.
       </p>
 
       <div className="lp-features-grid">
