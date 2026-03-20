@@ -1673,6 +1673,21 @@
   gap: 0;
 }
 
+/* Analytics Two-Column Layout (Crew + Safety side by side) */
+.analytics-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .analytics-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* ---- Empty State Icon ---- */
 .chart-empty-state__icon {

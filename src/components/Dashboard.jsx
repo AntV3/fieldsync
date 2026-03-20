@@ -1102,6 +1102,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 invoices={projectData?.invoices || []}
                 punchListItems={projectData?.punchListItems || []}
                 dailyReports={projectData?.dailyReports || []}
+                onShowToast={onShowToast}
               />
             </Suspense>
           )}
@@ -1124,9 +1125,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           {activeProjectTab === 'info' && (
             <InfoTab
               selectedProject={selectedProject}
-              areas={areas}
-              changeOrderValue={changeOrderValue}
-              revisedContractValue={revisedContractValue}
               company={company}
               user={user}
               isAdmin={isAdmin}

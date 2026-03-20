@@ -2,9 +2,6 @@ import { Suspense, lazy } from 'react'
 import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
-import EarnedValueCard from '../../charts/EarnedValueCard'
-import TradeKPICard from '../TradeKPICard'
-const PhotoTimeline = lazy(() => import('../../PhotoTimeline'))
 const PunchList = lazy(() => import('../../PunchList'))
 
 export default function OverviewTab({
@@ -108,23 +105,7 @@ export default function OverviewTab({
         </div>
       </div>
 
-      {/* Row 3: Earned Value Analysis */}
-      {selectedProject?.contract_value > 0 && (
-        <EarnedValueCard
-          contractValue={selectedProject.contract_value}
-          changeOrderValue={changeOrderValue || 0}
-          progressPercent={progress}
-          actualCosts={projectData?.allCostsTotal || 0}
-          startDate={selectedProject.start_date}
-          endDate={selectedProject.end_date}
-          areas={areas}
-        />
-      )}
-
-      {/* Trade-Specific KPIs */}
-      <TradeKPICard projectId={selectedProject?.id} projectData={projectData} />
-
-      {/* Row 4: Needs Attention (only shown when there are items) */}
+      {/* Row 3: Needs Attention (only shown when there are items) */}
       {attentionItems.length > 0 && (
         <div className="overview-needs-attention" role="alert" aria-label={`${attentionItems.length} items need attention`}>
           <div className="overview-needs-attention__header">
@@ -151,25 +132,15 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Row 5: Photo Timeline + Punch List side by side */}
-      <div className="overview-two-col">
-        <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
-          <PhotoTimeline
-            projectId={selectedProject?.id}
-            projectName={selectedProject?.name}
-            areas={areas}
-            onShowToast={onShowToast}
-          />
-        </Suspense>
-        <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
-          <PunchList
-            projectId={selectedProject?.id}
-            areas={areas}
-            companyId={companyId}
-            onShowToast={onShowToast}
-          />
-        </Suspense>
-      </div>
+      {/* Row 5: Punch List */}
+      <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
+        <PunchList
+          projectId={selectedProject?.id}
+          areas={areas}
+          companyId={companyId}
+          onShowToast={onShowToast}
+        />
+      </Suspense>
 
       {/* Row 7: Quick Nav + Exports */}
       <div className="overview-bottom-strip">

@@ -1,23 +1,15 @@
-import { MapPin, HardHat, FileText, DollarSign, Building2, Phone, LayoutGrid, Info } from 'lucide-react'
-import { formatCurrency } from '../../../lib/utils'
+import { MapPin, HardHat, FileText, Building2, Phone } from 'lucide-react'
 import ProjectTeam from '../../ProjectTeam'
 import MFASetup from '../../MFASetup'
 
 export default function InfoTab({
   selectedProject,
-  areas,
-  changeOrderValue,
-  revisedContractValue,
   company,
   user,
   isAdmin,
   onShowToast,
   onEditClick
 }) {
-  const areasComplete = areas.filter(a => a.status === 'done').length
-  const areasWorking = areas.filter(a => a.status === 'working').length
-  const areasNotStarted = areas.filter(a => a.status === 'not_started').length
-
   return (
     <div className="pv-tab-panel info-tab">
       {/* Hero Header */}
@@ -66,19 +58,6 @@ export default function InfoTab({
               {selectedProject.job_type === 'prevailing_wage' ? 'Prevailing Wage' : 'Standard'}
             </span>
             <span className="info-quick-label">Job Type</span>
-          </div>
-        </div>
-
-        {/* Contract Value */}
-        <div className="info-quick-card highlight">
-          <div className="info-quick-icon">
-            <DollarSign size={20} />
-          </div>
-          <div className="info-quick-content">
-            <span className="info-quick-value">{formatCurrency(revisedContractValue)}</span>
-            <span className="info-quick-label">
-              {changeOrderValue > 0 ? `Incl. +${formatCurrency(changeOrderValue)} COs` : 'Contract Value'}
-            </span>
           </div>
         </div>
 
@@ -172,37 +151,6 @@ export default function InfoTab({
         </div>
       </div>
 
-      {/* Work Areas Card */}
-      <div className="info-section-card">
-        <div className="info-section-header">
-          <LayoutGrid size={18} />
-          <h3>Work Areas</h3>
-          <div className="info-section-badges">
-            {areasComplete > 0 && <span className="info-badge done">{areasComplete} Done</span>}
-            {areasWorking > 0 && <span className="info-badge working">{areasWorking} Active</span>}
-            {areasNotStarted > 0 && <span className="info-badge pending">{areasNotStarted} Pending</span>}
-          </div>
-        </div>
-        <div className="info-areas-list">
-          {areas.map(area => (
-            <div key={area.id} className={`info-area-item ${area.status}`}>
-              <div className="info-area-status">
-                {area.status === 'done' && <span className="status-dot done">{'\u2713'}</span>}
-                {area.status === 'working' && <span className="status-dot working">{'\u25CF'}</span>}
-                {area.status === 'not_started' && <span className="status-dot pending">{'\u25CB'}</span>}
-              </div>
-              <div className="info-area-details">
-                <span className="info-area-name">{area.name}</span>
-                <span className={`info-area-status-label ${area.status}`}>
-                  {area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In Progress' : 'Not Started'}
-                </span>
-              </div>
-              <span className="info-area-weight">{area.weight}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Project Team */}
       <ProjectTeam
         project={selectedProject}
@@ -212,25 +160,6 @@ export default function InfoTab({
         onShowToast={onShowToast}
       />
 
-      {/* Project Settings - Collapsible */}
-      <details className="info-details-section">
-        <summary className="info-details-summary">
-          <Info size={16} />
-          <span>Additional Settings</span>
-        </summary>
-        <div className="info-details-content">
-          <div className="info-detail-row">
-            <span className="info-detail-label">Original Contract</span>
-            <span className="info-detail-value">{formatCurrency(selectedProject.contract_value)}</span>
-          </div>
-          {changeOrderValue > 0 && (
-            <div className="info-detail-row">
-              <span className="info-detail-label">Approved Change Orders</span>
-              <span className="info-detail-value positive">+{formatCurrency(changeOrderValue)}</span>
-            </div>
-          )}
-        </div>
-      </details>
 
       {/* Account Security */}
       <div className="info-section-card">
