@@ -113,14 +113,6 @@ function CostForecastView({ cost, contractValue }) {
         />
       </div>
 
-      {/* Forecast methods comparison */}
-      <div className="forecast-chart__methods">
-        <span className="forecast-chart__methods-label">Forecast Methods:</span>
-        <span className="forecast-chart__method forecast-chart__method-pill">CPI: {formatChartCurrency(cost.methods.cpiMethod)}</span>
-        <span className="forecast-chart__method forecast-chart__method-pill">Trend: {formatChartCurrency(cost.methods.trendMethod)}</span>
-        <span className="forecast-chart__method forecast-chart__method-pill">Composite: {formatChartCurrency(cost.methods.compositeMethod)}</span>
-      </div>
-
       {/* Chart */}
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart data={cost.weeklyForecast} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
