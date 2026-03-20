@@ -1,9 +1,9 @@
 const CAPABILITIES = [
   'Real-Time Field Sync',
-  'One-Tap COR Creation',
-  'T&M Ticket Tracking',
+  'One-Tap Time and Material Tickets',
+  'Real-Time Oversight',
   'Photo & Signature Capture',
-  'Live Change Orders',
+  'Change Order Management',
   'Instant Daily Reports',
   'Dispute-Proof Documentation',
   'Offline-First Architecture',
