@@ -25,7 +25,8 @@ import {
   calculateCORTotals,
   formatDate,
   formatDateRange,
-  groupLaborByClassAndType
+  groupLaborByClassAndType,
+  combineLaborGroupItems
 } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
 import { db } from './supabase'
@@ -347,10 +348,12 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       doc.text(group.label, margin, yPos)
       yPos += 4
 
+      const combinedItems = combineLaborGroupItems(group.items)
+
       autoTable(doc, {
         startY: yPos,
         head: [['Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
-        body: group.items.map(item => [
+        body: combinedItems.map(item => [
           item.regular_hours?.toString() || '0',
           `$${centsToDollars(item.regular_rate)}/hr`,
           item.overtime_hours?.toString() || '-',

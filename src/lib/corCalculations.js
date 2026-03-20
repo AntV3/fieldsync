@@ -302,6 +302,40 @@ export const groupLaborByClassAndType = (laborItems) => {
   }))
 }
 
+// Combine labor items within a group by rate, summing hours
+// Items with the same reg/OT rates get merged into a single row with combined hours
+export const combineLaborGroupItems = (items) => {
+  if (!items?.length) return []
+
+  const rateMap = new Map()
+
+  for (const item of items) {
+    const regRate = parseInt(item.regular_rate) || 0
+    const otRate = parseInt(item.overtime_rate) || 0
+    const key = `${regRate}::${otRate}`
+
+    if (!rateMap.has(key)) {
+      rateMap.set(key, {
+        labor_class: item.labor_class,
+        wage_type: item.wage_type,
+        regular_hours: 0,
+        overtime_hours: 0,
+        regular_rate: item.regular_rate,
+        overtime_rate: item.overtime_rate,
+        total: 0,
+        source_count: 0
+      })
+    }
+    const combined = rateMap.get(key)
+    combined.regular_hours = parseFloat(combined.regular_hours || 0) + parseFloat(item.regular_hours || 0)
+    combined.overtime_hours = parseFloat(combined.overtime_hours || 0) + parseFloat(item.overtime_hours || 0)
+    combined.total = (parseInt(combined.total) || 0) + (parseInt(item.total) || 0)
+    combined.source_count += 1
+  }
+
+  return Array.from(rateMap.values())
+}
+
 // Wage types for dropdown
 export const WAGE_TYPES = [
   { value: 'standard', label: 'Standard' },
