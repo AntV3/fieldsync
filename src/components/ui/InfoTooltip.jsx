@@ -11,11 +11,11 @@ import { Info } from 'lucide-react'
 export default function InfoTooltip({ text, size = 14 }) {
   const [visible, setVisible] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
-  const iconRef = useRef(null)
+  const wrapperRef = useRef(null)
 
   const show = useCallback(() => {
-    if (!iconRef.current) return
-    const rect = iconRef.current.getBoundingClientRect()
+    if (!wrapperRef.current) return
+    const rect = wrapperRef.current.getBoundingClientRect()
     setPos({
       top: rect.top,
       left: rect.left + rect.width / 2,
@@ -27,20 +27,21 @@ export default function InfoTooltip({ text, size = 14 }) {
 
   return (
     <span
+      ref={wrapperRef}
       className="info-tooltip-wrapper"
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}
       onBlur={hide}
+      title={text}
     >
       <Info
-        ref={iconRef}
         size={size}
         className="info-tooltip-icon"
         aria-hidden="true"
         tabIndex={0}
       />
-      {visible && (
+      {visible && text && (
         <span
           className="info-tooltip-bubble info-tooltip-bubble--fixed"
           role="tooltip"
