@@ -364,7 +364,7 @@ export default function FinancialTrendChart({
         </div>
         {chartData[chartData.length - 1]?.tmValue > 0 && (
           <div className="quick-stat">
-            <span className="stat-label">T&M Value</span>
+            <span className="stat-label">Time and Material Value</span>
             <span className="stat-value" style={{ color: chartColors.tmValue }}>
               {formatChartCurrency(chartData[chartData.length - 1]?.tmValue || 0)}
             </span>

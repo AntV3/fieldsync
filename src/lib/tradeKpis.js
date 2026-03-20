@@ -57,7 +57,7 @@ export const BUILT_IN_KPIS = {
   },
   tm_ticket_volume: {
     id: 'tm_ticket_volume',
-    label: 'T&M Tickets (This Week)',
+    label: 'Time and Material Tickets (This Week)',
     unit: 'tickets',
     icon: 'FileText',
     calculate: (projectData) => {

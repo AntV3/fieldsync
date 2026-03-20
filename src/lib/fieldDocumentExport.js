@@ -330,7 +330,7 @@ export async function exportDailyReportsPDF(reports, project, context = {}) {
     const metrics = [
       `Crew: ${report.crew_count || 0}`,
       `Tasks: ${actualTasks}/${report.tasks_total || 0}`,
-      `T&M Tickets: ${report.tm_tickets_count || 0}`,
+      `Time and Material Tickets: ${report.tm_tickets_count || 0}`,
       `Photos: ${actualPhotos}`
     ]
 
@@ -1011,7 +1011,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
       const consolidatedTasks = report.completed_tasks?.length || report.tasks_completed || 0
       const consolidatedPhotos = report.photos?.length || report.photos_count || 0
       doc.text(
-        `Crew: ${report.crew_count || 0}  ·  Tasks: ${consolidatedTasks}/${report.tasks_total || 0}  ·  T&M: ${report.tm_tickets_count || 0}  ·  Photos: ${consolidatedPhotos}`,
+        `Crew: ${report.crew_count || 0}  ·  Tasks: ${consolidatedTasks}/${report.tasks_total || 0}  ·  Time and Material: ${report.tm_tickets_count || 0}  ·  Photos: ${consolidatedPhotos}`,
         pageWidth - MARGIN - 5, y + 7, { align: 'right' }
       )
       y += 14

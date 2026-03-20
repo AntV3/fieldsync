@@ -301,7 +301,7 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
         <div className="photo-timeline-empty">
           <Camera size={32} style={{ opacity: 0.3 }} />
           <p>No photos yet</p>
-          <span>Photos from T&M tickets and daily reports will appear here</span>
+          <span>Photos from Time and Material tickets and daily reports will appear here</span>
         </div>
       ) : (
         <div className="photo-timeline-body">

@@ -217,7 +217,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       doc.setFont(undefined, 'normal')
       doc.text(`Total Crew On-Site: ${todayMetrics.total}`, 14, y); y += 5
       doc.text(`Contract Workers: ${todayMetrics.contract.length}`, 14, y); y += 5
-      doc.text(`Time & Material Workers: ${todayMetrics.tm.length}`, 14, y); y += 10
+      doc.text(`Time and Material Workers: ${todayMetrics.tm.length}`, 14, y); y += 10
 
       // Check if any workers have signatures
       const hasSignatures = selectedDayWorkers.some(w => w.signature_data)
@@ -252,12 +252,12 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         y += 8
       }
 
-      // T&M Workers
+      // Time and Material Workers
       if (todayMetrics.tm.length > 0) {
         if (y > 240) { doc.addPage(); y = 20 }
         doc.setFontSize(12)
         doc.setFont(undefined, 'bold')
-        doc.text('Time & Material Workers (Extra Work)', 14, y); y += 7
+        doc.text('Time and Material Workers (Extra Work)', 14, y); y += 7
 
         doc.setFontSize(9)
         doc.setFont(undefined, 'bold')

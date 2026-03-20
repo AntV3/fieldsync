@@ -26,7 +26,7 @@ export default function OverviewTab({
       id: 'pending-tm',
       type: 'warning',
       icon: ClipboardList,
-      label: `${projectData.pendingTickets} T&M ticket${projectData.pendingTickets !== 1 ? 's' : ''} need approval`,
+      label: `${projectData.pendingTickets} Time and Material ticket${projectData.pendingTickets !== 1 ? 's' : ''} need approval`,
       tab: 'financials'
     })
   }
@@ -151,7 +151,7 @@ export default function OverviewTab({
           </button>
           <button className="overview-action-btn" onClick={() => onSetActiveTab('financials')}>
             <DollarSign size={15} />
-            <span>{projectData?.totalTickets || 0} T&M Tickets</span>
+            <span>{projectData?.totalTickets || 0} Time and Material Tickets</span>
           </button>
           <span className="overview-action-divider" />
           <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('all')}>

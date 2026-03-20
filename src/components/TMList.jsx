@@ -1360,8 +1360,8 @@ export default function TMList({
           {filteredTickets.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title={`No ${filter === 'all' ? '' : filter} T&M tickets${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
-          message="T&M tickets created in the field will appear here"
+          title={`No ${filter === 'all' ? '' : filter} Time and Material tickets${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+          message="Time and Material tickets created in the field will appear here"
           action={viewMode === 'recent' && totalTicketsCount > 0 ? (
             <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
               View All Tickets

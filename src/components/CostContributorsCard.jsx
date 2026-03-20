@@ -53,7 +53,7 @@ export default function CostContributorsCard({
       label: 'Materials',
       amount: materialsEquipmentCost,
       source: 'auto',
-      description: 'From T&M tickets'
+      description: 'From Time and Material tickets'
     })
   }
 
