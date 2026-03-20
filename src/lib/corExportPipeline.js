@@ -549,6 +549,78 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
       tickets = await db.getCORTickets(corId)
     }
 
+    // Step 3b: Enrich labor items with missing rates from pricing tab
+    // If labor items have 0/null rates but the pricing tab has rates configured,
+    // fill them in so the export shows complete data
+    if (cor.change_order_labor?.length > 0 && company?.id) {
+      try {
+        const { db } = await import('./supabase')
+        const workType = project?.work_type || 'demolition'
+
+        // Try new labor class rates first
+        const classRates = await db.getAllLaborClassRates?.(company.id)
+        let rateLookup = {}
+
+        if (classRates?.length > 0) {
+          classRates.forEach(lc => {
+            const matchingRate = lc.labor_class_rates?.find(r =>
+              r.work_type === workType
+            )
+            if (matchingRate) {
+              rateLookup[lc.name.toLowerCase()] = {
+                regular_rate: matchingRate.regular_rate,
+                overtime_rate: matchingRate.overtime_rate
+              }
+            }
+          })
+        }
+
+        // Fall back to legacy rates if no new rates found
+        if (Object.keys(rateLookup).length === 0) {
+          const jobType = project?.job_type || 'standard'
+          const legacyRates = await db.getLaborRates?.(company.id, workType, jobType)
+          if (legacyRates?.length > 0) {
+            legacyRates.forEach(r => {
+              rateLookup[(r.role || r.name)?.toLowerCase()] = {
+                regular_rate: r.regular_rate,
+                overtime_rate: r.overtime_rate
+              }
+            })
+          }
+        }
+
+        // Enrich labor items that have missing rates
+        if (Object.keys(rateLookup).length > 0) {
+          for (const item of cor.change_order_labor) {
+            if (!item.regular_rate && !item.overtime_rate) {
+              const className = (item.labor_class || '').toLowerCase()
+              // Match by wage_type if available
+              const matchKey = Object.keys(rateLookup).find(k => k === className)
+              if (matchKey) {
+                const rate = rateLookup[matchKey]
+                const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+                const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+                item.regular_rate = regRate
+                item.overtime_rate = otRate
+                // Recalculate totals
+                const regHrs = parseFloat(item.regular_hours) || 0
+                const otHrs = parseFloat(item.overtime_hours) || 0
+                item.regular_total = Math.round(regHrs * regRate)
+                item.overtime_total = Math.round(otHrs * otRate)
+                item.total = item.regular_total + item.overtime_total
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Rate enrichment is best-effort; don't block export
+        observe.error('cor_export_rate_enrichment_failed', {
+          cor_id: corId,
+          error: e.message
+        })
+      }
+    }
+
     // Step 4: Create snapshot
     const snapshot = createSnapshot(cor, tickets, options)
     const savedSnapshot = await saveSnapshot(snapshot, job.jobId)
