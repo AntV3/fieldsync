@@ -5,15 +5,15 @@ export default function AppShowcase({ onVisible }) {
 
   return (
     <section className="lp-showcase lp-animate" ref={ref}>
-      <span className="lp-showcase-label">Field and Office. Finally on the Same Page.</span>
+      <span className="lp-showcase-label">Complete Project Oversight — Field to Finance</span>
       <h2 className="lp-showcase-heading">
-        The field works. The office knows. Instantly.
+        Your field crews report. Your office sees it. Instantly.
       </h2>
       <p className="lp-showcase-desc">
-        Your foremen get a stripped-down mobile view designed for bright sun, dirty gloves, and zero patience for complicated software.
-        Your office gets a live command center — every task status, every dollar earned, every field update hitting the screen as it happens.
-        No end-of-day roundups. No "let me call the foreman." No decisions built on four-hour-old information.
-        Same job. Same page. Right now.
+        Superintendents get a streamlined mobile interface built for jobsite conditions — simple, fast, and designed to stay out of the way.
+        Project managers and owners get a live command center with real-time task progress, earned revenue, and field documentation the moment it's captured.
+        No waiting for end-of-day reports. No chasing superintendents for updates. No submitting draws based on estimates.
+        Every update is timestamped, verified, and ready for billing.
       </p>
 
       <div className="lp-showcase-frame">

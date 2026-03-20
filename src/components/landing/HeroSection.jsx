@@ -5,20 +5,19 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
     <section className="lp-hero">
       <div className="lp-badge">
         <Zap size={14} />
-        Field and Office — Finally Connected
+        Real-Time Project Intelligence for Construction
       </div>
 
       <h1 className="lp-hero-title">
         <span className="lp-gradient-text">FieldSync</span><br />
-        Same Job. Same Page. Right Now.
+        Every Update. Every Dollar. Accounted For.
       </h1>
 
       <p className="lp-hero-subtitle">
-        Right now, your foreman knows something your office doesn't.
-        That gap — between boots on the ground and screens in the office — is costing you money on every project you're running.
-        Missed draws. Disputed change orders. Decisions made on yesterday's data.
-        FieldSync erases the gap. Every task, every dollar, every status — live, locked, and defensible.
-        Your field and your office, finally on the same page.
+        Project managers lose hours chasing field updates. Owners approve draws without verified progress. Superintendents document work that never makes it to the office.
+        FieldSync connects the entire project lifecycle — from task completion in the field to draw requests on your desk — so nothing falls through the cracks.
+        Real-time visibility for owners. Verified progress for project managers. A tool that actually works for superintendents.
+        One platform. One source of truth. Every job.
       </p>
 
       <div className="lp-hero-actions">
@@ -27,7 +26,7 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
           <ArrowRight size={18} />
         </button>
         <button className="lp-btn-ghost" onClick={onScrollToFeatures}>
-          See What You're Missing
+          See How It Works
         </button>
       </div>
 
