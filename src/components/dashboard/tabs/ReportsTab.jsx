@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, Camera, Calendar } from 'lucide-react'
 import { TicketSkeleton } from '../../ui'
 
 const DailyReportsList = lazy(() => import('../../DailyReportsList'))
@@ -14,31 +14,41 @@ export default function ReportsTab({
   areas,
   onShowToast
 }) {
+  const daysAgo = projectData?.lastDailyReport
+    ? Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))
+    : null
+
   return (
     <div className="pv-tab-panel reports-tab">
-      {/* Hero Metrics - Report Summary */}
+      {/* Hero Metrics */}
       <div className="reports-hero">
         <div className="reports-hero-grid">
           <div className="reports-metric primary">
             <div className="reports-metric-icon">
-              <ClipboardList size={24} />
+              <ClipboardList size={20} />
             </div>
             <div className="reports-metric-content">
               <div className="reports-metric-value">{projectData?.dailyReportsCount || 0}</div>
-              <div className="reports-metric-label">Daily Reports</div>
+              <div className="reports-metric-label">Total Reports</div>
             </div>
           </div>
           <div className="reports-metric">
+            <div className="reports-metric-icon-sm">
+              <Calendar size={16} />
+            </div>
             <div className="reports-metric-value">{projectData?.recentDailyReports || 0}</div>
             <div className="reports-metric-label">This Week</div>
             <div className="reports-metric-bar">
               <div
                 className="reports-metric-fill"
                 style={{ width: `${Math.min((projectData?.recentDailyReports || 0) / 7 * 100, 100)}%` }}
-              ></div>
+              />
             </div>
           </div>
           <div className="reports-metric">
+            <div className="reports-metric-icon-sm">
+              <Camera size={16} />
+            </div>
             <div className="reports-metric-value">{projectData?.totalPhotosFromTickets || 0}</div>
             <div className="reports-metric-label">Photos Captured</div>
           </div>
@@ -47,13 +57,13 @@ export default function ReportsTab({
           <div className="reports-hero-footer">
             <span className="reports-last-filed">
               Last report: {new Date(projectData.lastDailyReport).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              {' '}({Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))}d ago)
+              {' '}({daysAgo}d ago)
             </span>
           </div>
         )}
       </div>
 
-      {/* Daily Reports Section */}
+      {/* Daily Reports */}
       <div className="reports-section-card">
         <div className="reports-section-header">
           <div className="reports-section-title">
@@ -79,7 +89,7 @@ export default function ReportsTab({
         />
       </Suspense>
 
-      {/* Injury Reports Section */}
+      {/* Safety & Injury Reports */}
       <div className={`reports-section-card ${(projectData?.injuryReportsCount || 0) > 0 ? 'has-warning' : ''}`}>
         <div className="reports-section-header">
           <div className="reports-section-title">

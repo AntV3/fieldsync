@@ -110,7 +110,7 @@ export default function AnalyticsTab({
 
   return (
     <div className="pv-tab-panel analytics-tab animate-fade-in">
-      {/* 1. Project Health Overview — the big picture */}
+      {/* Project Health Overview */}
       <div className="analytics-section">
         <ProjectHealthOverview
           forecast={forecast}
@@ -124,38 +124,37 @@ export default function AnalyticsTab({
         />
       </div>
 
-      {/* 2. Crew & Safety Analytics */}
+      {/* Crew & Safety */}
       <div className="analytics-two-col">
-        {/* Crew Analytics Card */}
-        <div className="reports-insight-card">
-          <div className="reports-insight-header">
-            <div className="reports-insight-title">
+        <div className="analytics-card">
+          <div className="analytics-card-header">
+            <div className="analytics-card-title">
               <Users size={18} />
               <h3>Crew Analytics</h3>
             </div>
-            <span className="reports-section-count">{projectData?.uniqueWorkerCount || 0} workers</span>
+            <span className="analytics-card-badge">{projectData?.uniqueWorkerCount || 0} workers</span>
           </div>
-          <div className="reports-insight-body">
-            <div className="reports-stat-grid">
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.uniqueWorkerCount || 0}</span>
-                <span className="reports-stat-label">Total Workers</span>
+          <div className="analytics-card-body">
+            <div className="analytics-stat-grid">
+              <div className="analytics-stat">
+                <span className="analytics-stat-value">{projectData?.uniqueWorkerCount || 0}</span>
+                <span className="analytics-stat-label">Total Workers</span>
               </div>
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.avgCrewSize || 0}</span>
-                <span className="reports-stat-label">Avg Crew / Day</span>
+              <div className="analytics-stat">
+                <span className="analytics-stat-value">{projectData?.avgCrewSize || 0}</span>
+                <span className="analytics-stat-label">Avg Crew / Day</span>
               </div>
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.peakCrewSize || 0}</span>
-                <span className="reports-stat-label">Peak Crew Size</span>
+              <div className="analytics-stat">
+                <span className="analytics-stat-value">{projectData?.peakCrewSize || 0}</span>
+                <span className="analytics-stat-label">Peak Crew Size</span>
               </div>
-              <div className="reports-stat">
-                <span className="reports-stat-value">{projectData?.crewDaysTracked || 0}</span>
-                <span className="reports-stat-label">Days Tracked</span>
+              <div className="analytics-stat">
+                <span className="analytics-stat-value">{projectData?.crewDaysTracked || 0}</span>
+                <span className="analytics-stat-label">Days Tracked</span>
               </div>
             </div>
             {(projectData?.crewTrend || 0) !== 0 && (
-              <div className={`reports-trend-badge ${projectData.crewTrend > 0 ? 'up' : 'down'}`}>
+              <div className={`analytics-trend-badge ${projectData.crewTrend > 0 ? 'up' : 'down'}`}>
                 {projectData.crewTrend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                 <span>{Math.abs(Math.round(projectData.crewTrend))}% {projectData.crewTrend > 0 ? 'increase' : 'decrease'} vs prior week</span>
               </div>
@@ -166,15 +165,15 @@ export default function AnalyticsTab({
                 variant="compact"
                 summary={`Last ${Math.min(Object.keys(projectData.crewByDate).length, 14)} days`}
               >
-                <div className="reports-mini-chart">
-                  <div className="reports-mini-chart-label">Recent Crew Size</div>
-                  <div className="reports-mini-bars">
+                <div className="analytics-mini-chart">
+                  <div className="analytics-mini-chart-label">Recent Crew Size</div>
+                  <div className="analytics-mini-bars">
                     {Object.keys(projectData.crewByDate).sort().slice(-14).map(date => {
                       const count = projectData.crewByDate[date]
                       const max = projectData.peakCrewSize || 1
                       return (
-                        <div key={date} className="reports-mini-bar-wrap" title={`${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count} workers`}>
-                          <div className="reports-mini-bar" style={{ height: `${(count / max) * 100}%` }}></div>
+                        <div key={date} className="analytics-mini-bar-wrap" title={`${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count} workers`}>
+                          <div className="analytics-mini-bar" style={{ height: `${(count / max) * 100}%` }} />
                         </div>
                       )
                     })}
@@ -185,10 +184,9 @@ export default function AnalyticsTab({
           </div>
         </div>
 
-        {/* Safety Dashboard Card */}
-        <div className="reports-insight-card">
-          <div className="reports-insight-header">
-            <div className="reports-insight-title">
+        <div className="analytics-card">
+          <div className="analytics-card-header">
+            <div className="analytics-card-title">
               <Shield size={18} />
               <h3>Safety Dashboard</h3>
             </div>
@@ -199,8 +197,8 @@ export default function AnalyticsTab({
               }
             </span>
           </div>
-          <div className="reports-insight-body">
-            <div className="reports-safety-hero">
+          <div className="analytics-card-body">
+            <div className="analytics-safety-hero">
               <div className={`reports-safety-days ${(projectData?.daysSinceLastInjury === null || projectData?.daysSinceLastInjury > 30) ? 'excellent' : projectData?.daysSinceLastInjury > 7 ? 'good' : 'caution'}`}>
                 <span className="reports-safety-days-value">
                   {projectData?.daysSinceLastInjury !== null ? projectData.daysSinceLastInjury : '--'}
@@ -215,22 +213,22 @@ export default function AnalyticsTab({
               variant="compact"
               summary={`${projectData?.injuryReportsCount || 0} incidents, ${projectData?.oshaRecordable || 0} OSHA`}
             >
-              <div className="reports-stat-grid">
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.injuryReportsCount || 0}</span>
-                  <span className="reports-stat-label">Total Incidents</span>
+              <div className="analytics-stat-grid">
+                <div className="analytics-stat">
+                  <span className="analytics-stat-value">{projectData?.injuryReportsCount || 0}</span>
+                  <span className="analytics-stat-label">Total Incidents</span>
                 </div>
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.oshaRecordable || 0}</span>
-                  <span className="reports-stat-label">OSHA Recordable</span>
+                <div className="analytics-stat">
+                  <span className="analytics-stat-value">{projectData?.oshaRecordable || 0}</span>
+                  <span className="analytics-stat-label">OSHA Recordable</span>
                 </div>
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.reportsWithIssues || 0}</span>
-                  <span className="reports-stat-label">Reports w/ Issues</span>
+                <div className="analytics-stat">
+                  <span className="analytics-stat-value">{projectData?.reportsWithIssues || 0}</span>
+                  <span className="analytics-stat-label">Reports w/ Issues</span>
                 </div>
-                <div className="reports-stat">
-                  <span className="reports-stat-value">{projectData?.laborManDays || 0}</span>
-                  <span className="reports-stat-label">Total Man-Days</span>
+                <div className="analytics-stat">
+                  <span className="analytics-stat-value">{projectData?.laborManDays || 0}</span>
+                  <span className="analytics-stat-label">Total Man-Days</span>
                 </div>
               </div>
             </CollapsibleSection>
@@ -238,7 +236,7 @@ export default function AnalyticsTab({
         </div>
       </div>
 
-      {/* 3. Earned Value Analysis */}
+      {/* Earned Value Analysis */}
       {selectedProject?.contract_value > 0 && (
         <div className="analytics-section">
           <EarnedValueCard
@@ -253,12 +251,12 @@ export default function AnalyticsTab({
         </div>
       )}
 
-      {/* 4. Trade-Specific KPIs */}
+      {/* Trade-Specific KPIs */}
       <div className="analytics-section">
         <TradeKPICard projectId={selectedProject?.id} projectData={projectData} />
       </div>
 
-      {/* 5. Financial Projections */}
+      {/* Financial Projections */}
       {projections && (
         <div className="analytics-section">
           <CollapsibleSection
@@ -272,7 +270,7 @@ export default function AnalyticsTab({
         </div>
       )}
 
-      {/* 6. Predictive Forecast */}
+      {/* Predictive Forecast */}
       <div className="analytics-section">
         <CollapsibleSection
           title="Predictive Forecast"
