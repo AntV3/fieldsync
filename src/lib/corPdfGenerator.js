@@ -13,7 +13,8 @@ import {
   formatPercent,
   formatDate,
   formatDateRange,
-  groupLaborByClassAndType
+  groupLaborByClassAndType,
+  combineLaborGroupItems
 } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
 
@@ -242,10 +243,12 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       }
       yPos += 4
 
+      const combinedItems = combineLaborGroupItems(group.items)
+
       autoTable(doc, {
         startY: yPos,
         head: [['Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
-        body: group.items.map(item => [
+        body: combinedItems.map(item => [
           item.regular_hours?.toString() || '0',
           item.regular_rate ? formatCurrency(item.regular_rate) : '-',
           item.overtime_hours ? item.overtime_hours.toString() : '-',
