@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, Camera, Calendar } from 'lucide-react'
+import { ClipboardList, Camera, Calendar, Truck } from 'lucide-react'
+import { formatCurrency } from '../../../lib/utils'
 import { TicketSkeleton } from '../../ui'
 
 const DailyReportsList = lazy(() => import('../../DailyReportsList'))
@@ -88,6 +89,62 @@ export default function ReportsTab({
           onShowToast={onShowToast}
         />
       </Suspense>
+
+      {/* Disposal Trends */}
+      <div className="reports-section-card">
+        <div className="reports-section-header">
+          <div className="reports-section-title">
+            <Truck size={18} />
+            <h3>Disposal Trends</h3>
+          </div>
+          <span className="reports-section-count">{projectData?.disposalTotalLoads || 0} loads</span>
+        </div>
+        <div className="reports-section-content">
+          {(projectData?.weeklyDisposal || []).length === 0 ? (
+            <div className="reports-empty-state">
+              <Truck size={32} />
+              <p>No disposal data yet</p>
+              <span>Disposal loads from the field will appear here</span>
+            </div>
+          ) : (
+            <>
+              <div className="reports-disposal-chart">
+                <div className="reports-disposal-bars">
+                  {(projectData?.weeklyDisposal || []).map((week, i) => {
+                    const total = (week.concrete || 0) + (week.trash || 0) + (week.metals || 0) + (week.hazardous_waste || 0)
+                    const maxWeek = Math.max(...(projectData?.weeklyDisposal || []).map(w => (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0))) || 1
+                    return (
+                      <div key={i} className="reports-disposal-bar-col">
+                        <div className="reports-disposal-bar-stack" style={{ height: `${(total / maxWeek) * 100}%` }}>
+                          {week.concrete > 0 && <div className="reports-disposal-seg concrete" style={{ flex: week.concrete }} title={`Concrete: ${week.concrete}`}></div>}
+                          {week.trash > 0 && <div className="reports-disposal-seg trash" style={{ flex: week.trash }} title={`Trash: ${week.trash}`}></div>}
+                          {week.metals > 0 && <div className="reports-disposal-seg metals" style={{ flex: week.metals }} title={`Metals: ${week.metals}`}></div>}
+                          {week.hazardous_waste > 0 && <div className="reports-disposal-seg hazardous" style={{ flex: week.hazardous_waste }} title={`Hazardous: ${week.hazardous_waste}`}></div>}
+                        </div>
+                        <span className="reports-disposal-bar-label">
+                          {new Date(week.week + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="reports-disposal-legend">
+                  <span className="reports-disposal-legend-item"><span className="reports-disposal-dot concrete"></span>Concrete</span>
+                  <span className="reports-disposal-legend-item"><span className="reports-disposal-dot trash"></span>Trash</span>
+                  <span className="reports-disposal-legend-item"><span className="reports-disposal-dot metals"></span>Metals</span>
+                  <span className="reports-disposal-legend-item"><span className="reports-disposal-dot hazardous"></span>Hazardous</span>
+                </div>
+              </div>
+              {(projectData?.haulOffCost || 0) > 0 && (
+                <div className="reports-disposal-cost">
+                  <span>Total Disposal Cost</span>
+                  <strong>{formatCurrency(projectData.haulOffCost)}</strong>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Safety & Injury Reports */}
       <div className={`reports-section-card ${(projectData?.injuryReportsCount || 0) > 0 ? 'has-warning' : ''}`}>
