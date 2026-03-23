@@ -76,7 +76,7 @@ const BASE_ACTIONS = {
 }
 
 // Fallback default pinned actions
-const FALLBACK_PINNED = ['crew', 'tm', 'report', 'progress']
+const FALLBACK_PINNED = ['crew', 'disposal', 'tm', 'report', 'progress']
 
 // Storage key generator
 const getPinStorageKey = (projectId) => `fm_pinned_${projectId}`
