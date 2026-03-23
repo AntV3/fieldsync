@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
+import DisposalSummary from '../../DisposalSummary'
 const PunchList = lazy(() => import('../../PunchList'))
 
 export default function OverviewTab({
@@ -132,7 +133,13 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Row 5: Punch List */}
+      {/* Row 5: Disposal Loads */}
+      <DisposalSummary
+        project={selectedProject}
+        period="week"
+      />
+
+      {/* Row 6: Punch List */}
       <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
         <PunchList
           projectId={selectedProject?.id}

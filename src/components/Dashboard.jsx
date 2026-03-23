@@ -227,6 +227,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       })
       if (checkinsSub) subscriptions.push(checkinsSub)
 
+      // Haul offs subscription
+      const haulOffsSub = db.subscribeToHaulOffs?.(projectId, () => {
+        debouncedRefresh()
+      })
+      if (haulOffsSub) subscriptions.push(haulOffsSub)
+
       // CORs subscription - also refreshes COR list
       const corsSub = db.subscribeToCORs?.(projectId, () => {
         debouncedRefresh({ refreshCOR: true })
@@ -293,6 +299,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         customCosts,
         corStats,
         crewHistory,
+        weeklyDisposal,
         projectEquipment,
         projectInvoices,
         punchListItems
@@ -306,6 +313,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getProjectCosts(project.id), { fallback: [], context: { operation: 'getProjectCosts', projectId: project.id } }),
         safeAsync(() => db.getCORStats(project.id), { fallback: null, context: { operation: 'getCORStats', projectId: project.id } }),
         safeAsync(() => db.getCrewCheckinHistory(project.id, 60), { fallback: [], context: { operation: 'getCrewCheckinHistory', projectId: project.id } }),
+        safeAsync(() => db.getWeeklyDisposalSummary(project.id, 4), { fallback: [], context: { operation: 'getWeeklyDisposalSummary', projectId: project.id } }),
         safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } }),
         safeAsync(() => db.getProjectInvoices(project.id), { fallback: [], context: { operation: 'getProjectInvoices', projectId: project.id } }),
         safeAsync(() => db.getPunchListItems(project.id), { fallback: [], context: { operation: 'getPunchListItems', projectId: project.id } })
@@ -430,6 +438,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       const reportsWithIssues = dailyReports.filter(r => r.issues && r.issues.trim().length > 0).length
       const totalPhotosFromTickets = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
 
+      // Disposal totals from weekly data
+      const disposalTotalLoads = (weeklyDisposal || []).reduce((sum, w) => {
+        return sum + (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0)
+      }, 0)
+
       // Days since last injury
       const lastInjuryDate = injuryReports.length > 0
         ? new Date(injuryReports[0]?.incident_date || injuryReports[0]?.created_at)
@@ -503,6 +516,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         reportsWithIssues,
         totalPhotosFromTickets,
         dailyReports,
+        // Disposal trends
+        weeklyDisposal: weeklyDisposal || [],
+        disposalTotalLoads,
         // Safety analytics
         daysSinceLastInjury,
         injuryReports,

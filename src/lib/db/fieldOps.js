@@ -25,6 +25,258 @@ import {
 
 export const fieldOps = {
   // ============================================
+  // Disposal Loads
+  // ============================================
+
+  DISPOSAL_LOAD_TYPES: [
+    { value: 'concrete', label: 'Concrete' },
+    { value: 'trash', label: 'Trash' },
+    { value: 'metals', label: 'Metals' },
+    { value: 'hazardous_waste', label: 'Hazardous Waste' },
+    { value: 'copper', label: 'Copper' },
+    { value: 'asphalt', label: 'Asphalt' }
+  ],
+
+  // Get disposal loads for a specific date
+  async getDisposalLoads(projectId, date) {
+    if (!isSupabaseConfigured) return []
+
+    const client = getClient()
+    if (!client) return []
+
+    const start = performance.now()
+    try {
+      const { data, error } = await client
+        .from('disposal_loads')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('work_date', date)
+        .order('created_at', { ascending: false })
+
+      const duration = Math.round(performance.now() - start)
+      observe.query('getDisposalLoads', { duration, rows: data?.length, project_id: projectId })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'getDisposalLoads', project_id: projectId })
+      throw error
+    }
+  },
+
+  // Get disposal loads history for the last N days
+  async getDisposalLoadsHistory(projectId, days = 14) {
+    if (!isSupabaseConfigured) return []
+
+    const client = getClient()
+    if (!client) return []
+
+    const start = performance.now()
+    try {
+      // Calculate date range
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      const { data, error } = await client
+        .from('disposal_loads')
+        .select('*')
+        .eq('project_id', projectId)
+        .gte('work_date', startDate.toISOString().split('T')[0])
+        .lte('work_date', endDate.toISOString().split('T')[0])
+        .order('work_date', { ascending: false })
+
+      const duration = Math.round(performance.now() - start)
+      observe.query('getDisposalLoadsHistory', { duration, rows: data?.length, project_id: projectId })
+
+      if (error) throw error
+      // Map work_date to load_date for compatibility
+      return (data || []).map(d => ({ ...d, load_date: d.work_date }))
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'getDisposalLoadsHistory', project_id: projectId })
+      throw error
+    }
+  },
+
+  // Add a new disposal load entry
+  async addDisposalLoad(projectId, userId, workDate, loadType, loadCount, notes = null) {
+    if (!isSupabaseConfigured) return null
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { data, error } = await client
+      .from('disposal_loads')
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        work_date: workDate,
+        load_type: loadType,
+        load_count: loadCount,
+        notes
+      })
+      .select()
+      .single()
+
+    if (error) {
+      observe.error('database', { message: error.message, operation: 'addDisposalLoad', project_id: projectId })
+      throw error
+    }
+    return data
+  },
+
+  // Update an existing disposal load entry
+  async updateDisposalLoad(id, loadType, loadCount, notes = null) {
+    if (!isSupabaseConfigured) return null
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { data, error } = await client
+      .from('disposal_loads')
+      .update({
+        load_type: loadType,
+        load_count: loadCount,
+        notes
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      observe.error('database', { message: error.message, operation: 'updateDisposalLoad' })
+      throw error
+    }
+    return data
+  },
+
+  // Delete a disposal load entry
+  async deleteDisposalLoad(id) {
+    if (!isSupabaseConfigured) return false
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const { error } = await client
+      .from('disposal_loads')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      observe.error('database', { message: error.message, operation: 'deleteDisposalLoad' })
+      throw error
+    }
+    return true
+  },
+
+  // Get disposal summary for burn rate view
+  async getDisposalSummary(projectId, startDate = null, endDate = null) {
+    if (!isSupabaseConfigured) return []
+
+    const client = getClient()
+    if (!client) return []
+
+    const start = performance.now()
+    try {
+      // Use RPC function for efficient aggregation
+      const { data, error } = await client.rpc('get_disposal_summary', {
+        p_project_id: projectId,
+        p_start_date: startDate,
+        p_end_date: endDate
+      })
+
+      const duration = Math.round(performance.now() - start)
+      observe.query('getDisposalSummary', { duration, rows: data?.length, project_id: projectId })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      observe.error('database', { message: error.message, operation: 'getDisposalSummary', project_id: projectId })
+      // Fallback to direct query if RPC doesn't exist
+      return this.getDisposalSummaryFallback(projectId, startDate, endDate)
+    }
+  },
+
+  // Fallback aggregation (if RPC not available)
+  async getDisposalSummaryFallback(projectId, startDate, endDate) {
+    const client = getClient() || supabase
+    let query = client
+      .from('disposal_loads')
+      .select('load_type, load_count, work_date')
+      .eq('project_id', projectId)
+
+    if (startDate) {
+      query = query.gte('work_date', startDate)
+    }
+    if (endDate) {
+      query = query.lte('work_date', endDate)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    // Aggregate in JS
+    const summary = {}
+    data?.forEach(row => {
+      if (!summary[row.load_type]) {
+        summary[row.load_type] = { load_type: row.load_type, total_loads: 0, days: new Set() }
+      }
+      summary[row.load_type].total_loads += row.load_count
+      summary[row.load_type].days.add(row.work_date)
+    })
+
+    return Object.values(summary).map(s => ({
+      load_type: s.load_type,
+      total_loads: s.total_loads,
+      days_with_activity: s.days.size
+    }))
+  },
+
+  // Get weekly disposal summary for charts
+  async getWeeklyDisposalSummary(projectId, weeks = 4) {
+    if (!isSupabaseConfigured) return []
+
+    const client = getClient()
+    if (!client) return []
+
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - (weeks * 7))
+
+    const { data, error } = await client
+      .from('disposal_loads')
+      .select('load_type, load_count, work_date')
+      .eq('project_id', projectId)
+      .gte('work_date', startDate.toISOString().split('T')[0])
+      .lte('work_date', endDate.toISOString().split('T')[0])
+      .order('work_date', { ascending: true })
+
+    if (error) throw error
+
+    // Group by week and load type
+    const weeklyData = {}
+    data?.forEach(row => {
+      const date = new Date(row.work_date)
+      const weekStart = new Date(date)
+      weekStart.setDate(date.getDate() - date.getDay())
+      const weekKey = weekStart.toISOString().split('T')[0]
+
+      if (!weeklyData[weekKey]) {
+        weeklyData[weekKey] = { week: weekKey, concrete: 0, trash: 0, metals: 0, hazardous_waste: 0 }
+      }
+      weeklyData[weekKey][row.load_type] += row.load_count
+    })
+
+    return Object.values(weeklyData).sort((a, b) => a.week.localeCompare(b.week))
+  },
+
+  // ============================================
   // Disposal Truck Counts
   // ============================================
 
@@ -1071,4 +1323,17 @@ export const fieldOps = {
   // Real-time Subscriptions
   // ============================================
 
+  // Subscribe to disposal loads / haul-offs for a project
+  subscribeToHaulOffs(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`disposal_loads:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'disposal_loads', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  }
 }

@@ -10,6 +10,7 @@ import TMForm from './TMForm'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
+import DisposalLoadInput from './DisposalLoadInput'
 import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
@@ -22,7 +23,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const [expandedGroups, setExpandedGroups] = useState({})
 
   // View states
-  const [activeView, setActiveView] = useState('home') // home, crew, tm, report, injury, docs, progress, punchlist
+  const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress, punchlist
   const [showProjectInfo, setShowProjectInfo] = useState(false)
 
   // Punch list open count for badge (null = not loaded yet)
@@ -34,6 +35,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     crewCount: 0,
     tmTicketsToday: 0,
     dailyReportDone: false,
+    disposalLoadsToday: 0,
     trucksUsedToday: 0
   })
 
@@ -61,12 +63,13 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // Parallelize all three independent queries instead of running sequentially
-      const [crew, todayTicketCount, truckData] = await Promise.all([
+      // Parallelize all independent queries instead of running sequentially
+      const [crew, todayTicketCount, disposal, truckData] = await Promise.all([
         db.getCrewCheckin(project.id, today),
         // Use date-filtered count query instead of loading ALL tickets then filtering
         db.getTMTicketCountByDate?.(project.id, today) ??
           db.getTMTickets?.(project.id).then(tickets => (tickets || []).filter(t => t.work_date === today).length),
+        db.getDisposalLoads?.(project.id, today) || [],
         db.getTruckCount?.(project.id, today)
       ])
 
@@ -77,6 +80,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         crewCount: crewWorkers.length,
         tmTicketsToday: typeof todayTicketCount === 'number' ? todayTicketCount : 0,
         dailyReportDone: false, // We'll track this separately
+        disposalLoadsToday: (disposal || []).reduce((sum, d) => sum + (d.load_count || 1), 0),
         trucksUsedToday: truckData?.truck_count || 0
       })
     } catch (error) {
@@ -144,6 +148,9 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
     const tmSub = db.subscribeToTMTickets?.(project.id, () => debouncedRefresh({ status: true }))
     if (tmSub) subs.push(tmSub)
+
+    const haulSub = db.subscribeToHaulOffs?.(project.id, () => debouncedRefresh({ status: true }))
+    if (haulSub) subs.push(haulSub)
 
     const truckSub = db.subscribeToTruckCounts?.(project.id, () => debouncedRefresh({ status: true }))
     if (truckSub) subs.push(truckSub)
@@ -302,6 +309,25 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           <h2>Crew Check-in</h2>
         </div>
         <CrewCheckin project={project} companyId={companyId} onShowToast={onShowToast} />
+      </div>
+    )
+  }
+
+  // Disposal Loads View
+  if (activeView === 'disposal') {
+    return (
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => setActiveView('home')}>
+            <ArrowLeft size={20} />
+          </button>
+          <h2>Disposal Loads</h2>
+        </div>
+        <DisposalLoadInput
+          project={project}
+          date={new Date().toISOString().split('T')[0]}
+          onShowToast={onShowToast}
+        />
       </div>
     )
   }
