@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
+import { CollapsibleSection } from '../ui'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -28,6 +29,7 @@ const formatTime12 = (timeStr) => {
 
 export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
   const [loading, setLoading] = useState(true)
+  const [actionInProgress, setActionInProgress] = useState(false)
   const [corData, setCORData] = useState(cor)
   const [showSignature, setShowSignature] = useState(false)
   const [showSignatureLink, setShowSignatureLink] = useState(false)
@@ -131,65 +133,81 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   }
 
   const handleApprove = async () => {
+    if (actionInProgress) return
+    if (corData.status !== 'pending_approval') {
+      onShowToast?.('COR is no longer pending approval', 'error')
+      return
+    }
     if (!confirm('Approve this change order request?')) return
-    setLoading(true)
+    setActionInProgress(true)
     try {
-      await db.approveCOR(corData.id)
-      setCORData({ ...corData, status: 'approved', approved_at: new Date().toISOString() })
+      const updated = await db.approveCOR(corData.id)
+      setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR approved', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error approving COR:', error)
       onShowToast?.('Error approving COR', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
   const handleReject = async () => {
+    if (actionInProgress) return
+    if (corData.status !== 'pending_approval') {
+      onShowToast?.('COR is no longer pending approval', 'error')
+      return
+    }
     const reason = prompt('Enter rejection reason (optional):')
     if (reason === null) return // User cancelled
 
-    setLoading(true)
+    setActionInProgress(true)
     try {
-      await db.rejectCOR(corData.id, reason)
-      setCORData({ ...corData, status: 'rejected', rejection_reason: reason })
+      const updated = await db.rejectCOR(corData.id, reason)
+      setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR rejected', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error rejecting COR:', error)
       onShowToast?.('Error rejecting COR', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
   const handleMarkBilled = async () => {
+    if (actionInProgress) return
+    if (corData.status !== 'approved') {
+      onShowToast?.('COR must be approved before marking as billed', 'error')
+      return
+    }
     if (!confirm('Mark this COR as billed?')) return
-    setLoading(true)
+    setActionInProgress(true)
     try {
-      await db.markCORAsBilled(corData.id)
-      setCORData({ ...corData, status: 'billed' })
+      const updated = await db.markCORAsBilled(corData.id)
+      setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR marked as billed', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error marking COR as billed:', error)
       onShowToast?.('Error updating status', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
   const handleSaveSignature = async (signatureData) => {
-    setLoading(true)
+    if (actionInProgress) return
+    setActionInProgress(true)
     try {
       await db.saveCORSignature?.(corData.id, signatureData.signature, signatureData.signerName)
-      setCORData({
-        ...corData,
+      setCORData(prev => ({
+        ...prev,
         gc_signature_data: signatureData.signature,
         gc_signature_name: signatureData.signerName,
         gc_signature_date: new Date().toISOString()
-      })
+      }))
       setShowSignature(false)
       onShowToast?.('Signature saved', 'success')
       onStatusChange?.()
@@ -197,28 +215,29 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       console.error('Error saving signature:', error)
       onShowToast?.('Error saving signature', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
-  const canSign = corData.status === 'approved' && !corData.gc_signature
+  const canSign = corData.status === 'approved' && !corData.gc_signature_data
 
   const handleUpdateCorNumber = async () => {
     if (!newCorNumber.trim()) {
       setEditingNumber(false)
       return
     }
-    setLoading(true)
+    if (actionInProgress) return
+    setActionInProgress(true)
     try {
       await db.updateCOR(corData.id, { cor_number: newCorNumber.trim() })
-      setCORData({ ...corData, cor_number: newCorNumber.trim() })
+      setCORData(prev => ({ ...prev, cor_number: newCorNumber.trim() }))
       setEditingNumber(false)
       onShowToast?.('COR number updated', 'success')
     } catch (error) {
       console.error('Error updating COR number:', error)
       onShowToast?.('Error updating COR number', 'error')
     } finally {
-      setLoading(false)
+      setActionInProgress(false)
     }
   }
 
@@ -244,6 +263,17 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   const associatedTickets = useMemo(() => {
     return corData.change_order_ticket_associations?.map(assoc => assoc.t_and_m_tickets).filter(Boolean) || []
   }, [corData.change_order_ticket_associations])
+
+  // Build lookup from ticket ID to ticket date for source attribution
+  const ticketDateLookup = useMemo(() => {
+    const lookup = {}
+    for (const ticket of associatedTickets) {
+      if (ticket.id) {
+        lookup[ticket.id] = formatDate(ticket.work_date || ticket.ticket_date)
+      }
+    }
+    return lookup
+  }, [associatedTickets])
 
   // Calculate total hours for a ticket
   const getTicketHours = (ticket) => {
@@ -278,7 +308,45 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       // Fall back to direct client-side generation from a local snapshot.
       console.warn('Export pipeline unavailable, using direct generation:', pipelineError?.message)
       try {
-        const snapshot = createSnapshot(corData, associatedTickets)
+        // Enrich labor items with missing rates from pricing tab before snapshot
+        const enrichedCOR = { ...corData }
+        if (enrichedCOR.change_order_labor?.length > 0 && company?.id) {
+          try {
+            const workType = project?.work_type || 'demolition'
+            const classRates = await db.getAllLaborClassRates?.(company.id)
+            const rateLookup = {}
+            if (classRates?.length > 0) {
+              classRates.forEach(lc => {
+                const match = lc.labor_class_rates?.find(r => r.work_type === workType)
+                if (match) {
+                  rateLookup[lc.name.toLowerCase()] = { regular_rate: match.regular_rate, overtime_rate: match.overtime_rate }
+                }
+              })
+            }
+            if (Object.keys(rateLookup).length === 0) {
+              const legacyRates = await db.getLaborRates?.(company.id, workType, project?.job_type || 'standard')
+              legacyRates?.forEach(r => {
+                rateLookup[(r.role || r.name)?.toLowerCase()] = { regular_rate: r.regular_rate, overtime_rate: r.overtime_rate }
+              })
+            }
+            if (Object.keys(rateLookup).length > 0) {
+              enrichedCOR.change_order_labor = enrichedCOR.change_order_labor.map(item => {
+                if (!item.regular_rate && !item.overtime_rate) {
+                  const rate = rateLookup[(item.labor_class || '').toLowerCase()]
+                  if (rate) {
+                    const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+                    const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+                    const regHrs = parseFloat(item.regular_hours) || 0
+                    const otHrs = parseFloat(item.overtime_hours) || 0
+                    return { ...item, regular_rate: regRate, overtime_rate: otRate, regular_total: Math.round(regHrs * regRate), overtime_total: Math.round(otHrs * otRate), total: Math.round(regHrs * regRate) + Math.round(otHrs * otRate) }
+                  }
+                }
+                return item
+              })
+            }
+          } catch (e) { /* best-effort */ }
+        }
+        const snapshot = createSnapshot(enrichedCOR, associatedTickets)
         await generatePDFFromSnapshot(snapshot, { project, company, branding })
         onShowToast?.('PDF downloaded', 'success')
       } catch (fallbackError) {
@@ -373,192 +441,242 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
             {/* Labor Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Users size={16} />
-                  <span>Labor</span>
+              <CollapsibleSection
+                title="Labor"
+                icon={<Users size={16} />}
+                summary={formatCurrency(totals.labor_subtotal)}
+                badge={corData.change_order_labor?.length > 0 ? `${corData.change_order_labor.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Users size={16} />
+                    <span>Labor</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.labor_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.labor_subtotal)}</span>
-              </div>
 
-              {corData.change_order_labor?.length > 0 ? (
-                <div className="category-items">
-                  {groupLaborByClassAndType(corData.change_order_labor).map((group, gIdx) => (
-                    <div key={gIdx} className="labor-group">
-                      <div className="labor-group-header">
-                        <span className="labor-group-label">{group.label}</span>
-                        <span className="labor-group-subtotal">{formatCurrency(group.subtotal)}</span>
-                      </div>
-                      <table className="pricing-table">
-                        <thead>
-                          <tr>
-                            <th>Reg Hrs</th>
-                            <th>Reg Rate</th>
-                            <th>OT Hrs</th>
-                            <th>OT Rate</th>
-                            <th className="text-right">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.items.map((item, idx) => (
-                            <tr key={idx}>
-                              <td>{item.regular_hours}</td>
-                              <td>${centsToDollars(item.regular_rate)}/hr</td>
-                              <td>{item.overtime_hours || '-'}</td>
-                              <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
-                              <td className="text-right">{formatCurrency(item.total)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ))}
+                {corData.change_order_labor?.length > 0 ? (
+                  <div className="category-items">
+                    {groupLaborByClassAndType(corData.change_order_labor).map((group, gIdx) => {
+                      // Collect unique source ticket dates for this labor group
+                      const sourceDates = [...new Set(
+                        group.items
+                          .filter(item => item.source_ticket_id && ticketDateLookup[item.source_ticket_id])
+                          .map(item => ticketDateLookup[item.source_ticket_id])
+                      )]
+                      const hasManualItems = group.items.some(item => !item.source_ticket_id)
+
+                      return (
+                        <div key={gIdx} className="labor-group">
+                          <div className="labor-group-header">
+                            <div className="labor-group-label-row">
+                              <span className="labor-group-label">{group.label}</span>
+                              {sourceDates.length > 0 && (
+                                <span className="labor-source-badge" title={`Hours from Time and Material Ticket${sourceDates.length > 1 ? 's' : ''}: ${sourceDates.join(', ')}`}>
+                                  Source: Time and Material Ticket{sourceDates.length > 1 ? 's' : ''} — {sourceDates.join(', ')}
+                                </span>
+                              )}
+                              {hasManualItems && sourceDates.length === 0 && (
+                                <span className="labor-source-badge manual" title="Manually entered hours">
+                                  Source: Manual Entry
+                                </span>
+                              )}
+                            </div>
+                            <span className="labor-group-subtotal">{formatCurrency(group.subtotal)}</span>
+                          </div>
+                          <table className="pricing-table">
+                            <thead>
+                              <tr>
+                                <th>Reg Hrs</th>
+                                <th>Reg Rate</th>
+                                <th>OT Hrs</th>
+                                <th>OT Rate</th>
+                                <th className="text-right">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {group.items.map((item, idx) => (
+                                <tr key={idx}>
+                                  <td>{item.regular_hours}</td>
+                                  <td>${centsToDollars(item.regular_rate)}/hr</td>
+                                  <td>{item.overtime_hours || '-'}</td>
+                                  <td>{item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-'}</td>
+                                  <td className="text-right">{formatCurrency(item.total)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="category-empty">No labor items</div>
+                )}
+
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.labor_markup_percent || 1500)})</span>
+                  <span>+{formatCurrency(totals.labor_markup_amount)}</span>
                 </div>
-              ) : (
-                <div className="category-empty">No labor items</div>
-              )}
-
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.labor_markup_percent || 1500)})</span>
-                <span>+{formatCurrency(totals.labor_markup_amount)}</span>
-              </div>
+              </CollapsibleSection>
             </div>
 
             {/* Materials Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Package size={16} />
-                  <span>Materials</span>
+              <CollapsibleSection
+                title="Materials"
+                icon={<Package size={16} />}
+                summary={formatCurrency(totals.materials_subtotal)}
+                badge={corData.change_order_materials?.length > 0 ? `${corData.change_order_materials.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Package size={16} />
+                    <span>Materials</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.materials_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.materials_subtotal)}</span>
-              </div>
 
-              {corData.change_order_materials?.length > 0 ? (
-                <div className="category-items">
-                  <table className="pricing-table">
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Source</th>
-                        <th>Qty</th>
-                        <th>Unit</th>
-                        <th>Unit Cost</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {corData.change_order_materials.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.description}</td>
-                          <td>{item.source_reference || item.source_type}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.unit}</td>
-                          <td>${centsToDollars(item.unit_cost)}</td>
-                          <td className="text-right">{formatCurrency(item.total)}</td>
+                {corData.change_order_materials?.length > 0 ? (
+                  <div className="category-items">
+                    <table className="pricing-table">
+                      <thead>
+                        <tr>
+                          <th>Description</th>
+                          <th>Source</th>
+                          <th>Qty</th>
+                          <th>Unit</th>
+                          <th>Unit Cost</th>
+                          <th className="text-right">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="category-empty">No material items</div>
-              )}
+                      </thead>
+                      <tbody>
+                        {corData.change_order_materials.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.description}</td>
+                            <td>{item.source_reference || item.source_type}</td>
+                            <td>{item.quantity}</td>
+                            <td>{item.unit}</td>
+                            <td>${centsToDollars(item.unit_cost)}</td>
+                            <td className="text-right">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="category-empty">No material items</div>
+                )}
 
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.materials_markup_percent || 1500)})</span>
-                <span>+{formatCurrency(totals.materials_markup_amount)}</span>
-              </div>
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.materials_markup_percent || 1500)})</span>
+                  <span>+{formatCurrency(totals.materials_markup_amount)}</span>
+                </div>
+              </CollapsibleSection>
             </div>
 
             {/* Equipment Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Truck size={16} />
-                  <span>Equipment</span>
+              <CollapsibleSection
+                title="Equipment"
+                icon={<Truck size={16} />}
+                summary={formatCurrency(totals.equipment_subtotal)}
+                badge={corData.change_order_equipment?.length > 0 ? `${corData.change_order_equipment.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Truck size={16} />
+                    <span>Equipment</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.equipment_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.equipment_subtotal)}</span>
-              </div>
 
-              {corData.change_order_equipment?.length > 0 ? (
-                <div className="category-items">
-                  <table className="pricing-table">
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Source</th>
-                        <th>Qty</th>
-                        <th>Unit</th>
-                        <th>Unit Cost</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {corData.change_order_equipment.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.description}</td>
-                          <td>{item.source_reference || item.source_type}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.unit}</td>
-                          <td>${centsToDollars(item.unit_cost)}</td>
-                          <td className="text-right">{formatCurrency(item.total)}</td>
+                {corData.change_order_equipment?.length > 0 ? (
+                  <div className="category-items">
+                    <table className="pricing-table">
+                      <thead>
+                        <tr>
+                          <th>Description</th>
+                          <th>Source</th>
+                          <th>Qty</th>
+                          <th>Unit</th>
+                          <th>Unit Cost</th>
+                          <th className="text-right">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="category-empty">No equipment items</div>
-              )}
+                      </thead>
+                      <tbody>
+                        {corData.change_order_equipment.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.description}</td>
+                            <td>{item.source_reference || item.source_type}</td>
+                            <td>{item.quantity}</td>
+                            <td>{item.unit}</td>
+                            <td>${centsToDollars(item.unit_cost)}</td>
+                            <td className="text-right">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="category-empty">No equipment items</div>
+                )}
 
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.equipment_markup_percent || 1500)})</span>
-                <span>+{formatCurrency(totals.equipment_markup_amount)}</span>
-              </div>
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.equipment_markup_percent || 1500)})</span>
+                  <span>+{formatCurrency(totals.equipment_markup_amount)}</span>
+                </div>
+              </CollapsibleSection>
             </div>
 
             {/* Subcontractors Section */}
             <div className="pricing-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Briefcase size={16} />
-                  <span>Subcontractors</span>
+              <CollapsibleSection
+                title="Subcontractors"
+                icon={<Briefcase size={16} />}
+                summary={formatCurrency(totals.subcontractors_subtotal)}
+                badge={corData.change_order_subcontractors?.length > 0 ? `${corData.change_order_subcontractors.length} items` : null}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Briefcase size={16} />
+                    <span>Subcontractors</span>
+                  </div>
+                  <span className="category-subtotal">{formatCurrency(totals.subcontractors_subtotal)}</span>
                 </div>
-                <span className="category-subtotal">{formatCurrency(totals.subcontractors_subtotal)}</span>
-              </div>
 
-              {corData.change_order_subcontractors?.length > 0 ? (
-                <div className="category-items">
-                  <table className="pricing-table">
-                    <thead>
-                      <tr>
-                        <th>Company</th>
-                        <th>Description</th>
-                        <th>Source</th>
-                        <th className="text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {corData.change_order_subcontractors.map((item, idx) => (
-                        <tr key={idx}>
-                          <td>{item.company_name}</td>
-                          <td>{item.description}</td>
-                          <td>{item.source_reference || item.source_type}</td>
-                          <td className="text-right">{formatCurrency(item.total)}</td>
+                {corData.change_order_subcontractors?.length > 0 ? (
+                  <div className="category-items">
+                    <table className="pricing-table">
+                      <thead>
+                        <tr>
+                          <th>Company</th>
+                          <th>Description</th>
+                          <th>Source</th>
+                          <th className="text-right">Amount</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="category-empty">No subcontractor items</div>
-              )}
+                      </thead>
+                      <tbody>
+                        {corData.change_order_subcontractors.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.company_name}</td>
+                            <td>{item.description}</td>
+                            <td>{item.source_reference || item.source_type}</td>
+                            <td className="text-right">{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="category-empty">No subcontractor items</div>
+                )}
 
-              <div className="category-markup">
-                <span>Markup ({formatPercent(corData.subcontractors_markup_percent || 500)})</span>
-                <span>+{formatCurrency(totals.subcontractors_markup_amount)}</span>
-              </div>
+                <div className="category-markup">
+                  <span>Markup ({formatPercent(corData.subcontractors_markup_percent || 500)})</span>
+                  <span>+{formatCurrency(totals.subcontractors_markup_amount)}</span>
+                </div>
+              </CollapsibleSection>
             </div>
 
             {/* COR Subtotal */}
@@ -569,39 +687,45 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
             {/* Additional Fees */}
             <div className="pricing-category fees-category">
-              <div className="category-header">
-                <div className="category-title">
-                  <Percent size={16} />
-                  <span>Additional Fees</span>
-                </div>
-                <span className="category-subtotal">{formatCurrency(totals.additional_fees_total)}</span>
-              </div>
-
-              <div className="fees-list">
-                <div className="fee-row">
-                  <div className="fee-label">
-                    <Shield size={14} />
-                    <span>Liability Insurance ({formatPercent(corData.liability_insurance_percent || 144)})</span>
+              <CollapsibleSection
+                title="Additional Fees"
+                icon={<Percent size={16} />}
+                summary={formatCurrency(totals.additional_fees_total)}
+              >
+                <div className="category-header">
+                  <div className="category-title">
+                    <Percent size={16} />
+                    <span>Additional Fees</span>
                   </div>
-                  <span className="fee-amount">{formatCurrency(totals.liability_insurance_amount)}</span>
+                  <span className="category-subtotal">{formatCurrency(totals.additional_fees_total)}</span>
                 </div>
 
-                <div className="fee-row">
-                  <div className="fee-label">
-                    <FileText size={14} />
-                    <span>Bond ({formatPercent(corData.bond_percent || 100)})</span>
+                <div className="fees-list">
+                  <div className="fee-row">
+                    <div className="fee-label">
+                      <Shield size={14} />
+                      <span>Liability Insurance ({formatPercent(corData.liability_insurance_percent || 144)})</span>
+                    </div>
+                    <span className="fee-amount">{formatCurrency(totals.liability_insurance_amount)}</span>
                   </div>
-                  <span className="fee-amount">{formatCurrency(totals.bond_amount)}</span>
-                </div>
 
-                <div className="fee-row">
-                  <div className="fee-label">
-                    <Building2 size={14} />
-                    <span>City License Fee ({formatPercent(corData.license_fee_percent || 10)})</span>
+                  <div className="fee-row">
+                    <div className="fee-label">
+                      <FileText size={14} />
+                      <span>Bond ({formatPercent(corData.bond_percent || 100)})</span>
+                    </div>
+                    <span className="fee-amount">{formatCurrency(totals.bond_amount)}</span>
                   </div>
-                  <span className="fee-amount">{formatCurrency(totals.license_fee_amount)}</span>
+
+                  <div className="fee-row">
+                    <div className="fee-label">
+                      <Building2 size={14} />
+                      <span>City License Fee ({formatPercent(corData.license_fee_percent || 10)})</span>
+                    </div>
+                    <span className="fee-amount">{formatCurrency(totals.license_fee_amount)}</span>
+                  </div>
                 </div>
-              </div>
+              </CollapsibleSection>
             </div>
 
             {/* COR Total */}
@@ -885,24 +1009,24 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
           <div className="footer-actions" role="group" aria-label="COR actions">
             {canEdit && (
-              <button className="btn btn-secondary" onClick={() => onEdit?.(corData)} disabled={loading} aria-label="Edit this COR">
+              <button className="btn btn-secondary" onClick={() => onEdit?.(corData)} disabled={actionInProgress} aria-label="Edit this COR">
                 <Edit3 size={16} aria-hidden="true" /> Edit
               </button>
             )}
 
             {canApprove && (
               <>
-                <button className="btn btn-danger" onClick={handleReject} disabled={loading} aria-label="Reject this COR">
+                <button className="btn btn-danger" onClick={handleReject} disabled={actionInProgress} aria-label="Reject this COR">
                   <XCircle size={16} aria-hidden="true" /> Reject
                 </button>
-                <button className="btn btn-success" onClick={handleApprove} disabled={loading} aria-label="Approve this COR">
+                <button className="btn btn-success" onClick={handleApprove} disabled={actionInProgress} aria-label="Approve this COR">
                   <CheckCircle size={16} aria-hidden="true" /> Approve
                 </button>
               </>
             )}
 
             {canSign && (
-              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={loading} aria-label="Get GC signature for this COR">
+              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={actionInProgress} aria-label="Get GC signature for this COR">
                 <PenTool size={16} aria-hidden="true" /> Get GC Signature
               </button>
             )}
@@ -912,7 +1036,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
               <button
                 className="btn btn-secondary"
                 onClick={() => setShowSignatureLink(true)}
-                disabled={loading}
+                disabled={actionInProgress}
                 aria-label="Get shareable signature link"
               >
                 <Link size={16} aria-hidden="true" /> Get Signature Link
@@ -920,12 +1044,12 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             )}
 
             {corData.status === 'approved' && (
-              <button className="btn btn-primary" onClick={handleMarkBilled} disabled={loading} aria-label="Mark this COR as billed">
+              <button className="btn btn-primary" onClick={handleMarkBilled} disabled={actionInProgress} aria-label="Mark this COR as billed">
                 <DollarSign size={16} aria-hidden="true" /> Mark Billed
               </button>
             )}
 
-            <button className="btn btn-ghost btn-small" onClick={() => exportCORDetail(corData, project)} aria-label="Export COR to CSV">
+            <button className="btn btn-ghost btn-small" onClick={() => { try { exportCORDetail(corData, project) } catch (e) { console.error('CSV export error:', e); onShowToast?.('Error exporting CSV', 'error') } }} aria-label="Export COR to CSV">
               <Download size={16} aria-hidden="true" /> Export CSV
             </button>
             <button className="btn btn-secondary" onClick={handleExportPDF} aria-label="Export COR to PDF">

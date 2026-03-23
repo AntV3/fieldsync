@@ -1,5 +1,6 @@
 import React from 'react'
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
+import { InfoTooltip } from '../ui'
 
 /**
  * RiskScoreGauge
@@ -85,7 +86,10 @@ export function RiskScoreGauge({
         {/* Center content */}
         <div className="risk-score__value">
           <span className="risk-score__number">{score}</span>
-          <span className="risk-score__label">Risk</span>
+          <div className="risk-score__label-row">
+            <span className="risk-score__label">Risk</span>
+            <InfoTooltip text="Weighted score: Budget (30%) + Schedule (25%) + COR Exposure (20%) + Activity (15%) + Safety (10%). Lower is better." size={12} />
+          </div>
         </div>
       </div>
 

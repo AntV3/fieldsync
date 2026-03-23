@@ -17,7 +17,7 @@
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -263,13 +263,17 @@
 }
 
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 280ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 320ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 360ms; }
+.stagger-children > *:nth-child(11) { animation-delay: 400ms; }
+.stagger-children > *:nth-child(12) { animation-delay: 440ms; }
 
 /* ---- Transition Utilities ---- */
 
@@ -304,8 +308,8 @@
 }
 
 .hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow-color, rgba(0, 0, 0, 0.2));
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px var(--shadow-color, rgba(0, 0, 0, 0.25));
 }
 
 .hover-scale {
@@ -382,6 +386,84 @@
   transition: width 0.5s ease-out;
 }
 
+/* ---- SpaceX-Style Glow & Shimmer Animations ---- */
+
+@keyframes shimmerGlow {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes borderGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(1, 112, 171, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(1, 112, 171, 0.15);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes countUpBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 4px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 12px currentColor;
+  }
+}
+
+/* SpaceX-style utility classes */
+.animate-fade-in-scale {
+  animation: fadeInScale 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-count-bounce {
+  animation: countUpBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-border-glow {
+  animation: borderGlow 2s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+.animate-shimmer-glow {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.04) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmerGlow 2s ease-in-out infinite;
+}
+
 /* ---- Reduced Motion Preferences ---- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -413,3 +495,71 @@
 .duration-normal { animation-duration: 0.3s; }
 .duration-slow { animation-duration: 0.5s; }
 .duration-slower { animation-duration: 0.8s; }
+
+/* ---- Micro-Interaction Feedback ---- */
+/* Subtle transitions (150-300ms) for state changes */
+
+/* Button press micro-interaction */
+.micro-press {
+  transition: transform var(--transition-fast, 150ms ease), opacity var(--transition-fast, 150ms ease);
+}
+
+.micro-press:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* Feedback on filter/toggle application */
+.micro-toggle {
+  transition: all var(--transition-micro, 180ms cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.micro-toggle[aria-pressed="true"],
+.micro-toggle.active {
+  transform: scale(1);
+}
+
+/* Error state explanation animation */
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+.error-shake {
+  animation: errorShake 0.4s ease-out;
+}
+
+/* Skeleton content reveal (loading -> loaded) */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-reveal {
+  animation: contentReveal 0.3s ease-out;
+}
+
+/* Number count-up effect for KPI values */
+@keyframes numberSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-number-in {
+  animation: numberSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

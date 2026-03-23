@@ -1,47 +1,51 @@
-import { RefreshCw, Smartphone, ToggleRight, DollarSign, WifiOff, Shield } from 'lucide-react'
+import { FileText, Clock, Camera, PenTool, WifiOff, Shield, BarChart3 } from 'lucide-react'
 
 const FEATURES = [
   {
-    icon: RefreshCw,
-    title: 'Real-Time Sync',
-    desc: 'The second a foreman taps Done, your office knows. Not at end of shift. Not after three missed calls. The moment it happens — it\'s on your screen.',
+    icon: FileText,
+    title: 'Time and Material Tickets',
+    desc: 'Field crews create Time and Material tickets on the spot — logging descriptions, crew hours, materials used, and photos. Everything flows to the office instantly. No paperwork, no delays, no lost documentation.',
   },
   {
-    icon: Smartphone,
-    title: 'One-Tap Updates',
-    desc: 'No training. No manual. No IT. Your crew already knows how to use their phone — that\'s the whole qualification. One tap and it\'s logged.',
+    icon: Clock,
+    title: 'Real-Time Field Logging',
+    desc: 'Descriptions, crew hours, materials, and equipment are logged as work happens. Each entry is timestamped and geotagged so there\'s never a dispute about what work was performed, when, or by whom.',
   },
   {
-    icon: ToggleRight,
-    title: 'Binary Progress',
-    desc: 'Working or Done. That\'s it. No "about 70%" that means nothing when a GC demands proof. Every status is timestamped, geotagged, and airtight.',
+    icon: Camera,
+    title: 'Photo Documentation',
+    desc: 'Attach timestamped, geotagged photos directly to Time and Material tickets. Visual proof of conditions, work performed, and materials used — captured in the moment and linked to the right record automatically.',
   },
   {
-    icon: DollarSign,
-    title: 'Defensible Billing',
-    desc: 'Stop submitting draws on faith. Every line item backed by real field data with a timestamp. Disputes don\'t just lose — they never get started.',
+    icon: PenTool,
+    title: 'Digital Signatures',
+    desc: 'Capture GC and owner signatures on Time and Material tickets right from the field. Signed approvals are logged with timestamp and location so every authorization is defensible and audit-ready.',
   },
   {
     icon: WifiOff,
     title: 'Offline-First',
-    desc: 'No cell signal in the basement or the back forty? Crews keep working. The moment connectivity returns, every update syncs automatically. The gap never opens.',
+    desc: 'No cell service on site? Time and Material tickets are captured locally and sync automatically the moment connectivity returns. Your crews never miss documenting extra work because of jobsite conditions.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Analytics & Project Overview',
+    desc: 'See project health, financial projections, and predictive forecasts at a glance — across every job. Portfolio-level dashboards surface budget risks, earned value, and cost trends in real time so you can make informed decisions before problems become costly.',
   },
   {
     icon: Shield,
     title: 'Enterprise Security',
-    desc: 'MFA, role-based access, and session-controlled field entry — built for projects worth protecting. Fort Knox security that your crew will never notice.',
+    desc: 'Multi-factor authentication, role-based access controls, and session management built for projects of any scale. Your project data is protected with enterprise-grade security that requires zero effort from field teams.',
   },
 ]
 
 export default function FeatureGrid() {
   return (
     <section className="lp-features" id="features">
-      <div className="lp-features-label">Why Teams Switch to FieldSync</div>
-      <h2 className="lp-features-heading">Everything that breaks between field and office — fixed</h2>
+      <div className="lp-features-label">Real-Time Oversight on Every Project</div>
+      <h2 className="lp-features-heading">Field logs the work. Office sees it instantly.</h2>
       <p className="lp-features-desc">
-        Phone calls get missed. Texts get buried. Spreadsheets go stale before lunch.
-        That communication breakdown between your crews and your back office isn't just frustrating — it has a price tag on every single job.
-        Every feature in FieldSync exists to eliminate that cost. Permanently.
+        Extra work happens on every project. The difference is whether it gets documented.
+        FieldSync gives your field crews the tools to log descriptions, photos, crew hours, and materials — while giving your office real-time visibility and the data they need for cost estimates and Change Orders.
       </p>
 
       <div className="lp-features-grid">

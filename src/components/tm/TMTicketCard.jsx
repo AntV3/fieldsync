@@ -118,9 +118,14 @@ const TMTicketCard = memo(function TMTicketCard({
               <AlertTriangle size={12} /> Import Failed
             </span>
           )}
+          {ticket.foreman_signature_data && (
+            <span className="tm-foreman-signed-badge" title={`Foreman: ${ticket.foreman_signature_name || 'foreman'}${ticket.foreman_signature_date ? ` on ${formatDate(ticket.foreman_signature_date)}` : ''}`}>
+              <CheckCircle size={12} /> Foreman
+            </span>
+          )}
           {ticket.client_signature_data && (
             <span className="tm-verified-badge" title={`Verified by ${ticket.client_signature_name || 'client'}${ticket.client_signature_date ? ` on ${formatDate(ticket.client_signature_date)}` : ''}`}>
-              <CheckCircle size={12} /> Verified
+              <CheckCircle size={12} /> Client
             </span>
           )}
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
@@ -253,7 +258,7 @@ const TMTicketCard = memo(function TMTicketCard({
           )}
 
           <div className="tm-ticket-actions" role="group" aria-label="Ticket actions">
-            {ticket.status === 'pending' && !isLocked && (
+            {(ticket.status === 'pending' || ticket.status === 'foreman_signed') && !isLocked && (
               <>
                 <button
                   className="btn btn-success btn-small"

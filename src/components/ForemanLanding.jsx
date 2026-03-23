@@ -4,6 +4,7 @@ import {
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
   Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck
 } from 'lucide-react'
+import { useTradeConfig } from '../lib/TradeConfigContext'
 
 /**
  * ForemanLanding - Mobile-first landing page for foremen
@@ -15,8 +16,8 @@ import {
  * - Zero training required UX
  */
 
-// All available actions with their config
-const ALL_ACTIONS = {
+// Base actions available to all trades
+const BASE_ACTIONS = {
   crew: {
     id: 'crew',
     label: 'Crew Check-in',
@@ -74,8 +75,8 @@ const ALL_ACTIONS = {
   }
 }
 
-// Default pinned actions (sensible defaults for new users)
-const DEFAULT_PINNED = ['crew', 'tm', 'report', 'progress']
+// Fallback default pinned actions
+const FALLBACK_PINNED = ['crew', 'tm', 'report', 'progress']
 
 // Storage key generator
 const getPinStorageKey = (projectId) => `fm_pinned_${projectId}`
@@ -91,6 +92,29 @@ export default function ForemanLanding({
   onNavigate,
   onShowToast
 }) {
+  // Trade config for dynamic actions
+  const tradeConfig = useTradeConfig()
+  const configuredActions = tradeConfig?.resolvedConfig?.field_actions
+
+  // Resolve available actions: base actions filtered by trade config
+  const ALL_ACTIONS = useMemo(() => {
+    if (!configuredActions || configuredActions.length === 0) return BASE_ACTIONS
+    // Filter base actions to only those in the config, preserving all base action metadata
+    const filtered = {}
+    for (const actionId of configuredActions) {
+      if (BASE_ACTIONS[actionId]) {
+        filtered[actionId] = BASE_ACTIONS[actionId]
+      }
+    }
+    // Always ensure at least the base actions are available
+    return Object.keys(filtered).length > 0 ? filtered : BASE_ACTIONS
+  }, [configuredActions])
+
+  const DEFAULT_PINNED = useMemo(() => {
+    if (configuredActions?.length >= 4) return configuredActions.slice(0, 4)
+    return FALLBACK_PINNED
+  }, [configuredActions])
+
   // Pinned actions state
   const [pinnedIds, setPinnedIds] = useState(() => {
     try {
@@ -171,12 +195,18 @@ export default function ForemanLanding({
           badge: areasRemaining > 0 ? `${areasRemaining} left` : null,
           status: `${progress}% complete`
         }
-      case 'disposal':
+      case 'disposal': {
+        const loadsToday = todayStatus.disposalLoadsToday
+        const trucksToday = todayStatus.trucksUsedToday || 0
+        const parts = []
+        if (loadsToday > 0) parts.push(`${loadsToday} loads`)
+        if (trucksToday > 0) parts.push(`${trucksToday} truck${trucksToday !== 1 ? 's' : ''}`)
         return {
           done: false,
-          badge: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} today` : null,
-          status: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} logged` : 'Log loads'
+          badge: parts.length > 0 ? parts.join(', ') : null,
+          status: parts.length > 0 ? parts.join(', ') : 'Log loads'
         }
+      }
       case 'punchlist':
         return {
           done: punchListOpenCount !== null && punchListOpenCount === 0,
@@ -320,7 +350,7 @@ export default function ForemanLanding({
       )}
 
       {/* Pinned Actions Grid */}
-      <div className="fm-pinned-grid">
+      <div className="fm-pinned-grid stagger-children">
         {pinnedIds.map(renderPinnedAction)}
       </div>
 
@@ -545,9 +575,9 @@ export default function ForemanLanding({
           padding: 1.375rem 1rem;
           background: var(--bg-card);
           border: 1px solid var(--border-color);
-          border-radius: 14px;
+          border-radius: var(--radius-xl, 16px);
           cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all var(--transition-normal, 0.25s cubic-bezier(0.4, 0, 0.2, 1));
           min-height: 114px;
           position: relative;
           box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.1));
@@ -588,10 +618,11 @@ export default function ForemanLanding({
         .fm-pinned-card.completed {
           border-color: rgba(34, 197, 94, 0.4);
           background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+          box-shadow: var(--shadow-glow-green, 0 0 20px rgba(16, 185, 129, 0.15));
         }
 
         .fm-pinned-card.completed::before {
-          background: linear-gradient(90deg, #22c55e, #16a34a);
+          background: var(--gradient-green, linear-gradient(90deg, #22c55e, #16a34a));
           opacity: 1;
         }
 

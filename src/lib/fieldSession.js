@@ -59,6 +59,8 @@ export const clearFieldSession = async () => {
       // Ignore errors during logout
     }
   }
+  // Clear cached client to prevent stale token usage after logout
+  fieldClient = null
   setFieldSession(null)
 }
 
@@ -81,6 +83,14 @@ export const getFieldClient = () => {
         headers: {
           'x-field-session': session.token
         }
+      },
+      realtime: {
+        params: { eventsPerSecond: 0 }
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        storageKey: 'fieldsync-field-auth-token'
       }
     })
     fieldClient._sessionToken = session.token

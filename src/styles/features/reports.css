@@ -71,12 +71,92 @@
   z-index: 1;
 }
 
+/* Hero: Portfolio Value */
+.bo-hero-row {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.bo-hero-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.bo-hero-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.bo-hero-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bo-hero-detail {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-hero-detail-count {
+  margin-left: 0.25rem;
+  opacity: 0.7;
+}
+
+/* Completion Progress Bar */
+.bo-completion {
+  margin-bottom: 1.25rem;
+}
+
+.bo-completion-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.bo-completion-pct {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-completion-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.bo-completion-amounts {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bo-progress-bar {
-  height: 8px;
+  height: 10px;
   background: var(--progress-bg);
   border-radius: var(--radius-full);
   overflow: hidden;
-  margin-bottom: 1rem;
   box-shadow: var(--shadow-inset);
 }
 
@@ -99,39 +179,29 @@
   border-radius: var(--radius-full) var(--radius-full) 0 0;
 }
 
-.bo-financial-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+/* KPI Metrics Grid */
+.bo-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
 }
 
-.bo-metric {
-  text-align: center;
-  padding: 0.75rem;
-  flex: 1;
-  min-width: 110px;
+.bo-kpi {
+  padding: 0.875rem;
   border-radius: var(--radius-lg);
-  transition: background var(--transition-fast);
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.bo-metric.primary {
-  flex: 1;
-  min-width: 110px;
+.bo-kpi:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
 }
 
-.bo-metric.highlight {
-  background: rgba(16, 185, 129, 0.1);
-  border-radius: var(--radius-lg);
-  padding: 0.75rem;
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
-}
-
-.bo-metric-value {
+.bo-kpi-value {
   display: block;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
@@ -139,12 +209,7 @@
   letter-spacing: -0.02em;
 }
 
-.bo-metric.highlight .bo-metric-value {
-  color: var(--accent-green);
-  font-size: 1.2rem;
-}
-
-.bo-metric-label {
+.bo-kpi-label {
   display: block;
   font-size: 0.65rem;
   color: var(--text-secondary);
@@ -152,22 +217,89 @@
   letter-spacing: 0.06em;
   margin-top: 0.3rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.bo-metric-separator {
-  display: none;
+.bo-kpi-context {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Project Health Section */
-.bo-health {
+/* KPI Variants */
+.bo-kpi.backlog {
+  border-left: 3px solid var(--accent-blue);
+}
+
+.bo-kpi.backlog .bo-kpi-value {
+  color: var(--accent-blue);
+}
+
+.bo-kpi.margin {
+  border-left: 3px solid var(--accent-green);
+}
+
+.bo-kpi.margin.healthy .bo-kpi-value {
+  color: var(--accent-green);
+}
+
+.bo-kpi.margin.watch .bo-kpi-value {
+  color: var(--accent-amber);
+}
+
+.bo-kpi.margin.watch {
+  border-left-color: var(--accent-amber);
+}
+
+.bo-kpi.margin.danger .bo-kpi-value {
+  color: var(--accent-red);
+}
+
+.bo-kpi.margin.danger {
+  border-left-color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.bo-kpi.exposure {
+  border-left: 3px solid var(--accent-red);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.bo-kpi.exposure .bo-kpi-value {
+  color: var(--accent-red);
+}
+
+.bo-kpi.pending {
+  border-left: 3px solid var(--accent-amber);
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.bo-kpi.pending .bo-kpi-value {
+  color: var(--accent-amber);
+}
+
+/* Status Strip — Combined Health + Schedule */
+.bo-status-strip {
+  display: flex;
+  gap: 1.5rem;
   padding-top: 1rem;
   margin-top: 1rem;
   border-top: 1px solid var(--border-color);
   position: relative;
   z-index: 1;
+  flex-wrap: wrap;
 }
 
-.bo-health-title {
+.bo-status-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.bo-status-title {
   font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -204,6 +336,17 @@
 .bo-pill-label {
   font-weight: 500;
   opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bo-pill-exposure {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 0.125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .bo-pill.complete {
@@ -228,83 +371,6 @@
   background: rgba(239, 68, 68, 0.15);
   color: var(--accent-red);
   border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* Portfolio Change Orders Summary */
-.bo-change-orders {
-  margin-top: 1rem;
-  padding-top: 0.875rem;
-  border-top: 1px dashed var(--border-color);
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-}
-
-.bo-co-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.bo-co-label {
-  color: var(--text-secondary);
-}
-
-.bo-co-value {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.bo-co-item.bo-co-added .bo-co-value {
-  color: var(--accent-green);
-}
-
-/* Pending CORs (unapproved extra work) */
-.bo-pending-cors {
-  margin-top: 0.875rem;
-  padding: 0.875rem 1.125rem;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  border-radius: var(--radius-lg);
-}
-
-.bo-pending-cor-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.bo-pending-cor-icon {
-  width: 20px;
-  height: 20px;
-  background: var(--accent-amber);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
-.bo-pending-cor-label {
-  color: var(--accent-amber);
-  font-weight: 500;
-}
-
-.bo-pending-cor-value {
-  font-weight: 600;
-  color: var(--accent-amber);
-  font-variant-numeric: tabular-nums;
-}
-
-.bo-pending-cor-count {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
 }
 
 
@@ -369,11 +435,11 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
 }
 
 .daily-report-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .daily-report-card.submitted {
@@ -855,8 +921,8 @@
 
 .reports-hero-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr;
-  gap: 1.5rem;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 1rem;
   align-items: center;
   overflow: hidden;
 }
@@ -889,6 +955,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.reports-metric-icon-sm {
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
 }
 
 .reports-metric-content {
@@ -960,6 +1031,13 @@
   margin-top: 0.25rem;
 }
 
+.reports-hero-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
 /* Reports Section Card */
 .reports-section-card {
   background: var(--bg-card);
@@ -967,7 +1045,13 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
+  position: relative;
+}
+
+.reports-section-card > *:first-child {
+  position: relative;
+  z-index: 1;
 }
 
 .reports-section-card:hover {
@@ -1063,8 +1147,9 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
+  position: relative;
 }
 
 .reports-insight-card:hover {
@@ -1389,94 +1474,6 @@
   font-size: 0.8rem;
 }
 
-/* Disposal Chart */
-.reports-disposal-chart {
-  margin-bottom: 0.75rem;
-}
-
-.reports-disposal-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  height: 100px;
-  padding: 0.5rem 0;
-}
-
-.reports-disposal-bar-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-}
-
-.reports-disposal-bar-stack {
-  width: 100%;
-  max-width: 40px;
-  display: flex;
-  flex-direction: column;
-  border-radius: 3px 3px 0 0;
-  overflow: hidden;
-  margin-top: auto;
-}
-
-.reports-disposal-seg {
-  min-height: 2px;
-}
-
-.reports-disposal-seg.concrete { background: #6b7280; }
-.reports-disposal-seg.trash { background: var(--accent-amber); }
-.reports-disposal-seg.metals { background: var(--accent-blue); }
-.reports-disposal-seg.hazardous { background: var(--accent-red); }
-
-.reports-disposal-bar-label {
-  font-size: 0.6rem;
-  color: var(--text-muted);
-  margin-top: 0.35rem;
-  white-space: nowrap;
-}
-
-.reports-disposal-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.reports-disposal-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.reports-disposal-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-
-.reports-disposal-dot.concrete { background: #6b7280; }
-.reports-disposal-dot.trash { background: var(--accent-amber); }
-.reports-disposal-dot.metals { background: var(--accent-blue); }
-.reports-disposal-dot.hazardous { background: var(--accent-red); }
-
-.reports-disposal-cost {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.reports-disposal-cost strong {
-  color: var(--text-primary);
-}
-
 /* Field Activity Summary */
 .reports-activity-summary {
   grid-column: 1 / -1;
@@ -1540,6 +1537,15 @@
 
 /* Responsive: Reports Tab */
 @media (max-width: 768px) {
+  .reports-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .reports-metric.primary {
+    justify-content: center;
+  }
+
   .reports-two-col {
     grid-template-columns: 1fr;
   }
@@ -1550,10 +1556,6 @@
 
   .reports-activity-grid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .reports-disposal-bars {
-    height: 80px;
   }
 }
 
@@ -1726,6 +1728,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .activity-section-card.has-pending {

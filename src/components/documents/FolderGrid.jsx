@@ -86,27 +86,31 @@ export default function FolderGrid({ projectId, onShowToast }) {
     }
   }, [onShowToast])
 
+  // Debounce real-time events to avoid rapid-fire refreshes during batch uploads
+  const refreshTimerRef = useRef(null)
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+    refreshTimerRef.current = setTimeout(() => {
+      loadFolders()
+      if (selectedFolderRef.current) {
+        loadDocuments(selectedFolderRef.current.id)
+      }
+    }, 500)
+  }, [loadFolders, loadDocuments])
+
   useEffect(() => {
     loadFolders()
 
     // Subscribe to real-time document and folder changes
-    const folderSub = db.subscribeToDocumentFolders?.(projectId, () => {
-      loadFolders()
-    })
-    const docSub = db.subscribeToDocuments?.(projectId, () => {
-      // Refresh folder counts when documents change
-      loadFolders()
-      // If a folder is open, refresh its documents
-      if (selectedFolderRef.current) {
-        loadDocuments(selectedFolderRef.current.id)
-      }
-    })
+    const folderSub = db.subscribeToDocumentFolders?.(projectId, debouncedRefresh)
+    const docSub = db.subscribeToDocuments?.(projectId, debouncedRefresh)
 
     return () => {
       if (folderSub) db.unsubscribe?.(folderSub)
       if (docSub) db.unsubscribe?.(docSub)
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     }
-  }, [projectId, loadFolders, loadDocuments])
+  }, [projectId, loadFolders, loadDocuments, debouncedRefresh])
 
   const openFolder = async (folder) => {
     setSelectedFolder(folder)

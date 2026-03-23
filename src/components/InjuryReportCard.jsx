@@ -54,18 +54,10 @@ const InjuryReportCard = memo(function InjuryReportCard({
         </div>
       </div>
 
-      <div className="report-summary">
+      <div className="report-summary report-summary-compact">
         <div className="summary-item">
           <strong>Location:</strong> {report.incident_location}
         </div>
-        <div className="summary-item">
-          <strong>Reported by:</strong> {report.reported_by_name} ({report.reported_by_title})
-        </div>
-        {report.body_part_affected && (
-          <div className="summary-item">
-            <strong>Body Part:</strong> {report.body_part_affected}
-          </div>
-        )}
         {report.osha_recordable && (
           <div className="summary-item">
             <span className="osha-badge">OSHA Recordable</span>
@@ -73,13 +65,8 @@ const InjuryReportCard = memo(function InjuryReportCard({
         )}
       </div>
 
-      <div className="report-description">
-        {report.incident_description.substring(0, 150)}
-        {report.incident_description.length > 150 && '...'}
-      </div>
-
       <div className="report-footer">
-        <span>Click to view full details</span>
+        <span className="report-footer-hint">View full details</span>
       </div>
     </div>
   )

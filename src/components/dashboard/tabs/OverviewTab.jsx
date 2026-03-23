@@ -1,10 +1,8 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, DollarSign, FileText, Package, AlertTriangle, Download, ArrowRight } from 'lucide-react'
+import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
-import EarnedValueCard from '../../charts/EarnedValueCard'
-
-const PhotoTimeline = lazy(() => import('../../PhotoTimeline'))
+import DisposalSummary from '../../DisposalSummary'
 const PunchList = lazy(() => import('../../PunchList'))
 
 export default function OverviewTab({
@@ -24,29 +22,12 @@ export default function OverviewTab({
   onExportFieldDocuments
 }) {
   const attentionItems = []
-  if (projectData?.urgentMaterialRequests > 0) {
-    attentionItems.push({
-      id: 'urgent-materials',
-      type: 'warning',
-      icon: AlertTriangle,
-      label: `${projectData.urgentMaterialRequests} urgent material request${projectData.urgentMaterialRequests !== 1 ? 's' : ''}`,
-      tab: 'reports'
-    })
-  } else if (projectData?.pendingMaterialRequests > 0) {
-    attentionItems.push({
-      id: 'pending-materials',
-      type: 'info',
-      icon: Package,
-      label: `${projectData.pendingMaterialRequests} material request${projectData.pendingMaterialRequests !== 1 ? 's' : ''} pending`,
-      tab: 'reports'
-    })
-  }
   if (projectData?.pendingTickets > 0) {
     attentionItems.push({
       id: 'pending-tm',
       type: 'warning',
       icon: ClipboardList,
-      label: `${projectData.pendingTickets} T&M ticket${projectData.pendingTickets !== 1 ? 's' : ''} need approval`,
+      label: `${projectData.pendingTickets} Time and Material ticket${projectData.pendingTickets !== 1 ? 's' : ''} need approval`,
       tab: 'financials'
     })
   }
@@ -61,9 +42,9 @@ export default function OverviewTab({
   }
 
   return (
-    <div className="pv-tab-panel overview-tab animate-fade-in">
-      {/* Row 1: Hero - Progress + Financials */}
-      <div className="overview-hero-split">
+    <div className="pv-tab-panel overview-tab animate-fade-in" role="region" aria-label="Project overview">
+      {/* Row 1: Hero - Progress + Financials (Critical KPIs above the fold) */}
+      <div className="overview-hero-split" role="region" aria-label="Progress and financial summary">
         <OverviewProgressGauge
           progress={progress}
           areasComplete={areasComplete}
@@ -74,9 +55,8 @@ export default function OverviewTab({
           earnedRevenue={billable}
           totalCosts={projectData?.allCostsTotal || 0}
           laborCost={projectData?.laborCost || 0}
-          disposalCost={projectData?.haulOffCost || 0}
-          equipmentCost={projectData?.materialsEquipmentCost || 0}
-          materialsCost={0}
+          equipmentCost={projectData?.projectEquipmentCost || 0}
+          materialsCost={projectData?.materialsEquipmentCost || 0}
           otherCost={projectData?.customCostTotal || 0}
           contractValue={revisedContractValue}
         />
@@ -91,7 +71,7 @@ export default function OverviewTab({
         />
 
         {/* Right: Work Areas */}
-        <div className="overview-section-card overview-work-areas-card">
+        <div className="overview-section-card overview-work-areas-card" role="region" aria-label="Work areas">
           <div className="section-card-header">
             <h3>Work Areas</h3>
             <div className="section-card-badges">
@@ -100,10 +80,10 @@ export default function OverviewTab({
               {areasNotStarted > 0 && <span className="section-badge pending">{areasNotStarted} Pending</span>}
             </div>
           </div>
-          <div className="work-areas-list work-areas-scroll stagger-areas">
+          <div className="work-areas-list work-areas-scroll stagger-areas" role="list">
             {areas.map(area => (
-              <div key={area.id} className={`work-area-item ${area.status}`}>
-                <div className="work-area-status">
+              <div key={area.id} className={`work-area-item ${area.status}`} role="listitem" aria-label={`${area.name}: ${area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In progress' : 'Not started'}`}>
+                <div className="work-area-status" aria-hidden="true">
                   {area.status === 'done' && <span className="status-icon done">&#10003;</span>}
                   {area.status === 'working' && <span className="status-icon working">&#9679;</span>}
                   {area.status === 'not_started' && <span className="status-icon pending">&#9675;</span>}
@@ -126,26 +106,13 @@ export default function OverviewTab({
         </div>
       </div>
 
-      {/* Row 3: Earned Value Analysis */}
-      {selectedProject?.contract_value > 0 && (
-        <EarnedValueCard
-          contractValue={selectedProject.contract_value}
-          changeOrderValue={changeOrderValue || 0}
-          progressPercent={progress}
-          actualCosts={projectData?.allCostsTotal || 0}
-          startDate={selectedProject.start_date}
-          endDate={selectedProject.end_date}
-          areas={areas}
-        />
-      )}
-
-      {/* Row 4: Needs Attention (only shown when there are items) */}
+      {/* Row 3: Needs Attention (only shown when there are items) */}
       {attentionItems.length > 0 && (
-        <div className="overview-needs-attention">
+        <div className="overview-needs-attention" role="alert" aria-label={`${attentionItems.length} items need attention`}>
           <div className="overview-needs-attention__header">
-            <AlertTriangle size={15} className="overview-needs-attention__icon" />
+            <AlertTriangle size={15} className="overview-needs-attention__icon" aria-hidden="true" />
             <span className="overview-needs-attention__title">Needs Attention</span>
-            <span className="overview-needs-attention__count">{attentionItems.length}</span>
+            <span className="overview-needs-attention__count" aria-label={`${attentionItems.length} items`}>{attentionItems.length}</span>
           </div>
           <div className="overview-needs-attention__items">
             {attentionItems.map(item => {
@@ -166,26 +133,23 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Row 5: Photo Timeline + Punch List side by side */}
-      <div className="overview-two-col">
-        <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
-          <PhotoTimeline
-            projectId={selectedProject?.id}
-            areas={areas}
-            onShowToast={onShowToast}
-          />
-        </Suspense>
-        <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
-          <PunchList
-            projectId={selectedProject?.id}
-            areas={areas}
-            companyId={companyId}
-            onShowToast={onShowToast}
-          />
-        </Suspense>
-      </div>
+      {/* Row 5: Disposal Loads */}
+      <DisposalSummary
+        project={selectedProject}
+        period="week"
+      />
 
-      {/* Row 6: Quick Nav + Exports */}
+      {/* Row 6: Punch List */}
+      <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
+        <PunchList
+          projectId={selectedProject?.id}
+          areas={areas}
+          companyId={companyId}
+          onShowToast={onShowToast}
+        />
+      </Suspense>
+
+      {/* Row 7: Quick Nav + Exports */}
       <div className="overview-bottom-strip">
         <div className="overview-quick-actions">
           <button className="overview-action-btn" onClick={() => onSetActiveTab('reports')}>
@@ -194,7 +158,7 @@ export default function OverviewTab({
           </button>
           <button className="overview-action-btn" onClick={() => onSetActiveTab('financials')}>
             <DollarSign size={15} />
-            <span>{projectData?.totalTickets || 0} T&M Tickets</span>
+            <span>{projectData?.totalTickets || 0} Time and Material Tickets</span>
           </button>
           <span className="overview-action-divider" />
           <button className="overview-action-btn export" onClick={() => onExportFieldDocuments('all')}>

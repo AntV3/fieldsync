@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
-import { FileSpreadsheet, Plus, ChevronRight } from 'lucide-react'
+import { FileSpreadsheet, Plus, ChevronRight, ChevronDown } from 'lucide-react'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 
@@ -32,7 +32,8 @@ export default memo(function ProgressBillingCard({
   }, [areas])
 
   const approvedCOs = useMemo(() => {
-    return (corStats?.total_approved_value || 0)
+    // getCORStats returns dollars; convert to cents to match originalContract
+    return Math.round((corStats?.total_approved_value || 0) * 100)
   }, [corStats?.total_approved_value])
 
   const revisedContract = originalContract + approvedCOs
@@ -54,6 +55,17 @@ export default memo(function ProgressBillingCard({
 
   useEffect(() => {
     loadDrawRequests()
+
+    // Subscribe to real-time draw request changes
+    const subscription = drawRequestOps.subscribeToDrawRequests?.(project?.id, () => {
+      loadDrawRequests()
+    })
+
+    return () => {
+      if (subscription) {
+        drawRequestOps.unsubscribe?.(subscription)
+      }
+    }
   }, [loadDrawRequests])
 
   // Calculate billing totals from draw requests
@@ -83,7 +95,9 @@ export default memo(function ProgressBillingCard({
 
   const formatDate = (dateStr) => {
     if (!dateStr) return ''
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const s = String(dateStr)
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric'
     })
@@ -168,29 +182,64 @@ export default memo(function ProgressBillingCard({
         </div>
       </div>
 
-      {/* Recent Draw Requests */}
-      {loading ? (
-        <div className="progress-billing-loading">
-          <div className="loading-spinner small" />
-        </div>
-      ) : drawRequests.length === 0 ? (
-        <div className="progress-billing-empty">
-          <p>No draw requests yet</p>
-          {originalContract > 0 && (
-            <button
-              className="btn btn-sm btn-outline"
-              onClick={() => onCreateDraw?.()}
-            >
-              <Plus size={14} />
-              Create First Draw Request
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="progress-billing-draws">
-          <div className="draws-header">
-            <span>Recent Draws</span>
-          </div>
+      {/* Recent Draw Requests — collapsed by default */}
+      <RecentDraws
+        loading={loading}
+        drawRequests={drawRequests}
+        originalContract={originalContract}
+        onCreateDraw={onCreateDraw}
+        onViewDraw={onViewDraw}
+        formatDate={formatDate}
+        formatCurrency={formatCurrency}
+        getStatusBadge={getStatusBadge}
+      />
+    </div>
+  )
+})
+
+function RecentDraws({ loading, drawRequests, originalContract, onCreateDraw, onViewDraw, formatDate, formatCurrency, getStatusBadge }) {
+  const [showDraws, setShowDraws] = useState(false)
+
+  if (loading) {
+    return (
+      <div className="progress-billing-loading">
+        <div className="loading-spinner small" />
+      </div>
+    )
+  }
+
+  if (drawRequests.length === 0) {
+    return (
+      <div className="progress-billing-empty">
+        <p>No draw requests yet</p>
+        {originalContract > 0 && (
+          <button
+            className="btn btn-sm btn-outline"
+            onClick={() => onCreateDraw?.()}
+          >
+            <Plus size={14} />
+            Create First Draw Request
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="progress-billing-draws">
+      <button
+        className="draws-header draws-header-toggle"
+        onClick={() => setShowDraws(!showDraws)}
+        type="button"
+      >
+        {showDraws ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span>Recent Draws</span>
+        {!showDraws && (
+          <span className="draws-header-count">{drawRequests.length} draw{drawRequests.length !== 1 ? 's' : ''}</span>
+        )}
+      </button>
+      {showDraws && (
+        <>
           <div className="draws-list">
             {drawRequests.slice(0, 3).map(dr => (
               <button
@@ -215,8 +264,8 @@ export default memo(function ProgressBillingCard({
               View all {drawRequests.length} draws
             </button>
           )}
-        </div>
+        </>
       )}
     </div>
   )
-})
+}

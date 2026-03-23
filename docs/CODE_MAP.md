@@ -83,7 +83,6 @@ TMForm.jsx (orchestrator)
 |------|-------|---------|--------|-------|
 | `LaborRatesSection.jsx` | ~400 | Labor rate management | Active | |
 | `MaterialsSection.jsx` | ~400 | Materials pricing | Active | |
-| `DumpSitesSection.jsx` | ~300 | Dump site rates | Active | |
 
 ### 2.5 Reports & Forms
 
@@ -101,8 +100,6 @@ TMForm.jsx (orchestrator)
 |------|-------|---------|--------|-------|
 | `EnhancedSignatureCapture.jsx` | ~200 | Advanced signature canvas | Active | Preferred for modals |
 | `SignatureLinkGenerator.jsx` | ~200 | Generate share links | Active | |
-| `DisposalLoadInput.jsx` | ~300 | Log disposal loads | Active | |
-| `DisposalSummary.jsx` | ~200 | Disposal summary view | Active | |
 | `ManDayCosts.jsx` | ~200 | Man-day cost tracking | Active | |
 | `BurnRateCard.jsx` | ~150 | Budget burn rate | Active | |
 | `CostContributorsCard.jsx` | ~150 | Cost breakdown | Active | |
@@ -231,8 +228,6 @@ corExportPipeline.js  →  corPdfGenerator.js  →  PDF output
 | `PinEntry.jsx` | PIN input | Integrated into ForemanView |
 | `Login.jsx` | Login form | AppEntry.jsx |
 | `MaterialsManager.jsx` | Materials CRUD | pricing/MaterialsSection.jsx |
-| `DumpSiteManager.jsx` | Dump site CRUD | pricing/DumpSitesSection.jsx |
-| `HaulOffForm.jsx` | Haul-off tracking | DisposalLoadInput.jsx |
 | `AuthPage.jsx` | Auth page | AppEntry.jsx |
 | `Field.jsx` | Field view | ForemanView.jsx |
 
@@ -307,7 +302,6 @@ Dashboard.jsx
 ├── imports ManDayCosts.jsx
 ├── imports BurnRateCard.jsx
 ├── imports CostContributorsCard.jsx
-├── imports DisposalSummary.jsx
 ├── imports MembershipManager.jsx (Team tab)
 ├── imports ProjectTeam.jsx (Info tab)
 └── imports BrandingSettings.jsx (Branding tab)
@@ -321,7 +315,6 @@ ForemanView.jsx
 ├── imports CrewCheckin.jsx
 ├── imports DailyReport.jsx
 ├── imports InjuryReportForm.jsx
-├── imports DisposalLoadInput.jsx
 └── uses db from supabase.js
 ```
 

@@ -81,13 +81,6 @@ export function exportProjectFinancials(project, financialData) {
     })
   }
 
-  // Disposal costs
-  if (financialData?.haulOffByDate) {
-    financialData.haulOffByDate.forEach(d => {
-      rows.push({ category: 'Cost', description: 'Disposal/Haul-off', amount: d.cost, date: d.date, type: 'Disposal' })
-    })
-  }
-
   // Custom costs
   if (financialData?.customCosts) {
     financialData.customCosts.forEach(c => {

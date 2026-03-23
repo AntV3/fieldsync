@@ -16,8 +16,8 @@ import { buildCostDistribution } from '../../lib/chartDataTransforms'
  */
 export default function CostDonut({
   laborCost = 0,
-  haulOffCost = 0,
   materialsEquipmentCost = 0,
+  projectEquipmentCost = 0,
   customCosts = [],
   onSegmentClick,
 }) {
@@ -25,8 +25,8 @@ export default function CostDonut({
 
   // Build the donut segments
   const segments = useMemo(() => {
-    return buildCostDistribution(laborCost, haulOffCost, customCosts, materialsEquipmentCost)
-  }, [laborCost, haulOffCost, customCosts, materialsEquipmentCost])
+    return buildCostDistribution(laborCost, 0, customCosts, materialsEquipmentCost, projectEquipmentCost)
+  }, [laborCost, customCosts, materialsEquipmentCost, projectEquipmentCost])
 
   // Calculate total
   const totalCost = useMemo(() => {
@@ -121,7 +121,7 @@ export default function CostDonut({
       <div className="cost-donut empty">
         <div className="chart-empty-state">
           <p>No cost data available.</p>
-          <span>Add labor, disposal, or custom costs to see breakdown.</span>
+          <span>Add labor or custom costs to see breakdown.</span>
         </div>
       </div>
     )

@@ -76,13 +76,9 @@ BEGIN
       AND fs.expires_at > NOW()
   ) INTO valid_session;
 
-  -- Update last activity if valid
-  IF valid_session THEN
-    UPDATE field_sessions
-    SET last_activity = NOW()
-    WHERE session_token = v_session_token
-      AND project_id = p_project_id;
-  END IF;
+  -- NOTE: last_activity is intentionally NOT updated here.
+  -- This function is STABLE (read-only) and must not execute DML.
+  -- Session activity is updated via extend_field_session() instead.
 
   RETURN valid_session;
 END;

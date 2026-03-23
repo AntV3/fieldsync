@@ -1,10 +1,10 @@
 /* ============================================
-   Light Theme Overrides
+   Theme Overrides - Enterprise Dashboard
    ============================================
 
-   These overrides supplement the design tokens in
-   variables.css for components that need additional
-   light-mode styling beyond token switching.
+   Theme-specific component overrides.
+   Light theme is now default in :root.
+   Dark mode uses [data-theme="dark"].
 
    WCAG 2.1 AA contrast ratios maintained throughout.
    ============================================ */
@@ -42,7 +42,8 @@ body {
    ============================================ */
 
 [data-theme="light"] .nav {
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 0 rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--border-color);
 }
 
 [data-theme="light"] .card,
@@ -60,11 +61,11 @@ body {
 }
 
 [data-theme="light"] .entry-card {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .entry-card:hover {
-  box-shadow: 0 8px 24px var(--shadow-color);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* ============================================
@@ -112,11 +113,11 @@ body {
 }
 
 [data-theme="light"] .btn-primary {
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .btn-primary:hover {
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* ============================================
@@ -124,13 +125,13 @@ body {
    ============================================ */
 
 [data-theme="light"] .modal-overlay {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.45);
 }
 
 [data-theme="light"] .modal-content {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .modal-header {
@@ -328,7 +329,7 @@ body {
 
 [data-theme="light"] .project-card:hover {
   box-shadow: var(--shadow-card-hover);
-  border-color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 [data-theme="light"] .project-name {
@@ -342,8 +343,7 @@ body {
 /* Dashboard Cards */
 [data-theme="light"] .burn-rate-card,
 [data-theme="light"] .profitability-card,
-[data-theme="light"] .cost-contributors-card,
-[data-theme="light"] .disposal-summary-card {
+[data-theme="light"] .cost-contributors-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
 }
@@ -381,14 +381,9 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-[data-theme="light"] .bo-financial-row {
+[data-theme="light"] .bo-kpi {
   background: var(--bg-secondary);
   border-color: var(--border-color);
-}
-
-[data-theme="light"] .bo-metric.highlight {
-  background: var(--green-subtle);
-  border-color: rgba(5, 150, 105, 0.2);
 }
 
 /* Smart alerts */
@@ -624,45 +619,6 @@ body {
 [data-theme="light"] .ticket-pco,
 [data-theme="light"] .tm-ticket-pco {
   background: var(--status-neutral-bg);
-  color: var(--text-primary);
-}
-
-/* ============================================
-   Light Mode: Disposal Load Input
-   ============================================ */
-
-[data-theme="light"] .disposal-load-input {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .disposal-header {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .disposal-date {
-  color: var(--text-secondary);
-}
-
-[data-theme="light"] .quick-add-btn {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .disposal-load-row {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-}
-
-[data-theme="light"] .load-label,
-[data-theme="light"] .load-count {
-  color: var(--text-primary);
-}
-
-[data-theme="light"] .load-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
@@ -979,6 +935,91 @@ body {
 }
 
 /* ============================================
+   Light Mode: Elevated Card Surfaces
+   ============================================ */
+
+[data-theme="light"] .info-section-card,
+[data-theme="light"] .progress-billing-card,
+[data-theme="light"] .ev-card,
+[data-theme="light"] .financial-trend-chart,
+[data-theme="light"] .punch-list-card,
+[data-theme="light"] .photo-timeline-card {
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .info-section-card:hover,
+[data-theme="light"] .progress-billing-card:hover,
+[data-theme="light"] .ev-card:hover,
+[data-theme="light"] .financial-trend-chart:hover,
+[data-theme="light"] .punch-list-card:hover,
+[data-theme="light"] .photo-timeline-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ============================================
+   Light Mode: Notification Center
+   ============================================ */
+
+[data-theme="light"] .notification-dropdown {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .notification-item.unread {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+[data-theme="light"] .notification-item.unread:hover {
+  background: rgba(37, 99, 235, 0.07);
+}
+
+/* ============================================
+   Light Mode: Sidebar & Navigation Polish
+   ============================================ */
+
+[data-theme="light"] .sidebar {
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .company-dropdown {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color);
+}
+
+/* ============================================
+   Light Mode: Signature & Document Cards
+   ============================================ */
+
+[data-theme="light"] .signature-document-card,
+[data-theme="light"] .cor-header-card {
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme="light"] .signature-signed-content {
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   Light Mode: Settings & Branding
+   ============================================ */
+
+[data-theme="light"] .settings-section {
+  box-shadow: var(--shadow-card);
+}
+
+/* ============================================
+   Light Mode: Pricing Cards
+   ============================================ */
+
+[data-theme="light"] .labor-rate-card,
+[data-theme="light"] .job-type-section {
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-color);
+}
+
+/* ============================================
    Light Mode: Financials
    ============================================ */
 
@@ -1091,4 +1132,165 @@ body {
   background: var(--bg-secondary);
   border-color: var(--border-color);
   color: var(--text-primary);
+}
+
+/* ============================================
+   Dark Mode: SpaceX Glass Surfaces & Enhanced Depth
+   ============================================ */
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .section-card,
+[data-theme="dark"] .info-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card), var(--shadow-border-glow);
+}
+
+[data-theme="dark"] .card:hover,
+[data-theme="dark"] .section-card:hover {
+  box-shadow: var(--shadow-card-hover), var(--shadow-border-glow);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .project-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card), var(--shadow-border-glow);
+}
+
+[data-theme="dark"] .project-card:hover {
+  border-color: rgba(1, 112, 171, 0.3);
+  box-shadow: var(--shadow-card-glow);
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .project-card::before {
+  background: var(--gradient-accent, linear-gradient(135deg, #005288 0%, #0170AB 100%));
+  height: 3px;
+}
+
+/* ============================================
+   Dark Mode: Enhanced Interactive Feedback
+   ============================================ */
+
+[data-theme="dark"] .btn-primary {
+  box-shadow: 0 1px 3px rgba(0, 82, 136, 0.3), 0 0 0 1px rgba(1, 112, 171, 0.2);
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(0, 82, 136, 0.35), 0 0 0 1px rgba(1, 112, 171, 0.4);
+}
+
+[data-theme="dark"] .btn-secondary {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .btn-ghost:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ============================================
+   Dark Mode: Visual Hierarchy Refinements
+   ============================================ */
+
+[data-theme="dark"] .section-header {
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+[data-theme="dark"] .card-title {
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+/* ============================================
+   Dark Mode: Dashboard Cards Glass Treatment
+   ============================================ */
+
+[data-theme="dark"] .burn-rate-card,
+[data-theme="dark"] .profitability-card,
+[data-theme="dark"] .cost-contributors-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card), var(--shadow-border-glow);
+}
+
+[data-theme="dark"] .burn-rate-card:hover,
+[data-theme="dark"] .profitability-card:hover,
+[data-theme="dark"] .cost-contributors-card:hover {
+  box-shadow: var(--shadow-card-hover), var(--shadow-border-glow);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   Dark Mode: Enhanced Modal Overlay
+   ============================================ */
+
+[data-theme="dark"] .modal-overlay {
+  background: rgba(8, 10, 14, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+[data-theme="dark"] .modal-content {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-elevated), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-2xl);
+}
+
+/* ============================================
+   Dark Mode: Navigation Glass Effect
+   ============================================ */
+
+[data-theme="dark"] .nav {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .sidebar {
+  background: var(--bg-surface);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.02);
+}
+
+/* ============================================
+   Dark Mode: Input Focus Glow
+   ============================================ */
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  border-color: rgba(1, 112, 171, 0.5);
+  box-shadow: 0 0 0 3px rgba(1, 112, 171, 0.15), inset 0 0 0 1px rgba(1, 112, 171, 0.3);
+}
+
+/* ============================================
+   Dark Mode: Toast Glass Treatment
+   ============================================ */
+
+[data-theme="dark"] .toast {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-elevated);
 }

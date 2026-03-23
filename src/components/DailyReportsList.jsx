@@ -3,7 +3,7 @@ import { ClipboardList, ChevronDown, ChevronRight, Calendar } from 'lucide-react
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from '../lib/imageUtils'
-import { ErrorState, EmptyState } from './ui'
+import { ErrorState, EmptyState, CollapsibleSection } from './ui'
 import { parseLocalDate } from '../lib/utils'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
@@ -512,47 +512,63 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
           {/* Crew List - grouped by class/role */}
           {report.crew_list?.length > 0 && (
-            <div className="report-section">
-              <h4>Crew</h4>
-              <div className="report-crew-list report-crew-grouped">
-                {(() => {
-                  const groups = {}
-                  report.crew_list.forEach(worker => {
-                    const role = worker.role || 'Other'
-                    if (!groups[role]) groups[role] = []
-                    groups[role].push(worker)
-                  })
-                  return Object.entries(groups).map(([role, workers]) => (
-                    <div key={role} className="report-crew-class-group">
-                      <div className="report-crew-class-header">
-                        <span className="report-crew-class-name">{role}</span>
-                        <span className="report-crew-class-count">{workers.length}</span>
-                      </div>
-                      {workers.map((worker, i) => (
-                        <div key={i} className="crew-member">
-                          <span className="crew-name">{worker.name}</span>
+            <CollapsibleSection
+              title="Crew"
+              badge={`${report.crew_list.length}`}
+              variant="compact"
+              summary={(() => {
+                const groups = {}
+                report.crew_list.forEach(w => { groups[w.role || 'Other'] = (groups[w.role || 'Other'] || 0) + 1 })
+                return Object.entries(groups).map(([role, count]) => `${count} ${role}`).join(', ')
+              })()}
+            >
+              <div className="report-section">
+                <div className="report-crew-list report-crew-grouped">
+                  {(() => {
+                    const groups = {}
+                    report.crew_list.forEach(worker => {
+                      const role = worker.role || 'Other'
+                      if (!groups[role]) groups[role] = []
+                      groups[role].push(worker)
+                    })
+                    return Object.entries(groups).map(([role, workers]) => (
+                      <div key={role} className="report-crew-class-group">
+                        <div className="report-crew-class-header">
+                          <span className="report-crew-class-name">{role}</span>
+                          <span className="report-crew-class-count">{workers.length}</span>
                         </div>
-                      ))}
-                    </div>
-                  ))
-                })()}
+                        {workers.map((worker, i) => (
+                          <div key={i} className="crew-member">
+                            <span className="crew-name">{worker.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))
+                  })()}
+                </div>
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Completed Tasks */}
           {report.completed_tasks?.length > 0 && (
-            <div className="report-section">
-              <h4>Completed Today</h4>
-              <ul className="report-tasks-list">
-                {report.completed_tasks.map((task, i) => (
-                  <li key={i}>
-                    {task.name}
-                    {task.group && <span className="task-group">{task.group}</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <CollapsibleSection
+              title="Completed Today"
+              badge={`${report.completed_tasks.length}`}
+              variant="compact"
+              summary={report.completed_tasks.slice(0, 2).map(t => t.name).join(', ') + (report.completed_tasks.length > 2 ? '...' : '')}
+            >
+              <div className="report-section">
+                <ul className="report-tasks-list">
+                  {report.completed_tasks.map((task, i) => (
+                    <li key={i}>
+                      {task.name}
+                      {task.group && <span className="task-group">{task.group}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Field Notes */}
@@ -573,22 +589,27 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
           {/* Photos */}
           {getPhotoCount(report) > 0 && (
-            <div className="report-section">
-              <h4>Photos ({getPhotoCount(report)})</h4>
-              {photosLoading && !reportPhotos[report.id] ? (
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Loading photos...</p>
-              ) : reportPhotos[report.id]?.length > 0 ? (
-                <div className="report-photo-grid">
-                  {reportPhotos[report.id].map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="report-photo-thumb">
-                      <img src={url} alt={`Report photo ${i + 1}`} loading="lazy" />
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Unable to load photos</p>
-              )}
-            </div>
+            <CollapsibleSection
+              title="Photos"
+              badge={`${getPhotoCount(report)}`}
+              variant="compact"
+            >
+              <div className="report-section">
+                {photosLoading && !reportPhotos[report.id] ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Loading photos...</p>
+                ) : reportPhotos[report.id]?.length > 0 ? (
+                  <div className="report-photo-grid">
+                    {reportPhotos[report.id].map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="report-photo-thumb">
+                        <img src={url} alt={`Report photo ${i + 1}`} loading="lazy" />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Unable to load photos</p>
+                )}
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Submitted Info */}

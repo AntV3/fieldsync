@@ -6,35 +6,65 @@
    Professional, elevated card design with depth and polish.
    ============================================ */
 
-/* Base Card */
+/* Base Card - per Enterprise Dashboard spec:
+   border-radius: 8px, 1px solid border, subtle shadow
+   hover: 4px elevation + translateY(-1px) */
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
-  margin-bottom: var(--space-lg);
-  animation: fadeIn 0.3s ease;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  animation: fadeInScale 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
   position: relative;
+  overflow: hidden;
+}
+
+/* Subtle surface gradient overlay for depth */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* Focus-within state for keyboard navigation */
+.card:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
 }
 
 /* Section Card (similar to card but smaller padding) */
 .section-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
+  border-radius: 8px;
+  padding: var(--space-3);
   box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.section-card:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* Info Card */
 .info-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: 8px;
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease;
 }
 
 /* Project Card */
@@ -42,9 +72,9 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem 1.125rem;
+  padding: var(--space-4);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease;
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
@@ -56,19 +86,33 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: var(--primary-color);
+  height: 3px;
+  background: var(--gradient-accent, var(--primary-color));
   opacity: 0;
   transition: opacity var(--transition-normal);
 }
 
 .project-card:hover {
-  border-color: var(--accent-blue);
+  border-color: var(--color-accent);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
-.project-card:hover::before {
+.project-card:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
+}
+
+/* Keyboard focus mimics hover */
+.project-card:focus-visible {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-card-hover);
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.project-card:hover::before,
+.project-card:focus-visible::before {
   opacity: 1;
 }
 
@@ -86,14 +130,18 @@
   line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-tight);
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-card-value {
   color: var(--text-muted);
+  font-family: var(--font-data);
   font-size: var(--font-size-xs);
   margin-top: var(--space-xs);
   font-weight: var(--font-weight-medium);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* Enhanced Project Card */
@@ -138,11 +186,12 @@
 
 .project-stat .stat-value {
   display: block;
+  font-family: var(--font-data);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   letter-spacing: var(--letter-spacing-wide);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .project-stat .stat-value.negative {
@@ -171,10 +220,11 @@
 
 .mini-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+  background: var(--gradient-accent, linear-gradient(90deg, var(--accent-blue), var(--accent-green)));
   border-radius: var(--radius-full);
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  box-shadow: 0 0 8px rgba(1, 112, 171, 0.25);
 }
 
 .mini-progress-fill::after {
@@ -184,7 +234,7 @@
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
   border-radius: var(--radius-full) var(--radius-full) 0 0;
 }
 
@@ -207,29 +257,41 @@
 /* Dashboard Analytics Cards */
 .burn-rate-card,
 .profitability-card,
-.cost-contributors-card,
-.disposal-summary-card {
+.cost-contributors-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
+  border-radius: 8px;
+  padding: var(--space-4);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.burn-rate-card::after,
+.profitability-card::after,
+.cost-contributors-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .burn-rate-card:hover,
 .profitability-card:hover,
-.cost-contributors-card:hover,
-.disposal-summary-card:hover {
+.cost-contributors-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 /* Card Skeleton (loading state) */
 .card-skeleton {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
+  border-radius: 8px;
+  padding: var(--space-4);
   animation: pulse 2s infinite;
 }
 
@@ -279,5 +341,84 @@
 
   .project-stat:not(:last-child)::after {
     display: none;
+  }
+}
+
+/* ---- Info Tooltip ---- */
+.info-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  /* Fixed dimensions prevent the icon from overlapping adjacent elements */
+  width: max-content;
+  height: max-content;
+  min-width: 16px;
+  min-height: 16px;
+  vertical-align: middle;
+  /* Isolate from parent stacking/overflow */
+  isolation: isolate;
+  z-index: 1;
+}
+
+.info-tooltip-icon {
+  color: var(--accent-blue, #60a5fa);
+  opacity: 0.7;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+  outline: none;
+  display: block;
+}
+
+.info-tooltip-wrapper:hover .info-tooltip-icon,
+.info-tooltip-icon:focus {
+  opacity: 1;
+  color: var(--accent-blue, #93bbfd);
+}
+
+/* Fixed-position tooltip bubble — escapes all overflow/stacking contexts */
+.info-tooltip-bubble--fixed {
+  position: fixed;
+  transform: translateX(-50%) translateY(-100%) translateY(-10px);
+  background: var(--bg-elevated, #283347);
+  color: var(--text-primary, #f3f4f6);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.55;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-blue, #60a5fa);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(96, 165, 250, 0.15);
+  white-space: normal;
+  width: max-content;
+  max-width: 320px;
+  pointer-events: none;
+  z-index: 9999;
+  animation: tooltipFadeIn 0.12s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-100%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(-100%) translateY(-10px); }
+}
+
+/* Tooltip arrow */
+.info-tooltip-bubble--fixed::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--accent-blue, #60a5fa);
+}
+
+/* Keep tooltip on screen when near left/right edges */
+@media (max-width: 640px) {
+  .info-tooltip-bubble--fixed {
+    max-width: 240px;
   }
 }

@@ -199,8 +199,7 @@ Profit Margin: 40% → (stable)
 │  ┌─────────────────────────────────────────────────────────┐│
 │  │  [Donut Chart]     │  Category      Amount    % of Cost ││
 │  │                    │  Labor         $156,000   66%      ││
-│  │     $235K          │  Disposal      $45,000    19%      ││
-│  │     Total          │  Materials     $22,000    9%       ││
+│  │     $235K          │  Materials     $22,000    9%       ││
 │  │                    │  Equipment     $12,000    5%       ││
 │  └─────────────────────────────────────────────────────────┘│
 ├─────────────────────────────────────────────────────────────┤
@@ -507,7 +506,7 @@ Manual review of likely dead code:
 - Total Costs
 - Profit (amount & margin %)
 - Burn Rate (/day)
-- Cost Breakdown (Labor/Disposal/Materials/Equipment/Custom)
+- Cost Breakdown (Labor/Materials/Equipment/Custom)
 - Areas Status (Complete/Working/Not Started)
 - Daily Reports (count, last filed)
 - Injury Reports (count, safety status)

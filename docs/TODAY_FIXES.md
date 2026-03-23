@@ -147,7 +147,7 @@ Dashboard loads 9 parallel queries **per project**:
 ```javascript
 // Current pattern in Dashboard.jsx
 await Promise.all(projectIds.map(async (projectId) => {
-  const [areas, tickets, reports, crew, costs, photos, cors, materials, disposal] =
+  const [areas, tickets, reports, crew, costs, photos, cors, materials] =
     await Promise.all([
       db.getAreas(projectId),
       db.getTMTickets(projectId),

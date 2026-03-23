@@ -1,23 +1,46 @@
 /* ============================================
-   Financial Chart Components
+   Financial Chart Components - Enterprise Dashboard
+   ============================================
+
+   Data Visualization Standards:
+   - Monochromatic scales for single-series
+   - Max 3 distinct hues for multi-series
+   - Line strokes: 2px primary, 1.5px secondary
+   - Axis labels: 10px medium, Data labels: 12px regular
+   - Legend: 12px with 8px spacing
+
+   Color Scales (from variables.css):
+   Primary Blue: --data-100 through --data-10
+   Secondary: --data-alt-100, --data-alt-60, --data-alt-30
    ============================================ */
 
 /* Financial Trend Chart Container */
 .financial-trend-chart {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  margin-bottom: 1rem;
+  border-radius: 8px;
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
-  animation: chartFadeIn 0.4s ease;
-  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  animation: chartFadeIn 0.3s ease;
+  overflow: visible;
   min-width: 0;
+  position: relative;
+}
+
+.financial-trend-chart::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .financial-trend-chart:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .financial-trend-chart.empty {
@@ -131,7 +154,7 @@
 /* Chart Container */
 .chart-container {
   margin: 0 -0.5rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Quick Stats Row */
@@ -148,6 +171,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .quick-stat .stat-label {
@@ -160,16 +184,21 @@
 .quick-stat .stat-value {
   font-size: 1.1rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Chart Tooltip */
+/* Chart Tooltip - elevated surface with backdrop blur */
 .chart-tooltip {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 0.875rem 1rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  background: var(--elevation-3, var(--bg-card));
+  border: 1px solid var(--glass-border, var(--border-color));
+  border-radius: 8px;
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-elevated);
   min-width: 180px;
+  z-index: var(--z-tooltip);
+  position: relative;
 }
 
 .chart-tooltip-date {
@@ -210,9 +239,12 @@
 }
 
 .chart-tooltip-value {
+  font-family: var(--font-data, inherit);
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .chart-tooltip-daily {
@@ -246,6 +278,7 @@
 /* Recharts overrides */
 .recharts-tooltip-wrapper {
   outline: none !important;
+  z-index: var(--z-tooltip) !important;
 }
 
 .recharts-legend-wrapper {
@@ -258,6 +291,43 @@
 
 .recharts-legend-item-text {
   color: var(--text-secondary) !important;
+  font-size: var(--text-small) !important;
+}
+
+/* ---- Data Visualization Color Scale Classes ---- */
+/* Use these classes for chart elements to ensure monochromatic consistency */
+.chart-color-100 { color: var(--data-100); fill: var(--data-100); stroke: var(--data-100); }
+.chart-color-80 { color: var(--data-80); fill: var(--data-80); stroke: var(--data-80); }
+.chart-color-60 { color: var(--data-60); fill: var(--data-60); stroke: var(--data-60); }
+.chart-color-40 { color: var(--data-40); fill: var(--data-40); stroke: var(--data-40); }
+.chart-color-20 { color: var(--data-20); fill: var(--data-20); stroke: var(--data-20); }
+.chart-color-10 { color: var(--data-10); fill: var(--data-10); stroke: var(--data-10); }
+
+/* Secondary scale for comparison series */
+.chart-color-alt-100 { color: var(--data-alt-100); fill: var(--data-alt-100); stroke: var(--data-alt-100); }
+.chart-color-alt-60 { color: var(--data-alt-60); fill: var(--data-alt-60); stroke: var(--data-alt-60); }
+.chart-color-alt-30 { color: var(--data-alt-30); fill: var(--data-alt-30); stroke: var(--data-alt-30); }
+
+/* Line chart stroke widths per spec */
+.chart-line-primary { stroke-width: 2px; opacity: 1; }
+.chart-line-secondary { stroke-width: 1.5px; opacity: 0.6; }
+
+/* Axis labels: 10px medium weight */
+.recharts-cartesian-axis-tick-value {
+  font-size: var(--text-micro) !important;
+  font-weight: var(--font-weight-medium) !important;
+  fill: var(--text-tertiary) !important;
+}
+
+/* Data labels: 12px regular */
+.recharts-label {
+  font-size: var(--text-small) !important;
+  fill: var(--text-secondary) !important;
+}
+
+/* Legend: 12px with 8px spacing */
+.recharts-legend-wrapper {
+  padding-top: var(--space-2) !important;
 }
 
 /* Chart Animations */
@@ -338,6 +408,8 @@
   cursor: pointer;
   transition: all var(--transition-normal);
   font-size: 0.8125rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .donut-legend-item:hover,
@@ -354,12 +426,17 @@
 
 .donut-legend-name {
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .donut-legend-value {
   font-weight: 500;
   color: var(--text-color);
   margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Donut tooltip additions */
@@ -384,6 +461,76 @@
   color: var(--text-secondary);
 }
 
+/* ---- Chart Data Values ---- */
+/* All numeric values in charts use data font */
+.quick-stat .stat-value,
+.donut-center-value,
+.donut-legend-value {
+  font-family: var(--font-data, inherit);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---- Chart Interactive States ---- */
+/* Cross-filtering: visual feedback when chart section is selected */
+.chart-section-selected {
+  opacity: 1;
+  transition: opacity var(--transition-micro);
+}
+
+.chart-section-dimmed {
+  opacity: 0.55;
+  transition: opacity var(--transition-micro);
+}
+
+/* Time-range brush selection indicator */
+.time-range-selector button {
+  transition: all var(--transition-micro);
+  min-height: 36px;
+}
+
+.time-range-selector button.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Chart loading skeleton > spinner (perceived performance) */
+.chart-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  min-height: 300px;
+}
+
+.chart-loading-skeleton__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-loading-skeleton__bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  padding-top: var(--space-lg);
+}
+
+.chart-loading-skeleton__bar {
+  flex: 1;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .chart-header {
@@ -393,6 +540,11 @@
 
   .time-range-selector {
     justify-content: center;
+  }
+
+  .time-range-selector button {
+    min-height: 44px;
+    padding: 0.5rem 0.875rem;
   }
 
   .chart-quick-stats {

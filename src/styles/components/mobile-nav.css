@@ -58,7 +58,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   z-index: var(--z-modal-backdrop);
   animation: fadeIn 0.2s ease;
 }
@@ -83,9 +83,10 @@
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  animation: slideInRight 0.25s ease;
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
 }
 
 @keyframes slideInRight {
@@ -263,8 +264,9 @@
 }
 
 .mobile-nav-item.active {
-  background: var(--accent-blue);
+  background: var(--gradient-blue);
   color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 }
 
 .mobile-nav-badge {

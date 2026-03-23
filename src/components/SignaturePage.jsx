@@ -30,6 +30,7 @@ const StatusBadge = ({ status }) => {
   const statusMap = {
     draft: { label: 'Draft', color: '#6b7280', bg: '#f3f4f6' },
     pending_approval: { label: 'Pending Approval', color: '#d97706', bg: '#fef3c7' },
+    foreman_signed: { label: 'Foreman Signed', color: '#2563eb', bg: '#dbeafe' },
     approved: { label: 'Approved', color: '#059669', bg: '#d1fae5' },
     rejected: { label: 'Rejected', color: '#dc2626', bg: '#fee2e2' },
     billed: { label: 'Billed', color: '#2563eb', bg: '#dbeafe' },
@@ -470,9 +471,38 @@ export default function SignaturePage({ signatureToken }) {
             )}
           </div>
 
+          {/* Foreman Signature Display (if exists) */}
+          {document.foreman_signature_data && (
+            <div className="signature-status-section">
+              <h3>Foreman Certification</h3>
+              <div className="signature-slot-card completed">
+                <div className="slot-header">
+                  <CheckCircle size={18} />
+                  <span>Signed by Foreman</span>
+                </div>
+                <div className="slot-details">
+                  <div className="slot-signature-preview">
+                    <img src={document.foreman_signature_data} alt="Foreman signature" />
+                  </div>
+                  <div className="slot-signer-info">
+                    <span className="signer-name">{document.foreman_signature_name}</span>
+                    {document.foreman_signature_title && (
+                      <span className="signer-title">{document.foreman_signature_title}</span>
+                    )}
+                    {document.foreman_signature_date && (
+                      <span className="signer-date">
+                        {new Date(document.foreman_signature_date).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Signature section */}
           <div className="signature-status-section">
-            <h3>Signature</h3>
+            <h3>Client Signature</h3>
             {!isFullySigned ? (
               <>
                 {renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
@@ -858,7 +888,7 @@ export default function SignaturePage({ signatureToken }) {
                 style={{ cursor: 'pointer', marginBottom: backupExpanded ? '1rem' : 0 }}
               >
                 <div className="backup-header-left">
-                  <span>View All T&M Tickets</span>
+                  <span>View All Time and Material Tickets</span>
                 </div>
                 <div className="backup-header-toggle">
                   {backupExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
@@ -1202,7 +1232,7 @@ export default function SignaturePage({ signatureToken }) {
             <h4>Download Your Copy</h4>
             <p className="download-description">
               {isFullySigned
-                ? 'Download a PDF copy of this fully signed COR including all T&M backup documentation.'
+                ? 'Download a PDF copy of this fully signed COR including all Time and Material backup documentation.'
                 : 'Download a PDF copy of this COR for your records. Signature status will be included.'}
             </p>
             <button

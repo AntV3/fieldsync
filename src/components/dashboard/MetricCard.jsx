@@ -56,7 +56,8 @@ export function MetricCard({
       className={`metric-card ${variantClasses[variant]} ${isClickable ? 'metric-card--clickable' : ''} ${className}`}
       onClick={onClick}
       type={isClickable ? 'button' : undefined}
-      aria-label={isClickable ? `${label}: ${value}. Click for details` : undefined}
+      aria-label={isClickable ? `${label}: ${value}. Click for details` : `${label}: ${value}`}
+      role={!isClickable ? 'group' : undefined}
     >
       <div className="metric-card__header">
         <span className="metric-card__label">{label}</span>

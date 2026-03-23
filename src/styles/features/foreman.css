@@ -37,13 +37,15 @@
   border-radius: var(--radius-lg);
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .logout-btn:hover {
   background: var(--bg-card);
   color: var(--text-primary);
   border-color: var(--accent-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .foreman-title {
@@ -263,11 +265,23 @@
   padding: 0.875rem;
   text-align: center;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-fast);
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.foreman-stat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .foreman-stat:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .foreman-stat-value {
@@ -533,7 +547,7 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
 }
 
 .foreman-btn:hover {
@@ -613,7 +627,7 @@
   color: var(--text-primary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
   box-shadow: var(--shadow-sm);
 }
 
@@ -623,6 +637,7 @@
   background: var(--bg-secondary);
   border-color: var(--accent-blue);
   box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .fm-header-center {
@@ -766,7 +781,18 @@
   padding: 1rem 0.5rem;
   text-align: center;
   box-shadow: var(--shadow-card);
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.fm-stat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .fm-stat:hover {
@@ -879,9 +905,8 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--bg-elevated);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(4px);
 }
 
 .fm-action-label {
@@ -1126,17 +1151,21 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
+  padding: var(--space-md, 1rem);
+  background: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky, 200);
+  box-shadow: var(--shadow-sm);
 }
 
 .fm-subheader h2 {
   flex: 1;
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--letter-spacing-tight, -0.02em);
 }
 
 .fm-subheader-badge {
@@ -1147,6 +1176,7 @@
   border-radius: var(--radius-full);
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Progress Content */
@@ -1177,7 +1207,7 @@
 }
 
 .fm-empty svg {
-  opacity: 0.3;
+  opacity: 0.5;
   margin-bottom: 0.75rem;
 }
 

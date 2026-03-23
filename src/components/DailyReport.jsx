@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
+import { CardSkeleton } from './ui/Skeleton'
+import CustomFieldSection from './ui/CustomFieldSection'
 
 export default function DailyReport({ project, onShowToast, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -12,6 +14,8 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const [photos, setPhotos] = useState([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [submitProgress, setSubmitProgress] = useState('')
+  const [customFieldValues, setCustomFieldValues] = useState({})
+  const customFieldRef = useRef(null)
 
   // Keep a ref to the latest photos so the cleanup runs against current values
   const photosRef = useRef(photos)
@@ -64,18 +68,17 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
     setUploadingPhotos(true)
     try {
-      const newPhotos = []
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) continue
-        const compressed = await compressImage(file)
-        const previewUrl = URL.createObjectURL(compressed)
-        newPhotos.push({
-          id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          file: compressed,
-          previewUrl,
-          name: file.name
-        })
-      }
+      // Compress all images in parallel for faster processing
+      const imageFiles = files.filter(f => f.type.startsWith('image/'))
+      const compressedFiles = await Promise.all(
+        imageFiles.map(file => compressImage(file))
+      )
+      const newPhotos = compressedFiles.map((compressed, i) => ({
+        id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        file: compressed,
+        previewUrl: URL.createObjectURL(compressed),
+        name: imageFiles[i].name
+      }))
       setPhotos(prev => [...prev, ...newPhotos])
     } catch (err) {
       console.error('Error adding photos:', err)
@@ -104,19 +107,24 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
     setSubmitting(true)
     try {
-      // Upload new photos to storage
+      // Upload new photos to storage in parallel (up to 3 concurrent)
       const uploadedPaths = []
       if (photos.length > 0 && project.company_id) {
         setSubmitProgress('Uploading photos...')
-        for (const photo of photos) {
-          if (photo.file) {
-            try {
-              const path = await db.uploadPhoto(project.company_id, project.id, `dr-${Date.now()}`, photo.file)
-              if (path) uploadedPaths.push(path)
-            } catch (err) {
-              console.error('Photo upload failed:', err)
-            }
-          }
+        const photosWithFiles = photos.filter(p => p.file)
+        const BATCH_SIZE = 3
+        for (let i = 0; i < photosWithFiles.length; i += BATCH_SIZE) {
+          const batch = photosWithFiles.slice(i, i + BATCH_SIZE)
+          const results = await Promise.allSettled(
+            batch.map(photo =>
+              db.uploadPhoto(project.company_id, project.id, `dr-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, photo.file)
+            )
+          )
+          results.forEach(r => {
+            if (r.status === 'fulfilled' && r.value) uploadedPaths.push(r.value)
+            else if (r.status === 'rejected') console.error('Photo upload failed:', r.reason)
+          })
+          setSubmitProgress(`Uploading photos... ${Math.min(i + BATCH_SIZE, photosWithFiles.length)}/${photosWithFiles.length}`)
         }
       }
 
@@ -129,6 +137,11 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         reportData.photos = uploadedPaths
       }
       await db.saveDailyReport(project.id, reportData)
+
+      // Save custom trade-specific fields
+      if (Object.keys(customFieldValues).length > 0) {
+        await db.saveCustomFieldData(project.id, 'daily_report', project.id, customFieldValues)
+      }
 
       // Then submit
       const result = await db.submitDailyReport(project.id, 'Field')
@@ -162,7 +175,10 @@ export default function DailyReport({ project, onShowToast, onClose }) {
           <button className="back-btn-simple" onClick={onClose}>←</button>
           <h2>Daily Report</h2>
         </div>
-        <div className="daily-report-loading">Compiling report...</div>
+        <div style={{ padding: '1rem' }}>
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
       </div>
     )
   }
@@ -197,7 +213,8 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
       {isSubmitted && (
         <div className="daily-report-submitted-banner">
-          ✓ Submitted {new Date(report.submitted_at).toLocaleTimeString()}
+          <CheckCircle size={16} />
+          <span>Report Submitted {new Date(report.submitted_at).toLocaleTimeString()}</span>
         </div>
       )}
 
@@ -343,6 +360,17 @@ export default function DailyReport({ project, onShowToast, onClose }) {
             disabled={isSubmitted}
           />
         </div>
+
+        {/* Trade-Specific Custom Fields */}
+        <CustomFieldSection
+          ref={customFieldRef}
+          formType="daily_report"
+          projectId={project.id}
+          entityId={report?.id}
+          values={customFieldValues}
+          onChange={setCustomFieldValues}
+          disabled={isSubmitted}
+        />
       </div>
 
       {/* Submit Button */}

@@ -1,9 +1,82 @@
 /* ============================================
-   Project Detail View - Compact Layout
+   Layout Grid & Project Detail View
+   Enterprise Dashboard - 12-column fluid grid
+   ============================================
+
+   Grid: 12 columns, 24px gutters
+   Card min width: 280px
+   Max content: 1440px (centered beyond)
+   All measurements on 8px grid
    ============================================ */
 
+/* ---- Dashboard Grid System ---- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns, 12), 1fr);
+  gap: var(--grid-gutter, 24px);
+  max-width: var(--content-max-width, 1440px);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+/* Grid span utilities */
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+.col-span-3 { grid-column: span 3; }
+.col-span-4 { grid-column: span 4; }
+.col-span-5 { grid-column: span 5; }
+.col-span-6 { grid-column: span 6; }
+.col-span-7 { grid-column: span 7; }
+.col-span-8 { grid-column: span 8; }
+.col-span-9 { grid-column: span 9; }
+.col-span-10 { grid-column: span 10; }
+.col-span-11 { grid-column: span 11; }
+.col-span-12 { grid-column: span 12; }
+
+/* Responsive grid breakpoints */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: var(--space-4);
+    padding: 0 var(--space-4);
+  }
+
+  .col-span-3,
+  .col-span-4 { grid-column: span 4; }
+  .col-span-5,
+  .col-span-6 { grid-column: span 4; }
+  .col-span-7,
+  .col-span-8 { grid-column: span 8; }
+  .col-span-9,
+  .col-span-10,
+  .col-span-11,
+  .col-span-12 { grid-column: span 8; }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    padding: 0 var(--space-3);
+  }
+
+  .col-span-1,
+  .col-span-2,
+  .col-span-3,
+  .col-span-4,
+  .col-span-5,
+  .col-span-6,
+  .col-span-7,
+  .col-span-8,
+  .col-span-9,
+  .col-span-10,
+  .col-span-11,
+  .col-span-12 { grid-column: span 4; }
+}
+
+/* ---- Project Detail View ---- */
 .project-detail-view {
-  max-width: 100%;
+  max-width: var(--content-max-width, 1440px);
   margin: 0 auto;
 }
 
@@ -36,15 +109,16 @@
 .metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1rem;
+  border-radius: 8px;
+  padding: var(--space-4);
   text-align: center;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .metric-card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .metric-label {
@@ -56,11 +130,13 @@
 }
 
 .metric-value {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: var(--font-data);
+  font-size: var(--text-data-medium);
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
+  text-align: right;
 }
 
 .metric-value.accent {
@@ -100,9 +176,9 @@
 }
 
 .info-tag.type {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
+  background: rgba(0, 145, 213, 0.1);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
   text-transform: capitalize;
 }
 
@@ -291,8 +367,8 @@ END MIGRATED */
 .field-area-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: 1.25rem;
+  border-radius: 8px;
+  padding: var(--space-5);
 }
 
 .field-area-name {
@@ -308,16 +384,17 @@ END MIGRATED */
 }
 
 .field-status-btn {
-  padding: 1rem;
-  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  border-radius: 6px;
   border: 2px solid var(--border-color);
   background: var(--bg-elevated);
   color: var(--text-secondary);
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--text-h3);
+  font-weight: var(--font-weight-semibold);
   font-family: inherit;
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.2s ease;
+  min-height: 44px;
 }
 
 .field-status-btn:hover {
@@ -364,11 +441,11 @@ END MIGRATED */
   border: 1px solid var(--border-color);
 }
 
-/* Project List - Grid Layout */
+/* Project List - Grid Layout (card min width: 280px per spec) */
 .project-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width, 280px), 1fr));
+  gap: var(--grid-gutter, 24px);
 }
 
 /* MIGRATED TO: src/styles/components/cards.css
@@ -437,32 +514,133 @@ END MIGRATED */
   margin-bottom: 0.5rem;
 }
 
-/* Toast */
+/* Toast Container - Stacked notifications */
 .toast-container {
   position: fixed;
   bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  z-index: var(--z-toast);
+  z-index: var(--z-toast, 500);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-sm, 0.5rem);
+  pointer-events: none;
 }
 
-.toast {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius-lg);
-  font-weight: 500;
-  animation: slideUp 0.3s ease;
+.toast-container > * {
+  pointer-events: auto;
 }
 
-.toast.success {
-  border-color: var(--accent-green);
-  background: rgba(16, 185, 129, 0.1);
+/* Toast Notification - Premium glass-morphism style */
+.toast-notification {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.92));
+  backdrop-filter: var(--glass-backdrop, blur(12px));
+  -webkit-backdrop-filter: var(--glass-backdrop, blur(12px));
+  border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.06));
+  border-radius: 8px;
+  box-shadow: var(--shadow-elevated);
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-medium);
+  position: relative;
+  overflow: hidden;
+  min-width: 280px;
+  max-width: 420px;
+  will-change: transform, opacity;
 }
 
-.toast.error {
-  border-color: var(--accent-red);
-  background: rgba(239, 68, 68, 0.1);
+.toast-enter { animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.toast-exit { animation: toastSlideOut 0.2s ease-in forwards; }
+
+.toast-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md, 8px);
+}
+
+.toast-success .toast-icon-wrapper { color: var(--accent-green); background: var(--green-subtle, rgba(16, 185, 129, 0.08)); }
+.toast-error .toast-icon-wrapper { color: var(--accent-red); background: var(--red-subtle, rgba(239, 68, 68, 0.08)); }
+.toast-warning .toast-icon-wrapper { color: var(--accent-amber); background: var(--amber-subtle, rgba(245, 158, 11, 0.08)); }
+.toast-info .toast-icon-wrapper { color: var(--accent-blue); background: var(--blue-subtle, rgba(59, 130, 246, 0.08)); }
+
+.toast-success { border-color: rgba(16, 185, 129, 0.2); }
+.toast-error { border-color: rgba(239, 68, 68, 0.2); }
+.toast-warning { border-color: rgba(245, 158, 11, 0.2); }
+.toast-info { border-color: rgba(59, 130, 246, 0.15); }
+
+.toast-message { flex: 1; line-height: 1.4; }
+
+.toast-action {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--accent-blue);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm, 4px);
+  transition: background var(--transition-fast, 150ms ease);
+}
+
+.toast-action:hover { background: var(--blue-subtle, rgba(59, 130, 246, 0.08)); }
+
+.toast-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm, 4px);
+  transition: all var(--transition-fast, 150ms ease);
+  opacity: 0.6;
+}
+
+.toast-close:hover {
+  opacity: 1;
+  background: var(--hover-overlay, rgba(255, 255, 255, 0.04));
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.toast-progress-bar {
+  height: 100%;
+  transition: width 100ms linear;
+  border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+}
+
+.toast-success .toast-progress-bar { background: var(--accent-green); opacity: 0.5; }
+.toast-error .toast-progress-bar { background: var(--accent-red); opacity: 0.5; }
+.toast-warning .toast-progress-bar { background: var(--accent-amber); opacity: 0.5; }
+.toast-info .toast-progress-bar { background: var(--accent-blue); opacity: 0.5; }
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.96); }
 }
 
 /* Demo Banner */
@@ -548,9 +726,10 @@ END MIGRATED */
     transform: none;
   }
 
-  .toast {
+  .toast-notification {
+    min-width: unset;
+    max-width: unset;
     width: 100%;
-    text-align: center;
   }
 }
 
@@ -588,6 +767,38 @@ END MIGRATED */
 
   .dashboard-header {
     flex-wrap: wrap;
+  }
+}
+
+/* ============================================
+   SpaceX Layout Utilities
+   ============================================ */
+
+/* Gap utilities using spacing tokens */
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+
+/* Auto-fill grid for responsive card layouts */
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
+  gap: var(--grid-gutter);
+}
+
+/* Prevent grid children overflow */
+.grid-auto-fill > *,
+.grid > * {
+  min-width: 0;
+}
+
+/* Responsive gutter enhancement */
+@media (min-width: 1440px) {
+  :root {
+    --grid-gutter: 28px;
   }
 }
 

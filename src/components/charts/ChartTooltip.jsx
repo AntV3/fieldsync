@@ -86,7 +86,7 @@ export default function ChartTooltip({ active, payload, label }) {
                 className="chart-tooltip-dot"
                 style={{ backgroundColor: chartColors.tmValue }}
               />
-              T&M Value
+              Time and Material Value
             </span>
             <span className="chart-tooltip-value">
               {formatCurrency(data.tmValue)}
@@ -139,7 +139,7 @@ export default function ChartTooltip({ active, payload, label }) {
       </div>
 
       {/* Daily breakdown if available */}
-      {(data.dailyRevenue > 0 || data.dailyLabor > 0 || data.dailyMaterials > 0 || data.dailyHaulOff > 0 || data.dailyTM > 0) && (
+      {(data.dailyRevenue > 0 || data.dailyLabor > 0 || data.dailyMaterials > 0 || data.dailyCustom > 0 || data.dailyTM > 0) && (
         <div className="chart-tooltip-daily">
           <div className="chart-tooltip-daily-label">Today's Activity</div>
           {data.dailyRevenue > 0 && (
@@ -159,14 +159,14 @@ export default function ChartTooltip({ active, payload, label }) {
               Materials: {formatCurrency(data.dailyMaterials)}
             </div>
           )}
-          {data.dailyHaulOff > 0 && (
+          {data.dailyCustom > 0 && (
             <div className="chart-tooltip-daily-row">
-              Disposal: {formatCurrency(data.dailyHaulOff)}
+              Other Costs: {formatCurrency(data.dailyCustom)}
             </div>
           )}
           {data.dailyTM > 0 && (
             <div className="chart-tooltip-daily-row">
-              T&M Added: {formatCurrency(data.dailyTM)}
+              Time and Material Added: {formatCurrency(data.dailyTM)}
             </div>
           )}
           {data.dailyTotal > 0 && (

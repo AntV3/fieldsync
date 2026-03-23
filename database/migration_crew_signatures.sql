@@ -1,0 +1,26 @@
+-- ============================================================
+-- Crew Check-In Signatures
+-- ============================================================
+-- No schema changes required. The crew_checkins.workers JSONB column
+-- already supports arbitrary JSON objects per worker.
+--
+-- Extended worker object format (backward compatible):
+-- {
+--   "name": "John Smith",
+--   "role": "Laborer",
+--   "labor_class_id": "uuid-or-null",
+--   "printed_name": "John A. Smith",
+--   "signature_data": "data:image/png;base64,...",
+--   "ssn_last4": "1234",
+--   "signed_at": "2026-03-12T08:30:00.000Z"
+-- }
+--
+-- Workers without signatures simply omit the signature_data,
+-- ssn_last4, printed_name, and signed_at fields.
+--
+-- SECURITY NOTES:
+-- - Only the last 4 digits of SSN are stored (never full SSN)
+-- - Signature images are stored as base64-encoded PNGs
+-- - Existing RLS policies on crew_checkins apply to all data
+--   including signature fields (project-scoped access)
+-- ============================================================

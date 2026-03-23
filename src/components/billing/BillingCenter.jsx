@@ -26,9 +26,30 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   const [actionLoading, setActionLoading] = useState(false)
   const dropdownRef = useRef(null)
 
-  // Load billable items and invoices
+  // Load billable items and invoices + subscribe to real-time updates
   useEffect(() => {
     loadData()
+
+    // Subscribe to invoice changes so office/field see updates in real-time
+    const invoiceSub = db.subscribeToInvoices?.(project.id, () => {
+      loadData()
+    })
+
+    // Subscribe to COR changes (affects billable items list)
+    const corSub = db.subscribeToCORs?.(project.id, () => {
+      loadData()
+    })
+
+    // Subscribe to T&M ticket changes (affects billable items list)
+    const tmSub = db.subscribeToTMTickets?.(project.id, () => {
+      loadData()
+    })
+
+    return () => {
+      if (invoiceSub) db.unsubscribe?.(invoiceSub)
+      if (corSub) db.unsubscribe?.(corSub)
+      if (tmSub) db.unsubscribe?.(tmSub)
+    }
   }, [project.id])
 
   const loadData = async () => {
@@ -215,10 +236,12 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
     return { cors, tickets }
   }
 
-  // Format date for display
+  // Format date for display - append time to date-only strings to avoid UTC off-by-one
   const formatDate = (dateStr) => {
     if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const s = String(dateStr)
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: '2-digit'

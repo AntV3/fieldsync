@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List } from 'lucide-react'
+import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
-import { TicketSkeleton, CountBadge } from './ui'
+import { TicketSkeleton, CountBadge, EmptyState } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
 import { exportTMTicketsCSV } from '../lib/financialExport'
@@ -28,6 +28,7 @@ export default function TMList({
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [filter, setFilter] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
 
@@ -370,7 +371,9 @@ export default function TMList({
   }
 
   const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const s = String(dateStr)
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -1093,8 +1096,26 @@ export default function TMList({
       })
     }
 
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(t => {
+        const workerNames = t.t_and_m_workers?.map(w => w.name?.toLowerCase()).join(' ') || ''
+        const itemNames = t.t_and_m_items?.map(i => (i.custom_name || i.materials_equipment?.name || '').toLowerCase()).join(' ') || ''
+        const dateStr = formatDate(t.work_date).toLowerCase()
+        return (
+          workerNames.includes(term) ||
+          itemNames.includes(term) ||
+          dateStr.includes(term) ||
+          (t.notes || '').toLowerCase().includes(term) ||
+          (t.ce_pco_number || '').toLowerCase().includes(term) ||
+          (t.status || '').toLowerCase().includes(term)
+        )
+      })
+    }
+
     return filtered
-  }, [tickets, filter, viewMode, dateFilter, previewMode])
+  }, [tickets, filter, viewMode, dateFilter, previewMode, searchTerm])
 
   // Group tickets by month for 'all' view
   const ticketsByMonth = useMemo(() => {
@@ -1183,7 +1204,7 @@ export default function TMList({
 
   return (
     <div className={`tm-list ${compact ? 'tm-list-compact' : ''}`}>
-      {/* Header with export buttons - always visible */}
+      {/* Header */}
       <div className="tm-list-header">
         <div className="tm-list-title">
           <h3>Time & Material Tickets</h3>
@@ -1226,69 +1247,88 @@ export default function TMList({
           </div>
         </div>
       </div>
+
+      {/* Unified Toolbar - hidden in compact mode */}
       {!compact && (
-      <div className="tm-list-filters">
+        <div className="tm-toolbar">
+          {/* Row 1: Filters + View Toggle */}
+          <div className="tm-toolbar-row">
+            <div className="tm-filter-tabs" role="tablist">
+              {['all', 'pending', 'approved', 'billed', 'rejected'].map(status => (
+                <button
+                  key={status}
+                  role="tab"
+                  aria-selected={filter === status}
+                  className={`tm-filter-tab ${filter === status ? 'active' : ''}`}
+                  onClick={() => { setFilter(status); clearSelection(); setSearchTerm(''); }}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  <span className="tm-filter-count">
+                    {status === 'all' ? tickets.length : tickets.filter(t => t.status === status).length}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-        <div className="tm-filter-tabs">
-          {['all', 'pending', 'approved', 'billed', 'rejected'].map(status => (
-            <button
-              key={status}
-              className={`tm-filter-tab ${filter === status ? 'active' : ''}`}
-              onClick={() => { setFilter(status); clearSelection(); }}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-              <span className="tm-filter-count">
-                {status === 'all' ? tickets.length : tickets.filter(t => t.status === status).length}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* View Mode Bar */}
-        <div className="view-mode-bar">
-          <div className="view-mode-tabs">
-            <button
-              className={`view-mode-tab ${viewMode === 'recent' ? 'active' : ''}`}
-              onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
-            >
-              Recent (7 days)
-            </button>
-            <button
-              className={`view-mode-tab ${viewMode === 'all' ? 'active' : ''}`}
-              onClick={() => setViewMode('all')}
-            >
-              All ({totalTicketsCount})
-            </button>
+            <div className="tm-toolbar-right">
+              <div className="tm-view-toggle">
+                <button
+                  className={`tm-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
+                  onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
+                >
+                  Recent
+                </button>
+                <button
+                  className={`tm-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+                  onClick={() => setViewMode('all')}
+                >
+                  All ({totalTicketsCount})
+                </button>
+              </div>
+            </div>
           </div>
 
-          {viewMode === 'all' && (
-            <div className="date-filter">
-              <Calendar size={16} />
+          {/* Row 2: Search + Date Filter */}
+          <div className="tm-toolbar-row tm-toolbar-search-row">
+            <div className="tm-search">
+              <Search size={14} className="tm-search-icon" />
               <input
-                type="date"
-                value={dateFilter.start}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-                placeholder="Start date"
+                type="text"
+                className="tm-search-input"
+                placeholder="Search by worker, material, date, or notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <span>to</span>
-              <input
-                type="date"
-                value={dateFilter.end}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-                placeholder="End date"
-              />
-              {(dateFilter.start || dateFilter.end) && (
-                <button
-                  className="btn btn-ghost btn-small"
-                  onClick={() => setDateFilter({ start: '', end: '' })}
-                >
-                  Clear
+              {searchTerm && (
+                <button className="tm-search-clear" onClick={() => setSearchTerm('')}>
+                  <X size={14} />
                 </button>
               )}
             </div>
-          )}
+
+            {viewMode === 'all' && (
+              <div className="tm-date-filter">
+                <Calendar size={14} />
+                <input
+                  type="date"
+                  value={dateFilter.start}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+                />
+                <span className="tm-date-sep">to</span>
+                <input
+                  type="date"
+                  value={dateFilter.end}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+                />
+                {(dateFilter.start || dateFilter.end) && (
+                  <button className="tm-clear-btn" onClick={() => setDateFilter({ start: '', end: '' })}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {/* Dashboard View */}
@@ -1318,14 +1358,16 @@ export default function TMList({
           )}
 
           {filteredTickets.length === 0 ? (
-        <div className="tm-empty-state">
-          <p>No {filter === 'all' ? '' : filter} Time & Material tickets{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
-          {viewMode === 'recent' && totalTicketsCount > 0 && (
+        <EmptyState
+          icon={FileText}
+          title={`No ${filter === 'all' ? '' : filter} Time and Material tickets${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+          message="Time and Material tickets created in the field will appear here"
+          action={viewMode === 'recent' && totalTicketsCount > 0 ? (
             <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
               View All Tickets
             </button>
-          )}
-        </div>
+          ) : null}
+        />
       ) : (
         <div className="tm-tickets stagger-children">
           {/* Select All Row */}

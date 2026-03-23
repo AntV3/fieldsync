@@ -19,6 +19,7 @@
 
 import { supabase } from './supabase'
 import { observe } from './observability'
+import { calculateCORTotals } from './corCalculations'
 
 // ============================================
 // CONSTANTS
@@ -176,21 +177,8 @@ export function createSnapshot(cor, tickets, options = {}) {
       bond_percent: cor.bond_percent,
       license_fee_percent: cor.license_fee_percent,
 
-      // Calculated amounts (frozen)
-      labor_subtotal: cor.labor_subtotal,
-      materials_subtotal: cor.materials_subtotal,
-      equipment_subtotal: cor.equipment_subtotal,
-      subcontractors_subtotal: cor.subcontractors_subtotal,
-      labor_markup_amount: cor.labor_markup_amount,
-      materials_markup_amount: cor.materials_markup_amount,
-      equipment_markup_amount: cor.equipment_markup_amount,
-      subcontractors_markup_amount: cor.subcontractors_markup_amount,
-      liability_insurance_amount: cor.liability_insurance_amount,
-      bond_amount: cor.bond_amount,
-      license_fee_amount: cor.license_fee_amount,
-      cor_subtotal: cor.cor_subtotal,
-      additional_fees_total: cor.additional_fees_total,
-      cor_total: cor.cor_total,
+      // Calculated amounts (frozen, recalculated from line items for consistency)
+      ...calculateCORTotals(cor),
 
       // Signature data
       gc_signature_data: cor.gc_signature_data,
@@ -236,6 +224,12 @@ export function createSnapshot(cor, tickets, options = {}) {
 
       // Photos (frozen URLs)
       photos: ticket.photos || [],
+
+      // Foreman signature (frozen)
+      foreman_signature_data: ticket.foreman_signature_data,
+      foreman_signature_name: ticket.foreman_signature_name,
+      foreman_signature_title: ticket.foreman_signature_title,
+      foreman_signature_date: ticket.foreman_signature_date,
 
       // Client verification (frozen)
       client_signature_data: ticket.client_signature_data,
@@ -553,6 +547,78 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
     if (!tickets && options.includeBackup !== false) {
       const { db } = await import('./supabase')
       tickets = await db.getCORTickets(corId)
+    }
+
+    // Step 3b: Enrich labor items with missing rates from pricing tab
+    // If labor items have 0/null rates but the pricing tab has rates configured,
+    // fill them in so the export shows complete data
+    if (cor.change_order_labor?.length > 0 && company?.id) {
+      try {
+        const { db } = await import('./supabase')
+        const workType = project?.work_type || 'demolition'
+
+        // Try new labor class rates first
+        const classRates = await db.getAllLaborClassRates?.(company.id)
+        let rateLookup = {}
+
+        if (classRates?.length > 0) {
+          classRates.forEach(lc => {
+            const matchingRate = lc.labor_class_rates?.find(r =>
+              r.work_type === workType
+            )
+            if (matchingRate) {
+              rateLookup[lc.name.toLowerCase()] = {
+                regular_rate: matchingRate.regular_rate,
+                overtime_rate: matchingRate.overtime_rate
+              }
+            }
+          })
+        }
+
+        // Fall back to legacy rates if no new rates found
+        if (Object.keys(rateLookup).length === 0) {
+          const jobType = project?.job_type || 'standard'
+          const legacyRates = await db.getLaborRates?.(company.id, workType, jobType)
+          if (legacyRates?.length > 0) {
+            legacyRates.forEach(r => {
+              rateLookup[(r.role || r.name)?.toLowerCase()] = {
+                regular_rate: r.regular_rate,
+                overtime_rate: r.overtime_rate
+              }
+            })
+          }
+        }
+
+        // Enrich labor items that have missing rates
+        if (Object.keys(rateLookup).length > 0) {
+          for (const item of cor.change_order_labor) {
+            if (!item.regular_rate && !item.overtime_rate) {
+              const className = (item.labor_class || '').toLowerCase()
+              // Match by wage_type if available
+              const matchKey = Object.keys(rateLookup).find(k => k === className)
+              if (matchKey) {
+                const rate = rateLookup[matchKey]
+                const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+                const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+                item.regular_rate = regRate
+                item.overtime_rate = otRate
+                // Recalculate totals
+                const regHrs = parseFloat(item.regular_hours) || 0
+                const otHrs = parseFloat(item.overtime_hours) || 0
+                item.regular_total = Math.round(regHrs * regRate)
+                item.overtime_total = Math.round(otHrs * otRate)
+                item.total = item.regular_total + item.overtime_total
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Rate enrichment is best-effort; don't block export
+        observe.error('cor_export_rate_enrichment_failed', {
+          cor_id: corId,
+          error: e.message
+        })
+      }
     }
 
     // Step 4: Create snapshot

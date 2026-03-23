@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
-import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw, Clock } from 'lucide-react'
+import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw, Clock, ShieldCheck } from 'lucide-react'
+import { parseLocalDate } from '../../lib/utils'
 import EvidenceStep from './EvidenceStep'
 
 const formatTime12 = (timeStr) => {
@@ -13,6 +14,7 @@ const formatTime12 = (timeStr) => {
 
 const SignatureLinkGenerator = lazy(() => import('../SignatureLinkGenerator'))
 const TMClientSignature = lazy(() => import('../TMClientSignature'))
+const TMForemanSignature = lazy(() => import('../TMForemanSignature'))
 
 /**
  * ReviewStep - Step 4 (review+evidence+submit) and Step 5 (success/signature).
@@ -31,6 +33,9 @@ const TMClientSignature = lazy(() => import('../TMClientSignature'))
  *  - submittedByName, setSubmittedByName
  *  - submittedTicket
  *  - submitting, submitProgress
+ *  - foremanSigned, setForemanSigned
+ *  - showForemanSignature, setShowForemanSignature
+ *  - foremanName
  *  - clientSigned, setClientSigned
  *  - showSignatureLinkModal, setShowSignatureLinkModal
  *  - showOnSiteSignature, setShowOnSiteSignature
@@ -51,6 +56,9 @@ export default function ReviewStep({
   submittedByName, setSubmittedByName,
   submittedTicket,
   submitting, submitProgress,
+  foremanSigned, setForemanSigned,
+  showForemanSignature, setShowForemanSignature,
+  foremanName,
   clientSigned, setClientSigned,
   showSignatureLinkModal, setShowSignatureLinkModal,
   showOnSiteSignature, setShowOnSiteSignature,
@@ -58,7 +66,61 @@ export default function ReviewStep({
   t, lang,
   onShowToast
 }) {
-  // Step 5: Success & Client Signature
+  // Build ticket details for signature modals (shared between foreman and client)
+  const buildTicketDetails = () => ({
+    projectName: project?.name,
+    cePcoNumber: cePcoNumber,
+    notes: notes,
+    workers: hasCustomLaborClasses
+      ? validDynamicWorkersList.map(w => ({
+          name: w.name,
+          role: w.role,
+          hours: w.hours || 0,
+          overtime_hours: w.overtime_hours || 0,
+          time_started: w.time_started,
+          time_ended: w.time_ended
+        }))
+      : [
+          ...validSupervision.map(s => ({
+            name: s.name,
+            role: s.role || 'Supervision',
+            hours: s.hours || 0,
+            overtime_hours: s.overtimeHours || 0,
+            time_started: s.timeStarted,
+            time_ended: s.timeEnded
+          })),
+          ...validOperators.map(o => ({
+            name: o.name,
+            role: 'Operator',
+            hours: o.hours || 0,
+            overtime_hours: o.overtimeHours || 0,
+            time_started: o.timeStarted,
+            time_ended: o.timeEnded
+          })),
+          ...validLaborers.map(l => ({
+            name: l.name,
+            role: 'Laborer',
+            hours: l.hours || 0,
+            overtime_hours: l.overtimeHours || 0,
+            time_started: l.timeStarted,
+            time_ended: l.timeEnded
+          }))
+        ],
+    items: items.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit
+    })),
+    photos: photos.filter(p => p.status === 'confirmed' || p.previewUrl)
+  })
+
+  const ticketSummaryData = {
+    workDate: workDate,
+    workerCount: totalWorkers,
+    totalHours: totalRegHours + totalOTHours
+  }
+
+  // Step 5: Success & Foreman Signature → Client Signature
   if (step === 5 && submittedTicket) {
     return (
       <div className="tm-step-content tm-success-step">
@@ -70,6 +132,12 @@ export default function ReviewStep({
           <p className="tm-success-subtitle">
             {t('ticketSavedReady')}
           </p>
+          {!foremanSigned && (
+            <div className="tm-foreman-required-notice">
+              <AlertCircle size={18} />
+              <span>{t('foremanSignatureRequired')}</span>
+            </div>
+          )}
         </div>
 
         <div className="tm-success-summary">
@@ -78,11 +146,11 @@ export default function ReviewStep({
             <span className="tm-success-stat-label">{t('workersLabel')}</span>
           </div>
           <div className="tm-success-stat">
-            <span className="tm-success-stat-value">{totalRegHours + totalOTHours}</span>
+            <span className="tm-success-stat-value">{parseFloat((totalRegHours + totalOTHours).toFixed(1))}</span>
             <span className="tm-success-stat-label">{t('totalHours')}</span>
           </div>
           <div className="tm-success-stat">
-            <span className="tm-success-stat-value">{new Date(workDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            <span className="tm-success-stat-value">{(() => { const [y, m, d] = (workDate || '').split('-'); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); })()}</span>
             <span className="tm-success-stat-label">{t('workDate')}</span>
           </div>
         </div>
@@ -153,18 +221,63 @@ export default function ReviewStep({
           </div>
         )}
 
+        {/* Step 1: Foreman Signature (required before client) */}
         <div className="tm-signature-options">
-          <h3>{t('getClientSignature')}</h3>
+          <h3>
+            <ShieldCheck size={20} className="inline-icon" />
+            {' '}{t('foremanSignatureTitle')}
+          </h3>
           <p className="tm-signature-description">
-            {t('signatureDescription')}
+            {t('foremanSignatureDesc')}
           </p>
 
-          {clientSigned ? (
+          {foremanSigned ? (
+            <div className="tm-signed-confirmation">
+              <CheckCircle2 size={32} className="tm-signed-icon" />
+              <span>{t('foremanSignatureCollected')}</span>
+            </div>
+          ) : (
+            <div className="tm-signature-buttons">
+              <button
+                className="tm-signature-option-btn primary"
+                onClick={() => setShowForemanSignature(true)}
+              >
+                <div className="tm-signature-option-icon">
+                  <PenLine size={24} />
+                </div>
+                <div className="tm-signature-option-text">
+                  <span className="tm-signature-option-title">
+                    {t('foremanSignNow')}
+                  </span>
+                  <span className="tm-signature-option-desc">
+                    {t('foremanSignDesc')}
+                  </span>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Step 2: Client Signature (only available after foreman signs) */}
+        <div className={`tm-signature-options ${!foremanSigned ? 'tm-signature-locked' : ''}`}>
+          <h3>{t('getClientSignature')}</h3>
+          {!foremanSigned && (
+            <p className="tm-signature-locked-msg">
+              {t('foremanMustSignFirst')}
+            </p>
+          )}
+          {foremanSigned && (
+            <p className="tm-signature-description">
+              {t('signatureDescription')}
+            </p>
+          )}
+
+          {foremanSigned && clientSigned ? (
             <div className="tm-signed-confirmation">
               <CheckCircle2 size={32} className="tm-signed-icon" />
               <span>{t('clientSignatureCollected')}</span>
             </div>
-          ) : (
+          ) : foremanSigned ? (
             <div className="tm-signature-buttons">
               <button
                 className="tm-signature-option-btn primary"
@@ -200,8 +313,27 @@ export default function ReviewStep({
                 </div>
               </button>
             </div>
-          )}
+          ) : null}
         </div>
+
+        {/* Foreman Signature Modal */}
+        {showForemanSignature && (
+          <Suspense fallback={<div className="loading">Loading...</div>}>
+            <TMForemanSignature
+              ticketId={submittedTicket.id}
+              ticketSummary={ticketSummaryData}
+              ticketDetails={buildTicketDetails()}
+              foremanName={foremanName}
+              lang={lang}
+              onSave={() => {
+                setShowForemanSignature(false)
+                setForemanSigned(true)
+              }}
+              onClose={() => setShowForemanSignature(false)}
+              onShowToast={onShowToast}
+            />
+          </Suspense>
+        )}
 
         {/* Signature Link Generator Modal */}
         {showSignatureLinkModal && (
@@ -212,7 +344,7 @@ export default function ReviewStep({
               companyId={companyId}
               projectId={project.id}
               project={project}
-              documentTitle={`Time & Material Ticket - ${new Date(workDate).toLocaleDateString()}`}
+              documentTitle={`Time & Material Ticket - ${parseLocalDate(workDate).toLocaleDateString()}`}
               onClose={() => setShowSignatureLinkModal(false)}
               onShowToast={onShowToast}
             />
@@ -224,57 +356,8 @@ export default function ReviewStep({
           <Suspense fallback={<div className="loading">Loading...</div>}>
             <TMClientSignature
               ticketId={submittedTicket.id}
-              ticketSummary={{
-                workDate: workDate,
-                workerCount: totalWorkers,
-                totalHours: totalRegHours + totalOTHours
-              }}
-              ticketDetails={{
-                projectName: project?.name,
-                cePcoNumber: cePcoNumber,
-                notes: notes,
-                workers: hasCustomLaborClasses
-                  ? validDynamicWorkersList.map(w => ({
-                      name: w.name,
-                      role: w.role,
-                      hours: w.hours || 0,
-                      overtime_hours: w.overtime_hours || 0,
-                      time_started: w.time_started,
-                      time_ended: w.time_ended
-                    }))
-                  : [
-                      ...validSupervision.map(s => ({
-                        name: s.name,
-                        role: s.role || 'Supervision',
-                        hours: s.hours || 0,
-                        overtime_hours: s.overtimeHours || 0,
-                        time_started: s.timeStarted,
-                        time_ended: s.timeEnded
-                      })),
-                      ...validOperators.map(o => ({
-                        name: o.name,
-                        role: 'Operator',
-                        hours: o.hours || 0,
-                        overtime_hours: o.overtimeHours || 0,
-                        time_started: o.timeStarted,
-                        time_ended: o.timeEnded
-                      })),
-                      ...validLaborers.map(l => ({
-                        name: l.name,
-                        role: 'Laborer',
-                        hours: l.hours || 0,
-                        overtime_hours: l.overtimeHours || 0,
-                        time_started: l.timeStarted,
-                        time_ended: l.timeEnded
-                      }))
-                    ],
-                items: items.map(item => ({
-                  name: item.name,
-                  quantity: item.quantity,
-                  unit: item.unit
-                })),
-                photos: photos.filter(p => p.status === 'confirmed' || p.previewUrl)
-              }}
+              ticketSummary={ticketSummaryData}
+              ticketDetails={buildTicketDetails()}
               lang={lang}
               onSave={() => {
                 setShowOnSiteSignature(false)
@@ -315,7 +398,7 @@ export default function ReviewStep({
           <button className="tm-edit-link" onClick={() => setStep(1)}>{t('edit')}</button>
         </div>
         <div className="tm-review-row">
-          <span>{new Date(workDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          <span>{parseLocalDate(workDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
           {cePcoNumber && <span>CE/PCO: {cePcoNumber}</span>}
         </div>
       </div>

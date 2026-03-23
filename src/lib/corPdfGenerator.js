@@ -13,7 +13,8 @@ import {
   formatPercent,
   formatDate,
   formatDateRange,
-  groupLaborByClassAndType
+  groupLaborByClassAndType,
+  combineLaborGroupItems
 } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
 
@@ -56,19 +57,25 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   const cor = snapshot.corData
   const tickets = snapshot.ticketsData || []
 
-  const doc = new jsPDF()
+  const doc = new jsPDF('p', 'mm', 'letter')
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 20
+  const margin = 18
   let yPos = margin
 
   const primaryColor = branding.primaryColor
     ? hexToRgb(branding.primaryColor)
     : [30, 58, 95]
+  const accentLight = [primaryColor[0] + Math.round((255 - primaryColor[0]) * 0.88), primaryColor[1] + Math.round((255 - primaryColor[1]) * 0.88), primaryColor[2] + Math.round((255 - primaryColor[2]) * 0.88)]
 
   // ============================================
   // HEADER
   // ============================================
+
+  // Top accent bar
+  doc.setFillColor(...primaryColor)
+  doc.rect(0, 0, pageWidth, 3, 'F')
+  yPos = 12
 
   // Company logo or name
   if (branding.logoUrl) {
@@ -79,81 +86,101 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       }
     } catch (e) {
       if (company?.name) {
-        doc.setFontSize(14)
+        doc.setFontSize(16)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(...primaryColor)
-        doc.text(company.name, margin, yPos + 8)
+        doc.text(company.name, margin, yPos + 10)
       }
     }
   } else if (company?.name) {
-    doc.setFontSize(14)
+    doc.setFontSize(16)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(...primaryColor)
-    doc.text(company.name, margin, yPos + 8)
+    doc.text(company.name, margin, yPos + 10)
   }
 
-  // Document title
-  doc.setFontSize(18)
+  // Document title + COR number (right-aligned)
+  doc.setFontSize(20)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(30, 41, 59)
-  doc.text('CHANGE ORDER REQUEST', pageWidth - margin, yPos + 5, { align: 'right' })
+  doc.text('CHANGE ORDER REQUEST', pageWidth - margin, yPos + 6, { align: 'right' })
 
-  // COR number
-  doc.setFontSize(12)
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'normal')
   doc.setTextColor(...primaryColor)
-  doc.text(cor.cor_number || 'COR', pageWidth - margin, yPos + 12, { align: 'right' })
+  doc.text(cor.cor_number || 'COR', pageWidth - margin, yPos + 13, { align: 'right' })
 
-  yPos += 25
+  yPos += 22
 
-  // Decorative line
+  // Separator line
   doc.setDrawColor(...primaryColor)
-  doc.setLineWidth(0.5)
+  doc.setLineWidth(0.8)
+  doc.line(margin, yPos, pageWidth - margin, yPos)
+  yPos += 2
+  doc.setLineWidth(0.2)
+  doc.setDrawColor(200, 210, 220)
   doc.line(margin, yPos, pageWidth - margin, yPos)
   yPos += 10
 
   // ============================================
-  // COR DETAILS
+  // COR DETAILS - Info card style
   // ============================================
 
-  doc.setFontSize(14)
+  doc.setFontSize(15)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(30, 41, 59)
   doc.text(cor.title || 'Untitled Change Order', margin, yPos)
   yPos += 8
 
-  // Project info
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(71, 85, 105)
+  // Project info in a clean two-column layout
+  doc.setFontSize(9.5)
+  const infoCol1X = margin
+  const infoCol2X = margin + 80
 
   if (project?.name) {
-    doc.text(`Project: ${project.name}`, margin, yPos)
-    yPos += 5
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(100, 116, 139)
+    doc.text('Project:', infoCol1X, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(51, 65, 85)
+    doc.text(project.name, infoCol1X + 22, yPos)
   }
   if (project?.job_number) {
-    doc.text(`Job #: ${project.job_number}`, margin, yPos)
-    yPos += 5
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(100, 116, 139)
+    doc.text('Job #:', infoCol2X, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(51, 65, 85)
+    doc.text(project.job_number, infoCol2X + 18, yPos)
   }
+  if (project?.name || project?.job_number) yPos += 5
+
   if (cor.period_start || cor.period_end) {
-    doc.text(`Period: ${formatDateRange(cor.period_start, cor.period_end)}`, margin, yPos)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(100, 116, 139)
+    doc.text('Period:', infoCol1X, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(51, 65, 85)
+    doc.text(formatDateRange(cor.period_start, cor.period_end), infoCol1X + 22, yPos)
     yPos += 5
   }
 
-  yPos += 5
+  yPos += 4
 
   // Scope of work
   if (cor.scope_of_work) {
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(71, 85, 105)
+    doc.setTextColor(100, 116, 139)
     doc.text('Scope of Work:', margin, yPos)
     yPos += 5
 
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(51, 65, 85)
+    doc.setFontSize(9)
     const scopeLines = doc.splitTextToSize(cor.scope_of_work, pageWidth - (margin * 2))
     doc.text(scopeLines, margin, yPos)
-    yPos += (scopeLines.length * 4) + 8
+    yPos += (scopeLines.length * 4) + 6
   }
 
   // ============================================
@@ -161,13 +188,31 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   // ============================================
 
   if (cor.change_order_labor?.length > 0) {
-    doc.setFontSize(11)
+    // Section header with accent
+    doc.setFillColor(...accentLight)
+    doc.rect(margin, yPos - 1, pageWidth - (margin * 2), 8, 'F')
+    doc.setFillColor(...primaryColor)
+    doc.rect(margin, yPos - 1, 3, 8, 'F')
+    doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(30, 41, 59)
-    doc.text('Labor', margin, yPos)
-    yPos += 5
+    doc.text('Labor', margin + 7, yPos + 4.5)
+    yPos += 12
 
     const laborGroups = groupLaborByClassAndType(cor.change_order_labor)
+
+    // Build a lookup of ticket dates by labor class for source attribution
+    const laborSourceMap = {}
+    for (const ticket of tickets) {
+      const workDate = ticket.work_date || ticket.ticket_date
+      for (const worker of (ticket.t_and_m_workers || [])) {
+        const className = (worker.labor_class || worker.role || 'laborer').toLowerCase()
+        if (!laborSourceMap[className]) laborSourceMap[className] = []
+        if (workDate && !laborSourceMap[className].includes(workDate)) {
+          laborSourceMap[className].push(workDate)
+        }
+      }
+    }
 
     for (const group of laborGroups) {
       if (yPos > pageHeight - 60) {
@@ -175,20 +220,39 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         yPos = margin
       }
 
-      doc.setFontSize(9)
+      doc.setFontSize(8.5)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(71, 85, 105)
       doc.text(group.label, margin, yPos)
+
+      // Show source Time and Material ticket dates for this labor class
+      const groupClassName = (group.items[0]?.labor_class || '').toLowerCase()
+      const sourceDates = laborSourceMap[groupClassName] || []
+      if (sourceDates.length > 0) {
+        const sortedDates = sourceDates.sort()
+        const dateStr = sortedDates.map(d => formatDate(d)).join(', ')
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(100, 116, 139)
+        const sourceText = `Source: Time and Material Ticket${sortedDates.length > 1 ? 's' : ''} — ${dateStr}`
+        const maxSourceWidth = pageWidth - (margin * 2) - doc.getTextWidth(group.label) - 10
+        const truncatedSource = doc.getTextWidth(sourceText) > maxSourceWidth
+          ? doc.splitTextToSize(sourceText, maxSourceWidth)[0]
+          : sourceText
+        doc.text(truncatedSource, pageWidth - margin, yPos, { align: 'right' })
+      }
       yPos += 4
+
+      const combinedItems = combineLaborGroupItems(group.items)
 
       autoTable(doc, {
         startY: yPos,
         head: [['Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
-        body: group.items.map(item => [
+        body: combinedItems.map(item => [
           item.regular_hours?.toString() || '0',
-          formatCurrency(item.regular_rate),
-          item.overtime_hours?.toString() || '0',
-          formatCurrency(item.overtime_rate),
+          item.regular_rate ? formatCurrency(item.regular_rate) : '-',
+          item.overtime_hours ? item.overtime_hours.toString() : '-',
+          item.overtime_rate ? formatCurrency(item.overtime_rate) : '-',
           formatCurrency(item.total)
         ]),
         foot: [[
@@ -196,24 +260,28 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
           { content: formatCurrency(group.subtotal), styles: { fontStyle: 'bold' } }
         ]],
         margin: { left: margin, right: margin },
-        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
-        footStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59], fontSize: 8 },
-        theme: 'grid'
+        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3 },
+        bodyStyles: { fontSize: 8, cellPadding: 3 },
+        footStyles: { fillColor: [245, 247, 250], textColor: [30, 41, 59], fontSize: 8 },
+        alternateRowStyles: { fillColor: [250, 251, 253] },
+        theme: 'striped',
+        tableLineColor: [226, 232, 240],
+        tableLineWidth: 0.2
       })
 
-      yPos = doc.lastAutoTable.finalY + 6
+      yPos = doc.lastAutoTable.finalY + 5
     }
 
-    // Labor total row
-    doc.setFillColor(248, 250, 252)
-    doc.rect(margin, yPos, pageWidth - (margin * 2), 7, 'F')
+    // Labor subtotal bar
+    doc.setFillColor(245, 247, 250)
+    doc.setDrawColor(226, 232, 240)
+    doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 8, 1, 1, 'FD')
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9)
     doc.setTextColor(30, 41, 59)
-    doc.text('Labor Subtotal:', margin + 5, yPos + 5)
-    doc.text(formatCurrency(cor.labor_subtotal), pageWidth - margin - 5, yPos + 5, { align: 'right' })
-    yPos += 12
+    doc.text('Labor Subtotal', margin + 5, yPos + 5.5)
+    doc.text(formatCurrency(cor.labor_subtotal), pageWidth - margin - 5, yPos + 5.5, { align: 'right' })
+    yPos += 14
   }
 
   // ============================================
@@ -226,11 +294,15 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       yPos = margin
     }
 
-    doc.setFontSize(11)
+    doc.setFillColor(...accentLight)
+    doc.rect(margin, yPos - 1, pageWidth - (margin * 2), 8, 'F')
+    doc.setFillColor(...primaryColor)
+    doc.rect(margin, yPos - 1, 3, 8, 'F')
+    doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(30, 41, 59)
-    doc.text('Materials', margin, yPos)
-    yPos += 5
+    doc.text('Materials', margin + 7, yPos + 4.5)
+    yPos += 12
 
     autoTable(doc, {
       startY: yPos,
@@ -248,13 +320,16 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         { content: formatCurrency(cor.materials_subtotal), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8 },
-      bodyStyles: { fontSize: 8 },
-      footStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59], fontSize: 8 },
-      theme: 'grid'
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontSize: 8, cellPadding: 3 },
+      footStyles: { fillColor: [245, 247, 250], textColor: [30, 41, 59], fontSize: 8 },
+      alternateRowStyles: { fillColor: [250, 251, 253] },
+      theme: 'striped',
+      tableLineColor: [226, 232, 240],
+      tableLineWidth: 0.2
     })
 
-    yPos = doc.lastAutoTable.finalY + 10
+    yPos = doc.lastAutoTable.finalY + 12
   }
 
   // ============================================
@@ -267,11 +342,15 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       yPos = margin
     }
 
-    doc.setFontSize(11)
+    doc.setFillColor(...accentLight)
+    doc.rect(margin, yPos - 1, pageWidth - (margin * 2), 8, 'F')
+    doc.setFillColor(...primaryColor)
+    doc.rect(margin, yPos - 1, 3, 8, 'F')
+    doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(30, 41, 59)
-    doc.text('Equipment', margin, yPos)
-    yPos += 5
+    doc.text('Equipment', margin + 7, yPos + 4.5)
+    yPos += 12
 
     autoTable(doc, {
       startY: yPos,
@@ -289,13 +368,16 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         { content: formatCurrency(cor.equipment_subtotal), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8 },
-      bodyStyles: { fontSize: 8 },
-      footStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59], fontSize: 8 },
-      theme: 'grid'
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontSize: 8, cellPadding: 3 },
+      footStyles: { fillColor: [245, 247, 250], textColor: [30, 41, 59], fontSize: 8 },
+      alternateRowStyles: { fillColor: [250, 251, 253] },
+      theme: 'striped',
+      tableLineColor: [226, 232, 240],
+      tableLineWidth: 0.2
     })
 
-    yPos = doc.lastAutoTable.finalY + 10
+    yPos = doc.lastAutoTable.finalY + 12
   }
 
   // ============================================
@@ -308,11 +390,15 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       yPos = margin
     }
 
-    doc.setFontSize(11)
+    doc.setFillColor(...accentLight)
+    doc.rect(margin, yPos - 1, pageWidth - (margin * 2), 8, 'F')
+    doc.setFillColor(...primaryColor)
+    doc.rect(margin, yPos - 1, 3, 8, 'F')
+    doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(30, 41, 59)
-    doc.text('Subcontractors', margin, yPos)
-    yPos += 5
+    doc.text('Subcontractors', margin + 7, yPos + 4.5)
+    yPos += 12
 
     autoTable(doc, {
       startY: yPos,
@@ -331,13 +417,16 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         { content: formatCurrency(cor.subcontractors_subtotal), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8 },
-      bodyStyles: { fontSize: 8 },
-      footStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59], fontSize: 8 },
-      theme: 'grid'
+      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontSize: 8, cellPadding: 3 },
+      footStyles: { fillColor: [245, 247, 250], textColor: [30, 41, 59], fontSize: 8 },
+      alternateRowStyles: { fillColor: [250, 251, 253] },
+      theme: 'striped',
+      tableLineColor: [226, 232, 240],
+      tableLineWidth: 0.2
     })
 
-    yPos = doc.lastAutoTable.finalY + 10
+    yPos = doc.lastAutoTable.finalY + 12
   }
 
   // ============================================
@@ -349,46 +438,61 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     yPos = margin
   }
 
-  doc.setFontSize(11)
+  // Cost Summary section header
+  doc.setFillColor(...accentLight)
+  doc.rect(margin, yPos - 1, pageWidth - (margin * 2), 8, 'F')
+  doc.setFillColor(...primaryColor)
+  doc.rect(margin, yPos - 1, 3, 8, 'F')
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(30, 41, 59)
-  doc.text('Cost Summary', margin, yPos)
-  yPos += 5
+  doc.text('Cost Summary', margin + 7, yPos + 4.5)
+  yPos += 12
 
   const summaryData = [
     ['Labor Subtotal', formatCurrency(cor.labor_subtotal)],
-    [`  Markup (${formatPercent(cor.labor_markup_percent)})`, formatCurrency(cor.labor_markup_amount)],
+    [`   Markup (${formatPercent(cor.labor_markup_percent)})`, formatCurrency(cor.labor_markup_amount)],
     ['Materials Subtotal', formatCurrency(cor.materials_subtotal)],
-    [`  Markup (${formatPercent(cor.materials_markup_percent)})`, formatCurrency(cor.materials_markup_amount)],
+    [`   Markup (${formatPercent(cor.materials_markup_percent)})`, formatCurrency(cor.materials_markup_amount)],
     ['Equipment Subtotal', formatCurrency(cor.equipment_subtotal)],
-    [`  Markup (${formatPercent(cor.equipment_markup_percent)})`, formatCurrency(cor.equipment_markup_amount)],
+    [`   Markup (${formatPercent(cor.equipment_markup_percent)})`, formatCurrency(cor.equipment_markup_amount)],
     ['Subcontractors Subtotal', formatCurrency(cor.subcontractors_subtotal)],
-    [`  Markup (${formatPercent(cor.subcontractors_markup_percent)})`, formatCurrency(cor.subcontractors_markup_amount)],
+    [`   Markup (${formatPercent(cor.subcontractors_markup_percent)})`, formatCurrency(cor.subcontractors_markup_amount)],
   ]
 
   autoTable(doc, {
     startY: yPos,
     body: summaryData,
     margin: { left: margin, right: margin },
+    tableWidth: pageWidth - (margin * 2),
     columnStyles: {
-      0: { cellWidth: 120 },
-      1: { cellWidth: 50, halign: 'right' }
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 45, halign: 'right' }
     },
-    bodyStyles: { fontSize: 9 },
-    theme: 'plain'
+    bodyStyles: { fontSize: 9, cellPadding: 2.5 },
+    alternateRowStyles: { fillColor: [250, 251, 253] },
+    theme: 'plain',
+    didParseCell: (data) => {
+      // Style markup rows slightly differently (indented items)
+      if (data.row.index % 2 === 1 && data.section === 'body') {
+        data.cell.styles.textColor = [100, 116, 139]
+        data.cell.styles.fontSize = 8.5
+      }
+    }
   })
 
-  yPos = doc.lastAutoTable.finalY + 5
+  yPos = doc.lastAutoTable.finalY + 4
 
-  // COR Subtotal
-  doc.setFillColor(248, 250, 252)
-  doc.rect(margin, yPos, pageWidth - (margin * 2), 8, 'F')
+  // COR Subtotal bar
+  doc.setFillColor(245, 247, 250)
+  doc.setDrawColor(226, 232, 240)
+  doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 9, 1, 1, 'FD')
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.setTextColor(30, 41, 59)
-  doc.text('COR Subtotal:', margin + 5, yPos + 5.5)
-  doc.text(formatCurrency(cor.cor_subtotal), pageWidth - margin - 5, yPos + 5.5, { align: 'right' })
-  yPos += 12
+  doc.text('COR Subtotal', margin + 6, yPos + 6)
+  doc.text(formatCurrency(cor.cor_subtotal), pageWidth - margin - 6, yPos + 6, { align: 'right' })
+  yPos += 13
 
   // Additional fees
   const feesData = [
@@ -401,24 +505,25 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     startY: yPos,
     body: feesData,
     margin: { left: margin, right: margin },
+    tableWidth: pageWidth - (margin * 2),
     columnStyles: {
-      0: { cellWidth: 120 },
-      1: { cellWidth: 50, halign: 'right' }
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 45, halign: 'right' }
     },
-    bodyStyles: { fontSize: 9 },
+    bodyStyles: { fontSize: 8.5, cellPadding: 2.5, textColor: [100, 116, 139] },
     theme: 'plain'
   })
 
-  yPos = doc.lastAutoTable.finalY + 5
+  yPos = doc.lastAutoTable.finalY + 4
 
-  // COR Total
+  // COR Total - prominent bar
   doc.setFillColor(...primaryColor)
-  doc.rect(margin, yPos, pageWidth - (margin * 2), 10, 'F')
+  doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 11, 2, 2, 'F')
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)
   doc.setTextColor(255, 255, 255)
-  doc.text('COR TOTAL:', margin + 5, yPos + 7)
-  doc.text(formatCurrency(cor.cor_total), pageWidth - margin - 5, yPos + 7, { align: 'right' })
+  doc.text('COR TOTAL', margin + 6, yPos + 7.5)
+  doc.text(formatCurrency(cor.cor_total), pageWidth - margin - 6, yPos + 7.5, { align: 'right' })
   yPos += 20
 
   // ============================================
@@ -479,10 +584,14 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     }
     yPos += 15
 
-    // Summary box
+    // Summary box - dynamic height based on ticket count
+    const ticketBreakdownHeight = (tickets.length > 0 && tickets.length <= 8)
+      ? 9 + (tickets.length * 4.5)
+      : 0
+    const summaryBoxHeight = 55 + ticketBreakdownHeight
     doc.setFillColor(248, 250, 252)
     doc.setDrawColor(226, 232, 240)
-    doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 55, 3, 3, 'FD')
+    doc.roundedRect(margin, yPos, pageWidth - (margin * 2), summaryBoxHeight, 3, 3, 'FD')
 
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
@@ -519,6 +628,23 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
       summaryY += 7
     }
 
+    // Show per-ticket hour breakdown for traceability
+    if (tickets.length > 0 && tickets.length <= 8) {
+      doc.setFontSize(8)
+      doc.setTextColor(100, 116, 139)
+      doc.text('Hours by Time and Material Ticket:', summaryCol1, summaryY)
+      summaryY += 5
+      for (const ticket of tickets) {
+        const tDate = formatDate(ticket.work_date || ticket.ticket_date)
+        const tRegHrs = (ticket.t_and_m_workers || []).reduce((s, w) => s + (parseFloat(w.hours) || 0), 0)
+        const tOTHrs = (ticket.t_and_m_workers || []).reduce((s, w) => s + (parseFloat(w.overtime_hours) || 0), 0)
+        const otLabel = tOTHrs > 0 ? ` + ${tOTHrs.toFixed(1)} OT` : ''
+        doc.text(`${tDate}: ${tRegHrs.toFixed(1)} reg hrs${otLabel}`, summaryCol1 + 5, summaryY)
+        summaryY += 4.5
+      }
+      doc.setFontSize(10)
+    }
+
     doc.text('Photo Evidence:', summaryCol1, summaryY)
     doc.setFont('helvetica', 'bold')
     doc.text(`${snapshot.totals.photoCount} photos`, summaryCol2, summaryY)
@@ -531,7 +657,7 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
     doc.setTextColor(...verifiedColor)
     doc.text(`${snapshot.totals.verifiedTicketCount} of ${tickets.length} tickets`, summaryCol2, summaryY)
 
-    yPos += 70
+    yPos += summaryBoxHeight + 15
 
     // Document ID and timestamp
     doc.setFontSize(9)
@@ -733,6 +859,78 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         yPos += photoHeight + 12
       }
 
+      // Foreman signature block
+      if (ticket.foreman_signature_data || ticket.foreman_signature_name) {
+        if (yPos > pageHeight - 50) {
+          doc.addPage()
+          yPos = margin
+        }
+
+        const foremanBlockHeight = 32
+        const foremanBlockWidth = pageWidth - (margin * 2)
+
+        doc.setFillColor(239, 246, 255)
+        doc.roundedRect(margin, yPos, foremanBlockWidth, foremanBlockHeight, 3, 3, 'F')
+
+        doc.setFillColor(59, 130, 246)
+        doc.rect(margin, yPos, 4, foremanBlockHeight, 'F')
+
+        doc.setDrawColor(191, 219, 254)
+        doc.setLineWidth(0.5)
+        doc.line(margin + 4, yPos, margin + foremanBlockWidth, yPos)
+
+        const foremanSealX = margin + 14
+        const foremanSealY = yPos + foremanBlockHeight / 2
+        doc.setFillColor(59, 130, 246)
+        doc.circle(foremanSealX, foremanSealY, 6, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(255, 255, 255)
+        doc.text('F', foremanSealX - 2, foremanSealY + 3)
+
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(59, 130, 246)
+        doc.text('FOREMAN', margin + 26, yPos + 10)
+
+        try {
+          if (ticket.foreman_signature_data) {
+            doc.addImage(ticket.foreman_signature_data, 'PNG', margin + 26, yPos + 13, 50, 16)
+          }
+
+          const foremanName = ticket.foreman_signature_name || 'Foreman'
+          const foremanTitle = ticket.foreman_signature_title || ''
+          const foremanDate = ticket.foreman_signature_date
+            ? formatDate(ticket.foreman_signature_date)
+            : ''
+
+          const foremanInfoX = margin + 85
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(foremanName, foremanInfoX, yPos + 12)
+
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(71, 85, 105)
+          if (foremanTitle) {
+            doc.text(foremanTitle, foremanInfoX, yPos + 18)
+          }
+          if (foremanDate) {
+            doc.setTextColor(100, 116, 139)
+            doc.text(`Signed: ${foremanDate}`, foremanInfoX, yPos + 24)
+          }
+        } catch (e) {
+          const foremanName = ticket.foreman_signature_name || 'Foreman'
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(`Signed by: ${foremanName}`, margin + 26, yPos + 20)
+        }
+
+        yPos += foremanBlockHeight + 6
+      }
+
       // Client verification block
       if (ticket.client_signature_data) {
         if (yPos > pageHeight - 50) {
@@ -807,16 +1005,31 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   }
 
   // ============================================
-  // FOOTER (on all pages)
+  // HEADER ACCENT + FOOTER (on all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
+
+    // Top accent bar on all pages
+    doc.setFillColor(...primaryColor)
+    doc.rect(0, 0, pageWidth, 3, 'F')
+
+    // Footer
     const footerY = pageHeight - 10
-    doc.setFontSize(8)
-    doc.setTextColor(150, 150, 150)
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.setDrawColor(200, 210, 220)
+    doc.setLineWidth(0.3)
+    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(148, 163, 184)
+
+    const footerLeft = company?.name
+      ? `${company.name}  |  ${cor.cor_number || 'COR'}  |  ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : `${cor.cor_number || 'COR'}  |  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+    doc.text(footerLeft, margin, footerY)
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
   }
 
@@ -1076,6 +1289,66 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
   }
 
   // ============================================
+  // FOREMAN SIGNATURE BLOCK
+  // ============================================
+
+  if (ticket.foreman_signature_data || ticket.foreman_signature_name) {
+    if (yPos > pageHeight - 50) { doc.addPage(); yPos = margin }
+
+    const foremanBlockHeight = 34
+    const foremanBlockWidth = pageWidth - margin * 2
+
+    doc.setFillColor(239, 246, 255)
+    doc.roundedRect(margin, yPos, foremanBlockWidth, foremanBlockHeight, 3, 3, 'F')
+    doc.setFillColor(59, 130, 246)
+    doc.rect(margin, yPos, 4, foremanBlockHeight, 'F')
+    doc.setDrawColor(191, 219, 254)
+    doc.setLineWidth(0.5)
+    doc.line(margin + 4, yPos, margin + foremanBlockWidth, yPos)
+
+    const foremanSealX = margin + 14
+    const foremanSealY = yPos + foremanBlockHeight / 2
+    doc.setFillColor(59, 130, 246)
+    doc.circle(foremanSealX, foremanSealY, 6, 'F')
+    doc.setFontSize(9)
+    doc.setTextColor(255, 255, 255)
+    doc.text('F', foremanSealX - 2, foremanSealY + 3)
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(59, 130, 246)
+    doc.text('FOREMAN', margin + 26, yPos + 10)
+
+    try {
+      if (ticket.foreman_signature_data) {
+        doc.addImage(ticket.foreman_signature_data, 'PNG', margin + 26, yPos + 13, 50, 16)
+      }
+      const foremanInfoX = margin + 85
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(ticket.foreman_signature_name || 'Foreman', foremanInfoX, yPos + 12)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(71, 85, 105)
+      if (ticket.foreman_signature_title) {
+        doc.text(ticket.foreman_signature_title, foremanInfoX, yPos + 18)
+      }
+      if (ticket.foreman_signature_date) {
+        doc.setTextColor(100, 116, 139)
+        doc.text(`Signed: ${formatDate(ticket.foreman_signature_date)}`, foremanInfoX, yPos + 25)
+      }
+    } catch (e) {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(`Signed by: ${ticket.foreman_signature_name || 'Foreman'}`, margin + 26, yPos + 20)
+    }
+
+    yPos += foremanBlockHeight + 6
+  }
+
+  // ============================================
   // CLIENT VERIFICATION BLOCK
   // ============================================
 
@@ -1131,16 +1404,32 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
   }
 
   // ============================================
-  // FOOTER (all pages)
+  // HEADER ACCENT + FOOTER (all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
+
+    // Thin accent stripe at top of continuation pages
+    if (i > 1) {
+      doc.setFillColor(...primaryColor)
+      doc.rect(0, 0, pageWidth, 2.5, 'F')
+    }
+
+    // Footer rule + text
     const footerY = pageHeight - 10
-    doc.setFontSize(8)
-    doc.setTextColor(150, 150, 150)
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.3)
+    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(148, 163, 184)
+    doc.text(
+      `Time and Material Ticket  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      margin, footerY
+    )
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
   }
 

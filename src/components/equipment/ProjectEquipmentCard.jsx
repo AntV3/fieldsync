@@ -6,7 +6,9 @@ import { formatCurrency } from '../../lib/corCalculations'
 // Helper function - defined outside component to avoid recreation
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  const s = String(dateStr)
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+  return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric'
   })
@@ -49,9 +51,19 @@ export default memo(function ProjectEquipmentCard({
     }
   }, [project?.id]) // onShowToast is stable (memoized in App.jsx)
 
-  // Load project equipment when project changes
+  // Load project equipment when project changes + subscribe to real-time updates
   useEffect(() => {
     loadEquipment()
+
+    const subscription = equipmentOps.subscribeToProjectEquipment?.(project?.id, () => {
+      loadEquipment()
+    })
+
+    return () => {
+      if (subscription) {
+        equipmentOps.unsubscribe?.(subscription)
+      }
+    }
   }, [loadEquipment])
 
   const handleMarkReturned = useCallback(async (equipmentItem) => {

@@ -1,0 +1,193 @@
+/* ============================================
+   Print Stylesheet
+   ============================================
+
+   Print-friendly styles for dashboard reporting.
+   Removes interactive elements, optimizes
+   layout for paper, and ensures readability.
+   ============================================ */
+
+@media print {
+  /* ---- Reset for Print ---- */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* ---- Hide Non-Essential Elements ---- */
+  .sidebar,
+  .mobile-nav,
+  .toast-container,
+  .skip-link,
+  .overview-bottom-strip,
+  .overview-quick-actions,
+  .overview-action-btn,
+  .financials-mobile-menu-toggle,
+  .financials-sidebar,
+  .financials-sidebar-overlay,
+  .export-actions,
+  .time-range-selector,
+  .smart-alert__dismiss,
+  .smart-alert__action-btn,
+  .crew-date-nav,
+  .crew-time-range-pills,
+  .btn,
+  button:not(.no-print-hide),
+  nav,
+  .install-prompt,
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  /* ---- Page Setup ---- */
+  @page {
+    margin: 1.5cm 2cm;
+    size: A4 portrait;
+  }
+
+  @page :first {
+    margin-top: 2cm;
+  }
+
+  body {
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+  }
+
+  /* ---- Typography for Print ---- */
+  h1, h2, h3, h4, h5, h6 {
+    color: #000;
+    page-break-after: avoid;
+  }
+
+  h1 { font-size: 18pt; }
+  h2 { font-size: 15pt; }
+  h3 { font-size: 13pt; }
+
+  p, li, td, th {
+    color: #333;
+  }
+
+  /* ---- Layout Adjustments ---- */
+  .project-detail-view,
+  .financials-main,
+  .pv-tab-panel {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Full-width grids */
+  .overview-hero-split {
+    display: block;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+
+  .overview-two-col,
+  .financial-metrics-row,
+  .financials-analysis-row,
+  .metric-grid--4,
+  .metric-grid--3 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12pt;
+  }
+
+  /* ---- Card Print Styles ---- */
+  .card,
+  .section-card,
+  .metric-card,
+  .overview-section-card,
+  .financial-trend-chart,
+  .burn-rate-card,
+  .profitability-card,
+  .cost-contributors-card {
+    background: #fff;
+    border: 1pt solid #ddd;
+    border-radius: 4pt;
+    padding: 10pt;
+    page-break-inside: avoid;
+    margin-bottom: 12pt;
+  }
+
+  .card::after,
+  .metric-card::after,
+  .overview-section-card::after,
+  .financial-trend-chart::after {
+    display: none;
+  }
+
+  /* ---- Metric Values ---- */
+  .metric-card__value,
+  .financial-metric-value,
+  .gauge-value,
+  .quick-stat-value,
+  .overview-metric-value {
+    color: #000;
+    font-weight: 700;
+  }
+
+  .metric-card__label,
+  .financial-metric-label,
+  .gauge-label {
+    color: #555;
+  }
+
+  /* ---- Status Colors (Use patterns for B&W printers) ---- */
+  .metric-card--success { border-left: 4pt solid #059669; }
+  .metric-card--warning { border-left: 4pt solid #d97706; }
+  .metric-card--danger { border-left: 4pt solid #dc2626; }
+
+  /* ---- Charts ---- */
+  .recharts-wrapper,
+  .chart-container {
+    page-break-inside: avoid;
+  }
+
+  /* ---- Progress Bars ---- */
+  .progress-bar-v2__track,
+  .mini-progress-bar,
+  .work-area-bar {
+    background: #eee;
+  }
+
+  /* ---- Links ---- */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666;
+  }
+
+  a[href^="#"]::after,
+  a[href^="javascript:"]::after {
+    content: "";
+  }
+
+  /* ---- Page Breaks ---- */
+  .overview-tab > *,
+  .financials-overview > * {
+    page-break-inside: avoid;
+  }
+
+  tr, img, svg {
+    page-break-inside: avoid;
+  }
+
+  /* ---- Ensure Proper Widths ---- */
+  .financials-layout {
+    display: block;
+  }
+
+  .financials-main {
+    margin-left: 0;
+  }
+}

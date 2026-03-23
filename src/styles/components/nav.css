@@ -32,6 +32,41 @@
   color: var(--accent-blue);
 }
 
+/* Pulsing dots loader */
+.loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  opacity: 0.3;
+  animation: loading-dot-pulse 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes loading-dot-pulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
 /* ============================================
    Login Screen
    ============================================ */
@@ -64,9 +99,9 @@
   border-radius: var(--radius-xl);
   padding: 2.5rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   position: relative;
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-elevated);
 }
 
 .login-header {
@@ -127,10 +162,10 @@
   gap: 1rem;
   padding: 1.5rem;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-smooth);
   text-align: left;
   box-shadow: var(--shadow-card);
   position: relative;
@@ -303,5 +338,35 @@
   .container {
     padding: 1rem;
   }
+}
+
+/* ============================================
+   SpaceX Navigation Enhancements
+   ============================================ */
+
+/* Active tab SpaceX-style accent underline */
+.nav-tab.active,
+.tab-btn.active {
+  position: relative;
+}
+
+.nav-tab.active::after,
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 2px;
+  background: var(--gradient-accent, var(--color-accent));
+  border-radius: var(--radius-full);
+}
+
+/* Nav item hover enhancement */
+.nav-tab:hover,
+.tab-btn:hover {
+  background: var(--hover-overlay);
+  border-radius: var(--radius-sm);
 }
 

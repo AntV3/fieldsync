@@ -25,13 +25,24 @@
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.burn-rate-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .burn-rate-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .burn-rate-header {
@@ -55,6 +66,11 @@
 
 .burn-rate-title .burn-icon {
   color: var(--accent-amber);
+}
+
+/* Remove double spacing - parent gap handles it */
+.burn-rate-title .info-tooltip-wrapper {
+  margin-left: 0;
 }
 
 .burn-status {
@@ -138,6 +154,8 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .burn-summary-divider {
@@ -226,7 +244,7 @@
   color: var(--text-secondary);
 }
 
-.burn-labor, .burn-hauloff {
+.burn-labor {
   color: var(--text-primary);
 }
 
@@ -251,22 +269,8 @@
 .burn-amount {
   position: relative;
   font-weight: 600;
-}
-
-/* ============================================
-   Cost & Disposal Side-by-Side Row
-   ============================================ */
-.cost-disposal-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.875rem;
-  margin-bottom: 1rem;
-}
-
-@media (max-width: 900px) {
-  .cost-disposal-row {
-    grid-template-columns: 1fr;
-  }
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* ============================================
@@ -279,13 +283,24 @@
   padding: 14px 16px;
   margin-bottom: 0;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.cost-contributors-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .cost-contributors-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .cost-contributors-header {
@@ -435,6 +450,8 @@
 .cost-amount {
   font-weight: 600;
   color: var(--text-primary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .cost-percent {
@@ -545,13 +562,24 @@
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
   min-width: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.profitability-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .profitability-card:hover {
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .profitability-card.healthy {
@@ -571,6 +599,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.875rem;
+}
+
+.profitability-title-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .profitability-header h3 {
@@ -632,6 +666,8 @@
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .profit-metric-value.negative {
@@ -696,6 +732,8 @@
 .profit-value {
   font-weight: 600;
   color: var(--text-primary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .profit-value.negative {
@@ -839,8 +877,7 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .burn-details-header span:nth-child(3),
-  .burn-details-row .burn-hauloff {
+  .burn-details-header span:nth-child(3) {
     display: none;
   }
 
@@ -857,5 +894,54 @@
   .cost-percent {
     font-size: 0.75rem;
   }
+}
+
+/* -- Progressive Disclosure: Burn rate cost detail toggle -- */
+.burn-cost-detail-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 0.75rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.burn-cost-detail-toggle:hover {
+  color: var(--text-secondary);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+/* -- Progressive Disclosure: Profitability insight toggle -- */
+.profitability-insight-wrap {
+  margin-top: 0.25rem;
+}
+
+.profitability-insight-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition-fast);
+}
+
+.profitability-insight-toggle:hover {
+  color: var(--text-primary);
+}
+
+.profitability-insight-summary {
+  font-weight: 500;
 }
 

@@ -198,12 +198,12 @@
 
 /* Light mode bottom strip */
 [data-theme="light"] .overview-bottom-strip {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 /* Light mode needs-attention */
 [data-theme="light"] .overview-needs-attention {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .overview-needs-attention__item:hover {
@@ -280,10 +280,12 @@
 }
 
 .overview-metric-value {
+  font-family: var(--font-data);
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .overview-metric-value.green {
@@ -431,7 +433,13 @@
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-section-card::after {
+  display: none;
 }
 
 .overview-section-card:hover {
@@ -535,6 +543,9 @@
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .work-area-weight {
@@ -685,11 +696,12 @@
 }
 
 .crew-stat-value {
+  font-family: var(--font-data);
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .crew-stat-label {
@@ -784,6 +796,22 @@
   font-weight: 400;
 }
 
+.crew-name-tag.signed {
+  border-color: var(--accent-green, #22c55e);
+}
+
+.crew-name-signed-icon {
+  color: var(--accent-green, #22c55e);
+  flex-shrink: 0;
+}
+
+.crew-name-ssn {
+  font-size: 0.6rem;
+  opacity: 0.6;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
 [data-theme="light"] .crew-name-tag.contract {
   background: var(--status-info-bg);
   color: var(--status-info);
@@ -850,7 +878,7 @@
 .crew-range-pill.active {
   background: var(--bg-elevated);
   color: var(--accent-blue);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .crew-chart-container {
@@ -866,7 +894,7 @@
 
 /* Light mode crew metrics */
 [data-theme="light"] .crew-metrics-card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 [data-theme="light"] .crew-stat {
@@ -950,14 +978,25 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-smooth);
   box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-stat-card::after {
+  display: none;
 }
 
 .quick-stat-card:hover {
   border-color: var(--accent-primary);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.quick-stat-card:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
 }
 
 .quick-stat-icon {
@@ -976,11 +1015,12 @@
 }
 
 .quick-stat-value {
+  font-family: var(--font-data);
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
   display: block;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
 }
 
@@ -1024,14 +1064,7 @@
 }
 
 .overview-hero-split::after {
-  content: '';
-  position: absolute;
-  bottom: -50px;
-  right: -50px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 /* Progress Gauge */
@@ -1050,7 +1083,7 @@
 }
 
 .gauge-track {
-  opacity: 0.15;
+  opacity: 0.3;
 }
 
 .gauge-fill {
@@ -1066,11 +1099,12 @@
 }
 
 .gauge-value {
+  font-family: var(--font-data);
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--letter-spacing-tight);
 }
 
@@ -1125,11 +1159,12 @@
 }
 
 .financial-metric-value {
+  font-family: var(--font-data);
   font-size: 1.5rem;
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: 1.1;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--letter-spacing-tight);
 }
 
@@ -1301,5 +1336,80 @@
   .financial-metric-value {
     font-size: 1.25rem;
   }
+}
+
+/* -- Progressive Disclosure: Cost breakdown toggle -- */
+.cost-breakdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.cost-breakdown-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.cost-breakdown-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cost-breakdown-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+/* -- Progressive Disclosure: Crew timeline toggle -- */
+.crew-timeline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 8px 6px;
+  margin-top: 4px;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.crew-timeline-toggle:hover {
+  color: var(--text-primary);
+}
+
+.crew-timeline-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.crew-timeline-chevron.open {
+  transform: rotate(180deg);
+}
+
+.crew-timeline-summary {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
 }
 

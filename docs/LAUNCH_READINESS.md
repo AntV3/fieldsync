@@ -1,7 +1,7 @@
 # FieldSync Launch Readiness Assessment
 
-**Date:** 2026-03-04 (updated)
-**Verdict:** Ready to launch — apply 2 database migrations first
+**Date:** 2026-03-10 (updated)
+**Verdict:** Ready to launch — migrations added to supabase/migrations/, run `supabase db push` or apply via SQL Editor
 
 ---
 
@@ -100,8 +100,8 @@ Per IMPROVEMENT_PLAN.md, these are Phase 2-4:
 ## Pre-Launch Checklist
 
 **Database (required):**
-- [ ] Run `migration_field_sessions.sql` in Supabase SQL Editor
-- [ ] Run `migration_launch_security.sql` in Supabase SQL Editor
+- [x] Run `migration_field_sessions.sql` in Supabase SQL Editor — added as `supabase/migrations/20260310_field_sessions_security.sql`
+- [x] Run `migration_launch_security.sql` in Supabase SQL Editor — added as `supabase/migrations/20260310_launch_security.sql`
 - [ ] Verify Supabase production env vars are set in Vercel dashboard
 
 **Smoke testing:**

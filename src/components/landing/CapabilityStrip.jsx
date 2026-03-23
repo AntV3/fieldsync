@@ -1,17 +1,17 @@
 const CAPABILITIES = [
   'Real-Time Field Sync',
-  'One-Tap Crew Updates',
-  'Defensible Draw Requests',
+  'One-Tap Time and Material Tickets',
+  'Real-Time Oversight',
+  'Photo & Signature Capture',
+  'Change Order Management',
   'Instant Daily Reports',
-  'Live Change Orders',
-  'Equipment Tracking',
-  'Dispute-Proof Progress',
+  'Dispute-Proof Documentation',
   'Offline-First Architecture',
   'Install as Native App',
   'MFA + Role-Based Security',
   'Automated Crew Check-in',
-  'Revenue-Tied Billing',
   'Timestamped Photo Logs',
+  'Equipment Tracking',
   'Punch List Management',
 ]
 

@@ -38,7 +38,7 @@
 /* Visible focus ring for keyboard navigation */
 .focus-visible:focus,
 *:focus-visible {
-  outline: 2px solid var(--border-focus, #3b82f6);
+  outline: 2px solid var(--color-accent, #0091D5);
   outline-offset: 2px;
 }
 
@@ -49,14 +49,14 @@
 
 /* Enhanced focus for interactive elements */
 .focus-ring {
-  transition: box-shadow var(--transition-fast);
+  transition: box-shadow 0.15s ease;
 }
 
 .focus-ring:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 2px var(--bg-primary),
-    0 0 0 4px var(--border-focus, #3b82f6);
+    0 0 0 4px var(--color-accent, #0091D5);
 }
 
 /* ---- Skip Links ---- */
@@ -92,11 +92,17 @@
   }
 }
 
-/* ---- High Contrast Mode ---- */
+/* ---- High Contrast Mode (system preference) ---- */
 @media (prefers-contrast: high) {
   :root {
     --border-color: currentColor;
     --border-light: currentColor;
+    --border-subtle: currentColor;
+    --text-primary: #000000;
+    --text-secondary: #1A1A1A;
+    --text-tertiary: #333333;
+    --bg-canvas: #FFFFFF;
+    --bg-surface: #FFFFFF;
   }
 
   .card,
@@ -106,6 +112,38 @@
   textarea {
     border-width: 2px;
   }
+
+  /* Ensure chart patterns are visible without color */
+  .recharts-line {
+    stroke-dasharray: none;
+  }
+}
+
+/* ---- User-toggleable High Contrast Mode ---- */
+/* Per spec: Provide "High Contrast" mode toggle in user preferences */
+[data-contrast="high"] {
+  --border-color: #000000;
+  --border-light: #333333;
+  --border-subtle: #000000;
+  --text-primary: #000000;
+  --text-secondary: #1A1A1A;
+  --text-tertiary: #333333;
+  --bg-canvas: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F0F0F0;
+}
+
+[data-contrast="high"] .card,
+[data-contrast="high"] .btn,
+[data-contrast="high"] input,
+[data-contrast="high"] select,
+[data-contrast="high"] textarea {
+  border-width: 2px;
+}
+
+[data-contrast="high"] .status-badge {
+  border-width: 2px;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ---- Touch Target Sizing ---- */
@@ -214,4 +252,34 @@ th {
 /* Highlight current row/column on focus */
 table:focus-within tbody tr:focus-within {
   background: var(--bg-tertiary);
+}
+
+/* ---- Keyboard Navigation Enhancements ---- */
+/* Visible focus indicators for all interactive dashboard elements */
+.metric-card--clickable:focus-visible,
+.project-card:focus-visible,
+.project-row:focus-visible,
+.quick-stat-card:focus-visible,
+.smart-alert__action-btn:focus-visible,
+.overview-action-btn:focus-visible,
+.time-range-selector button:focus-visible,
+.crew-range-pill:focus-visible {
+  outline: 2px solid var(--color-accent, #0091D5);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ---- ARIA Live Region Styling ---- */
+/* Announce metric updates to screen readers */
+[aria-live="polite"] {
+  position: relative;
+}
+
+/* ---- Print Focus Reset ---- */
+@media print {
+  *:focus,
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 }
