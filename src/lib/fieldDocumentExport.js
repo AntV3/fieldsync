@@ -15,7 +15,7 @@ const loadJsPDF = () => import('jspdf')
 const loadAutoTable = () => import('jspdf-autotable')
 
 const PAGE_WIDTH = 210 // A4 width in mm
-const PAGE_HEIGHT = 297 // A4 height in mm
+// const PAGE_HEIGHT = 297 // A4 height in mm (used dynamically via doc.internal)
 const MARGIN = 20
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 
@@ -830,7 +830,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
   const doc = new jsPDF()
 
   const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
+  const _pageHeight = doc.internal.pageSize.getHeight()
   const primary = getPrimaryColor(context)
 
   // ══════════════════════════════════════════════════════════════════════════

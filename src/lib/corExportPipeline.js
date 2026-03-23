@@ -559,7 +559,7 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
 
         // Try new labor class rates first
         const classRates = await db.getAllLaborClassRates?.(company.id)
-        let rateLookup = {}
+        const rateLookup = {}
 
         if (classRates?.length > 0) {
           classRates.forEach(lc => {

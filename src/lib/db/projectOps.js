@@ -13,7 +13,6 @@ import {
   escapePostgrestFilter,
   sanitizeFormData,
   getDeviceId,
-  withRetry,
   getClient,
   getFieldClient,
   setFieldSession,
@@ -416,7 +415,7 @@ export const projectOps = {
 
   // Deep archive: archive project AND delete photos to reclaim storage
   // Call this after user has exported their important documents
-  async archiveProjectDeep(projectId, companyId) {
+  async archiveProjectDeep(projectId, _companyId) {
     if (!isSupabaseConfigured) return null
 
     // 1. Get all photo URLs for this project
@@ -667,7 +666,7 @@ export const projectOps = {
 
       // Fetch full project details using the new session
       const client = getFieldClient()
-      const { data: projectData, error: projectError } = await client
+      const { data: projectData } = await client
         .from('projects')
         .select('*')
         .eq('id', result.project_id)

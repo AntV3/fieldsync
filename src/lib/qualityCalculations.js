@@ -35,7 +35,7 @@ export const QUALITY_CONFIG = {
 export function calculateQualityMetrics({
   punchListItems = [],
   areas = [],
-  dailyReports = [],
+  dailyReports: _dailyReports = [],
   contractValue = 0,
   totalCosts = 0,
 }) {
