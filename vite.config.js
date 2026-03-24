@@ -15,12 +15,12 @@ export default defineConfig({
     }
   },
   server: {
-    host: '0.0.0.0',
+    host: 'localhost',
     port: 5173
   },
   build: {
-    // Generate source maps for better debugging
-    sourcemap: true,
+    // Only generate source maps in development, not production
+    sourcemap: false,
     rollupOptions: {
       output: {
         // Improve code splitting by separating vendor chunks

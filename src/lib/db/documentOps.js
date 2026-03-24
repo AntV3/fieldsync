@@ -147,7 +147,7 @@ export const documentOps = {
     const client = getClient()
     const { page = 0, limit = 25 } = options
 
-    let query = client
+    const query = client
       .from('documents')
       .select('id,name,file_name,file_size_bytes,mime_type,storage_path,category,visibility,approval_status,version,uploaded_at', { count: 'exact' })
       .eq('folder_id', folderId)

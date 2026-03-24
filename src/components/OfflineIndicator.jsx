@@ -33,13 +33,15 @@ export default function OfflineIndicator() {
     })
 
     // Initial pending count check
-    getPendingActionCount().then(setPendingCount)
+    getPendingActionCount().then(setPendingCount).catch(() => {})
 
     // Periodically check pending count when offline
     const interval = setInterval(async () => {
       if (!getConnectionStatus()) {
-        const count = await getPendingActionCount()
-        setPendingCount(count)
+        try {
+          const count = await getPendingActionCount()
+          setPendingCount(count)
+        } catch (_e) { /* offline - ignore */ }
       }
     }, 5000)
 

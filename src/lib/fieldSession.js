@@ -26,7 +26,7 @@ export const getFieldSession = () => {
       fieldSessionData = JSON.parse(stored)
       return fieldSessionData
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore parse errors
   }
   return null
@@ -55,7 +55,7 @@ export const clearFieldSession = async () => {
     // Invalidate on server
     try {
       await supabase.rpc('invalidate_field_session', { p_session_token: session.token })
-    } catch (e) {
+    } catch (_e) {
       // Ignore errors during logout
     }
   }

@@ -8,10 +8,8 @@ import {
   supabase,
   isSupabaseConfigured,
   observe,
-  getClient,
   getLocalData,
-  setLocalData,
-  sanitize
+  setLocalData
 } from './client'
 
 export const financialOps = {

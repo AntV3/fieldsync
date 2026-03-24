@@ -263,7 +263,7 @@ export async function exportProgressPhotosPDF({
   photosByDate,
   availableDates,
   projectName,
-  areas,
+  areas: _areas,
   getAreaName,
 }) {
   const { default: jsPDF } = await loadJsPDF()

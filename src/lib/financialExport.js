@@ -105,7 +105,7 @@ export function exportProjectFinancials(project, financialData) {
 /**
  * Export COR detail as CSV
  */
-export function exportCORDetail(cor, project) {
+export function exportCORDetail(cor, _project) {
   const rows = []
   const headers = [
     { key: 'section', label: 'Section' },

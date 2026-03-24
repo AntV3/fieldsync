@@ -302,7 +302,7 @@ export const corOps = {
   async updateCORLaborItem(itemId, updates) {
     if (isSupabaseConfigured) {
       // Recalculate totals if hours or rates changed
-      let updateData = { ...updates }
+      const updateData = { ...updates }
       if (updates.regular_hours !== undefined || updates.regular_rate !== undefined ||
           updates.overtime_hours !== undefined || updates.overtime_rate !== undefined) {
         // Get current values if not provided
@@ -380,7 +380,7 @@ export const corOps = {
 
   async updateCORMaterialItem(itemId, updates) {
     if (isSupabaseConfigured) {
-      let updateData = { ...updates }
+      const updateData = { ...updates }
       if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
         const { data: current } = await supabase
           .from('change_order_materials')
@@ -451,7 +451,7 @@ export const corOps = {
 
   async updateCOREquipmentItem(itemId, updates) {
     if (isSupabaseConfigured) {
-      let updateData = { ...updates }
+      const updateData = { ...updates }
       if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
         const { data: current } = await supabase
           .from('change_order_equipment')
@@ -517,7 +517,7 @@ export const corOps = {
 
   async updateCORSubcontractorItem(itemId, updates) {
     if (isSupabaseConfigured) {
-      let updateData = { ...updates }
+      const updateData = { ...updates }
       if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
         const { data: current } = await supabase
           .from('change_order_subcontractors')

@@ -184,6 +184,7 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
     try {
       for (const photo of selectedDatePhotos) {
         const response = await fetch(photo.url)
+        if (!response.ok) throw new Error(`Failed to download photo: ${response.status}`)
         const blob = await response.blob()
         const ext = blob.type.includes('png') ? 'png' : 'jpg'
         const filename = `progress-photo_${selectedDate}_${photo.id}.${ext}`

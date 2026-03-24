@@ -1,5 +1,3 @@
-import { lazy } from 'react'
-
 /**
  * Widget Registry - Maps widget IDs to lazy-loaded components and metadata.
  *

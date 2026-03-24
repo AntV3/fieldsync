@@ -6,13 +6,13 @@
 import {
   supabase, isSupabaseConfigured,
   observe,
-  getClient, getFieldClient, getSupabaseClient,
-  isFieldMode, getFieldProjectId, getFieldCompanyId,
+  getClient, getSupabaseClient,
+  isFieldMode,
   getConnectionStatus,
-  cacheTMTicket, getCachedTMTickets,
+  cacheTMTicket,
   addPendingAction, ACTION_TYPES,
   generateTempId,
-  getLocalData, setLocalData, validateAmount, sanitize, sanitizeFormData
+  sanitize
 } from './client'
 
 export const tmOps = {
@@ -670,7 +670,7 @@ export const tmOps = {
     const filePath = `${companyId}/${projectId}/${ticketId}/${fileName}`
 
     try {
-      const { data, error } = await client.storage
+      const { error } = await client.storage
         .from('tm-photos')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -725,7 +725,7 @@ export const tmOps = {
     // Path: company/project/ticket/filename
     const filePath = `${companyId}/${projectId}/${ticketId}/${newFileName}`
 
-    const { data, error } = await client.storage
+    const { error } = await client.storage
       .from('tm-photos')
       .upload(filePath, blob, {
         cacheControl: '3600',

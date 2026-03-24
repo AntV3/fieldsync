@@ -571,7 +571,7 @@ function calculateProgressVelocity(progressHistory, currentProgress, elapsedDays
   return currentProgress > 0 ? currentProgress / elapsedDays : 0
 }
 
-function generateWeeklyCostForecast({ actualCosts, bestEstimate, recentBurnRate, startDate, endDate, progressPercent }) {
+function generateWeeklyCostForecast({ actualCosts, bestEstimate, recentBurnRate, startDate, endDate, progressPercent: _progressPercent }) {
   const points = []
   const now = new Date()
   const end = endDate ? new Date(endDate) : new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
@@ -598,7 +598,7 @@ function generateWeeklyCostForecast({ actualCosts, bestEstimate, recentBurnRate,
   return points
 }
 
-function generateWeeklyProgressForecast({ progressPercent, velocity, startDate, projectedEnd }) {
+function generateWeeklyProgressForecast({ progressPercent, velocity, startDate: _startDate, projectedEnd }) {
   const points = []
   const now = new Date()
   const end = new Date(projectedEnd)

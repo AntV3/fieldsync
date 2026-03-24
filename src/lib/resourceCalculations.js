@@ -113,7 +113,7 @@ export function calculateCurrentAllocation(projects, crewCheckins) {
 /**
  * Calculate overall utilization metrics
  */
-export function calculateUtilization(allocation, totalCrewAvailable, workdaysPerWeek, hoursPerDay) {
+export function calculateUtilization(allocation, totalCrewAvailable, _workdaysPerWeek, _hoursPerDay) {
   const totalAllocated = allocation.totalAllocated
   const totalNeeded = allocation.totalNeeded
 
@@ -304,7 +304,7 @@ export function buildAllocationHeatmap(projects, crewCheckins) {
 
 function estimateCrewNeed(project) {
   const progress = project.progress || project.progressPercent || 0
-  const startDate = project.startDate || project.start_date
+  const _startDate = project.startDate || project.start_date
   const endDate = project.endDate || project.end_date
   const contractValue = (project.contractValue || project.contract_value || 0)
 
