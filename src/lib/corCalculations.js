@@ -143,7 +143,7 @@ export const calculateCORTotals = (cor) => {
   }
 }
 
-// Validate COR before submission
+// Validate COR fields (basic validation for save/draft)
 export const validateCOR = (cor) => {
   const errors = []
 
@@ -177,6 +177,44 @@ export const validateCOR = (cor) => {
   }
   if (cor.subcontractors_markup_percent > maxMarkup) {
     errors.push('Subcontractors markup percentage seems too high (>50%)')
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  }
+}
+
+// Validate COR before submission for approval (stricter than basic validation)
+// Ensures the COR is complete enough to be reviewed professionally
+export const validateCORForSubmission = (cor) => {
+  // Start with basic validation
+  const basicResult = validateCOR(cor)
+  const errors = [...basicResult.errors]
+
+  // Must have at least one line item across any category
+  const laborCount = cor.change_order_labor?.length || 0
+  const materialsCount = cor.change_order_materials?.length || 0
+  const equipmentCount = cor.change_order_equipment?.length || 0
+  const subcontractorsCount = cor.change_order_subcontractors?.length || 0
+  const totalLineItems = laborCount + materialsCount + equipmentCount + subcontractorsCount
+
+  if (totalLineItems === 0) {
+    errors.push('At least one line item (labor, materials, equipment, or subcontractors) is required before submission')
+  }
+
+  // COR total should be greater than zero
+  const corTotal = parseInt(cor.cor_total) || 0
+  if (totalLineItems > 0 && corTotal <= 0) {
+    errors.push('COR total must be greater than $0.00')
+  }
+
+  // Period dates should be set for professional submissions
+  if (!cor.period_start) {
+    errors.push('Period start date is required for submission')
+  }
+  if (!cor.period_end) {
+    errors.push('Period end date is required for submission')
   }
 
   return {
