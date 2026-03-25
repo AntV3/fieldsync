@@ -1281,6 +1281,13 @@ export const projectOps = {
       )
     })
 
+    // Subscribe to COR-ticket associations (junction table) - triggers COR refresh when
+    // tickets are linked/unlinked from change orders so totals update in real-time
+    channel.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'change_order_ticket_associations' },
+      (payload) => callbacks.onCORChange?.(payload)
+    )
+
     // Subscribe to injury reports company-wide (INSERT, UPDATE, and DELETE)
     channel.on('postgres_changes',
       { event: '*', schema: 'public', table: 'injury_reports', filter: `company_id=eq.${companyId}` },

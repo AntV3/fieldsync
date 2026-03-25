@@ -73,11 +73,15 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Refs to hold latest versions of load functions, preventing stale closures in debouncedRefresh
   const loadAreasRef = useRef(null)
   const loadProjectsRef = useRef(null)
+  const loadProjectDetailsRef = useRef(null)
+
+  // Track selected project in a ref so debouncedRefresh can access it without stale closures
+  const selectedProjectRef = useRef(null)
 
   // Cache for project details to avoid re-fetching when switching between projects
   // Key: projectId, Value: { data: enhancedProjectData, timestamp: Date.now() }
   const projectDetailsCacheRef = useRef(new Map())
-  const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minute cache TTL
+  const CACHE_TTL_MS = 30 * 1000 // 30 second cache TTL - keep data fresh for real-time updates
 
   // Debounced refresh function that coalesces multiple rapid refresh requests
   // This prevents 5+ loadProjects() calls when multiple subscriptions fire at once
@@ -107,12 +111,25 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         setCORRefreshKey(prev => prev + 1)
         pendingCORRefreshRef.current = false
       }
-      // Invalidate detail cache for the selected project so real-time data is fresh
-      if (projectId) {
-        projectDetailsCacheRef.current.delete(projectId)
+      // Always invalidate detail cache for the selected project so real-time data is fresh
+      // Previously only invalidated when projectId was explicitly passed, causing stale data
+      const activeProjectId = projectId || selectedProjectRef.current?.id
+      if (activeProjectId) {
+        projectDetailsCacheRef.current.delete(activeProjectId)
       }
       // Always refresh projects to update metrics
       await loadProjectsRef.current?.()
+      // If a project is currently selected, re-fetch its detailed data so the UI updates
+      const currentProject = selectedProjectRef.current
+      if (currentProject) {
+        const detailed = await loadProjectDetailsRef.current?.(currentProject, true)
+        if (detailed && mountedRef.current) {
+          setProjectsData(prev => prev.map(p =>
+            p.id === currentProject.id ? detailed : p
+          ))
+          setSelectedProject(detailed)
+        }
+      }
     }, 150)
   }, [])
 
@@ -657,6 +674,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Keep refs in sync so debouncedRefresh always calls the latest versions
   loadAreasRef.current = loadAreas
   loadProjectsRef.current = loadProjects
+  loadProjectDetailsRef.current = loadProjectDetails
+
+  // Keep selectedProject ref in sync for debouncedRefresh to access without stale closures
+  selectedProjectRef.current = selectedProject
 
   const handleSelectProject = async (project) => {
     // Set the project immediately for responsive UI
