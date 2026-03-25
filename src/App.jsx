@@ -52,11 +52,11 @@ function PageLoader() {
 function PendingApprovalScreen({ pendingCompanyName, userName, onCheckStatus, onLogout }) {
   const [checking, setChecking] = useState(false)
 
-  // Auto-check status every 30 seconds
+  // Auto-check status every 10 seconds for faster approval detection
   useEffect(() => {
     const interval = setInterval(() => {
       onCheckStatus()
-    }, 30000)
+    }, 10000)
     return () => clearInterval(interval)
   }, [onCheckStatus])
 

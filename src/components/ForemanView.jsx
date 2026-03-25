@@ -121,7 +121,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     if (targets.punchList) pendingRefreshRef.current.punchList = true
 
     if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
-    // 1000ms debounce for field apps on potentially unstable mobile connections
+    // 300ms debounce - fast enough for real-time feel while still coalescing rapid events
     refreshTimeoutRef.current = setTimeout(async () => {
       if (!mountedRef.current) return
       const pending = pendingRefreshRef.current
@@ -131,7 +131,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       if (pending.status) refreshes.push(loadTodayStatus())
       if (pending.punchList) refreshes.push(loadPunchListCount())
       await Promise.all(refreshes)
-    }, 1000)
+    }, 300)
   }, [project?.id])
 
   useEffect(() => {
