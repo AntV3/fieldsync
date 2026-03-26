@@ -325,6 +325,19 @@ export default function ForemanLanding({
             <span className="fm-snapshot-label">Remaining</span>
           </div>
         </div>
+        <div className="fm-snapshot-loads">
+          <div className="fm-snapshot-load-stat">
+            <Truck size={16} />
+            <span className="fm-snapshot-load-value">{todayStatus.disposalLoadsToday || 0}</span>
+            <span className="fm-snapshot-load-label">Disposal Loads</span>
+          </div>
+          <div className="fm-snapshot-load-divider" />
+          <div className="fm-snapshot-load-stat">
+            <Truck size={16} />
+            <span className="fm-snapshot-load-value">{todayStatus.trucksUsedToday || 0}</span>
+            <span className="fm-snapshot-load-label">Trucks Used</span>
+          </div>
+        </div>
         {todayStatus.crewCheckedIn && (
           <div className="fm-snapshot-today">
             <Clock size={14} />
@@ -484,6 +497,46 @@ export default function ForemanLanding({
         .fm-snapshot-divider {
           width: 1px;
           height: 44px;
+          background: rgba(255,255,255,0.25);
+        }
+
+        .fm-snapshot-loads {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          margin-top: 0.875rem;
+          padding-top: 0.875rem;
+          border-top: 1px solid rgba(255,255,255,0.15);
+          position: relative;
+          z-index: 1;
+        }
+
+        .fm-snapshot-load-stat {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          flex: 1;
+          justify-content: center;
+        }
+
+        .fm-snapshot-load-value {
+          font-size: 1.25rem;
+          font-weight: 700;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .fm-snapshot-load-label {
+          font-size: 0.7rem;
+          opacity: 0.85;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          font-weight: 600;
+        }
+
+        .fm-snapshot-load-divider {
+          width: 1px;
+          height: 28px;
           background: rgba(255,255,255,0.25);
         }
 
