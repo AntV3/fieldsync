@@ -897,6 +897,32 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
+      // Guard: Check if this ticket's data was already imported to prevent duplicates
+      // This handles the case where a previous import succeeded but the status update failed
+      const { data: assoc, error: assocError } = await client
+        .from('change_order_ticket_associations')
+        .select('data_imported, import_status')
+        .eq('change_order_id', corId)
+        .eq('ticket_id', ticketId)
+        .single()
+      if (!assocError && assoc?.data_imported && assoc?.import_status === 'completed') {
+        observe.activity('cor_import_skipped_already_imported', { ticket_id: ticketId, cor_id: corId })
+        return { laborItems: [], materialItems: [], equipmentItems: [], skipped: true }
+      }
+
+      // Also check if line items from this ticket already exist (partial import recovery)
+      const { data: existingLabor } = await client
+        .from('change_order_labor')
+        .select('id')
+        .eq('change_order_id', corId)
+        .eq('source_ticket_id', ticketId)
+        .limit(1)
+      if (existingLabor?.length > 0) {
+        // Line items exist from a partial import — use reimport to clean up and redo
+        observe.activity('cor_import_recovering_partial', { ticket_id: ticketId, cor_id: corId })
+        return this.reimportTicketDataToCOR(ticketId, corId, companyId, workType, jobType)
+      }
+
       // 1. Get ticket with workers (including labor class names) and items
       const { data: ticket, error: ticketError } = await client
         .from('t_and_m_tickets')
@@ -1218,19 +1244,26 @@ export const corOps = {
   // COR Status & Workflow
   // ============================================
 
-  async submitCORForApproval(corId) {
+  async submitCORForApproval(corId, submittedBy = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           status: 'pending_approval',
-          submitted_at: new Date().toISOString()
+          submitted_at: new Date().toISOString(),
+          submitted_by: submittedBy || null,
+          // Increment revision on resubmission after rejection
+          revision_number: supabase.rpc ? undefined : undefined // handled by DB trigger
         })
         .eq('id', corId)
         .in('status', ['draft', 'rejected'])
         .select()
         .single()
       if (error) throw error
+
+      // Log the status change
+      await this._logCORStatusChange(corId, 'pending_approval', submittedBy, 'Submitted for approval')
+
       return data
     }
     return null
@@ -1238,6 +1271,19 @@ export const corOps = {
 
   async approveCOR(corId, userId) {
     if (isSupabaseConfigured) {
+      // Separation of duties: prevent self-approval
+      // The person who submitted should not be the same person who approves
+      const { data: cor, error: fetchError } = await supabase
+        .from('change_orders')
+        .select('submitted_by, created_by')
+        .eq('id', corId)
+        .single()
+      if (fetchError) throw fetchError
+
+      if (userId && (userId === cor.submitted_by || userId === cor.created_by)) {
+        throw new Error('Separation of duties: COR cannot be approved by the person who created or submitted it. A different authorized user must approve.')
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
@@ -1252,12 +1298,16 @@ export const corOps = {
         .select()
         .single()
       if (error) throw error
+
+      // Log the status change
+      await this._logCORStatusChange(corId, 'approved', userId, 'Approved')
+
       return data
     }
     return null
   },
 
-  async rejectCOR(corId, reason = null) {
+  async rejectCOR(corId, reason = null, rejectedBy = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
@@ -1274,12 +1324,16 @@ export const corOps = {
         .select()
         .single()
       if (error) throw error
+
+      // Log the status change with rejection reason
+      await this._logCORStatusChange(corId, 'rejected', rejectedBy, reason || 'Rejected')
+
       return data
     }
     return null
   },
 
-  async markCORAsBilled(corId) {
+  async markCORAsBilled(corId, userId = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
@@ -1292,12 +1346,15 @@ export const corOps = {
         .select()
         .single()
       if (error) throw error
+
+      await this._logCORStatusChange(corId, 'billed', userId, 'Marked as billed')
+
       return data
     }
     return null
   },
 
-  async closeCOR(corId) {
+  async closeCOR(corId, userId = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
@@ -1310,6 +1367,9 @@ export const corOps = {
         .select()
         .single()
       if (error) throw error
+
+      await this._logCORStatusChange(corId, 'closed', userId, 'Closed')
+
       return data
     }
     return null
@@ -2405,5 +2465,49 @@ export const corOps = {
         }
       }
     }
+  },
+
+  // ============================================
+  // COR Audit Trail
+  // ============================================
+
+  // Internal: Log a COR status change for audit trail
+  // This creates a permanent record of every status transition
+  async _logCORStatusChange(corId, newStatus, userId = null, notes = null) {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('cor_status_history')
+          .insert({
+            change_order_id: corId,
+            status: newStatus,
+            changed_by: userId || null,
+            notes: notes || null,
+            changed_at: new Date().toISOString()
+          })
+      } catch (e) {
+        // Audit logging should never block the main operation
+        // Log the failure but don't throw — the status change already succeeded
+        observe.error('cor_audit_log_failed', {
+          cor_id: corId,
+          status: newStatus,
+          error: e.message
+        })
+      }
+    }
+  },
+
+  // Get the full status change history for a COR (for audit/dispute resolution)
+  async getCORStatusHistory(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('cor_status_history')
+        .select('*')
+        .eq('change_order_id', corId)
+        .order('changed_at', { ascending: true })
+      if (error) throw error
+      return data || []
+    }
+    return []
   },
 }
