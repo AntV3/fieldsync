@@ -9,7 +9,8 @@ const DEFAULT_TRADE_CONFIG = {
   field_actions: null,
   dashboard_widgets: null,
   custom_fields: null,
-  kpis: null
+  kpis: null,
+  enable_truck_load_tracking: null
 }
 
 export const tradeOps = {
@@ -293,7 +294,8 @@ function getLocalTradeTemplates() {
       icon: 'Layers',
       default_worker_roles: ['Foreman', 'Finisher', 'Form Carpenter', 'Laborer', 'Pump Operator', 'Rod Buster'],
       default_custom_fields: {},
-      default_kpis: []
+      default_kpis: [],
+      enable_truck_load_tracking: true
     }
   ]
 }

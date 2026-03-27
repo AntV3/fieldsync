@@ -3,6 +3,8 @@ import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRigh
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import DisposalSummary from '../../DisposalSummary'
+import DisposalLoadInput from '../../DisposalLoadInput'
+import { useTradeConfig } from '../../../lib/TradeConfigContext'
 const PunchList = lazy(() => import('../../PunchList'))
 
 export default function OverviewTab({
@@ -21,6 +23,9 @@ export default function OverviewTab({
   onSetActiveTab,
   onExportFieldDocuments
 }) {
+  const { resolvedConfig } = useTradeConfig()
+  const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
+
   const attentionItems = []
   if (projectData?.pendingTickets > 0) {
     attentionItems.push({
@@ -133,11 +138,22 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Row 5: Disposal Loads */}
-      <DisposalSummary
-        project={selectedProject}
-        period="week"
-      />
+      {/* Row 5: Disposal Loads & Truck Tracking (only when enabled) */}
+      {truckLoadTrackingEnabled && (
+        <>
+          <DisposalSummary
+            project={selectedProject}
+            period="week"
+          />
+          <div className="overview-section-card" role="region" aria-label="Truck and load entry">
+            <DisposalLoadInput
+              project={selectedProject}
+              date={new Date().toISOString().split('T')[0]}
+              onShowToast={onShowToast}
+            />
+          </div>
+        </>
+      )}
 
       {/* Row 6: Punch List */}
       <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>

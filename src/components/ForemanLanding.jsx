@@ -95,20 +95,31 @@ export default function ForemanLanding({
   // Trade config for dynamic actions
   const tradeConfig = useTradeConfig()
   const configuredActions = tradeConfig?.resolvedConfig?.field_actions
+  const truckLoadTrackingEnabled = tradeConfig?.resolvedConfig?.enable_truck_load_tracking ?? false
 
   // Resolve available actions: base actions filtered by trade config
   const ALL_ACTIONS = useMemo(() => {
-    if (!configuredActions || configuredActions.length === 0) return BASE_ACTIONS
-    // Filter base actions to only those in the config, preserving all base action metadata
-    const filtered = {}
-    for (const actionId of configuredActions) {
-      if (BASE_ACTIONS[actionId]) {
-        filtered[actionId] = BASE_ACTIONS[actionId]
+    let actions = BASE_ACTIONS
+    if (configuredActions && configuredActions.length > 0) {
+      const filtered = {}
+      for (const actionId of configuredActions) {
+        if (BASE_ACTIONS[actionId]) {
+          filtered[actionId] = BASE_ACTIONS[actionId]
+        }
       }
+      actions = Object.keys(filtered).length > 0 ? filtered : BASE_ACTIONS
     }
-    // Always ensure at least the base actions are available
-    return Object.keys(filtered).length > 0 ? filtered : BASE_ACTIONS
-  }, [configuredActions])
+    // Only show disposal action when truck load tracking is enabled
+    if (!truckLoadTrackingEnabled) {
+      const { disposal, ...rest } = actions
+      return rest
+    }
+    // If enabled but disposal isn't in the action set, add it
+    if (truckLoadTrackingEnabled && !actions.disposal) {
+      return { ...actions, disposal: BASE_ACTIONS.disposal }
+    }
+    return actions
+  }, [configuredActions, truckLoadTrackingEnabled])
 
   const DEFAULT_PINNED = useMemo(() => {
     if (configuredActions?.length >= 4) return configuredActions.slice(0, 4)
@@ -325,19 +336,21 @@ export default function ForemanLanding({
             <span className="fm-snapshot-label">Remaining</span>
           </div>
         </div>
-        <div className="fm-snapshot-loads">
-          <div className="fm-snapshot-load-stat">
-            <Truck size={16} />
-            <span className="fm-snapshot-load-value">{todayStatus.disposalLoadsToday || 0}</span>
-            <span className="fm-snapshot-load-label">Disposal Loads</span>
+        {truckLoadTrackingEnabled && (
+          <div className="fm-snapshot-loads">
+            <div className="fm-snapshot-load-stat">
+              <Truck size={16} />
+              <span className="fm-snapshot-load-value">{todayStatus.disposalLoadsToday || 0}</span>
+              <span className="fm-snapshot-load-label">Disposal Loads</span>
+            </div>
+            <div className="fm-snapshot-load-divider" />
+            <div className="fm-snapshot-load-stat">
+              <Truck size={16} />
+              <span className="fm-snapshot-load-value">{todayStatus.trucksUsedToday || 0}</span>
+              <span className="fm-snapshot-load-label">Trucks Used</span>
+            </div>
           </div>
-          <div className="fm-snapshot-load-divider" />
-          <div className="fm-snapshot-load-stat">
-            <Truck size={16} />
-            <span className="fm-snapshot-load-value">{todayStatus.trucksUsedToday || 0}</span>
-            <span className="fm-snapshot-load-label">Trucks Used</span>
-          </div>
-        </div>
+        )}
         {todayStatus.crewCheckedIn && (
           <div className="fm-snapshot-today">
             <Clock size={14} />

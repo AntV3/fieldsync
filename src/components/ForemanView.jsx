@@ -15,8 +15,12 @@ import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
 import PunchList from './PunchList'
+import { useTradeConfig } from '../lib/TradeConfigContext'
 
 export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
+  const { resolvedConfig } = useTradeConfig()
+  const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
+
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
@@ -313,8 +317,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     )
   }
 
-  // Disposal Loads View
-  if (activeView === 'disposal') {
+  // Disposal Loads View (only when truck load tracking is enabled)
+  if (activeView === 'disposal' && truckLoadTrackingEnabled) {
     return (
       <div className="fm-view">
         <div className="fm-subheader">
