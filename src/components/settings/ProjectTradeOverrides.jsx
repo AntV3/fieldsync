@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, RotateCcw, ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
+import { Save, RotateCcw, ChevronDown, ChevronUp, Plus, X, Truck } from 'lucide-react'
 import { useTradeConfig } from '../../lib/TradeConfigContext'
 import { WIDGET_REGISTRY } from '../../lib/widgetRegistry'
 
@@ -24,11 +24,13 @@ export default function ProjectTradeOverrides({ projectId, onShowToast }) {
   const [saving, setSaving] = useState(false)
   const [localWidgets, setLocalWidgets] = useState(null)
   const [localCustomFields, setLocalCustomFields] = useState(null)
+  const [localTruckLoadTracking, setLocalTruckLoadTracking] = useState(null)
 
   useEffect(() => {
     if (projectOverrides) {
       setLocalWidgets(projectOverrides.dashboard_widgets)
       setLocalCustomFields(projectOverrides.custom_fields)
+      setLocalTruckLoadTracking(projectOverrides.enable_truck_load_tracking ?? null)
     }
   }, [projectOverrides])
 
@@ -36,7 +38,8 @@ export default function ProjectTradeOverrides({ projectId, onShowToast }) {
     projectOverrides.dashboard_widgets ||
     projectOverrides.custom_fields ||
     projectOverrides.field_actions ||
-    projectOverrides.kpis
+    projectOverrides.kpis ||
+    projectOverrides.enable_truck_load_tracking != null
   )
 
   const handleResetToCompanyDefaults = async () => {
@@ -46,11 +49,13 @@ export default function ProjectTradeOverrides({ projectId, onShowToast }) {
         dashboard_widgets: null,
         custom_fields: null,
         field_actions: null,
-        kpis: null
+        kpis: null,
+        enable_truck_load_tracking: null
       })
       if (result.success) {
         setLocalWidgets(null)
         setLocalCustomFields(null)
+        setLocalTruckLoadTracking(null)
         onShowToast?.('Reset to company defaults', 'success')
       }
     } catch (error) {
@@ -75,6 +80,7 @@ export default function ProjectTradeOverrides({ projectId, onShowToast }) {
       const overrides = {}
       if (localWidgets) overrides.dashboard_widgets = localWidgets
       if (localCustomFields) overrides.custom_fields = localCustomFields
+      if (localTruckLoadTracking != null) overrides.enable_truck_load_tracking = localTruckLoadTracking
 
       const result = await updateProjectOverrides(overrides)
       if (result.success) {
@@ -111,6 +117,33 @@ export default function ProjectTradeOverrides({ projectId, onShowToast }) {
 
       {expanded && (
         <div className="trade-section-body">
+          {/* Truck & Load Tracking */}
+          <div className="trade-override-group">
+            <h4><Truck size={16} style={{ marginRight: 6, verticalAlign: -2 }} />Truck & Load Tracking</h4>
+            <p className="form-help" style={{ marginBottom: '0.75rem' }}>
+              When enabled, foremen and office users can track trucks and loads hauled off site.
+            </p>
+            <div className="trade-truck-toggle-row">
+              <label className="trade-feature-toggle">
+                <input
+                  type="checkbox"
+                  checked={localTruckLoadTracking ?? resolvedConfig?.enable_truck_load_tracking ?? false}
+                  onChange={e => setLocalTruckLoadTracking(e.target.checked)}
+                />
+                <span className="trade-feature-label">Enable for this project</span>
+              </label>
+              {localTruckLoadTracking != null && (
+                <button
+                  className="btn-link-sm"
+                  onClick={() => setLocalTruckLoadTracking(null)}
+                  title="Use company default"
+                >
+                  Use company default
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Dashboard Widgets */}
           <div className="trade-override-group">
             <h4>Dashboard Widgets</h4>

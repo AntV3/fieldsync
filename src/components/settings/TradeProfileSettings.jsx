@@ -42,7 +42,8 @@ export default function TradeProfileSettings({ onShowToast }) {
   const [newRole, setNewRole] = useState('')
   const [customFields, setCustomFields] = useState(resolvedConfig?.custom_fields || {})
   const [activeFormType, setActiveFormType] = useState('daily_report')
-  const [expandedSections, setExpandedSections] = useState({ identity: true, roles: false, fields: false })
+  const [enableTruckLoadTracking, setEnableTruckLoadTracking] = useState(companyConfig?.enable_truck_load_tracking ?? resolvedConfig?.enable_truck_load_tracking ?? false)
+  const [expandedSections, setExpandedSections] = useState({ identity: true, roles: false, features: false, fields: false })
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
@@ -121,7 +122,8 @@ export default function TradeProfileSettings({ onShowToast }) {
         trade_template_id: selectedTemplate || null,
         trade_name: tradeName.trim() || null,
         worker_roles: workerRoles.length > 0 ? workerRoles : null,
-        custom_fields: Object.keys(customFields).length > 0 ? customFields : null
+        custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
+        enable_truck_load_tracking: enableTruckLoadTracking
       }
       const result = await updateCompanyConfig(config)
       if (result.success) {
@@ -233,6 +235,35 @@ export default function TradeProfileSettings({ onShowToast }) {
                 <Plus size={14} /> Add
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Feature Toggles Section */}
+      <div className="trade-settings-section">
+        <button className="trade-section-toggle" onClick={() => toggleSection('features')}>
+          <h3>Feature Toggles</h3>
+          {expandedSections.features ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+        {expandedSections.features && (
+          <div className="trade-section-body">
+            <p className="form-help">
+              Enable or disable trade-specific features. These settings apply to all projects unless overridden at the project level.
+            </p>
+            <label className="trade-feature-toggle">
+              <input
+                type="checkbox"
+                checked={enableTruckLoadTracking}
+                onChange={e => setEnableTruckLoadTracking(e.target.checked)}
+              />
+              <div className="trade-feature-info">
+                <span className="trade-feature-label">Truck & Load Tracking</span>
+                <span className="trade-feature-desc">
+                  Allow foremen and office users to track the number of trucks and loads hauled off site.
+                  Common for demolition, concrete, excavation, and similar trades.
+                </span>
+              </div>
+            </label>
           </div>
         )}
       </div>

@@ -13,7 +13,8 @@ const FALLBACK_CONFIG = {
   field_actions: ['crew', 'tm', 'report', 'progress', 'docs', 'punchlist', 'injury'],
   dashboard_widgets: ['progress_gauge', 'financial_card', 'crew_metrics', 'earned_value'],
   custom_fields: {},
-  kpis: []
+  kpis: [],
+  enable_truck_load_tracking: false
 }
 
 /**
@@ -31,6 +32,7 @@ function mergeTradeConfig(template, companyConfig, projectOverrides) {
     if (template.default_dashboard_widgets?.length) base.dashboard_widgets = template.default_dashboard_widgets
     if (template.default_custom_fields && Object.keys(template.default_custom_fields).length) base.custom_fields = template.default_custom_fields
     if (template.default_kpis?.length) base.kpis = template.default_kpis
+    if (template.enable_truck_load_tracking != null) base.enable_truck_load_tracking = template.enable_truck_load_tracking
   }
 
   // Layer 2: Company overrides
@@ -43,6 +45,7 @@ function mergeTradeConfig(template, companyConfig, projectOverrides) {
     if (companyConfig.dashboard_widgets) base.dashboard_widgets = companyConfig.dashboard_widgets
     if (companyConfig.custom_fields) base.custom_fields = companyConfig.custom_fields
     if (companyConfig.kpis) base.kpis = companyConfig.kpis
+    if (companyConfig.enable_truck_load_tracking != null) base.enable_truck_load_tracking = companyConfig.enable_truck_load_tracking
   }
 
   // Layer 3: Project overrides
@@ -51,6 +54,7 @@ function mergeTradeConfig(template, companyConfig, projectOverrides) {
     if (projectOverrides.dashboard_widgets) base.dashboard_widgets = projectOverrides.dashboard_widgets
     if (projectOverrides.custom_fields) base.custom_fields = projectOverrides.custom_fields
     if (projectOverrides.kpis) base.kpis = projectOverrides.kpis
+    if (projectOverrides.enable_truck_load_tracking != null) base.enable_truck_load_tracking = projectOverrides.enable_truck_load_tracking
   }
 
   return base
