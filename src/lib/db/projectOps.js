@@ -815,12 +815,13 @@ export const projectOps = {
   },
 
   // Check if PIN is already in use
-  async isPinAvailable(pin, excludeProjectId = null) {
+  async isPinAvailable(pin, companyId, excludeProjectId = null) {
     if (isSupabaseConfigured) {
       let query = supabase
         .from('projects')
         .select('id')
         .eq('pin', pin)
+        .eq('company_id', companyId)
 
       if (excludeProjectId) {
         query = query.neq('id', excludeProjectId)
@@ -831,7 +832,7 @@ export const projectOps = {
       return data.length === 0
     } else {
       const localData = getLocalData()
-      return !localData.projects.some(p => p.pin === pin && p.id !== excludeProjectId)
+      return !localData.projects.some(p => p.pin === pin && p.company_id === companyId && p.id !== excludeProjectId)
     }
   },
 

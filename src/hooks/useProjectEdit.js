@@ -90,7 +90,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
     }
 
     if (editData.pin && editData.pin !== selectedProject.pin) {
-      const pinAvailable = await db.isPinAvailable(editData.pin, selectedProject.id)
+      const pinAvailable = await db.isPinAvailable(editData.pin, company.id, selectedProject.id)
       if (!pinAvailable) {
         onShowToast('This PIN is already in use', 'error')
         return
