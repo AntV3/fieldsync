@@ -4,8 +4,8 @@
 -- Add PIN column to projects table
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS pin TEXT;
 
--- Create unique index on PIN (each PIN must be unique)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_pin ON projects(pin) WHERE pin IS NOT NULL;
+-- Create unique index on PIN per company (different companies can reuse PINs)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_pin_per_company ON projects(company_id, pin) WHERE pin IS NOT NULL;
 
 -- Update RLS policies to allow PIN-based lookups
 -- (The existing policies should work, but we need to allow unauthenticated PIN lookups)

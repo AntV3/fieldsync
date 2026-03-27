@@ -134,7 +134,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       }
     }
 
-    const pinAvailable = await db.isPinAvailable(data.pin)
+    const pinAvailable = await db.isPinAvailable(data.pin, company.id)
     if (!pinAvailable) {
       onShowToast('This PIN is already in use. Try another.', 'error')
       setStep(3)
