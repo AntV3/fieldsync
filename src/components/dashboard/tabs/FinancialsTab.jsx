@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import { HardHat, Menu, Download } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { exportProjectFinancials, exportToQuickBooksIIF } from '../../../lib/financialExport'
+import SageExport from '../../billing/SageExport'
 import HeroMetrics from '../../HeroMetrics'
 import FinancialsNav from '../../FinancialsNav'
 import { FinancialTrendChart } from '../../charts'
@@ -85,6 +86,11 @@ export default function FinancialsTab({
         >
           <Download size={14} /> QuickBooks
         </button>
+        <SageExport
+          project={selectedProject}
+          company={company}
+          onShowToast={onShowToast}
+        />
       </div>
       {/* Key Metrics - Hero Section (Always visible) */}
       <HeroMetrics

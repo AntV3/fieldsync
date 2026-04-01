@@ -54,6 +54,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [editingDrawRequest, setEditingDrawRequest] = useState(null)
   const [drawRequestRefreshKey, setDrawRequestRefreshKey] = useState(0)
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete())
+  const [costCodes, setCostCodes] = useState([])
 
   // Universal Search (Cmd+K)
   const { isOpen: isSearchOpen, setIsOpen: setSearchOpen, close: closeSearch } = useUniversalSearch()
@@ -154,6 +155,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   useEffect(() => {
     if (company?.id) {
       loadProjects()
+      // Load company cost codes for exports
+      db.getCostCodes(company.id).then(setCostCodes).catch(() => {})
     }
   }, [company?.id])
 
@@ -1183,7 +1186,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 company={company}
                 areas={areas}
                 changeOrders={projectData?.changeOrders || []}
-                costCodes={[]}
+                costCodes={costCodes}
                 financialData={projectData || {}}
                 allProjects={projects}
                 projectDataMap={{}}
