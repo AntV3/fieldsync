@@ -42,6 +42,9 @@ import { fieldOps } from './db/fieldOps'
 import { financialOps } from './db/financialOps'
 import { documentOps } from './db/documentOps'
 import { tradeOps } from './db/tradeOps'
+import { costCodeOps } from './db/costCodeOps'
+import { rfiOps } from './db/rfiOps'
+import { submittalOps } from './db/submittalOps'
 
 // Initialize offline database (guard for SSR/test environments)
 if (typeof window !== 'undefined') {
@@ -196,6 +199,9 @@ export const db = {
   ...documentOps,
   ...corOps,
   ...tradeOps,
+  ...costCodeOps,
+  ...rfiOps,
+  ...submittalOps,
 }
 
 // ============================================

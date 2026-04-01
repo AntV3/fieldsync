@@ -5,7 +5,7 @@ import { formatCurrency, calculateValueProgress, calculateScheduleInsights, shou
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3 } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download } from 'lucide-react'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
 import OnboardingWizard from './onboarding/OnboardingWizard'
@@ -21,6 +21,9 @@ const ReportsTab = lazy(() => import('./dashboard/tabs/ReportsTab'))
 const InfoTab = lazy(() => import('./dashboard/tabs/InfoTab'))
 const DocumentsTab = lazy(() => import('./documents/DocumentsTab'))
 const AnalyticsTab = lazy(() => import('./dashboard/tabs/AnalyticsTab'))
+const RFIList = lazy(() => import('./RFIList'))
+const SubmittalList = lazy(() => import('./SubmittalList'))
+const SageExportPanel = lazy(() => import('./SageExportPanel'))
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const [projects, setProjects] = useState([])
@@ -959,8 +962,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const tabs = [
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
       { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
+      { id: 'rfis', label: 'RFIs', Icon: MessageSquareText },
+      { id: 'submittals', label: 'Submittals', Icon: FileCheck },
       { id: 'reports', label: 'Reports', Icon: ClipboardList },
       { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
+      { id: 'exports', label: 'Exports', Icon: Download },
       { id: 'documents', label: 'Documents', Icon: FolderOpen },
       { id: 'info', label: 'Info', Icon: Info }
     ]
@@ -1114,6 +1120,28 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             />
           )}
 
+          {/* RFIs TAB */}
+          {activeProjectTab === 'rfis' && (
+            <Suspense fallback={<TicketSkeleton />}>
+              <RFIList
+                project={selectedProject}
+                company={company}
+                onShowToast={onShowToast}
+              />
+            </Suspense>
+          )}
+
+          {/* SUBMITTALS TAB */}
+          {activeProjectTab === 'submittals' && (
+            <Suspense fallback={<TicketSkeleton />}>
+              <SubmittalList
+                project={selectedProject}
+                company={company}
+                onShowToast={onShowToast}
+              />
+            </Suspense>
+          )}
+
           {/* REPORTS TAB */}
           {activeProjectTab === 'reports' && (
             <ReportsTab
@@ -1142,6 +1170,23 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 invoices={projectData?.invoices || []}
                 punchListItems={projectData?.punchListItems || []}
                 dailyReports={projectData?.dailyReports || []}
+                onShowToast={onShowToast}
+              />
+            </Suspense>
+          )}
+
+          {/* EXPORTS TAB (Sage, AIA, QuickBooks) */}
+          {activeProjectTab === 'exports' && (
+            <Suspense fallback={<TicketSkeleton />}>
+              <SageExportPanel
+                project={selectedProject}
+                company={company}
+                areas={areas}
+                changeOrders={projectData?.changeOrders || []}
+                costCodes={[]}
+                financialData={projectData || {}}
+                allProjects={projects}
+                projectDataMap={{}}
                 onShowToast={onShowToast}
               />
             </Suspense>
