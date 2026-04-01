@@ -1,6 +1,7 @@
 import { MapPin, HardHat, FileText, Building2, Phone } from 'lucide-react'
 import ProjectTeam from '../../ProjectTeam'
 import MFASetup from '../../MFASetup'
+import CostCodeManager from '../../CostCodeManager'
 
 export default function InfoTab({
   selectedProject,
@@ -164,6 +165,16 @@ export default function InfoTab({
         onShowToast={onShowToast}
       />
 
+
+      {/* Cost Codes (Job Costing) */}
+      {(company?.id || selectedProject?.company_id) && (
+        <div className="info-section-card">
+          <CostCodeManager
+            companyId={company?.id || selectedProject?.company_id}
+            onShowToast={onShowToast}
+          />
+        </div>
+      )}
 
       {/* Account Security */}
       <div className="info-section-card">

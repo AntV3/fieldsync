@@ -15,6 +15,7 @@ import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
 import PunchList from './PunchList'
+import RFIList from './RFIList'
 import { useTradeConfig } from '../lib/TradeConfigContext'
 
 export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
@@ -376,6 +377,25 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           projectId={project.id}
           areas={areas}
           companyId={companyId}
+          onShowToast={onShowToast}
+        />
+      </div>
+    )
+  }
+
+  // RFI View (field crew can submit RFIs to office)
+  if (activeView === 'rfis') {
+    return (
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => setActiveView('home')}>
+            <ArrowLeft size={20} />
+          </button>
+          <h2>RFIs</h2>
+        </div>
+        <RFIList
+          project={project}
+          company={{ id: companyId }}
           onShowToast={onShowToast}
         />
       </div>

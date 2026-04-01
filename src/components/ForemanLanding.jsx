@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
-  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck
+  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck,
+  MessageSquareText
 } from 'lucide-react'
 import { useTradeConfig } from '../lib/TradeConfigContext'
 
@@ -65,6 +66,12 @@ const BASE_ACTIONS = {
     label: 'Punch List',
     icon: ClipboardCheck,
     description: 'View & resolve punch items'
+  },
+  rfis: {
+    id: 'rfis',
+    label: 'RFIs',
+    icon: MessageSquareText,
+    description: 'Submit questions to office'
   },
   injury: {
     id: 'injury',
