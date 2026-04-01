@@ -8,6 +8,8 @@ import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReport
 import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3 } from 'lucide-react'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
+import OnboardingWizard from './onboarding/OnboardingWizard'
+import { isOnboardingComplete } from './onboarding/onboardingState'
 import ProjectEditForm from './dashboard/ProjectEditForm'
 import PortfolioView from './dashboard/PortfolioView'
 import DashboardModals from './dashboard/DashboardModals'
@@ -48,6 +50,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showDrawRequestModal, setShowDrawRequestModal] = useState(false)
   const [editingDrawRequest, setEditingDrawRequest] = useState(null)
   const [drawRequestRefreshKey, setDrawRequestRefreshKey] = useState(0)
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete())
 
   // Universal Search (Cmd+K)
   const { isOpen: isSearchOpen, setIsOpen: setSearchOpen, close: closeSearch } = useUniversalSearch()
@@ -1225,20 +1228,45 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     )
   }
 
-  // Project List View - empty state
+  // Project List View - empty state with onboarding for new users
   if (projects.length === 0) {
     return (
-      <div className="empty-state">
-        <ClipboardList size={48} className="empty-state-icon" />
-        <h3>No Projects Yet</h3>
-        <p>Create your first project to get started</p>
-      </div>
+      <>
+        {showOnboarding && (
+          <OnboardingWizard
+            company={company}
+            user={user}
+            onShowToast={onShowToast}
+            onDismiss={() => setShowOnboarding(false)}
+          />
+        )}
+        <div className="empty-state">
+          <ClipboardList size={48} className="empty-state-icon" />
+          <h3>No Projects Yet</h3>
+          <p>Create your first project to get started</p>
+          {!showOnboarding && (
+            <button className="empty-state-guide-btn" onClick={() => setShowOnboarding(true)}>
+              <Info size={16} />
+              Review Getting Started Guide
+            </button>
+          )}
+        </div>
+      </>
     )
   }
 
   // Portfolio overview
   return (
-    <PortfolioView
+    <>
+      {showOnboarding && (
+        <OnboardingWizard
+          company={company}
+          user={user}
+          onShowToast={onShowToast}
+          onDismiss={() => setShowOnboarding(false)}
+        />
+      )}
+      <PortfolioView
       projects={projects}
       projectsData={projectsData}
       portfolioMetrics={portfolioMetrics}
@@ -1271,6 +1299,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         }
       }}
     />
+    </>
   )
 }
 

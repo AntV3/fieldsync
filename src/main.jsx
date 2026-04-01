@@ -3,10 +3,19 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ToastProvider } from './lib/ToastContext'
 import App from './App'
+import { initNativeApp, isNative } from './lib/native'
 import './spx.css' // SpaceX design system (Tailwind v4)
 import './styles/tokens.css' // Design system tokens (load first)
 import './index.css'
 import './styles/index.css' // New modular styles (overrides legacy where needed)
+
+// Initialize native platform (status bar, splash screen, back button, keyboard)
+initNativeApp()
+
+// Add platform class for CSS targeting: .native, .ios, .android, .web
+if (isNative) {
+  document.documentElement.classList.add('native')
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

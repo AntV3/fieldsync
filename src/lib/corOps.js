@@ -8,6 +8,7 @@ import { getClient } from './fieldSession'
 import { observe } from './observability'
 import { generateTempId } from './offlineManager'
 import { getLocalData, setLocalData } from './localStorageHelpers'
+import { sanitize } from './sanitize'
 
 export const corOps = {
   // Create a new COR (with retry on conflict)
@@ -26,9 +27,9 @@ export const corOps = {
           project_id: corData.project_id,
           area_id: corData.area_id || null,
           cor_number: corNumber,
-          title: corData.title,
-          description: corData.description || '',
-          scope_of_work: corData.scope_of_work,
+          title: sanitize.text(corData.title),
+          description: sanitize.text(corData.description) || '',
+          scope_of_work: sanitize.text(corData.scope_of_work),
           period_start: corData.period_start,
           period_end: corData.period_end,
           status: 'draft',
@@ -119,7 +120,7 @@ export const corOps = {
     if (isSupabaseConfigured) {
       const { error } = await supabase
         .from('change_orders')
-        .update({ group_name: groupName, updated_at: new Date().toISOString() })
+        .update({ group_name: sanitize.text(groupName), updated_at: new Date().toISOString() })
         .in('id', corIds)
       if (error) {
         // Check if the error is due to missing group_name column
@@ -279,7 +280,7 @@ export const corOps = {
         .from('change_order_labor')
         .insert({
           change_order_id: corId,
-          labor_class: laborItem.labor_class,
+          labor_class: sanitize.text(laborItem.labor_class),
           wage_type: laborItem.wage_type || 'standard',
           regular_hours: laborItem.regular_hours || 0,
           overtime_hours: laborItem.overtime_hours || 0,
@@ -360,13 +361,13 @@ export const corOps = {
         .from('change_order_materials')
         .insert({
           change_order_id: corId,
-          description: materialItem.description || '',
+          description: sanitize.text(materialItem.description) || '',
           quantity: quantity,
-          unit: materialItem.unit || 'each',
+          unit: sanitize.text(materialItem.unit) || 'each',
           unit_cost: unitCost,
           total: total,
           source_type: sourceType,
-          source_reference: materialItem.source_reference || null,
+          source_reference: sanitize.text(materialItem.source_reference) || null,
           source_ticket_id: materialItem.source_ticket_id || null,
           sort_order: materialItem.sort_order || 0
         })
@@ -431,13 +432,13 @@ export const corOps = {
         .from('change_order_equipment')
         .insert({
           change_order_id: corId,
-          description: equipmentItem.description || '',
+          description: sanitize.text(equipmentItem.description) || '',
           quantity: quantity,
-          unit: equipmentItem.unit || 'day',
+          unit: sanitize.text(equipmentItem.unit) || 'day',
           unit_cost: unitCost,
           total: total,
           source_type: sourceType,
-          source_reference: equipmentItem.source_reference || null,
+          source_reference: sanitize.text(equipmentItem.source_reference) || null,
           source_ticket_id: equipmentItem.source_ticket_id || null,
           sort_order: equipmentItem.sort_order || 0
         })
@@ -498,13 +499,13 @@ export const corOps = {
         .from('change_order_subcontractors')
         .insert({
           change_order_id: corId,
-          description: subItem.description,
+          description: sanitize.text(subItem.description),
           quantity: subItem.quantity || 1,
-          unit: subItem.unit || 'lump sum',
+          unit: sanitize.text(subItem.unit) || 'lump sum',
           unit_cost: subItem.unit_cost || 0,
           total: total,
           source_type: subItem.source_type || 'custom',
-          source_reference: subItem.source_reference || null,
+          source_reference: sanitize.text(subItem.source_reference) || null,
           sort_order: subItem.sort_order || 0
         })
         .select()
@@ -568,7 +569,7 @@ export const corOps = {
         const overtimeTotal = Math.round((parseFloat(item.overtime_hours) || 0) * (parseInt(item.overtime_rate) || 0))
         return {
           change_order_id: corId,
-          labor_class: item.labor_class,
+          labor_class: sanitize.text(item.labor_class),
           wage_type: item.wage_type || 'standard',
           regular_hours: item.regular_hours || 0,
           overtime_hours: item.overtime_hours || 0,
@@ -609,13 +610,13 @@ export const corOps = {
 
         return {
           change_order_id: corId,
-          description: item.description || '',
+          description: sanitize.text(item.description) || '',
           quantity: quantity,
-          unit: item.unit || 'each',
+          unit: sanitize.text(item.unit) || 'each',
           unit_cost: unitCost,
           total: Math.round(quantity * unitCost),
           source_type: sourceType,
-          source_reference: item.source_reference || null,
+          source_reference: sanitize.text(item.source_reference) || null,
           source_ticket_id: item.source_ticket_id || null,
           sort_order: item.sort_order ?? index
         }
@@ -648,13 +649,13 @@ export const corOps = {
 
         return {
           change_order_id: corId,
-          description: item.description || '',
+          description: sanitize.text(item.description) || '',
           quantity: quantity,
-          unit: item.unit || 'day',
+          unit: sanitize.text(item.unit) || 'day',
           unit_cost: unitCost,
           total: Math.round(quantity * unitCost),
           source_type: sourceType,
-          source_reference: item.source_reference || null,
+          source_reference: sanitize.text(item.source_reference) || null,
           source_ticket_id: item.source_ticket_id || null,
           sort_order: item.sort_order ?? index
         }
