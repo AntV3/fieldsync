@@ -34,20 +34,27 @@ textarea {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
   background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--font-size-md);
   font-family: inherit;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth), background var(--transition-smooth);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(1, 112, 171, 0.15), inset 0 0 0 1px var(--primary-color);
+  background: var(--bg-card);
+}
+
+input:hover:not(:focus):not(:disabled),
+select:hover:not(:focus):not(:disabled),
+textarea:hover:not(:focus):not(:disabled) {
+  border-color: var(--text-muted);
 }
 
 input::placeholder,
@@ -96,12 +103,12 @@ input[type="number"] {
   font-weight: var(--font-weight-semibold);
 }
 
-/* Required Field - Orange Left Bar */
+/* Required Field - SpaceX Blue Left Bar */
 .input-required,
 .required-field input,
 .required-field textarea,
 .required-field select {
-  border-left: 3px solid var(--accent-amber) !important;
+  border-left: 3px solid var(--color-accent, var(--accent-blue)) !important;
   padding-left: calc(var(--space-md) - 3px);
 }
 
@@ -110,15 +117,15 @@ input[type="number"] {
 .input-required[data-empty="true"],
 .form-group.required input:placeholder-shown,
 .form-group.required textarea:placeholder-shown {
-  border-left-color: var(--accent-amber) !important;
-  background: rgba(249, 115, 22, 0.05);
+  border-left-color: var(--color-accent, var(--accent-blue)) !important;
+  background: var(--blue-subtle, rgba(0, 145, 213, 0.05));
 }
 
 /* Required field filled state */
 .input-required:valid:not(:placeholder-shown),
 .form-group.required input:not(:placeholder-shown),
 .form-group.required textarea:not(:placeholder-shown) {
-  border-left-color: rgba(249, 115, 22, 0.4) !important;
+  border-left-color: rgba(0, 145, 213, 0.35) !important;
   background: var(--bg-input, var(--bg-elevated));
 }
 
@@ -222,7 +229,7 @@ input[type="number"] {
 .validated-textarea:focus {
   outline: none;
   border-color: var(--primary-color, var(--accent-blue));
-  box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(59, 130, 246, 0.1));
+  box-shadow: 0 0 0 3px rgba(1, 112, 171, 0.15), inset 0 0 0 1px var(--primary-color, var(--accent-blue));
 }
 
 /* Error state */
@@ -238,7 +245,7 @@ input[type="number"] {
 .validated-input.has-error:focus,
 .validated-select.has-error:focus,
 .validated-textarea.has-error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 0 3px rgba(234, 106, 71, 0.15), inset 0 0 0 1px var(--accent-red);
 }
 
 /* Inline error below input */
@@ -337,5 +344,19 @@ input[type="number"] {
 
   .form-row-compact {
     flex-direction: column;
+  }
+
+  /* Prevent iOS zoom on input focus (requires minimum 16px) */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: max(var(--font-size-md), 16px);
   }
 }

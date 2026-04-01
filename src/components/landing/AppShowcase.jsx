@@ -5,13 +5,13 @@ export default function AppShowcase({ onVisible }) {
 
   return (
     <section className="lp-showcase lp-animate" ref={ref}>
-      <span className="lp-showcase-label">Built for Construction</span>
+      <span className="lp-showcase-label">Time and Material Tickets — Logged in the Field, Visible Everywhere</span>
       <h2 className="lp-showcase-heading">
-        One platform. Two interfaces.
+        Real-time oversight on every project you're running.
       </h2>
       <p className="lp-showcase-desc">
-        Office managers get the full dashboard. Field crews get a
-        one-tap mobile view. Both stay perfectly in sync.
+        Field crews log descriptions, photos, crew hours, and materials used on Time and Material tickets — the office sees them the instant they're submitted.
+        The office handles cost estimates and creates Change Orders with all the field data already attached. No lost paperwork. No end-of-week surprises. Complete visibility from field to office.
       </p>
 
       <div className="lp-showcase-frame">
@@ -22,10 +22,10 @@ export default function AppShowcase({ onVisible }) {
               Field<span>Sync</span>
             </div>
             <div className="lp-mock-tabs">
-              <div className="lp-mock-tab active">Overview</div>
-              <div className="lp-mock-tab">Financials</div>
+              <div className="lp-mock-tab">Overview</div>
+              <div className="lp-mock-tab active">Change Orders</div>
+              <div className="lp-mock-tab">Time &amp; Material</div>
               <div className="lp-mock-tab">Reports</div>
-              <div className="lp-mock-tab">Documents</div>
             </div>
           </div>
 
@@ -40,33 +40,22 @@ export default function AppShowcase({ onVisible }) {
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="lp-mock-progress-container">
-              <div className="lp-mock-progress-label">
-                <span>Overall Progress</span>
-                <span>68%</span>
-              </div>
-              <div className="lp-mock-progress-bar">
-                <div className="lp-mock-progress-fill" />
-              </div>
-            </div>
-
             {/* Metrics Row */}
             <div className="lp-mock-metrics">
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Revenue</div>
-                <div className="lp-mock-metric-value">$847K</div>
-                <div className="lp-mock-metric-trend positive">+12.3%</div>
+                <div className="lp-mock-metric-label">Open Change Orders</div>
+                <div className="lp-mock-metric-value">4</div>
+                <div className="lp-mock-metric-trend neutral">$38.2K pending</div>
               </div>
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Costs</div>
-                <div className="lp-mock-metric-value">$512K</div>
-                <div className="lp-mock-metric-trend neutral">On track</div>
+                <div className="lp-mock-metric-label">Time &amp; Material This Week</div>
+                <div className="lp-mock-metric-value">12</div>
+                <div className="lp-mock-metric-trend positive">All documented</div>
               </div>
               <div className="lp-mock-metric">
-                <div className="lp-mock-metric-label">Profit</div>
-                <div className="lp-mock-metric-value">$335K</div>
-                <div className="lp-mock-metric-trend positive">39.6%</div>
+                <div className="lp-mock-metric-label">Approved</div>
+                <div className="lp-mock-metric-value">$124K</div>
+                <div className="lp-mock-metric-trend positive">Ready to bill</div>
               </div>
             </div>
 
@@ -75,18 +64,18 @@ export default function AppShowcase({ onVisible }) {
               <div className="lp-mock-activity-title">Recent Activity</div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot blue" />
-                Crew check-in: 8 workers on site
-                <span className="lp-mock-activity-time">2m ago</span>
+                Time and Material #47 logged — 6 hrs, fire stopping, 3rd floor
+                <span className="lp-mock-activity-time">Just now</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot green" />
-                Electrical — marked Done
-                <span className="lp-mock-activity-time">15m ago</span>
+                Change Order #12 created — Added fire stopping scope
+                <span className="lp-mock-activity-time">8m ago</span>
               </div>
               <div className="lp-mock-activity-item">
                 <span className="lp-mock-activity-dot amber" />
-                T&M Ticket #47 submitted
-                <span className="lp-mock-activity-time">1h ago</span>
+                Time and Material #46 — associated with Change Order #11
+                <span className="lp-mock-activity-time">22m ago</span>
               </div>
             </div>
           </div>

@@ -9,7 +9,7 @@ import { chartColors, costCategories } from '../components/charts/chartConfig'
 
 /**
  * Build cumulative time-series for the Financial Trend Chart
- * Merges labor, disposal, materials/equipment, T&M, and COR data by date
+ * Merges labor, materials/equipment, T&M, and COR data by date
  * Uses actual area completion dates for revenue tracking
  *
  * @param {Object} projectData - Computed project data from Dashboard
@@ -17,12 +17,13 @@ import { chartColors, costCategories } from '../components/charts/chartConfig'
  * @param {Array} tmTickets - T&M tickets for the project
  * @param {Object} corStats - COR statistics
  * @param {Array} areas - Project areas with completion dates
+ * @param {number} changeOrderValue - Approved change order value to include in revenue
  * @returns {Array} Chart-ready data points
  */
-export function buildFinancialTimeSeries(projectData, project, tmTickets = [], corStats = null, areas = []) {
+export function buildFinancialTimeSeries(projectData, project, tmTickets = [], corStats = null, areas = [], changeOrderValue = 0) {
   const contractValue = project?.contract_value || 0
+  const revisedContractValue = contractValue + changeOrderValue
   const laborByDate = projectData?.laborByDate || []
-  const haulOffByDate = projectData?.haulOffByDate || []
   const materialsEquipmentByDate = projectData?.materialsEquipmentByDate || []
   const customCosts = projectData?.customCosts || []
 
@@ -30,7 +31,6 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   const dateSet = new Set()
 
   laborByDate.forEach(d => dateSet.add(d.date))
-  haulOffByDate.forEach(d => dateSet.add(d.date))
   materialsEquipmentByDate.forEach(d => dateSet.add(d.date))
   customCosts.forEach(c => {
     if (c.cost_date) dateSet.add(c.cost_date)
@@ -68,9 +68,11 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       const areaWeight = parseFloat(area.weight) || 0
       // Calculate area's contribution to revenue
       // If scheduled_value exists (SOV), use that; otherwise calculate from weight
-      const areaValue = area.scheduled_value
-        ? parseFloat(area.scheduled_value)
-        : (totalWeight > 0 ? (areaWeight / totalWeight) * contractValue : 0)
+      // Use revisedContractValue (includes change orders) for non-SOV projects
+      const parsedScheduledValue = area.scheduled_value != null ? parseFloat(area.scheduled_value) : NaN
+      const areaValue = !isNaN(parsedScheduledValue)
+        ? parsedScheduledValue
+        : (totalWeight > 0 ? (areaWeight / totalWeight) * revisedContractValue : 0)
 
       if (!revenueByDate[completionDate]) {
         revenueByDate[completionDate] = 0
@@ -78,11 +80,6 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       revenueByDate[completionDate] += areaValue
     }
   })
-
-  // Build cumulative data
-  let cumulativeCost = 0
-  let cumulativeTMValue = 0
-  let cumulativeCORValue = 0
 
   // Pre-calculate T&M values by date
   // Use the actual property names from the database: t_and_m_workers, t_and_m_items
@@ -145,6 +142,27 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     }
   })
 
+  // Determine if we have area-based revenue data
+  const hasAreaData = Object.keys(revenueByDate).length > 0
+  const billable = projectData?.billable || 0
+
+  // For fallback revenue (no area completion dates), we need total costs first
+  // to distribute billable proportionally based on when work was done
+  let totalCostForFallback = 0
+  if (!hasAreaData && billable > 0) {
+    sortedDates.forEach(date => {
+      const laborDay = laborByDate.find(d => d.date === date)
+      const laborCost = laborDay?.cost || 0
+      const materialsEquipmentCost = materialsEquipmentByDateMap[date] || 0
+      const customCost = customByDate[date] || 0
+      totalCostForFallback += laborCost + materialsEquipmentCost + customCost
+    })
+  }
+
+  // Build cumulative data
+  let cumulativeCost = 0
+  let cumulativeTMValue = 0
+
   // Track cumulative revenue based on actual area completions
   let cumulativeRevenue = 0
 
@@ -154,39 +172,41 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     const laborDay = laborByDate.find(d => d.date === date)
     const laborCost = laborDay?.cost || 0
 
-    // Find haul-off cost for this date
-    const haulOffDay = haulOffByDate.find(d => d.date === date)
-    const haulOffCost = haulOffDay?.cost || 0
-
     // Materials/equipment cost for this date (from T&M tickets)
     const materialsEquipmentCost = materialsEquipmentByDateMap[date] || 0
 
     // Custom costs for this date
     const customCost = customByDate[date] || 0
 
-    // Accumulate all costs (labor + materials/equipment + disposal + custom)
-    const dailyTotalCost = laborCost + materialsEquipmentCost + haulOffCost + customCost
+    // Accumulate all costs (labor + materials/equipment + custom)
+    const dailyTotalCost = laborCost + materialsEquipmentCost + customCost
     cumulativeCost += dailyTotalCost
 
     // Accumulate T&M billing value (what we charge client)
     const tmDayValue = tmByDate[date] || 0
     cumulativeTMValue += tmDayValue
 
-    // Accumulate revenue based on actual area completions
-    // Revenue increases only when areas are marked complete
-    const dailyRevenue = revenueByDate[date] || 0
-    cumulativeRevenue += dailyRevenue
+    // Calculate revenue
+    let revenue
+    if (hasAreaData) {
+      // Use actual area completion dates for revenue tracking
+      const dailyRevenue = revenueByDate[date] || 0
+      cumulativeRevenue += dailyRevenue
+      revenue = cumulativeRevenue
+    } else if (totalCostForFallback > 0) {
+      // Fallback: distribute billable proportionally based on cost progression
+      // Revenue is earned roughly in proportion to when costs are incurred
+      revenue = (cumulativeCost / totalCostForFallback) * billable
+    } else {
+      // No cost data either - show billable as flat (truly no data to distribute)
+      revenue = billable
+    }
 
-    // If we have area completion data, use actual revenue
-    // Otherwise fall back to billable (for projects without detailed tracking)
-    const hasAreaData = Object.keys(revenueByDate).length > 0
-    const revenue = hasAreaData
-      ? cumulativeRevenue
-      : (projectData?.billable || 0) // Fall back to current billable for projects without area dates
+    const dailyRevenue = hasAreaData ? (revenueByDate[date] || 0) : 0
 
     return {
       date,
-      contract: contractValue,
+      contract: revisedContractValue,
       revenue: Math.round(revenue),
       costs: Math.round(cumulativeCost),
       tmValue: Math.round(cumulativeTMValue),
@@ -196,7 +216,6 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       dailyLabor: Math.round(laborCost),
       dailyRevenue: Math.round(dailyRevenue),
       dailyMaterials: Math.round(materialsEquipmentCost),
-      dailyHaulOff: Math.round(haulOffCost),
       dailyCustom: Math.round(customCost),
       dailyTM: Math.round(tmDayValue),
       dailyTotal: Math.round(dailyTotalCost),
@@ -216,22 +235,25 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
 export function filterByTimeRange(data, days) {
   if (!days || !data.length) return data
 
+  // Use date-only comparison to avoid timezone issues where UTC-parsed
+  // date strings get compared against local-time cutoffs, potentially
+  // excluding one day of data depending on the user's timezone.
   const now = new Date()
-  const cutoff = new Date()
-  cutoff.setDate(now.getDate() - days)
+  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  cutoff.setDate(cutoff.getDate() - days)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
 
-  return data.filter(d => new Date(d.date) >= cutoff)
+  return data.filter(d => d.date >= cutoffStr)
 }
 
 /**
  * Build cost distribution data for donut chart
  *
  * @param {number} laborCost - Total labor cost
- * @param {number} haulOffCost - Total disposal cost
  * @param {Array} customCosts - Array of custom cost entries
  * @returns {Array} Chart-ready segments
  */
-export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCosts = []) {
+export function buildCostDistribution(laborCost = 0, _unused = 0, customCosts = [], materialsEquipmentCost = 0, projectEquipmentCost = 0) {
   const segments = []
 
   // Add labor if present
@@ -244,13 +266,23 @@ export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCost
     })
   }
 
-  // Add disposal if present
-  if (haulOffCost > 0) {
+  // Add materials from T&M tickets if present
+  if (materialsEquipmentCost > 0) {
     segments.push({
-      name: 'Disposal',
-      value: haulOffCost,
-      color: chartColors.disposal,
-      category: 'disposal',
+      name: 'Materials',
+      value: materialsEquipmentCost,
+      color: chartColors.materials || '#8b5cf6',
+      category: 'materials',
+    })
+  }
+
+  // Add project equipment rental costs if present
+  if (projectEquipmentCost > 0) {
+    segments.push({
+      name: 'Equipment Rental',
+      value: projectEquipmentCost,
+      color: chartColors.equipment || '#f59e0b',
+      category: 'equipment',
     })
   }
 
@@ -268,17 +300,24 @@ export function buildCostDistribution(laborCost = 0, haulOffCost = 0, customCost
     grouped[cat].total += parseFloat(cost.amount) || 0
   })
 
-  // Add grouped custom costs
+  // Merge grouped custom costs into existing segments or add new ones
   Object.entries(grouped).forEach(([category, data]) => {
     if (data.total > 0) {
-      const catConfig = costCategories[category] || costCategories.other
-      segments.push({
-        name: catConfig.label,
-        value: data.total,
-        color: catConfig.color,
-        category,
-        items: data.items,
-      })
+      const existingSegment = segments.find(s => s.category === category)
+      if (existingSegment) {
+        // Merge into existing auto-tracked segment to avoid duplicate chart entries
+        existingSegment.value += data.total
+        existingSegment.items = data.items
+      } else {
+        const catConfig = costCategories[category] || costCategories.other
+        segments.push({
+          name: catConfig.label,
+          value: data.total,
+          color: catConfig.color,
+          category,
+          items: data.items,
+        })
+      }
     }
   })
 
@@ -335,35 +374,26 @@ export function buildCORFunnel(corStats) {
  * Build daily burn data for sparkline
  *
  * @param {Array} laborByDate - Daily labor costs
- * @param {Array} haulOffByDate - Daily haul-off costs
  * @param {number} limit - Max number of days to include
  * @returns {Array} Sparkline data points
  */
-export function buildBurnSparkline(laborByDate = [], haulOffByDate = [], limit = 14) {
-  // Merge and sort by date
+export function buildBurnSparkline(laborByDate = [], _unused = [], limit = 14) {
+  // Build by date
   const dateMap = {}
 
   laborByDate.forEach(d => {
     if (!dateMap[d.date]) {
-      dateMap[d.date] = { date: d.date, labor: 0, haulOff: 0 }
+      dateMap[d.date] = { date: d.date, labor: 0 }
     }
     dateMap[d.date].labor = d.cost || 0
-  })
-
-  haulOffByDate.forEach(d => {
-    if (!dateMap[d.date]) {
-      dateMap[d.date] = { date: d.date, labor: 0, haulOff: 0 }
-    }
-    dateMap[d.date].haulOff = d.cost || 0
   })
 
   // Convert to array and sort
   const data = Object.values(dateMap)
     .map(d => ({
       date: d.date,
-      total: d.labor + d.haulOff,
+      total: d.labor,
       labor: d.labor,
-      haulOff: d.haulOff,
     }))
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 
@@ -373,9 +403,12 @@ export function buildBurnSparkline(laborByDate = [], haulOffByDate = [], limit =
 
 /**
  * Calculate trend direction from time series
+ * Uses rate-of-change analysis so cumulative metrics (costs, revenue)
+ * show whether activity is accelerating, decelerating, or steady
+ * rather than always showing "up" because cumulative values only increase.
  *
  * @param {Array} data - Time series data
- * @param {string} key - Data key to analyze
+ * @param {string} key - Data key to analyze (cumulative value)
  * @returns {Object} Trend info { direction, percentage }
  */
 export function calculateTrend(data, key) {
@@ -383,22 +416,45 @@ export function calculateTrend(data, key) {
     return { direction: 'flat', percentage: 0 }
   }
 
-  const recent = data.slice(-7)
-  if (recent.length < 2) {
+  // Use up to last 14 points so we can compare two periods
+  const window = data.slice(-14)
+  if (window.length < 4) {
     return { direction: 'flat', percentage: 0 }
   }
 
-  const first = recent[0][key] || 0
-  const last = recent[recent.length - 1][key] || 0
-
-  if (first === 0) {
-    return { direction: last > 0 ? 'up' : 'flat', percentage: 0 }
+  // Compute daily increments from cumulative values
+  const increments = []
+  for (let i = 1; i < window.length; i++) {
+    increments.push((window[i][key] || 0) - (window[i - 1][key] || 0))
   }
 
-  const change = ((last - first) / first) * 100
+  // Split increments into earlier half and recent half
+  const mid = Math.floor(increments.length / 2)
+  const earlier = increments.slice(0, mid)
+  const recent = increments.slice(mid)
+
+  if (earlier.length === 0 || recent.length === 0) {
+    return { direction: 'flat', percentage: 0 }
+  }
+
+  const earlierAvg = earlier.reduce((a, b) => a + b, 0) / earlier.length
+  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length
+
+  // Both periods have zero activity
+  if (earlierAvg === 0 && recentAvg === 0) {
+    return { direction: 'flat', percentage: 0 }
+  }
+
+  // Activity started from nothing
+  if (earlierAvg === 0) {
+    return { direction: recentAvg > 0 ? 'up' : 'down', percentage: 0 }
+  }
+
+  // Percentage change in daily rate between the two periods
+  const change = ((recentAvg - earlierAvg) / Math.abs(earlierAvg)) * 100
 
   return {
-    direction: change > 5 ? 'up' : change < -5 ? 'down' : 'flat',
+    direction: change > 10 ? 'up' : change < -10 ? 'down' : 'flat',
     percentage: Math.abs(Math.round(change)),
   }
 }

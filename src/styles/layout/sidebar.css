@@ -157,10 +157,10 @@
 }
 
 .financials-nav-item.active {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: var(--gradient-blue);
+  border-color: transparent;
   color: white;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .financials-nav-item.active .financials-nav-icon,
@@ -656,7 +656,7 @@
     justify-content: center;
     gap: 0.5rem;
     position: fixed;
-    bottom: 1.5rem;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
     right: 1.5rem;
     padding: 0.875rem 1.25rem;
     background: var(--primary-color);
@@ -705,6 +705,7 @@
 
   .financials-layout {
     grid-template-columns: 1fr;
+    overflow-x: hidden;
   }
 
   .financials-layout.sidebar-collapsed {

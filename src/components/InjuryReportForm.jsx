@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import Toast from './Toast'
+import CustomFieldSection from './ui/CustomFieldSection'
 
 export default function InjuryReportForm({ project, companyId, user, onClose, onReportCreated }) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(null)
   const [step, setStep] = useState(1) // Multi-step form: 1=Incident, 2=Employee, 3=Supervisor, 4=Witnesses, 5=Medical
+  const [customFieldValues, setCustomFieldValues] = useState({})
 
   // Incident Details
   const [incidentDate, setIncidentDate] = useState(new Date().toISOString().split('T')[0])
@@ -114,16 +116,8 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
   }
 
   const handleSubmit = async () => {
-    if (!validateStep(step)) return
-
-    // Demo mode warning
-    if (!isSupabaseConfigured) {
-      setToast({ type: 'info', message: 'Demo Mode: Report saved locally only - won\'t reach office' })
-      setTimeout(() => {
-        onClose()
-      }, 1500)
-      return
-    }
+    // Validate all required steps before submitting
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return
 
     setLoading(true)
     try {
@@ -181,7 +175,15 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
 
       const report = await db.createInjuryReport(reportData)
 
-      setToast({ type: 'success', message: 'Injury report submitted successfully' })
+      // Save trade-specific custom fields
+      if (report?.id && Object.keys(customFieldValues).length > 0) {
+        await db.saveCustomFieldData(project.id, 'injury_report', report.id, customFieldValues)
+      }
+
+      const successMsg = isSupabaseConfigured
+        ? 'Injury report submitted successfully'
+        : 'Demo Mode: Report saved locally only'
+      setToast({ type: 'success', message: successMsg })
 
       if (onReportCreated) {
         onReportCreated(report)
@@ -568,6 +570,14 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                     />
                   </div>
                 </div>
+
+                {/* Trade-Specific Custom Fields */}
+                <CustomFieldSection
+                  formType="injury_report"
+                  projectId={project.id}
+                  values={customFieldValues}
+                  onChange={setCustomFieldValues}
+                />
 
                 <div className="form-row">
                   <div className="form-group">

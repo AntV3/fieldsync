@@ -15,6 +15,7 @@
 
 /* Utilities */
 @import './utilities/accessibility.css';
+@import './utilities/print.css';
 
 /* Components */
 @import './components/badges.css';
@@ -25,6 +26,8 @@
 @import './components/modals.css';
 @import './components/skeleton.css';
 @import './components/nav.css';
+@import './components/collapsible.css';
+@import './components/capabilities-modal.css';
 
 /* Features */
 @import './features/animations.css';
@@ -62,3 +65,7 @@
 @import './features/landing.css';
 @import './features/legal.css';
 @import './features/onboarding.css';
+@import './features/account-settings.css';
+@import './features/advanced-metrics.css';
+@import './features/setup-wizard.css';
+@import './features/trade-config.css';

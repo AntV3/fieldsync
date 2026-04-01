@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react'
+import CORCapabilitiesModal from './CORCapabilitiesModal'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -12,7 +13,8 @@ import {
   DEFAULT_PERCENTAGES,
   LABOR_CLASSES,
   WAGE_TYPES,
-  COMMON_UNITS
+  COMMON_UNITS,
+  groupLaborByClassAndType
 } from '../../lib/corCalculations'
 import TicketSelector from './TicketSelector'
 
@@ -20,6 +22,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
   const [showTicketSelector, setShowTicketSelector] = useState(false)
+  const [showCapabilities, setShowCapabilities] = useState(false)
   const [importedTicketIds, setImportedTicketIds] = useState([]) // Track tickets imported for backup docs
 
   // Expandable sections
@@ -152,6 +155,30 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   const loadLaborRates = async () => {
     try {
+      // Try new labor class rates first, fall back to legacy labor_rates
+      const classRates = await db.getAllLaborClassRates?.(company?.id)
+      if (classRates?.length > 0) {
+        // Flatten class rates into a lookup-friendly format
+        const flatRates = []
+        classRates.forEach(lc => {
+          const matchingRate = lc.labor_class_rates?.find(r =>
+            r.work_type === (project?.work_type || 'demolition') &&
+            r.job_type === (project?.job_type || 'standard')
+          )
+          if (matchingRate) {
+            flatRates.push({
+              role: lc.name,
+              regular_rate: matchingRate.regular_rate,
+              overtime_rate: matchingRate.overtime_rate
+            })
+          }
+        })
+        if (flatRates.length > 0) {
+          setLaborRates(flatRates)
+          return
+        }
+      }
+      // Fall back to legacy labor_rates table
       const rates = await db.getLaborRates?.(company?.id, project?.work_type, project?.job_type)
       setLaborRates(rates || [])
     } catch (error) {
@@ -161,7 +188,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
 
   const getRateForClass = (laborClass) => {
     const classLower = laborClass?.toLowerCase() || ''
-    return laborRates.find(r => r.role?.toLowerCase() === classLower) || null
+    return laborRates.find(r => (r.role || r.name)?.toLowerCase() === classLower) || null
   }
 
   const generateCORNumber = async () => {
@@ -376,6 +403,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     company_id: company.id,
     project_id: project.id,
     title,
+    description: scopeOfWork || '',
     scope_of_work: scopeOfWork || '',
     area_id: areaId || null,
     cor_number: corNumber,
@@ -413,34 +441,38 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         savedCOR = await db.createCOR(corPayload)
       }
 
-      if (savedCOR?.id) {
-        await db.saveCORLineItems(savedCOR.id, {
-          laborItems,
-          materialItems: materialsItems,
-          equipmentItems,
-          subcontractorItems: subcontractorsItems
-        })
+      if (!savedCOR?.id) {
+        throw new Error('Failed to save COR - no ID returned')
+      }
 
-        // Link imported tickets to this COR as backup documentation
-        if (importedTicketIds.length > 0) {
-          const failedLinks = []
-          for (const ticketId of importedTicketIds) {
-            try {
-              await db.assignTicketToCOR(ticketId, savedCOR.id)
-            } catch (linkError) {
-              console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
-              failedLinks.push(ticketId)
-            }
+      await db.saveCORLineItems(savedCOR.id, {
+        laborItems,
+        materialItems: materialsItems,
+        equipmentItems,
+        subcontractorItems: subcontractorsItems
+      })
+
+      // Link imported tickets to this COR as backup documentation
+      if (importedTicketIds.length > 0) {
+        const failedLinks = []
+        for (const ticketId of importedTicketIds) {
+          try {
+            await db.assignTicketToCOR(ticketId, savedCOR.id)
+            // Mark association as imported since line items were saved above
+            await db.markTicketAssociationImported?.(ticketId, savedCOR.id)
+          } catch (linkError) {
+            console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
+            failedLinks.push(ticketId)
           }
-          if (failedLinks.length > 0) {
-            onShowToast?.(
-              `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
-              'warning'
-            )
-            onSaved?.(savedCOR)
-            onClose?.()
-            return
-          }
+        }
+        if (failedLinks.length > 0) {
+          onShowToast?.(
+            `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
+            'warning'
+          )
+          onSaved?.(savedCOR)
+          onClose?.()
+          return
         }
       }
 
@@ -484,16 +516,17 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         await db.submitCORForApproval(existingCOR.id)
       } else {
         savedCOR = await db.createCOR(corPayload)
-        if (savedCOR?.id) {
-          corIdToUse = savedCOR.id
-          await db.saveCORLineItems(savedCOR.id, {
-            laborItems,
-            materialItems: materialsItems,
-            equipmentItems,
-            subcontractorItems: subcontractorsItems
-          })
-          await db.submitCORForApproval(savedCOR.id)
+        if (!savedCOR?.id) {
+          throw new Error('Failed to create COR - no ID returned')
         }
+        corIdToUse = savedCOR.id
+        await db.saveCORLineItems(savedCOR.id, {
+          laborItems,
+          materialItems: materialsItems,
+          equipmentItems,
+          subcontractorItems: subcontractorsItems
+        })
+        await db.submitCORForApproval(savedCOR.id)
       }
 
       // Link imported tickets to this COR as backup documentation
@@ -501,6 +534,8 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         for (const ticketId of importedTicketIds) {
           try {
             await db.assignTicketToCOR(ticketId, corIdToUse)
+            // Mark association as imported since line items were saved above
+            await db.markTicketAssociationImported?.(ticketId, corIdToUse)
           } catch (linkError) {
             console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
           }
@@ -540,8 +575,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       <div className="modal-content cor-form-modal cor-form-simplified" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{existingCOR ? 'Edit Change Order Request' : 'New Change Order Request'}</h2>
+          <button className="capabilities-help-btn" onClick={() => setShowCapabilities(true)} title="What can CORs do?" type="button">
+            <HelpCircle size={18} />
+          </button>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
+        <CORCapabilitiesModal isOpen={showCapabilities} onClose={() => setShowCapabilities(false)} />
 
         <div className="modal-body cor-form-body">
           {/* Required: Title and Description */}
@@ -623,7 +662,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
           {/* Import from Tickets button */}
           <div className="cor-import-bar">
             <button className="btn btn-ghost" onClick={() => setShowTicketSelector(true)}>
-              <FileText size={16} /> Import from T&M Tickets
+              <FileText size={16} /> Import from Time & Material Tickets
             </button>
           </div>
 
@@ -639,76 +678,111 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
               />
               {expandedSections.labor && (
                 <div className="cor-section-content">
-                  {laborItems.map((item, index) => (
-                    <div key={item.id || index} className="line-item compact">
-                      <div className="line-item-row">
-                        <select
-                          value={item.labor_class}
-                          onChange={(e) => updateLaborItem(index, 'labor_class', e.target.value)}
-                        >
-                          {LABOR_CLASSES.map(lc => (
-                            <option key={lc} value={lc}>{lc}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={item.wage_type}
-                          onChange={(e) => updateLaborItem(index, 'wage_type', e.target.value)}
-                        >
-                          {WAGE_TYPES.map(wt => (
-                            <option key={wt.value} value={wt.value}>{wt.label}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="Reg hrs"
-                          value={item.regular_hours || ''}
-                          onChange={(e) => updateLaborItem(index, 'regular_hours', e.target.value)}
-                          className="input-small"
-                        />
-                        <span className="input-label">@</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="$/hr"
-                          value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            updateLaborItem(index, 'regular_rate', Math.round(parseFloat(val || 0) * 100))
-                          }}
-                          className="input-small"
-                        />
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="OT hrs"
-                          value={item.overtime_hours || ''}
-                          onChange={(e) => updateLaborItem(index, 'overtime_hours', e.target.value)}
-                          className="input-small"
-                        />
-                        <span className="input-label">@</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="$/hr"
-                          value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            updateLaborItem(index, 'overtime_rate', Math.round(parseFloat(val || 0) * 100))
-                          }}
-                          className="input-small"
-                        />
-                        <span className="line-item-total">{formatCurrency(item.total)}</span>
-                        <button className="btn-icon" onClick={() => removeLaborItem(index)}>
-                          <Trash2 size={14} />
-                        </button>
+                  {laborItems.length > 0 && groupLaborByClassAndType(laborItems).map((group) => {
+                    // Map group items back to their indices in the flat laborItems array
+                    const itemIndices = group.items.map(gi =>
+                      laborItems.findIndex(li => li === gi || (li.id && li.id === gi.id))
+                    )
+                    return (
+                      <div key={`${group.laborClass}-${group.wageType}`} className="labor-form-group">
+                        <div className="labor-form-group-header">
+                          <span className="labor-form-group-label">{group.label}</span>
+                          <span className="labor-form-group-subtotal">{formatCurrency(group.subtotal)}</span>
+                        </div>
+                        <div className="labor-column-headers">
+                          <span className="labor-col-header">Class</span>
+                          <span className="labor-col-header">Wage Type</span>
+                          <span className="labor-col-header">Reg Hrs</span>
+                          <span className="labor-col-header"></span>
+                          <span className="labor-col-header">Reg Rate</span>
+                          <span className="labor-col-header">OT Hrs</span>
+                          <span className="labor-col-header"></span>
+                          <span className="labor-col-header">OT Rate</span>
+                          <span className="labor-col-header">Total</span>
+                          <span className="labor-col-header"></span>
+                        </div>
+                        {itemIndices.map((origIndex) => {
+                          const item = laborItems[origIndex]
+                          return (
+                            <div key={item.id || origIndex} className="line-item compact">
+                              <div className="line-item-row">
+                                <select
+                                  value={item.labor_class}
+                                  onChange={(e) => updateLaborItem(origIndex, 'labor_class', e.target.value)}
+                                  title="Labor Class"
+                                >
+                                  {LABOR_CLASSES.map(lc => (
+                                    <option key={lc} value={lc}>{lc}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={item.wage_type}
+                                  onChange={(e) => updateLaborItem(origIndex, 'wage_type', e.target.value)}
+                                  title="Wage Type"
+                                >
+                                  {WAGE_TYPES.map(wt => (
+                                    <option key={wt.value} value={wt.value}>{wt.label}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="Reg hrs"
+                                  value={item.regular_hours || ''}
+                                  onChange={(e) => updateLaborItem(origIndex, 'regular_hours', e.target.value)}
+                                  className="input-small"
+                                  title="Regular Hours"
+                                />
+                                <span className="input-label">@</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="$/hr"
+                                  value={item.regular_rate ? (item.regular_rate / 100).toFixed(2) : ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    updateLaborItem(origIndex, 'regular_rate', Math.round(parseFloat(val || 0) * 100))
+                                  }}
+                                  className="input-small"
+                                  title="Regular Rate"
+                                />
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="OT hrs"
+                                  value={item.overtime_hours || ''}
+                                  onChange={(e) => updateLaborItem(origIndex, 'overtime_hours', e.target.value)}
+                                  className="input-small"
+                                  title="Overtime Hours"
+                                />
+                                <span className="input-label">@</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="$/hr"
+                                  value={item.overtime_rate ? (item.overtime_rate / 100).toFixed(2) : ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    updateLaborItem(origIndex, 'overtime_rate', Math.round(parseFloat(val || 0) * 100))
+                                  }}
+                                  className="input-small"
+                                  title="Overtime Rate"
+                                />
+                                <span className="line-item-total">{formatCurrency(item.total)}</span>
+                                <button className="btn-icon" onClick={() => removeLaborItem(origIndex)}>
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   <button className="btn btn-ghost btn-add" onClick={addLaborItem}>
                     <Plus size={14} /> Add Labor
                   </button>
@@ -1107,6 +1181,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       {showTicketSelector && (
         <TicketSelector
           projectId={project.id}
+          companyId={company?.id}
           corId={existingCOR?.id}
           onImport={handleTicketImport}
           onClose={() => setShowTicketSelector(false)}

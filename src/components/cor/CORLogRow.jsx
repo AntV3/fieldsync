@@ -19,6 +19,7 @@ export default function CORLogRow({
   onEdit,
   onSave,
   onCancel,
+  onViewCOR,
   statusDisplay
 }) {
   const [editValues, setEditValues] = useState({
@@ -76,7 +77,9 @@ export default function CORLogRow({
   const formatDateDisplay = (dateStr) => {
     if (!dateStr) return '-'
     try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
+      const s = String(dateStr)
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+      return d.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
@@ -190,7 +193,16 @@ export default function CORLogRow({
       <td className="col-ce-num editable" onClick={onEdit}>
         {entry.ceNumber || '-'}
       </td>
-      <td className="col-description">
+      <td className="col-description clickable" onClick={() => onViewCOR?.({
+        id: entry.changeOrder.id,
+        cor_number: entry.changeOrder.corNumber,
+        title: entry.changeOrder.title,
+        cor_total: entry.changeOrder.corTotal,
+        status: entry.changeOrder.status,
+        created_at: entry.changeOrder.createdAt,
+        approved_at: entry.changeOrder.approvedAt,
+        approved_by: entry.changeOrder.approvedBy
+      })} style={{ cursor: 'pointer' }}>
         <span className="cor-log-title">{entry.changeOrder.title || 'Untitled'}</span>
         <span className="cor-log-number">{entry.changeOrder.corNumber}</span>
       </td>

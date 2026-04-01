@@ -7,6 +7,19 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 20px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.ev-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--gradient-card-subtle);
+  pointer-events: none;
 }
 
 .ev-card-header {
@@ -48,21 +61,31 @@
 .ev-index-card {
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: var(--space-sm) var(--space-md);
   text-align: center;
+  transition: background var(--transition-smooth);
+}
+
+.ev-index-card:hover {
+  background: var(--surface-hover);
 }
 
 .ev-index-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
+}
+
+/* Prevent tooltip icon from overlapping index labels */
+.ev-index-header .info-tooltip-wrapper {
+  margin-left: 0;
 }
 
 .ev-index-value {
@@ -94,8 +117,8 @@
   background: var(--bg-secondary);
 }
 
-.ev-variance-item.positive { border-left: 3px solid #10b981; }
-.ev-variance-item.negative { border-left: 3px solid #ef4444; }
+.ev-variance-item.positive { border-left: 3px solid var(--accent-green); }
+.ev-variance-item.negative { border-left: 3px solid var(--accent-red); }
 
 .ev-variance-label {
   font-size: 11px;

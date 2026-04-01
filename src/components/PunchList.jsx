@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save } from 'lucide-react'
-import { supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
+import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save, ChevronDown, ChevronRight } from 'lucide-react'
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
+import { ConfirmDialog } from './ui'
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: '#ef4444' },
@@ -26,6 +27,9 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterArea, setFilterArea] = useState('all')
   const [saving, setSaving] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [expandedNotes, setExpandedNotes] = useState(new Set())
   const [formData, setFormData] = useState({
     description: '',
     area_id: '',
@@ -42,18 +46,10 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     }
 
     try {
-      const client = getSupabaseClient()
-      const { data, error } = await client
-        .from('punch_list_items')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
+      const data = await db.getPunchListItems(projectId)
       setItems(data || [])
     } catch (err) {
       console.error('Error loading punch list:', err)
-      // Table might not exist yet - that's OK
       setItems([])
     } finally {
       setLoading(false)
@@ -72,7 +68,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     // custom headers, so use the anon client; RLS on the anon role allows
     // field users to receive events via the field-session policies we added)
     const channel = supabase
-      .channel(`punch_list:${projectId}`)
+      .channel(`punch_list_component:${projectId}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'punch_list_items', filter: `project_id=eq.${projectId}` },
         () => loadItems()
@@ -86,9 +82,11 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     return items.filter(item => {
       if (filterStatus !== 'all' && item.status !== filterStatus) return false
       if (filterArea !== 'all' && item.area_id !== filterArea) return false
+      // When not filtering by a specific status, hide completed items unless toggled on
+      if (filterStatus === 'all' && !showCompleted && item.status === 'complete') return false
       return true
     })
-  }, [items, filterStatus, filterArea])
+  }, [items, filterStatus, filterArea, showCompleted])
 
   const stats = useMemo(() => {
     const open = items.filter(i => i.status === 'open').length
@@ -113,39 +111,27 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
 
     setSaving(true)
     try {
-      const client = getSupabaseClient()
       if (editingItem) {
-        const { error } = await client
-          .from('punch_list_items')
-          .update({
-            description: formData.description.trim(),
-            area_id: formData.area_id || null,
-            assigned_to: formData.assigned_to.trim() || null,
-            priority: formData.priority,
-            notes: formData.notes.trim() || null,
-            photo_url: formData.photo_url || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingItem.id)
-
-        if (error) throw error
+        await db.updatePunchListItem(editingItem.id, {
+          description: formData.description.trim(),
+          area_id: formData.area_id || null,
+          assigned_to: formData.assigned_to.trim() || null,
+          priority: formData.priority,
+          notes: formData.notes.trim() || null,
+          photo_url: formData.photo_url || null
+        })
         onShowToast?.('Punch item updated', 'success')
       } else {
-        const { error } = await client
-          .from('punch_list_items')
-          .insert({
-            project_id: projectId,
-            company_id: companyId,
-            description: formData.description.trim(),
-            area_id: formData.area_id || null,
-            assigned_to: formData.assigned_to.trim() || null,
-            priority: formData.priority,
-            notes: formData.notes.trim() || null,
-            photo_url: formData.photo_url || null,
-            status: 'open'
-          })
-
-        if (error) throw error
+        await db.createPunchListItem({
+          project_id: projectId,
+          company_id: companyId,
+          description: formData.description.trim(),
+          area_id: formData.area_id || null,
+          assigned_to: formData.assigned_to.trim() || null,
+          priority: formData.priority,
+          notes: formData.notes.trim() || null,
+          photo_url: formData.photo_url || null
+        })
         onShowToast?.('Punch item added', 'success')
       }
 
@@ -153,7 +139,10 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
       loadItems()
     } catch (err) {
       console.error('Error saving punch item:', err)
-      onShowToast?.(err.message || 'Error saving item', 'error')
+      const msg = err.message?.includes('row-level security')
+        ? 'Permission denied — please re-enter your PIN and try again'
+        : (err.message || 'Error saving item')
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -161,22 +150,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
 
   const handleStatusChange = async (itemId, newStatus) => {
     try {
-      const updates = {
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      }
-      if (newStatus === 'complete') {
-        updates.completed_at = new Date().toISOString()
-      } else {
-        updates.completed_at = null
-      }
-
-      const { error } = await getSupabaseClient()
-        .from('punch_list_items')
-        .update(updates)
-        .eq('id', itemId)
-
-      if (error) throw error
+      await db.updatePunchListStatus(itemId, newStatus)
       loadItems()
     } catch (err) {
       console.error('Error updating status:', err)
@@ -185,15 +159,14 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
   }
 
   const handleDelete = async (itemId) => {
-    if (!confirm('Delete this punch item?')) return
+    setDeleteConfirm(itemId)
+  }
 
+  const confirmDelete = async () => {
+    const itemId = deleteConfirm
+    setDeleteConfirm(null)
     try {
-      const { error } = await getSupabaseClient()
-        .from('punch_list_items')
-        .delete()
-        .eq('id', itemId)
-
-      if (error) throw error
+      await db.deletePunchListItem(itemId, projectId)
       onShowToast?.('Item deleted', 'success')
       loadItems()
     } catch (err) {
@@ -226,6 +199,15 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
 
   const getStatusConfig = (status) =>
     STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0]
+
+  const toggleNotes = (itemId) => {
+    setExpandedNotes(prev => {
+      const next = new Set(prev)
+      if (next.has(itemId)) next.delete(itemId)
+      else next.add(itemId)
+      return next
+    })
+  }
 
   return (
     <div className="punch-list-card">
@@ -283,6 +265,15 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
                 ))}
               </select>
             </div>
+          )}
+          {filterStatus === 'all' && stats.complete > 0 && (
+            <button
+              className="punch-show-completed-btn"
+              onClick={() => setShowCompleted(!showCompleted)}
+            >
+              {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {showCompleted ? 'Hide' : 'Show'} {stats.complete} completed
+            </button>
           )}
         </div>
       )}
@@ -429,7 +420,19 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
                   </div>
 
                   {item.notes && (
-                    <div className="punch-item-notes">{item.notes}</div>
+                    <div className="punch-item-notes-toggle">
+                      <button
+                        className="punch-notes-btn"
+                        onClick={(e) => { e.stopPropagation(); toggleNotes(item.id) }}
+                        type="button"
+                      >
+                        {expandedNotes.has(item.id) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        <span>Notes</span>
+                      </button>
+                      {expandedNotes.has(item.id) && (
+                        <div className="punch-item-notes">{item.notes}</div>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -446,6 +449,15 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
           })}
         </div>
       )}
+      <ConfirmDialog
+        isOpen={deleteConfirm !== null}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={confirmDelete}
+        title="Delete Punch Item"
+        message="Are you sure you want to delete this punch item? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   )
 }

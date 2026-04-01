@@ -66,7 +66,7 @@ export default function InvoiceModal({
         item_type: 'tm_ticket',
         reference_id: ticket.id,
         reference_number: ticket.ce_pco_number || null,
-        description: `T&M Ticket - ${new Date(ticket.work_date).toLocaleDateString()}`,
+        description: `Time & Material - ${new Date(ticket.work_date).toLocaleDateString()}`,
         amount: (parseFloat(ticket.change_order_value) || 0) * 100 // Convert to cents
       })
     })
@@ -324,7 +324,7 @@ export default function InvoiceModal({
                     {item.item_type === 'cor' && <FileText size={14} />}
                     {item.item_type === 'tm_ticket' && <FileText size={14} />}
                     {item.item_type === 'manual' && <Plus size={14} />}
-                    {item.item_type === 'cor' ? 'COR' : item.item_type === 'tm_ticket' ? 'T&M' : 'Manual'}
+                    {item.item_type === 'cor' ? 'COR' : item.item_type === 'tm_ticket' ? 'Time & Material' : 'Manual'}
                   </span>
 
                   {item.item_type === 'manual' ? (

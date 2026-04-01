@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ClipboardList, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
-import { ErrorState, EmptyState } from './ui'
+import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from '../lib/imageUtils'
+import { ErrorState, EmptyState, CollapsibleSection } from './ui'
+import { parseLocalDate } from '../lib/utils'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
 
@@ -24,6 +25,30 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
   // Date filter state
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
+
+  // Photo URLs for expanded report
+  const [reportPhotos, setReportPhotos] = useState({}) // { reportId: [signedUrl, ...] }
+  const [photosLoading, setPhotosLoading] = useState(false)
+
+  // Load photos when a report is expanded
+  useEffect(() => {
+    if (!expandedReport) return
+    const report = reports.find(r => r.id === expandedReport)
+    if (!report?.photos?.length || reportPhotos[expandedReport]) return
+
+    let cancelled = false
+    setPhotosLoading(true)
+    db.resolvePhotoUrls(report.photos).then(signedUrls => {
+      if (!cancelled) {
+        setReportPhotos(prev => ({ ...prev, [expandedReport]: signedUrls.filter(Boolean) }))
+      }
+    }).catch(err => {
+      console.error('Error loading report photos:', err)
+    }).finally(() => {
+      if (!cancelled) setPhotosLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [expandedReport, reports])
 
   useEffect(() => {
     loadReports()
@@ -59,7 +84,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     // Apply date filter if set
     if (dateFilter.start) {
-      const startDate = new Date(dateFilter.start)
+      const startDate = parseLocalDate(dateFilter.start)
       startDate.setHours(0, 0, 0, 0)
       filtered = filtered.filter(r => {
         const reportDate = new Date(r.report_date || r.created_at)
@@ -67,7 +92,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       })
     }
     if (dateFilter.end) {
-      const endDate = new Date(dateFilter.end)
+      const endDate = parseLocalDate(dateFilter.end)
       endDate.setHours(23, 59, 59, 999)
       filtered = filtered.filter(r => {
         const reportDate = new Date(r.report_date || r.created_at)
@@ -178,6 +203,19 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     })
   }
 
+  // Get accurate photo count: use actual photos array length if available,
+  // fall back to stored photos_count metric
+  const getPhotoCount = (report) => {
+    return report.photos?.length || report.photos_count || 0
+  }
+
+  // Get accurate task count from completed_tasks array if available,
+  // fall back to stored tasks_completed metric
+  const getTasksCompleted = (report) => {
+    if (report.completed_tasks?.length > 0) return report.completed_tasks.length
+    return report.tasks_completed || 0
+  }
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'submitted': return '✓'
@@ -267,8 +305,23 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     yPos += 25
 
+    // Pre-load all report photos as base64 for embedding
+    const reportPhotoData = {}
+    for (const report of exportReports) {
+      if (report.photos?.length > 0) {
+        try {
+          const signedUrls = await db.resolvePhotoUrls(report.photos)
+          const base64Images = await loadImagesAsBase64(signedUrls, 10000)
+          reportPhotoData[report.id] = base64Images.filter(Boolean)
+        } catch (e) {
+          console.error('Error loading photos for report:', report.id, e)
+          reportPhotoData[report.id] = []
+        }
+      }
+    }
+
     // Reports
-    exportReports.forEach((report, index) => {
+    for (const report of exportReports) {
       // Check if we need a new page
       if (yPos > 250) {
         doc.addPage()
@@ -289,19 +342,40 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       doc.setTextColor(50, 50, 50)
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
-      const stats = `Crew: ${report.crew_count || 0}  |  Tasks: ${report.tasks_completed || 0}  |  T&M: ${report.tm_tickets_count || 0}  |  Photos: ${report.photos_count || 0}`
+      const stats = `Crew: ${report.crew_count || 0}  |  Tasks: ${getTasksCompleted(report)}  |  Time & Material: ${report.tm_tickets_count || 0}  |  Photos: ${getPhotoCount(report)}`
       doc.text(stats, margin + 5, yPos)
       yPos += 8
 
-      // Crew list
+      // Crew list - grouped by class/role
       if (report.crew_list?.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.text('Crew:', margin + 5, yPos)
-        doc.setFont('helvetica', 'normal')
-        const crewNames = report.crew_list.map(w => `${w.name} (${w.role})`).join(', ')
-        const crewLines = doc.splitTextToSize(crewNames, pageWidth - margin * 2 - 30)
-        doc.text(crewLines, margin + 25, yPos)
-        yPos += crewLines.length * 5 + 3
+        yPos += 6
+
+        // Group workers by role
+        const crewGroups = {}
+        report.crew_list.forEach(w => {
+          const role = w.role || 'Other'
+          if (!crewGroups[role]) crewGroups[role] = []
+          crewGroups[role].push(w)
+        })
+
+        doc.setFontSize(9)
+        for (const [role, workers] of Object.entries(crewGroups)) {
+          if (yPos > 270) {
+            doc.addPage()
+            yPos = margin
+          }
+          doc.setFont('helvetica', 'bold')
+          doc.text(`${role} (${workers.length}):`, margin + 10, yPos)
+          doc.setFont('helvetica', 'normal')
+          const names = workers.map(w => w.name).join(', ')
+          const nameLines = doc.splitTextToSize(names, pageWidth - margin * 2 - 50)
+          doc.text(nameLines, margin + 55, yPos)
+          yPos += nameLines.length * 4.5 + 2
+        }
+        doc.setFontSize(10)
+        yPos += 2
       }
 
       // Field notes
@@ -326,8 +400,44 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         yPos += issueLines.length * 5 + 3
       }
 
+      // Photos
+      const photoImages = reportPhotoData[report.id]
+      if (photoImages?.length > 0) {
+        doc.setTextColor(50, 50, 50)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Photos:', margin + 5, yPos)
+        yPos += 5
+
+        const photoWidth = 50
+        const photoHeight = 40
+        const photoGap = 5
+        const photosPerRow = 3
+        let xPos = margin + 5
+
+        for (let i = 0; i < photoImages.length; i++) {
+          if (i > 0 && i % photosPerRow === 0) {
+            xPos = margin + 5
+            yPos += photoHeight + photoGap
+          }
+
+          if (yPos + photoHeight > doc.internal.pageSize.getHeight() - 20) {
+            doc.addPage()
+            yPos = margin
+            xPos = margin + 5
+          }
+
+          doc.setDrawColor(200, 200, 200)
+          doc.setLineWidth(0.5)
+          doc.rect(xPos - 1, yPos - 1, photoWidth + 2, photoHeight + 2, 'S')
+          doc.addImage(photoImages[i], 'JPEG', xPos, yPos, photoWidth, photoHeight)
+          xPos += photoWidth + photoGap
+        }
+
+        yPos += photoHeight + 5
+      }
+
       yPos += 10
-    })
+    }
 
     // Footer
     const pageCount = doc.internal.getNumberOfPages()
@@ -373,7 +483,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         </div>
         <div className="daily-report-summary">
           <span className="report-crew">{report.crew_count || 0} crew</span>
-          <span className="report-tasks">{report.tasks_completed || 0} tasks</span>
+          <span className="report-tasks">{getTasksCompleted(report)} tasks</span>
           <span className="report-expand">{expandedReport === report.id ? '▼' : '▶'}</span>
         </div>
       </div>
@@ -387,47 +497,78 @@ export default function DailyReportsList({ project, company, onShowToast }) {
               <span className="stat-label">Crew on Site</span>
             </div>
             <div className="report-stat">
-              <span className="stat-value">{report.tasks_completed || 0}</span>
+              <span className="stat-value">{getTasksCompleted(report)}</span>
               <span className="stat-label">Tasks Done</span>
             </div>
             <div className="report-stat">
               <span className="stat-value">{report.tm_tickets_count || 0}</span>
-              <span className="stat-label">T&M Tickets</span>
+              <span className="stat-label">Time & Material</span>
             </div>
             <div className="report-stat">
-              <span className="stat-value">{report.photos_count || 0}</span>
+              <span className="stat-value">{getPhotoCount(report)}</span>
               <span className="stat-label">Photos</span>
             </div>
           </div>
 
-          {/* Crew List */}
+          {/* Crew List - grouped by class/role */}
           {report.crew_list?.length > 0 && (
-            <div className="report-section">
-              <h4>Crew</h4>
-              <div className="report-crew-list">
-                {report.crew_list.map((worker, i) => (
-                  <div key={i} className="crew-member">
-                    <span className="crew-name">{worker.name}</span>
-                    <span className="crew-role">{worker.role}</span>
-                  </div>
-                ))}
+            <CollapsibleSection
+              title="Crew"
+              badge={`${report.crew_list.length}`}
+              variant="compact"
+              summary={(() => {
+                const groups = {}
+                report.crew_list.forEach(w => { groups[w.role || 'Other'] = (groups[w.role || 'Other'] || 0) + 1 })
+                return Object.entries(groups).map(([role, count]) => `${count} ${role}`).join(', ')
+              })()}
+            >
+              <div className="report-section">
+                <div className="report-crew-list report-crew-grouped">
+                  {(() => {
+                    const groups = {}
+                    report.crew_list.forEach(worker => {
+                      const role = worker.role || 'Other'
+                      if (!groups[role]) groups[role] = []
+                      groups[role].push(worker)
+                    })
+                    return Object.entries(groups).map(([role, workers]) => (
+                      <div key={role} className="report-crew-class-group">
+                        <div className="report-crew-class-header">
+                          <span className="report-crew-class-name">{role}</span>
+                          <span className="report-crew-class-count">{workers.length}</span>
+                        </div>
+                        {workers.map((worker, i) => (
+                          <div key={i} className="crew-member">
+                            <span className="crew-name">{worker.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))
+                  })()}
+                </div>
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
           {/* Completed Tasks */}
           {report.completed_tasks?.length > 0 && (
-            <div className="report-section">
-              <h4>Completed Today</h4>
-              <ul className="report-tasks-list">
-                {report.completed_tasks.map((task, i) => (
-                  <li key={i}>
-                    {task.name}
-                    {task.group && <span className="task-group">{task.group}</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <CollapsibleSection
+              title="Completed Today"
+              badge={`${report.completed_tasks.length}`}
+              variant="compact"
+              summary={report.completed_tasks.slice(0, 2).map(t => t.name).join(', ') + (report.completed_tasks.length > 2 ? '...' : '')}
+            >
+              <div className="report-section">
+                <ul className="report-tasks-list">
+                  {report.completed_tasks.map((task, i) => (
+                    <li key={i}>
+                      {task.name}
+                      {task.group && <span className="task-group">{task.group}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Field Notes */}
@@ -444,6 +585,31 @@ export default function DailyReportsList({ project, company, onShowToast }) {
               <h4>Issues / Concerns</h4>
               <p className="report-issues">{report.issues}</p>
             </div>
+          )}
+
+          {/* Photos */}
+          {getPhotoCount(report) > 0 && (
+            <CollapsibleSection
+              title="Photos"
+              badge={`${getPhotoCount(report)}`}
+              variant="compact"
+            >
+              <div className="report-section">
+                {photosLoading && !reportPhotos[report.id] ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Loading photos...</p>
+                ) : reportPhotos[report.id]?.length > 0 ? (
+                  <div className="report-photo-grid">
+                    {reportPhotos[report.id].map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="report-photo-thumb">
+                        <img src={url} alt={`Report photo ${i + 1}`} loading="lazy" />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Unable to load photos</p>
+                )}
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Submitted Info */}

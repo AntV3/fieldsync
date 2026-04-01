@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronRight, Calendar, ShieldAlert } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
-import { ErrorState } from './ui'
+import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import InjuryReportCard from './InjuryReportCard'
 import Toast from './Toast'
@@ -71,6 +71,22 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     setSelectedReport(null)
   }
 
+  const handleUpdateStatus = async (reportId, newStatus) => {
+    try {
+      if (newStatus === 'closed') {
+        await db.closeInjuryReport(reportId, user?.id)
+      } else {
+        await db.updateInjuryReport(reportId, { status: newStatus })
+      }
+      setToast({ type: 'success', message: `Report status updated to ${newStatus.replace('_', ' ')}` })
+      setSelectedReport(prev => prev ? { ...prev, status: newStatus } : null)
+      loadReports()
+    } catch (err) {
+      console.error('Error updating report status:', err)
+      setToast({ type: 'error', message: 'Failed to update report status' })
+    }
+  }
+
   const formatDate = (dateString) => {
     if (!dateString) return ''
     const date = new Date(dateString)
@@ -123,21 +139,17 @@ export default function InjuryReportsList({ project, companyId, company, user, o
   const filteredReports = useMemo(() => {
     let filtered = [...reports]
 
-    // Apply date filter if set
+    // Apply date filter if set (use string comparison to avoid timezone issues)
     if (dateFilter.start) {
-      const startDate = new Date(dateFilter.start)
-      startDate.setHours(0, 0, 0, 0)
       filtered = filtered.filter(r => {
-        const reportDate = new Date(r.incident_date)
-        return reportDate >= startDate
+        const reportDate = (r.incident_date || '').substring(0, 10)
+        return reportDate >= dateFilter.start
       })
     }
     if (dateFilter.end) {
-      const endDate = new Date(dateFilter.end)
-      endDate.setHours(23, 59, 59, 999)
       filtered = filtered.filter(r => {
-        const reportDate = new Date(r.incident_date)
-        return reportDate <= endDate
+        const reportDate = (r.incident_date || '').substring(0, 10)
+        return reportDate <= dateFilter.end
       })
     }
 
@@ -145,10 +157,10 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     if (viewMode === 'recent') {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      sevenDaysAgo.setHours(0, 0, 0, 0)
+      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
       filtered = filtered.filter(r => {
-        const reportDate = new Date(r.incident_date)
-        return reportDate >= sevenDaysAgo
+        const reportDate = (r.incident_date || '').substring(0, 10)
+        return reportDate >= sevenDaysAgoStr
       })
     }
 
@@ -194,7 +206,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
 
   // Export to PDF with company branding
   const exportToPDF = async () => {
-    if (reports.length === 0) {
+    if (filteredReports.length === 0) {
       setToast({ type: 'error', message: 'No reports to export' })
       return
     }
@@ -243,7 +255,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
 
     doc.setFontSize(9)
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 20, { align: 'right' })
-    doc.text(`Total Reports: ${reports.length}`, pageWidth - margin, 28, { align: 'right' })
+    doc.text(`Total Reports: ${filteredReports.length}`, pageWidth - margin, 28, { align: 'right' })
 
     yPos = 55
 
@@ -259,7 +271,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     }
 
     // Reports
-    reports.forEach((report) => {
+    filteredReports.forEach((report) => {
       // Check if we need a new page (injury reports need more space)
       if (yPos > 200) {
         doc.addPage()
@@ -417,16 +429,16 @@ export default function InjuryReportsList({ project, companyId, company, user, o
         </div>
 
         {filteredReports.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🏥</div>
-            <h4>No Injury Reports{viewMode === 'recent' ? ' in the last 7 days' : ''}</h4>
-            <p>Click "File Injury Report" to document a workplace incident</p>
-            {viewMode === 'recent' && reports.length > 0 && (
-              <button className="btn-secondary" onClick={() => setViewMode('all')}>
+          <EmptyState
+            icon={ShieldAlert}
+            title={`No Injury Reports${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+            message='Click "File Injury Report" to document a workplace incident'
+            action={viewMode === 'recent' && reports.length > 0 ? (
+              <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
                 View All Reports
               </button>
-            )}
-          </div>
+            ) : null}
+          />
         ) : (
           <div className="reports-list">
             {/* Render reports - with month grouping in 'all' mode */}
@@ -689,8 +701,34 @@ export default function InjuryReportsList({ project, companyId, company, user, o
                   </div>
                 </section>
 
+                {/* Status Management */}
+                {selectedReport.status !== 'closed' && (
+                  <div className="status-actions">
+                    <label>Update Status:</label>
+                    <div className="status-buttons">
+                      {selectedReport.status === 'reported' && (
+                        <button
+                          className="btn-status investigate"
+                          onClick={() => handleUpdateStatus(selectedReport.id, 'under_investigation')}
+                        >
+                          Start Investigation
+                        </button>
+                      )}
+                      <button
+                        className="btn-status close"
+                        onClick={() => handleUpdateStatus(selectedReport.id, 'closed')}
+                      >
+                        Close Report
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="report-meta">
                   Filed on {formatDate(selectedReport.created_at)}
+                  {selectedReport.closed_at && (
+                    <span> • Closed on {formatDate(selectedReport.closed_at)}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1002,6 +1040,51 @@ export default function InjuryReportsList({ project, companyId, company, user, o
           font-size: 0.875rem;
           padding-left: 1rem;
           border-left: 3px solid var(--border-color);
+        }
+
+        .status-actions {
+          padding: 1.5rem 0;
+          border-top: 1px solid var(--border-color);
+        }
+
+        .status-actions label {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 0.75rem;
+        }
+
+        .status-buttons {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .btn-status {
+          padding: 0.5rem 1.25rem;
+          border-radius: 6px;
+          font-weight: 500;
+          cursor: pointer;
+          border: none;
+          font-size: 0.875rem;
+        }
+
+        .btn-status.investigate {
+          background-color: #3b82f6;
+          color: white;
+        }
+
+        .btn-status.investigate:hover {
+          background-color: #2563eb;
+        }
+
+        .btn-status.close {
+          background-color: #10b981;
+          color: white;
+        }
+
+        .btn-status.close:hover {
+          background-color: #059669;
         }
 
         .report-meta {

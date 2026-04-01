@@ -1,12 +1,26 @@
-import { useState, useEffect } from 'react'
-import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react'
+import TMCapabilitiesModal from './tm/TMCapabilitiesModal'
 import { db } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
 import { TRANSLATIONS } from './tm/translations'
+import { getLocalDateString, parseLocalDate } from '../lib/utils'
 import WorkDetailsStep from './tm/WorkDetailsStep'
 import CrewHoursStep from './tm/CrewHoursStep'
 import MaterialsStep from './tm/MaterialsStep'
 import ReviewStep from './tm/ReviewStep'
+import CustomFieldSection from './ui/CustomFieldSection'
+
+// Step configuration for the enhanced stepper
+const STEPS = [
+  { num: 1, label: 'Details', shortLabel: 'Info' },
+  { num: 2, label: 'Crew', shortLabel: 'Crew' },
+  { num: 3, label: 'Materials', shortLabel: 'Mat.' },
+  { num: 4, label: 'Review', shortLabel: 'Rev.' }
+]
+
+// Draft auto-save key
+const getDraftKey = (projectId) => `tm_draft_${projectId}`
 
 // Generate secure random ID
 const generateRandomId = () => {
@@ -37,10 +51,13 @@ const calculateHoursFromTimeRange = (startTime, endTime) => {
 
 export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1)
-  const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
+  const [workDate, setWorkDate] = useState(getLocalDateString())
+  const [showCapabilities, setShowCapabilities] = useState(false)
 
   // Post-submit signature state
   const [submittedTicket, setSubmittedTicket] = useState(null)
+  const [showForemanSignature, setShowForemanSignature] = useState(false)
+  const [foremanSigned, setForemanSigned] = useState(false)
   const [showSignatureLinkModal, setShowSignatureLinkModal] = useState(false)
   const [showOnSiteSignature, setShowOnSiteSignature] = useState(false)
   const [clientSigned, setClientSigned] = useState(false)
@@ -63,6 +80,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [submitProgress, setSubmitProgress] = useState('')
+  const [customFieldValues, setCustomFieldValues] = useState({})
 
   // Crew check-in state
   const [todaysCrew, setTodaysCrew] = useState([])
@@ -83,6 +101,104 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   const hasCustomLaborClasses = laborClasses.length > 0
 
+  // Keep a ref to the latest photos so the cleanup runs against current values
+  const photosRef = useRef(photos)
+  photosRef.current = photos
+
+  // Draft resume state
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false)
+  const [hasDraft, setHasDraft] = useState(false)
+  const draftSaveTimerRef = useRef(null)
+
+  // Revoke blob URLs on unmount to prevent ERR_FILE_NOT_FOUND and memory leaks
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach(p => {
+        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
+      })
+    }
+  }, [])
+
+  // Check for existing draft on mount
+  useEffect(() => {
+    try {
+      const draftKey = getDraftKey(project?.id)
+      const saved = localStorage.getItem(draftKey)
+      if (saved) {
+        setHasDraft(true)
+        setShowDraftPrompt(true)
+      }
+    } catch { /* localStorage unavailable */ }
+  }, [project?.id])
+
+  // Auto-save draft on step changes and input changes (debounced)
+  const saveDraft = useCallback(() => {
+    if (!project?.id || step >= 5) return
+    try {
+      const draftData = {
+        step,
+        workDate,
+        cePcoNumber,
+        notes,
+        supervision: supervision.map(s => ({ name: s.name, hours: s.hours, overtimeHours: s.overtimeHours, role: s.role })),
+        operators: operators.map(o => ({ name: o.name, hours: o.hours, overtimeHours: o.overtimeHours })),
+        laborers: laborers.map(l => ({ name: l.name, hours: l.hours, overtimeHours: l.overtimeHours })),
+        items,
+        submittedByName,
+        selectedCorId,
+        savedAt: Date.now()
+      }
+      localStorage.setItem(getDraftKey(project.id), JSON.stringify(draftData))
+    } catch { /* localStorage unavailable */ }
+  }, [project?.id, step, workDate, cePcoNumber, notes, supervision, operators, laborers, items, submittedByName, selectedCorId])
+
+  // Save draft when step changes
+  useEffect(() => {
+    if (step < 5 && !showDraftPrompt) {
+      saveDraft()
+    }
+  }, [step, saveDraft, showDraftPrompt])
+
+  // Debounced save on input changes
+  useEffect(() => {
+    if (showDraftPrompt) return
+    clearTimeout(draftSaveTimerRef.current)
+    draftSaveTimerRef.current = setTimeout(saveDraft, 1000)
+    return () => clearTimeout(draftSaveTimerRef.current)
+  }, [notes, cePcoNumber, submittedByName, saveDraft, showDraftPrompt])
+
+  // Resume draft
+  const resumeDraft = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(getDraftKey(project?.id)))
+      if (saved) {
+        if (saved.workDate) setWorkDate(saved.workDate)
+        if (saved.cePcoNumber) setCePcoNumber(saved.cePcoNumber)
+        if (saved.notes) setNotes(saved.notes)
+        if (saved.items) setItems(saved.items)
+        if (saved.submittedByName) setSubmittedByName(saved.submittedByName)
+        if (saved.selectedCorId) setSelectedCorId(saved.selectedCorId)
+        if (saved.supervision?.length) setSupervision(saved.supervision.map(s => ({ ...s, timeStarted: '', timeEnded: '' })))
+        if (saved.operators?.length) setOperators(saved.operators.map(o => ({ ...o, timeStarted: '', timeEnded: '' })))
+        if (saved.laborers?.length) setLaborers(saved.laborers.map(l => ({ ...l, timeStarted: '', timeEnded: '' })))
+        if (saved.step && saved.step < 5) setStep(saved.step)
+        onShowToast('Draft restored', 'success')
+      }
+    } catch { /* parse error */ }
+    setShowDraftPrompt(false)
+  }
+
+  // Discard draft
+  const discardDraft = () => {
+    try { localStorage.removeItem(getDraftKey(project?.id)) } catch {}
+    setShowDraftPrompt(false)
+  }
+
+  // Clear draft on successful submit
+  const clearDraft = () => {
+    try { localStorage.removeItem(getDraftKey(project?.id)) } catch {}
+  }
+
   // Load today's crew and assignable CORs on mount
   useEffect(() => {
     loadTodaysCrew()
@@ -93,7 +209,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     })
 
     return () => {
-      corSub?.unsubscribe?.()
+      if (corSub) db.unsubscribe?.(corSub)
     }
   }, [project.id])
 
@@ -186,21 +302,21 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       })
       setDynamicWorkers(updatedDynamic)
     } else {
-      setSupervision(supervision.map(s => {
+      setSupervision(prev => prev.map(s => {
         if (s && s.name && s.name.trim()) {
           updatedCount++
           return { ...s, timeStarted, timeEnded, hours, overtimeHours }
         }
         return s
       }))
-      setOperators(operators.map(o => {
+      setOperators(prev => prev.map(o => {
         if (o && o.name && o.name.trim()) {
           updatedCount++
           return { ...o, timeStarted, timeEnded, hours, overtimeHours }
         }
         return o
       }))
-      setLaborers(laborers.map(l => {
+      setLaborers(prev => prev.map(l => {
         if (l && l.name && l.name.trim()) {
           updatedCount++
           return { ...l, timeStarted, timeEnded, hours, overtimeHours }
@@ -313,8 +429,52 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
       }
 
-      if (hasCustomLaborClasses && previousCrew.dynamicWorkers) {
-        setDynamicWorkers(previousCrew.dynamicWorkers)
+      if (hasCustomLaborClasses) {
+        if (previousCrew.dynamicWorkers) {
+          // Load dynamic workers and activate their labor class sections
+          setDynamicWorkers(previousCrew.dynamicWorkers)
+          setActiveLaborClassIds(prev => {
+            const newIds = new Set(prev)
+            Object.keys(previousCrew.dynamicWorkers).forEach(id => newIds.add(id))
+            return newIds
+          })
+        } else {
+          // Previous ticket used legacy roles — map workers into dynamic labor classes
+          const allLegacyWorkers = [
+            ...(previousCrew.supervision || []).map(w => ({ ...w, legacyRole: w.role || 'Foreman' })),
+            ...(previousCrew.operators || []).map(w => ({ ...w, legacyRole: 'Operator' })),
+            ...(previousCrew.laborers || []).map(w => ({ ...w, legacyRole: 'Laborer' }))
+          ]
+          if (allLegacyWorkers.length > 0) {
+            const newActiveIds = new Set()
+            const mappedWorkers = {}
+            allLegacyWorkers.forEach(worker => {
+              // Try to match legacy role to a labor class by name
+              const matchingClass = laborClasses.find(lc =>
+                lc.name.toLowerCase().includes(worker.legacyRole.toLowerCase()) ||
+                worker.legacyRole.toLowerCase().includes(lc.name.toLowerCase())
+              )
+              const targetClassId = matchingClass?.id || laborClasses[0]?.id
+              if (targetClassId) {
+                if (!mappedWorkers[targetClassId]) mappedWorkers[targetClassId] = []
+                mappedWorkers[targetClassId].push({
+                  name: worker.name,
+                  hours: worker.hours || '',
+                  overtimeHours: worker.overtimeHours || '',
+                  timeStarted: worker.timeStarted || '',
+                  timeEnded: worker.timeEnded || ''
+                })
+                newActiveIds.add(targetClassId)
+              }
+            })
+            setDynamicWorkers(prev => ({ ...prev, ...mappedWorkers }))
+            setActiveLaborClassIds(prev => {
+              const merged = new Set(prev)
+              newActiveIds.forEach(id => merged.add(id))
+              return merged
+            })
+          }
+        }
       } else {
         if (previousCrew.supervision) {
           setSupervision(previousCrew.supervision)
@@ -327,7 +487,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         }
       }
 
-      const dateStr = new Date(previousCrew.workDate).toLocaleDateString()
+      const dateStr = parseLocalDate(previousCrew.workDate).toLocaleDateString()
       onShowToast(t('loadedWorkers').replace('{count}', previousCrew.totalWorkers).replace('{date}', dateStr), 'success')
     } catch (error) {
       console.error('Error loading previous crew:', error)
@@ -665,7 +825,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   const retryPhotoUpload = async (photoId, ticketId) => {
-    const photo = photos.find(p => p.id === photoId)
+    // Use ref to avoid stale closure over photos state
+    const currentPhotos = photosRef.current
+    const photo = currentPhotos.find(p => p.id === photoId)
     if (!photo || photo.status !== 'failed') return
 
     updatePhotoStatus(photoId, { status: 'compressing', error: null })
@@ -688,7 +850,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         attempts: photo.attempts + 1
       })
 
-      await db.updateTMTicketPhotos(ticketId, [...photos.filter(p => p.uploadedUrl).map(p => p.uploadedUrl), url])
+      // Use ref for current photo state to avoid stale closure
+      const latestPhotos = photosRef.current
+      const allUploadedUrls = latestPhotos
+        .filter(p => p.id === photoId ? true : p.uploadedUrl)
+        .map(p => p.id === photoId ? url : p.uploadedUrl)
+        .filter(Boolean)
+      await db.updateTMTicketPhotos(ticketId, allUploadedUrls)
 
       onShowToast('Photo uploaded successfully', 'success')
     } catch (err) {
@@ -707,7 +875,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     if (photo?.previewUrl) {
       URL.revokeObjectURL(photo.previewUrl)
     }
-    setPhotos(photos.filter(p => p.id !== photoId))
+    setPhotos(prev => prev.filter(p => p.id !== photoId))
   }
 
   // Computed values for summaries
@@ -779,6 +947,9 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Submit
   const handleSubmit = async () => {
+    // Guard against double-submit
+    if (submitting) return
+
     if (!submittedByName.trim()) {
       onShowToast('Enter your name to submit', 'error')
       return
@@ -826,6 +997,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         throw new Error('Failed to create ticket - no ticket ID returned')
       }
 
+      // Save trade-specific custom fields
+      if (Object.keys(customFieldValues).length > 0) {
+        await db.saveCustomFieldData(project.id, 'tm_ticket', ticket.id, customFieldValues)
+      }
+
       // Compress and upload photos
       let photoUrls = []
       const pendingPhotos = photos.filter(p => p.status === 'pending')
@@ -846,26 +1022,27 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         )
 
         setSubmitProgress(`Uploading ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
-        pendingPhotos.forEach(p => updatePhotoStatus(p.id, { status: 'uploading' }))
 
         let uploadedCount = 0
         let failedCount = 0
-        const uploadPromises = compressedPhotos.map(async (photo) => {
+        const results = []
+
+        // Upload photos sequentially to avoid overwhelming the connection
+        for (const photo of compressedPhotos) {
+          updatePhotoStatus(photo.id, { status: 'uploading' })
           try {
             const url = await db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
             uploadedCount++
             setSubmitProgress(`Uploading ${uploadedCount}/${pendingPhotos.length} photos...`)
             updatePhotoStatus(photo.id, { status: 'confirmed', uploadedUrl: url, attempts: (photo.attempts || 0) + 1 })
-            return { id: photo.id, url }
+            results.push({ id: photo.id, url })
           } catch (err) {
             console.error(`Photo ${photo.name} upload failed:`, err)
             failedCount++
             updatePhotoStatus(photo.id, { status: 'failed', error: err.message || 'Upload failed', attempts: (photo.attempts || 0) + 1 })
-            return { id: photo.id, url: null, error: err.message }
+            results.push({ id: photo.id, url: null, error: err.message })
           }
-        })
-
-        const results = await Promise.all(uploadPromises)
+        }
         photoUrls = results.filter(r => r.url !== null).map(r => r.url)
 
         // Build GPS metadata: map photo URL → {lat, lng, accuracy}
@@ -894,22 +1071,25 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           await db.updateTMTicketPhotos(ticket.id, photoUrls,
             Object.keys(photoLocations).length > 0 ? photoLocations : null)
         }
-      } else if (photoUrls.length > 0) {
-        setSubmitProgress('Saving photos...')
-        await db.updateTMTicketPhotos(ticket.id, photoUrls)
       }
 
-      setSubmitProgress('Saving workers...')
-      await db.addTMWorkers(ticket.id, allWorkersForSubmit)
+      try {
+        setSubmitProgress('Saving workers...')
+        await db.addTMWorkers(ticket.id, allWorkersForSubmit)
 
-      if (items.length > 0) {
-        setSubmitProgress('Saving materials...')
-        await db.addTMItems(ticket.id, items.map(item => ({
-          material_equipment_id: item.material_equipment_id,
-          custom_name: item.custom_name || null,
-          custom_category: item.custom_category || null,
-          quantity: item.quantity
-        })))
+        if (items.length > 0) {
+          setSubmitProgress('Saving materials...')
+          await db.addTMItems(ticket.id, items.map(item => ({
+            material_equipment_id: item.material_equipment_id,
+            custom_name: item.custom_name || null,
+            custom_category: item.custom_category || null,
+            quantity: item.quantity
+          })))
+        }
+      } catch (workerItemsError) {
+        // Tag the error with ticketId so the outer catch can clean up the orphan
+        workerItemsError._ticketId = ticket.id
+        throw workerItemsError
       }
 
       if (selectedCorId) {
@@ -923,20 +1103,28 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           } catch (markError) {
             console.error('Error marking import failed:', markError)
           }
-          onShowToast('T&M saved. COR data sync failed - retry from ticket list.', 'warning')
+          onShowToast('Ticket saved. COR data sync failed - retry from ticket list.', 'warning')
         }
       }
 
-      photos.forEach(p => {
-        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
-      })
+      // Don't revoke blob URLs here — they're needed for the retry UI on step 5.
+      // They will be cleaned up on component unmount via the photosRef effect.
 
       setSubmittedTicket(ticket)
-      onShowToast('T&M submitted!', 'success')
+      clearDraft()
+      onShowToast('Time & Material ticket submitted!', 'success')
       setStep(5)
     } catch (error) {
       console.error('Error submitting T&M:', error)
-      onShowToast('Error submitting T&M', 'error')
+      // If ticket was created but workers/items failed, clean up the orphaned ticket
+      if (error._ticketId) {
+        try {
+          await db.deleteTMTicket(error._ticketId)
+        } catch (cleanupErr) {
+          console.error('Failed to clean up orphaned ticket:', cleanupErr)
+        }
+      }
+      onShowToast('Error submitting Time and Material ticket', 'error')
     } finally {
       setSubmitting(false)
       setSubmitProgress('')
@@ -945,6 +1133,28 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   return (
     <div className="tm-wizard">
+      <TMCapabilitiesModal isOpen={showCapabilities} onClose={() => setShowCapabilities(false)} />
+      {/* Draft Resume Prompt */}
+      {showDraftPrompt && (
+        <div className="tm-draft-prompt animate-fade-in-down">
+          <div className="tm-draft-prompt-content">
+            <AlertCircle size={20} />
+            <div className="tm-draft-prompt-text">
+              <strong>{t('draftFound') || 'Draft found'}</strong>
+              <span>{t('resumeDraftQuestion') || 'Resume where you left off?'}</span>
+            </div>
+          </div>
+          <div className="tm-draft-prompt-actions">
+            <button className="btn btn-secondary btn-sm" onClick={discardDraft}>
+              {t('startFresh') || 'Start Fresh'}
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={resumeDraft}>
+              {t('resumeDraft') || 'Resume Draft'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="tm-wizard-header">
         {step < 5 ? (
@@ -960,6 +1170,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {step === 5 && (t('submitted'))}
         </h2>
         <div className="tm-header-right">
+          {step < 5 && (
+            <button className="capabilities-help-btn" onClick={() => setShowCapabilities(true)} title="What can Time and Material tickets do?" type="button">
+              <HelpCircle size={16} />
+            </button>
+          )}
           {step < 4 && (
             <button
               className="tm-lang-toggle"
@@ -981,19 +1196,42 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       </div>
 
+      {/* Enhanced Step Progress Bar */}
+      {step < 5 && (
+        <div className="tm-stepper-bar">
+          {STEPS.map((s, idx) => (
+            <div key={s.num} className={`tm-stepper-step ${step > s.num ? 'completed' : step === s.num ? 'active' : ''}`}>
+              <div className="tm-stepper-circle">
+                {step > s.num ? <Check size={12} /> : s.num}
+              </div>
+              <span className="tm-stepper-label">{s.shortLabel}</span>
+              {idx < STEPS.length - 1 && <div className="tm-stepper-line" />}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Step 1: Work Details */}
       {step === 1 && (
-        <WorkDetailsStep
-          project={project}
-          workDate={workDate}
-          setWorkDate={setWorkDate}
-          cePcoNumber={cePcoNumber}
-          setCePcoNumber={setCePcoNumber}
-          notes={notes}
-          setNotes={setNotes}
-          t={t}
-          lang={lang}
-        />
+        <>
+          <WorkDetailsStep
+            project={project}
+            workDate={workDate}
+            setWorkDate={setWorkDate}
+            cePcoNumber={cePcoNumber}
+            setCePcoNumber={setCePcoNumber}
+            notes={notes}
+            setNotes={setNotes}
+            t={t}
+            lang={lang}
+          />
+          <CustomFieldSection
+            formType="tm_ticket"
+            projectId={project.id}
+            values={customFieldValues}
+            onChange={setCustomFieldValues}
+          />
+        </>
       )}
 
       {/* Step 2: Crew & Hours */}
@@ -1087,6 +1325,11 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           submittedTicket={submittedTicket}
           submitting={submitting}
           submitProgress={submitProgress}
+          foremanSigned={foremanSigned}
+          setForemanSigned={setForemanSigned}
+          showForemanSignature={showForemanSignature}
+          setShowForemanSignature={setShowForemanSignature}
+          foremanName={submittedByName}
           clientSigned={clientSigned}
           setClientSigned={setClientSigned}
           showSignatureLinkModal={showSignatureLinkModal}
@@ -1160,16 +1403,28 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         </div>
       )}
 
-      {/* Step 5: Success Footer */}
+      {/* Step 5: Success Footer - Foreman signature required before Done */}
       {step === 5 && (
         <div className="tm-wizard-footer">
-          <button className="tm-big-btn primary" onClick={onSubmit}>
-            <Check size={20} />
-            <span>{t('done')}</span>
-          </button>
-          <button className="tm-skip-btn" onClick={onSubmit}>
-            {t('skipSignature')}
-          </button>
+          {foremanSigned ? (
+            <button className="tm-big-btn primary" onClick={onSubmit}>
+              <Check size={20} />
+              <span>{t('done')}</span>
+            </button>
+          ) : (
+            <button
+              className="tm-big-btn submit needs-name"
+              onClick={() => setShowForemanSignature(true)}
+            >
+              <PenLine size={18} />
+              <span>{t('foremanSignatureRequired')}</span>
+            </button>
+          )}
+          {foremanSigned && !clientSigned && (
+            <button className="tm-skip-btn" onClick={onSubmit}>
+              {t('skipClientSignature')}
+            </button>
+          )}
         </div>
       )}
     </div>

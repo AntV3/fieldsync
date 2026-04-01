@@ -4,6 +4,7 @@ import {
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
   Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck
 } from 'lucide-react'
+import { useTradeConfig } from '../lib/TradeConfigContext'
 
 /**
  * ForemanLanding - Mobile-first landing page for foremen
@@ -15,8 +16,8 @@ import {
  * - Zero training required UX
  */
 
-// All available actions with their config
-const ALL_ACTIONS = {
+// Base actions available to all trades
+const BASE_ACTIONS = {
   crew: {
     id: 'crew',
     label: 'Crew Check-in',
@@ -25,9 +26,9 @@ const ALL_ACTIONS = {
   },
   tm: {
     id: 'tm',
-    label: 'T&M Ticket',
+    label: 'Time & Material',
     icon: FileText,
-    description: 'Create time & materials ticket'
+    description: 'Create time & material ticket'
   },
   report: {
     id: 'report',
@@ -74,8 +75,8 @@ const ALL_ACTIONS = {
   }
 }
 
-// Default pinned actions (sensible defaults for new users)
-const DEFAULT_PINNED = ['crew', 'tm', 'report', 'progress']
+// Fallback default pinned actions
+const FALLBACK_PINNED = ['crew', 'disposal', 'tm', 'report', 'progress']
 
 // Storage key generator
 const getPinStorageKey = (projectId) => `fm_pinned_${projectId}`
@@ -91,6 +92,40 @@ export default function ForemanLanding({
   onNavigate,
   onShowToast
 }) {
+  // Trade config for dynamic actions
+  const tradeConfig = useTradeConfig()
+  const configuredActions = tradeConfig?.resolvedConfig?.field_actions
+  const truckLoadTrackingEnabled = tradeConfig?.resolvedConfig?.enable_truck_load_tracking ?? false
+
+  // Resolve available actions: base actions filtered by trade config
+  const ALL_ACTIONS = useMemo(() => {
+    let actions = BASE_ACTIONS
+    if (configuredActions && configuredActions.length > 0) {
+      const filtered = {}
+      for (const actionId of configuredActions) {
+        if (BASE_ACTIONS[actionId]) {
+          filtered[actionId] = BASE_ACTIONS[actionId]
+        }
+      }
+      actions = Object.keys(filtered).length > 0 ? filtered : BASE_ACTIONS
+    }
+    // Only show disposal action when truck load tracking is enabled
+    if (!truckLoadTrackingEnabled) {
+      const { disposal, ...rest } = actions
+      return rest
+    }
+    // If enabled but disposal isn't in the action set, add it
+    if (truckLoadTrackingEnabled && !actions.disposal) {
+      return { ...actions, disposal: BASE_ACTIONS.disposal }
+    }
+    return actions
+  }, [configuredActions, truckLoadTrackingEnabled])
+
+  const DEFAULT_PINNED = useMemo(() => {
+    if (configuredActions?.length >= 4) return configuredActions.slice(0, 4)
+    return FALLBACK_PINNED
+  }, [configuredActions])
+
   // Pinned actions state
   const [pinnedIds, setPinnedIds] = useState(() => {
     try {
@@ -171,22 +206,28 @@ export default function ForemanLanding({
           badge: areasRemaining > 0 ? `${areasRemaining} left` : null,
           status: `${progress}% complete`
         }
-      case 'disposal':
+      case 'disposal': {
+        const loadsToday = todayStatus.disposalLoadsToday
+        const trucksToday = todayStatus.trucksUsedToday || 0
+        const parts = []
+        if (loadsToday > 0) parts.push(`${loadsToday} loads`)
+        if (trucksToday > 0) parts.push(`${trucksToday} truck${trucksToday !== 1 ? 's' : ''}`)
         return {
           done: false,
-          badge: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} today` : null,
-          status: todayStatus.disposalLoadsToday > 0 ? `${todayStatus.disposalLoadsToday} logged` : 'Log loads'
+          badge: parts.length > 0 ? parts.join(', ') : null,
+          status: parts.length > 0 ? parts.join(', ') : 'Log loads'
         }
+      }
       case 'punchlist':
         return {
-          done: punchListOpenCount === 0 && punchListOpenCount !== undefined,
+          done: punchListOpenCount !== null && punchListOpenCount === 0,
           badge: punchListOpenCount > 0 ? `${punchListOpenCount} open` : null,
-          status: punchListOpenCount > 0 ? `${punchListOpenCount} items open` : 'All clear'
+          status: punchListOpenCount === null ? 'Loading...' : punchListOpenCount > 0 ? `${punchListOpenCount} items open` : 'All clear'
         }
       default:
         return { done: false, badge: null, status: null }
     }
-  }, [todayStatus, progress, areasRemaining])
+  }, [todayStatus, progress, areasRemaining, punchListOpenCount])
 
   // Render a pinned action card
   const renderPinnedAction = (actionId) => {
@@ -295,6 +336,21 @@ export default function ForemanLanding({
             <span className="fm-snapshot-label">Remaining</span>
           </div>
         </div>
+        {truckLoadTrackingEnabled && (
+          <div className="fm-snapshot-loads">
+            <div className="fm-snapshot-load-stat">
+              <Truck size={16} />
+              <span className="fm-snapshot-load-value">{todayStatus.disposalLoadsToday || 0}</span>
+              <span className="fm-snapshot-load-label">Disposal Loads</span>
+            </div>
+            <div className="fm-snapshot-load-divider" />
+            <div className="fm-snapshot-load-stat">
+              <Truck size={16} />
+              <span className="fm-snapshot-load-value">{todayStatus.trucksUsedToday || 0}</span>
+              <span className="fm-snapshot-load-label">Trucks Used</span>
+            </div>
+          </div>
+        )}
         {todayStatus.crewCheckedIn && (
           <div className="fm-snapshot-today">
             <Clock size={14} />
@@ -320,7 +376,7 @@ export default function ForemanLanding({
       )}
 
       {/* Pinned Actions Grid */}
-      <div className="fm-pinned-grid">
+      <div className="fm-pinned-grid stagger-children">
         {pinnedIds.map(renderPinnedAction)}
       </div>
 
@@ -457,6 +513,46 @@ export default function ForemanLanding({
           background: rgba(255,255,255,0.25);
         }
 
+        .fm-snapshot-loads {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          margin-top: 0.875rem;
+          padding-top: 0.875rem;
+          border-top: 1px solid rgba(255,255,255,0.15);
+          position: relative;
+          z-index: 1;
+        }
+
+        .fm-snapshot-load-stat {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          flex: 1;
+          justify-content: center;
+        }
+
+        .fm-snapshot-load-value {
+          font-size: 1.25rem;
+          font-weight: 700;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .fm-snapshot-load-label {
+          font-size: 0.7rem;
+          opacity: 0.85;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          font-weight: 600;
+        }
+
+        .fm-snapshot-load-divider {
+          width: 1px;
+          height: 28px;
+          background: rgba(255,255,255,0.25);
+        }
+
         .fm-snapshot-today {
           display: flex;
           align-items: center;
@@ -492,7 +588,7 @@ export default function ForemanLanding({
           align-items: center;
           justify-content: center;
           padding: 0.5rem;
-          background: var(--gradient-card-dark, var(--bg-elevated));
+          background: var(--bg-card);
           border: 1px solid var(--border-color);
           border-radius: 10px;
           color: var(--text-secondary);
@@ -543,11 +639,11 @@ export default function ForemanLanding({
           align-items: center;
           justify-content: center;
           padding: 1.375rem 1rem;
-          background: var(--gradient-card-dark, var(--bg-card));
+          background: var(--bg-card);
           border: 1px solid var(--border-color);
-          border-radius: 14px;
+          border-radius: var(--radius-xl, 16px);
           cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all var(--transition-normal, 0.25s cubic-bezier(0.4, 0, 0.2, 1));
           min-height: 114px;
           position: relative;
           box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.1));
@@ -588,10 +684,11 @@ export default function ForemanLanding({
         .fm-pinned-card.completed {
           border-color: rgba(34, 197, 94, 0.4);
           background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+          box-shadow: var(--shadow-glow-green, 0 0 20px rgba(16, 185, 129, 0.15));
         }
 
         .fm-pinned-card.completed::before {
-          background: linear-gradient(90deg, #22c55e, #16a34a);
+          background: var(--gradient-green, linear-gradient(90deg, #22c55e, #16a34a));
           opacity: 1;
         }
 
@@ -679,7 +776,7 @@ export default function ForemanLanding({
 
         /* More Actions Section */
         .fm-more-section {
-          background: var(--gradient-card-dark, var(--bg-card));
+          background: var(--bg-card);
           border: 1px solid var(--border-color);
           border-radius: 14px;
           overflow: hidden;

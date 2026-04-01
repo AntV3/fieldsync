@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import {
@@ -17,6 +17,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     tickets: [],
     crewHistory: [],
     disposalLoads: [],
+    truckCounts: [],
     dailyReports: []
   })
 
@@ -40,36 +41,43 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
       // Load all data in parallel
       const days = timeRange === 'week' ? 7 : 30
-      const [areas, tickets, disposalLoads, dailyReports] = await Promise.all([
+      const [areas, tickets, disposalLoads, dailyReports, truckCounts] = await Promise.all([
         db.getAreas(project.id),
         db.getTMTickets?.(project.id) || [],
         db.getDisposalLoadsHistory?.(project.id, days) || [],
-        db.getDailyReports?.(project.id) || []
+        db.getDailyReports?.(project.id) || [],
+        db.getTruckCountHistory?.(project.id, days) || []
       ])
 
-      // Load crew history for each day
-      const crewHistory = []
+      // Load crew history for each day (parallel for performance)
+      const crewDates = []
       const currentDate = new Date(startDate)
       while (currentDate <= now) {
-        const dateStr = currentDate.toISOString().split('T')[0]
-        try {
-          const crew = await db.getCrewCheckin(project.id, dateStr)
-          crewHistory.push({
-            date: dateStr,
-            count: crew?.workers?.length || 0,
-            dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
-          })
-        } catch {
-          crewHistory.push({ date: dateStr, count: 0, dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' }) })
-        }
+        crewDates.push({
+          dateStr: currentDate.toISOString().split('T')[0],
+          dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
+        })
         currentDate.setDate(currentDate.getDate() + 1)
       }
+
+      const crewResults = await Promise.all(
+        crewDates.map(async ({ dateStr, dayName }) => {
+          try {
+            const crew = await db.getCrewCheckin(project.id, dateStr)
+            return { date: dateStr, count: crew?.workers?.length || 0, dayName }
+          } catch {
+            return { date: dateStr, count: 0, dayName }
+          }
+        })
+      )
+      const crewHistory = crewResults
 
       setMetrics({
         areas,
         tickets: tickets.filter(t => t.work_date >= startStr),
         crewHistory,
         disposalLoads: disposalLoads,
+        truckCounts: truckCounts || [],
         dailyReports: dailyReports.filter(r => r.report_date >= startStr)
       })
     } catch (error) {
@@ -105,6 +113,9 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedReload)
     if (haulSub) subs.push(haulSub)
 
+    const truckSub = db.subscribeToTruckCounts?.(project.id, debouncedReload)
+    if (truckSub) subs.push(truckSub)
+
     const reportSub = db.subscribeToDailyReports?.(project.id, debouncedReload)
     if (reportSub) subs.push(reportSub)
 
@@ -116,7 +127,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
   // Calculate derived metrics
   const derivedMetrics = useMemo(() => {
-    const { areas, tickets, crewHistory, disposalLoads, dailyReports } = metrics
+    const { areas, tickets, crewHistory, disposalLoads, truckCounts, dailyReports } = metrics
 
     // Progress stats
     const totalAreas = areas.length
@@ -139,7 +150,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
     // Disposal stats
     const totalLoads = disposalLoads.reduce((sum, d) => sum + (d.load_count || 0), 0)
-    const totalTonnage = 0 // tonnage not tracked in disposal_loads
+    const totalTrucks = (truckCounts || []).reduce((sum, t) => sum + (t.truck_count || 0), 0)
 
     // Daily reports
     const reportsSubmitted = dailyReports.filter(r => r.submitted).length
@@ -150,7 +161,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       progress: { totalAreas, completedAreas, inProgressAreas, notStartedAreas, progressPercent },
       crew: { totalManDays, avgCrewSize, daysWithCrew, history: crewHistory },
       tickets: { total: tickets.length, pending: pendingTickets, signed: signedTickets, totalValue: totalTicketValue },
-      disposal: { totalLoads, totalTonnage },
+      disposal: { totalLoads, totalTrucks },
       reports: { submitted: reportsSubmitted, due: reportsDue, streak: reportStreak }
     }
   }, [metrics, timeRange])
@@ -161,7 +172,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     const sortedDates = [...new Set(reports.filter(r => r.submitted).map(r => r.report_date))].sort().reverse()
     let streak = 0
     const today = new Date().toISOString().split('T')[0]
-    let checkDate = new Date(today)
+    const checkDate = new Date(today)
 
     for (let i = 0; i < 30; i++) {
       const dateStr = checkDate.toISOString().split('T')[0]
@@ -282,7 +293,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           </div>
           <div className="card-content">
             <span className="card-value">{derivedMetrics.tickets.total}</span>
-            <span className="card-label">T&M Tickets</span>
+            <span className="card-label">Time & Material</span>
           </div>
           <div className="card-detail">
             {derivedMetrics.tickets.signed} signed, {derivedMetrics.tickets.pending} pending
@@ -298,7 +309,10 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
             <span className="card-label">Disposal Loads</span>
           </div>
           <div className="card-detail">
-            {derivedMetrics.disposal.totalTonnage.toFixed(1)} tons
+            {derivedMetrics.disposal.totalTrucks > 0
+              ? `${derivedMetrics.disposal.totalTrucks} trucks used`
+              : (timeRange === 'week' ? 'Last 7 days' : 'Last 30 days')
+            }
           </div>
         </div>
       </div>
@@ -309,17 +323,17 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         <div className="chart-card">
           <h3>Area Progress</h3>
           {progressPieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={240}>
               <PieChart>
                 <Pie
                   data={progressPieData}
                   cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
+                  cy="45%"
+                  innerRadius={45}
+                  outerRadius={75}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
+                  label={false}
                   labelLine={false}
                 >
                   {progressPieData.map((entry, index) => (
@@ -327,6 +341,13 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value) => <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{value}</span>}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -353,7 +374,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
 
         {/* T&M Tickets Over Time */}
         <div className="chart-card">
-          <h3>T&M Tickets by Day</h3>
+          <h3>Time & Material Tickets by Day</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={ticketsByDay}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -410,7 +431,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
                   <DollarSign size={20} />
                 </div>
                 <div className="activity-info">
-                  <span className="activity-label">T&M Value</span>
+                  <span className="activity-label">Time & Material Value</span>
                   <span className="activity-value">${derivedMetrics.tickets.totalValue.toLocaleString()}</span>
                 </div>
               </div>
@@ -424,6 +445,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           padding: 1rem;
           max-width: 100%;
           overflow-x: hidden;
+          box-sizing: border-box;
         }
 
         .foreman-metrics.loading {
@@ -442,7 +464,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
         .metrics-header {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           margin-bottom: 1.5rem;
           flex-wrap: wrap;
         }
@@ -452,19 +474,25 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           margin: 0;
           font-size: 1.25rem;
           color: var(--text-primary);
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .back-btn {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.5rem 1rem;
+          padding: 0.5rem 0.75rem;
           background: var(--bg-elevated);
           border: 1px solid var(--border-color);
           border-radius: 8px;
           color: var(--text-primary);
           cursor: pointer;
           font-size: 0.875rem;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
 
         .back-btn:hover {
@@ -477,6 +505,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           border-radius: 8px;
           padding: 4px;
           gap: 4px;
+          flex-shrink: 0;
         }
 
         .time-toggle button {
@@ -500,6 +529,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           grid-template-columns: repeat(2, 1fr);
           gap: 1rem;
           margin-bottom: 1.5rem;
+          overflow: hidden;
         }
 
         @media (min-width: 640px) {
@@ -516,6 +546,8 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .card-icon {
@@ -605,6 +637,8 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           border: 1px solid var(--border-color);
           border-radius: 12px;
           padding: 1rem;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .chart-card h3 {

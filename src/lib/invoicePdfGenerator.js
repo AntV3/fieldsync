@@ -286,6 +286,13 @@ export async function generateInvoicePDF(invoice, project, company) {
   const totalPgs = doc.internal.getNumberOfPages()
   for (let i = 1; i <= totalPgs; i++) {
     doc.setPage(i)
+
+    // Thin accent stripe at top of continuation pages
+    if (i > 1) {
+      doc.setFillColor(...primary)
+      doc.rect(0, 0, pageWidth, 2.5, 'F')
+    }
+
     const fy = pageHeight - 10
     drawRule(doc, margin, fy - 4, pageWidth - margin, border, 0.3)
     doc.setFontSize(7.5)

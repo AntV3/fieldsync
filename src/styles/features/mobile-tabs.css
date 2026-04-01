@@ -25,6 +25,10 @@
     grid-column: span 2;
   }
 
+  .reports-two-col {
+    grid-template-columns: 1fr;
+  }
+
   .activity-hero-grid {
     grid-template-columns: 1fr 1fr;
     gap: 1rem;

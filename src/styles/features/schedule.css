@@ -489,22 +489,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding: 1.25rem;
   }
 
-  .bo-financial-row {
+  .bo-hero-value {
+    font-size: 1.65rem;
+  }
+
+  .bo-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bo-status-strip {
     flex-direction: column;
     gap: 1rem;
-  }
-
-  .bo-metric.primary {
-    min-width: auto;
-    flex: none;
-  }
-
-  .bo-metric-separator {
-    display: none;
-  }
-
-  .bo-metric-value {
-    font-size: 1.35rem;
   }
 
   .project-list {
@@ -524,12 +519,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     gap: 0.5rem;
   }
 
-  .bo-metric-value {
-    font-size: 1.2rem;
+  .bo-hero-value {
+    font-size: 1.4rem;
   }
 
-  .bo-metric.highlight .bo-metric-value {
-    font-size: 1.1rem;
+  .bo-kpi-value {
+    font-size: 1.05rem;
+  }
+
+  .bo-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
   }
 
   .bo-health-pills {

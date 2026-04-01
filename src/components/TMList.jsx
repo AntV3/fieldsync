@@ -1,16 +1,17 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List } from 'lucide-react'
+import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
-import { TicketSkeleton, CountBadge } from './ui'
+import { TicketSkeleton, CountBadge, EmptyState } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
 import { exportTMTicketsCSV } from '../lib/financialExport'
+import { loadXLSXSafe } from '../lib/safeXlsx'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
-const loadXLSX = () => import('xlsx')
+const loadXLSX = loadXLSXSafe
 const loadJsPDF = () => Promise.all([import('jspdf'), import('jspdf-autotable')])
 
 export default function TMList({
@@ -27,6 +28,7 @@ export default function TMList({
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [filter, setFilter] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
 
@@ -129,7 +131,7 @@ export default function TMList({
         setFailedImports(prev => reset ? importStatusResults : { ...prev, ...importStatusResults })
       }
     } catch (error) {
-      onShowToast('Error loading T&M tickets', 'error')
+      onShowToast('Error loading tickets', 'error')
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -246,7 +248,7 @@ export default function TMList({
       return
     }
 
-    if (!confirm('Delete this T&M ticket?')) return
+    if (!confirm('Delete this Time & Material ticket?')) return
     try {
       await db.deleteTMTicket(ticketId)
       setTickets(prev => prev.filter(t => t.id !== ticketId))
@@ -284,6 +286,20 @@ export default function TMList({
       if (selectedCorForAssign) {
         // Associate with COR using atomic function (ticketId, corId)
         await db.assignTicketToCOR(pendingCorAssignTicket.id, selectedCorForAssign)
+
+        // Auto-import ticket cost data (labor, materials, equipment) into COR line items
+        try {
+          await db.importTicketDataToCOR(
+            pendingCorAssignTicket.id,
+            selectedCorForAssign,
+            company.id,
+            project.work_type || 'demolition',
+            project.job_type || 'standard'
+          )
+        } catch (importError) {
+          console.warn('Auto-import of ticket costs failed, can retry later:', importError)
+        }
+
         const cor = availableCors.find(c => c.id === selectedCorForAssign)
         onShowToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
       } else if (pendingCorAssignTicket.assigned_cor_id) {
@@ -355,7 +371,9 @@ export default function TMList({
   }
 
   const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const s = String(dateStr)
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -503,7 +521,7 @@ export default function TMList({
     }
     
     // Download
-    const fileName = `${project.name}_TM_${new Date().toISOString().split('T')[0]}.xlsx`
+    const fileName = `${project.name}_Time_Material_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(wb, fileName)
     onShowToast('Export downloaded!', 'success')
   }
@@ -647,46 +665,50 @@ export default function TMList({
 
     yPos += 35
 
-    // Collect workers by type
-    const supervisionData = []
-    const operatorsData = []
-    const laborersData = []
-    let supervisionRegHours = 0, supervisionOTHours = 0
-    let operatorsRegHours = 0, operatorsOTHours = 0
-    let laborersRegHours = 0, laborersOTHours = 0
+    // Helper to format time for PDF
+    const formatTimePdf = (timeStr) => {
+      if (!timeStr) return ''
+      const [hours, minutes] = timeStr.split(':')
+      const h = parseInt(hours)
+      const ampm = h >= 12 ? 'pm' : 'am'
+      const h12 = h % 12 || 12
+      return `${h12}:${minutes}${ampm}`
+    }
+
+    // Collect workers grouped by labor class/role
+    const laborGroups = {}
+    const laborGroupTotals = {}
 
     exportTickets.forEach(ticket => {
       if (ticket.t_and_m_workers) {
         ticket.t_and_m_workers.forEach(worker => {
           const regHrs = parseFloat(worker.hours) || 0
           const otHrs = parseFloat(worker.overtime_hours) || 0
-          const role = worker.role || 'Laborer'
+          const laborClass = worker.role || worker.labor_class || 'Laborer'
+          const timePeriod = worker.time_started && worker.time_ended
+            ? `${formatTimePdf(worker.time_started)} – ${formatTimePdf(worker.time_ended)}`
+            : '—'
           const rowData = [
             formatDate(ticket.work_date),
             worker.name,
+            timePeriod,
             regHrs.toString(),
-            otHrs > 0 ? otHrs.toString() : '-',
+            otHrs > 0 ? otHrs.toString() : '—',
             (regHrs + otHrs).toString()
           ]
 
-          if (role === 'Foreman' || role === 'Superintendent') {
-            supervisionData.push(rowData)
-            supervisionRegHours += regHrs
-            supervisionOTHours += otHrs
-          } else if (role === 'Operator') {
-            operatorsData.push(rowData)
-            operatorsRegHours += regHrs
-            operatorsOTHours += otHrs
-          } else {
-            laborersData.push(rowData)
-            laborersRegHours += regHrs
-            laborersOTHours += otHrs
+          if (!laborGroups[laborClass]) {
+            laborGroups[laborClass] = []
+            laborGroupTotals[laborClass] = { reg: 0, ot: 0 }
           }
+          laborGroups[laborClass].push(rowData)
+          laborGroupTotals[laborClass].reg += regHrs
+          laborGroupTotals[laborClass].ot += otHrs
         })
       }
     })
 
-    // Helper function to render a labor table
+    // Helper function to render a labor table by class
     const renderLaborTable = (title, data, regHours, otHours) => {
       if (data.length === 0) return
 
@@ -704,7 +726,7 @@ export default function TMList({
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Date', 'Name', 'Reg Hrs', 'OT Hrs', 'Total']],
+        head: [['Date', 'Name', 'Time Frame', 'Reg Hrs', 'OT Hrs', 'Total']],
         body: data,
         margin: { left: margin, right: margin },
         headStyles: {
@@ -721,13 +743,14 @@ export default function TMList({
           fillColor: [248, 250, 252]
         },
         columnStyles: {
-          0: { cellWidth: 30 },
-          2: { halign: 'center', cellWidth: 22 },
-          3: { halign: 'center', cellWidth: 22 },
-          4: { halign: 'center', cellWidth: 22 }
+          0: { cellWidth: 25 },
+          2: { cellWidth: 38 },
+          3: { halign: 'center', cellWidth: 18 },
+          4: { halign: 'center', cellWidth: 18 },
+          5: { halign: 'center', cellWidth: 18 }
         },
         foot: [[
-          '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '-', (regHours + otHours).toString()
+          '', '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '—', (regHours + otHours).toString()
         ]],
         footStyles: {
           fillColor: secondaryColor,
@@ -740,21 +763,33 @@ export default function TMList({
       yPos = doc.lastAutoTable.finalY + 10
     }
 
-    // Render each labor category
-    if (supervisionData.length > 0 || operatorsData.length > 0 || laborersData.length > 0) {
+    // Render each labor class as its own table
+    const laborClassNames = Object.keys(laborGroups)
+    if (laborClassNames.length > 0) {
       doc.setTextColor(...primaryColor)
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.text('LABOR', margin, yPos)
       yPos += 8
 
-      renderLaborTable('SUPERVISION', supervisionData, supervisionRegHours, supervisionOTHours)
-      renderLaborTable('OPERATORS', operatorsData, operatorsRegHours, operatorsOTHours)
-      renderLaborTable('LABORERS', laborersData, laborersRegHours, laborersOTHours)
+      // Sort: Supervision-type roles first, then alphabetical
+      const supervisionRoles = ['Foreman', 'Superintendent']
+      const sortedClasses = laborClassNames.sort((a, b) => {
+        const aIsSuper = supervisionRoles.includes(a) ? 0 : 1
+        const bIsSuper = supervisionRoles.includes(b) ? 0 : 1
+        if (aIsSuper !== bIsSuper) return aIsSuper - bIsSuper
+        return a.localeCompare(b)
+      })
 
-      // Grand total for all labor
-      const totalRegHours = supervisionRegHours + operatorsRegHours + laborersRegHours
-      const totalOTHours = supervisionOTHours + operatorsOTHours + laborersOTHours
+      let grandTotalReg = 0
+      let grandTotalOT = 0
+
+      sortedClasses.forEach(className => {
+        const totals = laborGroupTotals[className]
+        renderLaborTable(className.toUpperCase(), laborGroups[className], totals.reg, totals.ot)
+        grandTotalReg += totals.reg
+        grandTotalOT += totals.ot
+      })
 
       doc.setFillColor(...primaryColor)
       doc.rect(margin, yPos, pageWidth - margin * 2, 12, 'F')
@@ -762,7 +797,7 @@ export default function TMList({
       doc.setFontSize(10)
       doc.setFont('helvetica', 'bold')
       doc.text('LABOR TOTAL:', margin + 5, yPos + 8)
-      doc.text(`${totalRegHours} Reg + ${totalOTHours} OT = ${totalRegHours + totalOTHours} Hours`, pageWidth - margin - 5, yPos + 8, { align: 'right' })
+      doc.text(`${grandTotalReg} Reg + ${grandTotalOT} OT = ${grandTotalReg + grandTotalOT} Hours`, pageWidth - margin - 5, yPos + 8, { align: 'right' })
 
       yPos += 20
     }
@@ -1006,12 +1041,12 @@ export default function TMList({
       const footerY = pageHeight - 15
       doc.setFontSize(8)
       doc.setTextColor(148, 163, 184)
-      doc.text(`${company?.name || 'Company'} - T&M Report - ${project.name}`, margin, footerY)
+      doc.text(`${company?.name || 'Company'} - Time & Material Report - ${project.name}`, margin, footerY)
       doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
     }
 
     // Download
-    const fileName = `${project.name}_TM_Report_${new Date().toISOString().split('T')[0]}.pdf`
+    const fileName = `${project.name}_Time_Material_Report_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)
     onShowToast('PDF exported!', 'success')
   }
@@ -1061,8 +1096,26 @@ export default function TMList({
       })
     }
 
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(t => {
+        const workerNames = t.t_and_m_workers?.map(w => w.name?.toLowerCase()).join(' ') || ''
+        const itemNames = t.t_and_m_items?.map(i => (i.custom_name || i.materials_equipment?.name || '').toLowerCase()).join(' ') || ''
+        const dateStr = formatDate(t.work_date).toLowerCase()
+        return (
+          workerNames.includes(term) ||
+          itemNames.includes(term) ||
+          dateStr.includes(term) ||
+          (t.notes || '').toLowerCase().includes(term) ||
+          (t.ce_pco_number || '').toLowerCase().includes(term) ||
+          (t.status || '').toLowerCase().includes(term)
+        )
+      })
+    }
+
     return filtered
-  }, [tickets, filter, viewMode, dateFilter, previewMode])
+  }, [tickets, filter, viewMode, dateFilter, previewMode, searchTerm])
 
   // Group tickets by month for 'all' view
   const ticketsByMonth = useMemo(() => {
@@ -1151,10 +1204,10 @@ export default function TMList({
 
   return (
     <div className={`tm-list ${compact ? 'tm-list-compact' : ''}`}>
-      {/* Header with export buttons - always visible */}
+      {/* Header */}
       <div className="tm-list-header">
         <div className="tm-list-title">
-          <h3>T&M Tickets</h3>
+          <h3>Time & Material Tickets</h3>
           <div className="tm-header-controls">
             {/* Display Mode Toggle */}
             {!compact && (
@@ -1194,69 +1247,88 @@ export default function TMList({
           </div>
         </div>
       </div>
+
+      {/* Unified Toolbar - hidden in compact mode */}
       {!compact && (
-      <div className="tm-list-filters">
+        <div className="tm-toolbar">
+          {/* Row 1: Filters + View Toggle */}
+          <div className="tm-toolbar-row">
+            <div className="tm-filter-tabs" role="tablist">
+              {['all', 'pending', 'approved', 'billed', 'rejected'].map(status => (
+                <button
+                  key={status}
+                  role="tab"
+                  aria-selected={filter === status}
+                  className={`tm-filter-tab ${filter === status ? 'active' : ''}`}
+                  onClick={() => { setFilter(status); clearSelection(); setSearchTerm(''); }}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  <span className="tm-filter-count">
+                    {status === 'all' ? tickets.length : tickets.filter(t => t.status === status).length}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-        <div className="tm-filter-tabs">
-          {['all', 'pending', 'approved', 'billed', 'rejected'].map(status => (
-            <button
-              key={status}
-              className={`tm-filter-tab ${filter === status ? 'active' : ''}`}
-              onClick={() => { setFilter(status); clearSelection(); }}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-              <span className="tm-filter-count">
-                {status === 'all' ? tickets.length : tickets.filter(t => t.status === status).length}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* View Mode Bar */}
-        <div className="view-mode-bar">
-          <div className="view-mode-tabs">
-            <button
-              className={`view-mode-tab ${viewMode === 'recent' ? 'active' : ''}`}
-              onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
-            >
-              Recent (7 days)
-            </button>
-            <button
-              className={`view-mode-tab ${viewMode === 'all' ? 'active' : ''}`}
-              onClick={() => setViewMode('all')}
-            >
-              All ({totalTicketsCount})
-            </button>
+            <div className="tm-toolbar-right">
+              <div className="tm-view-toggle">
+                <button
+                  className={`tm-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
+                  onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
+                >
+                  Recent
+                </button>
+                <button
+                  className={`tm-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+                  onClick={() => setViewMode('all')}
+                >
+                  All ({totalTicketsCount})
+                </button>
+              </div>
+            </div>
           </div>
 
-          {viewMode === 'all' && (
-            <div className="date-filter">
-              <Calendar size={16} />
+          {/* Row 2: Search + Date Filter */}
+          <div className="tm-toolbar-row tm-toolbar-search-row">
+            <div className="tm-search">
+              <Search size={14} className="tm-search-icon" />
               <input
-                type="date"
-                value={dateFilter.start}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-                placeholder="Start date"
+                type="text"
+                className="tm-search-input"
+                placeholder="Search by worker, material, date, or notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <span>to</span>
-              <input
-                type="date"
-                value={dateFilter.end}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-                placeholder="End date"
-              />
-              {(dateFilter.start || dateFilter.end) && (
-                <button
-                  className="btn btn-ghost btn-small"
-                  onClick={() => setDateFilter({ start: '', end: '' })}
-                >
-                  Clear
+              {searchTerm && (
+                <button className="tm-search-clear" onClick={() => setSearchTerm('')}>
+                  <X size={14} />
                 </button>
               )}
             </div>
-          )}
+
+            {viewMode === 'all' && (
+              <div className="tm-date-filter">
+                <Calendar size={14} />
+                <input
+                  type="date"
+                  value={dateFilter.start}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+                />
+                <span className="tm-date-sep">to</span>
+                <input
+                  type="date"
+                  value={dateFilter.end}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+                />
+                {(dateFilter.start || dateFilter.end) && (
+                  <button className="tm-clear-btn" onClick={() => setDateFilter({ start: '', end: '' })}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {/* Dashboard View */}
@@ -1286,14 +1358,16 @@ export default function TMList({
           )}
 
           {filteredTickets.length === 0 ? (
-        <div className="tm-empty-state">
-          <p>No {filter === 'all' ? '' : filter} T&M tickets{viewMode === 'recent' ? ' in the last 7 days' : ''}</p>
-          {viewMode === 'recent' && totalTicketsCount > 0 && (
+        <EmptyState
+          icon={FileText}
+          title={`No ${filter === 'all' ? '' : filter} Time and Material tickets${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+          message="Time and Material tickets created in the field will appear here"
+          action={viewMode === 'recent' && totalTicketsCount > 0 ? (
             <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
               View All Tickets
             </button>
-          )}
-        </div>
+          ) : null}
+        />
       ) : (
         <div className="tm-tickets stagger-children">
           {/* Select All Row */}
@@ -1361,7 +1435,7 @@ export default function TMList({
           {/* See All Footer - only in preview mode */}
           {previewMode && tickets.length > 0 && (
             <button className="tm-see-all-btn" onClick={onViewAll}>
-              See all {totalCount || tickets.length} T&M tickets
+              See all {totalCount || tickets.length} Time & Material tickets
               <ChevronRight size={16} />
             </button>
           )}
@@ -1374,7 +1448,7 @@ export default function TMList({
           <div className="modal change-order-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Approve Change Order Work</h3>
             <p className="modal-subtitle">
-              This T&M ticket is associated with <strong>{pendingApprovalTicket.ce_pco_number}</strong>
+              This Time & Material ticket is associated with <strong>{pendingApprovalTicket.ce_pco_number}</strong>
             </p>
 
             <div className="form-group">
@@ -1417,7 +1491,7 @@ export default function TMList({
           companyId={company?.id}
           projectId={project?.id}
           project={project}
-          documentTitle={`T&M Ticket - ${new Date(signatureLinkTicket.work_date).toLocaleDateString()}${signatureLinkTicket.ce_pco_number ? ` (${signatureLinkTicket.ce_pco_number})` : ''}`}
+          documentTitle={`Time & Material Ticket - ${new Date(signatureLinkTicket.work_date).toLocaleDateString()}${signatureLinkTicket.ce_pco_number ? ` (${signatureLinkTicket.ce_pco_number})` : ''}`}
           onClose={() => {
             setShowSignatureLink(false)
             setSignatureLinkTicket(null)

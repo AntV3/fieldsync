@@ -15,6 +15,11 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 // Check if Supabase is configured
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
+// Guard: demo/localStorage mode should only run in development
+if (!isSupabaseConfigured && import.meta.env.PROD) {
+  console.error('[FieldSync] WARNING: Supabase is not configured in production. Data will be stored in localStorage only. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.')
+}
+
 // Create client only if configured
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)

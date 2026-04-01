@@ -114,7 +114,7 @@ export default function SignatureLinkGenerator({
         const email = clientEmail.trim()
         if (email) {
           const name = clientName.trim()
-          const docTypeLabel = documentType === 'cor' ? 'Change Order' : 'T&M Ticket'
+          const docTypeLabel = documentType === 'cor' ? 'Change Order' : 'Time & Material Ticket'
           const subject = `Signature required: ${docTypeLabel} — ${documentTitle}`
           const expiryLine = expiresAt
             ? `\nThis link expires on ${new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`
@@ -193,7 +193,7 @@ export default function SignatureLinkGenerator({
   }
 
   const deadlineLabel = DEADLINE_OPTIONS.find(o => o.value === expiresIn)?.label ?? `${expiresIn} days`
-  const docTypeLabel = documentType === 'cor' ? 'Change Order' : 'T&M Ticket'
+  const docTypeLabel = documentType === 'cor' ? 'Change Order' : 'Time & Material Ticket'
 
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">

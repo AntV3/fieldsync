@@ -4,73 +4,87 @@ import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '.
 /**
  * Computes portfolio-level financial metrics, project health, schedule metrics,
  * and risk analysis from enhanced project data.
- * Extracted from Dashboard.jsx for maintainability.
+ *
+ * OPTIMIZED: Single-pass loop computes portfolio, health, and schedule metrics
+ * simultaneously instead of 3 separate iterations over projectsData.
+ * Risk analysis only runs on projects that have detailed data loaded.
  */
 export default function usePortfolioMetrics(projectsData) {
-  const portfolioMetrics = useMemo(() => {
-    const totalOriginalContract = projectsData.reduce((sum, p) => sum + (p.contract_value || 0), 0)
-    const totalChangeOrders = projectsData.reduce((sum, p) => sum + (p.changeOrderValue || 0), 0)
-    const totalPortfolioValue = totalOriginalContract + totalChangeOrders
-    const totalEarned = projectsData.reduce((sum, p) => sum + (p.billable || 0), 0)
-    const totalRemaining = totalPortfolioValue - totalEarned
+  // Single-pass computation for portfolio, health, and schedule metrics
+  const { portfolioMetrics, projectHealth, scheduleMetrics } = useMemo(() => {
+    // Portfolio accumulators
+    let totalOriginalContract = 0
+    let totalChangeOrders = 0
+    let totalEarned = 0
+    let totalPendingCORValue = 0
+    let totalPendingCORCount = 0
 
-    const weightedCompletion = totalPortfolioValue > 0
-      ? Math.round((totalEarned / totalPortfolioValue) * 100)
-      : 0
+    // Cost & profit accumulators (from projects with loaded details)
+    let totalCosts = 0
+    let totalProfit = 0
+    let projectsWithCostData = 0
+    let totalBilled = 0
 
-    const totalPendingCORValue = projectsData.reduce((sum, p) => sum + (p.corPendingValue || 0), 0)
-    const totalPendingCORCount = projectsData.reduce((sum, p) => sum + (p.corPendingCount || 0), 0)
-
-    return {
-      totalOriginalContract,
-      totalChangeOrders,
-      totalPortfolioValue,
-      totalEarned,
-      totalRemaining,
-      weightedCompletion,
-      totalPendingCORValue,
-      totalPendingCORCount
-    }
-  }, [projectsData])
-
-  const projectHealth = useMemo(() => {
+    // Health accumulators
     let complete = 0
     let onTrack = 0
     let atRisk = 0
     let overBudget = 0
     let withChangeOrders = 0
 
-    for (const p of projectsData) {
-      const contractVal = p.revisedContractValue || p.contract_value
-      if (p.progress >= 100) complete++
-      if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
-      if (p.billable > contractVal * 0.9 && p.progress < 90) atRisk++
-      if (p.billable > contractVal) overBudget++
-      if ((p.changeOrderValue || 0) > 0) withChangeOrders++
-    }
+    // Dollar-weighted health (exposure in dollars, not just counts)
+    let atRiskExposure = 0
+    let overBudgetExposure = 0
 
-    return {
-      projectsComplete: complete,
-      projectsOnTrack: onTrack,
-      projectsAtRisk: atRisk,
-      projectsOverBudget: overBudget,
-      projectsWithChangeOrders: withChangeOrders
-    }
-  }, [projectsData])
-
-  const scheduleMetrics = useMemo(() => {
+    // Schedule accumulators
     let ahead = 0
-    let onTrack = 0
+    let schedOnTrack = 0
     let behind = 0
     let overLabor = 0
     let underLabor = 0
     let onTrackLabor = 0
+    let behindScheduleExposure = 0
 
+    // Single pass over all projects
     for (const p of projectsData) {
+      const contractVal = p.revisedContractValue || p.contract_value || 0
+
+      // Portfolio
+      totalOriginalContract += p.contract_value || 0
+      totalChangeOrders += p.changeOrderValue || 0
+      totalEarned += p.billable || 0
+      totalPendingCORValue += p.corPendingValue || 0
+      totalPendingCORCount += p.corPendingCount || 0
+
+      // Cost & profit (only from projects with detailed data loaded)
+      if (p._detailsLoaded) {
+        totalCosts += p.allCostsTotal || 0
+        totalProfit += p.currentProfit || 0
+        totalBilled += p.totalBilled || 0
+        projectsWithCostData++
+      }
+
+      // Health
+      if (p.progress >= 100) complete++
+      if (p.progress < 100 && p.billable <= contractVal * (p.progress / 100) * 1.1) onTrack++
+      if (p.billable > contractVal * 0.9 && p.progress < 90) {
+        atRisk++
+        atRiskExposure += contractVal
+      }
+      if (p.billable > contractVal) {
+        overBudget++
+        overBudgetExposure += (p.billable || 0) - contractVal
+      }
+      if ((p.changeOrderValue || 0) > 0) withChangeOrders++
+
+      // Schedule
       if (p.hasScheduleData) {
         if (p.scheduleStatus === 'ahead') ahead++
-        else if (p.scheduleStatus === 'behind') behind++
-        else onTrack++
+        else if (p.scheduleStatus === 'behind') {
+          behind++
+          behindScheduleExposure += contractVal
+        }
+        else schedOnTrack++
       }
       if (p.hasLaborData) {
         if (p.laborStatus === 'over') overLabor++
@@ -79,55 +93,98 @@ export default function usePortfolioMetrics(projectsData) {
       }
     }
 
+    const totalPortfolioValue = totalOriginalContract + totalChangeOrders
+    const backlog = totalPortfolioValue - totalEarned
+    const grossMargin = totalEarned > 0 ? ((totalEarned - totalCosts) / totalEarned) * 100 : 0
+    const totalExposure = atRiskExposure + overBudgetExposure
+
     return {
-      scheduleAhead: ahead,
-      scheduleOnTrack: onTrack,
-      scheduleBehind: behind,
-      laborOver: overLabor,
-      laborUnder: underLabor,
-      laborOnTrack: onTrackLabor,
-      hasAnyScheduleData: ahead + onTrack + behind > 0,
-      hasAnyLaborData: overLabor + underLabor + onTrackLabor > 0
+      portfolioMetrics: {
+        totalOriginalContract,
+        totalChangeOrders,
+        totalPortfolioValue,
+        totalEarned,
+        totalRemaining: backlog,
+        backlog,
+        weightedCompletion: totalPortfolioValue > 0
+          ? Math.round((totalEarned / totalPortfolioValue) * 100)
+          : 0,
+        totalPendingCORValue,
+        totalPendingCORCount,
+        // New high-impact metrics
+        totalCosts,
+        totalProfit,
+        grossMargin: Math.round(grossMargin * 10) / 10,
+        hasCostData: projectsWithCostData > 0,
+        totalBilled,
+        unbilledRevenue: totalEarned - totalBilled,
+        totalExposure,
+        atRiskExposure,
+        overBudgetExposure,
+      },
+      projectHealth: {
+        projectsComplete: complete,
+        projectsOnTrack: onTrack,
+        projectsAtRisk: atRisk,
+        projectsOverBudget: overBudget,
+        projectsWithChangeOrders: withChangeOrders,
+        atRiskExposure,
+        overBudgetExposure,
+      },
+      scheduleMetrics: {
+        scheduleAhead: ahead,
+        scheduleOnTrack: schedOnTrack,
+        scheduleBehind: behind,
+        laborOver: overLabor,
+        laborUnder: underLabor,
+        laborOnTrack: onTrackLabor,
+        hasAnyScheduleData: ahead + schedOnTrack + behind > 0,
+        hasAnyLaborData: overLabor + underLabor + onTrackLabor > 0,
+        behindScheduleExposure,
+      }
     }
   }, [projectsData])
 
+  // Risk analysis: only compute for projects with loaded detail data
   const riskAnalysis = useMemo(() => {
-    const projectRisks = projectsData.map(p => {
-      const riskInput = {
-        id: p.id,
-        name: p.name,
-        totalCosts: p.totalCosts || 0,
-        earnedRevenue: p.billable || 0,
-        actualProgress: p.progress || 0,
-        expectedProgress: p.expectedProgress || p.progress,
-        pendingCORValue: p.corPendingValue || 0,
-        contractValue: p.revisedContractValue || p.contract_value || 0,
-        lastReportDate: p.lastDailyReport,
-        recentInjuryCount: p.recentInjuryCount || 0,
-        startDate: p.start_date
-      }
+    const projectRisks = projectsData
+      .filter(p => p._detailsLoaded) // Skip projects without detailed data
+      .map(p => {
+        const riskInput = {
+          id: p.id,
+          name: p.name,
+          totalCosts: p.totalCosts || 0,
+          earnedRevenue: p.billable || 0,
+          actualProgress: p.progress || 0,
+          expectedProgress: p.expectedProgress || p.progress,
+          pendingCORValue: p.corPendingValue || 0,
+          contractValue: p.revisedContractValue || p.contract_value || 0,
+          lastReportDate: p.lastDailyReport,
+          recentInjuryCount: p.recentInjuryCount || 0,
+          startDate: p.start_date
+        }
 
-      const riskResult = calculateRiskScore(riskInput)
-      const alerts = generateSmartAlerts(riskResult, { ...riskInput, name: p.name })
-      const projections = calculateProjections(riskInput)
+        const riskResult = calculateRiskScore(riskInput)
+        const alerts = generateSmartAlerts(riskResult, { ...riskInput, name: p.name })
+        const projections = calculateProjections(riskInput)
 
-      const alertsWithProject = alerts.map(a => ({
-        ...a,
-        projectName: p.name,
-        projectId: p.id
-      }))
+        const alertsWithProject = alerts.map(a => ({
+          ...a,
+          projectName: p.name,
+          projectId: p.id
+        }))
 
-      return {
-        projectId: p.id,
-        projectName: p.name,
-        riskScore: riskResult.score,
-        riskStatus: riskResult.status,
-        riskLabel: riskResult.label,
-        factors: riskResult.factors,
-        alerts: alertsWithProject,
-        projections
-      }
-    })
+        return {
+          projectId: p.id,
+          projectName: p.name,
+          riskScore: riskResult.score,
+          riskStatus: riskResult.status,
+          riskLabel: riskResult.label,
+          factors: riskResult.factors,
+          alerts: alertsWithProject,
+          projections
+        }
+      })
 
     const allAlerts = projectRisks
       .flatMap(p => p.alerts)

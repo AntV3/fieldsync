@@ -567,6 +567,23 @@
   border-radius: var(--radius-md, 8px);
 }
 
+/* ============================================
+   SpaceX Dark Mode Skeleton Enhancement
+   ============================================ */
+
+[data-theme="dark"] .skeleton {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.03) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmerGlow 2s ease-in-out infinite;
+}
+
+[data-theme="dark"] .skeleton-metric,
+[data-theme="dark"] .skeleton-card {
+  border-radius: var(--radius-lg);
+}
+
 /* ---- Accessibility ---- */
 
 @media (prefers-reduced-motion: reduce) {

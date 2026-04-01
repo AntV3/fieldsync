@@ -7,7 +7,7 @@ export default function LandingFooter() {
         <span>Field</span>Sync
       </div>
       <p className="lp-footer-tagline">
-        Built for the field. Synced to the office.
+        Every Update. Every Dollar. Accounted For.
       </p>
       <div className="lp-footer-legal">
         <Link to="/privacy">Privacy Policy</Link>

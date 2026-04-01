@@ -8,6 +8,8 @@ node_modules/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 
 # IDE
 .idea/

@@ -2,6 +2,7 @@
 // Extracted from supabase.js for maintainability
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { parseLocalDate } from './utils'
 
 export const equipmentOps = {
   // ----------------------------------------
@@ -46,9 +47,20 @@ export const equipmentOps = {
       return null
     }
 
+    // Allowlist: only permit expected fields
+    const ALLOWED_FIELDS = [
+      'company_id', 'name', 'description', 'category', 'is_owned', 'is_active',
+      'daily_rate', 'weekly_rate', 'monthly_rate', 'make', 'model',
+      'year', 'serial_number', 'notes'
+    ]
+    const filtered = {}
+    for (const key of ALLOWED_FIELDS) {
+      if (key in equipment) filtered[key] = equipment[key]
+    }
+
     const { data, error } = await supabase
       .from('equipment')
-      .insert(equipment)
+      .insert(filtered)
       .select()
       .single()
 
@@ -69,9 +81,20 @@ export const equipmentOps = {
       return null
     }
 
+    // Allowlist: only permit safe fields to be updated
+    const ALLOWED_FIELDS = [
+      'name', 'description', 'category', 'is_owned', 'is_active',
+      'daily_rate', 'weekly_rate', 'monthly_rate', 'make', 'model',
+      'year', 'serial_number', 'notes'
+    ]
+    const filtered = { updated_at: new Date().toISOString() }
+    for (const key of ALLOWED_FIELDS) {
+      if (key in updates) filtered[key] = updates[key]
+    }
+
     const { data, error } = await supabase
       .from('equipment')
-      .update(updates)
+      .update(filtered)
       .eq('id', equipmentId)
       .select()
       .single()
@@ -198,9 +221,18 @@ export const equipmentOps = {
       return null
     }
 
+    // Allowlist: only permit safe fields to be updated
+    const ALLOWED_FIELDS = [
+      'daily_rate', 'start_date', 'end_date', 'notes', 'status'
+    ]
+    const filtered = { updated_at: new Date().toISOString() }
+    for (const key of ALLOWED_FIELDS) {
+      if (key in updates) filtered[key] = updates[key]
+    }
+
     const { data, error } = await supabase
       .from('project_equipment')
-      .update(updates)
+      .update(filtered)
       .eq('id', projectEquipmentId)
       .select(`
         *,
@@ -260,12 +292,12 @@ export const equipmentOps = {
     today.setHours(0, 0, 0, 0)
 
     return projectEquipment.reduce((total, eq) => {
-      const startDate = new Date(eq.start_date)
+      const startDate = parseLocalDate(eq.start_date)
       startDate.setHours(0, 0, 0, 0)
 
       let endDate
       if (eq.end_date) {
-        endDate = new Date(eq.end_date)
+        endDate = parseLocalDate(eq.end_date)
         endDate.setHours(0, 0, 0, 0)
       } else {
         endDate = today
@@ -282,17 +314,46 @@ export const equipmentOps = {
    * Calculate days on site for a single equipment entry
    */
   calculateDaysOnSite(startDate, endDate = null) {
-    const start = new Date(startDate)
+    const start = parseLocalDate(startDate)
     start.setHours(0, 0, 0, 0)
 
     let end
     if (endDate) {
-      end = new Date(endDate)
+      end = parseLocalDate(endDate)
     } else {
       end = new Date()
     }
     end.setHours(0, 0, 0, 0)
 
     return Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1)
+  },
+
+  // ----------------------------------------
+  // Real-time Subscriptions
+  // ----------------------------------------
+
+  /**
+   * Subscribe to project equipment changes (add, update, remove, return)
+   */
+  subscribeToProjectEquipment(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project_equipment:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'project_equipment', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  /**
+   * Unsubscribe from a channel
+   */
+  unsubscribe(subscription) {
+    if (subscription && isSupabaseConfigured) {
+      supabase.removeChannel(subscription)
+    }
   }
 }

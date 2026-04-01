@@ -68,11 +68,30 @@ export const corOps = {
   // Update COR fields (not line items)
   async updateCOR(corId, updates) {
     if (isSupabaseConfigured) {
-      const sanitized = sanitize.object(updates)
+      // Allowlist: only permit safe fields to be updated
+      const ALLOWED_FIELDS = [
+        'title', 'description', 'scope_of_work', 'period_start', 'period_end',
+        'area_id', 'group_name',
+        'labor_markup_percent', 'materials_markup_percent',
+        'equipment_markup_percent', 'subcontractors_markup_percent',
+        'liability_insurance_percent', 'bond_percent', 'license_fee_percent',
+        'cor_total', 'labor_subtotal', 'materials_subtotal',
+        'equipment_subtotal', 'subcontractors_subtotal',
+        'labor_markup_amount', 'materials_markup_amount',
+        'equipment_markup_amount', 'subcontractors_markup_amount',
+        'liability_insurance_amount', 'bond_amount', 'license_fee_amount',
+        'additional_fees_total', 'cor_subtotal',
+        'notes', 'internal_notes'
+      ]
+      const filtered = {}
+      for (const key of ALLOWED_FIELDS) {
+        if (key in updates) filtered[key] = updates[key]
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
-          ...sanitized,
+          ...filtered,
           updated_at: new Date().toISOString()
         })
         .eq('id', corId)
@@ -253,8 +272,8 @@ export const corOps = {
   async addCORLaborItem(corId, laborItem) {
     if (isSupabaseConfigured) {
       // Calculate totals
-      const regularTotal = Math.round(laborItem.regular_hours * laborItem.regular_rate)
-      const overtimeTotal = Math.round(laborItem.overtime_hours * laborItem.overtime_rate)
+      const regularTotal = Math.round((parseFloat(laborItem.regular_hours) || 0) * (parseInt(laborItem.regular_rate) || 0))
+      const overtimeTotal = Math.round((parseFloat(laborItem.overtime_hours) || 0) * (parseInt(laborItem.overtime_rate) || 0))
       const total = regularTotal + overtimeTotal
 
       const { data, error } = await supabase
@@ -284,7 +303,7 @@ export const corOps = {
   async updateCORLaborItem(itemId, updates) {
     if (isSupabaseConfigured) {
       // Recalculate totals if hours or rates changed
-      let updateData = { ...sanitize.object(updates) }
+      const updateData = { ...updates }
       if (updates.regular_hours !== undefined || updates.regular_rate !== undefined ||
           updates.overtime_hours !== undefined || updates.overtime_rate !== undefined) {
         // Get current values if not provided
@@ -362,7 +381,7 @@ export const corOps = {
 
   async updateCORMaterialItem(itemId, updates) {
     if (isSupabaseConfigured) {
-      let updateData = { ...sanitize.object(updates) }
+      const updateData = { ...updates }
       if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
         const { data: current } = await supabase
           .from('change_order_materials')
@@ -433,7 +452,7 @@ export const corOps = {
 
   async updateCOREquipmentItem(itemId, updates) {
     if (isSupabaseConfigured) {
-      let updateData = { ...sanitize.object(updates) }
+      const updateData = { ...updates }
       if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
         const { data: current } = await supabase
           .from('change_order_equipment')
@@ -474,7 +493,7 @@ export const corOps = {
 
   async addCORSubcontractorItem(corId, subItem) {
     if (isSupabaseConfigured) {
-      const total = Math.round(subItem.quantity * subItem.unit_cost)
+      const total = Math.round((Number(subItem.quantity) || 1) * (Number(subItem.unit_cost) || 0))
 
       const { data, error } = await supabase
         .from('change_order_subcontractors')
@@ -499,7 +518,7 @@ export const corOps = {
 
   async updateCORSubcontractorItem(itemId, updates) {
     if (isSupabaseConfigured) {
-      let updateData = { ...sanitize.object(updates) }
+      const updateData = { ...updates }
       if (updates.quantity !== undefined || updates.unit_cost !== undefined) {
         const { data: current } = await supabase
           .from('change_order_subcontractors')
@@ -546,8 +565,8 @@ export const corOps = {
       }
 
       const items = laborItems.map((item, index) => {
-        const regularTotal = Math.round(item.regular_hours * item.regular_rate)
-        const overtimeTotal = Math.round(item.overtime_hours * item.overtime_rate)
+        const regularTotal = Math.round((parseFloat(item.regular_hours) || 0) * (parseInt(item.regular_rate) || 0))
+        const overtimeTotal = Math.round((parseFloat(item.overtime_hours) || 0) * (parseInt(item.overtime_rate) || 0))
         return {
           change_order_id: corId,
           labor_class: sanitize.text(item.labor_class),
@@ -660,18 +679,24 @@ export const corOps = {
       }
 
       // Build items - requires migration_complete_fixes.sql for company_name column
-      const items = subItems.map((item, index) => ({
-        change_order_id: corId,
-        company_name: sanitize.text(item.company_name) || '',
-        description: sanitize.text(item.description) || '',
-        quantity: item.quantity || 1,
-        unit: sanitize.text(item.unit) || 'lump sum',
-        unit_cost: item.unit_cost || item.total || item.amount || 0,
-        total: item.total || item.amount || 0,
-        source_type: item.source_type || 'invoice',
-        source_reference: sanitize.text(item.source_reference) || null,
-        sort_order: item.sort_order ?? index
-      }))
+      const items = subItems.map((item, index) => {
+        const quantity = Number(item.quantity) || 1
+        const unitCost = Math.round(Number(item.unit_cost) || Number(item.total) || Number(item.amount) || 0)
+        const total = Math.round(quantity * unitCost)
+
+        return {
+          change_order_id: corId,
+          company_name: item.company_name || '',
+          description: item.description || '',
+          quantity,
+          unit: item.unit || 'lump sum',
+          unit_cost: unitCost,
+          total,
+          source_type: item.source_type || 'invoice',
+          source_reference: item.source_reference || null,
+          sort_order: item.sort_order ?? index
+        }
+      })
 
       const { data, error } = await client
         .from('change_order_subcontractors')
@@ -719,19 +744,30 @@ export const corOps = {
       // Clear existing line items first
       await this.clearCORLineItems(corId)
 
-      // Add new line items
-      const results = await Promise.all([
+      // Add new line items - use allSettled to attempt all inserts even if one fails
+      const promises = await Promise.allSettled([
         laborItems?.length > 0 ? this.addBulkLaborItems(corId, laborItems) : [],
         materialItems?.length > 0 ? this.addBulkMaterialItems(corId, materialItems) : [],
         equipmentItems?.length > 0 ? this.addBulkEquipmentItems(corId, equipmentItems) : [],
         subcontractorItems?.length > 0 ? this.addBulkSubcontractorItems(corId, subcontractorItems) : []
       ])
 
+      // Check for any failures and throw with details
+      const failures = promises
+        .map((p, i) => ({ result: p, category: ['labor', 'materials', 'equipment', 'subcontractors'][i] }))
+        .filter(p => p.result.status === 'rejected')
+
+      if (failures.length > 0) {
+        const failedCategories = failures.map(f => f.category).join(', ')
+        const firstError = failures[0].result.reason
+        throw new Error(`Failed to save line items for: ${failedCategories}. ${firstError?.message || firstError}`)
+      }
+
       return {
-        labor: results[0],
-        materials: results[1],
-        equipment: results[2],
-        subcontractors: results[3]
+        labor: promises[0].value,
+        materials: promises[1].value,
+        equipment: promises[2].value,
+        subcontractors: promises[3].value
       }
     }
     return null
@@ -755,6 +791,27 @@ export const corOps = {
       return { ticket_id: ticketId, change_order_id: corId }
     }
     return null
+  },
+
+  // Mark a ticket association as imported (without running the actual import)
+  // Used when CORForm saves line items client-side and then links tickets
+  async markTicketAssociationImported(ticketId, corId) {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('change_order_ticket_associations')
+        .update({
+          data_imported: true,
+          imported_at: new Date().toISOString(),
+          import_status: 'completed',
+          import_failed_at: null,
+          import_error: null
+        })
+        .eq('change_order_id', corId)
+        .eq('ticket_id', ticketId)
+      if (error) {
+        console.warn('Failed to mark ticket association as imported:', error)
+      }
+    }
   },
 
   async unassignTicketFromCOR(ticketId, corId) {
@@ -841,12 +898,38 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
-      // 1. Get ticket with workers and items
+      // Guard: Check if this ticket's data was already imported to prevent duplicates
+      // This handles the case where a previous import succeeded but the status update failed
+      const { data: assoc, error: assocError } = await client
+        .from('change_order_ticket_associations')
+        .select('data_imported, import_status')
+        .eq('change_order_id', corId)
+        .eq('ticket_id', ticketId)
+        .single()
+      if (!assocError && assoc?.data_imported && assoc?.import_status === 'completed') {
+        observe.activity('cor_import_skipped_already_imported', { ticket_id: ticketId, cor_id: corId })
+        return { laborItems: [], materialItems: [], equipmentItems: [], skipped: true }
+      }
+
+      // Also check if line items from this ticket already exist (partial import recovery)
+      const { data: existingLabor } = await client
+        .from('change_order_labor')
+        .select('id')
+        .eq('change_order_id', corId)
+        .eq('source_ticket_id', ticketId)
+        .limit(1)
+      if (existingLabor?.length > 0) {
+        // Line items exist from a partial import — use reimport to clean up and redo
+        observe.activity('cor_import_recovering_partial', { ticket_id: ticketId, cor_id: corId })
+        return this.reimportTicketDataToCOR(ticketId, corId, companyId, workType, jobType)
+      }
+
+      // 1. Get ticket with workers (including labor class names) and items
       const { data: ticket, error: ticketError } = await client
         .from('t_and_m_tickets')
         .select(`
           *,
-          t_and_m_workers (*),
+          t_and_m_workers (*, labor_classes (id, name)),
           t_and_m_items (
             *,
             materials_equipment (name, unit, cost_per_unit, category)
@@ -856,48 +939,101 @@ export const corOps = {
         .single()
       if (ticketError) throw ticketError
 
-      // 2. Get labor rates for this company/work type/job type
-      const { data: rates, error: ratesError } = await client
-        .from('labor_rates')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('work_type', workType || 'demolition')
-        .eq('job_type', jobType || 'standard')
-      if (ratesError) throw ratesError
+      // 2. Build labor items from workers
+      const workers = ticket.t_and_m_workers || []
+      const effectiveWorkType = workType || 'demolition'
+      const effectiveJobType = jobType || 'standard'
+      let laborItems = []
 
-      // Create rate lookup
-      const rateLookup = {}
-      rates?.forEach(rate => {
-        rateLookup[rate.role.toLowerCase()] = rate
-      })
+      // Split workers into those with labor_class_id (new system) and those without (legacy)
+      const classWorkers = workers.filter(w => w.labor_class_id)
+      const legacyWorkers = workers.filter(w => !w.labor_class_id)
 
-      // 3. Group workers by role and sum hours
-      const laborByRole = {}
-      ticket.t_and_m_workers?.forEach(worker => {
-        const role = (worker.role || 'laborer').toLowerCase()
-        if (!laborByRole[role]) {
-          laborByRole[role] = { regular_hours: 0, overtime_hours: 0 }
-        }
-        laborByRole[role].regular_hours += parseFloat(worker.hours) || 0
-        laborByRole[role].overtime_hours += parseFloat(worker.overtime_hours) || 0
-      })
+      // NEW SYSTEM: Group workers by labor_class_id and fetch rates from labor_class_rates
+      if (classWorkers.length > 0) {
+        const laborByClass = {}
+        classWorkers.forEach(worker => {
+          const classId = worker.labor_class_id
+          if (!laborByClass[classId]) {
+            laborByClass[classId] = {
+              name: worker.labor_classes?.name || worker.role || 'Unknown',
+              regular_hours: 0,
+              overtime_hours: 0
+            }
+          }
+          laborByClass[classId].regular_hours += parseFloat(worker.hours) || 0
+          laborByClass[classId].overtime_hours += parseFloat(worker.overtime_hours) || 0
+        })
 
-      // 4. Create labor items
-      const laborItems = Object.entries(laborByRole).map(([role, hours]) => {
-        const rate = rateLookup[role] || { regular_rate: 0, overtime_rate: 0 }
-        // Convert dollar rates to cents
-        const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
-        const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
-        return {
-          labor_class: role.charAt(0).toUpperCase() + role.slice(1),
-          wage_type: jobType || 'standard',
-          regular_hours: hours.regular_hours,
-          overtime_hours: hours.overtime_hours,
-          regular_rate: regRate,
-          overtime_rate: otRate,
-          source_ticket_id: ticketId
-        }
-      })
+        const classIds = Object.keys(laborByClass)
+        const { data: classRates, error: classRatesError } = await client
+          .from('labor_class_rates')
+          .select('labor_class_id, regular_rate, overtime_rate')
+          .in('labor_class_id', classIds)
+          .eq('work_type', effectiveWorkType)
+          .eq('job_type', effectiveJobType)
+        if (classRatesError) throw classRatesError
+
+        const classRateLookup = {}
+        classRates?.forEach(r => { classRateLookup[r.labor_class_id] = r })
+
+        laborItems = Object.entries(laborByClass).map(([classId, data]) => {
+          const rate = classRateLookup[classId] || { regular_rate: 0, overtime_rate: 0 }
+          const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+          const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+          return {
+            labor_class: data.name,
+            wage_type: effectiveJobType,
+            regular_hours: data.regular_hours,
+            overtime_hours: data.overtime_hours,
+            regular_rate: regRate,
+            overtime_rate: otRate,
+            source_ticket_id: ticketId
+          }
+        })
+      }
+
+      // LEGACY SYSTEM: Workers without labor_class_id use role-based lookup
+      if (legacyWorkers.length > 0) {
+        const { data: rates, error: ratesError } = await client
+          .from('labor_rates')
+          .select('*')
+          .eq('company_id', companyId)
+          .eq('work_type', effectiveWorkType)
+          .eq('job_type', effectiveJobType)
+        if (ratesError) throw ratesError
+
+        const rateLookup = {}
+        rates?.forEach(rate => {
+          rateLookup[rate.role.toLowerCase()] = rate
+        })
+
+        const laborByRole = {}
+        legacyWorkers.forEach(worker => {
+          const role = (worker.role || 'laborer').toLowerCase()
+          if (!laborByRole[role]) {
+            laborByRole[role] = { regular_hours: 0, overtime_hours: 0 }
+          }
+          laborByRole[role].regular_hours += parseFloat(worker.hours) || 0
+          laborByRole[role].overtime_hours += parseFloat(worker.overtime_hours) || 0
+        })
+
+        const legacyItems = Object.entries(laborByRole).map(([role, hours]) => {
+          const rate = rateLookup[role] || { regular_rate: 0, overtime_rate: 0 }
+          const regRate = Math.round((parseFloat(rate.regular_rate) || 0) * 100)
+          const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
+          return {
+            labor_class: role.charAt(0).toUpperCase() + role.slice(1),
+            wage_type: effectiveJobType,
+            regular_hours: hours.regular_hours,
+            overtime_hours: hours.overtime_hours,
+            regular_rate: regRate,
+            overtime_rate: otRate,
+            source_ticket_id: ticketId
+          }
+        })
+        laborItems = laborItems.concat(legacyItems)
+      }
 
       if (laborItems.length > 0) {
         await this.addBulkLaborItems(corId, laborItems)
@@ -964,24 +1100,17 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
-      // Delete existing line items from this ticket
-      await client
-        .from('change_order_labor')
-        .delete()
-        .eq('change_order_id', corId)
-        .eq('source_ticket_id', ticketId)
+      // Delete existing line items from this ticket (parallel for performance)
+      const deleteResults = await Promise.all([
+        client.from('change_order_labor').delete().eq('change_order_id', corId).eq('source_ticket_id', ticketId),
+        client.from('change_order_materials').delete().eq('change_order_id', corId).eq('source_ticket_id', ticketId),
+        client.from('change_order_equipment').delete().eq('change_order_id', corId).eq('source_ticket_id', ticketId)
+      ])
 
-      await client
-        .from('change_order_materials')
-        .delete()
-        .eq('change_order_id', corId)
-        .eq('source_ticket_id', ticketId)
-
-      await client
-        .from('change_order_equipment')
-        .delete()
-        .eq('change_order_id', corId)
-        .eq('source_ticket_id', ticketId)
+      // Check for delete errors before re-importing
+      for (const result of deleteResults) {
+        if (result.error) throw result.error
+      }
 
       // Re-import fresh data
       return this.importTicketDataToCOR(ticketId, corId, companyId, workType, jobType)
@@ -1116,18 +1245,26 @@ export const corOps = {
   // COR Status & Workflow
   // ============================================
 
-  async submitCORForApproval(corId) {
+  async submitCORForApproval(corId, submittedBy = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           status: 'pending_approval',
-          submitted_at: new Date().toISOString()
+          submitted_at: new Date().toISOString(),
+          submitted_by: submittedBy || null,
+          // Increment revision on resubmission after rejection
+          revision_number: supabase.rpc ? undefined : undefined // handled by DB trigger
         })
         .eq('id', corId)
+        .in('status', ['draft', 'rejected'])
         .select()
         .single()
       if (error) throw error
+
+      // Log the status change
+      await this._logCORStatusChange(corId, 'pending_approval', submittedBy, 'Submitted for approval')
+
       return data
     }
     return null
@@ -1135,62 +1272,105 @@ export const corOps = {
 
   async approveCOR(corId, userId) {
     if (isSupabaseConfigured) {
+      // Separation of duties: prevent self-approval
+      // The person who submitted should not be the same person who approves
+      const { data: cor, error: fetchError } = await supabase
+        .from('change_orders')
+        .select('submitted_by, created_by')
+        .eq('id', corId)
+        .single()
+      if (fetchError) throw fetchError
+
+      if (userId && (userId === cor.submitted_by || userId === cor.created_by)) {
+        throw new Error('Separation of duties: COR cannot be approved by the person who created or submitted it. A different authorized user must approve.')
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           status: 'approved',
           approved_by: userId,
-          approved_at: new Date().toISOString()
+          approved_at: new Date().toISOString(),
+          // Clear any previous rejection
+          rejection_reason: null
         })
         .eq('id', corId)
+        .in('status', ['pending_approval'])
         .select()
         .single()
       if (error) throw error
+
+      // Log the status change
+      await this._logCORStatusChange(corId, 'approved', userId, 'Approved')
+
       return data
     }
     return null
   },
 
-  async rejectCOR(corId, reason = null) {
+  async rejectCOR(corId, reason = null, rejectedBy = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           status: 'rejected',
-          rejection_reason: reason
+          rejection_reason: reason,
+          rejected_at: new Date().toISOString(),
+          // Clear any previous approval
+          approved_by: null,
+          approved_at: null
         })
         .eq('id', corId)
+        .in('status', ['pending_approval'])
         .select()
         .single()
       if (error) throw error
+
+      // Log the status change with rejection reason
+      await this._logCORStatusChange(corId, 'rejected', rejectedBy, reason || 'Rejected')
+
       return data
     }
     return null
   },
 
-  async markCORAsBilled(corId) {
+  async markCORAsBilled(corId, userId = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
-        .update({ status: 'billed' })
+        .update({
+          status: 'billed',
+          billed_at: new Date().toISOString()
+        })
         .eq('id', corId)
+        .in('status', ['approved'])
         .select()
         .single()
       if (error) throw error
+
+      await this._logCORStatusChange(corId, 'billed', userId, 'Marked as billed')
+
       return data
     }
     return null
   },
 
-  async closeCOR(corId) {
+  async closeCOR(corId, userId = null) {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
-        .update({ status: 'closed' })
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString()
+        })
         .eq('id', corId)
+        .in('status', ['billed'])
         .select()
         .single()
       if (error) throw error
+
+      await this._logCORStatusChange(corId, 'closed', userId, 'Closed')
+
       return data
     }
     return null
@@ -1207,6 +1387,7 @@ export const corOps = {
           status: 'approved' // Auto-approve when signed
         })
         .eq('id', corId)
+        .in('status', ['pending_approval']) // Only allow signing CORs that are pending approval
         .select()
         .single()
       if (error) throw error
@@ -1241,17 +1422,19 @@ export const corOps = {
       }
 
       data.forEach(cor => {
+        // cor_total is stored in cents; convert to dollars for consumers
+        const corValueDollars = (cor.cor_total || 0) / 100
         switch (cor.status) {
           case 'draft':
             stats.draft_count++
             break
           case 'pending_approval':
             stats.pending_count++
-            stats.total_pending_value += cor.cor_total || 0
+            stats.total_pending_value += corValueDollars
             break
           case 'approved':
             stats.approved_count++
-            stats.total_approved_value += cor.cor_total || 0
+            stats.total_approved_value += corValueDollars
             break
           case 'rejected':
             stats.rejected_count++
@@ -1259,7 +1442,7 @@ export const corOps = {
           case 'billed':
           case 'closed':
             stats.billed_count++
-            stats.total_billed_value += cor.cor_total || 0
+            stats.total_billed_value += corValueDollars
             break
         }
       })
@@ -1404,9 +1587,31 @@ export const corOps = {
     return null
   },
 
-  // Update change order status
+  // Update change order status (with valid transition enforcement)
   async updateChangeOrderStatus(changeOrderId, status) {
     if (isSupabaseConfigured) {
+      // Enforce valid status values and transitions
+      const VALID_TRANSITIONS = {
+        draft: ['pending_approval'],
+        pending_approval: ['approved', 'rejected', 'draft'],
+        approved: ['billed', 'draft'],
+        rejected: ['draft', 'pending_approval'],
+        billed: ['closed'],
+        closed: []
+      }
+      const VALID_STATUSES = Object.keys(VALID_TRANSITIONS)
+      if (!VALID_STATUSES.includes(status)) {
+        throw new Error(`Invalid status: ${status}`)
+      }
+
+      // Determine which current statuses can transition to the target status
+      const allowedFromStatuses = VALID_STATUSES.filter(
+        s => VALID_TRANSITIONS[s].includes(status)
+      )
+      if (allowedFromStatuses.length === 0) {
+        throw new Error(`No valid transition to status: ${status}`)
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
@@ -1414,6 +1619,7 @@ export const corOps = {
           updated_at: new Date().toISOString()
         })
         .eq('id', changeOrderId)
+        .in('status', allowedFromStatuses)
         .select()
         .single()
 
@@ -1505,6 +1711,36 @@ export const corOps = {
         .channel(`project:${projectId}`)
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to invoice changes for a project
+  // Fires when invoices are created, updated (status changes), or deleted
+  subscribeToInvoices(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`invoices:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'invoices', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  // Subscribe to project cost changes for a project
+  // Fires when custom costs are added, updated, or deleted
+  subscribeToProjectCosts(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project_costs:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'project_costs', filter: `project_id=eq.${projectId}` },
           callback
         )
         .subscribe()
@@ -2230,5 +2466,49 @@ export const corOps = {
         }
       }
     }
+  },
+
+  // ============================================
+  // COR Audit Trail
+  // ============================================
+
+  // Internal: Log a COR status change for audit trail
+  // This creates a permanent record of every status transition
+  async _logCORStatusChange(corId, newStatus, userId = null, notes = null) {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('cor_status_history')
+          .insert({
+            change_order_id: corId,
+            status: newStatus,
+            changed_by: userId || null,
+            notes: notes || null,
+            changed_at: new Date().toISOString()
+          })
+      } catch (e) {
+        // Audit logging should never block the main operation
+        // Log the failure but don't throw — the status change already succeeded
+        observe.error('cor_audit_log_failed', {
+          cor_id: corId,
+          status: newStatus,
+          error: e.message
+        })
+      }
+    }
+  },
+
+  // Get the full status change history for a COR (for audit/dispute resolution)
+  async getCORStatusHistory(corId) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('cor_status_history')
+        .select('*')
+        .eq('change_order_id', corId)
+        .order('changed_at', { ascending: true })
+      if (error) throw error
+      return data || []
+    }
+    return []
   },
 }

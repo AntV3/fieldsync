@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useMemo, useCallback } from 'react'
-import { Users, HardHat, Wrench, Calendar, Download, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, HardHat, Wrench, Calendar, Download, ChevronLeft, ChevronRight, ChevronDown, CheckCircle } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
@@ -37,6 +37,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   const [timeRange, setTimeRange] = useState('14d')
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [showTimeline, setShowTimeline] = useState(false)
 
   // Load all crew check-in history and T&M tickets
   useEffect(() => {
@@ -171,7 +172,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           Contract: <strong>{payload[0]?.value || 0}</strong>
         </p>
         <p style={{ margin: '3px 0', color: CREW_COLORS.tm }}>
-          T&M: <strong>{payload[1]?.value || 0}</strong>
+          Time & Material: <strong>{payload[1]?.value || 0}</strong>
         </p>
         <p style={{ margin: '3px 0', color: 'var(--text-primary)', borderTop: '1px solid var(--border-color)', paddingTop: 4 }}>
           Total: <strong>{total}</strong>
@@ -216,7 +217,10 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       doc.setFont(undefined, 'normal')
       doc.text(`Total Crew On-Site: ${todayMetrics.total}`, 14, y); y += 5
       doc.text(`Contract Workers: ${todayMetrics.contract.length}`, 14, y); y += 5
-      doc.text(`T&M Workers: ${todayMetrics.tm.length}`, 14, y); y += 10
+      doc.text(`Time and Material Workers: ${todayMetrics.tm.length}`, 14, y); y += 10
+
+      // Check if any workers have signatures
+      const hasSignatures = selectedDayWorkers.some(w => w.signature_data)
 
       // Contract Workers
       if (todayMetrics.contract.length > 0) {
@@ -227,34 +231,54 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         doc.setFontSize(9)
         doc.setFont(undefined, 'bold')
         doc.text('Name', 14, y)
-        doc.text('Role', 100, y); y += 5
+        doc.text('Role', 80, y)
+        if (hasSignatures) {
+          doc.text('SSN Last 4', 130, y)
+          doc.text('Signed', 160, y)
+        }
+        y += 5
 
         doc.setFont(undefined, 'normal')
         todayMetrics.contract.forEach(w => {
           if (y > 270) { doc.addPage(); y = 20 }
           doc.text(w.name, 14, y)
-          doc.text(w.role || '—', 100, y); y += 5
+          doc.text(w.role || '—', 80, y)
+          if (hasSignatures) {
+            doc.text(w.ssn_last4 || '—', 130, y)
+            doc.text(w.signature_data ? 'Yes' : '—', 160, y)
+          }
+          y += 5
         })
         y += 8
       }
 
-      // T&M Workers
+      // Time and Material Workers
       if (todayMetrics.tm.length > 0) {
         if (y > 240) { doc.addPage(); y = 20 }
         doc.setFontSize(12)
         doc.setFont(undefined, 'bold')
-        doc.text('T&M Workers (Extra Work)', 14, y); y += 7
+        doc.text('Time and Material Workers (Extra Work)', 14, y); y += 7
 
         doc.setFontSize(9)
         doc.setFont(undefined, 'bold')
         doc.text('Name', 14, y)
-        doc.text('Role', 100, y); y += 5
+        doc.text('Role', 80, y)
+        if (hasSignatures) {
+          doc.text('SSN Last 4', 130, y)
+          doc.text('Signed', 160, y)
+        }
+        y += 5
 
         doc.setFont(undefined, 'normal')
         todayMetrics.tm.forEach(w => {
           if (y > 270) { doc.addPage(); y = 20 }
           doc.text(w.name, 14, y)
-          doc.text(w.role || '—', 100, y); y += 5
+          doc.text(w.role || '—', 80, y)
+          if (hasSignatures) {
+            doc.text(w.ssn_last4 || '—', 130, y)
+            doc.text(w.signature_data ? 'Yes' : '—', 160, y)
+          }
+          y += 5
         })
         y += 8
       }
@@ -270,7 +294,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       doc.text('Date', 14, y)
       doc.text('Total', 70, y)
       doc.text('Contract', 95, y)
-      doc.text('T&M', 125, y); y += 5
+      doc.text('T&M', 125, y); y += 5  // Keep abbreviation for column header width
 
       doc.setFont(undefined, 'normal')
       chartData.forEach(day => {
@@ -367,7 +391,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           <div className="crew-stat-icon"><Wrench size={20} /></div>
           <div className="crew-stat-content">
             <span className="crew-stat-value">{todayMetrics.tm.length}</span>
-            <span className="crew-stat-label">T&M</span>
+            <span className="crew-stat-label">Time & Material</span>
           </div>
         </div>
       </div>
@@ -383,7 +407,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           <div
             className="crew-bar-segment tm"
             style={{ width: `${(todayMetrics.tm.length / todayMetrics.total) * 100}%` }}
-            title={`${todayMetrics.tm.length} T&M`}
+            title={`${todayMetrics.tm.length} Time & Material`}
           />
         </div>
       )}
@@ -399,10 +423,14 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
               </div>
               <div className="crew-name-tags">
                 {todayMetrics.contract.map((w, i) => (
-                  <span key={i} className="crew-name-tag contract">
+                  <span key={i} className={`crew-name-tag contract${w.signature_data ? ' signed' : ''}`}>
+                    {w.signature_data && <CheckCircle size={11} className="crew-name-signed-icon" />}
                     {w.name}
                     {w.role && w.role !== 'Laborer' && (
                       <span className="crew-name-role">{w.role}</span>
+                    )}
+                    {w.ssn_last4 && (
+                      <span className="crew-name-ssn">••{w.ssn_last4.slice(-2)}</span>
                     )}
                   </span>
                 ))}
@@ -413,14 +441,18 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
             <div className="crew-name-group">
               <div className="crew-name-group-header tm">
                 <Wrench size={13} />
-                <span>T&M ({todayMetrics.tm.length})</span>
+                <span>Time & Material ({todayMetrics.tm.length})</span>
               </div>
               <div className="crew-name-tags">
                 {todayMetrics.tm.map((w, i) => (
-                  <span key={i} className="crew-name-tag tm">
+                  <span key={i} className={`crew-name-tag tm${w.signature_data ? ' signed' : ''}`}>
+                    {w.signature_data && <CheckCircle size={11} className="crew-name-signed-icon" />}
                     {w.name}
                     {w.role && w.role !== 'Laborer' && (
                       <span className="crew-name-role">{w.role}</span>
+                    )}
+                    {w.ssn_last4 && (
+                      <span className="crew-name-ssn">••{w.ssn_last4.slice(-2)}</span>
                     )}
                   </span>
                 ))}
@@ -430,69 +462,83 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         </div>
       )}
 
-      {/* Day-by-day timeline chart */}
-      <div className="crew-timeline-section">
-        <div className="crew-timeline-header">
-          <span className="crew-timeline-title">Daily Breakdown</span>
-          <div className="crew-time-range-pills">
-            {TIME_RANGES.map(range => (
-              <button
-                key={range.id}
-                className={`crew-range-pill ${timeRange === range.id ? 'active' : ''}`}
-                onClick={() => setTimeRange(range.id)}
+      {/* Day-by-day timeline chart — collapsed by default */}
+      <button
+        className="crew-timeline-toggle"
+        onClick={() => setShowTimeline(!showTimeline)}
+        type="button"
+      >
+        <ChevronDown size={14} className={`crew-timeline-chevron ${showTimeline ? 'open' : ''}`} />
+        <span>Daily Breakdown</span>
+        {!showTimeline && chartData.length > 0 && (
+          <span className="crew-timeline-summary">Last {chartData.length} days</span>
+        )}
+      </button>
+
+      {showTimeline && (
+        <div className="crew-timeline-section">
+          <div className="crew-timeline-header">
+            <span className="crew-timeline-title">Daily Breakdown</span>
+            <div className="crew-time-range-pills">
+              {TIME_RANGES.map(range => (
+                <button
+                  key={range.id}
+                  className={`crew-range-pill ${timeRange === range.id ? 'active' : ''}`}
+                  onClick={() => setTimeRange(range.id)}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="crew-chart-container">
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart
+                data={chartData}
+                onClick={(e) => e?.activePayload?.[0] && handleBarClick(e.activePayload[0].payload)}
+                style={{ cursor: 'pointer' }}
               >
-                {range.label}
-              </button>
-            ))}
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                <XAxis
+                  dataKey="displayDate"
+                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                  axisLine={{ stroke: 'var(--border-color)' }}
+                  tickLine={false}
+                  interval={timeRange === '30d' ? 4 : timeRange === '14d' ? 1 : 0}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                  width={30}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontSize: '0.75rem', paddingTop: 4 }}
+                  iconType="circle"
+                  iconSize={8}
+                />
+                <Bar
+                  dataKey="contract"
+                  name="Contract"
+                  stackId="crew"
+                  fill={CREW_COLORS.contract}
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="tm"
+                  name="Time & Material (Extra Work)"
+                  stackId="crew"
+                  fill={CREW_COLORS.tm}
+                  radius={[3, 3, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
-
-        <div className="crew-chart-container">
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart
-              data={chartData}
-              onClick={(e) => e?.activePayload?.[0] && handleBarClick(e.activePayload[0].payload)}
-              style={{ cursor: 'pointer' }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-                axisLine={{ stroke: 'var(--border-color)' }}
-                tickLine={false}
-                interval={timeRange === '30d' ? 4 : timeRange === '14d' ? 1 : 0}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
-                axisLine={false}
-                tickLine={false}
-                allowDecimals={false}
-                width={30}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: '0.75rem', paddingTop: 4 }}
-                iconType="circle"
-                iconSize={8}
-              />
-              <Bar
-                dataKey="contract"
-                name="Contract"
-                stackId="crew"
-                fill={CREW_COLORS.contract}
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar
-                dataKey="tm"
-                name="T&M (Extra Work)"
-                stackId="crew"
-                fill={CREW_COLORS.tm}
-                radius={[3, 3, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      )}
 
       {/* Empty state */}
       {todayMetrics.total === 0 && (

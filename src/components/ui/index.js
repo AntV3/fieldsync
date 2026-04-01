@@ -35,3 +35,11 @@ export {
 } from './MicroVis'
 
 export { default as Modal } from './Modal'
+
+export { default as InfoTooltip } from './InfoTooltip'
+
+export { default as ConfirmDialog } from './ConfirmDialog'
+
+export { default as CollapsibleSection } from './CollapsibleSection'
+
+export { default as ErrorBoundary } from './ErrorBoundary'

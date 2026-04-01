@@ -1,7 +1,30 @@
 import { memo, useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { CountBadge } from '../ui'
 import { db } from '../../lib/supabase'
+
+const formatTime12 = (timeStr) => {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes}${ampm}`
+}
+
+const getTicketTimeRange = (workers) => {
+  if (!workers?.length) return null
+  let earliest = null
+  let latest = null
+  for (const w of workers) {
+    if (w.time_started && w.time_ended) {
+      if (!earliest || w.time_started < earliest) earliest = w.time_started
+      if (!latest || w.time_ended > latest) latest = w.time_ended
+    }
+  }
+  if (!earliest || !latest) return null
+  return `${formatTime12(earliest)} - ${formatTime12(latest)}`
+}
 
 /**
  * Memoized T&M Ticket Card component
@@ -52,7 +75,7 @@ const TMTicketCard = memo(function TMTicketCard({
     <div
       className={`tm-ticket-card hover-lift animate-fade-in-up ${ticket.status} ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}
       role="article"
-      aria-label={`T&M Ticket for ${formatDate(ticket.work_date)}, ${totalHours} hours, $${totalCost.toFixed(2)}, status: ${ticket.status}`}
+      aria-label={`Time & Material Ticket for ${formatDate(ticket.work_date)}, ${totalHours} hours, $${totalCost.toFixed(2)}, status: ${ticket.status}`}
     >
       <div
         className="tm-ticket-header"
@@ -95,15 +118,31 @@ const TMTicketCard = memo(function TMTicketCard({
               <AlertTriangle size={12} /> Import Failed
             </span>
           )}
+          {ticket.foreman_signature_data && (
+            <span className="tm-foreman-signed-badge" title={`Foreman: ${ticket.foreman_signature_name || 'foreman'}${ticket.foreman_signature_date ? ` on ${formatDate(ticket.foreman_signature_date)}` : ''}`}>
+              <CheckCircle size={12} /> Foreman
+            </span>
+          )}
           {ticket.client_signature_data && (
             <span className="tm-verified-badge" title={`Verified by ${ticket.client_signature_name || 'client'}${ticket.client_signature_date ? ` on ${formatDate(ticket.client_signature_date)}` : ''}`}>
-              <CheckCircle size={12} /> Verified
+              <CheckCircle size={12} /> Client
             </span>
           )}
           <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
         </div>
         <div className="tm-ticket-summary">
-          <span className="tm-ticket-hours">{totalHours} hrs</span>
+          <div className="tm-ticket-hours-block">
+            <span className="tm-ticket-hours">{totalHours} hrs</span>
+            {(() => {
+              const range = getTicketTimeRange(ticket.t_and_m_workers)
+              return range ? (
+                <span className="tm-ticket-time-range">
+                  <Clock size={11} className="inline-icon" />
+                  {range}
+                </span>
+              ) : null
+            })()}
+          </div>
           <span className="tm-ticket-total">${totalCost.toFixed(2)}</span>
           <span className="tm-expand-arrow" aria-hidden="true">{isExpanded ? '▼' : '▶'}</span>
         </div>
@@ -113,18 +152,32 @@ const TMTicketCard = memo(function TMTicketCard({
         <div className="tm-ticket-details">
           {ticket.t_and_m_workers?.length > 0 && (
             <div className="tm-detail-section">
-              <h4><HardHat size={16} className="inline-icon" /> Workers</h4>
-              <div className="tm-detail-list">
+              <h4><HardHat size={16} className="inline-icon" /> Labor</h4>
+              <div className="tm-labor-table">
+                <div className="tm-labor-table-header">
+                  <span className="tm-labor-col-name">Worker</span>
+                  <span className="tm-labor-col-class">Class</span>
+                  <span className="tm-labor-col-time">Time Frame</span>
+                  <span className="tm-labor-col-hours">Hours</span>
+                </div>
                 {ticket.t_and_m_workers.map(worker => (
-                  <div key={worker.id} className="tm-detail-row">
-                    <span>
-                      {worker.role && worker.role !== 'Laborer' && (
-                        <span className="tm-role-badge">{worker.role}</span>
-                      )}
-                      {worker.name}
+                  <div key={worker.id} className="tm-labor-table-row">
+                    <span className="tm-labor-col-name">{worker.name}</span>
+                    <span className="tm-labor-col-class">
+                      <span className="tm-role-badge">{worker.role || worker.labor_class || 'Laborer'}</span>
                     </span>
-                    <span>
-                      {worker.hours} hrs
+                    <span className="tm-labor-col-time">
+                      {worker.time_started && worker.time_ended ? (
+                        <span className="tm-worker-time-range">
+                          <Clock size={12} className="inline-icon" />
+                          {formatTime12(worker.time_started)} - {formatTime12(worker.time_ended)}
+                        </span>
+                      ) : (
+                        <span className="tm-no-time">—</span>
+                      )}
+                    </span>
+                    <span className="tm-labor-col-hours">
+                      {worker.hours} reg
                       {parseFloat(worker.overtime_hours) > 0 && (
                         <span className="tm-ot-badge"> +{worker.overtime_hours} OT</span>
                       )}
@@ -205,7 +258,7 @@ const TMTicketCard = memo(function TMTicketCard({
           )}
 
           <div className="tm-ticket-actions" role="group" aria-label="Ticket actions">
-            {ticket.status === 'pending' && !isLocked && (
+            {(ticket.status === 'pending' || ticket.status === 'foreman_signed') && !isLocked && (
               <>
                 <button
                   className="btn btn-success btn-small"

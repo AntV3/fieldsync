@@ -23,7 +23,7 @@ const STATUS_CATEGORIES = {
   void: ['rejected', 'closed']
 }
 
-export default function CORLog({ project, company, onShowToast }) {
+export default function CORLog({ project, company, onShowToast, onViewCOR }) {
   const [logEntries, setLogEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
@@ -134,21 +134,23 @@ export default function CORLog({ project, company, onShowToast }) {
     return { pending, approved, voided }
   }, [paginatedEntries])
 
-  // Calculate summary statistics
+  // Calculate summary statistics from full dataset (not paginated)
   const summary = useMemo(() => {
-    const { pending, approved, voided } = groupedEntries
+    const allPending = logEntries.filter(e => STATUS_CATEGORIES.pending.includes(e.changeOrder.status))
+    const allApproved = logEntries.filter(e => STATUS_CATEGORIES.approved.includes(e.changeOrder.status))
+    const allVoided = logEntries.filter(e => STATUS_CATEGORIES.void.includes(e.changeOrder.status))
 
     return {
       totalCORs: logEntries.length,
-      approvedCount: approved.length,
-      pendingCount: pending.length,
-      voidCount: voided.length,
-      approvedTotal: approved.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
-      pendingTotal: pending.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
-      voidTotal: voided.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
+      approvedCount: allApproved.length,
+      pendingCount: allPending.length,
+      voidCount: allVoided.length,
+      approvedTotal: allApproved.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
+      pendingTotal: allPending.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
+      voidTotal: allVoided.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0),
       grandTotal: logEntries.reduce((sum, e) => sum + (e.changeOrder.corTotal || 0), 0)
     }
-  }, [logEntries, groupedEntries])
+  }, [logEntries])
 
   // Export to PDF
   const exportToPDF = async () => {
@@ -276,8 +278,9 @@ export default function CORLog({ project, company, onShowToast }) {
   // Export to Excel
   const exportToExcel = async () => {
     try {
-      // Dynamic import for xlsx
-      const XLSX = await import('xlsx')
+      // Safe dynamic import for xlsx
+      const { loadXLSXSafe } = await import('../../lib/safeXlsx')
+      const XLSX = await loadXLSXSafe()
 
       // Prepare data
       const data = logEntries.map(entry => ({
@@ -380,6 +383,7 @@ export default function CORLog({ project, company, onShowToast }) {
             onEdit={() => setEditingId(entry.id)}
             onSave={(updates) => handleSave(entry.id, updates, entry.changeOrder.id)}
             onCancel={() => setEditingId(null)}
+            onViewCOR={onViewCOR}
             statusDisplay={STATUS_DISPLAY}
           />
         ))}

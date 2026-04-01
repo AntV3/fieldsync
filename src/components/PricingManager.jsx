@@ -15,7 +15,7 @@ export default function PricingManager({ company, onShowToast }) {
     <div className="pricing-manager">
       <div className="pricing-header">
         <h1>Pricing Configuration</h1>
-        <p className="pricing-subtitle">Set up labor rates, materials pricing, and disposal costs</p>
+        <p className="pricing-subtitle">Set up labor rates and materials pricing</p>
       </div>
 
       {/* Pricing Tabs */}

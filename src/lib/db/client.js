@@ -28,6 +28,7 @@ import {
 } from '../offlineManager'
 import { supabase, isSupabaseConfigured } from '../supabaseClient'
 import { observe } from '../observability'
+import { sanitize, validate } from '../sanitize'
 import {
   getFieldSession,
   setFieldSession,
@@ -148,3 +149,24 @@ export const sanitizeText = (text) => {
   if (!text) return text
   return text.replace(/\0/g, '').trim()
 }
+
+// Escape special PostgREST filter characters to prevent filter injection
+export const escapePostgrestFilter = (input) => {
+  if (!input || typeof input !== 'string') return ''
+  return input
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_')
+    .replace(/,/g, '')
+    .replace(/\./g, '')
+    .replace(/\(/g, '')
+    .replace(/\)/g, '')
+    .replace(/:/g, '')
+}
+
+// Sanitize an object of form data before sending to the database
+export const sanitizeFormData = (data) => sanitize.object(data)
+export { sanitize, validate }
+
+// Allowed fields for punch list item updates
+export const PUNCH_LIST_ALLOWED_FIELDS = new Set(['description', 'area_id', 'assigned_to', 'priority', 'notes', 'photo_url', 'status'])

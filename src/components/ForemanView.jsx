@@ -15,8 +15,12 @@ import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
 import PunchList from './PunchList'
+import { useTradeConfig } from '../lib/TradeConfigContext'
 
 export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
+  const { resolvedConfig } = useTradeConfig()
+  const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
+
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
@@ -26,8 +30,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress, punchlist
   const [showProjectInfo, setShowProjectInfo] = useState(false)
 
-  // Punch list open count for badge
-  const [punchListOpenCount, setPunchListOpenCount] = useState(0)
+  // Punch list open count for badge (null = not loaded yet)
+  const [punchListOpenCount, setPunchListOpenCount] = useState(null)
 
   // Today's activity status (for smart cards)
   const [todayStatus, setTodayStatus] = useState({
@@ -35,7 +39,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     crewCount: 0,
     tmTicketsToday: 0,
     dailyReportDone: false,
-    disposalLoadsToday: 0
+    disposalLoadsToday: 0,
+    trucksUsedToday: 0
   })
 
   // Theme
@@ -46,17 +51,14 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return false
   })
 
-  // Get current hour for time-based UI
-  const currentHour = new Date().getHours()
-  const isMorning = currentHour >= 5 && currentHour < 12
-  const isAfternoon = currentHour >= 12 && currentHour < 17
-  const isEvening = currentHour >= 17 || currentHour < 5
-
   useEffect(() => {
     if (project?.id) {
-      loadAreas()
-      loadTodayStatus()
-      loadPunchListCount()
+      // Parallelize independent data loads for faster initial render
+      Promise.all([
+        loadAreas(),
+        loadTodayStatus(),
+        loadPunchListCount()
+      ])
     }
   }, [project?.id])
 
@@ -65,24 +67,25 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     try {
       const today = new Date().toISOString().split('T')[0]
 
-      // Load crew check-in for today (returns single object with .workers array, or null)
-      const crew = await db.getCrewCheckin(project.id, today)
+      // Parallelize all independent queries instead of running sequentially
+      const [crew, todayTicketCount, disposal, truckData] = await Promise.all([
+        db.getCrewCheckin(project.id, today),
+        // Use date-filtered count query instead of loading ALL tickets then filtering
+        db.getTMTicketCountByDate?.(project.id, today) ??
+          db.getTMTickets?.(project.id).then(tickets => (tickets || []).filter(t => t.work_date === today).length),
+        db.getDisposalLoads?.(project.id, today) || [],
+        db.getTruckCount?.(project.id, today)
+      ])
+
       const crewWorkers = crew?.workers || []
-      const crewCheckedIn = crewWorkers.length > 0
-
-      // Load T&M tickets for today
-      const tickets = await db.getTMTickets?.(project.id) || []
-      const todayTickets = tickets.filter(t => t.work_date === today)
-
-      // Load disposal loads for today
-      const disposal = await db.getDisposalLoads?.(project.id, today) || []
 
       setTodayStatus({
-        crewCheckedIn,
+        crewCheckedIn: crewWorkers.length > 0,
         crewCount: crewWorkers.length,
-        tmTicketsToday: todayTickets.length,
+        tmTicketsToday: typeof todayTicketCount === 'number' ? todayTicketCount : 0,
         dailyReportDone: false, // We'll track this separately
-        disposalLoadsToday: disposal.reduce((sum, d) => sum + (d.load_count || 1), 0)
+        disposalLoadsToday: (disposal || []).reduce((sum, d) => sum + (d.load_count || 1), 0),
+        trucksUsedToday: truckData?.truck_count || 0
       })
     } catch (error) {
       console.error('Error loading today status:', error)
@@ -105,13 +108,33 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   }
 
   // Real-time subscriptions for live updates
+  // Use targeted refresh functions to avoid full-page reloads for every change
   const refreshTimeoutRef = useRef(null)
+  const pendingRefreshRef = useRef({ areas: false, status: false, punchList: false })
 
-  const debouncedRefresh = useCallback(() => {
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
+
+  const debouncedRefresh = useCallback((targets = { areas: true, status: true }) => {
+    // Track what actually needs refreshing
+    if (targets.areas) pendingRefreshRef.current.areas = true
+    if (targets.status) pendingRefreshRef.current.status = true
+    if (targets.punchList) pendingRefreshRef.current.punchList = true
+
     if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
-    refreshTimeoutRef.current = setTimeout(() => {
-      loadAreas()
-      loadTodayStatus()
+    // 300ms debounce - fast enough for real-time feel while still coalescing rapid events
+    refreshTimeoutRef.current = setTimeout(async () => {
+      if (!mountedRef.current) return
+      const pending = pendingRefreshRef.current
+      pendingRefreshRef.current = { areas: false, status: false, punchList: false }
+      const refreshes = []
+      if (pending.areas) refreshes.push(loadAreas())
+      if (pending.status) refreshes.push(loadTodayStatus())
+      if (pending.punchList) refreshes.push(loadPunchListCount())
+      await Promise.all(refreshes)
     }, 300)
   }, [project?.id])
 
@@ -119,46 +142,43 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     if (!project?.id) return
     const subs = []
 
-    const areaSub = db.subscribeToAreas?.(project.id, debouncedRefresh)
+    // Areas: refresh areas + progress
+    const areaSub = db.subscribeToAreas?.(project.id, () => debouncedRefresh({ areas: true }))
     if (areaSub) subs.push(areaSub)
 
-    const crewSub = db.subscribeToCrewCheckins?.(project.id, debouncedRefresh)
+    // Crew/TM/trucks/reports: only refresh today's status (not areas)
+    const crewSub = db.subscribeToCrewCheckins?.(project.id, () => debouncedRefresh({ status: true }))
     if (crewSub) subs.push(crewSub)
 
-    const tmSub = db.subscribeToTMTickets?.(project.id, debouncedRefresh)
+    const tmSub = db.subscribeToTMTickets?.(project.id, () => debouncedRefresh({ status: true }))
     if (tmSub) subs.push(tmSub)
 
-    const haulSub = db.subscribeToHaulOffs?.(project.id, debouncedRefresh)
+    const haulSub = db.subscribeToHaulOffs?.(project.id, () => debouncedRefresh({ status: true }))
     if (haulSub) subs.push(haulSub)
 
-    const reportSub = db.subscribeToDailyReports?.(project.id, debouncedRefresh)
+    const truckSub = db.subscribeToTruckCounts?.(project.id, () => debouncedRefresh({ status: true }))
+    if (truckSub) subs.push(truckSub)
+
+    const reportSub = db.subscribeToDailyReports?.(project.id, () => debouncedRefresh({ status: true }))
     if (reportSub) subs.push(reportSub)
 
-    // COR status changes from office (approvals, rejections)
-    const corSub = db.subscribeToCORs?.(project.id, debouncedRefresh)
+    // COR/project changes: no need to reload areas or today status
+    const corSub = db.subscribeToCORs?.(project.id, () => debouncedRefresh({ status: false }))
     if (corSub) subs.push(corSub)
 
-    // Material request responses from office
-    const matReqSub = db.subscribeToMaterialRequests?.(project.id, debouncedRefresh)
-    if (matReqSub) subs.push(matReqSub)
-
-    // Project-level changes from office (name, dates, budget)
-    const projectSub = db.subscribeToProject?.(project.id, debouncedRefresh)
+    const projectSub = db.subscribeToProject?.(project.id, () => debouncedRefresh({ areas: true, status: true }))
     if (projectSub) subs.push(projectSub)
 
-    // Punch list changes (office resolves items, or field teammate creates items)
-    const punchSub = db.subscribeToPunchList?.(project.id, () => {
-      loadPunchListCount()
-      debouncedRefresh()
-    })
+    // Punch list: only refresh punch list count
+    const punchSub = db.subscribeToPunchList?.(project.id, () => debouncedRefresh({ punchList: true }))
     if (punchSub) subs.push(punchSub)
 
-    // Materials/equipment pricing changes from office
+    // Materials/equipment pricing changes from office - no UI impact in field view
     if (companyId) {
-      const materialsSub = db.subscribeToMaterialsEquipment?.(companyId, debouncedRefresh)
+      const materialsSub = db.subscribeToMaterialsEquipment?.(companyId, () => debouncedRefresh({ status: false }))
       if (materialsSub) subs.push(materialsSub)
 
-      const laborSub = db.subscribeToLaborRates?.(companyId, debouncedRefresh)
+      const laborSub = db.subscribeToLaborRates?.(companyId, () => debouncedRefresh({ status: false }))
       if (laborSub) subs.push(laborSub)
     }
 
@@ -271,6 +291,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         <InjuryReportForm
           project={project}
           companyId={companyId}
+          user={foremanName ? { name: foremanName } : undefined}
           onClose={() => setActiveView('home')}
           onReportCreated={() => {
             setActiveView('home')
@@ -296,8 +317,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     )
   }
 
-  // Disposal Loads View
-  if (activeView === 'disposal') {
+  // Disposal Loads View (only when truck load tracking is enabled)
+  if (activeView === 'disposal' && truckLoadTrackingEnabled) {
     return (
       <div className="fm-view">
         <div className="fm-subheader">

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { parseLocalDate } from '../lib/utils'
 
 const LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', icon: '🧱' },
   { value: 'trash', label: 'Trash', icon: '🗑️' },
   { value: 'metals', label: 'Metals', icon: '🔩' },
-  { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' }
+  { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' },
+  { value: 'copper', label: 'Copper', icon: '🔶' },
+  { value: 'asphalt', label: 'Asphalt', icon: '🛣️' }
 ]
 
 const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
@@ -19,9 +22,11 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const [showAddForm, setShowAddForm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [newLoad, setNewLoad] = useState({ type: 'concrete', count: 1 })
+  const [truckCount, setTruckCount] = useState(0)
+  const [savingTrucks, setSavingTrucks] = useState(false)
 
   // Format date for display
-  const displayDate = new Date(date).toLocaleDateString('en-US', {
+  const displayDate = parseLocalDate(date).toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric'
@@ -30,6 +35,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   useEffect(() => {
     loadDisposalData()
     loadHistory()
+    loadTruckCount()
   }, [project.id, date])
 
   const loadDisposalData = async () => {
@@ -73,6 +79,30 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
     }
   }
 
+  const loadTruckCount = async () => {
+    try {
+      const data = await db.getTruckCount(project.id, date)
+      setTruckCount(data?.truck_count || 0)
+    } catch (err) {
+      console.error('Error loading truck count:', err)
+    }
+  }
+
+  const handleTruckCountChange = async (delta) => {
+    const newCount = Math.max(0, truckCount + delta)
+    setTruckCount(newCount)
+    setSavingTrucks(true)
+    try {
+      await db.setTruckCount(project.id, date, newCount)
+    } catch (err) {
+      console.error('Error saving truck count:', err)
+      setTruckCount(truckCount) // revert on error
+      onShowToast?.('Error saving truck count', 'error')
+    } finally {
+      setSavingTrucks(false)
+    }
+  }
+
   const handleAddLoad = async () => {
     if (newLoad.count < 1) return
 
@@ -91,7 +121,10 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Disposal load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      onShowToast?.('Error adding load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error adding load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -105,7 +138,10 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Load removed', 'success')
     } catch (err) {
       console.error('Error deleting disposal load:', err)
-      onShowToast?.('Error removing load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error removing load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -119,7 +155,10 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       onShowToast?.('Load added', 'success')
     } catch (err) {
       console.error('Error adding disposal load:', err)
-      onShowToast?.('Error adding load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error adding load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -132,7 +171,10 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
-      onShowToast?.('Error updating load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error updating load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -150,7 +192,10 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
-      onShowToast?.('Error updating load', 'error')
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error updating load'
+      onShowToast?.(msg, 'error')
     } finally {
       setSaving(false)
     }
@@ -315,10 +360,35 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
         </button>
       )}
 
+      {/* Trucks Used Section */}
+      <div className="disposal-trucks-section">
+        <div className="disposal-trucks-header">
+          <Truck size={16} />
+          <span>Trucks Used</span>
+        </div>
+        <div className="disposal-trucks-controls">
+          <button
+            className="load-btn decrement"
+            onClick={() => handleTruckCountChange(-1)}
+            disabled={savingTrucks || truckCount <= 0}
+          >
+            <Minus size={16} />
+          </button>
+          <span className="load-count">{truckCount}</span>
+          <button
+            className="load-btn increment"
+            onClick={() => handleTruckCountChange(1)}
+            disabled={savingTrucks}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+
       {/* Summary */}
-      {totalLoads > 0 && (
+      {(totalLoads > 0 || truckCount > 0) && (
         <div className="disposal-summary">
-          <strong>{totalLoads}</strong> total load{totalLoads !== 1 ? 's' : ''} today
+          <strong>{totalLoads}</strong> total load{totalLoads !== 1 ? 's' : ''}{truckCount > 0 ? ` across ${truckCount} truck${truckCount !== 1 ? 's' : ''}` : ''} today
         </div>
       )}
 

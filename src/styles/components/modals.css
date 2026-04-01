@@ -6,18 +6,20 @@
    Uses design tokens from variables.css.
    ============================================ */
 
-/* Modal Overlay (backdrop) */
+/* Modal Overlay (backdrop with depth-of-field) */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
   padding: var(--space-md);
   overflow-y: auto;
 }
@@ -25,14 +27,15 @@
 /* Modal Content Container */
 .modal-content {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
   width: 100%;
   max-height: calc(100vh - 2rem);
+  z-index: var(--z-modal);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-xl, 0 25px 50px -12px rgba(0, 0, 0, 0.5));
+  box-shadow: var(--shadow-elevated);
   color: var(--text-primary);
 }
 
@@ -43,7 +46,6 @@
   align-items: center;
   padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-secondary);
 }
 
 .modal-header h2 {
@@ -51,6 +53,7 @@
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
+  letter-spacing: var(--letter-spacing-tight);
 }
 
 .modal-header h3,
@@ -81,7 +84,6 @@
   align-items: center;
   padding: var(--space-md) var(--space-lg);
   border-top: 1px solid var(--border-color);
-  background: var(--bg-secondary);
   gap: var(--space-sm);
 }
 
@@ -93,19 +95,26 @@
 .close-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
   padding: var(--space-xs);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-smooth);
+  min-width: 36px;
+  min-height: 36px;
 }
 
 .close-btn:hover {
   background: var(--bg-elevated);
   color: var(--text-primary);
+  transform: scale(1.05);
+}
+
+.close-btn:active {
+  transform: scale(0.95);
 }
 
 /* Modal Size Variants */
@@ -140,20 +149,35 @@
   touch-action: pan-y;
 }
 
-/* Modal Animation */
+/* Modal Animations */
 @keyframes modalFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96) translateY(12px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
   }
 }
 
 .modal-content {
-  animation: modalFadeIn 0.2s ease-out;
+  animation: modalFadeIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.modal-content.exiting {
+  animation: modalFadeOut 0.15s ease-in forwards;
 }
 
 /* Responsive */
@@ -164,8 +188,20 @@
   }
 
   .modal-content {
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
     max-height: 90vh;
+  }
+
+  /* Bottom sheet drag handle indicator */
+  .modal-content::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--text-tertiary);
+    border-radius: var(--radius-full);
+    margin: 8px auto 0;
+    opacity: 0.5;
   }
 
   .modal-content.modal-full {
@@ -176,9 +212,14 @@
 
   .modal-footer {
     flex-direction: column;
+    padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   }
 
   .modal-footer .btn {
     width: 100%;
+  }
+
+  .modal-body {
+    padding: var(--space-md);
   }
 }

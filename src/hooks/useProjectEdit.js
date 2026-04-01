@@ -16,13 +16,18 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
       job_number: selectedProject.job_number || '',
       address: selectedProject.address || '',
       general_contractor: selectedProject.general_contractor || '',
+      contractor_contact: selectedProject.contractor_contact || '',
+      contractor_position: selectedProject.contractor_position || '',
+      contractor_phone: selectedProject.contractor_phone || '',
+      contractor_email: selectedProject.contractor_email || '',
       client_contact: selectedProject.client_contact || '',
+      client_position: selectedProject.client_position || '',
       client_phone: selectedProject.client_phone || '',
+      client_email: selectedProject.client_email || '',
       contract_value: selectedProject.contract_value,
       work_type: selectedProject.work_type || 'demolition',
       job_type: selectedProject.job_type || 'standard',
       pin: selectedProject.pin || '',
-      default_dump_site_id: selectedProject.default_dump_site_id || '',
       areas: areas.map(a => ({
         id: a.id,
         name: a.name,
@@ -85,7 +90,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
     }
 
     if (editData.pin && editData.pin !== selectedProject.pin) {
-      const pinAvailable = await db.isPinAvailable(editData.pin, selectedProject.id)
+      const pinAvailable = await db.isPinAvailable(editData.pin, company.id, selectedProject.id)
       if (!pinAvailable) {
         onShowToast('This PIN is already in use', 'error')
         return
@@ -99,7 +104,7 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
     }
 
     const totalWeight = validAreas.reduce((sum, a) => sum + parseFloat(a.weight), 0)
-    if (totalWeight !== 100) {
+    if (Math.abs(totalWeight - 100) > 0.01) {
       onShowToast('Area weights must total 100%', 'error')
       return
     }
@@ -112,13 +117,18 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
         job_number: editData.job_number?.trim() || null,
         address: editData.address?.trim() || null,
         general_contractor: editData.general_contractor?.trim() || null,
+        contractor_contact: editData.contractor_contact?.trim() || null,
+        contractor_position: editData.contractor_position?.trim() || null,
+        contractor_phone: editData.contractor_phone?.trim() || null,
+        contractor_email: editData.contractor_email?.trim() || null,
         client_contact: editData.client_contact?.trim() || null,
+        client_position: editData.client_position?.trim() || null,
         client_phone: editData.client_phone?.trim() || null,
+        client_email: editData.client_email?.trim() || null,
         contract_value: contractVal,
         work_type: editData.work_type || 'demolition',
         job_type: editData.job_type || 'standard',
-        pin: editData.pin || null,
-        default_dump_site_id: editData.default_dump_site_id || null
+        pin: editData.pin || null
       }, company?.id)
 
       const existingAreaIds = areas.map(a => a.id)

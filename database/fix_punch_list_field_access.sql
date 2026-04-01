@@ -6,72 +6,38 @@
 -- Field users (anon role + x-field-session header) are blocked
 -- from reading and writing punch list items.
 --
--- This migration adds field-session-based policies so foremen
--- can view and update punch list items for their project.
+-- Fix: Replace ALL policies with unified ones using
+-- can_access_project(), which handles both office and field users.
 -- ============================================================
 
--- ============================================================
--- STEP 1: Add SELECT policy for field users
--- ============================================================
-
+-- Drop ALL existing policies
+DROP POLICY IF EXISTS "punch_list_select" ON punch_list_items;
+DROP POLICY IF EXISTS "punch_list_insert" ON punch_list_items;
+DROP POLICY IF EXISTS "punch_list_update" ON punch_list_items;
+DROP POLICY IF EXISTS "punch_list_delete" ON punch_list_items;
 DROP POLICY IF EXISTS "Field users can view punch list" ON punch_list_items;
-
-CREATE POLICY "Field users can view punch list"
-ON punch_list_items FOR SELECT
-TO anon
-USING (can_access_project(project_id));
-
-GRANT SELECT ON punch_list_items TO anon;
-
--- ============================================================
--- STEP 2: Add INSERT policy for field users
--- ============================================================
-
 DROP POLICY IF EXISTS "Field users can create punch list items" ON punch_list_items;
-
-CREATE POLICY "Field users can create punch list items"
-ON punch_list_items FOR INSERT
-TO anon
-WITH CHECK (can_access_project(project_id));
-
-GRANT INSERT ON punch_list_items TO anon;
-
--- ============================================================
--- STEP 3: Add UPDATE policy for field users
--- ============================================================
-
 DROP POLICY IF EXISTS "Field users can update punch list items" ON punch_list_items;
+DROP POLICY IF EXISTS "Secure field view punch list" ON punch_list_items;
+DROP POLICY IF EXISTS "Secure field create punch list items" ON punch_list_items;
+DROP POLICY IF EXISTS "Secure field update punch list items" ON punch_list_items;
 
-CREATE POLICY "Field users can update punch list items"
-ON punch_list_items FOR UPDATE
-TO anon
-USING (can_access_project(project_id))
-WITH CHECK (can_access_project(project_id));
+-- Create unified policies
+CREATE POLICY "punch_list_select"
+  ON punch_list_items FOR SELECT
+  USING (can_access_project(project_id));
 
-GRANT UPDATE ON punch_list_items TO anon;
+CREATE POLICY "punch_list_insert"
+  ON punch_list_items FOR INSERT
+  WITH CHECK (can_access_project(project_id));
 
--- ============================================================
--- VERIFICATION
--- ============================================================
+CREATE POLICY "punch_list_update"
+  ON punch_list_items FOR UPDATE
+  USING (can_access_project(project_id))
+  WITH CHECK (can_access_project(project_id));
 
-DO $$
-DECLARE
-  field_policies INTEGER;
-BEGIN
-  SELECT COUNT(*) INTO field_policies
-  FROM pg_policies
-  WHERE tablename = 'punch_list_items'
-    AND policyname LIKE '%Field%';
+CREATE POLICY "punch_list_delete"
+  ON punch_list_items FOR DELETE
+  USING (can_access_project(project_id));
 
-  RAISE NOTICE '';
-  RAISE NOTICE '============================================================';
-  RAISE NOTICE 'PUNCH LIST FIELD ACCESS FIX APPLIED';
-  RAISE NOTICE '============================================================';
-  RAISE NOTICE 'Field policies on punch_list_items: %', field_policies;
-  RAISE NOTICE '';
-  RAISE NOTICE 'Field users can now:';
-  RAISE NOTICE '  - View punch list items for their project';
-  RAISE NOTICE '  - Create new punch list items';
-  RAISE NOTICE '  - Update (resolve, reassign) punch list items';
-  RAISE NOTICE '============================================================';
-END $$;
+GRANT SELECT, INSERT, UPDATE, DELETE ON punch_list_items TO anon;

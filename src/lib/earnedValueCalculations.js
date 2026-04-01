@@ -31,13 +31,16 @@ export function calculateEarnedValue({
   actualCosts = 0,
   startDate,
   endDate,
-  areas = []
+  _areas = []
 }) {
   // BAC = Budget at Completion (revised with change orders)
   const bac = contractValue + changeOrderValue
 
+  // Clamp progress to valid range to prevent inflated projections
+  const clampedProgress = Math.min(100, Math.max(0, progressPercent))
+
   // EV = Earned Value (what we've earned based on completion)
-  const earnedValue = (progressPercent / 100) * bac
+  const earnedValue = (clampedProgress / 100) * bac
 
   // PV = Planned Value (what we should have earned by now based on schedule)
   const plannedValue = calculatePlannedValue(bac, startDate, endDate)
@@ -101,7 +104,7 @@ export function calculateEarnedValue({
     // Projections
     projectedEndDate,
     percentScheduled: calculatePercentScheduled(startDate, endDate),
-    percentComplete: progressPercent,
+    percentComplete: clampedProgress,
 
     // Status
     healthStatus,

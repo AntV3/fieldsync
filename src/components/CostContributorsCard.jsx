@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Plus, HardHat, Truck, Wrench, Package, Users, MoreHorizontal, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, HardHat, Wrench, Package, Users, MoreHorizontal, Trash2 } from 'lucide-react'
 import { CostDonut } from './charts'
 
 // Helper to format currency
@@ -15,7 +15,6 @@ const formatCurrency = (amount) => {
 // Category display info
 const categoryInfo = {
   labor: { label: 'Labor', Icon: HardHat, color: '#3b82f6' },
-  disposal: { label: 'Disposal', Icon: Truck, color: '#10b981' },
   equipment: { label: 'Equipment', Icon: Wrench, color: '#f59e0b' },
   materials: { label: 'Materials', Icon: Package, color: '#8b5cf6' },
   subcontractor: { label: 'Subcontractor', Icon: Users, color: '#ec4899' },
@@ -24,7 +23,8 @@ const categoryInfo = {
 
 export default function CostContributorsCard({
   laborCost = 0,
-  haulOffCost = 0,
+  materialsEquipmentCost = 0,
+  projectEquipmentCost = 0,
   customCosts = [],
   onAddCost,
   onDeleteCost
@@ -46,14 +46,25 @@ export default function CostContributorsCard({
     })
   }
 
-  // Disposal (auto-tracked from haul-offs)
-  if (haulOffCost > 0) {
+  // Materials (auto-tracked from T&M tickets)
+  if (materialsEquipmentCost > 0) {
     costBreakdown.push({
-      category: 'disposal',
-      label: 'Disposal',
-      amount: haulOffCost,
+      category: 'materials',
+      label: 'Materials',
+      amount: materialsEquipmentCost,
       source: 'auto',
-      description: 'From haul-off logs'
+      description: 'From Time and Material tickets'
+    })
+  }
+
+  // Equipment rental (auto-tracked from project equipment daily rates)
+  if (projectEquipmentCost > 0) {
+    costBreakdown.push({
+      category: 'equipment',
+      label: 'Equipment Rental',
+      amount: projectEquipmentCost,
+      source: 'auto',
+      description: 'From equipment tracking'
     })
   }
 
@@ -71,16 +82,24 @@ export default function CostContributorsCard({
     customByCategory[cost.category].total += parseFloat(cost.amount) || 0
   })
 
-  // Add custom cost categories
+  // Merge custom costs into existing auto-tracked categories or add new entries
   Object.values(customByCategory).forEach(group => {
-    const info = categoryInfo[group.category] || categoryInfo.other
-    costBreakdown.push({
-      category: group.category,
-      label: info.label,
-      amount: group.total,
-      source: 'manual',
-      items: group.items
-    })
+    const existingEntry = costBreakdown.find(e => e.category === group.category)
+    if (existingEntry) {
+      // Merge into existing auto-tracked category to avoid duplicate keys/entries
+      existingEntry.amount += group.total
+      existingEntry.items = group.items
+      existingEntry.source = 'mixed'
+    } else {
+      const info = categoryInfo[group.category] || categoryInfo.other
+      costBreakdown.push({
+        category: group.category,
+        label: info.label,
+        amount: group.total,
+        source: 'manual',
+        items: group.items
+      })
+    }
   })
 
   // Calculate total
@@ -133,12 +152,13 @@ export default function CostContributorsCard({
       {costBreakdown.length === 0 ? (
         <div className="cost-empty">
           <p>No costs recorded yet</p>
-          <small>Costs will appear as crew checks in and haul-offs are logged</small>
+          <small>Costs will appear as crew checks in</small>
         </div>
       ) : showChart ? (
         <CostDonut
           laborCost={laborCost}
-          haulOffCost={haulOffCost}
+          materialsEquipmentCost={materialsEquipmentCost}
+          projectEquipmentCost={projectEquipmentCost}
           customCosts={customCosts}
           onSegmentClick={handleSegmentClick}
         />

@@ -1,4 +1,6 @@
-import { TrendingDown, AlertCircle, CheckCircle } from 'lucide-react'
+import { useState } from 'react'
+import { TrendingDown, AlertCircle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { InfoTooltip } from './ui'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -38,7 +40,10 @@ export default function ProfitabilityCard({
   return (
     <div className={`profitability-card ${status}`}>
       <div className="profitability-header">
-        <h3>Profitability</h3>
+        <div className="profitability-title-group">
+          <h3>Profitability</h3>
+          <InfoTooltip text="Current Margin = (Revenue − Costs) ÷ Revenue × 100. Projected Final = Contract Value − (Costs ÷ Progress %) extrapolated to completion" />
+        </div>
         <div className={`profitability-status ${status}`}>
           <StatusIcon size={14} />
           <span>{statusLabel}</span>
@@ -99,6 +104,40 @@ export default function ProfitabilityCard({
       </div>
 
       {progress > 10 && (
+        <ProfitInsight
+          isHealthy={isHealthy}
+          isWarning={isWarning}
+          isLoss={isLoss}
+          progress={progress}
+          currentProfit={currentProfit}
+          projectedProfit={projectedProfit}
+        />
+      )}
+    </div>
+  )
+}
+
+function ProfitInsight({ isHealthy, isWarning, isLoss, progress, currentProfit, projectedProfit }) {
+  const [showInsight, setShowInsight] = useState(false)
+
+  // Generate a short summary for the collapsed state
+  const summary = isHealthy
+    ? `On track at ${Math.round(progress)}%`
+    : isWarning
+      ? 'Margins thin — review recommended'
+      : 'Over cost — immediate review'
+
+  return (
+    <div className="profitability-insight-wrap">
+      <button
+        className="profitability-insight-toggle"
+        onClick={() => setShowInsight(!showInsight)}
+        type="button"
+      >
+        {showInsight ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <span className="profitability-insight-summary">{summary}</span>
+      </button>
+      {showInsight && (
         <div className="profitability-insight">
           {isHealthy && (
             <p>

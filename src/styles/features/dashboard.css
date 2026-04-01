@@ -49,12 +49,21 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
 }
 
 .risk-score__number {
+  font-family: var(--font-data);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums lining-nums;
   line-height: 1;
+}
+
+.risk-score__label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .risk-score__label {
@@ -204,11 +213,12 @@
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border-left: 4px solid;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-smooth), transform var(--transition-smooth);
 }
 
 .smart-alert:hover {
   background: var(--bg-elevated);
+  transform: translateX(2px);
 }
 
 .smart-alert--critical {
@@ -358,8 +368,14 @@
   background: var(--gradient-card-dark);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-micro);
   box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::after {
+  display: none;
 }
 
 .metric-card:hover {
@@ -373,7 +389,20 @@
 
 .metric-card--clickable:hover {
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.metric-card--clickable:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
+}
+
+/* Keyboard focus for metric cards */
+.metric-card--clickable:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .metric-card__header {
@@ -388,6 +417,9 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.025em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card__icon {
@@ -397,13 +429,17 @@
 }
 
 .metric-card__value {
+  font-family: var(--font-data);
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: var(--line-height-tight);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
   margin-bottom: var(--space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card__value--sm {
@@ -417,6 +453,9 @@
 .metric-card__subtext {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card__trend {
@@ -671,6 +710,10 @@
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .projection-card__header {
@@ -680,27 +723,44 @@
   margin-bottom: var(--space-sm);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
+  min-width: 0;
+}
+
+.projection-card__header .info-tooltip-wrapper {
+  margin-left: 0;
 }
 
 .projection-card__header-icon {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 .projection-card__title {
   font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .projection-card__value {
+  font-family: var(--font-data);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .projection-card__comparison {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .projection-card__comparison--worse {
@@ -794,15 +854,22 @@
   align-items: center;
   padding: var(--space-md);
   background: var(--bg-card);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all var(--transition-smooth);
+  box-shadow: var(--shadow-card);
 }
 
 .project-row:hover {
   border-color: var(--accent-blue);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.project-row:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
 }
 
 .project-row__risk {
@@ -913,6 +980,7 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   padding: var(--space-md);
+  overflow: hidden;
 }
 
 .projections-panel__header {
@@ -933,7 +1001,7 @@
 
 .projections-panel__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-md);
 }
 
@@ -1380,9 +1448,10 @@
 }
 
 .benchmark-summary__count {
+  font-family: var(--font-data);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   line-height: 1;
 }
 
@@ -1554,4 +1623,251 @@
 
 .benchmark-indicator__label {
   font-weight: var(--font-weight-medium);
+}
+
+/* ---- Mobile Responsive ---- */
+@media (max-width: 768px) {
+  .project-row {
+    grid-template-columns: auto 1fr auto;
+    gap: var(--space-sm);
+  }
+
+  .project-row__progress {
+    display: none;
+  }
+
+  .project-row__status {
+    width: auto;
+  }
+
+  .project-row__budget {
+    width: auto;
+  }
+
+  .benchmark-comparison__legend {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .benchmark-summary {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .smart-alert {
+    gap: var(--space-sm);
+  }
+
+  .projections-panel__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .project-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+
+  .project-row__risk {
+    display: none;
+  }
+
+  .project-row__name {
+    white-space: normal;
+  }
+
+  .metric-card__value {
+    font-size: var(--font-size-2xl);
+  }
+
+  .preset-selector {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   Dashboard Enhancement: F-Pattern KPI Layout
+   ============================================
+   Critical KPIs sit above the fold.
+   Progressive disclosure: summary -> detail -> drill-down.
+   60-30-10 rule: 60% data, 30% whitespace, 10% accents.
+   ============================================ */
+
+/* KPI strip at top of dashboard (above the fold) */
+.dashboard-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard-kpi-strip .metric-card {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-kpi-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-kpi-strip {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+}
+
+/* Progressive disclosure section */
+.dashboard-section {
+  margin-bottom: var(--space-xl);
+}
+
+.dashboard-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.dashboard-section__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+}
+
+.dashboard-section__action {
+  font-size: var(--font-size-sm);
+  color: var(--accent-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast);
+}
+
+.dashboard-section__action:hover {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Interactive States & Micro-interactions
+   ============================================ */
+
+/* Button press feedback (150-300ms transitions) */
+.metric-card--clickable,
+.project-row,
+.smart-alert,
+.quick-stat-card {
+  transition:
+    transform var(--transition-micro),
+    box-shadow var(--transition-micro),
+    border-color var(--transition-micro);
+}
+
+/* Active / pressed state feedback */
+.project-row:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card-active);
+}
+
+/* Filter application feedback */
+.filter-active {
+  animation: filterApplied 0.3s ease-out;
+}
+
+@keyframes filterApplied {
+  0% { opacity: 0.7; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Data update flash */
+.metric-card--updated {
+  animation: metricUpdate 0.6s ease-out;
+}
+
+@keyframes metricUpdate {
+  0% { box-shadow: var(--shadow-card), 0 0 0 0 rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: var(--shadow-card), 0 0 0 4px rgba(59, 130, 246, 0.15); }
+  100% { box-shadow: var(--shadow-card), 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+/* ============================================
+   Dark Mode Sophistication
+   ============================================
+   Not inverted colors: reduced brightness, adjusted saturation.
+   Elevated surfaces use lighter grays (not pure black).
+   Maintained hierarchy through elevation, not just color.
+   ============================================ */
+
+/* Elevation-based card hierarchy (dark mode) */
+:root .metric-card,
+:root .project-row,
+:root .overview-section-card {
+  background: var(--elevation-1);
+}
+
+:root .metric-card:hover,
+:root .project-row:hover,
+:root .overview-section-card:hover {
+  background: var(--elevation-2);
+}
+
+/* Popover / dropdown surfaces */
+:root .chart-tooltip {
+  background: var(--elevation-3);
+}
+
+/* Light mode resets (elevation via shadow, not surface color) */
+[data-theme="light"] .metric-card,
+[data-theme="light"] .project-row,
+[data-theme="light"] .overview-section-card {
+  background: var(--bg-card);
+}
+
+/* ============================================
+   Mobile: Card-Based Stacking
+   ============================================ */
+@media (max-width: 768px) {
+  /* Touch targets >= 44px */
+  .smart-alert__action-btn,
+  .smart-alert__dismiss,
+  .overview-action-btn,
+  .time-range-selector button,
+  .crew-date-btn,
+  .crew-range-pill {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Card stacking on mobile */
+  .metric-grid--4,
+  .metric-grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    padding: var(--space-md);
+  }
+
+  /* Collapsed navigation on tablet/mobile */
+  .dashboard-kpi-strip {
+    gap: var(--space-sm);
+  }
+}
+
+/* Tablet: reflowed grids */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .metric-grid--4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .projections-panel__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

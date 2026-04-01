@@ -8,7 +8,6 @@ import { FinancialTrendChart } from '../../charts'
 import BurnRateCard from '../../BurnRateCard'
 import ProfitabilityCard from '../../ProfitabilityCard'
 import CostContributorsCard from '../../CostContributorsCard'
-import DisposalSummary from '../../DisposalSummary'
 import ProjectEquipmentCard from '../../equipment/ProjectEquipmentCard'
 import ProgressBillingCard from '../../billing/ProgressBillingCard'
 import ManDayCosts from '../../ManDayCosts'
@@ -73,7 +72,6 @@ export default function FinancialsTab({
             earnedRevenue: billable,
             approvedCORs: null,
             laborByDate: projectData?.laborByDate,
-            haulOffByDate: projectData?.haulOffByDate,
             customCosts: projectData?.customCosts
           })}
         >
@@ -82,8 +80,7 @@ export default function FinancialsTab({
         <button
           className="btn btn-ghost btn-small"
           onClick={() => exportToQuickBooksIIF(selectedProject, {
-            totalLaborCost: projectData?.laborCost || 0,
-            totalDisposalCost: projectData?.haulOffCost || 0
+            totalLaborCost: projectData?.laborCost || 0
           })}
         >
           <Download size={14} /> QuickBooks
@@ -148,6 +145,7 @@ export default function FinancialsTab({
                 tmTickets={projectData?.tmTickets || []}
                 corStats={projectData?.corStats}
                 areas={areas}
+                changeOrderValue={changeOrderValue}
               />
 
               <div className="financials-analysis-row stagger-children">
@@ -157,6 +155,8 @@ export default function FinancialsTab({
                   daysWorked={projectData?.totalBurnDays || 0}
                   laborCost={projectData?.laborCost || 0}
                   materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                  projectEquipmentCost={projectData?.projectEquipmentCost || 0}
+                  customCostTotal={projectData?.customCostTotal || 0}
                   progress={progress}
                   contractValue={revisedContractValue}
                   laborByDate={projectData?.laborByDate || []}
@@ -170,16 +170,14 @@ export default function FinancialsTab({
                 />
               </div>
 
-              <div className="cost-disposal-row">
-                <CostContributorsCard
-                  laborCost={projectData?.laborCost || 0}
-                  haulOffCost={projectData?.haulOffCost || 0}
-                  customCosts={projectData?.customCosts || []}
-                  onAddCost={onAddCost}
-                  onDeleteCost={onDeleteCost}
-                />
-                <DisposalSummary project={selectedProject} period="week" />
-              </div>
+              <CostContributorsCard
+                laborCost={projectData?.laborCost || 0}
+                materialsEquipmentCost={projectData?.materialsEquipmentCost || 0}
+                projectEquipmentCost={projectData?.projectEquipmentCost || 0}
+                customCosts={projectData?.customCosts || []}
+                onAddCost={onAddCost}
+                onDeleteCost={onDeleteCost}
+              />
 
               <ProjectEquipmentCard
                 key={equipmentRefreshKey}

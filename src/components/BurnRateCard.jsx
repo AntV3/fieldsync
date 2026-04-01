@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Flame } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, Flame } from 'lucide-react'
+import { InfoTooltip } from './ui'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -11,9 +12,12 @@ const formatCurrency = (amount) => {
   }).format(amount || 0)
 }
 
-// Helper to format date
+// Helper to format date - append time to date-only strings to avoid UTC
+// interpretation which causes off-by-one in negative UTC timezones
 const formatDate = (dateStr) => {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  const s = String(dateStr)
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+  return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric'
   })
@@ -25,12 +29,18 @@ export default function BurnRateCard({
   daysWorked,
   laborCost,
   materialsEquipmentCost = 0,
+  projectEquipmentCost = 0,
+  customCostTotal = 0,
   progress,
   contractValue,
   laborByDate = [],
   materialsEquipmentByDate = []
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [showCostDetail, setShowCostDetail] = useState(false)
+
+  // Count how many secondary cost categories exist
+  const secondaryCostCount = [materialsEquipmentCost, projectEquipmentCost, customCostTotal].filter(c => c > 0).length
 
   // Calculate burn status relative to progress
   const expectedBurnAtProgress = contractValue * (progress / 100) * 0.6 // Assume 60% cost ratio as healthy
@@ -82,6 +92,7 @@ export default function BurnRateCard({
         <div className="burn-rate-title">
           <Flame size={18} className="burn-icon" />
           <h3>Burn Rate</h3>
+          <InfoTooltip text="Daily Burn = Total Costs ÷ Days Worked. Projected at Completion = Total Costs ÷ (Progress % ÷ 100)" />
         </div>
         <div className={`burn-status ${burnStatus}`}>
           <StatusIcon size={14} />
@@ -111,11 +122,50 @@ export default function BurnRateCard({
           <span className="burn-summary-label">Labor</span>
           <span className="burn-summary-value">{formatCurrency(laborCost)}</span>
         </div>
-        <div className="burn-summary-divider"></div>
-        <div className="burn-summary-item">
-          <span className="burn-summary-label">Materials</span>
-          <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
-        </div>
+        {secondaryCostCount > 0 && (
+          <>
+            <div className="burn-summary-divider"></div>
+            <button
+              className="burn-cost-detail-toggle"
+              onClick={() => setShowCostDetail(!showCostDetail)}
+              type="button"
+            >
+              {showCostDetail ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              <span>{secondaryCostCount} more categor{secondaryCostCount === 1 ? 'y' : 'ies'}</span>
+            </button>
+          </>
+        )}
+        {showCostDetail && (
+          <>
+            {materialsEquipmentCost > 0 && (
+              <>
+                <div className="burn-summary-divider"></div>
+                <div className="burn-summary-item">
+                  <span className="burn-summary-label">Materials</span>
+                  <span className="burn-summary-value">{formatCurrency(materialsEquipmentCost)}</span>
+                </div>
+              </>
+            )}
+            {projectEquipmentCost > 0 && (
+              <>
+                <div className="burn-summary-divider"></div>
+                <div className="burn-summary-item">
+                  <span className="burn-summary-label">Equipment Rental</span>
+                  <span className="burn-summary-value">{formatCurrency(projectEquipmentCost)}</span>
+                </div>
+              </>
+            )}
+            {customCostTotal > 0 && (
+              <>
+                <div className="burn-summary-divider"></div>
+                <div className="burn-summary-item">
+                  <span className="burn-summary-label">Other</span>
+                  <span className="burn-summary-value">{formatCurrency(customCostTotal)}</span>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
 
       {progress > 0 && (

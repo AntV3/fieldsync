@@ -18,17 +18,18 @@
 // Migration: Replace exportCORToPDF calls with executeExport from corExportPipeline.js
 // ============================================
 
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import {
   formatCurrency,
   formatPercent,
   centsToDollars,
   calculateCORTotals,
   formatDate,
-  formatDateRange
+  formatDateRange,
+  groupLaborByClassAndType,
+  combineLaborGroupItems
 } from './corCalculations'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
+import { db } from './supabase'
 
 // Helper to format time (HH:MM or HH:MM:SS to 9:00am format)
 const formatTime = (timeStr) => {
@@ -67,7 +68,17 @@ export async function verifyPhotosForExport(tmTickets) {
   for (const ticket of tmTickets) {
     if (!ticket.photos || ticket.photos.length === 0) continue
 
-    for (const photoUrl of ticket.photos) {
+    // Resolve storage paths to signed URLs for the whole ticket at once
+    let signedUrls
+    try {
+      signedUrls = await db.resolvePhotoUrls(ticket.photos)
+    } catch {
+      signedUrls = ticket.photos
+    }
+
+    for (let pi = 0; pi < ticket.photos.length; pi++) {
+      const photoUrl = ticket.photos[pi]
+      const signedUrl = signedUrls[pi]
       const entry = {
         ticketId: ticket.id,
         workDate: ticket.work_date,
@@ -78,7 +89,7 @@ export async function verifyPhotosForExport(tmTickets) {
 
       try {
         // Try to load the image to verify accessibility
-        const imgData = await loadImageAsBase64(photoUrl)
+        const imgData = await loadImageAsBase64(signedUrl, 10000)
         if (imgData) {
           entry.verified = true
           verified++
@@ -162,6 +173,8 @@ export function createExportSnapshot(cor, tmTickets, photoManifest, totals) {
       workers: ticket.t_and_m_workers || [],
       items: ticket.t_and_m_items || [],
       photos: ticket.photos || [],
+      foreman_signature_name: ticket.foreman_signature_name,
+      foreman_signature_date: ticket.foreman_signature_date,
       client_signature_name: ticket.client_signature_name,
       client_signature_date: ticket.client_signature_date
     })),
@@ -189,6 +202,8 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
   if (verifyPhotos && tmTickets?.length > 0) {
     photoManifest = await verifyPhotosForExport(tmTickets)
   }
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -319,28 +334,57 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
     doc.text('LABOR', margin, yPos)
     yPos += 6
 
+    const laborGroups = groupLaborByClassAndType(cor.change_order_labor)
+
+    for (const group of laborGroups) {
+      if (yPos > pageHeight - 60) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(71, 85, 105)
+      doc.text(group.label, margin, yPos)
+      yPos += 4
+
+      const combinedItems = combineLaborGroupItems(group.items)
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
+        body: combinedItems.map(item => [
+          item.regular_hours?.toString() || '0',
+          `$${centsToDollars(item.regular_rate)}/hr`,
+          item.overtime_hours?.toString() || '-',
+          item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-',
+          formatCurrency(item.total)
+        ]),
+        foot: [[
+          { content: `${group.label} Subtotal`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
+          { content: formatCurrency(group.subtotal), styles: { fontStyle: 'bold' } }
+        ]],
+        margin: { left: margin, right: margin },
+        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        footStyles: { fillColor: headerBg, textColor: [0, 0, 0], fontSize: 8 },
+        theme: 'striped'
+      })
+
+      yPos = doc.lastAutoTable.finalY + 6
+    }
+
+    // Labor total footer row
     autoTable(doc, {
       startY: yPos,
-      head: [['Class', 'Type', 'Reg Hrs', 'Reg Rate', 'OT Hrs', 'OT Rate', 'Total']],
-      body: cor.change_order_labor.map(item => [
-        item.labor_class,
-        item.wage_type,
-        item.regular_hours.toString(),
-        `$${centsToDollars(item.regular_rate)}/hr`,
-        item.overtime_hours?.toString() || '-',
-        item.overtime_hours ? `$${centsToDollars(item.overtime_rate)}/hr` : '-',
-        formatCurrency(item.total)
-      ]),
-      foot: [[
-        { content: `Subtotal: ${formatCurrency(totals.labor_subtotal)}`, colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
+      body: [[
+        { content: `Subtotal: ${formatCurrency(totals.labor_subtotal)}`, colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
         { content: `+${formatPercent(cor.labor_markup_percent || 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
         { content: formatCurrency(totals.labor_subtotal + totals.labor_markup_amount), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-      bodyStyles: { fontSize: 8 },
-      footStyles: { fillColor: headerBg, textColor: [0, 0, 0], fontSize: 8 },
-      theme: 'striped'
+      bodyStyles: { fillColor: headerBg, textColor: [0, 0, 0], fontSize: 8, fontStyle: 'bold' },
+      theme: 'plain'
     })
 
     yPos = doc.lastAutoTable.finalY + 10
@@ -744,7 +788,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
     const summaryCol1 = margin + 15
     const summaryCol2 = margin + 70
 
-    doc.text('T&M Tickets:', summaryCol1, yPos)
+    doc.text('Time & Material Tickets:', summaryCol1, yPos)
     doc.setFont('helvetica', 'bold')
     doc.text(String(tmTickets.length), summaryCol2, yPos)
     doc.setFont('helvetica', 'normal')
@@ -821,7 +865,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(30, 41, 59)
-      doc.text(`T&M TICKET — ${formatDate(ticket.work_date)}`, margin + 10, yPos + 8)
+      doc.text(`TIME & MATERIAL TICKET — ${formatDate(ticket.work_date)}`, margin + 10, yPos + 8)
 
       // CE/PCO badge
       if (ticket.ce_pco_number) {
@@ -901,7 +945,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
         doc.setFontSize(7)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(100, 116, 139)
-        doc.text('Source: T&M Ticket', margin + 55, yPos)
+        doc.text('Source: Time & Material Ticket', margin + 55, yPos)
         yPos += 6
 
         autoTable(doc, {
@@ -952,8 +996,9 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
         const photosPerRow = 3
         const frameWidth = 1
 
-        // Load all photos in parallel for faster PDF generation
-        const photoImages = await loadImagesAsBase64(ticket.photos)
+        // Resolve storage paths to signed URLs, then load as base64
+        const signedUrls = await db.resolvePhotoUrls(ticket.photos)
+        const photoImages = await loadImagesAsBase64(signedUrls, 10000)
 
         for (let i = 0; i < ticket.photos.length; i++) {
           // Check if we need to wrap to next row
@@ -996,6 +1041,78 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
         }
 
         yPos += photoHeight + 12
+      }
+
+      // Foreman Certification Block (if foreman signed)
+      if (ticket.foreman_signature_data) {
+        if (yPos > pageHeight - 50) {
+          doc.addPage()
+          yPos = margin
+        }
+
+        const foremanBlockHeight = 32
+        const foremanBlockWidth = pageWidth - (margin * 2)
+
+        doc.setFillColor(239, 246, 255)
+        doc.roundedRect(margin, yPos, foremanBlockWidth, foremanBlockHeight, 3, 3, 'F')
+
+        doc.setFillColor(59, 130, 246)
+        doc.rect(margin, yPos, 4, foremanBlockHeight, 'F')
+
+        doc.setDrawColor(191, 219, 254)
+        doc.setLineWidth(0.5)
+        doc.line(margin + 4, yPos, margin + foremanBlockWidth, yPos)
+
+        const foremanSealX = margin + 14
+        const foremanSealY = yPos + foremanBlockHeight / 2
+        doc.setFillColor(59, 130, 246)
+        doc.circle(foremanSealX, foremanSealY, 6, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(255, 255, 255)
+        doc.text('✓', foremanSealX - 2.5, foremanSealY + 3)
+
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(59, 130, 246)
+        doc.text('FOREMAN CERTIFIED', margin + 26, yPos + 10)
+
+        try {
+          const sigWidth = 50
+          const sigHeight = 16
+          doc.addImage(ticket.foreman_signature_data, 'PNG', margin + 26, yPos + 13, sigWidth, sigHeight)
+
+          const foremanName = ticket.foreman_signature_name || 'Foreman'
+          const foremanTitle = ticket.foreman_signature_title || ''
+          const foremanSignedDate = ticket.foreman_signature_date
+            ? formatDate(ticket.foreman_signature_date)
+            : ''
+
+          const foremanInfoX = margin + 85
+
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(foremanName, foremanInfoX, yPos + 12)
+
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(71, 85, 105)
+          if (foremanTitle) {
+            doc.text(foremanTitle, foremanInfoX, yPos + 18)
+          }
+          if (foremanSignedDate) {
+            doc.setTextColor(100, 116, 139)
+            doc.text(`Certified: ${foremanSignedDate}`, foremanInfoX, yPos + 24)
+          }
+        } catch (e) {
+          const foremanName = ticket.foreman_signature_name || 'Foreman'
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(30, 41, 59)
+          doc.text(`Certified by: ${foremanName}`, margin + 26, yPos + 20)
+        }
+
+        yPos += foremanBlockHeight + 8
       }
 
       // Client Signature Verification Block (if ticket was signed) - Professional styling
@@ -1131,6 +1248,8 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
  * @param {Object} branding - Company branding (logoUrl, primaryColor)
  */
 export async function exportTMTicketToPDF(ticket, project, company, branding = {}) {
+  const { default: jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
   const doc = new jsPDF('p', 'mm', 'letter')
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -1172,7 +1291,7 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(30, 41, 59)
-  doc.text('T&M TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
+  doc.text('TIME & MATERIAL TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
 
   yPos += 25
 
@@ -1345,8 +1464,9 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
     const photoGap = 6
     const photosPerRow = 3
 
-    // Load all photos in parallel for faster PDF generation
-    const photoImages = await loadImagesAsBase64(ticket.photos)
+    // Resolve storage paths to signed URLs, then load as base64
+    const signedUrls = await db.resolvePhotoUrls(ticket.photos)
+    const photoImages = await loadImagesAsBase64(signedUrls, 10000)
 
     for (let i = 0; i < ticket.photos.length; i++) {
       if (i > 0 && i % photosPerRow === 0) {
@@ -1382,6 +1502,81 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
     }
 
     yPos += photoHeight + 12
+  }
+
+  // ============================================
+  // FOREMAN CERTIFICATION
+  // ============================================
+
+  if (ticket.foreman_signature_data) {
+    if (yPos > pageHeight - 50) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    const foremanBlockHeight = 32
+    const foremanBlockWidth = pageWidth - (margin * 2)
+
+    doc.setFillColor(239, 246, 255)
+    doc.roundedRect(margin, yPos, foremanBlockWidth, foremanBlockHeight, 3, 3, 'F')
+
+    doc.setFillColor(59, 130, 246)
+    doc.rect(margin, yPos, 4, foremanBlockHeight, 'F')
+
+    doc.setDrawColor(191, 219, 254)
+    doc.setLineWidth(0.5)
+    doc.line(margin + 4, yPos, margin + foremanBlockWidth, yPos)
+
+    const foremanSealX = margin + 14
+    const foremanSealY = yPos + foremanBlockHeight / 2
+    doc.setFillColor(59, 130, 246)
+    doc.circle(foremanSealX, foremanSealY, 6, 'F')
+    doc.setFontSize(9)
+    doc.setTextColor(255, 255, 255)
+    doc.text('✓', foremanSealX - 2.5, foremanSealY + 3)
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(59, 130, 246)
+    doc.text('FOREMAN CERTIFIED', margin + 26, yPos + 10)
+
+    try {
+      const sigWidth = 50
+      const sigHeight = 16
+      doc.addImage(ticket.foreman_signature_data, 'PNG', margin + 26, yPos + 13, sigWidth, sigHeight)
+
+      const foremanName = ticket.foreman_signature_name || 'Foreman'
+      const foremanTitle = ticket.foreman_signature_title || ''
+      const foremanSignedDate = ticket.foreman_signature_date
+        ? formatDate(ticket.foreman_signature_date)
+        : ''
+
+      const foremanInfoX = margin + 85
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(foremanName, foremanInfoX, yPos + 12)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(71, 85, 105)
+      if (foremanTitle) {
+        doc.text(foremanTitle, foremanInfoX, yPos + 18)
+      }
+      if (foremanSignedDate) {
+        doc.setTextColor(100, 116, 139)
+        doc.text(`Certified: ${foremanSignedDate}`, foremanInfoX, yPos + 24)
+      }
+    } catch (e) {
+      const foremanName = ticket.foreman_signature_name || 'Foreman'
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(30, 41, 59)
+      doc.text(`Certified by: ${foremanName}`, margin + 26, yPos + 20)
+    }
+
+    yPos += foremanBlockHeight + 8
   }
 
   // ============================================

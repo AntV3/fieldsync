@@ -170,13 +170,18 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request)
         .then((cachedResponse) => {
-          return cachedResponse || fetch(request)
+          if (cachedResponse) return cachedResponse
+          return fetch(request)
             .then((response) => {
               const responseClone = response.clone()
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(request, responseClone)
               })
               return response
+            })
+            .catch(() => {
+              // Font fetch failed (offline/CSP) - return empty response to avoid unhandled rejection
+              return new Response('', { status: 503, statusText: 'Font unavailable offline' })
             })
         })
     )

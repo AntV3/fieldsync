@@ -3,6 +3,8 @@
  * Generates CSV/IIF exports for accounting integration
  */
 
+import { groupLaborByClassAndType as groupLaborItems } from './corCalculations'
+
 // Helper to trigger file download
 function downloadFile(content, filename, mimeType = 'text/csv') {
   const blob = new Blob([content], { type: mimeType })
@@ -16,11 +18,19 @@ function downloadFile(content, filename, mimeType = 'text/csv') {
   URL.revokeObjectURL(url)
 }
 
-// Escape CSV field (handle commas, quotes, newlines)
+// Escape CSV field (handle commas, quotes, newlines, and formula injection)
 export function escapeCSV(value) {
   if (value == null) return ''
-  const str = String(value)
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+  // Never apply formula injection prefix to numbers (e.g. negative amounts)
+  if (typeof value === 'number') {
+    return String(value)
+  }
+  let str = String(value)
+  // Prevent CSV formula injection: prefix dangerous first characters with a single quote
+  if (/^[=+\-@\t\r\n]/.test(str)) {
+    str = "'" + str
+  }
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\t') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`
   }
   return str
@@ -71,13 +81,6 @@ export function exportProjectFinancials(project, financialData) {
     })
   }
 
-  // Disposal costs
-  if (financialData?.haulOffByDate) {
-    financialData.haulOffByDate.forEach(d => {
-      rows.push({ category: 'Cost', description: 'Disposal/Haul-off', amount: d.cost, date: d.date, type: 'Disposal' })
-    })
-  }
-
   // Custom costs
   if (financialData?.customCosts) {
     financialData.customCosts.forEach(c => {
@@ -102,7 +105,7 @@ export function exportProjectFinancials(project, financialData) {
 /**
  * Export COR detail as CSV
  */
-export function exportCORDetail(cor, project) {
+export function exportCORDetail(cor, _project) {
   const rows = []
   const headers = [
     { key: 'section', label: 'Section' },
@@ -119,13 +122,18 @@ export function exportCORDetail(cor, project) {
   rows.push({ section: 'Period', description: `${cor.period_start || ''} to ${cor.period_end || ''}`, quantity: '', unit: '', rate: '', total: '' })
   rows.push({ section: '', description: '', quantity: '', unit: '', rate: '', total: '' })
 
-  // Labor
+  // Labor (grouped by class and type)
   if (cor.change_order_labor?.length > 0) {
     rows.push({ section: 'LABOR', description: '', quantity: '', unit: '', rate: '', total: '' })
-    cor.change_order_labor.forEach(item => {
-      const regHrs = parseFloat(item.regular_hours) || 0
-      const otHrs = parseFloat(item.overtime_hours) || 0
-      rows.push({ section: '', description: item.description || item.classification, quantity: regHrs + otHrs, unit: 'hours', rate: (parseInt(item.regular_rate) || 0) / 100, total: (parseInt(item.total) || 0) / 100 })
+    const laborGroups = groupLaborItems(cor.change_order_labor)
+    laborGroups.forEach(group => {
+      rows.push({ section: group.label, description: '', quantity: '', unit: '', rate: '', total: '' })
+      group.items.forEach(item => {
+        const regHrs = parseFloat(item.regular_hours) || 0
+        const otHrs = parseFloat(item.overtime_hours) || 0
+        rows.push({ section: '', description: item.labor_class || item.description || item.classification, quantity: regHrs + otHrs, unit: 'hours', rate: (parseInt(item.regular_rate) || 0) / 100, total: (parseInt(item.total) || 0) / 100 })
+      })
+      rows.push({ section: '', description: `${group.label} Subtotal`, quantity: '', unit: '', rate: '', total: (group.subtotal || 0) / 100 })
     })
   }
 
@@ -204,6 +212,8 @@ export function exportTMTicketsCSV(tickets, project) {
 export function exportToQuickBooksIIF(project, financialData) {
   const lines = []
   const txnDate = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+  // Sanitize project name for IIF (strip tabs/newlines that could break format)
+  const safeName = (project.name || '').replace(/[\t\r\n]/g, ' ')
 
   // IIF Header
   lines.push('!TRNS\tTRNSTYPE\tDATE\tACCNT\tNAME\tAMOUNT\tMEMO')
@@ -212,22 +222,22 @@ export function exportToQuickBooksIIF(project, financialData) {
 
   // Revenue entry
   const totalRevenue = (project.contract_value || 0)
-  lines.push(`TRNS\tGENERAL JOURNAL\t${txnDate}\tAccounts Receivable\t${project.name}\t${totalRevenue.toFixed(2)}\tFieldSync - Contract Revenue`)
-  lines.push(`SPL\tGENERAL JOURNAL\t${txnDate}\tConstruction Revenue\t${project.name}\t${(-totalRevenue).toFixed(2)}\tContract: ${project.name}`)
+  lines.push(`TRNS\tGENERAL JOURNAL\t${txnDate}\tAccounts Receivable\t${safeName}\t${totalRevenue.toFixed(2)}\tFieldSync - Contract Revenue`)
+  lines.push(`SPL\tGENERAL JOURNAL\t${txnDate}\tConstruction Revenue\t${safeName}\t${(-totalRevenue).toFixed(2)}\tContract: ${safeName}`)
   lines.push('ENDTRNS')
 
   // Cost entries
   const totalLabor = financialData?.totalLaborCost || 0
   if (totalLabor > 0) {
-    lines.push(`TRNS\tGENERAL JOURNAL\t${txnDate}\tDirect Labor\t${project.name}\t${totalLabor.toFixed(2)}\tLabor costs - ${project.name}`)
-    lines.push(`SPL\tGENERAL JOURNAL\t${txnDate}\tAccounts Payable\t${project.name}\t${(-totalLabor).toFixed(2)}\tLabor costs`)
+    lines.push(`TRNS\tGENERAL JOURNAL\t${txnDate}\tDirect Labor\t${safeName}\t${totalLabor.toFixed(2)}\tLabor costs - ${safeName}`)
+    lines.push(`SPL\tGENERAL JOURNAL\t${txnDate}\tAccounts Payable\t${safeName}\t${(-totalLabor).toFixed(2)}\tLabor costs`)
     lines.push('ENDTRNS')
   }
 
   const totalDisposal = financialData?.totalDisposalCost || 0
   if (totalDisposal > 0) {
-    lines.push(`TRNS\tGENERAL JOURNAL\t${txnDate}\tDisposal Expense\t${project.name}\t${totalDisposal.toFixed(2)}\tDisposal costs - ${project.name}`)
-    lines.push(`SPL\tGENERAL JOURNAL\t${txnDate}\tAccounts Payable\t${project.name}\t${(-totalDisposal).toFixed(2)}\tDisposal costs`)
+    lines.push(`TRNS\tGENERAL JOURNAL\t${txnDate}\tDisposal Expense\t${safeName}\t${totalDisposal.toFixed(2)}\tDisposal costs - ${safeName}`)
+    lines.push(`SPL\tGENERAL JOURNAL\t${txnDate}\tAccounts Payable\t${safeName}\t${(-totalDisposal).toFixed(2)}\tDisposal costs`)
     lines.push('ENDTRNS')
   }
 

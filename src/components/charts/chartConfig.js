@@ -20,7 +20,6 @@ export const chartColors = {
 
   // Cost categories
   labor: '#6366f1',        // Indigo
-  disposal: '#14b8a6',     // Teal
   equipment: '#f97316',    // Orange
   materials: '#a855f7',    // Purple
   subcontractor: '#ec4899', // Pink
@@ -46,6 +45,8 @@ export const tooltipStyle = {
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
     padding: '12px 16px',
+    zIndex: 'var(--z-tooltip)',
+    position: 'relative',
   },
   labelStyle: {
     color: 'var(--text-primary)',
@@ -64,11 +65,6 @@ export const costCategories = {
     label: 'Labor',
     color: chartColors.labor,
     icon: 'HardHat',
-  },
-  disposal: {
-    label: 'Disposal',
-    color: chartColors.disposal,
-    icon: 'Trash2',
   },
   equipment: {
     label: 'Equipment',
@@ -102,6 +98,7 @@ export const timeRanges = [
 
 // Format currency for chart labels
 export const formatChartCurrency = (value) => {
+  if (value == null || isNaN(value)) return '$0'
   if (value >= 1000000) {
     return `$${(value / 1000000).toFixed(1)}M`
   }

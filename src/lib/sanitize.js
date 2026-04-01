@@ -232,6 +232,14 @@ function validatePIN(pin) {
 }
 
 /**
+ * Validate SSN last 4 digits (exactly 4 numeric digits)
+ */
+function validateSSN4(ssn4) {
+  if (!ssn4 || typeof ssn4 !== 'string') return false
+  return /^\d{4}$/.test(ssn4.trim())
+}
+
+/**
  * Validate company code format
  */
 function validateCompanyCode(code) {
@@ -337,6 +345,7 @@ export const validate = {
   integer: validateInteger,
   currency: validateCurrency,
   pin: validatePIN,
+  ssn4: validateSSN4,
   companyCode: validateCompanyCode,
   length: validateLength,
   containsXSS,

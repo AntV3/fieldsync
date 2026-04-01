@@ -2,20 +2,21 @@ import { DollarSign, HardHat, FileText, LayoutGrid, Building2, Phone, MapPin, In
 import { formatCurrency } from '../../../lib/utils'
 import ProjectTeam from '../../ProjectTeam'
 import MFASetup from '../../MFASetup'
+import ProjectTradeOverrides from '../../settings/ProjectTradeOverrides'
+import { useTradeConfig } from '../../../lib/TradeConfigContext'
 
 export default function SettingsTab({
   selectedProject,
   company,
   user,
   isAdmin,
-  projectData,
+  _projectData,
   areas,
   areasComplete,
   areasWorking,
   areasNotStarted,
   changeOrderValue,
   revisedContractValue,
-  dumpSites,
   onEditClick,
   onShowToast
 }) {
@@ -49,10 +50,7 @@ export default function SettingsTab({
             <HardHat size={20} />
           </div>
           <div className="info-quick-content">
-            <span className="info-quick-value">
-              {selectedProject.work_type === 'environmental' ? 'Environmental' : 'Demolition'}
-            </span>
-            <span className="info-quick-label">Work Type</span>
+            <TradeNameDisplay workType={selectedProject.work_type} />
           </div>
         </div>
         <div className="info-quick-card">
@@ -107,20 +105,59 @@ export default function SettingsTab({
               <span className="info-detail-value">No general contractor specified</span>
             </div>
           )}
+          {selectedProject.contractor_contact && (
+            <div className="info-detail-row">
+              <span className="info-detail-label">Contractor Contact</span>
+              <span className="info-detail-value">
+                {selectedProject.contractor_contact}
+                {selectedProject.contractor_position && `, ${selectedProject.contractor_position}`}
+              </span>
+            </div>
+          )}
+          {selectedProject.contractor_phone && (
+            <div className="info-detail-row clickable">
+              <span className="info-detail-label">
+                <Phone size={14} />
+                Contractor Phone
+              </span>
+              <a href={`tel:${selectedProject.contractor_phone}`} className="info-detail-value link">
+                {selectedProject.contractor_phone}
+              </a>
+            </div>
+          )}
+          {selectedProject.contractor_email && (
+            <div className="info-detail-row clickable">
+              <span className="info-detail-label">Contractor Email</span>
+              <a href={`mailto:${selectedProject.contractor_email}`} className="info-detail-value link">
+                {selectedProject.contractor_email}
+              </a>
+            </div>
+          )}
           {selectedProject.client_contact && (
             <div className="info-detail-row">
               <span className="info-detail-label">Client Contact</span>
-              <span className="info-detail-value">{selectedProject.client_contact}</span>
+              <span className="info-detail-value">
+                {selectedProject.client_contact}
+                {selectedProject.client_position && `, ${selectedProject.client_position}`}
+              </span>
             </div>
           )}
           {selectedProject.client_phone && (
             <div className="info-detail-row clickable">
               <span className="info-detail-label">
                 <Phone size={14} />
-                Phone
+                Client Phone
               </span>
               <a href={`tel:${selectedProject.client_phone}`} className="info-detail-value link">
                 {selectedProject.client_phone}
+              </a>
+            </div>
+          )}
+          {selectedProject.client_email && (
+            <div className="info-detail-row clickable">
+              <span className="info-detail-label">Client Email</span>
+              <a href={`mailto:${selectedProject.client_email}`} className="info-detail-value link">
+                {selectedProject.client_email}
               </a>
             </div>
           )}
@@ -184,21 +221,33 @@ export default function SettingsTab({
               <span className="info-detail-value positive">+{formatCurrency(changeOrderValue)}</span>
             </div>
           )}
-          {selectedProject.default_dump_site_id && (
-            <div className="info-detail-row">
-              <span className="info-detail-label">Default Dump Site</span>
-              <span className="info-detail-value">
-                {dumpSites.find(s => s.id === selectedProject.default_dump_site_id)?.name || 'Unknown'}
-              </span>
-            </div>
-          )}
         </div>
       </details>
+
+      {/* Trade Configuration */}
+      <ProjectTradeOverrides
+        projectId={selectedProject.id}
+        onShowToast={onShowToast}
+      />
 
       {/* Account Security */}
       <div className="info-section-card">
         <MFASetup onShowToast={onShowToast} />
       </div>
     </div>
+  )
+}
+
+function TradeNameDisplay({ workType }) {
+  const { resolvedConfig } = useTradeConfig()
+  const tradeName = resolvedConfig?.trade_name
+
+  const displayName = tradeName || (workType === 'environmental' ? 'Environmental' : workType === 'abatement' ? 'Abatement' : 'Demolition')
+
+  return (
+    <>
+      <span className="info-quick-value">{displayName}</span>
+      <span className="info-quick-label">Trade / Work Type</span>
+    </>
   )
 }

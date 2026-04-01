@@ -33,6 +33,7 @@ export default function FinancialTrendChart({
   tmTickets = [],
   corStats = null,
   areas = [],
+  changeOrderValue = 0,
   onDrillDown,
 }) {
   const [timeRange, setTimeRange] = useState('30d')
@@ -40,10 +41,50 @@ export default function FinancialTrendChart({
 
   // Build the time series data using actual area completions for revenue
   const chartData = useMemo(() => {
-    const allData = buildFinancialTimeSeries(projectData, project, tmTickets, corStats, areas)
+    const allData = buildFinancialTimeSeries(projectData, project, tmTickets, corStats, areas, changeOrderValue)
     const selectedRange = timeRanges.find(r => r.id === timeRange)
     return filterByTimeRange(allData, selectedRange?.days)
-  }, [projectData, project, tmTickets, corStats, areas, timeRange])
+  }, [projectData, project, tmTickets, corStats, areas, changeOrderValue, timeRange])
+
+  // Calculate data-driven Y-axis domain so reference lines don't compress the trend data
+  // By default, Recharts ReferenceLine uses ifOverflow="extendDomain" which stretches the
+  // Y-axis to include the contract/COR values — if those are much larger than actual
+  // costs/revenue, the trend data gets crushed into a flat band at the bottom of the chart.
+  const { yDomain, showContractLine, showCORLine } = useMemo(() => {
+    if (!chartData.length) {
+      return { yDomain: [0, 'auto'], showContractLine: false, showCORLine: false }
+    }
+
+    // Get the max value from the actual trend data (revenue, costs, tmValue)
+    const dataMax = Math.max(
+      ...chartData.map(d => Math.max(d.revenue || 0, d.costs || 0, d.tmValue || 0))
+    )
+
+    const contractVal = chartData[0]?.contract || 0
+    const corVal = corStats?.total_approved_value || 0
+
+    // Only show reference lines on chart if within 1.5x of the data range
+    // Otherwise they compress the trend data making it look flat and stale
+    const showContract = contractVal > 0 && contractVal <= dataMax * 1.5
+    const showCOR = corVal > 0 && corVal <= dataMax * 1.5
+
+    // Set Y-axis max to include visible reference lines, or just data + padding
+    let yMax = dataMax
+    if (showContract) yMax = Math.max(yMax, contractVal)
+    if (showCOR) yMax = Math.max(yMax, corVal)
+
+    // Add 15% padding above max for breathing room
+    yMax = Math.ceil(yMax * 1.15)
+
+    // Minimum yMax to avoid zero-height charts
+    if (yMax === 0) yMax = 1000
+
+    return {
+      yDomain: [0, yMax],
+      showContractLine: showContract,
+      showCORLine: showCOR,
+    }
+  }, [chartData, corStats])
 
   // Calculate trend indicators
   const costsTrend = useMemo(() => calculateTrend(chartData, 'costs'), [chartData])
@@ -163,6 +204,8 @@ export default function FinancialTrendChart({
             />
 
             <YAxis
+              domain={yDomain}
+              allowDataOverflow
               tickFormatter={formatChartCurrency}
               stroke="var(--text-secondary)"
               tick={{ fontSize: 11 }}
@@ -185,13 +228,14 @@ export default function FinancialTrendChart({
               )}
             />
 
-            {/* Contract ceiling - dashed reference line */}
-            {chartData[0]?.contract > 0 && (
+            {/* Contract ceiling - only shown if within visible data range */}
+            {showContractLine && (
               <ReferenceLine
                 y={chartData[0].contract}
                 stroke={chartColors.contract}
                 strokeDasharray="5 5"
                 strokeWidth={2}
+                ifOverflow="hidden"
                 label={{
                   value: 'Contract',
                   position: 'right',
@@ -210,6 +254,8 @@ export default function FinancialTrendChart({
               strokeWidth={2}
               fill="url(#revenueGradient)"
               animationDuration={animationConfig.duration}
+              dot={chartData.length <= 15 ? { r: 3, fill: chartColors.revenue } : false}
+              activeDot={{ r: 5, stroke: chartColors.revenue, strokeWidth: 2, fill: 'var(--bg-card)' }}
               onMouseEnter={() => setHoveredLine('revenue')}
               onMouseLeave={() => setHoveredLine(null)}
               style={{
@@ -226,6 +272,8 @@ export default function FinancialTrendChart({
               strokeWidth={2}
               fill="url(#costsGradient)"
               animationDuration={animationConfig.duration}
+              dot={chartData.length <= 15 ? { r: 3, fill: chartColors.costs } : false}
+              activeDot={{ r: 5, stroke: chartColors.costs, strokeWidth: 2, fill: 'var(--bg-card)' }}
               onMouseEnter={() => setHoveredLine('costs')}
               onMouseLeave={() => setHoveredLine(null)}
               style={{
@@ -238,11 +286,13 @@ export default function FinancialTrendChart({
               <Area
                 type="monotone"
                 dataKey="tmValue"
-                name="T&M Value"
+                name="Time & Material Value"
                 stroke={chartColors.tmValue}
                 strokeWidth={2}
                 fill="url(#tmValueGradient)"
                 animationDuration={animationConfig.duration}
+                dot={chartData.length <= 15 ? { r: 3, fill: chartColors.tmValue } : false}
+                activeDot={{ r: 5, stroke: chartColors.tmValue, strokeWidth: 2, fill: 'var(--bg-card)' }}
                 onMouseEnter={() => setHoveredLine('tmValue')}
                 onMouseLeave={() => setHoveredLine(null)}
                 style={{
@@ -251,21 +301,19 @@ export default function FinancialTrendChart({
               />
             )}
 
-            {/* COR Value line (no fill, just line) */}
-            {chartData.some(d => d.corValue > 0) && (
-              <Area
-                type="monotone"
-                dataKey="corValue"
-                name="COR Approved"
+            {/* COR Approved Value - only shown if within visible data range */}
+            {showCORLine && (
+              <ReferenceLine
+                y={corStats.total_approved_value}
                 stroke={chartColors.corValue}
-                strokeWidth={2}
                 strokeDasharray="4 2"
-                fill="transparent"
-                animationDuration={animationConfig.duration}
-                onMouseEnter={() => setHoveredLine('corValue')}
-                onMouseLeave={() => setHoveredLine(null)}
-                style={{
-                  opacity: hoveredLine && hoveredLine !== 'corValue' ? 0.3 : 1,
+                strokeWidth={2}
+                ifOverflow="hidden"
+                label={{
+                  value: `COR Approved`,
+                  position: 'right',
+                  fill: chartColors.corValue,
+                  fontSize: 11,
                 }}
               />
             )}
@@ -275,6 +323,15 @@ export default function FinancialTrendChart({
 
       {/* Quick stats below chart */}
       <div className="chart-quick-stats">
+        {/* Show contract value when reference line is hidden from chart */}
+        {!showContractLine && chartData[0]?.contract > 0 && (
+          <div className="quick-stat">
+            <span className="stat-label">Contract</span>
+            <span className="stat-value" style={{ color: chartColors.contract }}>
+              {formatChartCurrency(chartData[0].contract)}
+            </span>
+          </div>
+        )}
         <div className="quick-stat">
           <span className="stat-label">Current Revenue</span>
           <span className="stat-value" style={{ color: chartColors.revenue }}>
@@ -307,9 +364,18 @@ export default function FinancialTrendChart({
         </div>
         {chartData[chartData.length - 1]?.tmValue > 0 && (
           <div className="quick-stat">
-            <span className="stat-label">T&M Pending</span>
+            <span className="stat-label">Time and Material Value</span>
             <span className="stat-value" style={{ color: chartColors.tmValue }}>
               {formatChartCurrency(chartData[chartData.length - 1]?.tmValue || 0)}
+            </span>
+          </div>
+        )}
+        {/* Show COR value when reference line is hidden from chart */}
+        {!showCORLine && (corStats?.total_approved_value || 0) > 0 && (
+          <div className="quick-stat">
+            <span className="stat-label">COR Approved</span>
+            <span className="stat-value" style={{ color: chartColors.corValue }}>
+              {formatChartCurrency(corStats.total_approved_value)}
             </span>
           </div>
         )}

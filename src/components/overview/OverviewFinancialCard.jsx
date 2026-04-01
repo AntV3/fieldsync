@@ -1,4 +1,5 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { chartColors } from '../charts/chartConfig'
 
 /**
@@ -9,7 +10,6 @@ export const OverviewFinancialCard = memo(function OverviewFinancialCard({
   earnedRevenue = 0,
   totalCosts = 0,
   laborCost = 0,
-  disposalCost = 0,
   equipmentCost = 0,
   materialsCost = 0,
   otherCost = 0,
@@ -33,13 +33,13 @@ export const OverviewFinancialCard = memo(function OverviewFinancialCard({
   // Calculate cost breakdown percentages for the stacked bar
   const costBreakdown = [
     { key: 'labor', value: laborCost, color: chartColors.labor, label: 'Labor' },
-    { key: 'disposal', value: disposalCost, color: chartColors.disposal, label: 'Disposal' },
     { key: 'equipment', value: equipmentCost, color: chartColors.equipment, label: 'Equipment' },
     { key: 'materials', value: materialsCost, color: chartColors.materials, label: 'Materials' },
     { key: 'other', value: otherCost, color: chartColors.other, label: 'Other' }
   ].filter(item => item.value > 0)
 
   const hasBreakdown = costBreakdown.length > 0 && totalCosts > 0
+  const [showBreakdown, setShowBreakdown] = useState(false)
 
   return (
     <div className="overview-financial-card animate-fade-in-up">
@@ -71,35 +71,57 @@ export const OverviewFinancialCard = memo(function OverviewFinancialCard({
         </div>
       </div>
 
-      {/* Cost breakdown bar */}
+      {/* Cost breakdown — collapsed by default */}
       {hasBreakdown && (
-        <div className="cost-breakdown-section">
-          <div className="cost-breakdown-bar">
-            {costBreakdown.map((item, index) => {
-              const widthPercent = (item.value / totalCosts) * 100
-              return (
-                <div
-                  key={item.key}
-                  className="cost-segment"
-                  style={{
-                    width: `${widthPercent}%`,
-                    backgroundColor: item.color,
-                    animationDelay: `${index * 100}ms`
-                  }}
-                  title={`${item.label}: ${formatCurrency(item.value)} (${widthPercent.toFixed(0)}%)`}
-                />
-              )
-            })}
-          </div>
-          <div className="cost-breakdown-legend">
-            {costBreakdown.slice(0, 4).map(item => (
-              <span key={item.key} className="legend-item">
-                <span className="legend-dot" style={{ backgroundColor: item.color }} />
-                <span className="legend-label">{item.label}</span>
+        <>
+          <button
+            className="cost-breakdown-toggle"
+            onClick={() => setShowBreakdown(!showBreakdown)}
+            type="button"
+          >
+            {showBreakdown ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            <span>Cost Breakdown</span>
+            {!showBreakdown && (
+              <span className="cost-breakdown-inline">
+                {costBreakdown.map(item => (
+                  <span key={item.key} className="cost-breakdown-chip">
+                    <span className="legend-dot" style={{ backgroundColor: item.color }} />
+                    {item.label}
+                  </span>
+                ))}
               </span>
-            ))}
-          </div>
-        </div>
+            )}
+          </button>
+          {showBreakdown && (
+            <div className="cost-breakdown-section">
+              <div className="cost-breakdown-bar">
+                {costBreakdown.map((item, index) => {
+                  const widthPercent = (item.value / totalCosts) * 100
+                  return (
+                    <div
+                      key={item.key}
+                      className="cost-segment"
+                      style={{
+                        width: `${widthPercent}%`,
+                        backgroundColor: item.color,
+                        animationDelay: `${index * 100}ms`
+                      }}
+                      title={`${item.label}: ${formatCurrency(item.value)} (${widthPercent.toFixed(0)}%)`}
+                    />
+                  )
+                })}
+              </div>
+              <div className="cost-breakdown-legend">
+                {costBreakdown.slice(0, 4).map(item => (
+                  <span key={item.key} className="legend-item">
+                    <span className="legend-dot" style={{ backgroundColor: item.color }} />
+                    <span className="legend-label">{item.label}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

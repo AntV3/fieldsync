@@ -12,6 +12,7 @@ import {
   calculateFee,
   calculateCORTotals,
   validateCOR,
+  validateCORForSubmission,
   getStatusInfo,
   formatDate,
   formatDateRange,
@@ -640,5 +641,126 @@ describe('COMMON_UNITS', () => {
     expect(COMMON_UNITS).toContain('each')
     expect(COMMON_UNITS).toContain('lump sum')
     expect(COMMON_UNITS).toContain('cy')
+  })
+})
+
+// ============================================
+// Submission Validation (Stricter)
+// ============================================
+
+describe('validateCORForSubmission', () => {
+  const completeCOR = {
+    title: 'Demo COR',
+    scope_of_work: 'Remove existing concrete slab',
+    period_start: '2025-06-01',
+    period_end: '2025-06-15',
+    change_order_labor: [{ total: 40000 }],
+    change_order_materials: [],
+    change_order_equipment: [],
+    change_order_subcontractors: [],
+    cor_total: 46000
+  }
+
+  it('returns valid for a complete COR ready for submission', () => {
+    const result = validateCORForSubmission(completeCOR)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('inherits basic validation errors (title, scope)', () => {
+    const cor = { ...completeCOR, title: '', scope_of_work: '' }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Title is required')
+    expect(result.errors).toContain('Description is required')
+  })
+
+  it('requires at least one line item for submission', () => {
+    const cor = {
+      ...completeCOR,
+      change_order_labor: [],
+      change_order_materials: [],
+      change_order_equipment: [],
+      change_order_subcontractors: []
+    }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some(e => e.includes('At least one line item'))).toBe(true)
+  })
+
+  it('accepts COR with only materials (no labor)', () => {
+    const cor = {
+      ...completeCOR,
+      change_order_labor: [],
+      change_order_materials: [{ total: 5000 }],
+      cor_total: 5000
+    }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(true)
+  })
+
+  it('accepts COR with only equipment', () => {
+    const cor = {
+      ...completeCOR,
+      change_order_labor: [],
+      change_order_equipment: [{ total: 8000 }],
+      cor_total: 8000
+    }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(true)
+  })
+
+  it('accepts COR with only subcontractors', () => {
+    const cor = {
+      ...completeCOR,
+      change_order_labor: [],
+      change_order_subcontractors: [{ total: 15000 }],
+      cor_total: 15000
+    }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(true)
+  })
+
+  it('requires COR total > $0 when line items exist', () => {
+    const cor = {
+      ...completeCOR,
+      change_order_labor: [{ total: 0 }],
+      cor_total: 0
+    }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some(e => e.includes('greater than $0.00'))).toBe(true)
+  })
+
+  it('requires period start date for submission', () => {
+    const cor = { ...completeCOR, period_start: null }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some(e => e.includes('Period start date'))).toBe(true)
+  })
+
+  it('requires period end date for submission', () => {
+    const cor = { ...completeCOR, period_end: null }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some(e => e.includes('Period end date'))).toBe(true)
+  })
+
+  it('collects all errors together', () => {
+    const cor = {
+      title: '',
+      scope_of_work: '',
+      period_start: null,
+      period_end: null,
+      change_order_labor: [],
+      change_order_materials: [],
+      change_order_equipment: [],
+      change_order_subcontractors: [],
+      cor_total: 0
+    }
+    const result = validateCORForSubmission(cor)
+    expect(result.valid).toBe(false)
+    // Should have: title, scope, line item, start date, end date (at minimum)
+    expect(result.errors.length).toBeGreaterThanOrEqual(5)
   })
 })

@@ -245,7 +245,7 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
               </h3>
               <p>
                 {document.resource_type === 'cor' && 'Change Order Request'}
-                {document.resource_type === 'tm_ticket' && 'T&M Ticket'}
+                {document.resource_type === 'tm_ticket' && 'Time & Material Ticket'}
                 {document.resource_type === 'daily_report' && 'Daily Report'}
               </p>
             </div>
