@@ -10,13 +10,17 @@ export default function InfoTab({
   onShowToast,
   onEditClick
 }) {
+  if (!selectedProject) {
+    return <div className="pv-tab-panel info-tab"><p>No project selected.</p></div>
+  }
+
   return (
     <div className="pv-tab-panel info-tab">
       {/* Hero Header */}
       <div className="info-hero">
         <div className="info-hero-content">
           <div className="info-hero-main">
-            <h2 className="info-hero-title">{selectedProject.name}</h2>
+            <h2 className="info-hero-title">{selectedProject.name || 'Untitled Project'}</h2>
             {selectedProject.job_number && (
               <span className="info-hero-job">Job #{selectedProject.job_number}</span>
             )}

@@ -68,6 +68,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
   const [selectedDocument, setSelectedDocument] = useState(null)
   const [uploadToFolder, setUploadToFolder] = useState(null)
 
+  const projectId = project?.id
   const isOfficeOrAdmin = userRole === 'office' || userRole === 'administrator'
   const isFieldUser = userRole === 'foreman'
 
@@ -76,9 +77,10 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
 
   // Load folders
   const loadFolders = useCallback(async () => {
+    if (!projectId) return
     setLoading(true)
     try {
-      const folderList = await db.getProjectFolders(project.id)
+      const folderList = await db.getProjectFolders(projectId)
       setFolders(folderList)
     } catch (error) {
       console.error('Error loading folders:', error)
@@ -86,7 +88,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     } finally {
       setLoading(false)
     }
-  }, [project.id, onShowToast])
+  }, [projectId, onShowToast])
 
   // Debounced refresh to coalesce rapid real-time events (e.g. batch uploads)
   const refreshTimerRef = useRef(null)
@@ -105,15 +107,15 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
     loadFolders()
 
     // Subscribe to real-time document and folder changes
-    const folderSub = db.subscribeToDocumentFolders?.(project.id, debouncedRefresh)
-    const docSub = db.subscribeToDocuments?.(project.id, debouncedRefresh)
+    const folderSub = projectId ? db.subscribeToDocumentFolders?.(projectId, debouncedRefresh) : null
+    const docSub = projectId ? db.subscribeToDocuments?.(projectId, debouncedRefresh) : null
 
     return () => {
       if (folderSub) db.unsubscribe?.(folderSub)
       if (docSub) db.unsubscribe?.(docSub)
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
     }
-  }, [loadFolders, debouncedRefresh, project.id])
+  }, [loadFolders, debouncedRefresh, projectId])
 
   // Load documents in folder
   const loadFolderDocuments = async (folder, reset = false) => {
@@ -169,16 +171,17 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
       return
     }
 
+    if (!projectId) return
     setSearching(true)
     try {
-      const results = await db.searchDocuments(project.id, query.trim())
+      const results = await db.searchDocuments(projectId, query.trim())
       setSearchResults(results)
     } catch (error) {
       console.error('Error searching documents:', error)
     } finally {
       setSearching(false)
     }
-  }, [project.id])
+  }, [projectId])
 
   // Debounced search
   const searchTimeoutRef = useRef(null)
@@ -256,7 +259,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
   if (isFieldUser) {
     return (
       <FolderGrid
-        projectId={project.id}
+        projectId={projectId}
         onShowToast={onShowToast}
       />
     )
