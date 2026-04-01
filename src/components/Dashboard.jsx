@@ -5,7 +5,7 @@ import { formatCurrency, calculateValueProgress, calculateScheduleInsights, shou
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3 } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, Plus, FileText, FilePlus } from 'lucide-react'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
 import OnboardingWizard from './onboarding/OnboardingWizard'
@@ -1010,6 +1010,24 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               <span className="pv-metric-value highlight">{formatCurrency(revisedContractValue - billable)}</span>
               <span className="pv-metric-label">Remaining</span>
             </div>
+          </div>
+
+          {/* Segmented progress bar */}
+          <div className="pv-progress-bar" role="progressbar" aria-valuenow={percentBilled} aria-valuemin={0} aria-valuemax={100} aria-label={`${percentBilled}% billed`}>
+            <div className="pv-progress-fill" style={{ width: `${Math.min(percentBilled, 100)}%` }} />
+          </div>
+
+          {/* Quick actions row */}
+          <div className="pv-quick-actions" role="toolbar" aria-label="Quick actions">
+            <button className="pv-quick-action-btn" onClick={() => { setActiveProjectTab('financials'); setFinancialsSection('tickets') }}>
+              <Plus size={14} /> New T&M Ticket
+            </button>
+            <button className="pv-quick-action-btn" onClick={() => setActiveProjectTab('reports')}>
+              <ClipboardList size={14} /> Submit Daily Report
+            </button>
+            <button className="pv-quick-action-btn" onClick={() => { setActiveProjectTab('financials'); handleCreateCOR() }}>
+              <FilePlus size={14} /> New COR
+            </button>
           </div>
 
           {/* Tab Navigation - ARIA tablist for keyboard navigation */}

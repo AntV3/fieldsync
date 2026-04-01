@@ -64,9 +64,13 @@ export const OverviewFinancialCard = memo(function OverviewFinancialCard({
           </span>
           <span className="financial-metric-label">
             Profit
-            <span className={`margin-badge ${isPositive ? 'positive' : 'negative'}`}>
-              {margin >= 0 ? '+' : ''}{margin.toFixed(0)}%
-            </span>
+            {totalCosts > 0 ? (
+              <span className={`margin-badge ${isPositive ? 'positive' : 'negative'}`}>
+                {margin >= 0 ? '+' : ''}{margin.toFixed(0)}%
+              </span>
+            ) : (
+              <span className="margin-badge no-data">No cost data</span>
+            )}
           </span>
         </div>
       </div>

@@ -548,6 +548,38 @@
   white-space: nowrap;
 }
 
+.work-area-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.work-area-status-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.work-area-status-label.done {
+  background: var(--green-subtle);
+  color: var(--accent-green);
+}
+
+.work-area-status-label.working {
+  background: var(--blue-subtle);
+  color: var(--accent-blue);
+}
+
+.work-area-status-label.not_started {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
 .work-area-weight {
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -829,6 +861,38 @@
   padding: 12px;
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+.crew-empty-compact {
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.5rem;
+}
+
+.crew-empty-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.crew-empty-expand {
+  background: none;
+  border: none;
+  color: var(--accent-blue);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+}
+
+.crew-empty-expand:hover {
+  text-decoration: underline;
 }
 
 /* Crew Timeline Chart */
@@ -1206,6 +1270,12 @@
 .margin-badge.negative {
   background: var(--red-subtle);
   color: var(--accent-red);
+}
+
+.margin-badge.no-data {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 /* Cost Breakdown Bar */

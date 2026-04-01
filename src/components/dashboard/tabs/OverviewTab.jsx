@@ -95,8 +95,13 @@ export default function OverviewTab({
                 </div>
                 <div className="work-area-info">
                   <span className="work-area-name">{area.name}</span>
-                  <span className="work-area-weight">
-                    {area.scheduled_value ? formatCurrency(area.scheduled_value) : `${area.weight}%`}
+                  <span className="work-area-meta">
+                    <span className={`work-area-status-label ${area.status}`}>
+                      {area.status === 'done' ? 'Done' : area.status === 'working' ? 'Active' : 'Not Started'}
+                    </span>
+                    <span className="work-area-weight">
+                      {area.scheduled_value ? formatCurrency(area.scheduled_value) : `${area.weight}%`}
+                    </span>
                   </span>
                 </div>
                 <div className="work-area-bar">
