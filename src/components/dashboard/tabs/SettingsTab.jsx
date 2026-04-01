@@ -3,6 +3,7 @@ import { formatCurrency } from '../../../lib/utils'
 import ProjectTeam from '../../ProjectTeam'
 import MFASetup from '../../MFASetup'
 import ProjectTradeOverrides from '../../settings/ProjectTradeOverrides'
+import CostCodeImport from '../../settings/CostCodeImport'
 import { useTradeConfig } from '../../../lib/TradeConfigContext'
 
 export default function SettingsTab({
@@ -223,6 +224,12 @@ export default function SettingsTab({
           )}
         </div>
       </details>
+
+      {/* Cost Code Import */}
+      <CostCodeImport
+        companyId={company?.id}
+        onShowToast={onShowToast}
+      />
 
       {/* Trade Configuration */}
       <ProjectTradeOverrides
