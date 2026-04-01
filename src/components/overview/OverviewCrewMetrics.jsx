@@ -146,6 +146,17 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
 
   const isToday = selectedDate === new Date().toISOString().split('T')[0]
 
+  // Find last date with crew data (for empty state)
+  const lastCheckinInfo = useMemo(() => {
+    if (!crewHistory.length) return null
+    // crewHistory entries have check_in_date and workers
+    const sorted = [...crewHistory]
+      .filter(c => c.workers && c.workers.length > 0)
+      .sort((a, b) => b.check_in_date.localeCompare(a.check_in_date))
+    if (!sorted.length) return null
+    return { date: sorted[0].check_in_date, count: sorted[0].workers.length }
+  }, [crewHistory])
+
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00')
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -369,32 +380,55 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         </button>
       </div>
 
-      {/* Stats row for selected day */}
-      <div className="crew-stats-row">
-        <div className="crew-stat total">
-          <div className="crew-stat-icon"><Users size={20} /></div>
-          <div className="crew-stat-content">
-            <span className="crew-stat-value">{todayMetrics.total}</span>
-            <span className="crew-stat-label">Total On-Site</span>
+      {/* Stats row — only show full layout when there IS crew data */}
+      {todayMetrics.total > 0 ? (
+        <div className="crew-stats-row">
+          <div className="crew-stat total">
+            <div className="crew-stat-icon"><Users size={20} /></div>
+            <div className="crew-stat-content">
+              <span className="crew-stat-value">{todayMetrics.total}</span>
+              <span className="crew-stat-label">Total On-Site</span>
+            </div>
           </div>
-        </div>
 
-        <div className="crew-stat contract">
-          <div className="crew-stat-icon"><HardHat size={20} /></div>
-          <div className="crew-stat-content">
-            <span className="crew-stat-value">{todayMetrics.contract.length}</span>
-            <span className="crew-stat-label">Contract</span>
+          <div className="crew-stat contract">
+            <div className="crew-stat-icon"><HardHat size={20} /></div>
+            <div className="crew-stat-content">
+              <span className="crew-stat-value">{todayMetrics.contract.length}</span>
+              <span className="crew-stat-label">Contract</span>
+            </div>
           </div>
-        </div>
 
-        <div className="crew-stat tm">
-          <div className="crew-stat-icon"><Wrench size={20} /></div>
-          <div className="crew-stat-content">
-            <span className="crew-stat-value">{todayMetrics.tm.length}</span>
-            <span className="crew-stat-label">Time & Material</span>
+          <div className="crew-stat tm">
+            <div className="crew-stat-icon"><Wrench size={20} /></div>
+            <div className="crew-stat-content">
+              <span className="crew-stat-value">{todayMetrics.tm.length}</span>
+              <span className="crew-stat-label">Time & Material</span>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="crew-empty-compact">
+          {lastCheckinInfo ? (
+            <p className="crew-empty-summary">
+              <Calendar size={14} />
+              Last check-in: <strong>{formatDate(lastCheckinInfo.date)}</strong> — {lastCheckinInfo.count} crew
+              <button
+                className="crew-empty-expand"
+                onClick={() => setShowTimeline(true)}
+                type="button"
+              >
+                View timeline →
+              </button>
+            </p>
+          ) : (
+            <p className="crew-empty-summary">
+              <Users size={14} />
+              No crew check-ins recorded yet
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Breakdown bar for selected day */}
       {todayMetrics.total > 0 && (
@@ -540,12 +574,6 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         </div>
       )}
 
-      {/* Empty state */}
-      {todayMetrics.total === 0 && (
-        <div className="crew-empty">
-          <p>No crew checked in for this date</p>
-        </div>
-      )}
     </div>
   )
 })

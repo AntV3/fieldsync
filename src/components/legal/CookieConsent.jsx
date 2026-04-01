@@ -4,25 +4,26 @@ import { Link } from 'react-router-dom'
 const CONSENT_KEY = 'fieldsync-cookie-consent'
 
 export default function CookieConsent() {
+  // Read consent synchronously on mount so the banner never flickers back
+  const [consent, setConsent] = useState(() => localStorage.getItem(CONSENT_KEY))
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    // Show banner if consent hasn't been given yet
-    const consent = localStorage.getItem(CONSENT_KEY)
-    if (!consent) {
-      // Small delay so it doesn't flash on initial load
-      const timer = setTimeout(() => setVisible(true), 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [])
+    // Only show the banner if no consent decision has been stored
+    if (consent) return
+    const timer = setTimeout(() => setVisible(true), 1000)
+    return () => clearTimeout(timer)
+  }, [consent])
 
   const handleAccept = () => {
     localStorage.setItem(CONSENT_KEY, 'accepted')
+    setConsent('accepted')
     setVisible(false)
   }
 
   const handleDecline = () => {
     localStorage.setItem(CONSENT_KEY, 'declined')
+    setConsent('declined')
     setVisible(false)
   }
 
