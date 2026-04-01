@@ -163,7 +163,7 @@ export default function ReportsTab({
           </div>
           <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
             {(projectData?.injuryReportsCount || 0) > 0
-              ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
+              ? `${projectData?.injuryReportsCount || 0} incident${projectData?.injuryReportsCount !== 1 ? 's' : ''}`
               : 'No incidents'
             }
           </span>

@@ -53,7 +53,7 @@ export default function OverviewTab({
         <OverviewProgressGauge
           progress={progress}
           areasComplete={areasComplete}
-          totalAreas={areas.length}
+          totalAreas={areas?.length || 0}
           areasWorking={areasWorking}
         />
         <OverviewFinancialCard
@@ -86,7 +86,7 @@ export default function OverviewTab({
             </div>
           </div>
           <div className="work-areas-list work-areas-scroll stagger-areas" role="list">
-            {areas.map(area => (
+            {(areas || []).map(area => (
               <div key={area.id} className={`work-area-item ${area.status}`} role="listitem" aria-label={`${area.name}: ${area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In progress' : 'Not started'}`}>
                 <div className="work-area-status" aria-hidden="true">
                   {area.status === 'done' && <span className="status-icon done">&#10003;</span>}

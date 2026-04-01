@@ -154,23 +154,23 @@ export default function AnalyticsTab({
               </div>
             </div>
             {(projectData?.crewTrend || 0) !== 0 && (
-              <div className={`analytics-trend-badge ${projectData.crewTrend > 0 ? 'up' : 'down'}`}>
-                {projectData.crewTrend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                <span>{Math.abs(Math.round(projectData.crewTrend))}% {projectData.crewTrend > 0 ? 'increase' : 'decrease'} vs prior week</span>
+              <div className={`analytics-trend-badge ${projectData?.crewTrend > 0 ? 'up' : 'down'}`}>
+                {projectData?.crewTrend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                <span>{Math.abs(Math.round(projectData?.crewTrend || 0))}% {projectData?.crewTrend > 0 ? 'increase' : 'decrease'} vs prior week</span>
               </div>
             )}
             {projectData?.crewByDate && Object.keys(projectData.crewByDate).length > 0 && (
               <CollapsibleSection
                 title="Crew Size Trend"
                 variant="compact"
-                summary={`Last ${Math.min(Object.keys(projectData.crewByDate).length, 14)} days`}
+                summary={`Last ${Math.min(Object.keys(projectData?.crewByDate || {}).length, 14)} days`}
               >
                 <div className="analytics-mini-chart">
                   <div className="analytics-mini-chart-label">Recent Crew Size</div>
                   <div className="analytics-mini-bars">
-                    {Object.keys(projectData.crewByDate).sort().slice(-14).map(date => {
-                      const count = projectData.crewByDate[date]
-                      const max = projectData.peakCrewSize || 1
+                    {Object.keys(projectData?.crewByDate || {}).sort().slice(-14).map(date => {
+                      const count = projectData?.crewByDate?.[date] || 0
+                      const max = projectData?.peakCrewSize || 1
                       return (
                         <div key={date} className="analytics-mini-bar-wrap" title={`${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count} workers`}>
                           <div className="analytics-mini-bar" style={{ height: `${(count / max) * 100}%` }} />
@@ -192,7 +192,7 @@ export default function AnalyticsTab({
             </div>
             <span className={`reports-section-badge ${(projectData?.injuryReportsCount || 0) > 0 ? 'warning' : 'success'}`}>
               {(projectData?.injuryReportsCount || 0) > 0
-                ? `${projectData.injuryReportsCount} incident${projectData.injuryReportsCount !== 1 ? 's' : ''}`
+                ? `${projectData?.injuryReportsCount || 0} incident${projectData?.injuryReportsCount !== 1 ? 's' : ''}`
                 : 'No incidents'
               }
             </span>
