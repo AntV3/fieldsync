@@ -461,6 +461,16 @@ const markAsSynced = async (idempotencyKey) => {
   }
 }
 
+// Clear a synced marker (used when processAction fails after markAsSynced)
+const clearSyncedMarker = async (idempotencyKey) => {
+  if (!idempotencyKey) return
+  try {
+    await deleteFromStore(STORES.CACHED_DATA, `synced_${idempotencyKey}`)
+  } catch {
+    // Non-critical
+  }
+}
+
 // Process pending actions queue with conflict detection
 // Batches non-conflicting create actions in parallel for faster sync
 export const syncPendingActions = async (db, options = {}) => {
@@ -522,12 +532,22 @@ export const syncPendingActions = async (db, options = {}) => {
           }
         }
 
+        // Mark as synced BEFORE processing to prevent double-replay on crash.
+        // If processAction fails, the action is still in the queue (removePendingAction
+        // hasn't been called), but the idempotency key prevents re-processing on retry.
+        if (action.idempotency_key) {
+          await markAsSynced(action.idempotency_key)
+        }
         await processAction(action, db)
-        await markAsSynced(action.idempotency_key)
         await removePendingAction(action.id)
         results.synced++
       } catch (error) {
         results.failed++
+        // If we marked as synced but processAction failed, clear the synced marker
+        // so the action can be retried on the next sync cycle.
+        if (action.idempotency_key) {
+          await clearSyncedMarker(action.idempotency_key).catch(() => {})
+        }
         await updatePendingAction(action.id, {
           attempts: (action.attempts || 0) + 1,
           last_error: error.message,

@@ -43,12 +43,16 @@ export const percentToBasisPoints = (pct) => {
   return Math.round((parseFloat(pct) || 0) * 100)
 }
 
+// Safely coerce a value to an integer (cents). Handles string floats like "5000.00"
+// that parseInt would silently truncate at the decimal point.
+const safeInt = (v) => Math.round(Number(v) || 0)
+
 // Calculate labor item totals
 export const calculateLaborItemTotal = (regularHours, overtimeHours, regularRate, overtimeRate) => {
   const regHrs = parseFloat(regularHours) || 0
   const otHrs = parseFloat(overtimeHours) || 0
-  const regRate = parseInt(regularRate) || 0
-  const otRate = parseInt(overtimeRate) || 0
+  const regRate = safeInt(regularRate)
+  const otRate = safeInt(overtimeRate)
 
   const regularTotal = Math.round(regHrs * regRate)
   const overtimeTotal = Math.round(otHrs * otRate)
@@ -64,38 +68,38 @@ export const calculateLaborItemTotal = (regularHours, overtimeHours, regularRate
 // Calculate line item total (for materials, equipment, subcontractors)
 export const calculateLineItemTotal = (quantity, unitCost) => {
   const qty = parseFloat(quantity) || 0
-  const cost = parseInt(unitCost) || 0
+  const cost = safeInt(unitCost)
   return Math.round(qty * cost)
 }
 
 // Calculate markup amount from subtotal and basis points
 export const calculateMarkup = (subtotal, markupBasisPoints) => {
-  const sub = parseInt(subtotal) || 0
-  const bp = parseInt(markupBasisPoints) || 0
+  const sub = safeInt(subtotal)
+  const bp = safeInt(markupBasisPoints)
   return Math.round((sub * bp) / 10000)
 }
 
 // Calculate fee amount from subtotal and basis points
 export const calculateFee = (subtotal, feeBasisPoints) => {
-  const sub = parseInt(subtotal) || 0
-  const bp = parseInt(feeBasisPoints) || 0
+  const sub = safeInt(subtotal)
+  const bp = safeInt(feeBasisPoints)
   return Math.round((sub * bp) / 10000)
 }
 
 // Calculate complete COR totals from line items and percentages
 export const calculateCORTotals = (cor) => {
-  // Sum up subtotals from line items
+  // Sum up subtotals from line items (use safeInt to prevent NaN propagation)
   const laborSubtotal = (cor.change_order_labor || []).reduce(
-    (sum, item) => sum + (parseInt(item.total) || 0), 0
+    (sum, item) => sum + safeInt(item.total), 0
   )
   const materialsSubtotal = (cor.change_order_materials || []).reduce(
-    (sum, item) => sum + (parseInt(item.total) || 0), 0
+    (sum, item) => sum + safeInt(item.total), 0
   )
   const equipmentSubtotal = (cor.change_order_equipment || []).reduce(
-    (sum, item) => sum + (parseInt(item.total) || 0), 0
+    (sum, item) => sum + safeInt(item.total), 0
   )
   const subcontractorsSubtotal = (cor.change_order_subcontractors || []).reduce(
-    (sum, item) => sum + (parseInt(item.total) || 0), 0
+    (sum, item) => sum + safeInt(item.total), 0
   )
 
   // Calculate markups (use ?? to allow 0% markup)
@@ -336,7 +340,7 @@ export const groupLaborByClassAndType = (laborItems) => {
   return groups.map(g => ({
     ...g,
     label: `${g.laborClass} — ${wageLabels[g.wageType] || g.wageType}`,
-    subtotal: g.items.reduce((sum, item) => sum + (parseInt(item.total) || 0), 0)
+    subtotal: g.items.reduce((sum, item) => sum + safeInt(item.total), 0)
   }))
 }
 
@@ -348,8 +352,8 @@ export const combineLaborGroupItems = (items) => {
   const rateMap = new Map()
 
   for (const item of items) {
-    const regRate = parseInt(item.regular_rate) || 0
-    const otRate = parseInt(item.overtime_rate) || 0
+    const regRate = safeInt(item.regular_rate)
+    const otRate = safeInt(item.overtime_rate)
     const key = `${regRate}::${otRate}`
 
     if (!rateMap.has(key)) {
@@ -367,7 +371,7 @@ export const combineLaborGroupItems = (items) => {
     const combined = rateMap.get(key)
     combined.regular_hours = parseFloat(combined.regular_hours || 0) + parseFloat(item.regular_hours || 0)
     combined.overtime_hours = parseFloat(combined.overtime_hours || 0) + parseFloat(item.overtime_hours || 0)
-    combined.total = (parseInt(combined.total) || 0) + (parseInt(item.total) || 0)
+    combined.total = safeInt(combined.total) + safeInt(item.total)
     combined.source_count += 1
   }
 

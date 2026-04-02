@@ -272,8 +272,8 @@ export const corOps = {
   async addCORLaborItem(corId, laborItem) {
     if (isSupabaseConfigured) {
       // Calculate totals
-      const regularTotal = Math.round((parseFloat(laborItem.regular_hours) || 0) * (parseInt(laborItem.regular_rate) || 0))
-      const overtimeTotal = Math.round((parseFloat(laborItem.overtime_hours) || 0) * (parseInt(laborItem.overtime_rate) || 0))
+      const regularTotal = Math.round((parseFloat(laborItem.regular_hours) || 0) * (Math.round(Number(laborItem.regular_rate) || 0)))
+      const overtimeTotal = Math.round((parseFloat(laborItem.overtime_hours) || 0) * (Math.round(Number(laborItem.overtime_rate) || 0)))
       const total = regularTotal + overtimeTotal
 
       const { data, error } = await supabase
