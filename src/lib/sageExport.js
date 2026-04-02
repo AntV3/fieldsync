@@ -283,11 +283,19 @@ export function exportSageProjectSetupCSV(project, areas, financialData = {}) {
 
   rows.push({ field: '', value: '' })
   rows.push({ field: 'FINANCIAL SUMMARY', value: '' })
-  rows.push({ field: 'Earned Revenue', value: (financialData.earnedRevenue || 0).toFixed(2) })
-  rows.push({ field: 'Total Labor Cost', value: (financialData.totalLaborCost || 0).toFixed(2) })
-  rows.push({ field: 'Total Material Cost', value: (financialData.totalMaterialCost || 0).toFixed(2) })
-  rows.push({ field: 'Total Costs', value: (financialData.totalCosts || 0).toFixed(2) })
-  rows.push({ field: 'Profit', value: ((financialData.earnedRevenue || 0) - (financialData.totalCosts || 0)).toFixed(2) })
+
+  // Map from projectData field names (billable, laborCost, etc.)
+  const earnedRevenue = financialData.billable || financialData.earnedRevenue || financialData.earnedValue || 0
+  const totalLaborCost = financialData.laborCost || financialData.totalLaborCost || 0
+  const totalMaterialCost = financialData.materialsEquipmentCost || financialData.totalMaterialCost || 0
+  const totalCosts = financialData.allCostsTotal || financialData.totalCosts || 0
+  const profit = earnedRevenue - totalCosts
+
+  rows.push({ field: 'Earned Revenue', value: earnedRevenue.toFixed(2) })
+  rows.push({ field: 'Total Labor Cost', value: totalLaborCost.toFixed(2) })
+  rows.push({ field: 'Total Material Cost', value: totalMaterialCost.toFixed(2) })
+  rows.push({ field: 'Total Costs', value: totalCosts.toFixed(2) })
+  rows.push({ field: 'Profit', value: profit.toFixed(2) })
 
   const csv = toCSV(headers, rows)
   const safeName = (project.name || 'project').replace(/[^a-zA-Z0-9]/g, '_')
@@ -327,11 +335,11 @@ export function exportSageWIPScheduleCSV(projects, projectDataMap = {}) {
     const approvedCOs = data.changeOrderValue || 0
     const revisedContract = contractValue + approvedCOs
     const progress = data.progress || 0
-    const earnedRevenue = revisedContract * (progress / 100)
+    const earnedRevenue = data.billable || data.earnedRevenue || (revisedContract * (progress / 100))
     const totalBilled = data.totalBilled || earnedRevenue
     const overUnder = totalBilled - earnedRevenue
-    const totalCosts = data.totalCosts || 0
-    const projectedProfit = revisedContract - (totalCosts / (progress / 100 || 1)) * 100
+    const totalCosts = data.allCostsTotal || data.totalCosts || 0
+    const projectedProfit = progress > 0 ? revisedContract - (totalCosts / (progress / 100)) : revisedContract
     const margin = revisedContract > 0 ? ((revisedContract - totalCosts) / revisedContract * 100) : 0
 
     return {
