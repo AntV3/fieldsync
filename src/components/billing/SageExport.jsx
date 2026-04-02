@@ -211,6 +211,18 @@ export default function SageExport({ project, company, onShowToast }) {
                     <strong>${preview.summary.totalAmount.toFixed(2)}</strong>
                   </div>
                 )}
+                {preview.summary?.totalLaborAmount != null && preview.summary.totalLaborAmount > 0 && (
+                  <div style={{ fontSize: '0.85rem' }}>
+                    <span style={{ opacity: 0.6 }}>Labor: </span>
+                    <strong>${preview.summary.totalLaborAmount.toFixed(2)}</strong>
+                  </div>
+                )}
+                {preview.summary?.totalMaterialAmount != null && preview.summary.totalMaterialAmount > 0 && (
+                  <div style={{ fontSize: '0.85rem' }}>
+                    <span style={{ opacity: 0.6 }}>Material: </span>
+                    <strong>${preview.summary.totalMaterialAmount.toFixed(2)}</strong>
+                  </div>
+                )}
                 {preview.summary?.ticketCount != null && (
                   <div style={{ fontSize: '0.85rem' }}>
                     <span style={{ opacity: 0.6 }}>Tickets: </span>
