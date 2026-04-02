@@ -17,13 +17,22 @@
 
 import { escapeCSV, toCSV } from './financialExport'
 
-// Sage cost type mapping
+// Sage 300 CRE cost type codes: 1=Material, 2=Labor, 3=Equipment, 4=Subcontract, 5=Other
 const SAGE_COST_TYPES = {
   material: { code: '1', label: 'Material' },
   labor: { code: '2', label: 'Labor' },
   equipment: { code: '3', label: 'Equipment' },
   subcontractor: { code: '4', label: 'Subcontract' },
   other: { code: '5', label: 'Other' }
+}
+
+// Default category (cost code) fallbacks when ticket has no cost code assigned
+const DEFAULT_CATEGORIES = {
+  labor: '02-000',
+  material: '01-000',
+  equipment: '31-000',
+  subcontractor: '15-000',
+  other: '01-000'
 }
 
 function downloadFile(content, filename, mimeType = 'text/csv') {
@@ -66,9 +75,16 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
   const rows = []
   const jobNumber = project.job_number || project.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
 
-  for (const ticket of (tickets || [])) {
+  // Sort tickets by date for cleaner output
+  const sortedTickets = [...(tickets || [])].sort((a, b) =>
+    (a.work_date || '').localeCompare(b.work_date || '')
+  )
+
+  for (const ticket of sortedTickets) {
     const costCode = costCodes.find(c => c.id === ticket.cost_code_id)
-    const category = costCode?.code || '01-000'
+    // Use different default categories for labor vs material when no cost code assigned
+    const laborCategory = costCode?.code || DEFAULT_CATEGORIES.labor
+    const materialCategory = costCode?.code || DEFAULT_CATEGORIES.material
     const workDate = formatSageDate(ticket.work_date)
 
     // Labor entries from T&M workers
@@ -82,7 +98,7 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
           job: jobNumber,
           extra: '',
           costType: SAGE_COST_TYPES.labor.code,
-          category,
+          category: laborCategory,
           transDate: workDate,
           description: `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
           units: regHours.toFixed(2),
@@ -99,7 +115,7 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
           job: jobNumber,
           extra: '',
           costType: SAGE_COST_TYPES.labor.code,
-          category,
+          category: laborCategory,
           transDate: workDate,
           description: `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
           units: otHours.toFixed(2),
@@ -120,7 +136,7 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
           job: jobNumber,
           extra: '',
           costType: SAGE_COST_TYPES.material.code,
-          category,
+          category: materialCategory,
           transDate: workDate,
           description: `Material - ${item.materials_equipment?.name || item.description || 'Material'}`,
           units: qty.toFixed(2),

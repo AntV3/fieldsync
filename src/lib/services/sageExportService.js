@@ -8,13 +8,22 @@
 import { supabase, isSupabaseConfigured } from '../supabaseClient'
 import { observe } from '../observability'
 
-// Sage cost type mapping (Sage uses numeric codes)
-const SAGE_CATEGORY_MAP = {
-  labor: 1,
-  material: 2,
+// Sage 300 CRE cost type codes: 1=Material, 2=Labor, 3=Equipment, 4=Subcontract, 5=Other
+const SAGE_COST_TYPE_MAP = {
+  material: 1,
+  labor: 2,
   equipment: 3,
   subcontractor: 4,
   other: 5
+}
+
+// Default category (cost code) fallbacks when ticket has no cost code assigned
+const DEFAULT_CATEGORIES = {
+  labor: '02-000',
+  material: '01-000',
+  equipment: '31-000',
+  subcontractor: '15-000',
+  other: '01-000'
 }
 
 /**
@@ -68,14 +77,18 @@ export async function exportJobCostTransactions(projectId, options = {}) {
     const jobNumber = project.job_number || project.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
     const rows = []
     let totalAmount = 0
+    let totalLaborAmount = 0
+    let totalMaterialAmount = 0
 
     for (const ticket of (tickets || [])) {
       const costCode = ticket.cost_codes
-      const phase = costCode?.code || '01-000'
-      const category = SAGE_CATEGORY_MAP[costCode?.category] || 5
       const workDate = formatSageDate(ticket.work_date)
+      // Use the ticket's cost code if assigned, otherwise use type-specific defaults
+      const laborCategory = costCode?.code || DEFAULT_CATEGORIES.labor
+      const materialCategory = costCode?.code || DEFAULT_CATEGORIES.material
 
       // Labor entries
+      let laborTotal = 0
       for (const worker of (ticket.t_and_m_workers || [])) {
         const regHours = parseFloat(worker.hours) || 0
         const otHours = parseFloat(worker.overtime_hours) || 0
@@ -84,16 +97,19 @@ export async function exportJobCostTransactions(projectId, options = {}) {
         if (regHours > 0) {
           const amount = regHours * rate
           totalAmount += amount
+          laborTotal += amount
           rows.push({
             'Job Number': jobNumber,
-            'Phase/Cost Code': phase,
-            'Category': category,
-            'Transaction Date': workDate,
+            'Extra': '',
+            'Cost Type': SAGE_COST_TYPE_MAP.labor,
+            'Category': laborCategory,
+            'Trans Date': workDate,
             'Description': `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
             'Units': regHours.toFixed(2),
             'Unit Cost': rate.toFixed(2),
             'Amount': amount.toFixed(2),
-            'Vendor/Employee': worker.name || ''
+            'Vendor': worker.name || '',
+            'Reference': `TM-${ticket.id?.substring(0, 8) || ''}`
           })
         }
 
@@ -101,40 +117,50 @@ export async function exportJobCostTransactions(projectId, options = {}) {
           const otRate = rate * 1.5
           const amount = otHours * otRate
           totalAmount += amount
+          laborTotal += amount
           rows.push({
             'Job Number': jobNumber,
-            'Phase/Cost Code': phase,
-            'Category': category,
-            'Transaction Date': workDate,
+            'Extra': '',
+            'Cost Type': SAGE_COST_TYPE_MAP.labor,
+            'Category': laborCategory,
+            'Trans Date': workDate,
             'Description': `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
             'Units': otHours.toFixed(2),
             'Unit Cost': otRate.toFixed(2),
             'Amount': amount.toFixed(2),
-            'Vendor/Employee': worker.name || ''
+            'Vendor': worker.name || '',
+            'Reference': `TM-${ticket.id?.substring(0, 8) || ''}`
           })
         }
       }
 
       // Material entries
+      let materialTotal = 0
       for (const item of (ticket.t_and_m_items || [])) {
         const qty = parseFloat(item.quantity) || 0
         const unitCost = item.materials_equipment?.cost_per_unit || 0
         if (qty > 0 && unitCost > 0) {
           const amount = qty * unitCost
           totalAmount += amount
+          materialTotal += amount
           rows.push({
             'Job Number': jobNumber,
-            'Phase/Cost Code': phase,
-            'Category': SAGE_CATEGORY_MAP.material,
-            'Transaction Date': workDate,
+            'Extra': '',
+            'Cost Type': SAGE_COST_TYPE_MAP.material,
+            'Category': materialCategory,
+            'Trans Date': workDate,
             'Description': `Material - ${item.materials_equipment?.name || item.description || 'Material'}`,
             'Units': qty.toFixed(2),
             'Unit Cost': unitCost.toFixed(2),
             'Amount': amount.toFixed(2),
-            'Vendor/Employee': ''
+            'Vendor': '',
+            'Reference': `TM-${ticket.id?.substring(0, 8) || ''}`
           })
         }
       }
+
+      totalLaborAmount += laborTotal
+      totalMaterialAmount += materialTotal
     }
 
     const duration = Math.round(performance.now() - start)
@@ -145,6 +171,8 @@ export async function exportJobCostTransactions(projectId, options = {}) {
       summary: {
         rowCount: rows.length,
         totalAmount,
+        totalLaborAmount,
+        totalMaterialAmount,
         ticketCount: (tickets || []).length,
         jobNumber,
         projectName: project.name
@@ -265,8 +293,8 @@ export async function exportCostCodeStructure(companyId) {
     const rows = (costCodes || []).map(cc => ({
       'Cost Code': cc.code,
       'Description': cc.description,
-      'Category': SAGE_CATEGORY_MAP[cc.category] || 5,
-      'Category Name': cc.category || 'other',
+      'Cost Type': SAGE_COST_TYPE_MAP[cc.category] || 5,
+      'Cost Type Name': cc.category || 'other',
       'Parent/Phase': cc.parent_code || ''
     }))
 
