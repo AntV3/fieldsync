@@ -191,9 +191,12 @@ BEGIN
   new_session_token := encode(gen_random_bytes(32), 'hex');
 
   -- Revoke any existing sessions for this device/project combo
-  DELETE FROM field_sessions
-  WHERE device_id = p_device_id
-    AND project_id = found_project.id;
+  -- NOTE: Use table alias "fs" to avoid ambiguity with RETURNS TABLE column names
+  IF p_device_id IS NOT NULL THEN
+    DELETE FROM field_sessions fs
+    WHERE fs.device_id   = p_device_id
+      AND fs.project_id  = found_project.id;
+  END IF;
 
   -- Create new session
   INSERT INTO field_sessions (project_id, company_id, session_token, device_id)
@@ -203,14 +206,15 @@ BEGIN
   PERFORM log_auth_attempt(p_ip_address, p_device_id, TRUE, 'pin');
 
   -- Return success with session token
+  -- NOTE: Explicit column aliases prevent ambiguity with RETURNS TABLE definitions
   RETURN QUERY SELECT
-    true,
-    new_session_token,
-    found_project.id,
-    found_project.name,
-    found_company.id,
-    found_company.name,
-    NULL::TEXT;
+    true                  AS success,
+    new_session_token     AS session_token,
+    found_project.id      AS project_id,
+    found_project.name    AS project_name,
+    found_company.id      AS company_id,
+    found_company.name    AS company_name,
+    NULL::TEXT             AS error_code;
 END;
 $$;
 
