@@ -88,80 +88,19 @@ export default function RegisterCompany({ onShowToast }) {
         p_office_code: officeCodeGenerated
       })
 
-      if (!rpcError && rpcResult) {
-        setCreatedCompany({
-          name: registerCompanyName.trim(),
-          code: companyCodeGenerated,
-          officeCode: officeCodeGenerated
-        })
-        setRegisterStep(3)
-        return
-      }
-
-      // Step 3: Fallback to direct inserts
       if (rpcError) {
-        console.warn('register_company RPC unavailable, using direct inserts:', rpcError.message)
+        // SECURITY: Never fall back to client-side direct inserts.
+        // Client-side inserts allow attackers to self-assign admin roles.
+        console.error('register_company RPC failed:', rpcError.message)
+        throw new Error('Company registration is temporarily unavailable. Please try again later.')
       }
 
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: registerCompanyName.trim(),
-          code: companyCodeGenerated,
-          office_code: officeCodeGenerated,
-          subscription_tier: 'free',
-          owner_user_id: userId
-        })
-        .select()
-        .single()
-
-      if (companyError) {
-        console.error('Company creation error:', companyError)
-        throw new Error('Failed to create company. Please try again.')
-      }
-
-      const { error: userError } = await supabase
-        .from('users')
-        .upsert({
-          id: userId,
-          email: normalizedEmail,
-          password_hash: 'managed_by_supabase_auth',
-          name: registerName.trim(),
-          company_id: companyData.id,
-          role: 'admin',
-          is_active: true
-        }, { onConflict: 'id' })
-
-      if (userError) {
-        console.error('User record error:', userError)
-        throw new Error('Failed to set up user profile')
-      }
-
-      const { error: ucError } = await supabase
-        .from('user_companies')
-        .insert({
-          user_id: userId,
-          company_id: companyData.id,
-          role: 'admin',
-          access_level: 'administrator',
-          status: 'active'
-        })
-
-      if (ucError) {
-        console.warn('Direct user_companies insert failed, trying repair RPC:', ucError.message)
-        const { error: repairError } = await supabase.rpc('repair_legacy_user', {
-          p_user_id: userId,
-          p_company_id: companyData.id,
-          p_role: 'admin'
-        })
-
-        if (repairError) {
-          console.error('Repair RPC also failed:', repairError.message)
-        }
+      if (!rpcResult) {
+        throw new Error('Company registration failed. Please try again.')
       }
 
       setCreatedCompany({
-        name: companyData.name,
+        name: registerCompanyName.trim(),
         code: companyCodeGenerated,
         officeCode: officeCodeGenerated
       })

@@ -446,8 +446,8 @@ export function calculateScenarios(current, scenarios = []) {
   const end = new Date(endDate)
   const now = new Date()
   const elapsedDays = Math.max(1, (now - start) / (1000 * 60 * 60 * 24))
-  const dailyProgress = progressPercent / elapsedDays
-  const dailyCost = actualCosts / elapsedDays
+  const dailyProgress = elapsedDays > 0 ? progressPercent / elapsedDays : 0
+  const dailyCost = elapsedDays > 0 ? actualCosts / elapsedDays : 0
   const remainingProgress = 100 - progressPercent
 
   return activeScenarios.map(scenario => {
@@ -523,6 +523,7 @@ function getMethodWeights(dataPoints) {
 }
 
 function calculateCostVariance(estimates) {
+  if (!estimates.length) return 0
   const mean = estimates.reduce((a, b) => a + b, 0) / estimates.length
   const variance = estimates.reduce((sum, e) => sum + Math.pow(e - mean, 2), 0) / estimates.length
   return Math.sqrt(variance)
@@ -638,10 +639,11 @@ function analyzeTrendDirection(values) {
   const firstHalf = deltas.slice(0, midpoint)
   const secondHalf = deltas.slice(midpoint)
 
+  if (!firstHalf.length || !secondHalf.length) return 'stable'
   const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length
   const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length
 
-  if (avgFirst <= 0) return 'stable'
+  if (avgFirst === 0) return 'stable'
   const change = (avgSecond - avgFirst) / Math.abs(avgFirst)
   if (change > 0.2) return 'improving'
   if (change < -0.2) return 'declining'
