@@ -36,6 +36,7 @@ const PrivacyPolicy = lazy(() => import('./components/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./components/legal/TermsOfService'))
 const SpxDashboard = lazy(() => import('./components/spx/SpxDashboard'))
 const AcceptInvite = lazy(() => import('./components/auth/AcceptInvite'))
+const PortfolioAnalytics = lazy(() => import('./pages/PortfolioAnalytics'))
 
 // Loading fallback component
 function PageLoader() {
@@ -247,6 +248,10 @@ export default function App() {
           <Logo />
           <div className="nav-tabs nav-tabs-desktop">
             <button className={`nav-tab ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => navigate('/dashboard')}>Dashboard</button>
+            <button className={`nav-tab ${location.pathname === '/portfolio-analytics' ? 'active' : ''}`} onClick={() => navigate('/portfolio-analytics')}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign: 'middle', marginRight: 4}}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Analytics
+            </button>
             <button className={`nav-tab ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => navigate('/projects/new')}>+ New Project</button>
             <button className={`nav-tab ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => navigate('/pricing')}>Pricing</button>
             {isAdmin && (
@@ -335,6 +340,7 @@ export default function App() {
               <div className="mobile-section-title">Navigation</div>
               <div className="mobile-nav-list">
                 <button className={`mobile-nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => { navigate('/dashboard'); setShowMobileMenu(false) }}>Dashboard</button>
+                <button className={`mobile-nav-item ${location.pathname === '/portfolio-analytics' ? 'active' : ''}`} onClick={() => { navigate('/portfolio-analytics'); setShowMobileMenu(false) }}>Portfolio Analytics</button>
                 <button className={`mobile-nav-item ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => { navigate('/projects/new'); setShowMobileMenu(false) }}>+ New Project</button>
                 <button className={`mobile-nav-item ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => { navigate('/pricing'); setShowMobileMenu(false) }}>Pricing</button>
                 {isAdmin && (
@@ -442,6 +448,9 @@ export default function App() {
           {/* Office routes - require auth */}
           <Route path="/dashboard" element={requireAuth(officeLayout(
             <Dashboard company={company} user={user} isAdmin={isAdmin} onShowToast={showToast} navigateToProjectId={navigateToProjectId} onProjectNavigated={handleProjectNavigated} />
+          ))} />
+          <Route path="/portfolio-analytics" element={requireAuth(officeLayout(
+            <PortfolioAnalytics company={company} user={user} />
           ))} />
           <Route path="/projects/new" element={requireAuth(officeLayout(
             <Setup company={company} user={user} onProjectCreated={handleProjectCreated} onShowToast={showToast} />
