@@ -82,7 +82,7 @@ export default function LaborResourcesTab({ companyId }) {
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">Crew Distribution by Project</h3>
           {(distribution || []).length > 0 ? (
-            <ResponsiveContainer width="100%" height={Math.max(250, distribution.length * 50)}>
+            <ResponsiveContainer width="100%" height={Math.min(600, Math.max(250, distribution.length * 50))}>
               <BarChart data={distribution} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                 <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
@@ -100,7 +100,7 @@ export default function LaborResourcesTab({ companyId }) {
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">Labor Cost by Project</h3>
           {(laborCost || []).filter(l => l.laborCost > 0).length > 0 ? (
-            <ResponsiveContainer width="100%" height={Math.max(250, laborCost.length * 50)}>
+            <ResponsiveContainer width="100%" height={Math.min(600, Math.max(250, laborCost.length * 50))}>
               <BarChart data={laborCost.filter(l => l.laborCost > 0)} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                 <XAxis type="number" tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />

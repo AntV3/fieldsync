@@ -5,6 +5,12 @@
  */
 
 import { supabase, isSupabaseConfigured } from '../supabaseClient'
+import { observe } from '../observability'
+
+/** Log errors via observability */
+function logError(operation, companyId, error) {
+  observe.error('database', { message: error.message, operation, company_id: companyId })
+}
 
 // ============================================
 // Financial rollups
@@ -12,7 +18,7 @@ import { supabase, isSupabaseConfigured } from '../supabaseClient'
 
 export async function getPortfolioFinancialSummary(companyId) {
   if (!isSupabaseConfigured || !companyId) return defaultFinancialSummary()
-
+  try {
   const { data: projects, error } = await supabase
     .from('projects')
     .select('id, name, contract_value, status, created_at')
@@ -79,11 +85,12 @@ export async function getPortfolioFinancialSummary(companyId) {
     margin: Math.round(margin * 10) / 10,
     projectCount: projects.length,
   }
+  } catch (err) { logError('getPortfolioFinancialSummary', companyId, err); return defaultFinancialSummary() }
 }
 
 export async function getProjectFinancialComparison(companyId) {
   if (!isSupabaseConfigured || !companyId) return []
-
+  try {
   const { data: projects, error } = await supabase
     .from('projects')
     .select('id, name, contract_value')
@@ -118,6 +125,7 @@ export async function getProjectFinancialComparison(companyId) {
       progress,
     }
   }).sort((a, b) => b.budget - a.budget)
+  } catch (err) { logError('getProjectFinancialComparison', companyId, err); return [] }
 }
 
 export async function getMonthlyRevenueTimeline(companyId, months = 12) {
@@ -154,10 +162,12 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   }
 
   // Count reports per month as activity proxy
-  const totalReports = (reports || []).length || 1
+  const totalReports = (reports || []).length
+  if (totalReports === 0) return Object.values(monthlyMap)
+
   const totalPortfolioValue = projects.reduce((s, p) => s + (p.contract_value || 0), 0)
 
-  for (const report of (reports || [])) {
+  for (const report of reports) {
     const d = new Date(report.report_date)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (monthlyMap[key]) {
@@ -167,7 +177,7 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
 
   // Distribute earned revenue proportionally to activity
   for (const entry of Object.values(monthlyMap)) {
-    entry.revenue = Math.round((entry.reportCount / totalReports) * totalPortfolioValue * 0.08) // ~8% monthly
+    entry.revenue = Math.round((entry.reportCount / totalReports) * totalPortfolioValue * 0.08)
   }
 
   return Object.values(monthlyMap)
@@ -179,7 +189,7 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
 
 export async function getPortfolioLaborSummary(companyId) {
   if (!isSupabaseConfigured || !companyId) return defaultLaborSummary()
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id')
@@ -209,12 +219,14 @@ export async function getPortfolioLaborSummary(companyId) {
 
   const totalCrewToday = todayCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
   const totalManDays = allCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
-  const avgCrewWeek = weekCheckins.length > 0
-    ? Math.round(weekCheckins.reduce((s, c) => s + (c.worker_count || 1), 0) / 7)
-    : 0
-  const avgCrew30 = allCheckins.length > 0
-    ? Math.round(allCheckins.reduce((s, c) => s + (c.worker_count || 1), 0) / 30)
-    : 0
+
+  const weekTotal = weekCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
+  const weekDays = new Set(weekCheckins.map(c => c.checkin_date)).size
+  const avgCrewWeek = weekDays > 0 ? Math.round(weekTotal / weekDays) : 0
+
+  const monthTotal = allCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
+  const monthDays = new Set(allCheckins.map(c => c.checkin_date)).size
+  const avgCrew30 = monthDays > 0 ? Math.round(monthTotal / monthDays) : 0
 
   return {
     totalCrewToday,
@@ -223,6 +235,7 @@ export async function getPortfolioLaborSummary(companyId) {
     totalManDays,
     utilization: totalManDays > 0 ? Math.min(Math.round((totalManDays / (projects.length * 30 * 5)) * 100), 100) : 0,
   }
+  } catch (err) { logError('getPortfolioLaborSummary', companyId, err); return defaultLaborSummary() }
 }
 
 export async function getCrewDistribution(companyId) {
@@ -255,15 +268,16 @@ export async function getCrewDistribution(companyId) {
   return projects.map(p => {
     const pc = checkinsByProject[p.id] || []
     const todayCount = pc.filter(c => c.checkin_date === today).reduce((s, c) => s + (c.worker_count || 1), 0)
-    const weekCount = pc.filter(c => c.checkin_date >= sevenStr)
-    const monthCount = pc
+    const weekCheckins = pc.filter(c => c.checkin_date >= sevenStr)
+    const weekDays = new Set(weekCheckins.map(c => c.checkin_date)).size
+    const monthDays = new Set(pc.map(c => c.checkin_date)).size
 
     return {
       name: truncateName(p.name),
       fullName: p.name,
       today: todayCount,
-      avg7Days: weekCount.length > 0 ? Math.round(weekCount.reduce((s, c) => s + (c.worker_count || 1), 0) / 7) : 0,
-      avg30Days: monthCount.length > 0 ? Math.round(monthCount.reduce((s, c) => s + (c.worker_count || 1), 0) / 30) : 0,
+      avg7Days: weekDays > 0 ? Math.round(weekCheckins.reduce((s, c) => s + (c.worker_count || 1), 0) / weekDays) : 0,
+      avg30Days: monthDays > 0 ? Math.round(pc.reduce((s, c) => s + (c.worker_count || 1), 0) / monthDays) : 0,
     }
   }).sort((a, b) => b.avg30Days - a.avg30Days)
 }
@@ -303,7 +317,7 @@ export async function getLaborCostByProject(companyId) {
 
 export async function getPortfolioProgressSummary(companyId) {
   if (!isSupabaseConfigured || !companyId) return defaultProgressSummary()
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id, name, contract_value, start_date, end_date')
@@ -347,6 +361,7 @@ export async function getPortfolioProgressSummary(companyId) {
     ahead,
     totalProjects: projects.length,
   }
+  } catch (err) { logError('getPortfolioProgressSummary', companyId, err); return defaultProgressSummary() }
 }
 
 export async function getScheduleVarianceByProject(companyId) {
@@ -425,7 +440,7 @@ export async function getAreaCompletionRates(companyId) {
 
 export async function getCORSummaryAcrossProjects(companyId) {
   if (!isSupabaseConfigured || !companyId) return defaultCORSummary()
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id')
@@ -466,6 +481,7 @@ export async function getCORSummaryAcrossProjects(companyId) {
     approvalRate: allCors.length > 0 ? Math.round((approved / allCors.length) * 100) : 0,
     avgProcessingDays,
   }
+  } catch (err) { logError('getCORSummaryAcrossProjects', companyId, err); return defaultCORSummary() }
 }
 
 export async function getCORByProject(companyId) {
@@ -552,7 +568,7 @@ export async function getCORTrendByMonth(companyId, months = 12) {
 
 export async function getPortfolioRiskMatrix(companyId) {
   if (!isSupabaseConfigured || !companyId) return []
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id, name, contract_value, start_date, end_date')
@@ -610,6 +626,7 @@ export async function getPortfolioRiskMatrix(companyId) {
       scheduleVariance: Math.round(scheduleVariance),
     }
   }).sort((a, b) => a.healthScore - b.healthScore) // worst health first
+  } catch (err) { logError('getPortfolioRiskMatrix', companyId, err); return [] }
 }
 
 export async function getProjectHealthScores(companyId) {

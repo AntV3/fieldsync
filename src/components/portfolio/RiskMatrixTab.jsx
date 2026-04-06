@@ -36,9 +36,9 @@ export default function RiskMatrixTab({ companyId }) {
   }
 
   const data = matrix || []
-  const greenCount = data.filter(p => p.budgetHealth === 'green' && p.scheduleHealth === 'green').length
-  const yellowCount = data.filter(p => p.budgetHealth === 'yellow' || p.scheduleHealth === 'yellow').length - data.filter(p => p.budgetHealth === 'red' || p.scheduleHealth === 'red').length
   const redCount = data.filter(p => p.budgetHealth === 'red' || p.scheduleHealth === 'red').length
+  const greenCount = data.filter(p => p.budgetHealth === 'green' && p.scheduleHealth === 'green').length
+  const yellowCount = data.length - redCount - greenCount
 
   // Build grid cells for the risk matrix
   const gridCells = []
