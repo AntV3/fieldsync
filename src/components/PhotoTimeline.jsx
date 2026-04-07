@@ -154,6 +154,7 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightboxPhoto, lightboxIndex, flatPhotos.length])
 
   const formatDate = (dateStr) => {

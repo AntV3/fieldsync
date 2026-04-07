@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { Save, Plus, X, GripVertical, Zap, Building2, Wind, Layers, HardHat, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState } from 'react'
+import { Save, Plus, X, Zap, Building2, Wind, Layers, HardHat, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTradeConfig } from '../../lib/TradeConfigContext'
 
 const FIELD_TYPES = [

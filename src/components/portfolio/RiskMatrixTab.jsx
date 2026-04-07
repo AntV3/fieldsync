@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Shield, AlertTriangle, CheckCircle, XCircle, Info } from 'lucide-react'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
-import { formatCurrency } from '../../lib/utils'
 import { getPortfolioRiskMatrix } from '../../lib/services/portfolioAnalyticsService'
 
 const HEALTH_LABELS = { green: 'Healthy', yellow: 'Watch', red: 'At Risk' }

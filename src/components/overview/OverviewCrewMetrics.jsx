@@ -43,6 +43,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   useEffect(() => {
     if (!project?.id) return
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   const loadData = async () => {
@@ -85,8 +86,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   }, [crewHistory])
 
   // Selected date metrics
-  const selectedDayWorkers = crewByDate[selectedDate] || []
-  const selectedDayTmNames = tmWorkersByDate[selectedDate] || new Set()
+  const selectedDayWorkers = useMemo(() => crewByDate[selectedDate] || [], [crewByDate, selectedDate])
+  const selectedDayTmNames = useMemo(() => tmWorkersByDate[selectedDate] || new Set(), [tmWorkersByDate, selectedDate])
 
   const todayMetrics = useMemo(() => {
     const contract = []
@@ -321,7 +322,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     } finally {
       setExporting(false)
     }
-  }, [project, selectedDate, todayMetrics, chartData, onShowToast])
+  }, [project, selectedDate, todayMetrics, chartData, onShowToast, selectedDayWorkers])
 
   if (loading) {
     return (

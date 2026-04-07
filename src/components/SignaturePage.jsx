@@ -66,6 +66,7 @@ export default function SignaturePage({ signatureToken }) {
   // Load signature request and document
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signatureToken])
 
   const loadData = async () => {
@@ -305,7 +306,7 @@ export default function SignaturePage({ signatureToken }) {
     )
   }
 
-  const { slot1, slot2, availableSlots } = getSignatureStatus()
+  const { slot1, slot2, _availableSlots } = getSignatureStatus()
   // Only one signature is required - either slot1 OR slot2
   const isFullySigned = slot1 || slot2
   const isCOR = signatureRequest?.document_type === 'cor'

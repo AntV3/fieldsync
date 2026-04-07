@@ -10,7 +10,7 @@
 
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
-import { escapeCSV, toCSV } from './financialExport'
+import { toCSV } from './financialExport'
 
 // ============================================
 // G703 Continuation Sheet Data Builder
@@ -99,7 +99,7 @@ export function buildG702Summary(project, g703Lines, applicationNumber = 1, peri
 
   const totalScheduledValue = g703Lines.reduce((sum, l) => sum + l.scheduled_value, 0)
   const totalPreviousWork = g703Lines.reduce((sum, l) => sum + l.previous_applications, 0)
-  const totalThisPeriod = g703Lines.reduce((sum, l) => sum + l.this_period_work, 0)
+  const _totalThisPeriod = g703Lines.reduce((sum, l) => sum + l.this_period_work, 0)
   const totalMaterialsStored = g703Lines.reduce((sum, l) => sum + l.materials_stored, 0)
   const totalCompleted = g703Lines.reduce((sum, l) => sum + l.total_completed, 0)
   const totalRetention = g703Lines.reduce((sum, l) => sum + l.retention, 0)
@@ -332,7 +332,7 @@ export function exportAIABillingPDF(project, areas, changeOrders = [], options =
 export function exportAIABillingCSV(project, areas, changeOrders = [], options = {}) {
   const {
     applicationNumber = 1,
-    periodTo = new Date().toISOString().split('T')[0],
+    _periodTo = new Date().toISOString().split('T')[0],
     previousApplications = []
   } = options
 

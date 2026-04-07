@@ -2,7 +2,7 @@ import { useTradeConfig } from '../../lib/TradeConfigContext'
 
 export default function ProjectBasicsStep({ data, onChange }) {
   const update = (field, value) => onChange({ ...data, [field]: value })
-  const { resolvedConfig, companyConfig, loading: tradeLoading } = useTradeConfig()
+  const { resolvedConfig, companyConfig, loading: _tradeLoading } = useTradeConfig()
 
   // If company has a trade config, show the trade name; otherwise show the legacy toggle
   const hasTradeConfig = !!companyConfig

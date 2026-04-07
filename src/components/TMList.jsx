@@ -123,14 +123,14 @@ export default function TMList({
             if (importStatus?.import_status === 'failed') {
               importStatusResults[ticket.id] = importStatus
             }
-          } catch (e) {
+          } catch (_e) {
             // Ignore - column may not exist yet
           }
         }))
         setLockedTickets(prev => reset ? lockResults : { ...prev, ...lockResults })
         setFailedImports(prev => reset ? importStatusResults : { ...prev, ...importStatusResults })
       }
-    } catch (error) {
+    } catch (_error) {
       onShowToast('Error loading tickets', 'error')
     } finally {
       setLoading(false)
@@ -187,7 +187,7 @@ export default function TMList({
       setHasMore(true)
       loadTickets(0, true)
     }
-  }, [filter])
+  }, [filter, loadTickets, project?.id])
 
   const updateStatus = useCallback(async (ticketId, newStatus) => {
     // Check if ticket is locked due to approved COR
@@ -206,7 +206,7 @@ export default function TMList({
       console.error('Error updating status:', error)
       onShowToast('Error updating status', 'error')
     }
-  }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
+  }, [lockedTickets, onShowToast])
 
   // Handle approval - approve directly (CE/PCO is informational only)
   const handleApprove = useCallback((ticket) => {
@@ -217,7 +217,7 @@ export default function TMList({
     }
 
     updateStatus(ticket.id, 'approved')
-  }, [lockedTickets, updateStatus]) // onShowToast is stable
+  }, [lockedTickets, updateStatus, onShowToast])
 
   // Confirm approval with change order value
   const confirmChangeOrderApproval = async () => {
@@ -257,7 +257,7 @@ export default function TMList({
       console.error('Error deleting ticket:', error)
       onShowToast('Error deleting ticket', 'error')
     }
-  }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
+  }, [lockedTickets, onShowToast])
 
   // Open COR association modal
   const openCorAssignModal = useCallback(async (ticket) => {
@@ -276,7 +276,7 @@ export default function TMList({
     } finally {
       setLoadingCors(false)
     }
-  }, [project.id]) // onShowToast is stable (memoized in App.jsx)
+  }, [project.id, onShowToast])
 
   // Associate ticket with selected COR
   const handleAssignToCor = async () => {
@@ -347,7 +347,7 @@ export default function TMList({
     } finally {
       setRetryingImport(null)
     }
-  }, [company.id, project.work_type, project.job_type]) // onShowToast and loadTickets are stable
+  }, [company.id, project.work_type, project.job_type, onShowToast, loadTickets])
 
   const calculateTicketTotal = (ticket) => {
     let total = 0

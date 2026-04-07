@@ -30,6 +30,7 @@ export default function MembershipManager({ company, user, onShowToast }) {
       loadMembers()
       loadInvitations()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id])
 
   const loadMembers = async () => {

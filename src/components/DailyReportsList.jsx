@@ -48,6 +48,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       if (!cancelled) setPhotosLoading(false)
     })
     return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedReport, reports])
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id])
 
   const loadReports = useCallback(async () => {
@@ -76,6 +78,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Filter reports based on view mode and date filter

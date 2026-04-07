@@ -6,7 +6,6 @@
 import {
   supabase, isSupabaseConfigured,
   observe,
-  getClient,
   sanitize
 } from './client'
 

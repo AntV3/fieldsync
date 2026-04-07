@@ -18,7 +18,7 @@ export default memo(function ProgressBillingCard({
   corStats = {},
   onCreateDraw,
   onViewDraw,
-  onShowToast
+  onShowToast: _onShowToast
 }) {
   const [drawRequests, setDrawRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -66,6 +66,7 @@ export default memo(function ProgressBillingCard({
         drawRequestOps.unsubscribe?.(subscription)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadDrawRequests])
 
   // Calculate billing totals from draw requests

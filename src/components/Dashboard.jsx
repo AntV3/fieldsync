@@ -158,6 +158,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       // Load company cost codes for exports
       db.getCostCodes(company.id).then(setCostCodes).catch(() => {})
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id])
 
   // Track project IDs for subscription stability (avoids re-subscribing on every projects array change)
@@ -197,6 +198,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         db.unsubscribe?.(subscription)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id, projectIdsKey, debouncedRefresh])
 
   // Prevent body scroll when mobile sidebar is open
@@ -757,7 +759,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // provided by usePortfolioMetrics hook
 
   // Handler for alert actions
-  const handleAlertAction = useCallback(({ target, projectId, alert }) => {
+  const handleAlertAction = useCallback(({ target, projectId, _alert }) => {
     const project = projects.find(p => p.id === projectId)
     if (project) {
       setSelectedProject(project)
@@ -793,6 +795,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     if (projectsData.length > 0) {
       checkAutoArchive()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsData.length]) // Run when projects data loads
 
   // Memoized callbacks for child components to prevent unnecessary re-renders
@@ -875,7 +878,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setTMViewMode('preview')
   }, [])
 
-  const handleViewFullCORLog = useCallback(() => {
+  const _handleViewFullCORLog = useCallback(() => {
     setCORDisplayMode('log')
   }, [])
 
@@ -907,9 +910,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       }
       loadProjects()
       onShowToast?.('Cost deleted', 'success')
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Error deleting cost', 'error')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProject?.id]) // onShowToast is stable (memoized in App.jsx)
 
   // Memoize stats for FinancialsNav to prevent re-renders from inline object creation
@@ -932,7 +936,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Project Detail View
   if (selectedProject) {
     // Extract memoized values
-    const { progress, billable, changeOrderValue, revisedContractValue, isValueBased, earnedValue, totalSOVValue } = progressCalculations
+    const { progress, billable, changeOrderValue, revisedContractValue, _isValueBased, _earnedValue, _totalSOVValue } = progressCalculations
 
     // Edit Mode
     if (editMode && editData) {
@@ -955,10 +959,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const areasComplete = areas.filter(a => a.status === 'done').length
     const areasWorking = areas.filter(a => a.status === 'working').length
     const areasNotStarted = areas.filter(a => a.status === 'not_started').length
-    const percentBilled = revisedContractValue > 0
+    const _percentBilled = revisedContractValue > 0
       ? Math.round((billable / revisedContractValue) * 100)
       : 0
-    const hasChangeOrders = changeOrderValue > 0
+    const _hasChangeOrders = changeOrderValue > 0
 
     // Tab definitions with pending badges
     const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)

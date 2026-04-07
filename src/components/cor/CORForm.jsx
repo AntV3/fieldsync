@@ -37,7 +37,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   // Quick select state for materials/equipment
   const [companyMaterials, setCompanyMaterials] = useState([])
   const [materialSearch, setMaterialSearch] = useState('')
-  const [materialCategory, setMaterialCategory] = useState('all')
+  const [materialCategory, _setMaterialCategory] = useState('all')
   const [equipmentSearch, setEquipmentSearch] = useState('')
 
   // Basic Info (required)
@@ -93,6 +93,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     if (!existingCOR) {
       generateCORNumber()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadCompanyMaterials = async () => {

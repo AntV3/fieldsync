@@ -461,7 +461,7 @@ export function ThresholdConfigCompact({ onExpand, className = '' }) {
 
   // Detect current preset
   let currentPreset = null
-  for (const [key, preset] of Object.entries(PRESETS)) {
+  for (const [_key, preset] of Object.entries(PRESETS)) {
     const matches = Object.keys(preset.thresholds).every(cat => {
       const p = preset.thresholds[cat]
       const t = thresholds[cat]

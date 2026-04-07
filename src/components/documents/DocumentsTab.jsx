@@ -100,6 +100,7 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
         loadFolderDocuments(selectedFolderRef.current, true)
       }
     }, 500)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadFolders])
 
   // Initial load and real-time subscriptions

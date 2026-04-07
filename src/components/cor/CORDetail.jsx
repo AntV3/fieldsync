@@ -97,6 +97,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cor.id, company?.id, project?.work_type, project?.job_type]) // onShowToast is stable (memoized in App.jsx)
 
   // Fetch on mount
@@ -344,7 +345,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                 return item
               })
             }
-          } catch (e) { /* best-effort */ }
+          } catch (_e) { /* best-effort */ }
         }
         const snapshot = createSnapshot(enrichedCOR, associatedTickets)
         await generatePDFFromSnapshot(snapshot, { project, company, branding })

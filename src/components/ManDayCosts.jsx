@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { HardHat } from 'lucide-react'
 import { db } from '../lib/supabase'
 
-export default function ManDayCosts({ project, company, onShowToast }) {
+export default function ManDayCosts({ project, company, onShowToast: _onShowToast }) {
   const [costData, setCostData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
@@ -20,6 +20,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
         if (subscription) db.unsubscribe?.(subscription)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, company?.id])
 
   const loadCostData = async () => {

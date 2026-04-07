@@ -5,8 +5,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import {
-  Hash, Plus, Trash2, Edit3, Download, Upload,
-  ChevronRight, ChevronDown, Filter, Search
+  Hash, Plus, Trash2, Edit3, Download,
+  ChevronRight, ChevronDown, Search
 } from 'lucide-react'
 
 const CATEGORIES = [
@@ -82,7 +82,7 @@ export default function CostCodeManager({ companyId, onShowToast }) {
       await db.deleteCostCode(costCode.id)
       onShowToast?.('Cost code deactivated', 'success')
       loadCostCodes()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to delete cost code', 'error')
     }
   }
@@ -93,7 +93,7 @@ export default function CostCodeManager({ companyId, onShowToast }) {
       const imported = await db.importCSITemplates(companyId)
       onShowToast?.(`Imported ${imported.length} cost codes`, 'success')
       loadCostCodes()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to import templates', 'error')
     }
   }
@@ -120,7 +120,7 @@ export default function CostCodeManager({ companyId, onShowToast }) {
   })
 
   // Group by parent code
-  const parentCodes = [...new Set(filtered.map(cc => cc.parent_code).filter(Boolean))]
+  const _parentCodes = [...new Set(filtered.map(cc => cc.parent_code).filter(Boolean))]
   const topLevel = filtered.filter(cc => !cc.parent_code)
   const children = {}
   for (const cc of filtered) {

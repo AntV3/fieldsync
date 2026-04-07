@@ -126,27 +126,6 @@ export default function UniversalSearch({
     onClose()
   }
 
-  // Get icon for result type
-  const getIcon = (type) => {
-    switch (type) {
-      case 'project': return FolderOpen
-      case 'ticket': return FileText
-      case 'cor': return ClipboardList
-      case 'worker': return Users
-      default: return FileText
-    }
-  }
-
-  // Get label for result type
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case 'project': return 'Project'
-      case 'ticket': return 'Time & Material'
-      case 'cor': return 'Change Order'
-      case 'worker': return 'Worker'
-      default: return type
-    }
-  }
 
   if (!isOpen) return null
 

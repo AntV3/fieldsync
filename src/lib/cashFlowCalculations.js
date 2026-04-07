@@ -270,7 +270,7 @@ export function buildMonthlyCashFlow(receivables, payables, config) {
 /**
  * Calculate summary cash flow metrics
  */
-export function calculateCashFlowMetrics(monthlyForecast, receivables, payables) {
+export function calculateCashFlowMetrics(monthlyForecast, receivables, _payables) {
   const totalInflows = monthlyForecast.reduce((s, m) => s + m.inflows, 0)
   const totalOutflows = monthlyForecast.reduce((s, m) => s + m.outflows, 0)
 
@@ -388,9 +388,9 @@ function estimateMonthlyEarningRate(project) {
   return contractValue / totalMonths
 }
 
-function estimateMonthlyCostRate(project, costHistory) {
+function estimateMonthlyCostRate(project, _costHistory) {
   const totalCosts = project.totalCosts || project.billable || 0
-  const progress = project.progress || project.progressPercent || 0
+  const _progress = project.progress || project.progressPercent || 0
   const startDate = project.startDate || project.start_date
 
   // Use actual burn rate if available

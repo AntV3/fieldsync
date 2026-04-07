@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, RotateCcw, ChevronDown, ChevronUp, Plus, X, Truck } from 'lucide-react'
+import { Save, RotateCcw, ChevronDown, ChevronUp, Truck } from 'lucide-react'
 import { useTradeConfig } from '../../lib/TradeConfigContext'
 import { WIDGET_REGISTRY } from '../../lib/widgetRegistry'
 
@@ -18,7 +18,7 @@ const FORM_TYPES = [
  * - projectId: UUID
  * - onShowToast: (message, type) => void
  */
-export default function ProjectTradeOverrides({ projectId, onShowToast }) {
+export default function ProjectTradeOverrides({ projectId: _projectId, onShowToast }) {
   const { resolvedConfig, companyConfig, projectOverrides, updateProjectOverrides, loading } = useTradeConfig()
   const [expanded, setExpanded] = useState(false)
   const [saving, setSaving] = useState(false)

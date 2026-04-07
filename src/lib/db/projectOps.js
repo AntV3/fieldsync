@@ -813,7 +813,7 @@ export const projectOps = {
       // in the database yet. This ensures a clean delete even on older schemas.
 
       // 1. Collect photo storage paths from tickets before deleting them
-      let photoPathsToDelete = []
+      const photoPathsToDelete = []
       try {
         const { data: tickets } = await supabase
           .from('t_and_m_tickets')

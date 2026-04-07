@@ -25,6 +25,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     if (project?.id) {
       loadReport()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   // Revoke blob URLs on unmount to prevent ERR_FILE_NOT_FOUND and memory leaks

@@ -51,7 +51,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
         onShowToast('Invalid company code', 'error')
         setCompanyCode('')
       }
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error checking code', 'error')
     } finally {
       setLoading(false)
@@ -93,7 +93,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
 
       onShowToast('Invalid PIN', 'error')
       setPin('')
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error checking PIN. Please check your connection.', 'error')
       setPin('')
     } finally {

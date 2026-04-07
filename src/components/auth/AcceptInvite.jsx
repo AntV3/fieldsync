@@ -27,6 +27,7 @@ export default function AcceptInvite({ onShowToast }) {
   useEffect(() => {
     loadInvitation()
     checkCurrentUser()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const loadInvitation = async () => {

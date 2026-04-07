@@ -45,6 +45,7 @@ const Toast = memo(function Toast({ message, type = 'info', duration, onClose, a
       clearTimeout(timerRef.current)
       cancelAnimationFrame(rafRef.current)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveDuration])
 
   const handleClose = () => {

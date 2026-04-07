@@ -20,7 +20,7 @@ export default memo(function EquipmentModal({
   onClose
 }) {
   const [catalogEquipment, setCatalogEquipment] = useState([])
-  const [loading, setLoading] = useState(true) // Start true since we load on mount
+  const [_loading, setLoading] = useState(true) // Start true since we load on mount
   const [saving, setSaving] = useState(false)
 
   // Form state

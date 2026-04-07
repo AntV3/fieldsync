@@ -10,7 +10,7 @@ import Toast from './Toast'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
 
-export default function InjuryReportsList({ project, companyId, company, user, onShowToast }) {
+export default function InjuryReportsList({ project, companyId, company, user, onShowToast: _onShowToast }) {
   const { branding } = useBranding()
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)
@@ -38,6 +38,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     return () => {
       if (subscription) db.unsubscribe?.(subscription)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, companyId])
 
   const loadReports = useCallback(async () => {
@@ -55,6 +56,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id, companyId])
 
   const handleReportCreated = () => {

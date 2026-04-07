@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
+import { db, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
   Info, CheckSquare,
@@ -61,6 +61,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         loadPunchListCount()
       ])
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   // Load today's activity status
@@ -137,6 +138,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       if (pending.punchList) refreshes.push(loadPunchListCount())
       await Promise.all(refreshes)
     }, 300)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id])
 
   useEffect(() => {
@@ -187,7 +189,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current)
       subs.forEach(sub => db.unsubscribe?.(sub))
     }
-  }, [project?.id, debouncedRefresh])
+  }, [project?.id, companyId, debouncedRefresh])
 
   const loadAreas = async () => {
     try {

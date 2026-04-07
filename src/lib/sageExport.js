@@ -15,7 +15,7 @@
  *   Category = Cost Code
  */
 
-import { escapeCSV, toCSV } from './financialExport'
+import { toCSV } from './financialExport'
 
 // Sage 300 CRE cost type codes: 1=Material, 2=Labor, 3=Equipment, 4=Subcontract, 5=Other
 const SAGE_COST_TYPES = {

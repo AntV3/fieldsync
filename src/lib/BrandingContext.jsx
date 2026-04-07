@@ -29,7 +29,7 @@ export function BrandingProvider({ children, companyId }) {
       // Check if we're on a custom domain
       loadBrandingByDomain()
     }
-  }, [companyId])
+  }, [companyId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Apply branding as CSS variables when branding changes
   useEffect(() => {
@@ -108,7 +108,7 @@ export function BrandingProvider({ children, companyId }) {
 
   const createDefaultBranding = async (companyId) => {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('company_branding')
         .insert({
           company_id: companyId,
@@ -153,7 +153,7 @@ export function BrandingProvider({ children, companyId }) {
       }
 
       // First check if branding record exists
-      const { data: existing, error: checkError } = await supabase
+      const { data: _existing, error: checkError } = await supabase
         .from('company_branding')
         .select('id')
         .eq('company_id', companyId)
@@ -234,7 +234,7 @@ export function BrandingProvider({ children, companyId }) {
       const fileName = `${companyId}/${type}-${Date.now()}.${fileExt}`
       const filePath = `branding/${fileName}`
 
-      const { data, error } = await supabase.storage
+      const { data: _data, error } = await supabase.storage
         .from('public')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -263,7 +263,7 @@ export function BrandingProvider({ children, companyId }) {
     } else {
       loadBrandingByDomain()
     }
-  }, [companyId])
+  }, [companyId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = useMemo(() => ({
     branding,

@@ -67,6 +67,7 @@ export default function SignatureLinkGenerator({
   // Load existing signature requests for this document
   useEffect(() => {
     loadExistingRequests()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentType, documentId])
 
   const loadExistingRequests = async () => {

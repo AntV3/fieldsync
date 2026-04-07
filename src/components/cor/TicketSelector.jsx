@@ -20,6 +20,7 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
 
   useEffect(() => {
     loadTickets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
 
   const loadTickets = async () => {

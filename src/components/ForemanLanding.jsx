@@ -118,7 +118,7 @@ export default function ForemanLanding({
     }
     // Only show disposal action when truck load tracking is enabled
     if (!truckLoadTrackingEnabled) {
-      const { disposal, ...rest } = actions
+      const { disposal: _disposal, ...rest } = actions
       return rest
     }
     // If enabled but disposal isn't in the action set, add it
@@ -184,7 +184,7 @@ export default function ForemanLanding({
   // Get unpinned actions (for "More Actions" section)
   const unpinnedActions = useMemo(() => {
     return Object.keys(ALL_ACTIONS).filter(id => !pinnedIds.includes(id))
-  }, [pinnedIds])
+  }, [pinnedIds, ALL_ACTIONS])
 
   // Get status info for an action
   const getActionStatus = useCallback((actionId) => {

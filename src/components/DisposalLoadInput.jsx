@@ -36,6 +36,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
     loadDisposalData()
     loadHistory()
     loadTruckCount()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id, date])
 
   const loadDisposalData = async () => {

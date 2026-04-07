@@ -7,7 +7,6 @@ import { Upload, AlertTriangle, CheckCircle, FileSpreadsheet, X } from 'lucide-r
 import { db } from '../../lib/supabase'
 
 const REQUIRED_COLUMNS = ['Code', 'Description']
-const OPTIONAL_COLUMNS = ['Category', 'Parent Code']
 const VALID_CATEGORIES = ['labor', 'material', 'equipment', 'subcontractor', 'other']
 
 function parseCSV(text) {

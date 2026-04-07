@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Target, CheckCircle, AlertTriangle, TrendingUp, Info } from 'lucide-react'
+import { Target, CheckCircle, AlertTriangle, Info } from 'lucide-react'
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell } from 'recharts'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
 import { tooltipStyle } from '../charts/chartConfig'

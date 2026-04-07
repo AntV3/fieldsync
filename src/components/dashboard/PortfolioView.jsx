@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { Search, AlertTriangle } from 'lucide-react'
 import { formatCurrency } from '../../lib/utils'
 import UniversalSearch from '../UniversalSearch'
@@ -28,17 +27,17 @@ export default function PortfolioView({
     totalChangeOrders,
     totalPortfolioValue,
     totalEarned,
-    totalRemaining,
+    _totalRemaining,
     weightedCompletion,
     totalPendingCORValue,
     totalPendingCORCount,
     backlog,
-    totalCosts,
+    _totalCosts,
     totalProfit,
     grossMargin,
     hasCostData,
-    totalBilled,
-    unbilledRevenue,
+    _totalBilled,
+    _unbilledRevenue,
     totalExposure,
     atRiskExposure,
     overBudgetExposure,

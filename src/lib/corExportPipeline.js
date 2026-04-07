@@ -80,7 +80,7 @@ export function generateForcedExportKey(corId) {
  * @param {Object} options - Snapshot options
  * @returns {Object} Frozen snapshot ready for PDF generation
  */
-export function createSnapshot(cor, tickets, options = {}) {
+export function createSnapshot(cor, tickets, _options = {}) {
   const snapshotTime = new Date().toISOString()
 
   // Calculate photo manifest
@@ -634,7 +634,7 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
         if (ticket.photos?.length > 0) {
           try {
             ticket.photos = await db.resolvePhotoUrls(ticket.photos)
-          } catch (e) {
+          } catch (_e) {
             // Keep raw paths on failure; generator will show placeholders
           }
         }
