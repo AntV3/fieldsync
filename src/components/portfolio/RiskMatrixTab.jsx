@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Shield, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, XCircle, Info } from 'lucide-react'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
 import { formatCurrency } from '../../lib/utils'
 import { getPortfolioRiskMatrix } from '../../lib/services/portfolioAnalyticsService'
@@ -56,7 +56,7 @@ export default function RiskMatrixTab({ companyId }) {
   const atRiskProjects = data.filter(p => p.budgetHealth === 'red' || p.scheduleHealth === 'red')
   const recommendations = atRiskProjects.map(p => {
     const issues = []
-    if (p.scheduleHealth === 'red') issues.push(`${Math.abs(p.scheduleVariance)}% behind schedule`)
+    if (p.scheduleHealth === 'red' && p.scheduleVariance !== null) issues.push(`${Math.abs(p.scheduleVariance)}% behind schedule`)
     if (p.budgetHealth === 'red') issues.push(`cost at ${p.costRatio}% of budget`)
     return {
       name: p.fullName || p.name,
@@ -71,6 +71,7 @@ export default function RiskMatrixTab({ companyId }) {
 
   return (
     <div className="pa-tab-content">
+      <SectionDescription text="Risk assessment combines budget health and schedule health for each active project. Budget health compares T&M costs against total budget (contract value + approved CORs) — green under 70%, yellow under 90%, red at 90%+. Schedule health compares actual weighted area completion against expected time-based progress — green within 5%, yellow within 15%, red beyond 15% behind. Projects without start/end dates are excluded from schedule assessment." />
       <div className="pa-metrics-row">
         <MetricCard
           icon={<CheckCircle size={18} />}
@@ -97,13 +98,14 @@ export default function RiskMatrixTab({ companyId }) {
 
       <div className="pa-chart-card pa-chart-card--wide">
         <h3 className="pa-chart-title">Risk Matrix — Budget vs Schedule Health</h3>
+        <p className="pa-chart-subtitle">Projects are placed in the grid based on their budget health (x-axis) and schedule health (y-axis). Projects in the bottom-left are healthy; top-right indicates highest risk.</p>
         <div className="pa-risk-matrix">
           <div className="pa-risk-matrix-ylabel">Schedule Health</div>
           <div className="pa-risk-matrix-grid">
             <div className="pa-risk-matrix-ylabels">
-              <span className="pa-risk-label pa-risk-label--green">Good</span>
-              <span className="pa-risk-label pa-risk-label--yellow">Watch</span>
               <span className="pa-risk-label pa-risk-label--red">Behind</span>
+              <span className="pa-risk-label pa-risk-label--yellow">Watch</span>
+              <span className="pa-risk-label pa-risk-label--green">Good</span>
             </div>
             <div className="pa-risk-matrix-cells">
               {gridCells.map((cell, i) => {
@@ -137,6 +139,7 @@ export default function RiskMatrixTab({ companyId }) {
       {data.length > 0 && (
         <div className="pa-chart-card pa-chart-card--wide">
           <h3 className="pa-chart-title">Project Health Scores</h3>
+          <p className="pa-chart-subtitle">Health score (2-6) combines budget and schedule ratings. Cost ratio is T&M costs as a percentage of total budget. Sorted by lowest health score first to surface projects needing attention.</p>
           <div className="pa-table-wrapper">
             <table className="pa-table">
               <thead>
@@ -154,7 +157,12 @@ export default function RiskMatrixTab({ companyId }) {
                   <tr key={i}>
                     <td className="pa-table-name" title={p.fullName}>{p.name}</td>
                     <td><span className={`pa-health-badge pa-health-badge--${p.budgetHealth}`}>{HEALTH_ICONS[p.budgetHealth]} {HEALTH_LABELS[p.budgetHealth]}</span></td>
-                    <td><span className={`pa-health-badge pa-health-badge--${p.scheduleHealth}`}>{HEALTH_ICONS[p.scheduleHealth]} {HEALTH_LABELS[p.scheduleHealth]}</span></td>
+                    <td>
+                      {p.hasScheduleData
+                        ? <span className={`pa-health-badge pa-health-badge--${p.scheduleHealth}`}>{HEALTH_ICONS[p.scheduleHealth]} {HEALTH_LABELS[p.scheduleHealth]}</span>
+                        : <span className="pa-health-badge" style={{ color: 'var(--text-tertiary)' }}>No dates set</span>
+                      }
+                    </td>
                     <td>{Math.round(p.progress)}%</td>
                     <td>{p.costRatio}%</td>
                     <td><span className={`pa-score pa-score--${p.healthScore >= 5 ? 'good' : p.healthScore >= 3 ? 'mid' : 'bad'}`}>{p.healthScore}/6</span></td>
@@ -169,6 +177,7 @@ export default function RiskMatrixTab({ companyId }) {
       {recommendations.length > 0 && (
         <div className="pa-chart-card pa-chart-card--wide">
           <h3 className="pa-chart-title">Recommended Actions</h3>
+          <p className="pa-chart-subtitle">Auto-generated action items for projects flagged as at-risk in either budget or schedule health.</p>
           <div className="pa-recommendations">
             {recommendations.map((r, i) => (
               <div key={i} className="pa-recommendation">
@@ -185,6 +194,15 @@ export default function RiskMatrixTab({ companyId }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function SectionDescription({ text }) {
+  return (
+    <div className="pa-section-description">
+      <Info size={14} className="pa-section-description-icon" />
+      <p>{text}</p>
     </div>
   )
 }

@@ -85,6 +85,31 @@
   gap: var(--space-5);
 }
 
+/* Section description — explains data sources */
+.pa-section-description {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(59, 130, 246, 0.04);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-radius: var(--radius-md);
+  border-left: 3px solid rgba(59, 130, 246, 0.4);
+}
+
+.pa-section-description-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pa-section-description p {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 /* Metric cards row */
 .pa-metrics-row {
   display: grid;

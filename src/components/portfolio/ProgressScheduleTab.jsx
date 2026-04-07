@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Target, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react'
+import { Target, CheckCircle, AlertTriangle, TrendingUp, Info } from 'lucide-react'
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell } from 'recharts'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
 import { tooltipStyle } from '../charts/chartConfig'
@@ -43,14 +43,17 @@ export default function ProgressScheduleTab({ companyId }) {
     )
   }
 
-  const scatterData = (variance || []).map(p => ({
-    ...p,
-    x: p.expected,
-    y: p.actual,
-  }))
+  const scatterData = (variance || [])
+    .filter(p => p.hasScheduleData)
+    .map(p => ({
+      ...p,
+      x: p.expected,
+      y: p.actual,
+    }))
 
   return (
     <div className="pa-tab-content">
+      <SectionDescription text="Progress is calculated from weighted area completion across all active projects. Schedule status compares actual progress against expected progress based on each project's start and end dates. Only projects with valid date ranges are included in schedule tracking." />
       <div className="pa-metrics-row">
         <MetricCard
           icon={<Target size={18} />}
@@ -70,7 +73,7 @@ export default function ProgressScheduleTab({ companyId }) {
           icon={<AlertTriangle size={18} />}
           label="Behind Schedule"
           value={summary?.behind || 0}
-          sub="Projects need attention"
+          sub={summary?.projectsWithScheduleData != null ? `${summary.projectsWithScheduleData} of ${summary.totalProjects} with schedule data` : 'Projects need attention'}
           accent={summary?.behind > 0 ? 'red' : 'green'}
         />
       </div>
@@ -78,7 +81,7 @@ export default function ProgressScheduleTab({ companyId }) {
       <div className="pa-charts-grid">
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">Schedule Variance</h3>
-          <p className="pa-chart-subtitle">Projects above the line are ahead of schedule</p>
+          <p className="pa-chart-subtitle">Each dot is a project. Expected progress is based on calendar time between start and end dates. Actual progress is from weighted area completion. Projects above the diagonal line are ahead of schedule, below are behind.</p>
           {scatterData.length > 0 ? (
             <ResponsiveContainer width="100%" height={350}>
               <ScatterChart margin={{ top: 20, right: 20, left: 10, bottom: 20 }}>
@@ -117,6 +120,7 @@ export default function ProgressScheduleTab({ companyId }) {
       {(rates || []).length > 0 && (
         <div className="pa-chart-card pa-chart-card--wide">
           <h3 className="pa-chart-title">Project Completion Ranking</h3>
+          <p className="pa-chart-subtitle">Ranks projects by area completion velocity (areas completed per week since project creation). Completion rate is the percentage of total areas marked complete.</p>
           <div className="pa-table-wrapper">
             <table className="pa-table">
               <thead>
@@ -161,6 +165,15 @@ function MetricCard({ icon, label, value, sub, accent = 'blue' }) {
       <div className="pa-metric-label">{label}</div>
       <div className="pa-metric-value">{value}</div>
       {sub && <div className="pa-metric-sub">{sub}</div>}
+    </div>
+  )
+}
+
+function SectionDescription({ text }) {
+  return (
+    <div className="pa-section-description">
+      <Info size={14} className="pa-section-description-icon" />
+      <p>{text}</p>
     </div>
   )
 }
