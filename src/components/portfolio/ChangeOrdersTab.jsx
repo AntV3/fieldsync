@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, CheckCircle, Clock, TrendingUp } from 'lucide-react'
+import { FileText, CheckCircle, Clock, TrendingUp, Info } from 'lucide-react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
 import { formatCurrency } from '../../lib/utils'
@@ -47,6 +47,7 @@ export default function ChangeOrdersTab({ companyId }) {
 
   return (
     <div className="pa-tab-content">
+      <SectionDescription text="Change order data is pulled in real time from all active projects. Total value includes approved, pending, and rejected CORs. Approval rate and average processing time are calculated from actual change order records. Processing time measures days between COR creation and approval." />
       <div className="pa-metrics-row">
         <MetricCard
           icon={<FileText size={18} />}
@@ -92,6 +93,7 @@ export default function ChangeOrdersTab({ companyId }) {
       <div className="pa-charts-grid">
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">COR Count by Status per Project</h3>
+          <p className="pa-chart-subtitle">Stacked bar chart showing the count of approved, pending, and rejected change orders for each project. Only projects with at least one COR are shown.</p>
           {(byProject || []).length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={byProject} margin={{ top: 10, right: 10, left: 10, bottom: 40 }}>
@@ -110,6 +112,7 @@ export default function ChangeOrdersTab({ companyId }) {
 
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">Monthly COR Trend</h3>
+          <p className="pa-chart-subtitle">Tracks the number and total dollar value of change orders created each month over the last 12 months.</p>
           {(trend || []).length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trend} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
@@ -126,6 +129,15 @@ export default function ChangeOrdersTab({ companyId }) {
           ) : <EmptyChart message="No trend data available" />}
         </div>
       </div>
+    </div>
+  )
+}
+
+function SectionDescription({ text }) {
+  return (
+    <div className="pa-section-description">
+      <Info size={14} className="pa-section-description-icon" />
+      <p>{text}</p>
     </div>
   )
 }

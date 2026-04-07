@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Users, Clock, Activity, Hammer } from 'lucide-react'
+import { Users, Clock, Activity, Hammer, Info } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
 import { formatCurrency } from '../../lib/utils'
@@ -47,6 +47,7 @@ export default function LaborResourcesTab({ companyId }) {
 
   return (
     <div className="pa-tab-content">
+      <SectionDescription text="Labor data is sourced from crew check-in records across all active projects. Daily averages are calculated by dividing total worker counts by the number of unique days with check-ins (not calendar days). Utilization estimates labor capacity based on project count and working days. Labor cost reflects T&M ticket values per project." />
       <div className="pa-metrics-row">
         <MetricCard
           icon={<Users size={18} />}
@@ -81,6 +82,7 @@ export default function LaborResourcesTab({ companyId }) {
       <div className="pa-charts-grid">
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">Crew Distribution by Project</h3>
+          <p className="pa-chart-subtitle">Shows today's worker count alongside 7-day and 30-day averages per project, based on crew check-in records.</p>
           {(distribution || []).length > 0 ? (
             <ResponsiveContainer width="100%" height={Math.min(600, Math.max(250, distribution.length * 50))}>
               <BarChart data={distribution} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
@@ -99,6 +101,7 @@ export default function LaborResourcesTab({ companyId }) {
 
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">Labor Cost by Project</h3>
+          <p className="pa-chart-subtitle">Total T&M ticket values per project, representing tracked labor and material costs. Only projects with recorded T&M tickets are shown.</p>
           {(laborCost || []).filter(l => l.laborCost > 0).length > 0 ? (
             <ResponsiveContainer width="100%" height={Math.min(600, Math.max(250, laborCost.length * 50))}>
               <BarChart data={laborCost.filter(l => l.laborCost > 0)} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
@@ -112,6 +115,15 @@ export default function LaborResourcesTab({ companyId }) {
           ) : <EmptyChart message="No labor cost data available" />}
         </div>
       </div>
+    </div>
+  )
+}
+
+function SectionDescription({ text }) {
+  return (
+    <div className="pa-section-description">
+      <Info size={14} className="pa-section-description-icon" />
+      <p>{text}</p>
     </div>
   )
 }

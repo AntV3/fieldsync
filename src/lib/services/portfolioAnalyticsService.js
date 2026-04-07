@@ -30,22 +30,25 @@ export async function getPortfolioFinancialSummary(companyId) {
 
   const projectIds = projects.map(p => p.id)
 
-  // Fetch areas and change orders in parallel
-  const [areasRes, corsRes, ticketsRes] = await Promise.all([
+  // Fetch areas, change orders, T&M tickets, and crew checkins in parallel
+  const [areasRes, corsRes, ticketsRes, checkinsRes] = await Promise.all([
     supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
     supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
     supabase.from('t_and_m_tickets').select('project_id, total_value, status').in('project_id', projectIds),
+    supabase.from('crew_checkins').select('project_id, worker_count, checkin_date').in('project_id', projectIds),
   ])
 
   let totalContractValue = 0
   let totalEarned = 0
   let totalCORApproved = 0
   let totalTMValue = 0
+  let totalCrewManDays = 0
 
   // Compute earned per project from area weights
   const areasByProject = groupBy(areasRes.data || [], 'project_id')
   const corsByProject = groupBy(corsRes.data || [], 'project_id')
   const ticketsByProject = groupBy(ticketsRes.data || [], 'project_id')
+  const checkinsByProject = groupBy(checkinsRes.data || [], 'project_id')
 
   for (const project of projects) {
     const cv = project.contract_value || 0
@@ -67,9 +70,15 @@ export async function getPortfolioFinancialSummary(companyId) {
     for (const t of tickets) {
       totalTMValue += t.total_value || 0
     }
+
+    // Crew man-days (each checkin worker_count = workers on site that day)
+    const checkins = checkinsByProject[project.id] || []
+    for (const c of checkins) {
+      totalCrewManDays += c.worker_count || 1
+    }
   }
 
-  const totalCosts = totalTMValue // T&M as cost proxy
+  const totalCosts = totalTMValue // T&M tickets as tracked costs
   const totalRevenue = totalEarned + totalCORApproved
   const totalProfit = totalRevenue - totalCosts
   const margin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
@@ -79,6 +88,7 @@ export async function getPortfolioFinancialSummary(companyId) {
     totalEarned,
     totalCORApproved,
     totalTMValue,
+    totalCrewManDays,
     totalRevenue,
     totalCosts,
     totalProfit,
@@ -130,8 +140,7 @@ export async function getProjectFinancialComparison(companyId) {
 
 export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   if (!isSupabaseConfigured || !companyId) return []
-
-  // Get daily reports with dates to build a monthly timeline
+  try {
   const startDate = new Date()
   startDate.setMonth(startDate.getMonth() - months)
   const startStr = startDate.toISOString().split('T')[0]
@@ -145,42 +154,101 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   if (!projects?.length) return []
 
   const projectIds = projects.map(p => p.id)
-  const { data: reports } = await supabase
-    .from('daily_reports')
-    .select('project_id, report_date, created_at')
-    .in('project_id', projectIds)
-    .gte('report_date', startStr)
-    .order('report_date', { ascending: true })
 
-  // Build monthly activity counts and distribute revenue proportionally
+  // Fetch actual financial data: approved CORs and T&M tickets with timestamps
+  const [corsRes, ticketsRes, areasRes] = await Promise.all([
+    supabase.from('change_orders')
+      .select('project_id, total_value, status, updated_at')
+      .in('project_id', projectIds)
+      .eq('status', 'approved'),
+    supabase.from('t_and_m_tickets')
+      .select('project_id, total_value, created_at')
+      .in('project_id', projectIds),
+    supabase.from('areas')
+      .select('project_id, weight, is_complete, updated_at')
+      .in('project_id', projectIds)
+      .eq('is_complete', true),
+  ])
+
+  // Build monthly buckets
   const monthlyMap = {}
   const now = new Date()
   for (let i = months - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    monthlyMap[key] = { month: key, label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), revenue: 0, reportCount: 0 }
-  }
-
-  // Count reports per month as activity proxy
-  const totalReports = (reports || []).length
-  if (totalReports === 0) return Object.values(monthlyMap)
-
-  const totalPortfolioValue = projects.reduce((s, p) => s + (p.contract_value || 0), 0)
-
-  for (const report of reports) {
-    const d = new Date(report.report_date)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (monthlyMap[key]) {
-      monthlyMap[key].reportCount++
+    monthlyMap[key] = {
+      month: key,
+      label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+      earned: 0,
+      costs: 0,
+      corValue: 0,
     }
   }
 
-  // Distribute earned revenue proportionally to activity
+  // Build per-project total weight for earned value calculation
+  const allAreas = areasRes.data || []
+  const projectTotalWeights = {}
+  // We need all areas (complete + incomplete) for weight totals
+  // But we only fetched complete ones — recalculate from projects
+  const totalWeightByProject = {}
+  // Fetch all areas for weight totals (including incomplete)
+  const { data: allAreasForWeight } = await supabase
+    .from('areas')
+    .select('project_id, weight')
+    .in('project_id', projectIds)
+
+  for (const area of (allAreasForWeight || [])) {
+    totalWeightByProject[area.project_id] = (totalWeightByProject[area.project_id] || 0) + (area.weight || 1)
+  }
+
+  const projectContractValues = {}
+  for (const p of projects) {
+    projectContractValues[p.id] = p.contract_value || 0
+  }
+
+  // Attribute earned value to the month each area was completed
+  for (const area of allAreas) {
+    if (!area.updated_at) continue
+    const d = new Date(area.updated_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (monthlyMap[key]) {
+      const totalWeight = totalWeightByProject[area.project_id] || 1
+      const cv = projectContractValues[area.project_id] || 0
+      monthlyMap[key].earned += cv * ((area.weight || 1) / totalWeight)
+    }
+  }
+
+  // Attribute approved COR values to the month they were approved
+  for (const cor of (corsRes.data || [])) {
+    if (!cor.updated_at) continue
+    const d = new Date(cor.updated_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (monthlyMap[key]) {
+      monthlyMap[key].corValue += cor.total_value || 0
+    }
+  }
+
+  // Attribute T&M costs to the month they were created
+  for (const ticket of (ticketsRes.data || [])) {
+    if (!ticket.created_at) continue
+    const d = new Date(ticket.created_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (monthlyMap[key]) {
+      monthlyMap[key].costs += ticket.total_value || 0
+    }
+  }
+
+  // Round values
   for (const entry of Object.values(monthlyMap)) {
-    entry.revenue = Math.round((entry.reportCount / totalReports) * totalPortfolioValue * 0.08)
+    entry.earned = Math.round(entry.earned)
+    entry.costs = Math.round(entry.costs)
+    entry.corValue = Math.round(entry.corValue)
+    // revenue = earned value + approved COR value for the month
+    entry.revenue = entry.earned + entry.corValue
   }
 
   return Object.values(monthlyMap)
+  } catch (err) { logError('getMonthlyRevenueTimeline', companyId, err); return [] }
 }
 
 // ============================================
@@ -340,6 +408,8 @@ export async function getPortfolioProgressSummary(companyId) {
   let behind = 0
   let ahead = 0
 
+  let withScheduleData = 0
+
   for (const project of projects) {
     const pAreas = areasByProject[project.id] || []
     const progress = calculateWeightedProgress(pAreas)
@@ -348,10 +418,14 @@ export async function getPortfolioProgressSummary(companyId) {
     totalWeightedProgress += progress * cv
     totalWeight += cv
 
-    const variance = progress - expected
-    if (variance > 5) ahead++
-    else if (variance < -5) behind++
-    else onTrack++
+    // Only classify schedule status for projects with valid date ranges
+    if (expected !== null) {
+      withScheduleData++
+      const variance = progress - expected
+      if (variance > 5) ahead++
+      else if (variance < -5) behind++
+      else onTrack++
+    }
   }
 
   return {
@@ -360,6 +434,7 @@ export async function getPortfolioProgressSummary(companyId) {
     behind,
     ahead,
     totalProjects: projects.length,
+    projectsWithScheduleData: withScheduleData,
   }
   } catch (err) { logError('getPortfolioProgressSummary', companyId, err); return defaultProgressSummary() }
 }
@@ -387,12 +462,14 @@ export async function getScheduleVarianceByProject(companyId) {
     const pAreas = areasByProject[p.id] || []
     const actual = calculateWeightedProgress(pAreas)
     const expected = calculateExpectedProgress(p.start_date, p.end_date)
+    const hasScheduleData = expected !== null
     return {
       name: truncateName(p.name),
       fullName: p.name,
       actual: Math.round(actual),
-      expected: Math.round(expected),
-      variance: Math.round(actual - expected),
+      expected: hasScheduleData ? Math.round(expected) : null,
+      variance: hasScheduleData ? Math.round(actual - expected) : null,
+      hasScheduleData,
     }
   })
 }
@@ -601,12 +678,15 @@ export async function getPortfolioRiskMatrix(companyId) {
 
     const totalBudget = cv + approvedCORValue
     const costRatio = totalBudget > 0 ? tmCost / totalBudget : 0
-    const scheduleVariance = progress - expected
+    const hasScheduleData = expected !== null
+    const scheduleVariance = hasScheduleData ? progress - expected : 0
 
     // Budget health: green if cost < 70% of budget, yellow if < 90%, red if >= 90%
     const budgetHealth = costRatio < 0.7 ? 'green' : costRatio < 0.9 ? 'yellow' : 'red'
     // Schedule health: green if on/ahead, yellow if slightly behind, red if far behind
-    const scheduleHealth = scheduleVariance >= -5 ? 'green' : scheduleVariance >= -15 ? 'yellow' : 'red'
+    // Projects without schedule dates default to green (no data to assess)
+    const scheduleHealth = !hasScheduleData ? 'green'
+      : scheduleVariance >= -5 ? 'green' : scheduleVariance >= -15 ? 'yellow' : 'red'
 
     const healthScore = (
       (budgetHealth === 'green' ? 3 : budgetHealth === 'yellow' ? 2 : 1) +
@@ -618,12 +698,13 @@ export async function getPortfolioRiskMatrix(companyId) {
       fullName: p.name,
       contractValue: cv,
       progress,
-      expected,
+      expected: hasScheduleData ? expected : null,
       budgetHealth,
       scheduleHealth,
       healthScore, // 2-6 scale
       costRatio: Math.round(costRatio * 100),
-      scheduleVariance: Math.round(scheduleVariance),
+      scheduleVariance: hasScheduleData ? Math.round(scheduleVariance) : null,
+      hasScheduleData,
     }
   }).sort((a, b) => a.healthScore - b.healthScore) // worst health first
   } catch (err) { logError('getPortfolioRiskMatrix', companyId, err); return [] }
@@ -661,9 +742,10 @@ function calculateWeightedProgress(areas) {
 }
 
 function calculateExpectedProgress(startDate, endDate) {
-  if (!startDate || !endDate) return 50 // default if no dates
+  if (!startDate || !endDate) return null // no dates = no expected progress (excluded from schedule variance)
   const start = new Date(startDate).getTime()
   const end = new Date(endDate).getTime()
+  if (end <= start) return null // invalid date range
   const now = Date.now()
   if (now <= start) return 0
   if (now >= end) return 100
@@ -678,7 +760,7 @@ function truncateName(name) {
 function defaultFinancialSummary() {
   return {
     totalContractValue: 0, totalEarned: 0, totalCORApproved: 0, totalTMValue: 0,
-    totalRevenue: 0, totalCosts: 0, totalProfit: 0, margin: 0, projectCount: 0,
+    totalCrewManDays: 0, totalRevenue: 0, totalCosts: 0, totalProfit: 0, margin: 0, projectCount: 0,
   }
 }
 
@@ -690,7 +772,7 @@ function defaultLaborSummary() {
 }
 
 function defaultProgressSummary() {
-  return { avgCompletion: 0, onTrack: 0, behind: 0, ahead: 0, totalProjects: 0 }
+  return { avgCompletion: 0, onTrack: 0, behind: 0, ahead: 0, totalProjects: 0, projectsWithScheduleData: 0 }
 }
 
 function defaultCORSummary() {

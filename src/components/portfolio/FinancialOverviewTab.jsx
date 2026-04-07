@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DollarSign, TrendingUp, Percent, Briefcase } from 'lucide-react'
+import { DollarSign, TrendingUp, Percent, Briefcase, Info } from 'lucide-react'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
 import { formatCurrency } from '../../lib/utils'
@@ -55,6 +55,7 @@ export default function FinancialOverviewTab({ companyId }) {
 
   return (
     <div className="pa-tab-content">
+      <SectionDescription text="Financial metrics are pulled in real time from all active projects. Portfolio Value is the sum of all contract values. Earned Value is calculated from weighted area completion against each contract. Revenue includes earned value plus approved change orders. Margin is calculated as (Revenue - T&M Costs) / Revenue." />
       <div className="pa-metrics-row">
         <MetricCard
           icon={<Briefcase size={18} />}
@@ -89,6 +90,7 @@ export default function FinancialOverviewTab({ companyId }) {
       <div className="pa-charts-grid">
         <div className="pa-chart-card">
           <h3 className="pa-chart-title">Earned vs Budget by Project</h3>
+          <p className="pa-chart-subtitle">Compares each project's contract value (budget) against earned value based on weighted area completion plus approved CORs. Pulled from live project, area, and change order data.</p>
           {(comparison || []).length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={comparison} margin={{ top: 10, right: 10, left: 10, bottom: 40 }}>
@@ -108,7 +110,8 @@ export default function FinancialOverviewTab({ companyId }) {
         </div>
 
         <div className="pa-chart-card">
-          <h3 className="pa-chart-title">Monthly Revenue Timeline</h3>
+          <h3 className="pa-chart-title">Monthly Earned Value Timeline</h3>
+          <p className="pa-chart-subtitle">Tracks earned value over time based on when project areas were completed, plus approved COR values by month. Costs reflect T&M tickets by creation date.</p>
           {(timeline || []).length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={timeline} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
@@ -116,7 +119,9 @@ export default function FinancialOverviewTab({ companyId }) {
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
                 <YAxis tickFormatter={formatChartCurrency} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
                 <Tooltip {...tooltipStyle} formatter={(value) => formatCurrency(value)} />
-                <Line type="monotone" dataKey="revenue" name="Revenue" stroke={chartColors.revenue} strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="earned" name="Earned" stroke={chartColors.revenue} strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="costs" name="T&M Costs" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                <Legend />
               </LineChart>
             </ResponsiveContainer>
           ) : <EmptyChart message="No revenue data available" />}
@@ -126,6 +131,7 @@ export default function FinancialOverviewTab({ companyId }) {
       {pieData.length > 0 && (
         <div className="pa-chart-card pa-chart-card--wide">
           <h3 className="pa-chart-title">Revenue Distribution by Project</h3>
+          <p className="pa-chart-subtitle">Shows each project's share of total earned revenue (earned value + approved CORs) across the portfolio.</p>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -158,6 +164,15 @@ function MetricCard({ icon, label, value, sub, accent = 'blue' }) {
       <div className="pa-metric-label">{label}</div>
       <div className="pa-metric-value">{value}</div>
       {sub && <div className="pa-metric-sub">{sub}</div>}
+    </div>
+  )
+}
+
+function SectionDescription({ text }) {
+  return (
+    <div className="pa-section-description">
+      <Info size={14} className="pa-section-description-icon" />
+      <p>{text}</p>
     </div>
   )
 }
