@@ -89,6 +89,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   }
 
   const handleTruckCountChange = async (delta) => {
+    const previousCount = truckCount
     const newCount = Math.max(0, truckCount + delta)
     setTruckCount(newCount)
     setSavingTrucks(true)
@@ -96,8 +97,11 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
       await db.setTruckCount(project.id, date, newCount)
     } catch (err) {
       console.error('Error saving truck count:', err)
-      setTruckCount(truckCount) // revert on error
-      onShowToast?.('Error saving truck count', 'error')
+      setTruckCount(previousCount) // revert on error
+      const msg = err?.code === '42501' ? 'Session expired — please re-enter your PIN'
+        : err?.code === '0A000' ? 'Database configuration error — please contact support'
+        : 'Error saving truck count'
+      onShowToast?.(msg, 'error')
     } finally {
       setSavingTrucks(false)
     }
