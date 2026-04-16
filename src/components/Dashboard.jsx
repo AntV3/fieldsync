@@ -1220,6 +1220,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               company={company}
               user={user}
               isAdmin={isAdmin}
+              areas={areas}
+              onAreasChanged={() => loadAreas(selectedProject.id)}
               onShowToast={onShowToast}
               onEditClick={handleEditClick}
             />

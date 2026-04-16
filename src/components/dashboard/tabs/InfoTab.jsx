@@ -2,12 +2,15 @@ import { MapPin, HardHat, FileText, Building2, Phone } from 'lucide-react'
 import ProjectTeam from '../../ProjectTeam'
 import MFASetup from '../../MFASetup'
 import CostCodeManager from '../../CostCodeManager'
+import PhaseAssignmentEditor from '../PhaseAssignmentEditor'
 
 export default function InfoTab({
   selectedProject,
   company,
   user,
   isAdmin,
+  areas,
+  onAreasChanged,
   onShowToast,
   onEditClick
 }) {
@@ -165,6 +168,15 @@ export default function InfoTab({
         onShowToast={onShowToast}
       />
 
+      {/* Tasks by Phase - admin-only reassignment of tasks to phases */}
+      {isAdmin && (
+        <PhaseAssignmentEditor
+          projectId={selectedProject.id}
+          areas={areas}
+          onShowToast={onShowToast}
+          onAreasChanged={onAreasChanged}
+        />
+      )}
 
       {/* Cost Codes (Job Costing) */}
       {(company?.id || selectedProject?.company_id) && (
