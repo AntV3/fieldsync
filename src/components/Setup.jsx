@@ -11,7 +11,7 @@ const STEPS = [
   { num: 1, label: 'Basics', shortLabel: 'Basics' },
   { num: 2, label: 'Contacts', shortLabel: 'People' },
   { num: 3, label: 'Schedule', shortLabel: 'Sched.' },
-  { num: 4, label: 'Tasks', shortLabel: 'Tasks' },
+  { num: 4, label: 'Phases', shortLabel: 'Phases' },
   { num: 5, label: 'Review', shortLabel: 'Review' }
 ]
 
@@ -35,10 +35,13 @@ const INITIAL_DATA = {
   startDate: '',
   endDate: '',
   plannedManDays: '',
+  // Phases are sibling to areas; areas link via tempPhaseId during the wizard
+  // and via areas.group_name (== phase.name) once persisted.
+  phases: [],
   areas: [
-    { name: '', weight: '', group: '', scheduledValue: null },
-    { name: '', weight: '', group: '', scheduledValue: null },
-    { name: '', weight: '', group: '', scheduledValue: null }
+    { name: '', weight: '', group: '', scheduledValue: null, tempPhaseId: null },
+    { name: '', weight: '', group: '', scheduledValue: null, tempPhaseId: null },
+    { name: '', weight: '', group: '', scheduledValue: null, tempPhaseId: null }
   ]
 }
 
@@ -89,6 +92,16 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         if (Math.abs(totalWeight - 100) > 0.1) {
           onShowToast('Area weights must total 100%', 'error')
           return false
+        }
+        const namedPhases = (data.phases || []).filter(p => p.name && p.name.trim())
+        const seen = new Set()
+        for (const p of namedPhases) {
+          const key = p.name.trim().toLowerCase()
+          if (seen.has(key)) {
+            onShowToast(`Duplicate phase name: "${p.name.trim()}"`, 'error')
+            return false
+          }
+          seen.add(key)
         }
         return true
       }
@@ -169,14 +182,46 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         planned_man_days: data.plannedManDays ? parseInt(data.plannedManDays) : null
       })
 
+      // Create phases first so areas can resolve their group_name from the
+      // persisted phase record. Partial-success is preferred to rollback:
+      // Supabase JS has no client-side transactions, and leaving the project
+      // recoverable is more useful than losing it.
+      const validPhases = (data.phases || []).filter(p => p.name && p.name.trim())
+      const createdPhases = []
+      for (let i = 0; i < validPhases.length; i++) {
+        const p = validPhases[i]
+        try {
+          const saved = await db.createPhase({
+            project_id: project.id,
+            name: p.name.trim(),
+            description: p.description?.trim() || null,
+            planned_start_date: p.planned_start_date || null,
+            planned_end_date: p.planned_end_date || null,
+            status: 'not_started',
+            sort_order: i
+          })
+          createdPhases.push({ ...saved, tempId: p.tempId })
+        } catch (phaseErr) {
+          console.error('Error creating phase:', phaseErr)
+          onShowToast(`Phase "${p.name.trim()}" could not be saved`, 'error')
+        }
+      }
+
       const validAreas = data.areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
       for (let i = 0; i < validAreas.length; i++) {
+        const area = validAreas[i]
+        const matchedPhase = area.tempPhaseId
+          ? createdPhases.find(cp => cp.tempId === area.tempPhaseId)
+          : null
+        const groupName = matchedPhase?.name
+          || (area.group && area.group.trim())
+          || null
         await db.createArea({
           project_id: project.id,
-          name: validAreas[i].name.trim(),
-          weight: parseFloat(validAreas[i].weight),
-          scheduled_value: validAreas[i].scheduledValue || null,
-          group_name: validAreas[i].group || null,
+          name: area.name.trim(),
+          weight: parseFloat(area.weight),
+          scheduled_value: area.scheduledValue || null,
+          group_name: groupName,
           status: 'not_started',
           sort_order: i
         })

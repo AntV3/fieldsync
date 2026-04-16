@@ -1821,6 +1821,206 @@
   padding-left: 0.25rem;
 }
 
+/* Phase blocks in Setup wizard */
+.phase-block {
+  border: 1px solid var(--border-color, rgba(127,127,127,0.2));
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: var(--bg-elevated, rgba(127,127,127,0.04));
+  margin-bottom: 1rem;
+}
+
+.phase-block-unphased {
+  border-style: dashed;
+  background: transparent;
+}
+
+.phase-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.phase-header-row-unphased {
+  margin-bottom: 0.25rem;
+}
+
+.phase-header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phase-name-input {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, rgba(127,127,127,0.25));
+  border-radius: 6px;
+  background: var(--bg-input, transparent);
+  color: var(--text-primary, inherit);
+}
+
+.phase-name-static {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.phase-icon-btn {
+  background: transparent;
+  border: 1px solid var(--border-color, rgba(127,127,127,0.25));
+  border-radius: 6px;
+  padding: 0.35rem;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phase-icon-btn:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(127,127,127,0.08));
+  color: var(--text-primary, inherit);
+}
+
+.phase-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.phase-icon-btn-danger:hover:not(:disabled) {
+  color: var(--accent-red, #d33);
+  border-color: var(--accent-red, #d33);
+}
+
+.phase-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: var(--bg-input, rgba(127,127,127,0.05));
+}
+
+.phase-description-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, rgba(127,127,127,0.25));
+  border-radius: 6px;
+  background: var(--bg-input, transparent);
+  color: var(--text-primary, inherit);
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.phase-date-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.phase-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.phase-date-field span {
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.phase-date-field input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border-color, rgba(127,127,127,0.25));
+  border-radius: 6px;
+  background: var(--bg-input, transparent);
+  color: var(--text-primary, inherit);
+}
+
+.phase-add-task {
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.phase-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.phase-delete-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.phase-delete-modal-content {
+  background: var(--bg-base, #fff);
+  color: var(--text-primary, inherit);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.phase-delete-modal-content h3 {
+  margin: 0 0 0.5rem 0;
+}
+
+.phase-delete-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  justify-content: flex-end;
+}
+
+/* Foreman view: phase metadata + status */
+.fm-phase-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+  padding: 0.25rem 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.fm-phase-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.4rem;
+  background: var(--text-muted, #888);
+}
+
+.fm-phase-status-dot.in_progress {
+  background: var(--accent-blue, #4a9eff);
+}
+
+.fm-phase-status-dot.done {
+  background: var(--accent-green, #2ecc71);
+}
+
 /* ============================================
    Foreman Grouped View
    ============================================ */
