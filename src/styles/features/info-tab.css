@@ -355,3 +355,98 @@
   padding: 1rem 1.25rem;
 }
 
+
+/* =============================================
+   PHASE ASSIGNMENT EDITOR
+   Lets office admins move tasks between phases
+   after a project has already been created.
+   ============================================= */
+
+.phase-assign-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0;
+}
+
+.phase-assign-group-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  padding: 0.25rem 0.25rem 0.5rem;
+}
+
+.phase-assign-count {
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.phase-assign-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phase-assign-select {
+  min-width: 10rem;
+  max-width: 14rem;
+}
+
+.phase-assign-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 0.75rem 1rem 0;
+  margin: 0;
+}
+
+.spin {
+  animation: phase-assign-spin 1s linear infinite;
+}
+
+@keyframes phase-assign-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.phase-assign-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.phase-assign-group-name {
+  flex: 1 1 auto;
+}
+
+.phase-assign-reorder {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.phase-assign-reorder-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.phase-assign-reorder-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.phase-assign-reorder-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

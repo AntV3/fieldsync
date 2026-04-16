@@ -1009,6 +1009,32 @@ export const projectOps = {
     }
   },
 
+  // Reassign an area (task) to a different phase by updating its group_name.
+  // Tasks link to phases by string match on project_phases.name, so this is
+  // the only column that needs to change. Pass null/empty to unphase an area.
+  async updateAreaPhase(id, groupName, projectId = null) {
+    const nextName = groupName || null
+    if (isSupabaseConfigured) {
+      let query = supabase
+        .from('areas')
+        .update({ group_name: nextName, updated_at: new Date().toISOString() })
+        .eq('id', id)
+      if (projectId) query = query.eq('project_id', projectId)
+      const { data, error } = await query.select().single()
+      if (error) throw error
+      return data
+    } else {
+      const localData = getLocalData()
+      const area = localData.areas.find(a => a.id === id)
+      if (area) {
+        area.group_name = nextName
+        area.updated_at = new Date().toISOString()
+      }
+      setLocalData(localData)
+      return area
+    }
+  },
+
   // Delete area - projectId optional for cross-tenant security
   async deleteArea(id, projectId = null) {
     if (isSupabaseConfigured) {
