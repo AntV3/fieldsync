@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { ChevronUp, ChevronDown, Trash2, Plus, Settings2 } from 'lucide-react'
 import { safeParseExcel, safeSheetToJson, loadXLSXSafe } from '../../lib/safeXlsx'
 
 // Currency formatting helpers
@@ -21,17 +22,26 @@ const parseCurrencyInput = (value) => {
   return isNaN(num) ? null : num
 }
 
+const newTempId = () =>
+  (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
 export default function AreasTasksStep({ data, onChange, onShowToast }) {
-  const { areas } = data
+  const { areas, phases = [] } = data
   const [importing, setImporting] = useState(false)
   const [showImportReview, setShowImportReview] = useState(false)
   const [importedTasks, setImportedTasks] = useState([])
   const [showWeightDropdown, setShowWeightDropdown] = useState(false)
+  const [expandedDetails, setExpandedDetails] = useState({})
+  const [pendingPhaseDelete, setPendingPhaseDelete] = useState(null)
   const fileInputRef = useRef(null)
 
   const totalWeight = areas.reduce((sum, area) => {
     return sum + (parseFloat(area.weight) || 0)
   }, 0)
+
+  // ----- Area mutations ---------------------------------------------------
 
   const handleAreaChange = (index, field, value) => {
     const newAreas = areas.map((area, i) =>
@@ -40,8 +50,20 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
     onChange({ ...data, areas: newAreas })
   }
 
-  const addArea = () => {
-    onChange({ ...data, areas: [...areas, { name: '', weight: '', group: '', scheduledValue: null }] })
+  const addAreaToPhase = (phase) => {
+    onChange({
+      ...data,
+      areas: [
+        ...areas,
+        {
+          name: '',
+          weight: '',
+          group: phase ? phase.name : '',
+          scheduledValue: null,
+          tempPhaseId: phase ? phase.tempId : null
+        }
+      ]
+    })
   }
 
   const removeArea = (index) => {
@@ -49,6 +71,81 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
       onChange({ ...data, areas: areas.filter((_, i) => i !== index) })
     }
   }
+
+  // ----- Phase mutations --------------------------------------------------
+
+  const updatePhases = (nextPhases) => onChange({ ...data, phases: nextPhases })
+
+  const addPhase = () => {
+    const phase = {
+      tempId: newTempId(),
+      name: '',
+      description: '',
+      planned_start_date: '',
+      planned_end_date: '',
+      sort_order: phases.length
+    }
+    updatePhases([...phases, phase])
+    setExpandedDetails(prev => ({ ...prev, [phase.tempId]: true }))
+  }
+
+  const handlePhaseChange = (tempId, field, value) => {
+    const next = phases.map(p => p.tempId === tempId ? { ...p, [field]: value } : p)
+    // Keep linked areas' `group` string in sync so the Review step + DB
+    // insert can fall back to it even if the phase row never persists.
+    const nextAreas = field === 'name'
+      ? areas.map(a => a.tempPhaseId === tempId ? { ...a, group: value } : a)
+      : areas
+    onChange({ ...data, phases: next, areas: nextAreas })
+  }
+
+  const movePhase = (index, direction) => {
+    const target = index + direction
+    if (target < 0 || target >= phases.length) return
+    const next = [...phases]
+    const [moved] = next.splice(index, 1)
+    next.splice(target, 0, moved)
+    next.forEach((p, i) => { p.sort_order = i })
+    updatePhases(next)
+  }
+
+  const requestDeletePhase = (phase) => {
+    const tasksUnder = areas.filter(a => a.tempPhaseId === phase.tempId)
+    if (tasksUnder.length === 0) {
+      // Empty: delete immediately
+      updatePhases(phases.filter(p => p.tempId !== phase.tempId))
+      return
+    }
+    setPendingPhaseDelete(phase)
+  }
+
+  const confirmDeletePhase = (mode) => {
+    const phase = pendingPhaseDelete
+    if (!phase) return
+    let nextAreas = areas
+    if (mode === 'unphase') {
+      nextAreas = areas.map(a =>
+        a.tempPhaseId === phase.tempId ? { ...a, tempPhaseId: null, group: '' } : a
+      )
+    } else if (mode === 'delete') {
+      nextAreas = areas.filter(a => a.tempPhaseId !== phase.tempId)
+      if (nextAreas.length === 0) {
+        nextAreas = [{ name: '', weight: '', group: '', scheduledValue: null, tempPhaseId: null }]
+      }
+    }
+    onChange({
+      ...data,
+      areas: nextAreas,
+      phases: phases.filter(p => p.tempId !== phase.tempId)
+    })
+    setPendingPhaseDelete(null)
+  }
+
+  const toggleDetails = (tempId) => {
+    setExpandedDetails(prev => ({ ...prev, [tempId]: !prev[tempId] }))
+  }
+
+  // ----- Auto-calculate weights ------------------------------------------
 
   const autoGenerateWeights = (method = 'value') => {
     const validAreas = areas.filter(a => a.name.trim())
@@ -105,7 +202,8 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
     onShowToast('Weights distributed equally', 'success')
   }
 
-  // Excel Import
+  // ----- Excel Import ----------------------------------------------------
+
   const handleImportClick = () => {
     fileInputRef.current?.click()
   }
@@ -270,6 +368,22 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
     const totalSOV = selectedTasks.reduce((sum, t) => sum + (t.scheduledValue || 0), 0)
     const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
+    // Build phases first so each new area can carry a tempPhaseId.
+    const importedGroupNames = []
+    selectedTasks.forEach(t => {
+      const g = (t.group || '').trim()
+      if (g && g !== 'General' && !importedGroupNames.includes(g)) importedGroupNames.push(g)
+    })
+    const newPhases = importedGroupNames.map((name, i) => ({
+      tempId: newTempId(),
+      name,
+      description: '',
+      planned_start_date: '',
+      planned_end_date: '',
+      sort_order: i
+    }))
+    const phaseByName = new Map(newPhases.map(p => [p.name, p.tempId]))
+
     let newAreas
     if (totalSOV > 0) {
       let runningTotal = 0
@@ -282,27 +396,39 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
           weight = Math.round((value / totalSOV) * 10000) / 100
           runningTotal += weight
         }
-        return { name: task.name, weight: weight.toFixed(2), group: task.group, scheduledValue: task.scheduledValue || null }
+        const tempPhaseId = phaseByName.get((task.group || '').trim()) || null
+        return {
+          name: task.name,
+          weight: weight.toFixed(2),
+          group: tempPhaseId ? task.group : '',
+          scheduledValue: task.scheduledValue || null,
+          tempPhaseId
+        }
       })
       onShowToast(`Tasks imported with value-based weights! Total SOV: ${formatter.format(totalSOV)}`, 'success')
     } else {
       const weight = Math.round((100 / selectedTasks.length) * 100) / 100
-      newAreas = selectedTasks.map((task, index) => ({
-        name: task.name,
-        weight: index === selectedTasks.length - 1
-          ? (100 - (weight * (selectedTasks.length - 1))).toFixed(2)
-          : weight.toFixed(2),
-        group: task.group,
-        scheduledValue: task.scheduledValue || null
-      }))
+      newAreas = selectedTasks.map((task, index) => {
+        const tempPhaseId = phaseByName.get((task.group || '').trim()) || null
+        return {
+          name: task.name,
+          weight: index === selectedTasks.length - 1
+            ? (100 - (weight * (selectedTasks.length - 1))).toFixed(2)
+            : weight.toFixed(2),
+          group: tempPhaseId ? task.group : '',
+          scheduledValue: task.scheduledValue || null,
+          tempPhaseId
+        }
+      })
       onShowToast('Tasks imported with equal weights', 'success')
     }
 
-    onChange({ ...data, areas: newAreas })
+    onChange({ ...data, areas: newAreas, phases: newPhases })
     setShowImportReview(false)
   }
 
-  // Import Review Screen
+  // ----- Render: Import Review screen ------------------------------------
+
   if (showImportReview) {
     const groups = [...new Set(importedTasks.map(t => t.group))]
     const selectedCount = importedTasks.filter(t => t.selected).length
@@ -370,28 +496,52 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
     )
   }
 
-  // Group areas by group_name for display
-  const groupedAreas = areas.reduce((acc, area, index) => {
-    const group = area.group || 'General'
-    if (!acc[group]) acc[group] = []
-    acc[group].push({ ...area, originalIndex: index })
-    return acc
-  }, {})
+  // ----- Render: Main wizard step ----------------------------------------
 
-  const hasGroups = Object.keys(groupedAreas).length > 1 ||
-    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General'])
+  const orderedPhases = [...phases].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+  const indexedAreas = areas.map((a, originalIndex) => ({ ...a, originalIndex }))
+  const unphasedAreas = indexedAreas.filter(a => !a.tempPhaseId)
+
+  const renderTaskRow = (area) => (
+    <div key={area.originalIndex} className="area-row area-row-with-value">
+      <input
+        type="text"
+        placeholder="Task name"
+        value={area.name}
+        onChange={(e) => handleAreaChange(area.originalIndex, 'name', e.target.value)}
+        className="area-name-input"
+      />
+      <input
+        type="text"
+        inputMode="decimal"
+        placeholder="$0"
+        value={area.scheduledValue ? formatCurrencyDisplay(area.scheduledValue) : ''}
+        onChange={(e) => handleAreaChange(area.originalIndex, 'scheduledValue', parseCurrencyInput(e.target.value))}
+        className="currency-input"
+      />
+      <input
+        type="text"
+        inputMode="decimal"
+        placeholder="%"
+        value={area.weight}
+        onChange={(e) => handleAreaChange(area.originalIndex, 'weight', e.target.value)}
+        className="weight-input"
+      />
+      <button className="remove-btn" onClick={() => removeArea(area.originalIndex)} aria-label="Remove task">×</button>
+    </div>
+  )
 
   return (
     <div className="wizard-step-content">
       <div className="wizard-step-header">
-        <h2>Areas & Tasks</h2>
-        <p>Define the work areas for this project. Weights must total 100%.</p>
+        <h2>Phases & Tasks</h2>
+        <p>Break this project into phases and add tasks under each. Weights must total 100% across all tasks.</p>
       </div>
 
       <div className="card">
         <div className="areas-header">
           <div>
-            <h3>Task Areas</h3>
+            <h3>Project Phases</h3>
           </div>
           <div className="import-btn-container">
             <input
@@ -411,69 +561,119 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
           </div>
         </div>
 
-        {hasGroups ? (
-          Object.entries(groupedAreas).map(([group, groupAreas]) => (
-            <div key={group} className="area-group">
-              <div className="area-group-header">{group}</div>
-              {groupAreas.map(area => (
-                <div key={area.originalIndex} className="area-row area-row-with-value">
-                  <input
-                    type="text"
-                    placeholder="Task name"
-                    value={area.name}
-                    onChange={(e) => handleAreaChange(area.originalIndex, 'name', e.target.value)}
-                    className="area-name-input"
-                  />
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="$0"
-                    value={area.scheduledValue ? formatCurrencyDisplay(area.scheduledValue) : ''}
-                    onChange={(e) => handleAreaChange(area.originalIndex, 'scheduledValue', parseCurrencyInput(e.target.value))}
-                    className="currency-input"
-                  />
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="%"
-                    value={area.weight}
-                    onChange={(e) => handleAreaChange(area.originalIndex, 'weight', e.target.value)}
-                    className="weight-input"
-                  />
-                  <button className="remove-btn" onClick={() => removeArea(area.originalIndex)}>×</button>
+        {orderedPhases.map((phase, i) => {
+          const tasksUnder = indexedAreas.filter(a => a.tempPhaseId === phase.tempId)
+          const isExpanded = !!expandedDetails[phase.tempId]
+          return (
+            <div key={phase.tempId} className="area-group phase-block">
+              <div className="phase-header-row">
+                <div className="phase-header-controls">
+                  <button
+                    type="button"
+                    className="phase-icon-btn"
+                    onClick={() => movePhase(i, -1)}
+                    disabled={i === 0}
+                    aria-label="Move phase up"
+                  >
+                    <ChevronUp size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="phase-icon-btn"
+                    onClick={() => movePhase(i, 1)}
+                    disabled={i === orderedPhases.length - 1}
+                    aria-label="Move phase down"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
                 </div>
-              ))}
+                <input
+                  type="text"
+                  className="phase-name-input"
+                  placeholder={`Phase ${i + 1} name (e.g., Level 1 Demo)`}
+                  value={phase.name}
+                  onChange={(e) => handlePhaseChange(phase.tempId, 'name', e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="phase-icon-btn"
+                  onClick={() => toggleDetails(phase.tempId)}
+                  aria-label="Edit phase details"
+                  title="Edit phase details"
+                >
+                  <Settings2 size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="phase-icon-btn phase-icon-btn-danger"
+                  onClick={() => requestDeletePhase(phase)}
+                  aria-label="Delete phase"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              {isExpanded && (
+                <div className="phase-details">
+                  <textarea
+                    className="phase-description-input"
+                    placeholder="Description / scope notes (optional)"
+                    rows={2}
+                    value={phase.description || ''}
+                    onChange={(e) => handlePhaseChange(phase.tempId, 'description', e.target.value)}
+                  />
+                  <div className="phase-date-row">
+                    <label className="phase-date-field">
+                      <span>Start</span>
+                      <input
+                        type="date"
+                        value={phase.planned_start_date || ''}
+                        onChange={(e) => handlePhaseChange(phase.tempId, 'planned_start_date', e.target.value)}
+                      />
+                    </label>
+                    <label className="phase-date-field">
+                      <span>End</span>
+                      <input
+                        type="date"
+                        value={phase.planned_end_date || ''}
+                        onChange={(e) => handlePhaseChange(phase.tempId, 'planned_end_date', e.target.value)}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {tasksUnder.length > 0 && tasksUnder.map(renderTaskRow)}
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-small phase-add-task"
+                onClick={() => addAreaToPhase(phase)}
+              >
+                <Plus size={14} /> Add Task
+              </button>
             </div>
-          ))
-        ) : (
-          areas.map((area, index) => (
-            <div key={index} className="area-row area-row-with-value">
-              <input
-                type="text"
-                placeholder="Area name (e.g., Level 1)"
-                value={area.name}
-                onChange={(e) => handleAreaChange(index, 'name', e.target.value)}
-                className="area-name-input"
-              />
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="$0"
-                value={area.scheduledValue ? formatCurrencyDisplay(area.scheduledValue) : ''}
-                onChange={(e) => handleAreaChange(index, 'scheduledValue', parseCurrencyInput(e.target.value))}
-                className="currency-input"
-              />
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="%"
-                value={area.weight}
-                onChange={(e) => handleAreaChange(index, 'weight', e.target.value)}
-                className="weight-input"
-              />
-              <button className="remove-btn" onClick={() => removeArea(index)}>×</button>
+          )
+        })}
+
+        {/* Unphased bucket: shown when there are unphased areas, OR when there
+            are no phases yet so the user can still add tasks the old way. */}
+        {(unphasedAreas.length > 0 || orderedPhases.length === 0) && (
+          <div className="area-group phase-block phase-block-unphased">
+            <div className="phase-header-row phase-header-row-unphased">
+              <span className="phase-name-static">
+                {orderedPhases.length === 0 ? 'Tasks' : 'Unphased'}
+              </span>
             </div>
-          ))
+            {unphasedAreas.map(renderTaskRow)}
+            <button
+              type="button"
+              className="btn btn-secondary btn-small phase-add-task"
+              onClick={() => addAreaToPhase(null)}
+            >
+              <Plus size={14} /> Add Task
+            </button>
+          </div>
         )}
 
         <div className="weight-total-row">
@@ -509,10 +709,34 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
           </div>
         </div>
 
-        <button className="btn btn-secondary" onClick={addArea}>
-          + Add Area
+        <button className="btn btn-secondary phase-add-btn" onClick={addPhase}>
+          <Plus size={16} /> Add Phase
         </button>
       </div>
+
+      {pendingPhaseDelete && (
+        <div className="phase-delete-modal" role="dialog" aria-modal="true">
+          <div className="phase-delete-modal-content">
+            <h3>Delete phase &ldquo;{pendingPhaseDelete.name || 'Untitled'}&rdquo;?</h3>
+            <p>
+              This phase has {areas.filter(a => a.tempPhaseId === pendingPhaseDelete.tempId).length} task
+              {areas.filter(a => a.tempPhaseId === pendingPhaseDelete.tempId).length === 1 ? '' : 's'}.
+              What should happen to them?
+            </p>
+            <div className="phase-delete-modal-actions">
+              <button className="btn btn-secondary" onClick={() => setPendingPhaseDelete(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-secondary" onClick={() => confirmDeletePhase('unphase')}>
+                Move tasks to Unphased
+              </button>
+              <button className="btn btn-danger" onClick={() => confirmDeletePhase('delete')}>
+                Delete tasks too
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

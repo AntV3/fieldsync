@@ -1031,6 +1031,152 @@ export const projectOps = {
     }
   },
 
+  // ============================================
+  // Project Phases
+  // ============================================
+  // Phases join to areas by string name via (project_id, areas.group_name).
+  // Foreman reads flow through the field-session client; office writes use
+  // the authenticated client and go through RLS on project_phases.
+
+  async getPhases(projectId) {
+    if (isSupabaseConfigured) {
+      const client = getClient()
+      const { data, error } = await client
+        .from('project_phases')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('sort_order', { ascending: true })
+
+      if (error) {
+        // Graceful fallback: caller will derive from areas.group_name
+        console.warn('getPhases failed, falling back to derived groups:', error.message)
+        return []
+      }
+      return data || []
+    } else {
+      const localData = getLocalData()
+      return (localData.phases || []).filter(p => p.project_id === projectId)
+    }
+  },
+
+  async createPhase(phase) {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('project_phases')
+        .insert(sanitizeFormData(phase))
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    } else {
+      const localData = getLocalData()
+      if (!localData.phases) localData.phases = []
+      const newPhase = {
+        ...phase,
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      localData.phases.push(newPhase)
+      setLocalData(localData)
+      return newPhase
+    }
+  },
+
+  // Update phase. When renaming, also update areas.group_name so the
+  // string join key stays consistent (areas have no phase_id FK).
+  async updatePhase(id, updates, projectId = null) {
+    if (isSupabaseConfigured) {
+      // Look up the current row first when renaming so we can propagate.
+      let previousName = null
+      if (updates.name) {
+        const { data: current } = await supabase
+          .from('project_phases')
+          .select('name, project_id')
+          .eq('id', id)
+          .maybeSingle()
+        if (current) {
+          previousName = current.name
+          if (!projectId) projectId = current.project_id
+        }
+      }
+
+      let query = supabase
+        .from('project_phases')
+        .update(updates)
+        .eq('id', id)
+      if (projectId) query = query.eq('project_id', projectId)
+
+      const { data, error } = await query.select().single()
+      if (error) throw error
+
+      if (updates.name && previousName && previousName !== updates.name && projectId) {
+        const { error: areaErr } = await supabase
+          .from('areas')
+          .update({ group_name: updates.name })
+          .eq('project_id', projectId)
+          .eq('group_name', previousName)
+        if (areaErr) console.error('Phase rename: failed to update areas.group_name:', areaErr)
+      }
+
+      return data
+    } else {
+      const localData = getLocalData()
+      const phase = (localData.phases || []).find(p => p.id === id)
+      if (phase) {
+        const previousName = phase.name
+        Object.assign(phase, updates)
+        phase.updated_at = new Date().toISOString()
+        if (updates.name && previousName !== updates.name) {
+          localData.areas
+            .filter(a => a.project_id === phase.project_id && a.group_name === previousName)
+            .forEach(a => { a.group_name = updates.name })
+        }
+      }
+      setLocalData(localData)
+      return phase
+    }
+  },
+
+  async deletePhase(id, projectId = null) {
+    if (isSupabaseConfigured) {
+      let query = supabase
+        .from('project_phases')
+        .delete()
+        .eq('id', id)
+      if (projectId) query = query.eq('project_id', projectId)
+      const { error } = await query
+      if (error) throw error
+    } else {
+      const localData = getLocalData()
+      localData.phases = (localData.phases || []).filter(p => p.id !== id)
+      setLocalData(localData)
+    }
+  },
+
+  // Persist a new ordering. orderedIds is the phase ids in desired order.
+  async reorderPhases(projectId, orderedIds) {
+    if (isSupabaseConfigured) {
+      const updates = orderedIds.map((id, index) =>
+        supabase
+          .from('project_phases')
+          .update({ sort_order: index })
+          .eq('id', id)
+          .eq('project_id', projectId)
+      )
+      const results = await Promise.all(updates)
+      const firstError = results.find(r => r.error)
+      if (firstError?.error) throw firstError.error
+    } else {
+      const localData = getLocalData()
+      orderedIds.forEach((id, index) => {
+        const phase = (localData.phases || []).find(p => p.id === id)
+        if (phase) phase.sort_order = index
+      })
+      setLocalData(localData)
+    }
+  },
+
   // Real-time subscriptions (Supabase only)
   subscribeToAreas(projectId, callback) {
     if (isSupabaseConfigured) {
@@ -1038,6 +1184,19 @@ export const projectOps = {
         .channel(`areas:${projectId}`)
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'areas', filter: `project_id=eq.${projectId}` },
+          callback
+        )
+        .subscribe()
+    }
+    return null
+  },
+
+  subscribeToPhases(projectId, callback) {
+    if (isSupabaseConfigured) {
+      return supabase
+        .channel(`project_phases:${projectId}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'project_phases', filter: `project_id=eq.${projectId}` },
           callback
         )
         .subscribe()
@@ -1146,6 +1305,12 @@ export const projectOps = {
       channel.on('postgres_changes',
         { event: '*', schema: 'public', table: 'areas', filter: `project_id=eq.${projectId}` },
         (payload) => callbacks.onAreaUpdate?.(payload)
+      )
+
+      // Phase changes (office adds/edits/reorders phases)
+      channel.on('postgres_changes',
+        { event: '*', schema: 'public', table: 'project_phases', filter: `project_id=eq.${projectId}` },
+        (payload) => callbacks.onPhaseChange?.(payload)
       )
 
       // Change orders (CORs)

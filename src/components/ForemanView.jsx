@@ -23,6 +23,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
 
   const [areas, setAreas] = useState([])
+  const [phases, setPhases] = useState([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState({})
@@ -147,6 +148,10 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     const areaSub = db.subscribeToAreas?.(project.id, () => debouncedRefresh({ areas: true }))
     if (areaSub) subs.push(areaSub)
 
+    // Phases: office can rename / reorder / add phases mid-day
+    const phaseSub = db.subscribeToPhases?.(project.id, () => debouncedRefresh({ areas: true }))
+    if (phaseSub) subs.push(phaseSub)
+
     // Crew/TM/trucks/reports: only refresh today's status (not areas)
     const crewSub = db.subscribeToCrewCheckins?.(project.id, () => debouncedRefresh({ status: true }))
     if (crewSub) subs.push(crewSub)
@@ -191,12 +196,21 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
   const loadAreas = async () => {
     try {
-      const data = await db.getAreas(project.id)
-      setAreas(data)
-      const groups = [...new Set(data.map(a => a.group_name || 'General'))]
+      // Phases are best-effort: if the project has none (or the migration
+      // hasn't been applied), the render path falls back to deriving groups
+      // from areas.group_name in first-appearance order.
+      const [areaData, phaseData] = await Promise.all([
+        db.getAreas(project.id),
+        db.getPhases ? db.getPhases(project.id) : Promise.resolve([])
+      ])
+      setAreas(areaData)
+      setPhases(phaseData || [])
+      const groups = (phaseData && phaseData.length > 0)
+        ? phaseData.map(p => p.name)
+        : [...new Set(areaData.map(a => a.group_name || 'General'))]
       const expanded = {}
       groups.forEach(g => expanded[g] = false)
-      setExpandedGroups(expanded)
+      setExpandedGroups(prev => ({ ...expanded, ...prev }))
     } catch (error) {
       console.error('Error loading areas:', error)
       onShowToast?.('Error loading areas', 'error')
@@ -238,20 +252,53 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const areasWorking = areas.filter(a => a.status === 'working').length
   const areasRemaining = areas.length - areasDone
 
-  // Group areas
-  const groupedAreas = areas.reduce((acc, area) => {
-    const group = area.group_name || 'General'
-    if (!acc[group]) acc[group] = []
-    acc[group].push(area)
+  // Build the ordered list of phase buckets the foreman will see.
+  // Prefer real phase rows; fall back to deriving from areas.group_name so
+  // older projects (or those before the phases migration) still work.
+  const phasesForDisplay = (() => {
+    const base = phases.length > 0
+      ? [...phases].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      : [...new Set(areas.map(a => a.group_name).filter(Boolean))]
+          .map((name, i) => ({ id: `derived-${name}`, name, sort_order: i, _derived: true }))
+
+    // Append "Unphased" + orphan-named buckets so every area is visible.
+    const knownNames = new Set(base.map(p => p.name))
+    const orphanNames = [...new Set(
+      areas
+        .map(a => a.group_name)
+        .filter(name => name && !knownNames.has(name))
+    )]
+    const result = [...base]
+    orphanNames.forEach(name => {
+      result.push({ id: `orphan-${name}`, name, _orphan: true })
+    })
+    if (areas.some(a => !a.group_name)) {
+      result.push({ id: 'unphased', name: 'Unphased', _unphased: true })
+    }
+    return result
+  })()
+
+  // Index areas by their bucket name so each phase block can find its tasks.
+  const areasByBucket = areas.reduce((acc, area) => {
+    const key = area.group_name || 'Unphased'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(area)
     return acc
   }, {})
 
-  const hasGroups = Object.keys(groupedAreas).length > 1 ||
-    (Object.keys(groupedAreas).length === 1 && !groupedAreas['General'])
+  const hasGroups = phasesForDisplay.length > 1 ||
+    (phasesForDisplay.length === 1 && phasesForDisplay[0].name !== 'Unphased')
 
   const getGroupProgress = (groupAreas) => {
     const done = groupAreas.filter(a => a.status === 'done').length
     return `${done}/${groupAreas.length}`
+  }
+
+  const derivePhaseStatus = (groupAreas) => {
+    if (!groupAreas.length) return 'not_started'
+    if (groupAreas.every(a => a.status === 'done')) return 'done'
+    if (groupAreas.some(a => a.status === 'working' || a.status === 'done')) return 'in_progress'
+    return 'not_started'
   }
 
   // Navigation handler for ForemanLanding (must be before early returns)
@@ -427,42 +474,61 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
               <p>Office will add tasks to this project</p>
             </div>
           ) : hasGroups ? (
-            Object.entries(groupedAreas).map(([group, groupAreas]) => (
-              <div key={group} className="fm-group">
-                <button className="fm-group-header" onClick={() => toggleGroup(group)}>
-                  <div className="fm-group-left">
-                    {expandedGroups[group] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                    <span>{group}</span>
-                  </div>
-                  <span className="fm-group-count">{getGroupProgress(groupAreas)}</span>
-                </button>
-                {expandedGroups[group] && (
-                  <div className="fm-group-items">
-                    {groupAreas.map(area => (
-                      <div key={area.id} className={`fm-task ${area.status}`}>
-                        <span className="fm-task-name">{area.name}</span>
-                        <div className="fm-task-btns">
-                          <button
-                            className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(area.id, 'working')}
-                            disabled={updating === area.id}
-                          >
-                            <Clock size={14} />
-                          </button>
-                          <button
-                            className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(area.id, 'done')}
-                            disabled={updating === area.id}
-                          >
-                            <CheckCircle2 size={14} />
-                          </button>
+            phasesForDisplay.map(phase => {
+              const groupAreas = areasByBucket[phase.name] || []
+              if (groupAreas.length === 0) return null // hide empty phases on foreman side
+              const phaseStatus = derivePhaseStatus(groupAreas)
+              const dateRange = phase.planned_start_date || phase.planned_end_date
+                ? `${phase.planned_start_date || '—'} – ${phase.planned_end_date || '—'}`
+                : null
+              return (
+                <div key={phase.id || phase.name} className="fm-group">
+                  <button className="fm-group-header" onClick={() => toggleGroup(phase.name)}>
+                    <div className="fm-group-left">
+                      {expandedGroups[phase.name] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      <span>
+                        <span className={`fm-phase-status-dot ${phaseStatus}`} aria-hidden="true" />
+                        {phase.name}
+                      </span>
+                    </div>
+                    <span className="fm-group-count">{getGroupProgress(groupAreas)}</span>
+                  </button>
+                  {expandedGroups[phase.name] && (
+                    <>
+                      {(dateRange || phase.description) && (
+                        <div className="fm-phase-meta">
+                          {dateRange && <span>{dateRange}</span>}
+                          {phase.description && <span>{phase.description}</span>}
                         </div>
+                      )}
+                      <div className="fm-group-items">
+                        {groupAreas.map(area => (
+                          <div key={area.id} className={`fm-task ${area.status}`}>
+                            <span className="fm-task-name">{area.name}</span>
+                            <div className="fm-task-btns">
+                              <button
+                                className={`fm-status-btn working ${area.status === 'working' ? 'active' : ''}`}
+                                onClick={() => handleStatusUpdate(area.id, 'working')}
+                                disabled={updating === area.id}
+                              >
+                                <Clock size={14} />
+                              </button>
+                              <button
+                                className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
+                                onClick={() => handleStatusUpdate(area.id, 'done')}
+                                disabled={updating === area.id}
+                              >
+                                <CheckCircle2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
+                    </>
+                  )}
+                </div>
+              )
+            })
           ) : (
             <div className="fm-task-list">
               {areas.map(area => (
