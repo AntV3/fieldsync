@@ -464,7 +464,11 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         <div className="fm-progress-content">
           {loading ? (
             <div className="fm-loading">
-              <div className="spinner"></div>
+              <div className="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
               <span>Loading...</span>
             </div>
           ) : areas.length === 0 ? (

@@ -97,7 +97,9 @@
 }
 
 .quick-add-icon {
-  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-blue);
 }
 
 .quick-add-label {
@@ -128,7 +130,9 @@
 }
 
 .load-icon {
-  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-blue);
 }
 
 .load-label {
@@ -387,6 +391,9 @@
   background: var(--bg-card);
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* Trucks Used Section (Foreman Input) */
@@ -689,7 +696,9 @@
 }
 
 .disposal-type-icon {
-  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-blue);
 }
 
 .disposal-type-label {
@@ -793,6 +802,9 @@
   background: var(--bg-card);
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* ============================================

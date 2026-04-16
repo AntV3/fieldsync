@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History } from 'lucide-react'
+import { Truck, Plus, Minus, Check, X, ChevronDown, ChevronUp, History, Box, Trash2, Wrench, Biohazard, Coins, Construction, Package } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { parseLocalDate } from '../lib/utils'
 
 const LOAD_TYPES = [
-  { value: 'concrete', label: 'Concrete', icon: '🧱' },
-  { value: 'trash', label: 'Trash', icon: '🗑️' },
-  { value: 'metals', label: 'Metals', icon: '🔩' },
-  { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' },
-  { value: 'copper', label: 'Copper', icon: '🔶' },
-  { value: 'asphalt', label: 'Asphalt', icon: '🛣️' }
+  { value: 'concrete', label: 'Concrete', Icon: Box },
+  { value: 'trash', label: 'Trash', Icon: Trash2 },
+  { value: 'metals', label: 'Metals', Icon: Wrench },
+  { value: 'hazardous_waste', label: 'Hazardous', Icon: Biohazard },
+  { value: 'copper', label: 'Copper', Icon: Coins },
+  { value: 'asphalt', label: 'Asphalt', Icon: Construction }
 ]
 
-const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
+const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, Icon: Package }
 
 export default function DisposalLoadInput({ project, user = null, date, onShowToast }) {
   const [loads, setLoads] = useState([])
@@ -244,17 +244,20 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
 
       {/* Quick Add Buttons */}
       <div className="disposal-quick-add">
-        {LOAD_TYPES.map(type => (
-          <button
-            key={type.value}
-            className="quick-add-btn"
-            onClick={() => handleQuickAdd(type.value)}
-            disabled={saving}
-          >
-            <span className="quick-add-icon">{type.icon}</span>
-            <span className="quick-add-label">+ {type.label}</span>
-          </button>
-        ))}
+        {LOAD_TYPES.map(type => {
+          const TypeIcon = type.Icon
+          return (
+            <button
+              key={type.value}
+              className="quick-add-btn"
+              onClick={() => handleQuickAdd(type.value)}
+              disabled={saving}
+            >
+              <span className="quick-add-icon"><TypeIcon size={20} /></span>
+              <span className="quick-add-label">+ {type.label}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Current Loads */}
@@ -263,11 +266,12 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
           {LOAD_TYPES.map(type => {
             const typeData = loadsByType[type.value]
             if (!typeData) return null
+            const TypeIcon = type.Icon
 
             return (
               <div key={type.value} className="disposal-load-row">
                 <div className="load-info">
-                  <span className="load-icon">{type.icon}</span>
+                  <span className="load-icon"><TypeIcon size={18} /></span>
                   <span className="load-label">{type.label}</span>
                 </div>
                 <div className="load-controls">
@@ -309,7 +313,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
             >
               {LOAD_TYPES.map(type => (
                 <option key={type.value} value={type.value}>
-                  {type.icon} {type.label}
+                  {type.label}
                 </option>
               ))}
             </select>
@@ -435,9 +439,10 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
                     <div className="disposal-history-types">
                       {Object.entries(loadsByType).map(([type, count]) => {
                         const typeInfo = getLoadTypeInfo(type)
+                        const TypeIcon = typeInfo.Icon
                         return (
                           <span key={type} className="disposal-history-type">
-                            {typeInfo.icon} {count} {typeInfo.label}
+                            <TypeIcon size={14} /> {count} {typeInfo.label}
                           </span>
                         )
                       })}

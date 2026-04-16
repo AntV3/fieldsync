@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ClipboardList, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { ClipboardList, ChevronDown, ChevronRight, Calendar, Check, CheckCheck, Circle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from '../lib/imageUtils'
@@ -218,10 +218,10 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'submitted': return '✓'
-      case 'reviewed': return '✓✓'
-      case 'draft': return '○'
-      default: return '○'
+      case 'submitted': return <Check size={14} />
+      case 'reviewed': return <CheckCheck size={14} />
+      case 'draft': return <Circle size={14} />
+      default: return <Circle size={14} />
     }
   }
 
@@ -484,7 +484,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
         <div className="daily-report-summary">
           <span className="report-crew">{report.crew_count || 0} crew</span>
           <span className="report-tasks">{getTasksCompleted(report)} tasks</span>
-          <span className="report-expand">{expandedReport === report.id ? '▼' : '▶'}</span>
+          <span className="report-expand">{expandedReport === report.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
         </div>
       </div>
 

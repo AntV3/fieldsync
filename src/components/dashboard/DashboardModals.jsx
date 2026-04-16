@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { X } from 'lucide-react'
 
 const ShareModal = lazy(() => import('../ShareModal'))
 const NotificationSettings = lazy(() => import('../NotificationSettings'))
@@ -87,7 +88,7 @@ export default function DashboardModals(props) {
           <div className="cor-log-modal" onClick={(e) => e.stopPropagation()}>
             <div className="cor-log-modal-header">
               <h2>Change Order Log</h2>
-              <button className="cor-log-modal-close" onClick={onCloseCORLog} title="Close">✕</button>
+              <button className="cor-log-modal-close" onClick={onCloseCORLog} title="Close"><X size={16} /></button>
             </div>
             <div className="cor-log-modal-content">
               <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>

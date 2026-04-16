@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Briefcase, HardHat, MessageSquare } from 'lucide-react'
+import { Briefcase, HardHat, MessageSquare, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function ProjectMessages({ project, company, userName, onShowToast }) {
@@ -132,7 +132,7 @@ export default function ProjectMessages({ project, company, userName, onShowToas
           )}
         </div>
         <button className="messages-toggle-btn">
-          {isExpanded ? '▼ Collapse' : '▶ Expand'}
+          {isExpanded ? <><ChevronDown size={14} /> Collapse</> : <><ChevronRight size={14} /> Expand</>}
         </button>
       </div>
 

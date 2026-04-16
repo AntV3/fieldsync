@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react'
-import { Truck, ChevronDown, ChevronUp } from 'lucide-react'
+import { Truck, ChevronDown, ChevronUp, Box, Trash2, Wrench, Biohazard, Coins, Construction, Package } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 const LOAD_TYPES = [
-  { value: 'concrete', label: 'Concrete', icon: '🧱' },
-  { value: 'trash', label: 'Trash', icon: '🗑️' },
-  { value: 'metals', label: 'Metals', icon: '🔩' },
-  { value: 'hazardous_waste', label: 'Hazardous', icon: '☣️' },
-  { value: 'copper', label: 'Copper', icon: '🔶' },
-  { value: 'asphalt', label: 'Asphalt', icon: '🛣️' }
+  { value: 'concrete', label: 'Concrete', Icon: Box },
+  { value: 'trash', label: 'Trash', Icon: Trash2 },
+  { value: 'metals', label: 'Metals', Icon: Wrench },
+  { value: 'hazardous_waste', label: 'Hazardous', Icon: Biohazard },
+  { value: 'copper', label: 'Copper', Icon: Coins },
+  { value: 'asphalt', label: 'Asphalt', Icon: Construction }
 ]
 
-const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, icon: '📦' }
+const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, Icon: Package }
 
 export default function DisposalSummary({ project, period = 'week' }) {
   const [loads, setLoads] = useState([])
@@ -135,11 +135,12 @@ export default function DisposalSummary({ project, period = 'week' }) {
               const count = loadsByType[type.value] || 0
               if (count === 0) return null
               const percentage = Math.round((count / totalLoads) * 100)
+              const TypeIcon = type.Icon
 
               return (
                 <div key={type.value} className="disposal-type-row">
                   <div className="disposal-type-info">
-                    <span className="disposal-type-icon">{type.icon}</span>
+                    <span className="disposal-type-icon"><TypeIcon size={18} /></span>
                     <span className="disposal-type-label">{type.label}</span>
                   </div>
                   <div className="disposal-type-stats">
@@ -200,9 +201,10 @@ export default function DisposalSummary({ project, period = 'week' }) {
                     <div className="disposal-daily-types">
                       {Object.entries(dayLoadsByType).map(([type, count]) => {
                         const typeInfo = getLoadTypeInfo(type)
+                        const TypeIcon = typeInfo.Icon
                         return (
                           <span key={type} className="disposal-daily-type">
-                            {typeInfo.icon} {count}
+                            <TypeIcon size={14} /> {count}
                           </span>
                         )
                       })}

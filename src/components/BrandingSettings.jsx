@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Palette, Lock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { useBranding } from '../lib/BrandingContext'
 import { supabase } from '../lib/supabase'
 
@@ -169,7 +170,7 @@ export default function BrandingSettings({ company, onShowToast }) {
   return (
     <div className="branding-settings">
       <div className="settings-header">
-        <h2>🎨 Branding Settings</h2>
+        <h2><Palette size={20} /> Branding Settings</h2>
         {tier === 'free' && (
           <div className="tier-badge tier-free">Free Plan - Upgrade for branding options</div>
         )}
@@ -244,7 +245,7 @@ export default function BrandingSettings({ company, onShowToast }) {
           <label>Logo</label>
           {!canCustomizeLogo ? (
             <div className="upgrade-notice">
-              <p>🔒 Upgrade to Pro, Business, or Enterprise to customize your logo</p>
+              <p><Lock size={14} /> Upgrade to Pro, Business, or Enterprise to customize your logo</p>
             </div>
           ) : (
             <>
@@ -276,7 +277,7 @@ export default function BrandingSettings({ company, onShowToast }) {
           <label htmlFor="app-name">App Name</label>
           {!canCustomizeLogo ? (
             <div className="upgrade-notice">
-              <p>🔒 Upgrade to Pro, Business, or Enterprise to customize your app name</p>
+              <p><Lock size={14} /> Upgrade to Pro, Business, or Enterprise to customize your app name</p>
             </div>
           ) : (
             <>
@@ -299,7 +300,7 @@ export default function BrandingSettings({ company, onShowToast }) {
           <label htmlFor="primary-color">Primary Color</label>
           {!canCustomizeLogo ? (
             <div className="upgrade-notice">
-              <p>🔒 Upgrade to Pro, Business, or Enterprise to customize colors</p>
+              <p><Lock size={14} /> Upgrade to Pro, Business, or Enterprise to customize colors</p>
             </div>
           ) : (
             <div className="color-input-group">
@@ -327,7 +328,7 @@ export default function BrandingSettings({ company, onShowToast }) {
           <label htmlFor="secondary-color">Secondary Color</label>
           {!canCustomizeLogo ? (
             <div className="upgrade-notice">
-              <p>🔒 Upgrade to Pro, Business, or Enterprise to customize colors</p>
+              <p><Lock size={14} /> Upgrade to Pro, Business, or Enterprise to customize colors</p>
             </div>
           ) : (
             <div className="color-input-group">
@@ -355,7 +356,7 @@ export default function BrandingSettings({ company, onShowToast }) {
           <label>Favicon</label>
           {!canCustomizeLogo ? (
             <div className="upgrade-notice">
-              <p>🔒 Upgrade to Pro, Business, or Enterprise to customize your favicon</p>
+              <p><Lock size={14} /> Upgrade to Pro, Business, or Enterprise to customize your favicon</p>
             </div>
           ) : (
             <>
@@ -387,7 +388,7 @@ export default function BrandingSettings({ company, onShowToast }) {
           <label>Login Background</label>
           {!canWhiteLabel ? (
             <div className="upgrade-notice">
-              <p>🔒 Upgrade to Business or Enterprise to customize login background</p>
+              <p><Lock size={14} /> Upgrade to Business or Enterprise to customize login background</p>
             </div>
           ) : (
             <>
@@ -430,7 +431,7 @@ export default function BrandingSettings({ company, onShowToast }) {
             <span>Hide "Powered by FieldSync"</span>
           </label>
           {!canWhiteLabel && (
-            <p className="help-text">🔒 Business or Enterprise plan required</p>
+            <p className="help-text"><Lock size={14} /> Business or Enterprise plan required</p>
           )}
         </div>
       </div>
@@ -451,7 +452,7 @@ export default function BrandingSettings({ company, onShowToast }) {
             disabled={!canWhiteLabel}
           />
           {!canWhiteLabel && (
-            <p className="help-text">🔒 Business or Enterprise plan required</p>
+            <p className="help-text"><Lock size={14} /> Business or Enterprise plan required</p>
           )}
         </div>
 
@@ -467,7 +468,7 @@ export default function BrandingSettings({ company, onShowToast }) {
             disabled={!canWhiteLabel}
           />
           {!canWhiteLabel && (
-            <p className="help-text">🔒 Business or Enterprise plan required</p>
+            <p className="help-text"><Lock size={14} /> Business or Enterprise plan required</p>
           )}
         </div>
       </div>
@@ -480,7 +481,7 @@ export default function BrandingSettings({ company, onShowToast }) {
           <label htmlFor="custom-domain">Domain</label>
           {!canCustomDomain ? (
             <div className="upgrade-notice">
-              <p>🔒 Enterprise plan required for custom domain support</p>
+              <p><Lock size={14} /> Enterprise plan required for custom domain support</p>
               <p className="help-text">
                 Custom domains allow you to host the app at your own URL (e.g., app.yourcompany.com)
               </p>
@@ -498,9 +499,9 @@ export default function BrandingSettings({ company, onShowToast }) {
               {localBranding.custom_domain && (
                 <div className={`domain-status ${localBranding.domain_verified ? 'verified' : 'pending'}`}>
                   {localBranding.domain_verified ? (
-                    <>✓ Connected</>
+                    <><CheckCircle2 size={14} /> Connected</>
                   ) : (
-                    <>⚠ DNS setup required</>
+                    <><AlertTriangle size={14} /> DNS setup required</>
                   )}
                 </div>
               )}

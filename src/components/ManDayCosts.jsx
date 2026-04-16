@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HardHat } from 'lucide-react'
+import { HardHat, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 export default function ManDayCosts({ project, company, onShowToast }) {
@@ -102,7 +102,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
           <span className="man-day-total">{formatCurrency(costData.totalCost)}</span>
         </div>
         <button className="man-day-toggle">
-          {expanded ? '▼ Collapse' : '▶ Details'}
+          {expanded ? <><ChevronDown size={14} /> Collapse</> : <><ChevronRight size={14} /> Details</>}
         </button>
       </div>
 
