@@ -11,6 +11,7 @@ import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
 import DisposalLoadInput from './DisposalLoadInput'
+import FieldObservations from './FieldObservations'
 import FolderGrid from './documents/FolderGrid'
 import ForemanMetrics from './ForemanMetrics'
 import ForemanLanding from './ForemanLanding'
@@ -378,6 +379,26 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         <DisposalLoadInput
           project={project}
           date={new Date().toISOString().split('T')[0]}
+          onShowToast={onShowToast}
+        />
+      </div>
+    )
+  }
+
+  // Field Observations View
+  if (activeView === 'observations') {
+    return (
+      <div className="fm-view">
+        <div className="fm-subheader">
+          <button className="fm-back" onClick={() => setActiveView('home')}>
+            <ArrowLeft size={20} />
+          </button>
+          <h2>Field Observations</h2>
+        </div>
+        <FieldObservations
+          project={project}
+          companyId={companyId}
+          foremanName={foremanName}
           onShowToast={onShowToast}
         />
       </div>
