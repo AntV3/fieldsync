@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { AlertTriangle, XCircle, Info, X, ArrowRight } from 'lucide-react'
+import { AlertTriangle, XCircle, Info, X, ArrowRight, CheckCircle2 } from 'lucide-react'
 
 /**
  * SmartAlerts
@@ -206,7 +206,7 @@ export function AlertSummaryBanner({ alerts = [], onClick, className = '' }) {
 export function NoAlertsMessage({ className = '' }) {
   return (
     <div className={`no-alerts-message ${className}`}>
-      <span className="no-alerts-message__icon" aria-hidden="true">✓</span>
+      <span className="no-alerts-message__icon" aria-hidden="true"><CheckCircle2 size={16} /></span>
       <span className="no-alerts-message__text">All projects on track</span>
     </div>
   )

@@ -689,7 +689,8 @@
 }
 
 .no-alerts-message__icon {
-  font-size: var(--font-size-lg);
+  display: inline-flex;
+  align-items: center;
 }
 
 .no-alerts-message__text {
@@ -1026,7 +1027,8 @@
 }
 
 .projection-summary__icon {
-  font-weight: var(--font-weight-bold);
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ---- Threshold Config ---- */

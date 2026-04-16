@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus } from 'lucide-react'
+import { HardHat, FileText, AlertTriangle, CheckCircle, Upload, Camera, X, ImagePlus, ArrowLeft } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'
 import { CardSkeleton } from './ui/Skeleton'
@@ -172,7 +172,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     return (
       <div className="daily-report">
         <div className="daily-report-header">
-          <button className="back-btn-simple" onClick={onClose}>←</button>
+          <button className="back-btn-simple" onClick={onClose}><ArrowLeft size={16} /></button>
           <h2>Daily Report</h2>
         </div>
         <div style={{ padding: '1rem' }}>
@@ -188,7 +188,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
     return (
       <div className="daily-report">
         <div className="daily-report-header">
-          <button className="back-btn-simple" onClick={onClose}>←</button>
+          <button className="back-btn-simple" onClick={onClose}><ArrowLeft size={16} /></button>
           <h2>Daily Report</h2>
         </div>
         <div className="daily-report-error">
@@ -204,7 +204,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   return (
     <div className="daily-report">
       <div className="daily-report-header">
-        <button className="back-btn-simple" onClick={onClose}>←</button>
+        <button className="back-btn-simple" onClick={onClose}><ArrowLeft size={16} /></button>
         <div>
           <h2>Daily Report</h2>
           <p className="daily-report-date">{today}</p>

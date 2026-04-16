@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { ArrowLeft } from 'lucide-react'
 
 function ProjectEditForm({ editData, saving, onCancel, onEditChange, onAreaEditChange, onAddArea, onRemoveArea, onSave, onDelete }) {
   const totalWeight = useMemo(
@@ -9,7 +10,7 @@ function ProjectEditForm({ editData, saving, onCancel, onEditChange, onAreaEditC
   return (
     <div>
       <button className="btn btn-secondary btn-small" onClick={onCancel} style={{ marginBottom: '1.5rem' }}>
-        ← Cancel
+        <ArrowLeft size={14} /> Cancel
       </button>
 
       <h1>Edit Project</h1>

@@ -228,7 +228,11 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
           <h2>Project Metrics</h2>
         </div>
         <div className="loading-state">
-          <div className="spinner"></div>
+          <div className="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
           <p>Loading metrics...</p>
         </div>
       </div>

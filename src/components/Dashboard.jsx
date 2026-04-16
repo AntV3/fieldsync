@@ -5,7 +5,7 @@ import { formatCurrency, calculateValueProgress, calculateScheduleInsights, shou
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download, ArrowLeft } from 'lucide-react'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
 import OnboardingWizard from './onboarding/OnboardingWizard'
@@ -923,7 +923,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   if (loading) {
     return (
       <div className="loading">
-        <div className="spinner"></div>
+        <div className="loading-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
         Loading projects...
       </div>
     )
@@ -981,7 +985,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           {/* Top Row - Back + Actions */}
           <div className="pv-header-row">
             <button className="pv-back" onClick={handleBack}>
-              <span>←</span>
+              <ArrowLeft size={16} />
               <span>Back</span>
             </button>
             <div className="pv-actions">

@@ -3075,9 +3075,9 @@ END MIGRATED */
   color: var(--accent-blue);
 }
 
-/* Pulsing dots loader */
+/* Wave dots loader */
 .loading-dots {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
 }
@@ -3087,26 +3087,25 @@ END MIGRATED */
   height: 8px;
   border-radius: 50%;
   background: var(--accent-blue);
-  opacity: 0.3;
-  animation: loading-dot-pulse 1.4s ease-in-out infinite;
+  animation: loading-dot-wave 1.2s ease-in-out infinite;
 }
 
 .loading-dots span:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.15s;
 }
 
 .loading-dots span:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: 0.3s;
 }
 
-@keyframes loading-dot-pulse {
-  0%, 80%, 100% {
-    opacity: 0.3;
-    transform: scale(1);
+@keyframes loading-dot-wave {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
   }
-  40% {
+  30% {
+    transform: translateY(-8px);
     opacity: 1;
-    transform: scale(1.2);
   }
 }
 

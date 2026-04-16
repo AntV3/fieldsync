@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
 import Toast from './Toast'
 import CustomFieldSection from './ui/CustomFieldSection'
@@ -630,7 +631,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
             <div className="form-actions">
               {step > 1 && (
                 <button className="btn-secondary" onClick={handleBack}>
-                  ← Back
+                  <ArrowLeft size={14} /> Back
                 </button>
               )}
               <button className="btn-secondary" onClick={onClose}>
@@ -638,7 +639,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
               </button>
               {step < 5 ? (
                 <button className="btn-primary" onClick={handleNext}>
-                  Next →
+                  Next <ArrowRight size={14} />
                 </button>
               ) : (
                 <button

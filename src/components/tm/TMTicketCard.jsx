@@ -1,5 +1,5 @@
 import { memo, useState, useEffect } from 'react'
-import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react'
 import { CountBadge } from '../ui'
 import { db } from '../../lib/supabase'
 
@@ -144,7 +144,7 @@ const TMTicketCard = memo(function TMTicketCard({
             })()}
           </div>
           <span className="tm-ticket-total">${totalCost.toFixed(2)}</span>
-          <span className="tm-expand-arrow" aria-hidden="true">{isExpanded ? '▼' : '▶'}</span>
+          <span className="tm-expand-arrow" aria-hidden="true">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
         </div>
       </div>
 

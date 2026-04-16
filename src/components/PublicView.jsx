@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Check, Settings, Circle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import Logo from './Logo'
@@ -157,9 +157,9 @@ export default function PublicView({ shareToken }) {
                         <span className="area-weight">{area.weight}%</span>
                       </div>
                       <div className={`area-status status-${area.status}`}>
-                        {area.status === 'done' ? '✓ Complete' :
-                         area.status === 'working' ? '⚙ In Progress' :
-                         '○ Not Started'}
+                        {area.status === 'done' ? (<><Check size={14} /> Complete</>) :
+                         area.status === 'working' ? (<><Settings size={14} /> In Progress</>) :
+                         (<><Circle size={14} /> Not Started</>)}
                       </div>
                     </div>
                   ))}

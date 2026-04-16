@@ -54,6 +54,9 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .tier-badge {
@@ -231,6 +234,9 @@
   margin: 0;
   color: var(--text-muted);
   font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .checkbox-label {
@@ -253,7 +259,9 @@
 }
 
 .domain-status {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   margin-top: 0.5rem;
   padding: 0.375rem 0.75rem;
   border-radius: var(--radius-full);
