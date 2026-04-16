@@ -14,7 +14,7 @@ const FALLBACK_CONFIG = {
   dashboard_widgets: ['progress_gauge', 'financial_card', 'crew_metrics', 'earned_value'],
   custom_fields: {},
   kpis: [],
-  enable_truck_load_tracking: false
+  enable_truck_load_tracking: true
 }
 
 /**

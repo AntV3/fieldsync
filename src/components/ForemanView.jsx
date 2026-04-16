@@ -20,7 +20,7 @@ import { useTradeConfig } from '../lib/TradeConfigContext'
 
 export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
   const { resolvedConfig } = useTradeConfig()
-  const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
+  const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? true
 
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)

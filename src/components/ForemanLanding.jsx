@@ -102,7 +102,7 @@ export default function ForemanLanding({
   // Trade config for dynamic actions
   const tradeConfig = useTradeConfig()
   const configuredActions = tradeConfig?.resolvedConfig?.field_actions
-  const truckLoadTrackingEnabled = tradeConfig?.resolvedConfig?.enable_truck_load_tracking ?? false
+  const truckLoadTrackingEnabled = tradeConfig?.resolvedConfig?.enable_truck_load_tracking ?? true
 
   // Resolve available actions: base actions filtered by trade config
   const ALL_ACTIONS = useMemo(() => {

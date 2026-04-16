@@ -17,7 +17,7 @@ export default function ReportsTab({
   onShowToast
 }) {
   const { resolvedConfig } = useTradeConfig()
-  const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
+  const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? true
 
   const daysAgo = projectData?.lastDailyReport
     ? Math.floor((new Date() - new Date(projectData.lastDailyReport)) / (1000 * 60 * 60 * 24))

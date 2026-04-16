@@ -42,7 +42,7 @@ export default function TradeProfileSettings({ onShowToast }) {
   const [newRole, setNewRole] = useState('')
   const [customFields, setCustomFields] = useState(resolvedConfig?.custom_fields || {})
   const [activeFormType, setActiveFormType] = useState('daily_report')
-  const [enableTruckLoadTracking, setEnableTruckLoadTracking] = useState(companyConfig?.enable_truck_load_tracking ?? resolvedConfig?.enable_truck_load_tracking ?? false)
+  const [enableTruckLoadTracking, setEnableTruckLoadTracking] = useState(companyConfig?.enable_truck_load_tracking ?? resolvedConfig?.enable_truck_load_tracking ?? true)
   const [expandedSections, setExpandedSections] = useState({ identity: true, roles: false, features: false, fields: false })
 
   const toggleSection = (section) => {
