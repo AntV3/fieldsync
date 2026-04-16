@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, Camera, Calendar, Truck } from 'lucide-react'
+import { ClipboardList, Camera, Calendar, Truck, NotebookPen } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { TicketSkeleton } from '../../ui'
 import { useTradeConfig } from '../../../lib/TradeConfigContext'
@@ -7,6 +7,7 @@ import { useTradeConfig } from '../../../lib/TradeConfigContext'
 const DailyReportsList = lazy(() => import('../../DailyReportsList'))
 const InjuryReportsList = lazy(() => import('../../InjuryReportsList'))
 const PhotoTimeline = lazy(() => import('../../PhotoTimeline'))
+const FieldObservationsList = lazy(() => import('../../FieldObservationsList'))
 
 export default function ReportsTab({
   selectedProject,
@@ -80,6 +81,25 @@ export default function ReportsTab({
         <div className="reports-section-content">
           <Suspense fallback={<TicketSkeleton />}>
             <DailyReportsList project={selectedProject} company={company} onShowToast={onShowToast} />
+          </Suspense>
+        </div>
+      </div>
+
+      {/* Field Observations (foreman-logged photos + notes, exportable as PDF) */}
+      <div className="reports-section-card">
+        <div className="reports-section-header">
+          <div className="reports-section-title">
+            <NotebookPen size={18} />
+            <h3>Field Observations</h3>
+          </div>
+        </div>
+        <div className="reports-section-content">
+          <Suspense fallback={<TicketSkeleton />}>
+            <FieldObservationsList
+              project={selectedProject}
+              company={company}
+              onShowToast={onShowToast}
+            />
           </Suspense>
         </div>
       </div>

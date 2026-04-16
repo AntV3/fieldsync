@@ -3,7 +3,7 @@ import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
   Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck,
-  MessageSquareText
+  MessageSquareText, NotebookPen
 } from 'lucide-react'
 import { useTradeConfig } from '../lib/TradeConfigContext'
 
@@ -36,6 +36,12 @@ const BASE_ACTIONS = {
     label: 'Daily Report',
     icon: ClipboardList,
     description: 'Submit end-of-day report'
+  },
+  observations: {
+    id: 'observations',
+    label: 'Field Observations',
+    icon: NotebookPen,
+    description: 'Log photos & notes with timestamp'
   },
   progress: {
     id: 'progress',

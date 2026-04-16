@@ -39,6 +39,7 @@ import { laborOps } from './db/laborOps'
 import { tmOps } from './db/tmOps'
 import { companyOps } from './db/companyOps'
 import { fieldOps } from './db/fieldOps'
+import { fieldObservationOps } from './db/fieldObservationOps'
 import { financialOps } from './db/financialOps'
 import { documentOps } from './db/documentOps'
 import { tradeOps } from './db/tradeOps'
@@ -195,6 +196,7 @@ export const db = {
   ...tmOps,
   ...companyOps,
   ...fieldOps,
+  ...fieldObservationOps,
   ...financialOps,
   ...documentOps,
   ...corOps,
