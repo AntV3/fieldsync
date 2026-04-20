@@ -67,7 +67,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   // COR assignment state
   const [selectedCorId, setSelectedCorId] = useState('')
   const [assignableCORs, setAssignableCORs] = useState([])
-  const [loadingCORs, setLoadingCORs] = useState(false)
+  const [, setLoadingCORs] = useState(false)
 
   // Batch hours modal state
   const [showBatchHoursModal, setShowBatchHoursModal] = useState(false)
@@ -107,7 +107,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Draft resume state
   const [showDraftPrompt, setShowDraftPrompt] = useState(false)
-  const [hasDraft, setHasDraft] = useState(false)
+  const [, setHasDraft] = useState(false)
   const draftSaveTimerRef = useRef(null)
 
   // Revoke blob URLs on unmount to prevent ERR_FILE_NOT_FOUND and memory leaks

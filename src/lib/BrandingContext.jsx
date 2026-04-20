@@ -108,7 +108,7 @@ export function BrandingProvider({ children, companyId }) {
 
   const createDefaultBranding = async (companyId) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('company_branding')
         .insert({
           company_id: companyId,
@@ -153,7 +153,7 @@ export function BrandingProvider({ children, companyId }) {
       }
 
       // First check if branding record exists
-      const { data: existing, error: checkError } = await supabase
+      const { error: checkError } = await supabase
         .from('company_branding')
         .select('id')
         .eq('company_id', companyId)
@@ -234,7 +234,7 @@ export function BrandingProvider({ children, companyId }) {
       const fileName = `${companyId}/${type}-${Date.now()}.${fileExt}`
       const filePath = `branding/${fileName}`
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('public')
         .upload(filePath, file, {
           cacheControl: '3600',

@@ -120,7 +120,6 @@ export default function CostCodeManager({ companyId, onShowToast }) {
   })
 
   // Group by parent code
-  const parentCodes = [...new Set(filtered.map(cc => cc.parent_code).filter(Boolean))]
   const topLevel = filtered.filter(cc => !cc.parent_code)
   const children = {}
   for (const cc of filtered) {

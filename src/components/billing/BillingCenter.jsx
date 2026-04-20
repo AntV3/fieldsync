@@ -20,7 +20,7 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   const [loading, setLoading] = useState(true)
   const [selectedItems, setSelectedItems] = useState({ cors: new Set(), tickets: new Set() })
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
-  const [editingInvoice, setEditingInvoice] = useState(null)
+  const [, setEditingInvoice] = useState(null)
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [viewingInvoice, setViewingInvoice] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)

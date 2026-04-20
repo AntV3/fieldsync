@@ -97,9 +97,6 @@ function BenchmarkBar({
   description = ''
 }) {
   const performance = calculatePerformance(value, benchmark, higherIsBetter)
-  const companyPerformance = companyAverage !== undefined
-    ? calculatePerformance(companyAverage, benchmark, higherIsBetter)
-    : null
 
   // Determine status
   const getStatus = (perf) => {

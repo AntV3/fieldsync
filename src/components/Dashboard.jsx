@@ -877,9 +877,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setTMViewMode('preview')
   }, [])
 
-  const handleViewFullCORLog = useCallback(() => {
-    setCORDisplayMode('log')
-  }, [])
 
   const handleCreateCOR = useCallback(() => {
     setEditingCOR(null)
@@ -938,7 +935,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Project Detail View
   if (selectedProject) {
     // Extract memoized values
-    const { progress, billable, changeOrderValue, revisedContractValue, isValueBased, earnedValue, totalSOVValue } = progressCalculations
+    const { progress, billable, changeOrderValue, revisedContractValue } = progressCalculations
 
     // Edit Mode
     if (editMode && editData) {
@@ -961,10 +958,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const areasComplete = areas.filter(a => a.status === 'done').length
     const areasWorking = areas.filter(a => a.status === 'working').length
     const areasNotStarted = areas.filter(a => a.status === 'not_started').length
-    const percentBilled = revisedContractValue > 0
-      ? Math.round((billable / revisedContractValue) * 100)
-      : 0
-    const hasChangeOrders = changeOrderValue > 0
 
     // Tab definitions with pending badges
     const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)

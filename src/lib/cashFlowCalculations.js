@@ -390,7 +390,6 @@ function estimateMonthlyEarningRate(project) {
 
 function estimateMonthlyCostRate(project, costHistory) {
   const totalCosts = project.totalCosts || project.billable || 0
-  const progress = project.progress || project.progressPercent || 0
   const startDate = project.startDate || project.start_date
 
   // Use actual burn rate if available
