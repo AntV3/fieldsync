@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, RotateCcw, ChevronDown, ChevronUp, Plus, X, Truck } from 'lucide-react'
+import { Save, RotateCcw, ChevronDown, ChevronUp, Truck } from 'lucide-react'
 import { useTradeConfig } from '../../lib/TradeConfigContext'
 import { WIDGET_REGISTRY } from '../../lib/widgetRegistry'
 

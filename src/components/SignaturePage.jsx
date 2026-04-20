@@ -305,7 +305,7 @@ export default function SignaturePage({ signatureToken }) {
     )
   }
 
-  const { slot1, slot2, availableSlots } = getSignatureStatus()
+  const { slot1, slot2 } = getSignatureStatus()
   // Only one signature is required - either slot1 OR slot2
   const isFullySigned = slot1 || slot2
   const isCOR = signatureRequest?.document_type === 'cor'

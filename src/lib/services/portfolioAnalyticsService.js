@@ -143,7 +143,6 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   try {
   const startDate = new Date()
   startDate.setMonth(startDate.getMonth() - months)
-  const startStr = startDate.toISOString().split('T')[0]
 
   const { data: projects } = await supabase
     .from('projects')
@@ -187,7 +186,6 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
 
   // Build per-project total weight for earned value calculation
   const allAreas = areasRes.data || []
-  const projectTotalWeights = {}
   // We need all areas (complete + incomplete) for weight totals
   // But we only fetched complete ones — recalculate from projects
   const totalWeightByProject = {}

@@ -33,7 +33,9 @@ export default function OfflineIndicator() {
     })
 
     // Initial pending count check
-    getPendingActionCount().then(setPendingCount).catch(() => {})
+    getPendingActionCount()
+      .then(setPendingCount)
+      .catch(err => console.warn('[OfflineIndicator] failed to read pending count', err))
 
     // Periodically check pending count when offline
     const interval = setInterval(async () => {

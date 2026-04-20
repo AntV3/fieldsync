@@ -90,8 +90,6 @@ export default function SageExport({ project, company, onShowToast }) {
     }
   }, [preview, exportType, onShowToast])
 
-  const selectedType = EXPORT_TYPES.find(t => t.id === exportType)
-
   return (
     <>
       <button

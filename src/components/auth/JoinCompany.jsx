@@ -40,7 +40,7 @@ export default function JoinCompany({ onShowToast }) {
         onShowToast('Invalid company code', 'error')
         setCompanyCode('')
       }
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error checking code', 'error')
     } finally {
       setLoading(false)
@@ -69,7 +69,7 @@ export default function JoinCompany({ onShowToast }) {
         onShowToast('Invalid office code', 'error')
         setOfficeCode('')
       }
-    } catch (err) {
+    } catch (_err) {
       onShowToast('Error verifying code', 'error')
     } finally {
       setLoading(false)

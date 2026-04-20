@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  DollarSign, Clock, TrendingUp, TrendingDown, Users,
+  DollarSign, Clock, TrendingUp, Users,
   CheckCircle2, AlertTriangle, XCircle, Activity, Minus
 } from 'lucide-react'
 import { InfoTooltip } from '../ui'

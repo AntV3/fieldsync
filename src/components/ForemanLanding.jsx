@@ -124,6 +124,7 @@ export default function ForemanLanding({
     }
     // Only show disposal action when truck load tracking is enabled
     if (!truckLoadTrackingEnabled) {
+      // eslint-disable-next-line no-unused-vars -- `disposal` is extracted to omit it from `rest`
       const { disposal, ...rest } = actions
       return rest
     }

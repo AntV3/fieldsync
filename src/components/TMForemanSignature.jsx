@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { X, Check, RotateCcw, Pen, User, Building, Briefcase, HardHat, Wrench, Camera, FileText } from 'lucide-react'
+import { X, Check, RotateCcw, Pen, User, Briefcase, HardHat, Wrench, Camera, FileText } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 // Helper to format time (HH:MM to 9:00am format)

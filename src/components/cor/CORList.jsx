@@ -39,9 +39,8 @@ export default function CORList({
   const [cors, setCORs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
-  const [areaFilter, setAreaFilter] = useState('all')
+  const [areaFilter] = useState('all')
   const [groupFilter, setGroupFilter] = useState('all')
-  const [expandedCOR, setExpandedCOR] = useState(null)
   const [selectedCORs, setSelectedCORs] = useState(new Set())
   const [selectMode, setSelectMode] = useState(false)
   const [showGroupModal, setShowGroupModal] = useState(false)
@@ -660,8 +659,6 @@ export default function CORList({
     billed: cors.filter(c => c.status === 'billed').length,
     closed: cors.filter(c => c.status === 'closed').length
   }), [cors])
-
-  const totalCORsCount = filter === 'all' ? cors.length : cors.filter(c => c.status === filter).length
 
   // Render COR card using memoized component
   const renderCORCard = (cor) => (

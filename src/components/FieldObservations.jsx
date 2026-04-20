@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  Camera, X, Save, MapPin, Clock, FileText, Plus, Image as ImageIcon,
-  Trash2, ChevronDown, ChevronUp
+  Camera, X, Save, MapPin, Clock, FileText, Image as ImageIcon,
+  ChevronDown, ChevronUp
 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { compressImage } from '../lib/imageUtils'

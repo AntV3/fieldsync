@@ -103,7 +103,8 @@ export const companyOps = {
   // Get all memberships for a company (for admin view)
   async getCompanyMemberships(companyId) {
     if (isSupabaseConfigured) {
-      // Try with company_role column first
+      // Try with company_role column first — `data` is reassigned on retry below
+      // eslint-disable-next-line prefer-const
       let { data, error } = await supabase
         .from('user_companies')
         .select(`

@@ -17,8 +17,8 @@ import { exportAIABillingPDF, exportAIABillingCSV } from '../lib/aiaBillingExpor
 import {
   Download, FileSpreadsheet, Building2, Receipt,
   FileText, BarChart3, Hash, ChevronDown, ChevronRight,
-  Eye, EyeOff, TrendingUp, TrendingDown, Minus,
-  DollarSign, AlertTriangle, CheckCircle2
+  Eye, EyeOff, TrendingDown, Minus,
+  AlertTriangle, CheckCircle2
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------

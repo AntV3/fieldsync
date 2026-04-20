@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import {
   FileCheck, Plus, Search, ChevronDown, ChevronRight,
-  Calendar, User, Clock, RotateCcw
+  Calendar, RotateCcw
 } from 'lucide-react'
 
 const STATUS_CONFIG = {
@@ -92,7 +92,7 @@ export default function SubmittalList({ project, company, costCodes = [], onShow
       await db.updateSubmittal(submittalId, { status: newStatus })
       onShowToast?.(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}`, 'success')
       loadSubmittals()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to update status', 'error')
     }
   }
@@ -102,7 +102,7 @@ export default function SubmittalList({ project, company, costCodes = [], onShow
       await db.createRevision(submittal.id, project.id, company.id)
       onShowToast?.('New revision created', 'success')
       loadSubmittals()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to create revision', 'error')
     }
   }
