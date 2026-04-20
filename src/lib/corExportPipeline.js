@@ -634,7 +634,7 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
         if (ticket.photos?.length > 0) {
           try {
             ticket.photos = await db.resolvePhotoUrls(ticket.photos)
-          } catch (e) {
+          } catch (_e) {
             // Keep raw paths on failure; generator will show placeholders
           }
         }
@@ -682,7 +682,9 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
       await updateJobStatus(job.jobId, ExportStatus.FAILED, {
         error: err.message,
         errorDetails: { stack: err.stack }
-      }).catch(() => {}) // Don't throw on status update failure
+      }).catch(statusErr =>
+        console.warn('[corExport] failed to record FAILED status for job', job.jobId, statusErr)
+      )
     }
 
     observe.error('cor_export_failed', {

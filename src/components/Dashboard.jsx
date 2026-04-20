@@ -156,7 +156,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     if (company?.id) {
       loadProjects()
       // Load company cost codes for exports
-      db.getCostCodes(company.id).then(setCostCodes).catch(() => {})
+      db.getCostCodes(company.id)
+        .then(setCostCodes)
+        .catch(err => console.warn('[Dashboard] failed to load cost codes', err))
     }
   }, [company?.id])
 
@@ -907,7 +909,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       }
       loadProjects()
       onShowToast?.('Cost deleted', 'success')
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Error deleting cost', 'error')
     }
   }, [selectedProject?.id]) // onShowToast is stable (memoized in App.jsx)

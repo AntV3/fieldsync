@@ -546,13 +546,17 @@ export const syncPendingActions = async (db, options = {}) => {
         // If we marked as synced but processAction failed, clear the synced marker
         // so the action can be retried on the next sync cycle.
         if (action.idempotency_key) {
-          await clearSyncedMarker(action.idempotency_key).catch(() => {})
+          await clearSyncedMarker(action.idempotency_key).catch(markerErr =>
+            console.warn('[offlineSync] failed to clear synced marker', action.id, markerErr)
+          )
         }
         await updatePendingAction(action.id, {
           attempts: (action.attempts || 0) + 1,
           last_error: error.message,
           last_attempt: new Date().toISOString()
-        }).catch(() => {})
+        }).catch(updateErr =>
+          console.warn('[offlineSync] failed to record retry metadata', action.id, updateErr)
+        )
       }
     }
 
@@ -590,7 +594,9 @@ export const syncPendingActions = async (db, options = {}) => {
               attempts: (action.attempts || 0) + 1,
               last_error: batchResults[j].reason?.message || 'Unknown error',
               last_attempt: new Date().toISOString()
-            }).catch(() => {})
+            }).catch(updateErr =>
+              console.warn('[offlineSync] failed to record batch retry metadata', action.id, updateErr)
+            )
           }
         }
       }

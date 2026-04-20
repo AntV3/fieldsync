@@ -123,14 +123,14 @@ export default function TMList({
             if (importStatus?.import_status === 'failed') {
               importStatusResults[ticket.id] = importStatus
             }
-          } catch (e) {
+          } catch (_e) {
             // Ignore - column may not exist yet
           }
         }))
         setLockedTickets(prev => reset ? lockResults : { ...prev, ...lockResults })
         setFailedImports(prev => reset ? importStatusResults : { ...prev, ...importStatusResults })
       }
-    } catch (error) {
+    } catch (_error) {
       onShowToast('Error loading tickets', 'error')
     } finally {
       setLoading(false)

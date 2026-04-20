@@ -82,7 +82,7 @@ export default function CostCodeManager({ companyId, onShowToast }) {
       await db.deleteCostCode(costCode.id)
       onShowToast?.('Cost code deactivated', 'success')
       loadCostCodes()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to delete cost code', 'error')
     }
   }
@@ -93,7 +93,7 @@ export default function CostCodeManager({ companyId, onShowToast }) {
       const imported = await db.importCSITemplates(companyId)
       onShowToast?.(`Imported ${imported.length} cost codes`, 'success')
       loadCostCodes()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to import templates', 'error')
     }
   }

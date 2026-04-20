@@ -85,7 +85,7 @@ export default function RFIList({ project, company, onShowToast }) {
       await db.updateRFI(rfiId, { answer, status: 'answered' })
       onShowToast?.('RFI answered', 'success')
       loadRFIs()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to answer RFI', 'error')
     }
   }
@@ -94,7 +94,7 @@ export default function RFIList({ project, company, onShowToast }) {
     try {
       await db.updateRFI(rfiId, { status: newStatus })
       loadRFIs()
-    } catch (err) {
+    } catch (_err) {
       onShowToast?.('Failed to update status', 'error')
     }
   }
