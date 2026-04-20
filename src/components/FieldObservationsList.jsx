@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   NotebookPen, Calendar, Camera, MapPin, Clock, Download,
-  ChevronDown, ChevronRight, Filter, FileText, User
+  ChevronDown, ChevronRight, Filter, User
 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, CheckCircle, Clock, TrendingUp, Info } from 'lucide-react'
+import { FileText, CheckCircle, Clock, Info } from 'lucide-react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { MetricSkeleton, ChartSkeleton } from '../ui'
 import { formatCurrency } from '../../lib/utils'

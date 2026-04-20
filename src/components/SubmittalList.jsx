@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import {
   FileCheck, Plus, Search, ChevronDown, ChevronRight,
-  Calendar, User, Clock, RotateCcw
+  Calendar, RotateCcw
 } from 'lucide-react'
 
 const STATUS_CONFIG = {

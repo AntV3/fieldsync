@@ -1,12 +1,12 @@
 import React from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
+  ResponsiveContainer
 } from 'recharts'
 import {
   Shield, AlertTriangle, CheckCircle2, Clock, Target, TrendingUp, TrendingDown
 } from 'lucide-react'
-import { chartColors, formatChartCurrency, tooltipStyle, animationConfig } from './chartConfig'
+import { chartColors, formatChartCurrency, tooltipStyle } from './chartConfig'
 
 /**
  * QualityMetricsChart

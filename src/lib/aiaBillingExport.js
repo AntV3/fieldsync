@@ -10,7 +10,7 @@
 
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
-import { escapeCSV, toCSV } from './financialExport'
+import { toCSV } from './financialExport'
 
 // ============================================
 // G703 Continuation Sheet Data Builder

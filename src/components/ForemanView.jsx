@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, supabase, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
+import { db, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
   Info, CheckSquare,

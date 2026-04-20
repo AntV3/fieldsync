@@ -5,8 +5,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import {
-  Hash, Plus, Trash2, Edit3, Download, Upload,
-  ChevronRight, ChevronDown, Filter, Search
+  Hash, Plus, Trash2, Edit3, Download,
+  ChevronRight, ChevronDown, Search
 } from 'lucide-react'
 
 const CATEGORIES = [

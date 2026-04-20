@@ -5,9 +5,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
 import {
-  MessageSquareText, Plus, Search, Filter, Clock,
-  CheckCircle2, AlertCircle, ChevronDown, ChevronRight,
-  Calendar, User, Flag
+  MessageSquareText, Plus, Search,
+  ChevronDown, ChevronRight,
+  Calendar, User
 } from 'lucide-react'
 
 const STATUS_CONFIG = {

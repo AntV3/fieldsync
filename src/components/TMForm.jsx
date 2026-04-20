@@ -190,13 +190,13 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Discard draft
   const discardDraft = () => {
-    try { localStorage.removeItem(getDraftKey(project?.id)) } catch {}
+    try { localStorage.removeItem(getDraftKey(project?.id)) } catch { /* storage unavailable */ }
     setShowDraftPrompt(false)
   }
 
   // Clear draft on successful submit
   const clearDraft = () => {
-    try { localStorage.removeItem(getDraftKey(project?.id)) } catch {}
+    try { localStorage.removeItem(getDraftKey(project?.id)) } catch { /* storage unavailable */ }
   }
 
   // Load today's crew and assignable CORs on mount

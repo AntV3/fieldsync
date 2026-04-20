@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts'
-import { Users, AlertTriangle, TrendingUp, TrendingDown, UserPlus, Minus } from 'lucide-react'
+import { Users, AlertTriangle, TrendingUp, UserPlus } from 'lucide-react'
 import { chartColors, tooltipStyle, animationConfig } from './chartConfig'
 
 /**
