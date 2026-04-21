@@ -49,10 +49,9 @@ export const tradeOps = {
       .from('company_trade_config')
       .select('*, trade_templates(*)')
       .eq('company_id', companyId)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === 'PGRST116') return null // No config yet
       console.error('Error fetching company trade config:', error)
       return null
     }
@@ -71,7 +70,7 @@ export const tradeOps = {
       .from('company_trade_config')
       .select('id')
       .eq('company_id', companyId)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       // Update
@@ -117,10 +116,9 @@ export const tradeOps = {
       .from('project_trade_overrides')
       .select('*')
       .eq('project_id', projectId)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === 'PGRST116') return null
       console.error('Error fetching project trade overrides:', error)
       return null
     }
@@ -138,7 +136,7 @@ export const tradeOps = {
       .from('project_trade_overrides')
       .select('id')
       .eq('project_id', projectId)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       const { data, error } = await supabase
