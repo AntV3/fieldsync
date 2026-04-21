@@ -3,7 +3,7 @@
  * Variants: primary, ghost, destructive, disabled
  */
 
-const base = 'inline-flex items-center justify-center uppercase tracking-spx-label font-semibold text-[14px] px-[32px] py-[12px] transition-colors duration-150 cursor-pointer'
+const base = 'inline-flex items-center justify-center uppercase tracking-spx-label font-semibold text-[14px] px-[32px] py-[12px] min-h-[44px] transition-colors duration-150 cursor-pointer'
 
 const VARIANTS = {
   primary: `${base} bg-accent-blue text-white hover:bg-accent-blue-light`,

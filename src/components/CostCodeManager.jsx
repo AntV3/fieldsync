@@ -8,6 +8,7 @@ import {
   Hash, Plus, Trash2, Edit3, Download,
   ChevronRight, ChevronDown, Search
 } from 'lucide-react'
+import { ListItemSkeleton } from './ui/Skeleton'
 
 const CATEGORIES = [
   { value: 'labor', label: 'Labor' },
@@ -214,7 +215,7 @@ export default function CostCodeManager({ companyId, onShowToast }) {
 
       {/* Cost Code List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>Loading cost codes...</div>
+        <ListItemSkeleton count={5} />
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
           {costCodes.length === 0

@@ -223,3 +223,55 @@
     padding: var(--space-md);
   }
 }
+
+/* ---- Confirm Dialog ---- */
+.confirm-dialog .modal-body {
+  padding: 0;
+}
+
+.confirm-dialog-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  gap: var(--space-sm);
+}
+
+.confirm-dialog-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-xs);
+}
+
+.confirm-dialog-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.confirm-dialog-message {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: var(--line-height-normal);
+  max-width: 320px;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  width: 100%;
+  justify-content: center;
+}
+
+.confirm-dialog-actions .btn {
+  min-width: 100px;
+  justify-content: center;
+}

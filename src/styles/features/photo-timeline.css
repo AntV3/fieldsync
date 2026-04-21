@@ -287,6 +287,16 @@
   transform: translateY(-2px);
 }
 
+.photo-grid-item:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  transform: translateY(-2px);
+}
+
+.photo-grid-skeleton {
+  padding: var(--space-2) 0;
+}
+
 .photo-grid-item img {
   width: 100%;
   height: 100%;

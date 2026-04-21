@@ -4,6 +4,7 @@ import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { hexToRgb, loadImageAsBase64 } from '../../lib/imageUtils'
 import { CardSkeleton, CountBadge } from '../ui'
+import { EmptyState } from '../ui/ErrorState'
 import { useBranding } from '../../lib/BrandingContext'
 import { useFilteredPagination } from '../../hooks/useFilteredPagination'
 import Pagination from '../ui/Pagination'
@@ -912,13 +913,15 @@ export default function CORList({
 
           {/* COR List */}
           {displayCORs.length === 0 ? (
-            <div className="cor-empty">
-              <FileText size={24} className="cor-empty-icon" />
-              <p>No change orders {filter !== 'all' ? `(${filter.replace('_', ' ')})` : ''}</p>
-              <button className="btn btn-primary btn-small" onClick={onCreateCOR}>
-                <Plus size={14} /> Create COR
-              </button>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title={filter !== 'all' ? `No ${filter.replace('_', ' ')} change orders` : 'No change orders yet'}
+              message={filter !== 'all'
+                ? 'Try a different filter or create a new change order.'
+                : 'Track scope changes, pricing, and approvals by creating your first COR.'}
+              actionLabel="Create COR"
+              onAction={onCreateCOR}
+            />
           ) : (
             <div className="cor-cards stagger-children">
               {viewMode === 'all' && corsByMonth ? (

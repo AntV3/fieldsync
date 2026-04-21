@@ -239,6 +239,7 @@ export default function App() {
   // Office layout: nav + content + offline indicator
   const officeLayout = (content) => (
     <div>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       {!isSupabaseConfigured && (
         <div className="demo-banner">Demo Mode - Data saved locally in your browser</div>
       )}
@@ -368,9 +369,9 @@ export default function App() {
 
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
-          <div className="container" key={company?.id}>
+          <main id="main-content" className="container" role="main" tabIndex={-1} key={company?.id}>
             {content}
-          </div>
+          </main>
         </Suspense>
       </ErrorBoundary>
 

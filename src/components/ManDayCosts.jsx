@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { HardHat, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { ListItemSkeleton } from './ui/Skeleton'
+import { EmptyState } from './ui/ErrorState'
 
 export default function ManDayCosts({ project, company, onShowToast }) {
   const [costData, setCostData] = useState(null)
@@ -33,6 +35,9 @@ export default function ManDayCosts({ project, company, onShowToast }) {
       setCostData(data)
     } catch (error) {
       console.error('Error loading man day costs:', error)
+      if (onShowToast) {
+        onShowToast('Unable to load man-day costs', 'error')
+      }
     } finally {
       setLoading(false)
     }
@@ -72,7 +77,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
         <div className="man-day-header">
           <h3>Man Day Costs</h3>
         </div>
-        <div className="loading">Loading...</div>
+        <ListItemSkeleton count={3} />
       </div>
     )
   }
@@ -83,11 +88,11 @@ export default function ManDayCosts({ project, company, onShowToast }) {
         <div className="man-day-header">
           <h3>Man Day Costs</h3>
         </div>
-        <div className="man-day-empty">
-          <span className="empty-icon"><HardHat size={32} /></span>
-          <p>No crew check-ins yet</p>
-          <small>Costs will appear as crew checks in from the field</small>
-        </div>
+        <EmptyState
+          icon={HardHat}
+          title="No crew check-ins yet"
+          message="Costs will appear as your crew checks in from the field."
+        />
       </div>
     )
   }

@@ -20,18 +20,24 @@ export default function MobileTabBar({ activePath = '/v2', alertCount = 0 }) {
         const isActive = activePath === tab.href
         const hasAlert = tab.label === 'Alerts' && alertCount > 0
 
+        const ariaLabel = hasAlert
+          ? `${tab.label}, ${alertCount} unread alert${alertCount === 1 ? '' : 's'}`
+          : tab.label
+
         return (
           <a
             key={tab.href}
             href={tab.href}
-            className={`flex-1 flex flex-col items-center justify-center gap-[4px] transition-colors duration-150 ${
+            aria-label={ariaLabel}
+            aria-current={isActive ? 'page' : undefined}
+            className={`flex-1 flex flex-col items-center justify-center gap-[4px] transition-colors duration-150 min-h-[44px] ${
               isActive ? 'text-text-primary' : 'text-text-secondary'
             }`}
           >
             <div className="relative">
-              <Icon size={20} strokeWidth={1.5} />
+              <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
               {hasAlert && (
-                <span className="absolute -top-[4px] -right-[6px] w-[8px] h-[8px] bg-status-red" />
+                <span className="absolute -top-[4px] -right-[6px] w-[8px] h-[8px] bg-status-red" aria-hidden="true" />
               )}
             </div>
             <span className={`text-[10px] uppercase tracking-spx-label ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}>

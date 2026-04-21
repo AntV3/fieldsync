@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save, ChevronDown, ChevronRight } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
 import { ConfirmDialog } from './ui'
+import { ListItemSkeleton } from './ui/Skeleton'
+import { EmptyState } from './ui/ErrorState'
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: '#ef4444' },
@@ -358,13 +360,21 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
 
       {/* Items List */}
       {loading ? (
-        <div className="punch-loading">Loading punch list...</div>
+        <ListItemSkeleton count={4} />
       ) : filteredItems.length === 0 ? (
-        <div className="punch-empty">
-          <CheckCircle2 size={32} style={{ opacity: 0.3 }} />
-          <p>{items.length === 0 ? 'No punch items yet' : 'No items match filters'}</p>
-          {items.length === 0 && <span>Add items that need attention before project closeout</span>}
-        </div>
+        items.length === 0 ? (
+          <EmptyState
+            icon={CheckCircle2}
+            title="No punch items yet"
+            message="Add items that need attention before project closeout."
+          />
+        ) : (
+          <EmptyState
+            icon={Filter}
+            title="No items match filters"
+            message="Try adjusting the filters above to see more items."
+          />
+        )
       ) : (
         <div className="punch-items-list">
           {filteredItems.map(item => {

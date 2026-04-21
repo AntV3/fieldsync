@@ -92,6 +92,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       })
     } catch (error) {
       console.error('Error loading today status:', error)
+      onShowToast?.('Unable to refresh today’s status', 'error')
     }
   }
 
