@@ -24,9 +24,14 @@ export const fieldObservationOps = {
         rows: data?.length,
         project_id: projectId
       })
-      if (error) throw error
+      if (error) {
+        // Table missing from schema cache (migration not yet applied) — degrade gracefully
+        if (error.code === 'PGRST205') return []
+        throw error
+      }
       return data || []
     } catch (error) {
+      if (error?.code === 'PGRST205') return []
       observe.error('database', {
         message: error.message,
         operation: 'getFieldObservations',
