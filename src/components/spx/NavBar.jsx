@@ -29,6 +29,7 @@ export default function NavBar({ activePath = '/v2' }) {
             <a
               key={item.href}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               className={`text-[13px] uppercase tracking-spx-nav font-normal transition-colors duration-150 pb-[2px] ${
                 isActive
                   ? 'text-text-primary border-b-2 border-accent-blue'
@@ -42,7 +43,11 @@ export default function NavBar({ activePath = '/v2' }) {
       </div>
 
       {/* Settings */}
-      <button className="ml-[32px] text-text-secondary hover:text-text-primary transition-colors duration-150">
+      <button
+        type="button"
+        aria-label="Settings"
+        className="ml-[32px] text-text-secondary hover:text-text-primary transition-colors duration-150"
+      >
         <Settings size={20} strokeWidth={1.5} />
       </button>
     </nav>

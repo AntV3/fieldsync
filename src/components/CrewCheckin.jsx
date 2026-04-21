@@ -389,7 +389,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
           <h3><HardHat size={18} className="inline-icon" /> Today's Crew</h3>
           <span className="crew-date">{today}</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem 0' }}>
+        <div className="crew-checkin-skeleton-list">
           <ListItemSkeleton />
           <ListItemSkeleton />
           <ListItemSkeleton />
@@ -448,20 +448,24 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
                   <div className="crew-member-actions">
                     {!worker.signature_data && (
                       <button
+                        type="button"
                         className="crew-signin-btn"
                         onClick={() => setSigningWorker(worker.name)}
                         disabled={saving}
+                        aria-label={`Sign in ${worker.name}`}
                         title="Sign in"
                       >
-                        <Pen size={14} />
+                        <Pen size={14} aria-hidden="true" />
                       </button>
                     )}
                     <button
+                      type="button"
                       className="crew-remove-btn"
                       onClick={() => handleRemoveWorker(worker.name)}
                       disabled={saving}
+                      aria-label={`Remove ${worker.name} from crew`}
                     >
-                      ×
+                      <span aria-hidden="true">×</span>
                     </button>
                   </div>
                 </div>
@@ -488,20 +492,24 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
               <div className="crew-member-actions">
                 {!worker.signature_data && (
                   <button
+                    type="button"
                     className="crew-signin-btn"
                     onClick={() => setSigningWorker(worker.name)}
                     disabled={saving}
+                    aria-label={`Sign in ${worker.name}`}
                     title="Sign in"
                   >
-                    <Pen size={14} />
+                    <Pen size={14} aria-hidden="true" />
                   </button>
                 )}
                 <button
+                  type="button"
                   className="crew-remove-btn"
                   onClick={() => handleRemoveWorker(worker.name)}
                   disabled={saving}
+                  aria-label={`Remove ${worker.name} from crew`}
                 >
-                  ×
+                  <span aria-hidden="true">×</span>
                 </button>
               </div>
             </div>

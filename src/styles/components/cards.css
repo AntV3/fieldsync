@@ -362,6 +362,18 @@
   /* Isolate from parent stacking/overflow */
   isolation: isolate;
   z-index: 1;
+  /* Reset button-element defaults (component renders as <button>) */
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.info-tooltip-wrapper:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-full);
 }
 
 .info-tooltip-icon {

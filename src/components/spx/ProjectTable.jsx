@@ -22,10 +22,17 @@ function HeaderCell({ children, className }) {
 }
 
 export default function ProjectTable({ projects = [], onView }) {
+  const handleRowKeyDown = (e, projectId) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onView?.(projectId)
+    }
+  }
+
   return (
-    <div className="w-full">
+    <div className="w-full" role="table" aria-label="Projects">
       {/* Header */}
-      <div className="flex items-center px-[24px] py-[12px] border-b border-border-default">
+      <div className="flex items-center px-[24px] py-[12px] border-b border-border-default" role="row">
         <HeaderCell className={COL_CLASSES.name}>Project</HeaderCell>
         <HeaderCell className={COL_CLASSES.gc}>GC</HeaderCell>
         <HeaderCell className={COL_CLASSES.phase}>Phase</HeaderCell>
@@ -38,8 +45,12 @@ export default function ProjectTable({ projects = [], onView }) {
       {projects.map((project) => (
         <div
           key={project.id}
-          className="flex items-center px-[24px] h-[56px] border-b border-border-muted hover:bg-bg-secondary transition-colors duration-100 cursor-pointer"
+          role="row"
+          tabIndex={0}
+          aria-label={`Open ${project.name}`}
+          className="flex items-center px-[24px] h-[56px] border-b border-border-muted hover:bg-bg-secondary transition-colors duration-100 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue"
           onClick={() => onView?.(project.id)}
+          onKeyDown={(e) => handleRowKeyDown(e, project.id)}
         >
           <div className={`${COL_CLASSES.name} text-[14px] font-medium text-text-primary truncate`}>
             {project.name}
@@ -58,12 +69,16 @@ export default function ProjectTable({ projects = [], onView }) {
           </div>
           <div className={COL_CLASSES.actions}>
             <button
+              type="button"
+              aria-label={`View ${project.name}`}
               className="p-[8px] text-text-secondary hover:text-text-primary transition-colors duration-150"
               onClick={(e) => { e.stopPropagation(); onView?.(project.id) }}
             >
               <Eye size={16} strokeWidth={1.5} />
             </button>
             <button
+              type="button"
+              aria-label={`More options for ${project.name}`}
               className="p-[8px] text-text-secondary hover:text-text-primary transition-colors duration-150"
               onClick={(e) => e.stopPropagation()}
             >

@@ -207,7 +207,14 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
         <div className="modal-content injury-report-modal" onClick={e => e.stopPropagation()}>
           <div className="modal-header">
             <h2>Workplace Injury/Incident Report</h2>
-            <button className="close-btn" onClick={onClose}>&times;</button>
+            <button
+              type="button"
+              className="close-btn"
+              onClick={onClose}
+              aria-label="Close injury report"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
 
           {/* Progress Indicator */}

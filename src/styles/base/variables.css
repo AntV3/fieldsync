@@ -31,7 +31,7 @@
 
   --text-primary: #202020;          /* Primary text, data values */
   --text-secondary: #5F5F5F;        /* Labels, metadata, timestamps */
-  --text-tertiary: #8A8A8A;         /* Disabled states, placeholders */
+  --text-tertiary: #6B6B6B;         /* Disabled states, placeholders (WCAG AA on #FFFFFF) */
 
   --border-subtle: #E0E0E0;         /* Dividers, borders, separators */
 
@@ -49,7 +49,8 @@
   /* ---- Accent Colors (mapped from primary palette) ---- */
   --accent-blue: var(--color-accent);
   --accent-green: var(--color-success);
-  --accent-amber: #F5A623;          /* Warning amber */
+  --accent-amber: #F5A623;          /* Warning amber (fills / icons) */
+  --accent-amber-text: #8B5A00;     /* Amber for text on light bg (WCAG AA on #FFFFFF) */
   --accent-orange: var(--color-accent-warm);
   --accent-red: var(--color-accent-warm);
 
@@ -57,7 +58,8 @@
   /* Never use pure red #FF0000 - use coral #EA6A47 instead */
   --status-success: var(--color-success);     /* Positive variance, up-trends */
   --status-success-bg: #D4EDDA;
-  --status-warning: #F5A623;                  /* Secondary attention only */
+  --status-warning: #8B5A00;                  /* WCAG AA on #FFF3CD and #FFFFFF */
+  --status-warning-fill: #F5A623;             /* Background fills, icons, chart bars */
   --status-warning-bg: #FFF3CD;
   --status-danger: var(--color-accent-warm);  /* Never pure red */
   --status-danger-bg: #FDDDD3;

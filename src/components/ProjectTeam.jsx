@@ -168,12 +168,14 @@ export default function ProjectTeam({ project, company, user, isAdmin, onShowToa
               </div>
               {isAdmin && (
                 <button
+                  type="button"
                   className="btn-icon btn-danger-subtle"
                   onClick={() => handleRemoveMember(member)}
                   disabled={actionLoading === member.id}
+                  aria-label={`Remove ${member.user_name || member.user_email || 'member'} from project`}
                   title="Remove from project"
                 >
-                  <UserMinus size={14} />
+                  <UserMinus size={14} aria-hidden="true" />
                 </button>
               )}
             </div>

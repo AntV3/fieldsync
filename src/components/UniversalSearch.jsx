@@ -157,7 +157,12 @@ export default function UniversalSearch({
         </div>
 
         {/* Results */}
-        <div className="universal-search-results">
+        <div
+          className="universal-search-results"
+          role="listbox"
+          aria-label="Search results"
+          aria-live="polite"
+        >
           {loading ? (
             <div className="universal-search-loading">
               <div className="spinner-small"></div>

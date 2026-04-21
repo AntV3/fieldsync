@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Camera, ChevronDown, Calendar, MapPin, Filter, X, ZoomIn, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react'
 import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
+import { Skeleton } from './ui/Skeleton'
+import { EmptyState, ErrorState } from './ui/ErrorState'
 
 /**
  * PhotoTimeline - Visual progress photo timeline organized by area and date.
@@ -10,6 +12,7 @@ import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
 export default function PhotoTimeline({ projectId, projectName, areas = [], onShowToast }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
   const [selectedArea, setSelectedArea] = useState('all')
   const [selectedDate, setSelectedDate] = useState(null)
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
@@ -26,6 +29,7 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
       return
     }
 
+    setLoadError(null)
     try {
       const [tmResult, reportResult] = await Promise.all([
         supabase
@@ -92,10 +96,14 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
       }
     } catch (err) {
       console.error('Error loading photos:', err)
+      setLoadError(err)
+      if (onShowToast) {
+        onShowToast('Unable to load progress photos', 'error')
+      }
     } finally {
       setLoading(false)
     }
-  }, [projectId])
+  }, [projectId, onShowToast])
 
   useEffect(() => {
     loadPhotos()
@@ -251,7 +259,28 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
           <Camera size={18} />
           <h3>Progress Photos</h3>
         </div>
-        <div className="photo-timeline-loading">Loading photos...</div>
+        <div className="photo-grid photo-grid-skeleton" aria-busy="true" aria-label="Loading progress photos">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} width="100%" height="140px" borderRadius="8px" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="photo-timeline-card">
+        <div className="photo-timeline-header">
+          <Camera size={18} />
+          <h3>Progress Photos</h3>
+        </div>
+        <ErrorState
+          title="Couldn't load photos"
+          message="We hit a snag pulling progress photos from the server."
+          error={loadError}
+          onRetry={loadPhotos}
+        />
       </div>
     )
   }
@@ -299,11 +328,11 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
       </div>
 
       {filteredPhotos.length === 0 ? (
-        <div className="photo-timeline-empty">
-          <Camera size={32} style={{ opacity: 0.3 }} />
-          <p>No photos yet</p>
-          <span>Photos from Time and Material tickets and daily reports will appear here</span>
-        </div>
+        <EmptyState
+          icon={Camera}
+          title="No photos yet"
+          message="Photos from Time & Material tickets and daily reports will appear here once your crew starts capturing them."
+        />
       ) : (
         <div className="photo-timeline-body">
           {/* Controls row */}
@@ -374,11 +403,20 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
                 <div
                   key={photo.id}
                   className="photo-grid-item"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={photo.description ? `Open photo: ${photo.description}` : `Open ${photo.source} photo from ${formatDateShort(photo.date)}`}
                   onClick={() => openLightbox(photo)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      openLightbox(photo)
+                    }
+                  }}
                 >
                   {failedImages.has(photo.id) ? (
                     <div className="photo-grid-placeholder">
-                      <Camera size={20} />
+                      <Camera size={20} aria-hidden="true" />
                       <span>Unable to load</span>
                     </div>
                   ) : (
@@ -389,14 +427,14 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
                       onError={() => handleImageError(photo.id)}
                     />
                   )}
-                  <div className="photo-grid-overlay">
+                  <div className="photo-grid-overlay" aria-hidden="true">
                     <ZoomIn size={18} />
                   </div>
                   <div className="photo-grid-meta">
                     <span className="photo-source-badge">{photo.source}</span>
                     {getAreaName(photo.areaId) && (
                       <span className="photo-area-badge">
-                        <MapPin size={10} />
+                        <MapPin size={10} aria-hidden="true" />
                         {getAreaName(photo.areaId)}
                       </span>
                     )}
@@ -415,7 +453,7 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
               {availableDates.map(date => (
                 <div key={date} className="photo-date-group">
                   <div className="photo-date-group-header">
-                    <Calendar size={14} />
+                    <Calendar size={14} aria-hidden="true" />
                     <span className="photo-date-group-label">{formatDate(date)}</span>
                     <span className="photo-date-group-count">{photosByDate[date]?.length || 0}</span>
                   </div>
@@ -424,11 +462,20 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
                       <div
                         key={photo.id}
                         className="photo-grid-item"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={photo.description ? `Open photo: ${photo.description}` : `Open ${photo.source} photo from ${formatDateShort(photo.date)}`}
                         onClick={() => openLightbox(photo)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            openLightbox(photo)
+                          }
+                        }}
                       >
                         {failedImages.has(photo.id) ? (
                           <div className="photo-grid-placeholder">
-                            <Camera size={20} />
+                            <Camera size={20} aria-hidden="true" />
                             <span>Unable to load</span>
                           </div>
                         ) : (
@@ -439,14 +486,14 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
                             onError={() => handleImageError(photo.id)}
                           />
                         )}
-                        <div className="photo-grid-overlay">
+                        <div className="photo-grid-overlay" aria-hidden="true">
                           <ZoomIn size={18} />
                         </div>
                         <div className="photo-grid-meta">
                           <span className="photo-source-badge">{photo.source}</span>
                           {getAreaName(photo.areaId) && (
                             <span className="photo-area-badge">
-                              <MapPin size={10} />
+                              <MapPin size={10} aria-hidden="true" />
                               {getAreaName(photo.areaId)}
                             </span>
                           )}

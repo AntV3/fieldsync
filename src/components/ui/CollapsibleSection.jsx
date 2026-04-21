@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useId, useState, memo } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 /**
@@ -24,6 +24,7 @@ const CollapsibleSection = memo(function CollapsibleSection({
   children
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const panelId = useId()
 
   return (
     <div className={`collapsible-section collapsible-${variant} ${isOpen ? 'is-open' : 'is-closed'} ${className}`}>
@@ -31,6 +32,7 @@ const CollapsibleSection = memo(function CollapsibleSection({
         className="collapsible-header"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
+        aria-controls={panelId}
         type="button"
       >
         <div className="collapsible-header-left">
@@ -45,11 +47,13 @@ const CollapsibleSection = memo(function CollapsibleSection({
           <div className="collapsible-summary">{summary}</div>
         )}
       </button>
-      {isOpen && (
-        <div className="collapsible-body">
-          {children}
-        </div>
-      )}
+      <div
+        id={panelId}
+        className="collapsible-body"
+        hidden={!isOpen}
+      >
+        {isOpen && children}
+      </div>
     </div>
   )
 })

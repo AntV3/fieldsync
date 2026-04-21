@@ -89,59 +89,6 @@ const ConfirmDialog = memo(function ConfirmDialog({
           </button>
         </div>
       </div>
-
-      <style>{`
-        .confirm-dialog .modal-body {
-          padding: 0;
-        }
-
-        .confirm-dialog-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          padding: var(--space-xl, 2rem) var(--space-lg, 1.5rem);
-          gap: var(--space-sm, 0.5rem);
-        }
-
-        .confirm-dialog-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-          border-radius: var(--radius-lg, 12px);
-          margin-bottom: var(--space-xs, 0.25rem);
-        }
-
-        .confirm-dialog-title {
-          font-size: var(--font-size-lg, 1.125rem);
-          font-weight: var(--font-weight-semibold, 600);
-          color: var(--text-primary);
-          margin: 0;
-        }
-
-        .confirm-dialog-message {
-          font-size: var(--font-size-sm, 0.875rem);
-          color: var(--text-secondary);
-          margin: 0;
-          line-height: var(--line-height-normal, 1.5);
-          max-width: 320px;
-        }
-
-        .confirm-dialog-actions {
-          display: flex;
-          gap: var(--space-sm, 0.5rem);
-          margin-top: var(--space-md, 1rem);
-          width: 100%;
-          justify-content: center;
-        }
-
-        .confirm-dialog-actions .btn {
-          min-width: 100px;
-          justify-content: center;
-        }
-      `}</style>
     </Modal>
   )
 })
