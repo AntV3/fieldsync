@@ -1073,6 +1073,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               areasWorking={areasWorking}
               areasNotStarted={areasNotStarted}
               companyId={company?.id}
+              company={company}
               onShowToast={onShowToast}
               onSetActiveTab={setActiveProjectTab}
               onExportFieldDocuments={handleExportFieldDocuments}

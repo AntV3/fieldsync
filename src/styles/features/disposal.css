@@ -484,6 +484,119 @@
   font-size: 0.85rem;
 }
 
+/* Header Actions (period selector + export) */
+.disposal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.disposal-period-select {
+  position: relative;
+  display: inline-flex;
+}
+
+.disposal-period-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.3rem 1.4rem 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 10px) 50%, calc(100% - 6px) 50%;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition-normal), border-color var(--transition-normal);
+}
+
+.disposal-period-select select:hover,
+.disposal-period-select select:focus {
+  background-color: var(--bg-hover, var(--bg-elevated));
+  border-color: var(--border-color);
+  outline: none;
+}
+
+.disposal-export-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.disposal-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-normal), border-color var(--transition-normal), opacity var(--transition-normal);
+  font-family: inherit;
+}
+
+.disposal-export-btn:hover:not(:disabled) {
+  background: var(--bg-hover, var(--bg-secondary));
+}
+
+.disposal-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.disposal-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  z-index: 20;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.disposal-export-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background var(--transition-normal);
+}
+
+.disposal-export-menu-item:hover {
+  background: var(--bg-hover, var(--bg-elevated));
+}
+
+.disposal-period-indicator {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  align-self: center;
+  white-space: nowrap;
+}
+
 /* Totals Row */
 .disposal-totals-row {
   display: flex;

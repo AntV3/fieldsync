@@ -19,6 +19,7 @@ export default function OverviewTab({
   areasWorking,
   areasNotStarted,
   companyId,
+  company,
   onShowToast,
   onSetActiveTab,
   onExportFieldDocuments
@@ -143,7 +144,9 @@ export default function OverviewTab({
         <>
           <DisposalSummary
             project={selectedProject}
+            company={company}
             period="week"
+            onShowToast={onShowToast}
           />
           <div className="overview-section-card" role="region" aria-label="Truck and load entry">
             <DisposalLoadInput
