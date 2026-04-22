@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Truck, ChevronDown, ChevronUp, Box, Trash2, Wrench, Biohazard, Coins, Construction, Package } from 'lucide-react'
+import {
+  Truck, ChevronDown, ChevronUp, Box, Trash2, Wrench, Biohazard, Coins,
+  Construction, Package, Download, FileText, FileSpreadsheet
+} from 'lucide-react'
 import { db } from '../lib/supabase'
+import { useBranding } from '../lib/BrandingContext'
 
 const LOAD_TYPES = [
   { value: 'concrete', label: 'Concrete', Icon: Box },
@@ -13,11 +17,25 @@ const LOAD_TYPES = [
 
 const getLoadTypeInfo = (type) => LOAD_TYPES.find(t => t.value === type) || { label: type, Icon: Package }
 
-export default function DisposalSummary({ project, period = 'week' }) {
+const PERIOD_OPTIONS = [
+  { value: 'week', label: 'Last 7 days', days: 7 },
+  { value: 'biweek', label: 'Last 14 days', days: 14 },
+  { value: 'month', label: 'Last 30 days', days: 30 },
+  { value: 'quarter', label: 'Last 90 days', days: 90 }
+]
+
+const getPeriodDays = (period) => PERIOD_OPTIONS.find(p => p.value === period)?.days ?? 7
+const getPeriodLabel = (period) => PERIOD_OPTIONS.find(p => p.value === period)?.label ?? 'Last 7 days'
+
+export default function DisposalSummary({ project, company, period: initialPeriod = 'week', onShowToast }) {
+  const { branding } = useBranding()
+  const [period, setPeriod] = useState(initialPeriod)
   const [loads, setLoads] = useState([])
   const [truckCounts, setTruckCounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     if (project?.id) {
@@ -25,10 +43,20 @@ export default function DisposalSummary({ project, period = 'week' }) {
     }
   }, [project?.id, period])
 
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!exportMenuOpen) return
+    const handler = (e) => {
+      if (!e.target.closest?.('.disposal-export-wrap')) setExportMenuOpen(false)
+    }
+    window.addEventListener('click', handler)
+    return () => window.removeEventListener('click', handler)
+  }, [exportMenuOpen])
+
   const loadData = async () => {
     try {
       setLoading(true)
-      const days = period === 'week' ? 7 : period === 'month' ? 30 : 14
+      const days = getPeriodDays(period)
       const [loadsData, trucksData] = await Promise.all([
         db.getDisposalLoadsHistory(project.id, days),
         db.getTruckCountHistory?.(project.id, days) || []
@@ -78,6 +106,61 @@ export default function DisposalSummary({ project, period = 'week' }) {
     return acc
   }, {})
 
+  const handleExportPdf = async () => {
+    setExportMenuOpen(false)
+    if (!hasLoads) {
+      onShowToast?.('No disposal loads to export', 'error')
+      return
+    }
+    setExporting(true)
+    onShowToast?.('Generating disposal log...', 'info')
+    try {
+      const { generateDisposalLoadsPDF } = await import('../lib/disposalLoadPdfGenerator')
+      const result = await generateDisposalLoadsPDF({
+        loads,
+        truckCounts,
+        project,
+        company,
+        branding: {
+          primaryColor: branding?.primary_color
+        }
+      })
+      if (result?.success) {
+        onShowToast?.(`Exported ${result.totalLoads} load${result.totalLoads !== 1 ? 's' : ''} to PDF`, 'success')
+      }
+    } catch (err) {
+      console.error('Disposal PDF export failed:', err)
+      onShowToast?.('Export failed', 'error')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleExportCsv = async () => {
+    setExportMenuOpen(false)
+    if (!hasLoads) {
+      onShowToast?.('No disposal loads to export', 'error')
+      return
+    }
+    setExporting(true)
+    try {
+      const { exportDisposalLoadsCSV } = await import('../lib/disposalLoadPdfGenerator')
+      const result = exportDisposalLoadsCSV({
+        loads,
+        truckCounts,
+        project
+      })
+      if (result?.success) {
+        onShowToast?.('Disposal CSV downloaded', 'success')
+      }
+    } catch (err) {
+      console.error('Disposal CSV export failed:', err)
+      onShowToast?.('Export failed', 'error')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="disposal-summary-card">
@@ -99,9 +182,55 @@ export default function DisposalSummary({ project, period = 'week' }) {
           <Truck size={18} />
           <span>Disposal Loads</span>
         </div>
-        <span className="period-badge">
-          {period === 'week' ? 'Last 7 days' : period === 'month' ? 'Last 30 days' : 'Last 14 days'}
-        </span>
+        <div className="disposal-header-actions">
+          <label className="disposal-period-select" aria-label="Select period">
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+            >
+              {PERIOD_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="disposal-export-wrap">
+            <button
+              type="button"
+              className="disposal-export-btn"
+              onClick={() => setExportMenuOpen(v => !v)}
+              disabled={exporting || !hasLoads}
+              aria-haspopup="menu"
+              aria-expanded={exportMenuOpen}
+              title={hasLoads ? 'Export disposal documentation' : 'No loads to export'}
+            >
+              <Download size={14} />
+              <span>{exporting ? 'Exporting…' : 'Export'}</span>
+              <ChevronDown size={12} />
+            </button>
+            {exportMenuOpen && (
+              <div className="disposal-export-menu" role="menu">
+                <button
+                  type="button"
+                  className="disposal-export-menu-item"
+                  onClick={handleExportPdf}
+                  role="menuitem"
+                >
+                  <FileText size={14} />
+                  <span>PDF (printable)</span>
+                </button>
+                <button
+                  type="button"
+                  className="disposal-export-menu-item"
+                  onClick={handleExportCsv}
+                  role="menuitem"
+                >
+                  <FileSpreadsheet size={14} />
+                  <span>CSV (spreadsheet)</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {!hasLoads ? (
@@ -127,6 +256,7 @@ export default function DisposalSummary({ project, period = 'week' }) {
                 )}
               </div>
             )}
+            <div className="disposal-period-indicator" aria-hidden="true">{getPeriodLabel(period)}</div>
           </div>
 
           {/* By Type Breakdown */}
