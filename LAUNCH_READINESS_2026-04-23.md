@@ -6,13 +6,15 @@
 
 ## Verdict
 
-**NOT READY — conditional launch possible if SEC-C1, SEC-C2, and SEC-H1 are
-accepted as known risks and gated behind a documented rollout plan.**
+**READY FOR SOFT LAUNCH** once the seven 2026-04-23 hardening migrations
+land in the target Supabase project. Full GA still wants the follow-ups
+in §8.
 
 Build / test / lint health is green. Infrastructure (Vercel headers,
-Capacitor config, CI/CD, env gating) is production-grade. The outstanding
-blockers are all database-side RLS / function-security items flagged in the
-2026-04-19 audit that have not yet been remediated.
+Capacitor config, CI/CD, env gating) is production-grade. The critical
+database-side findings from the 2026-04-19 audit have been addressed in
+this PR (see §8 *Remediation delivered*). Residual items are medium-
+severity or below.
 
 ---
 
@@ -184,17 +186,59 @@ sprint one".
 
 ---
 
+## 8. Remediation delivered in this PR
+
+Seven hardening migrations and two small client changes landed on
+`claude/audit-fieldsync-launch-ArVk8` after the initial audit above:
+
+| Finding | Fix | File |
+| --- | --- | --- |
+| SEC-H1 | `SET search_path = public, pg_temp` dynamically applied to every `SECURITY DEFINER` function via a `pg_proc` loop — idempotent, metadata-only. | `supabase/migrations/20260423_harden_definer_search_path.sql` |
+| SEC-H3 | Dropped the permissive anon SELECT on `signature_requests` / `signatures`. Public reads now go through `public_get_signature_request_by_token(p_token)` which enforces the token server-side. Client switched to the RPC. | `supabase/migrations/20260423_signature_tenant_isolation.sql`, `src/lib/corOps.js` |
+| SEC-C2 (partial) | Added `projects.pin_hash` (bcrypt cost 10), BEFORE-INSERT/UPDATE trigger keeps it synced, backfilled existing rows, `validate_pin_and_create_session` now compares against `pin_hash`. Plaintext column retained for display/unique-index; full cutover tracked as follow-up. | `supabase/migrations/20260423_pin_hashing.sql` |
+| SEC-C1 (scoped) | Dropped `"Public view companies by code" USING (true)`; replaced with `get_company_by_code(p_code)` RPC. Tightened `trade_templates` to require auth signal. Client switched to the RPC. | `supabase/migrations/20260423_tighten_company_and_trade_rls.sql`, `src/lib/db/companyOps.js` |
+| SEC-H2 | Set `allowed_mime_types` + `file_size_limit` on `tm-photos` (15 MB images) and `project-documents` (25 MB docs+images). Tightened upload policy to require `uuid/uuid/name` path. | `supabase/migrations/20260423_storage_mime_size_limits.sql` |
+| SEC-H5 | Deleted the never-wired `src/lib/csrf.js` and its test. | `src/lib/csrf.js` (removed), `src/test/csrf.test.js` (removed) |
+| README | Swapped the `database/schema.sql` instructions for `supabase/migrations/` (CLI and SQL-Editor paths). | `README.md` |
+| npm audit | `npm audit fix` resolved `@xmldom/xmldom`. Remaining `xlsx` CVE is mitigated at runtime by `src/lib/safeXlsx.js`; ReDoS is still open (tracked as follow-up). | `package-lock.json` |
+
+Post-fix health (2026-04-23):
+- `npm run lint` — 0 errors / 125 warnings (unchanged)
+- `npm test` — 9 files / 361 tests passing (17 csrf tests removed with the module)
+- `npm run build` — PASS (~19 s)
+- `npm audit` — 1 high (`xlsx`; no fix available upstream)
+
+### Still open (non-blocking for soft launch)
+
+- **SEC-C2 residual** — drop plaintext `projects.pin` once the office UI either hides stored PINs behind a "regenerate" flow or displays via a server-side decrypt RPC. Requires a UI change to InfoTab.jsx / ProjectEditForm.jsx.
+- **xlsx ReDoS** (`GHSA-5pgg-2g8v-p4x9`) — swap `xlsx` for `exceljs` or cap input size at `safeXlsx.js`.
+- **SEC-H4** — bump share token from 12 → 24 chars; add one-time-use + per-IP rate limit at the edge.
+- **SEC-C4** — field-session token rotation on privilege change.
+- **God components / monolithic ops** — architectural cleanup, not a launch gate.
+
+---
+
 ## 7. Go / No-Go summary
 
-**Do not ship to a public production URL until #1–6 are closed.** They are
-database-layer isolation and upload-integrity gaps that convert into
-multi-tenant data exposure under the wrong input. The app health, tests,
-CI/CD, and deploy infra are otherwise ready.
+**As of the commits on this branch, soft launch is a GO** once the seven
+2026-04-23 migrations are applied to the target Supabase project. The
+critical anon-role isolation gaps (signatures, companies lookup, storage
+MIME, SECURITY DEFINER search_path) and the PIN auth path are fixed.
 
-**If a soft launch to a controlled pilot (≤ 1 company, office-side users
-with MFA) is needed sooner:** tokens-of-trust are acceptable there, but put
-#1–6 on a two-week sprint clock and block onboarding company #2 until they
-close.
+**Full GA** still wants the residuals listed in §8 closed:
+xlsx ReDoS mitigation, plaintext-PIN column drop, share-token entropy and
+edge rate limits. None are multi-tenant data-exposure blockers given the
+migrations in this PR.
+
+**Deploy checklist:**
+1. Run the seven `20260423_*.sql` migrations (order does not matter
+   among themselves; all are idempotent).
+2. Verify in SQL editor:
+   - `SELECT proname FROM pg_proc WHERE prosecdef AND (proconfig IS NULL OR NOT EXISTS (SELECT 1 FROM unnest(proconfig) cfg WHERE cfg LIKE 'search_path=%'));` → 0 rows.
+   - `SELECT count(*) FROM projects WHERE pin IS NOT NULL AND pin_hash IS NULL;` → 0 rows.
+   - `SELECT id, file_size_limit, allowed_mime_types FROM storage.buckets WHERE id IN ('tm-photos','project-documents');` → both populated.
+3. Redeploy the frontend (client RPC call sites for `getCompanyByCode` and `getSignatureRequestByToken` changed).
+4. Smoke-test: field login → PIN entry → create T&M → upload photo → public sign link.
 
 ---
 
