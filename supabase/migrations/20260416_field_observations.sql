@@ -92,6 +92,12 @@ CREATE POLICY "Secure field delete observations"
     )
   );
 
+-- Field users authenticate with the anon JWT + x-field-session header,
+-- so anon needs table-level privileges for RLS to ever be evaluated.
+-- (Mirrors disposal_loads / daily_reports / punch_list_items.)
+GRANT SELECT, INSERT, UPDATE, DELETE ON field_observations TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON field_observations TO authenticated;
+
 -- ============================================================
 -- SUCCESS MESSAGE
 -- ============================================================
