@@ -10,7 +10,7 @@ const FALLBACK_CONFIG = {
   trade_name: null,
   worker_roles: Object.values(WORKER_ROLES),
   document_categories: DOCUMENT_CATEGORIES,
-  field_actions: ['crew', 'tm', 'report', 'progress', 'disposal', 'docs', 'punchlist', 'injury'],
+  field_actions: ['crew', 'tm', 'report', 'progress', 'observations', 'disposal', 'docs', 'punchlist', 'injury'],
   dashboard_widgets: ['progress_gauge', 'financial_card', 'crew_metrics', 'earned_value'],
   custom_fields: {},
   kpis: [],
