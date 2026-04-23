@@ -122,6 +122,11 @@ export default function ForemanLanding({
       }
       actions = Object.keys(filtered).length > 0 ? filtered : BASE_ACTIONS
     }
+    // Field Observations is a trade-agnostic action every foreman needs.
+    // Ensure it's present even for configs saved before it was introduced.
+    if (!actions.observations) {
+      actions = { ...actions, observations: BASE_ACTIONS.observations }
+    }
     // Only show disposal action when truck load tracking is enabled
     if (!truckLoadTrackingEnabled) {
       // eslint-disable-next-line no-unused-vars -- `disposal` is extracted to omit it from `rest`
