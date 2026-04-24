@@ -33,9 +33,25 @@ For real multi-device sync, you'll need to set up Supabase (free tier works fine
 
 ### 2. Set Up the Database
 
-1. In your Supabase dashboard, go to **SQL Editor**
-2. Copy the contents of `database/schema.sql`
-3. Paste and run it
+The canonical schema lives in `supabase/migrations/` — apply every
+migration in filename order.
+
+**Option A — Supabase CLI (recommended).** Link the project once,
+then push:
+
+```bash
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
+```
+
+**Option B — SQL Editor.** Open the Supabase dashboard **SQL Editor**
+and run each file under `supabase/migrations/` in lexicographic
+order (they are timestamp-prefixed, e.g. `20241215_*.sql` first,
+`20260423_*.sql` last).
+
+> The legacy `database/` directory contains historical flat files
+> applied to the original prod database. Treat it as read-only
+> history — all new schema work goes through `supabase/migrations/`.
 
 ### 3. Get Your API Keys
 

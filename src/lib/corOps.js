@@ -1798,7 +1798,11 @@ export const corOps = {
     return null
   },
 
-  // Get signature request by token (for public signing page)
+  // Get signature request by token (for public signing page).
+  // Routed through the public_get_signature_request_by_token RPC
+  // so the DB enforces the token rather than relying on the caller
+  // to filter. Anon no longer has direct SELECT on these tables —
+  // see supabase/migrations/20260423_signature_tenant_isolation.sql.
   async getSignatureRequestByToken(token) {
     if (isSupabaseConfigured) {
       const client = getClient()
@@ -1806,17 +1810,10 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
-      // Increment view count
       await client.rpc('increment_signature_view_count', { token })
 
       const { data, error } = await client
-        .from('signature_requests')
-        .select(`
-          *,
-          signatures (*)
-        `)
-        .eq('signature_token', token)
-        .single()
+        .rpc('public_get_signature_request_by_token', { p_token: token })
       if (error) throw error
       return data
     }

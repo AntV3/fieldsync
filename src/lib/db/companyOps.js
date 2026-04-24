@@ -14,11 +14,12 @@ export const companyOps = {
 
   async getCompanyByCode(code) {
     if (isSupabaseConfigured) {
+      // Routed through the get_company_by_code RPC so the DB can
+      // return only the matching row. Anon direct SELECT on
+      // `companies` was revoked in 20260423_tighten_company_and_trade_rls.sql
+      // to close the pre-login enumeration path.
       const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .ilike('code', code.trim())
-        .single()
+        .rpc('get_company_by_code', { p_code: code })
       if (error) {
         console.error('[Company Lookup] Error:', {
           message: error.message,
