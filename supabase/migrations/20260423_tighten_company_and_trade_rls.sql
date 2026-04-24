@@ -83,7 +83,8 @@ GRANT EXECUTE ON FUNCTION get_company_by_code(TEXT) TO anon, authenticated;
 REVOKE SELECT ON companies FROM anon;
 
 -- 2. Trade templates: tighten USING (true) → require any auth signal.
-DROP POLICY IF EXISTS "Anyone can read trade templates" ON trade_templates;
+DROP POLICY IF EXISTS "Anyone can read trade templates"         ON trade_templates;
+DROP POLICY IF EXISTS "Authed callers can read trade templates" ON trade_templates;
 CREATE POLICY "Authed callers can read trade templates"
   ON trade_templates FOR SELECT
   USING (
