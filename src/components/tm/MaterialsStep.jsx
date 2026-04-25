@@ -12,7 +12,7 @@ import { db } from '../../lib/supabase'
  *  - t, lang
  *  - onShowToast
  */
-export default function MaterialsStep({ companyId, items, setItems, t, lang, onShowToast }) {
+export default function MaterialsStep({ companyId, items, setItems, t, lang: _lang, onShowToast }) {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categoryItems, setCategoryItems] = useState([])
   const [loadingItems, setLoadingItems] = useState(false)

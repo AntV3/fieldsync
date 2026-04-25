@@ -63,7 +63,6 @@ export default function OverviewTab({
           equipmentCost={projectData?.projectEquipmentCost || 0}
           materialsCost={projectData?.materialsEquipmentCost || 0}
           otherCost={projectData?.customCostTotal || 0}
-          contractValue={revisedContractValue}
         />
       </div>
 

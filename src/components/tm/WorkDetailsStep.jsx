@@ -16,7 +16,7 @@ export default function WorkDetailsStep({
   workDate, setWorkDate,
   cePcoNumber, setCePcoNumber,
   notes, setNotes,
-  t, lang
+  t, lang: _lang
 }) {
   return (
     <div className="tm-step-content">
