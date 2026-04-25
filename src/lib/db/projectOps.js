@@ -611,7 +611,8 @@ export const projectOps = {
           p_pin: pin,
           p_company_code: companyCode,
           p_device_id: deviceId,
-          p_ip_address: null // IP is not available client-side
+          p_ip_address: null, // IP is not available client-side
+          p_remember: remember
         })
 
       if (error) {
