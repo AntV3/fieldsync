@@ -3,7 +3,6 @@ import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRigh
 import { formatCurrency } from '../../../lib/utils'
 import { OverviewProgressGauge, OverviewFinancialCard, OverviewCrewMetrics } from '../../overview'
 import DisposalSummary from '../../DisposalSummary'
-import DisposalLoadInput from '../../DisposalLoadInput'
 import { useTradeConfig } from '../../../lib/TradeConfigContext'
 const PunchList = lazy(() => import('../../PunchList'))
 
@@ -139,26 +138,17 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Row 5: Disposal Loads & Truck Tracking (only when enabled) */}
+      {/* Row 4: Disposal Loads (read-only summary; entry is field-only) */}
       {truckLoadTrackingEnabled && (
-        <>
-          <DisposalSummary
-            project={selectedProject}
-            company={company}
-            period="week"
-            onShowToast={onShowToast}
-          />
-          <div className="overview-section-card" role="region" aria-label="Truck and load entry">
-            <DisposalLoadInput
-              project={selectedProject}
-              date={new Date().toISOString().split('T')[0]}
-              onShowToast={onShowToast}
-            />
-          </div>
-        </>
+        <DisposalSummary
+          project={selectedProject}
+          company={company}
+          period="week"
+          onShowToast={onShowToast}
+        />
       )}
 
-      {/* Row 6: Punch List */}
+      {/* Row 5: Punch List */}
       <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
         <PunchList
           projectId={selectedProject?.id}
@@ -168,7 +158,7 @@ export default function OverviewTab({
         />
       </Suspense>
 
-      {/* Row 7: Quick Nav + Exports */}
+      {/* Row 6: Quick Nav + Exports */}
       <div className="overview-bottom-strip">
         <div className="overview-quick-actions">
           <button className="overview-action-btn" onClick={() => onSetActiveTab('reports')}>
