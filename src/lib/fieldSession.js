@@ -3,46 +3,136 @@
  *
  * Field workers authenticate via PIN and receive a session token.
  * This token must be included in all subsequent requests.
+ *
+ * By default a session lives in sessionStorage (cleared on tab close).
+ * If the foreman opts in to "Remember me on this device", the session is
+ * written to localStorage with an expiration so they skip company code +
+ * PIN entry on the next visit.
  */
 
 import { createClient } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from './supabaseClient'
 
 const FIELD_SESSION_KEY = 'fieldsync_field_session'
+const REMEMBER_DURATION_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 // Store field session data in memory
 let fieldSessionData = null
 
+const safeGet = (storage) => {
+  try { return storage.getItem(FIELD_SESSION_KEY) } catch (_e) { return null }
+}
+const safeSet = (storage, value) => {
+  try { storage.setItem(FIELD_SESSION_KEY, value) } catch (_e) { /* ignore */ }
+}
+const safeRemove = (storage) => {
+  try { storage.removeItem(FIELD_SESSION_KEY) } catch (_e) { /* ignore */ }
+}
+
+const isExpired = (session) => {
+  if (!session?.expiresAt) return false
+  const ts = Date.parse(session.expiresAt)
+  if (Number.isNaN(ts)) return false
+  return Date.now() > ts
+}
+
+const readSession = (storage) => {
+  const raw = safeGet(storage)
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (isExpired(parsed)) {
+      safeRemove(storage)
+      return null
+    }
+    return parsed
+  } catch (_e) {
+    return null
+  }
+}
+
 /**
- * Get stored field session from memory or sessionStorage
+ * Get stored field session from memory, sessionStorage, or localStorage.
+ *
+ * Lookup order (first match wins):
+ *   1. in-memory cache
+ *   2. sessionStorage (current-tab session)
+ *   3. localStorage (remember-me session, scoped by expiration)
+ *
  * @returns {Object|null} Session data with token, projectId, companyId
  */
 export const getFieldSession = () => {
-  if (fieldSessionData) return fieldSessionData
+  if (fieldSessionData && !isExpired(fieldSessionData)) return fieldSessionData
+  if (fieldSessionData && isExpired(fieldSessionData)) fieldSessionData = null
 
-  try {
-    const stored = sessionStorage.getItem(FIELD_SESSION_KEY)
-    if (stored) {
-      fieldSessionData = JSON.parse(stored)
-      return fieldSessionData
-    }
-  } catch (_e) {
-    // Ignore parse errors
+  if (typeof window === 'undefined') return null
+
+  const sessionScoped = readSession(window.sessionStorage)
+  if (sessionScoped) {
+    fieldSessionData = sessionScoped
+    return sessionScoped
   }
+
+  const remembered = readSession(window.localStorage)
+  if (remembered) {
+    fieldSessionData = remembered
+    return remembered
+  }
+
   return null
 }
 
 /**
- * Save field session to memory and sessionStorage
- * @param {Object|null} session - Session data to save
+ * Save field session to memory and storage.
+ *
+ * @param {Object|null} session - Session data to save (null clears all storage)
+ * @param {Object} [options]
+ * @param {boolean} [options.remember=false] - Persist to localStorage with
+ *   an expiration so the foreman doesn't have to re-enter company code + PIN
+ *   on subsequent visits. When false (default), behaves like before and
+ *   stores the session in sessionStorage only.
  */
-export const setFieldSession = (session) => {
-  fieldSessionData = session
-  if (session) {
-    sessionStorage.setItem(FIELD_SESSION_KEY, JSON.stringify(session))
-  } else {
-    sessionStorage.removeItem(FIELD_SESSION_KEY)
+export const setFieldSession = (session, options = {}) => {
+  if (typeof window === 'undefined') {
+    fieldSessionData = session
+    return
   }
+
+  // Always start clean to avoid mismatched state across storages.
+  safeRemove(window.sessionStorage)
+  safeRemove(window.localStorage)
+
+  if (!session) {
+    fieldSessionData = null
+    return
+  }
+
+  const remember = Boolean(options.remember)
+  const enriched = remember
+    ? {
+        ...session,
+        remembered: true,
+        expiresAt: session.expiresAt
+          || new Date(Date.now() + REMEMBER_DURATION_MS).toISOString()
+      }
+    : session
+
+  fieldSessionData = enriched
+  const serialized = JSON.stringify(enriched)
+  if (remember) {
+    safeSet(window.localStorage, serialized)
+  } else {
+    safeSet(window.sessionStorage, serialized)
+  }
+}
+
+/**
+ * Whether the current (or persisted) session was opted in to remember-me.
+ * @returns {boolean}
+ */
+export const isRememberedSession = () => {
+  const s = getFieldSession()
+  return Boolean(s?.remembered)
 }
 
 /**
@@ -155,6 +245,7 @@ export default {
   getSupabaseClient,
   getClient,
   isFieldMode,
+  isRememberedSession,
   getFieldProjectId,
   getFieldCompanyId
 }

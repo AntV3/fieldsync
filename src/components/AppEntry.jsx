@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { HardHat, Briefcase, Building2, UserPlus, Eye, EyeOff, Check, ChevronRight, ArrowLeft } from 'lucide-react'
-import { db, supabase } from '../lib/supabase'
+import { db, supabase, getFieldSession, clearFieldSession } from '../lib/supabase'
 import Logo from './Logo'
 
 // Password strength calculator
@@ -125,6 +125,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   const [foremanName, setForemanName] = useState(() => {
     try { return localStorage.getItem('fieldsync_foreman_name') || '' } catch { return '' }
   })
+  const [rememberMe, setRememberMe] = useState(true)
 
   // Refs for timeout cleanup to prevent memory leaks
   const pinResetTimeoutRef = useRef(null)
@@ -137,6 +138,47 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
       if (pinSubmitTimeoutRef.current) clearTimeout(pinSubmitTimeoutRef.current)
     }
   }, [])
+
+  // Auto-skip company code + PIN when foreman opted in to remember-me.
+  // The session token is still valid; we just rebuild the company/project
+  // shapes so the UI lands on the name confirmation step.
+  useEffect(() => {
+    if (mode !== 'foreman') return
+    if (foundProject) return
+    const session = getFieldSession()
+    if (!session?.remembered) return
+    if (!session.projectId || !session.companyId) return
+
+    const remembered = {
+      id: session.projectId,
+      name: session.projectName,
+      company_id: session.companyId,
+      status: 'active'
+    }
+    setCompany({
+      id: session.companyId,
+      name: session.companyName,
+      code: session.companyCode || ''
+    })
+    setFoundProject(remembered)
+
+    const savedName = (() => {
+      try { return localStorage.getItem('fieldsync_foreman_name') || '' } catch { return '' }
+    })()
+    if (savedName.trim()) {
+      onForemanAccess(remembered, savedName.trim())
+    }
+  }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const forgetRememberedSession = async () => {
+    try { await clearFieldSession() } catch (_e) { /* ignore */ }
+    setFoundProject(null)
+    setCompany(null)
+    setCompanyCode('')
+    setPin('')
+    setPinState('')
+    setRememberMe(true)
+  }
 
   // Office state
   const [email, setEmail] = useState('')
@@ -196,7 +238,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
     setPinState('')
 
     try {
-      const result = await db.getProjectByPinSecure(pinToSubmit, company.code)
+      const result = await db.getProjectByPinSecure(pinToSubmit, company.code, { remember: rememberMe })
 
       if (result.rateLimited) {
         setPinState('error')
@@ -720,6 +762,7 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
   if (mode === 'foreman') {
     // Step 3: Name entry (after PIN success)
     if (foundProject) {
+      const fromRemembered = Boolean(getFieldSession()?.remembered)
       return (
         <div className="entry-container">
           <div className="entry-card animate-fade-in">
@@ -755,14 +798,14 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
             <button
               className="entry-join-link"
               style={{ marginTop: '0.5rem', display: 'flex', alignSelf: 'center' }}
-              onClick={() => {
+              onClick={fromRemembered ? forgetRememberedSession : () => {
                 setFoundProject(null)
                 setPin('')
                 setPinState('')
               }}
             >
               <ArrowLeft size={16} />
-              <span>Back</span>
+              <span>{fromRemembered ? 'Switch project' : 'Back'}</span>
             </button>
           </div>
         </div>
@@ -861,6 +904,29 @@ export default function AppEntry({ onForemanAccess, onOfficeLogin, onShowToast }
               <ArrowLeft size={18} />
             </button>
           </div>
+
+          <label
+            className="checkbox-label"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              marginTop: '1rem',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={loading}
+              style={{ cursor: 'pointer' }}
+            />
+            <span>Remember me on this device</span>
+          </label>
 
           {loading && (
             <div className="entry-loading">

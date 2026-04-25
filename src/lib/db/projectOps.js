@@ -579,7 +579,10 @@ export const projectOps = {
 
   // Secure PIN lookup with rate limiting and session creation
   // Returns a session token that must be used for all subsequent requests
-  async getProjectByPinSecure(pin, companyCode) {
+  // options.remember — persist the resulting session to localStorage so the
+  // foreman can skip company code + PIN entry on subsequent visits
+  async getProjectByPinSecure(pin, companyCode, options = {}) {
+    const remember = Boolean(options.remember)
     if (isSupabaseConfigured) {
       // CLIENT-SIDE RATE LIMITING (defense-in-depth)
       const rateLimitKey = `pin_attempts_${companyCode}`
@@ -668,8 +671,9 @@ export const projectOps = {
         companyId: result.company_id,
         projectName: result.project_name,
         companyName: result.company_name,
+        companyCode,
         createdAt: new Date().toISOString()
-      })
+      }, { remember })
 
       // Fetch full project details using the new session
       const client = getFieldClient()
@@ -713,8 +717,9 @@ export const projectOps = {
           companyId: company.id,
           projectName: project.name,
           companyName: company.name,
+          companyCode,
           createdAt: new Date().toISOString()
-        })
+        }, { remember })
       }
 
       return {
