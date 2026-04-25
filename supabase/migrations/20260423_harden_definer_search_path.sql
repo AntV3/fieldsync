@@ -8,7 +8,7 @@
 -- or public objects, tricking the DEFINER function into calling
 -- attacker-controlled code with elevated privileges.
 --
--- Fix: set search_path = public, pg_temp on every SECURITY DEFINER
+-- Fix: set search_path = public, extensions, pg_temp on every SECURITY DEFINER
 -- function in the public schema. This is metadata-only: no function
 -- bodies are rewritten and no data is touched.
 --
@@ -32,13 +32,13 @@ BEGIN
       AND p.prosecdef = TRUE  -- SECURITY DEFINER
   LOOP
     EXECUTE format(
-      'ALTER FUNCTION %I.%I(%s) SET search_path = public, pg_temp',
+      'ALTER FUNCTION %I.%I(%s) SET search_path = public, extensions, pg_temp',
       fn.schema_name, fn.function_name, fn.args
     );
     altered_count := altered_count + 1;
   END LOOP;
 
-  RAISE NOTICE 'Hardened % SECURITY DEFINER function(s) with SET search_path = public, pg_temp', altered_count;
+  RAISE NOTICE 'Hardened % SECURITY DEFINER function(s) with SET search_path = public, extensions, pg_temp', altered_count;
 END $$;
 
 -- Verification query (run manually):

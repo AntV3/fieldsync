@@ -35,7 +35,9 @@ CREATE OR REPLACE FUNCTION sync_project_pin_hash()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+-- `extensions` is required so crypt()/gen_salt() from pgcrypto resolve
+-- under the hardened search_path set by 20260423_harden_definer_search_path.
+SET search_path = public, extensions, pg_temp
 AS $$
 BEGIN
   IF NEW.pin IS NULL THEN
@@ -80,7 +82,10 @@ CREATE FUNCTION validate_pin_and_create_session(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+-- `extensions` is required so crypt()/gen_random_bytes() from pgcrypto
+-- resolve under the hardened search_path set by
+-- 20260423_harden_definer_search_path.
+SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
   is_rate_limited BOOLEAN;
