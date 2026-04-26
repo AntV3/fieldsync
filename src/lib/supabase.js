@@ -25,6 +25,8 @@ import {
   clearFieldSession,
   getSupabaseClient,
   isFieldMode,
+  isRememberedSession,
+  getFieldSession,
   getFieldProjectId,
   getFieldCompanyId
 } from './fieldSession'
@@ -56,7 +58,7 @@ if (typeof window !== 'undefined') {
 
 // Re-export for other modules
 export { supabase, isSupabaseConfigured }
-export { clearFieldSession, getSupabaseClient, isFieldMode, getFieldProjectId, getFieldCompanyId }
+export { clearFieldSession, getSupabaseClient, isFieldMode, isRememberedSession, getFieldSession, getFieldProjectId, getFieldCompanyId }
 export { equipmentOps, drawRequestOps }
 
 // ============================================
