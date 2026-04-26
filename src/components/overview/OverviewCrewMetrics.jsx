@@ -5,6 +5,13 @@ import {
 } from 'recharts'
 import { db } from '../../lib/supabase'
 import { chartColors, tooltipStyle, formatChartDate } from '../charts/chartConfig'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from '../../lib/pdfBranding'
 
 /**
  * OverviewCrewMetrics - Crew on-site metrics for project overview
@@ -29,6 +36,7 @@ const TIME_RANGES = [
 
 export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   project,
+  company,
   onShowToast
 }) {
   const [crewHistory, setCrewHistory] = useState([])
@@ -191,21 +199,16 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       const jsPDF = jsPDFModule.default
       const doc = new jsPDF()
 
-      const pageWidth = doc.internal.pageSize.width
-      let y = 20
+      const primaryColor = resolvePrimaryColor({ company })
+      const brandLogo = await loadBrandLogo({ company })
 
-      // Header
-      doc.setFontSize(18)
-      doc.setFont(undefined, 'bold')
-      doc.text('Crew On-Site Report', pageWidth / 2, y, { align: 'center' })
-      y += 8
-
-      doc.setFontSize(11)
-      doc.setFont(undefined, 'normal')
-      doc.text(`Project: ${project.name}`, pageWidth / 2, y, { align: 'center' })
-      y += 6
-      doc.text(`Date: ${formatDate(selectedDate)}`, pageWidth / 2, y, { align: 'center' })
-      y += 12
+      let y = drawDocumentHeader(doc, {
+        title: 'Crew On-Site Report',
+        subtitle: formatDate(selectedDate),
+        context: { company, project },
+        brandLogo,
+        primary: primaryColor,
+      })
 
       // Summary stats
       doc.setFontSize(12)
@@ -306,11 +309,20 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
         y += 4.5
       })
 
-      // Footer
-      const footerY = doc.internal.pageSize.height - 10
-      doc.setFontSize(8)
-      doc.setTextColor(128, 128, 128)
-      doc.text(`Generated ${new Date().toLocaleString()} — FieldSync`, pageWidth / 2, footerY, { align: 'center' })
+      // Continuation accents + branded footers on every page
+      const pageCount = doc.internal.getNumberOfPages()
+      for (let i = 2; i <= pageCount; i++) {
+        doc.setPage(i)
+        drawContinuationAccent(doc, { primary: primaryColor })
+      }
+
+      applyDocumentFooters(doc, {
+        documentLabel: project?.name
+          ? `Crew Report · ${project.name}`
+          : 'Crew Report',
+        context: { company, project },
+        primary: primaryColor,
+      })
 
       const fileName = `${project.name}_Crew_Report_${selectedDate}.pdf`
       doc.save(fileName)

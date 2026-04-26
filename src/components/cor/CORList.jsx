@@ -2,7 +2,14 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
-import { hexToRgb, loadImageAsBase64 } from '../../lib/imageUtils'
+import { hexToRgb } from '../../lib/imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from '../../lib/pdfBranding'
 import { CardSkeleton, CountBadge } from '../ui'
 import { EmptyState } from '../ui/ErrorState'
 import { useBranding } from '../../lib/BrandingContext'
@@ -261,75 +268,42 @@ export default function CORList({
       const doc = new jsPDF('landscape')
       const pageWidth = doc.internal.pageSize.width
       const pageHeight = doc.internal.pageSize.height
-      const margin = 15
+      const margin = 18
 
-      // Get brand colors
-      const primaryColor = hexToRgb(branding?.primary_color || '#3B82F6')
-      const secondaryColor = hexToRgb(branding?.secondary_color || '#1E40AF')
-
-      // === HEADER WITH BRANDING ===
-      // Primary color header bar
-      doc.setFillColor(...primaryColor)
-      doc.rect(0, 0, pageWidth, 40, 'F')
-
-      // Secondary color accent stripe
-      doc.setFillColor(...secondaryColor)
-      doc.rect(0, 38, pageWidth, 3, 'F')
-
-      // Company logo if available
-      let logoOffset = margin
-      if (branding?.logo_url) {
-        try {
-          const logoBase64 = await loadImageAsBase64(branding.logo_url)
-          if (logoBase64) {
-            doc.addImage(logoBase64, 'PNG', margin, 6, 28, 28)
-            logoOffset = margin + 35
-          }
-        } catch (e) {
-          console.error('Logo load error:', e)
-        }
+      const brandingForHeader = {
+        primaryColor: branding?.primary_color || branding?.primaryColor,
+        logoUrl: branding?.logo_url || branding?.logoUrl,
       }
+      const primaryColor = resolvePrimaryColor({ branding: brandingForHeader, company })
+      const brandLogo = await loadBrandLogo({ branding: brandingForHeader, company })
 
-      // Company name and document title
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(20)
-      doc.setFont('helvetica', 'bold')
-      doc.text(company?.name || 'Company', logoOffset, 18)
-
-      doc.setFontSize(11)
-      doc.setFont('helvetica', 'normal')
-      doc.text('CHANGE ORDER REQUEST REPORT', logoOffset, 28)
-
-      // Right side - date and job info
-      doc.setFontSize(9)
-      doc.text(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), pageWidth - margin, 15, { align: 'right' })
-      if (project.job_number) {
-        doc.text(`Job #: ${project.job_number}`, pageWidth - margin, 23, { align: 'right' })
-      }
-      doc.text(`${cors.length} Change Orders`, pageWidth - margin, 31, { align: 'right' })
+      // === EDITORIAL HEADER ===
+      let yPos = drawDocumentHeader(doc, {
+        title: 'Change Order Report',
+        subtitle: `${cors.length} change order${cors.length !== 1 ? 's' : ''}`,
+        context: { company, branding: brandingForHeader, project },
+        brandLogo,
+        primary: primaryColor,
+      })
 
       // === PROJECT INFO BOX ===
-      let yPos = 50
-
       doc.setFillColor(248, 250, 252)
-      doc.setDrawColor(...primaryColor)
-      doc.setLineWidth(0.5)
-      doc.roundedRect(margin, yPos, pageWidth - margin * 2, 25, 3, 3, 'FD')
-
-      doc.setTextColor(...primaryColor)
-      doc.setFontSize(14)
+      doc.roundedRect(margin, yPos, pageWidth - margin * 2, 18, 2.5, 2.5, 'F')
+      doc.setFontSize(7.5)
       doc.setFont('helvetica', 'bold')
-      doc.text(project.name, margin + 8, yPos + 10)
-
-      doc.setTextColor(100, 116, 139)
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(71, 85, 105)
+      doc.text('PROJECT', margin + 5, yPos + 5)
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(15, 23, 42)
+      doc.text(project.name, margin + 5, yPos + 11.5)
       if (project.address) {
-        doc.text(project.address, margin + 8, yPos + 18)
+        doc.setFontSize(8.5)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(71, 85, 105)
+        doc.text(project.address, margin + 5, yPos + 16)
       }
-
-      // === FINANCIAL SUMMARY BOXES ===
-      yPos += 35
+      yPos += 24
 
       const approved = cors.filter(c => c.status === 'approved')
       const pending = cors.filter(c => ['draft', 'pending_approval'].includes(c.status))
@@ -433,18 +407,20 @@ export default function CORList({
         }
       })
 
-      // === FOOTER ===
-      const footerY = pageHeight - 12
-      doc.setDrawColor(226, 232, 240)
-      doc.setLineWidth(0.5)
-      doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+      // === Continuation accents + branded footers ===
+      const totalPages = doc.internal.getNumberOfPages()
+      for (let i = 2; i <= totalPages; i++) {
+        doc.setPage(i)
+        drawContinuationAccent(doc, { primary: primaryColor })
+      }
 
-      doc.setTextColor(148, 163, 184)
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'normal')
-      doc.text(`Generated on ${new Date().toLocaleString()}`, margin, footerY)
-      doc.text(`${company?.name || 'FieldSync'} • Confidential`, pageWidth / 2, footerY, { align: 'center' })
-      doc.text('Page 1 of 1', pageWidth - margin, footerY, { align: 'right' })
+      applyDocumentFooters(doc, {
+        documentLabel: project?.name
+          ? `Change Order Report · ${project.name}`
+          : 'Change Order Report',
+        context: { company, branding: brandingForHeader, project },
+        primary: primaryColor,
+      })
 
       // Save
       const fileName = `COR_Report_${project.job_number || project.name}_${new Date().toISOString().split('T')[0]}.pdf`

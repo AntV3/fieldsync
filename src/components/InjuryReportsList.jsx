@@ -2,7 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Calendar, ShieldAlert } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
+import { hexToRgb } from '../lib/imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from '../lib/pdfBranding'
 import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import InjuryReportCard from './InjuryReportCard'
@@ -219,55 +226,37 @@ export default function InjuryReportsList({ project, companyId, company, user, o
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
-    const margin = 20
-    let yPos = margin
+    const margin = 18
 
-    const primaryColor = hexToRgb(branding?.primary_color || '#3B82F6')
-    const secondaryColor = hexToRgb(branding?.secondary_color || '#1E40AF')
-
-    // Header with branding
-    doc.setFillColor(...primaryColor)
-    doc.rect(0, 0, pageWidth, 45, 'F')
-    doc.setFillColor(...secondaryColor)
-    doc.rect(0, 42, pageWidth, 3, 'F')
-
-    // Add logo if available
-    let logoOffset = margin
-    if (branding?.logo_url) {
-      try {
-        const logoBase64 = await loadImageAsBase64(branding.logo_url)
-        if (logoBase64) {
-          doc.addImage(logoBase64, 'PNG', margin, 7, 30, 30)
-          logoOffset = margin + 40
-        }
-      } catch (e) {
-        console.error('Error adding logo:', e)
-      }
+    const brandingForHeader = {
+      primaryColor: branding?.primary_color || branding?.primaryColor,
+      logoUrl: branding?.logo_url || branding?.logoUrl,
     }
+    const primaryColor = resolvePrimaryColor({ branding: brandingForHeader, company })
+    const brandLogo = await loadBrandLogo({ branding: brandingForHeader, company })
 
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(22)
-    doc.setFont('helvetica', 'bold')
-    doc.text(company?.name || 'Company', logoOffset, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text('INJURY & INCIDENT REPORTS', logoOffset, 30)
+    let yPos = drawDocumentHeader(doc, {
+      title: 'Injury & Incident Reports',
+      subtitle: `${filteredReports.length} report${filteredReports.length !== 1 ? 's' : ''}`,
+      context: { company, branding: brandingForHeader, project },
+      brandLogo,
+      primary: primaryColor,
+    })
 
-    doc.setFontSize(9)
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 20, { align: 'right' })
-    doc.text(`Total Reports: ${filteredReports.length}`, pageWidth - margin, 28, { align: 'right' })
-
-    yPos = 55
-
-    // Project info if available
+    // Project info strip
     if (project) {
       doc.setFillColor(248, 250, 252)
-      doc.rect(margin, yPos - 5, pageWidth - margin * 2, 15, 'F')
-      doc.setTextColor(...primaryColor)
-      doc.setFontSize(12)
+      doc.roundedRect(margin, yPos, pageWidth - margin * 2, 11, 2, 2, 'F')
+      doc.setFontSize(7.5)
       doc.setFont('helvetica', 'bold')
-      doc.text(`Project: ${project.name}`, margin + 5, yPos + 5)
-      yPos += 20
+      doc.setTextColor(71, 85, 105)
+      doc.text('PROJECT', margin + 5, yPos + 4.5)
+      doc.setFontSize(9.5)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(15, 23, 42)
+      const projInfo = (project.name || 'Untitled') + (project.job_number ? `   ·   Job #${project.job_number}` : '')
+      doc.text(projInfo, margin + 22, yPos + 7.5)
+      yPos += 17
     }
 
     // Reports
@@ -329,15 +318,18 @@ export default function InjuryReportsList({ project, companyId, company, user, o
       yPos += 12
     })
 
-    // Footer
+    // Continuation accents + branded footers
     const pageCount = doc.internal.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
+    for (let i = 2; i <= pageCount; i++) {
       doc.setPage(i)
-      doc.setFontSize(8)
-      doc.setTextColor(150, 150, 150)
-      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' })
-      doc.text('CONFIDENTIAL - Injury Report', margin, doc.internal.pageSize.getHeight() - 10)
+      drawContinuationAccent(doc, { primary: primaryColor })
     }
+
+    applyDocumentFooters(doc, {
+      documentLabel: 'CONFIDENTIAL · Injury & Incident Report',
+      context: { company, branding: brandingForHeader, project },
+      primary: primaryColor,
+    })
 
     const fileName = `Injury_Reports_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)
