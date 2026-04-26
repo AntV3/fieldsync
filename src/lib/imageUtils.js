@@ -69,6 +69,83 @@ export const loadImageAsBase64 = (url, timeout = 5000, quality = 0.85) => {
 }
 
 /**
+ * Load a logo image for PDF embedding, preserving transparency and reporting
+ * native pixel dimensions so callers can draw it at its true aspect ratio.
+ *
+ * Always emits PNG so transparent-background logos render cleanly on any
+ * background colour. Falls back to null on any error or timeout.
+ *
+ * @param {string} url - Logo URL
+ * @param {number} timeout - Timeout in ms (default 5000)
+ * @returns {Promise<{data:string,width:number,height:number,format:'PNG'}|null>}
+ */
+export const loadLogoForPdf = (url, timeout = 5000) => {
+  return new Promise((resolve) => {
+    if (!url) {
+      resolve(null)
+      return
+    }
+
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+
+    const timeoutId = setTimeout(() => {
+      img.src = ''
+      resolve(null)
+    }, timeout)
+
+    img.onload = () => {
+      clearTimeout(timeoutId)
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || img.width
+        canvas.height = img.naturalHeight || img.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        const dataUrl = canvas.toDataURL('image/png')
+        resolve({
+          data: dataUrl,
+          width: canvas.width,
+          height: canvas.height,
+          format: 'PNG',
+        })
+      } catch (_e) {
+        resolve(null)
+      }
+    }
+
+    img.onerror = () => {
+      clearTimeout(timeoutId)
+      resolve(null)
+    }
+
+    img.src = url
+  })
+}
+
+/**
+ * Compute an aspect-ratio-preserving size for a logo, fit inside a bounding
+ * box. Returns mm dimensions plus the offset needed to top-align (default) or
+ * vertically center the logo in the target slot.
+ *
+ * @param {{width:number,height:number}} src - Native logo dimensions in px
+ * @param {number} maxW - Max width in mm
+ * @param {number} maxH - Max height in mm
+ * @returns {{width:number,height:number}}
+ */
+export const fitLogo = (src, maxW, maxH) => {
+  if (!src || !src.width || !src.height) return { width: maxW, height: maxH }
+  const ratio = src.width / src.height
+  let w = maxW
+  let h = maxW / ratio
+  if (h > maxH) {
+    h = maxH
+    w = maxH * ratio
+  }
+  return { width: w, height: h }
+}
+
+/**
  * Load multiple images in parallel for faster PDF generation
  * @param {string[]} urls - Array of image URLs to load
  * @param {number} timeout - Timeout per image in milliseconds (default 5000)

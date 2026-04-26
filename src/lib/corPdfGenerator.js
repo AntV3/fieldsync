@@ -16,7 +16,14 @@ import {
   groupLaborByClassAndType,
   combineLaborGroupItems
 } from './corCalculations'
-import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
+import { loadImagesAsBase64 } from './imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from './pdfBranding'
 
 // ============================================
 // HELPER FUNCTIONS
@@ -61,66 +68,22 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 18
-  let yPos = margin
 
-  const primaryColor = branding.primaryColor
-    ? hexToRgb(branding.primaryColor)
-    : [30, 58, 95]
+  const primaryColor = resolvePrimaryColor({ branding, company })
   const accentLight = [primaryColor[0] + Math.round((255 - primaryColor[0]) * 0.88), primaryColor[1] + Math.round((255 - primaryColor[1]) * 0.88), primaryColor[2] + Math.round((255 - primaryColor[2]) * 0.88)]
+  const brandLogo = await loadBrandLogo({ branding, company })
 
   // ============================================
   // HEADER
   // ============================================
 
-  // Top accent bar
-  doc.setFillColor(...primaryColor)
-  doc.rect(0, 0, pageWidth, 3, 'F')
-  yPos = 12
-
-  // Company logo or name
-  if (branding.logoUrl) {
-    try {
-      const logoData = await loadImageAsBase64(branding.logoUrl)
-      if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, yPos, 40, 15)
-      }
-    } catch (_e) {
-      if (company?.name) {
-        doc.setFontSize(16)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text(company.name, margin, yPos + 10)
-      }
-    }
-  } else if (company?.name) {
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...primaryColor)
-    doc.text(company.name, margin, yPos + 10)
-  }
-
-  // Document title + COR number (right-aligned)
-  doc.setFontSize(20)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(30, 41, 59)
-  doc.text('CHANGE ORDER REQUEST', pageWidth - margin, yPos + 6, { align: 'right' })
-
-  doc.setFontSize(11)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...primaryColor)
-  doc.text(cor.cor_number || 'COR', pageWidth - margin, yPos + 13, { align: 'right' })
-
-  yPos += 22
-
-  // Separator line
-  doc.setDrawColor(...primaryColor)
-  doc.setLineWidth(0.8)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 2
-  doc.setLineWidth(0.2)
-  doc.setDrawColor(200, 210, 220)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 10
+  let yPos = drawDocumentHeader(doc, {
+    title: 'Change Order Request',
+    subtitle: cor.cor_number || '',
+    context: { company, branding, project },
+    brandLogo,
+    primary: primaryColor,
+  })
 
   // ============================================
   // COR DETAILS - Info card style
@@ -1005,33 +968,20 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   }
 
   // ============================================
-  // HEADER ACCENT + FOOTER (on all pages)
+  // CONTINUATION ACCENTS + FOOTERS (all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i)
-
-    // Top accent bar on all pages
-    doc.setFillColor(...primaryColor)
-    doc.rect(0, 0, pageWidth, 3, 'F')
-
-    // Footer
-    const footerY = pageHeight - 10
-    doc.setDrawColor(200, 210, 220)
-    doc.setLineWidth(0.3)
-    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
-
-    doc.setFontSize(7.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(148, 163, 184)
-
-    const footerLeft = company?.name
-      ? `${company.name}  |  ${cor.cor_number || 'COR'}  |  ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-      : `${cor.cor_number || 'COR'}  |  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-    doc.text(footerLeft, margin, footerY)
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+    drawContinuationAccent(doc, { primary: primaryColor })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: `Change Order ${cor.cor_number || ''}`.trim(),
+    context: { company, branding, project },
+    primary: primaryColor,
+  })
 
   // ============================================
   // SAVE PDF
@@ -1067,32 +1017,20 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
   const doc = new jsPDF('p', 'mm', 'letter')
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 20
-  let yPos = margin
+  const margin = 18
 
-  const primaryColor = branding.primaryColor
-    ? hexToRgb(branding.primaryColor)
-    : [30, 58, 95]
+  const primaryColor = resolvePrimaryColor({ branding, company })
+  const brandLogo = await loadBrandLogo({ branding, company })
 
   // Header
-  if (company?.name) {
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...primaryColor)
-    doc.text(company.name, margin, yPos + 8)
-  }
-
-  doc.setFontSize(16)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(30, 41, 59)
-  doc.text('TIME & MATERIAL TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
-
-  yPos += 25
-
-  doc.setDrawColor(...primaryColor)
-  doc.setLineWidth(0.5)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 10
+  const ticketNumber = ticket.ce_pco_number || ticket.ticket_number || ''
+  let yPos = drawDocumentHeader(doc, {
+    title: 'Time & Material Ticket',
+    subtitle: ticketNumber || formatDate(ticket.work_date || ticket.ticket_date),
+    context: { company, branding, project },
+    brandLogo,
+    primary: primaryColor,
+  })
 
   // Status badge
   const hasVerification = !!ticket.client_signature_data
@@ -1112,6 +1050,7 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
     doc.setTextColor(217, 119, 6)
     doc.text('PENDING', pageWidth - margin - 27, yPos + 3)
   }
+  yPos += 8
 
   // Metadata
   const metaItems = [
@@ -1404,34 +1343,22 @@ export async function generateTicketPDFFromData(ticketData, context = {}) {
   }
 
   // ============================================
-  // HEADER ACCENT + FOOTER (all pages)
+  // CONTINUATION ACCENTS + FOOTERS (all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i)
-
-    // Thin accent stripe at top of continuation pages
-    if (i > 1) {
-      doc.setFillColor(...primaryColor)
-      doc.rect(0, 0, pageWidth, 2.5, 'F')
-    }
-
-    // Footer rule + text
-    const footerY = pageHeight - 10
-    doc.setDrawColor(226, 232, 240)
-    doc.setLineWidth(0.3)
-    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
-
-    doc.setFontSize(7.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(148, 163, 184)
-    doc.text(
-      `Time and Material Ticket  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-      margin, footerY
-    )
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+    drawContinuationAccent(doc, { primary: primaryColor })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: ticketNumber
+      ? `T&M Ticket ${ticketNumber}`
+      : 'Time and Material Ticket',
+    context: { company, branding, project },
+    primary: primaryColor,
+  })
 
   const ticketDate = formatDate(ticket.work_date || ticket.ticket_date).replace(/\//g, '-')
   const fileName = `Time_Material_Ticket_${ticketDate}${ticket.ce_pco_number ? '_' + ticket.ce_pco_number : ''}.pdf`

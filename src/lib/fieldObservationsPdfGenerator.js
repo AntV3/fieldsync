@@ -7,7 +7,14 @@
 // chronological record of on-site activity.
 // ============================================
 
-import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
+import { loadImagesAsBase64 } from './imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from './pdfBranding'
 
 const formatDate = (iso) => {
   if (!iso) return '—'
@@ -51,11 +58,9 @@ export async function generateFieldObservationsPDF(observations, context = {}) {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 18
-  let yPos = margin
 
-  const primaryColor = branding.primaryColor
-    ? hexToRgb(branding.primaryColor)
-    : [30, 58, 95]
+  const primaryColor = resolvePrimaryColor({ branding, company })
+  const brandLogo = await loadBrandLogo({ branding, company })
 
   // Sort ascending so the log reads as a timeline
   const sorted = [...observations].sort((a, b) =>
@@ -63,62 +68,16 @@ export async function generateFieldObservationsPDF(observations, context = {}) {
   )
 
   // ============================================
-  // COVER PAGE
+  // HEADER
   // ============================================
 
-  // Top accent bar
-  doc.setFillColor(...primaryColor)
-  doc.rect(0, 0, pageWidth, 3, 'F')
-  yPos = 14
-
-  // Logo or company name
-  if (branding.logoUrl) {
-    try {
-      const logoData = await loadImageAsBase64(branding.logoUrl)
-      if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, yPos, 40, 15)
-      } else if (company?.name) {
-        doc.setFontSize(16)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text(company.name, margin, yPos + 10)
-      }
-    } catch {
-      if (company?.name) {
-        doc.setFontSize(16)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text(company.name, margin, yPos + 10)
-      }
-    }
-  } else if (company?.name) {
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...primaryColor)
-    doc.text(company.name, margin, yPos + 10)
-  }
-
-  doc.setFontSize(20)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(30, 41, 59)
-  doc.text('FIELD OBSERVATIONS', pageWidth - margin, yPos + 7, { align: 'right' })
-
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(100, 116, 139)
-  doc.text('Project Backup Documentation', pageWidth - margin, yPos + 13, { align: 'right' })
-
-  yPos += 24
-
-  // Separator lines
-  doc.setDrawColor(...primaryColor)
-  doc.setLineWidth(0.8)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 2
-  doc.setLineWidth(0.2)
-  doc.setDrawColor(200, 210, 220)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 10
+  let yPos = drawDocumentHeader(doc, {
+    title: 'Field Observations',
+    subtitle: 'Project Backup Documentation',
+    context: { company, branding, project },
+    brandLogo,
+    primary: primaryColor,
+  })
 
   // Project info
   doc.setFontSize(14)
@@ -379,34 +338,22 @@ export async function generateFieldObservationsPDF(observations, context = {}) {
   }
 
   // ============================================
-  // HEADER ACCENT + FOOTER (all pages)
+  // CONTINUATION ACCENTS + FOOTERS (all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i)
-
-    // Accent on pages after cover
-    if (i > 1) {
-      doc.setFillColor(...primaryColor)
-      doc.rect(0, 0, pageWidth, 2.5, 'F')
-    }
-
-    const footerY = pageHeight - 10
-    doc.setDrawColor(226, 232, 240)
-    doc.setLineWidth(0.3)
-    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
-
-    doc.setFontSize(7.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(148, 163, 184)
-
-    const footerLeft = company?.name
-      ? `${company.name}  |  Field Observations  |  ${project?.name || ''}`
-      : `Field Observations  |  ${project?.name || ''}`
-    doc.text(footerLeft, margin, footerY)
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+    drawContinuationAccent(doc, { primary: primaryColor })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: project?.name
+      ? `Field Observations · ${project.name}`
+      : 'Field Observations',
+    context: { company, branding, project },
+    primary: primaryColor,
+  })
 
   // ============================================
   // SAVE
