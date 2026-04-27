@@ -109,6 +109,8 @@ export default function ReportsTab({
         <PhotoTimeline
           projectId={selectedProject?.id}
           projectName={selectedProject?.name}
+          project={selectedProject}
+          company={company}
           areas={areas}
           onShowToast={onShowToast}
         />

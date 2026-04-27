@@ -9,7 +9,14 @@
  */
 
 import { db } from './supabase'
-import { hexToRgb, loadImagesAsBase64 } from './imageUtils'
+import { loadImagesAsBase64 } from './imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from './pdfBranding'
 
 const loadJsPDF = () => import('jspdf')
 const loadAutoTable = () => import('jspdf-autotable')
@@ -61,54 +68,28 @@ const formatShortDate = (dateStr) => {
 // ── Shared PDF primitives ───────────────────────────────────────────────────
 
 function getPrimaryColor(context) {
-  const hex = context?.branding?.primaryColor
-    || context?.company?.branding_color
-    || context?.company?.primary_color
-  return hex ? hexToRgb(hex) : [30, 58, 95]
+  return resolvePrimaryColor({
+    branding: context?.branding,
+    company: context?.company,
+  })
 }
 
 /**
- * Draw the branded header band at the top of the first page.
+ * Draw the editorial document header. Returns the y-coordinate to begin
+ * content at. Logo is loaded asynchronously by the caller.
  */
-function drawHeaderBand(doc, title, subtitle, primary, context) {
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const headerH = 38
-
-  doc.setFillColor(...primary)
-  doc.rect(0, 0, pageWidth, headerH, 'F')
-
-  // Company name
-  const companyName = context?.company?.name || ''
-  if (companyName) {
-    doc.setFontSize(13)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 255, 255)
-    doc.text(companyName, MARGIN, headerH / 2 - 4)
-
-    const contact = [context?.company?.phone, context?.company?.email].filter(Boolean)
-    if (contact.length) {
-      doc.setFontSize(7.5)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(220, 230, 245)
-      doc.text(contact.join('  ·  '), MARGIN, headerH / 2 + 3)
-    }
-  }
-
-  // Title — right side
-  doc.setFontSize(20)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text(title, pageWidth - MARGIN, headerH / 2 - 1, { align: 'right' })
-
-  // Subtitle — right side below title
-  if (subtitle) {
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(220, 230, 245)
-    doc.text(subtitle, pageWidth - MARGIN, headerH / 2 + 8, { align: 'right' })
-  }
-
-  return headerH
+async function drawHeaderBand(doc, title, subtitle, primary, context) {
+  const brandLogo = await loadBrandLogo({
+    branding: context?.branding,
+    company: context?.company,
+  })
+  return drawDocumentHeader(doc, {
+    title,
+    subtitle,
+    context,
+    brandLogo,
+    primary,
+  })
 }
 
 /**
@@ -136,28 +117,20 @@ function drawRule(doc, x1, y, x2, color = COLORS.border, weight = 0.3) {
 }
 
 /**
- * Add page footers to every page of the document.
+ * Add page footers + continuation accents to every page.
  */
-function addPageFooters(doc, documentLabel) {
-  const totalPages = doc.internal.getNumberOfPages()
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-
-  for (let i = 1; i <= totalPages; i++) {
+function addPageFooters(doc, documentLabel, primary, context = {}) {
+  const total = doc.internal.getNumberOfPages()
+  for (let i = 2; i <= total; i++) {
     doc.setPage(i)
-    const fy = pageHeight - 10
-
-    drawRule(doc, MARGIN, fy - 4, pageWidth - MARGIN, COLORS.border, 0.3)
-
-    doc.setFontSize(7.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...COLORS.subtle)
-    doc.text(
-      `${documentLabel}  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-      MARGIN, fy
-    )
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - MARGIN, fy, { align: 'right' })
+    drawContinuationAccent(doc, { primary })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel,
+    context,
+    primary,
+  })
 }
 
 /**
@@ -259,8 +232,7 @@ export async function exportDailyReportsPDF(reports, project, context = {}) {
   const primary = getPrimaryColor(context)
 
   // ── Header band ──
-  const headerH = drawHeaderBand(doc, 'DAILY REPORTS', `${reports.length} report${reports.length !== 1 ? 's' : ''}`, primary, context)
-  let y = headerH + 12
+  let y = await drawHeaderBand(doc, 'Daily Reports', `${reports.length} report${reports.length !== 1 ? 's' : ''}`, primary, context)
 
   // ── Project strip ──
   y = drawProjectStrip(doc, project, y)
@@ -439,7 +411,7 @@ export async function exportDailyReportsPDF(reports, project, context = {}) {
   }
 
   // ── Footers ──
-  addPageFooters(doc, `Daily Reports — ${project?.name || ''}`)
+  addPageFooters(doc, `Daily Reports — ${project?.name || ''}`, primary, context)
 
   const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Daily_Reports_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
@@ -465,8 +437,7 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
   const primary = getPrimaryColor(context)
 
   // ── Header band ──
-  const headerH = drawHeaderBand(doc, 'INCIDENT REPORTS', `${reports.length} report${reports.length !== 1 ? 's' : ''}`, primary, context)
-  let y = headerH + 12
+  let y = await drawHeaderBand(doc, 'Incident Reports', `${reports.length} report${reports.length !== 1 ? 's' : ''}`, primary, context)
 
   // ── Project strip ──
   y = drawProjectStrip(doc, project, y)
@@ -591,7 +562,7 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
   })
 
   // ── Footers ──
-  addPageFooters(doc, `Incident Reports — ${project?.name || ''}`)
+  addPageFooters(doc, `Incident Reports — ${project?.name || ''}`, primary, context)
 
   const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Incident_Reports_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
@@ -618,8 +589,7 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
   const primary = getPrimaryColor(context)
 
   // ── Header band ──
-  const headerH = drawHeaderBand(doc, 'CREW CHECK-INS', `${checkins.length} check-in${checkins.length !== 1 ? 's' : ''}`, primary, context)
-  let y = headerH + 12
+  let y = await drawHeaderBand(doc, 'Crew Check-Ins', `${checkins.length} check-in${checkins.length !== 1 ? 's' : ''}`, primary, context)
 
   // ── Project strip ──
   y = drawProjectStrip(doc, project, y)
@@ -801,7 +771,7 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
   })
 
   // ── Footers ──
-  addPageFooters(doc, `Crew Check-Ins — ${project?.name || ''}`)
+  addPageFooters(doc, `Crew Check-Ins — ${project?.name || ''}`, primary, context)
 
   const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Crew_Checkins_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
@@ -837,40 +807,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
   // COVER PAGE
   // ══════════════════════════════════════════════════════════════════════════
 
-  // Full-width header band
-  const coverH = 56
-  doc.setFillColor(...primary)
-  doc.rect(0, 0, pageWidth, coverH, 'F')
-
-  // Company name
-  const companyName = context?.company?.name || ''
-  if (companyName) {
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 255, 255)
-    doc.text(companyName, MARGIN, 22)
-
-    const contact = [context?.company?.phone, context?.company?.email].filter(Boolean)
-    if (contact.length) {
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(220, 230, 245)
-      doc.text(contact.join('  ·  '), MARGIN, 30)
-    }
-  }
-
-  // Title
-  doc.setFontSize(24)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text('FIELD DOCUMENTS', pageWidth - MARGIN, 25, { align: 'right' })
-
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(220, 230, 245)
-  doc.text('Consolidated Report', pageWidth - MARGIN, 35, { align: 'right' })
-
-  let y = coverH + 16
+  let y = await drawHeaderBand(doc, 'Field Documents', 'Consolidated Report', primary, context)
 
   // Project info
   y = drawProjectStrip(doc, project, y)
@@ -1337,7 +1274,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
   }
 
   // ── Footers on every page ──
-  addPageFooters(doc, `Field Documents — ${project?.name || ''}`)
+  addPageFooters(doc, `Field Documents — ${project?.name || ''}`, primary, context)
 
   const fileName = `${(project?.name || 'Project').replace(/\s+/g, '_')}_Field_Documents_${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)

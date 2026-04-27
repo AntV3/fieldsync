@@ -28,7 +28,14 @@ import {
   groupLaborByClassAndType,
   combineLaborGroupItems
 } from './corCalculations'
-import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
+import { loadImageAsBase64, loadImagesAsBase64 } from './imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from './pdfBranding'
 import { db } from './supabase'
 
 // Helper to format time (HH:MM or HH:MM:SS to 9:00am format)
@@ -207,74 +214,33 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 20
-  let yPos = margin
+  const margin = 18
 
   // Calculate totals
   const totals = calculateCORTotals(cor)
 
-  // Colors
-  const primaryColor = branding.primaryColor ? hexToRgb(branding.primaryColor) : [30, 58, 138]
+  const primaryColor = resolvePrimaryColor({ branding, company })
   const headerBg = [241, 245, 249]
-
-  // Load company logo if available
-  let logoBase64 = null
-  if (branding.logoUrl) {
-    try {
-      logoBase64 = await loadImageAsBase64(branding.logoUrl)
-    } catch (e) {
-      console.error('Error loading logo:', e)
-    }
-  }
+  const brandLogo = await loadBrandLogo({ branding, company })
 
   // ============================================
-  // HEADER
+  // EDITORIAL HEADER
   // ============================================
+  let yPos = drawDocumentHeader(doc, {
+    title: 'Change Order Request',
+    subtitle: cor.cor_number || '',
+    context: { company, branding, project },
+    brandLogo,
+    primary: primaryColor,
+  })
 
-  // Company Logo or Name
-  if (logoBase64) {
-    try {
-      doc.addImage(logoBase64, 'PNG', margin, yPos, 40, 15)
-      yPos += 20
-    } catch (_e) {
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(...primaryColor)
-      doc.text(company?.name || 'Company Name', margin, yPos + 10)
-      yPos += 20
-    }
-  } else {
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...primaryColor)
-    doc.text(company?.name || 'Company Name', margin, yPos + 10)
-    yPos += 20
-  }
-
-  // Title
-  doc.setFontSize(20)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 0, 0)
-  doc.text('CHANGE ORDER REQUEST', margin, yPos)
-  yPos += 10
-
-  // COR Number and Status
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(100, 100, 100)
-  doc.text(cor.cor_number || 'COR-XXXX', margin, yPos)
-
-  // Status badge
+  // Status badge inline beneath the divider
   const statusText = cor.status?.replace('_', ' ').toUpperCase() || 'DRAFT'
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'bold')
   doc.setTextColor(...primaryColor)
-  doc.text(statusText, pageWidth - margin - doc.getTextWidth(statusText), yPos)
-  yPos += 12
-
-  // Divider line
-  doc.setDrawColor(...primaryColor)
-  doc.setLineWidth(0.5)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 10
+  doc.text(statusText, pageWidth - margin, yPos, { align: 'right' })
+  yPos += 4
 
   // ============================================
   // PROJECT & COR INFO
@@ -698,10 +664,14 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
     // BACKUP COVER PAGE
     // ============================================
 
-    // Company Logo/Name at top
-    if (logoBase64) {
+    // Company Logo/Name at top — preserve native aspect ratio
+    if (brandLogo?.data) {
       try {
-        doc.addImage(logoBase64, 'PNG', margin, yPos, 50, 18)
+        const fitW = 50
+        const ratio = brandLogo.width / brandLogo.height
+        const drawW = fitW
+        const drawH = Math.min(20, fitW / ratio)
+        doc.addImage(brandLogo.data, brandLogo.format || 'PNG', margin, yPos, drawW, drawH)
       } catch (_e) {
         doc.setFontSize(14)
         doc.setFont('helvetica', 'bold')
@@ -1207,18 +1177,20 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
   }
 
   // ============================================
-  // FOOTER (on all pages)
+  // CONTINUATION ACCENTS + FOOTERS (all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i)
-    const footerY = pageHeight - 10
-    doc.setFontSize(8)
-    doc.setTextColor(150, 150, 150)
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+    drawContinuationAccent(doc, { primary: primaryColor })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: `Change Order ${cor.cor_number || ''}`.trim(),
+    context: { company, branding, project },
+    primary: primaryColor,
+  })
 
   // Save the PDF
   const fileName = `${cor.cor_number || 'COR'}_${project?.job_number || 'export'}${tmTickets?.length ? '_with_backup' : ''}.pdf`
@@ -1253,53 +1225,22 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
   const doc = new jsPDF('p', 'mm', 'letter')
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 20
-  let yPos = margin
+  const margin = 18
 
-  const primaryColor = branding.primaryColor
-    ? hexToRgb(branding.primaryColor)
-    : [30, 58, 95]
+  const primaryColor = resolvePrimaryColor({ branding, company })
+  const brandLogo = await loadBrandLogo({ branding, company })
 
   // ============================================
-  // HEADER
+  // EDITORIAL HEADER
   // ============================================
-
-  // Company info or logo
-  if (branding.logoUrl) {
-    try {
-      const logoData = await loadImageAsBase64(branding.logoUrl)
-      if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, yPos, 40, 15)
-      }
-    } catch (_e) {
-      // Fall back to company name
-      if (company?.name) {
-        doc.setFontSize(14)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(...primaryColor)
-        doc.text(company.name, margin, yPos + 8)
-      }
-    }
-  } else if (company?.name) {
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...primaryColor)
-    doc.text(company.name, margin, yPos + 8)
-  }
-
-  // T&M Ticket title
-  doc.setFontSize(16)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(30, 41, 59)
-  doc.text('TIME & MATERIAL TICKET', pageWidth - margin, yPos + 8, { align: 'right' })
-
-  yPos += 25
-
-  // Divider line
-  doc.setDrawColor(...primaryColor)
-  doc.setLineWidth(0.5)
-  doc.line(margin, yPos, pageWidth - margin, yPos)
-  yPos += 10
+  const ticketSubtitle = ticket.ce_pco_number || ticket.ticket_number || ''
+  let yPos = drawDocumentHeader(doc, {
+    title: 'Time & Material Ticket',
+    subtitle: ticketSubtitle || formatDate(ticket.work_date || ticket.ticket_date),
+    context: { company, branding, project },
+    brandLogo,
+    primary: primaryColor,
+  })
 
   // ============================================
   // TICKET INFO
@@ -1656,18 +1597,22 @@ export async function exportTMTicketToPDF(ticket, project, company, branding = {
   }
 
   // ============================================
-  // FOOTER
+  // CONTINUATION ACCENTS + FOOTERS (all pages)
   // ============================================
 
   const totalPages = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i)
-    const footerY = pageHeight - 10
-    doc.setFontSize(8)
-    doc.setTextColor(150, 150, 150)
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, footerY)
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+    drawContinuationAccent(doc, { primary: primaryColor })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: ticketSubtitle
+      ? `T&M Ticket ${ticketSubtitle}`
+      : 'Time and Material Ticket',
+    context: { company, branding, project },
+    primary: primaryColor,
+  })
 
   // Save the PDF
   const ticketDate = formatDate(ticket.work_date || ticket.ticket_date).replace(/\//g, '-')

@@ -9,7 +9,13 @@
  * exporters so all FieldSync PDFs feel like one family.
  */
 
-import { hexToRgb } from './imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from './pdfBranding'
 
 const LOAD_TYPE_LABELS = {
   concrete: 'Concrete',
@@ -146,39 +152,17 @@ export async function generateDisposalLoadsPDF({
   const margin = 18
   const contentWidth = pageWidth - margin * 2
 
-  const primary = branding.primaryColor ? hexToRgb(branding.primaryColor) : [30, 58, 95]
+  const primary = resolvePrimaryColor({ branding, company })
+  const brandLogo = await loadBrandLogo({ branding, company })
 
-  // ── Header band ────────────────────────────────────────────────────────────
-  const headerH = 34
-  doc.setFillColor(...primary)
-  doc.rect(0, 0, pageWidth, headerH, 'F')
-
-  if (company?.name) {
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 255, 255)
-    doc.text(company.name, margin, headerH / 2 - 2)
-
-    const contact = [company.phone, company.email].filter(Boolean)
-    if (contact.length) {
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(220, 230, 245)
-      doc.text(contact.join('  ·  '), margin, headerH / 2 + 4)
-    }
-  }
-
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text('DISPOSAL LOAD LOG', pageWidth - margin, headerH / 2 - 1, { align: 'right' })
-
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(220, 230, 245)
-  doc.text('Haul-off documentation', pageWidth - margin, headerH / 2 + 6, { align: 'right' })
-
-  let y = headerH + 10
+  // ── Header ─────────────────────────────────────────────────────────────────
+  let y = drawDocumentHeader(doc, {
+    title: 'Disposal Load Log',
+    subtitle: 'Haul-off documentation',
+    context: { company, branding, project },
+    brandLogo,
+    primary,
+  })
 
   // ── Project strip ──────────────────────────────────────────────────────────
   doc.setFillColor(...COLORS.surface)
@@ -330,34 +314,20 @@ export async function generateDisposalLoadsPDF({
     y += 14
   }
 
-  // ── Footers ────────────────────────────────────────────────────────────────
+  // ── Continuation accents + footers ─────────────────────────────────────────
   const totalPages = doc.internal.getNumberOfPages()
-  const generatedOn = new Date().toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-  const footerLabel = company?.name
-    ? `${company.name}  ·  Disposal Log  ·  ${project?.name || ''}`
-    : `Disposal Log  ·  ${project?.name || ''}`
-
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i)
-
-    if (i > 1) {
-      doc.setFillColor(...primary)
-      doc.rect(0, 0, pageWidth, 2.5, 'F')
-    }
-
-    const fy = pageHeight - 10
-    doc.setDrawColor(...COLORS.border)
-    doc.setLineWidth(0.3)
-    doc.line(margin, fy - 4, pageWidth - margin, fy - 4)
-
-    doc.setFontSize(7.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...COLORS.subtle)
-    doc.text(`${footerLabel}  ·  Generated ${generatedOn}`, margin, fy)
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, fy, { align: 'right' })
+    drawContinuationAccent(doc, { primary })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: project?.name
+      ? `Disposal Log · ${project.name}`
+      : 'Disposal Log',
+    context: { company, branding, project },
+    primary,
+  })
 
   const fileName = `Disposal_Log_${safeFileName(project?.name)}_${todayIso()}.pdf`
   doc.save(fileName)

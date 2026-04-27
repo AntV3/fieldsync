@@ -9,6 +9,13 @@
  */
 
 import { loadImagesAsBase64 } from './imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from './pdfBranding'
 
 const loadJsPDF = () => import('jspdf')
 
@@ -67,38 +74,38 @@ function checkPage(doc, y, needed) {
 
 // ── Cover page ──────────────────────────────────────────────────────────────
 
-function drawCoverPage(doc, projectName, totalPhotos, dateRange, totalDates) {
-  // Full-page accent band at top
-  doc.setFillColor(...COLORS.accent)
-  doc.rect(0, 0, PAGE_WIDTH, 100, 'F')
+function drawCoverPage(doc, ctx) {
+  const {
+    projectName, totalPhotos, dateRange, totalDates,
+    primary, brandLogo, context,
+  } = ctx
 
-  // Subtle diagonal accent
-  doc.setFillColor(255, 255, 255)
-  doc.setGState(new doc.GState({ opacity: 0.05 }))
-  doc.rect(0, 60, PAGE_WIDTH, 2, 'F')
-  doc.rect(0, 70, PAGE_WIDTH, 1, 'F')
-  doc.setGState(new doc.GState({ opacity: 1 }))
+  let y = drawDocumentHeader(doc, {
+    title: 'Progress Photos',
+    subtitle: 'Project Documentation',
+    context,
+    brandLogo,
+    primary,
+  })
 
-  // Title
-  doc.setFontSize(32)
+  // Project title — large, editorial
+  doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text('PROGRESS PHOTOS', MARGIN, 45)
+  doc.setTextColor(...COLORS.dark)
+  const projLines = doc.splitTextToSize(projectName, CONTENT_WIDTH)
+  doc.text(projLines, MARGIN, y + 8)
+  y += projLines.length * 9 + 4
 
-  // Project name
-  doc.setFontSize(16)
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(220, 230, 245)
-  doc.text(projectName, MARGIN, 60)
+  doc.setTextColor(...COLORS.mid)
+  doc.text(`Report generated ${fmtToday()}`, MARGIN, y + 2)
+  y += 14
 
-  // Report date
-  doc.setFontSize(10)
-  doc.setTextColor(180, 200, 220)
-  doc.text(`Report generated ${fmtToday()}`, MARGIN, 75)
-
-  // Stats cards below the band
-  const cardY = 120
+  // Stats cards — quiet, modern (no accent bars on cards, primary color is in
+  // the value typography only).
   const cardW = CONTENT_WIDTH / 3 - 6
+  const cardH = 30
   const cards = [
     { label: 'Total Photos', value: String(totalPhotos) },
     { label: 'Date Coverage', value: `${totalDates} date${totalDates !== 1 ? 's' : ''}` },
@@ -108,48 +115,29 @@ function drawCoverPage(doc, projectName, totalPhotos, dateRange, totalDates) {
   cards.forEach((card, i) => {
     const x = MARGIN + i * (cardW + 9)
 
-    // Card background
     doc.setFillColor(...COLORS.surface)
-    doc.roundedRect(x, cardY, cardW, 32, 3, 3, 'F')
-
-    // Card border
     doc.setDrawColor(...COLORS.border)
     doc.setLineWidth(0.3)
-    doc.roundedRect(x, cardY, cardW, 32, 3, 3, 'S')
+    doc.roundedRect(x, y, cardW, cardH, 2.5, 2.5, 'FD')
 
-    // Accent bar at top of card
-    doc.setFillColor(...COLORS.accent)
-    doc.rect(x, cardY, cardW, 2.5, 'F')
-    // Round top corners
-    doc.setFillColor(...COLORS.surface)
-    doc.rect(x + 0.3, cardY + 2.5, cardW - 0.6, 1, 'F')
-
-    // Value
-    doc.setFontSize(18)
+    doc.setFontSize(7)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...COLORS.dark)
-    doc.text(card.value, x + cardW / 2, cardY + 17, { align: 'center' })
+    doc.setTextColor(...COLORS.subtle)
+    doc.text(card.label.toUpperCase(), x + 6, y + 8)
 
-    // Label
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...COLORS.mid)
-    doc.text(card.label.toUpperCase(), x + cardW / 2, cardY + 26, { align: 'center' })
+    doc.setFontSize(15)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...primary)
+    doc.text(card.value, x + 6, y + 21)
   })
+  y += cardH + 10
 
-  // Table of contents hint
+  drawRule(doc, MARGIN, y, MARGIN + CONTENT_WIDTH, COLORS.border, 0.3)
+  y += 6
   doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
+  doc.setFont('helvetica', 'italic')
   doc.setTextColor(...COLORS.subtle)
-  doc.text('Photos are organized chronologically by date, newest first.', MARGIN, 175)
-
-  drawRule(doc, MARGIN, 180, MARGIN + CONTENT_WIDTH, COLORS.border, 0.3)
-
-  // Footer on cover
-  doc.setFontSize(7)
-  doc.setTextColor(...COLORS.subtle)
-  doc.text('FieldSync Progress Photo Report', MARGIN, PAGE_HEIGHT - 12)
-  doc.text(fmtToday(), PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 12, { align: 'right' })
+  doc.text('Photos are organized chronologically by date, newest first.', MARGIN, y)
 }
 
 // ── Photo pages ─────────────────────────────────────────────────────────────
@@ -239,21 +227,21 @@ function drawPhotoWithCaption(doc, imageData, photo, x, y, w, h, getAreaName) {
   return captionY + 2
 }
 
-function addPageFooters(doc, projectName) {
+function addPageFooters(doc, projectName, primary, context) {
+  // Continuation accents on every page after the cover
   const totalPages = doc.internal.getNumberOfPages()
-
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i)
-    const fy = PAGE_HEIGHT - 10
-
-    drawRule(doc, MARGIN, fy - 4, PAGE_WIDTH - MARGIN, COLORS.border, 0.3)
-
-    doc.setFontSize(7)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...COLORS.subtle)
-    doc.text(`${projectName} — Progress Photos`, MARGIN, fy)
-    doc.text(`Page ${i} of ${totalPages}`, PAGE_WIDTH - MARGIN, fy, { align: 'right' })
+    drawContinuationAccent(doc, { primary })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: projectName
+      ? `Progress Photos · ${projectName}`
+      : 'Progress Photos',
+    context,
+    primary,
+  })
 }
 
 // ── Main export function ────────────────────────────────────────────────────
@@ -265,6 +253,9 @@ export async function exportProgressPhotosPDF({
   projectName,
   areas: _areas,
   getAreaName,
+  project,
+  company,
+  branding,
 }) {
   const { default: jsPDF } = await loadJsPDF()
 
@@ -276,6 +267,10 @@ export async function exportProgressPhotosPDF({
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
+  const context = { project: project || { name: projectName }, company, branding }
+  const primary = resolvePrimaryColor({ branding, company })
+  const brandLogo = await loadBrandLogo({ branding, company })
+
   // Date range
   const newest = availableDates[0]
   const oldest = availableDates[availableDates.length - 1]
@@ -284,7 +279,15 @@ export async function exportProgressPhotosPDF({
     : `${fmtDateShort(oldest)} – ${fmtDateShort(newest)}`
 
   // ── Cover page
-  drawCoverPage(doc, projectName, photos.length, dateRange, availableDates.length)
+  drawCoverPage(doc, {
+    projectName,
+    totalPhotos: photos.length,
+    dateRange,
+    totalDates: availableDates.length,
+    primary,
+    brandLogo,
+    context,
+  })
 
   // ── Photo pages, grouped by date
   // Layout: 2 photos per row, large format for clarity
@@ -403,7 +406,7 @@ export async function exportProgressPhotosPDF({
   doc.text(String(photos.length), MARGIN + CONTENT_WIDTH, y, { align: 'right' })
 
   // ── Add page footers
-  addPageFooters(doc, projectName)
+  addPageFooters(doc, projectName, primary, context)
 
   // ── Save
   const safeName = projectName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 40)

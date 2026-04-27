@@ -9,7 +9,7 @@ import { EmptyState, ErrorState } from './ui/ErrorState'
  * Shows construction progress documentation for disputes, owner reports, and team review.
  * Uses a date dropdown to keep the overview page compact.
  */
-export default function PhotoTimeline({ projectId, projectName, areas = [], onShowToast }) {
+export default function PhotoTimeline({ projectId, projectName, project, company, branding, areas = [], onShowToast }) {
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
@@ -230,6 +230,9 @@ export default function PhotoTimeline({ projectId, projectName, areas = [], onSh
         photosByDate,
         availableDates,
         projectName: projectName || 'Project',
+        project,
+        company,
+        branding,
         areas,
         getAreaName,
       })

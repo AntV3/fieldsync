@@ -72,6 +72,7 @@ export default function OverviewTab({
         {/* Left: Crew On-Site */}
         <OverviewCrewMetrics
           project={selectedProject}
+          company={company}
           onShowToast={onShowToast}
         />
 

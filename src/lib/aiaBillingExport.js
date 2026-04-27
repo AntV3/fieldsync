@@ -151,7 +151,8 @@ export function exportAIABillingPDF(project, areas, changeOrders = [], options =
     previousApplications = [],
     architect = '',
     owner = '',
-    contractDate = ''
+    contractDate = '',
+    company = null
   } = options
 
   const g703Lines = buildG703Lines(project, areas, changeOrders, previousApplications)
@@ -160,9 +161,27 @@ export function exportAIABillingPDF(project, areas, changeOrders = [], options =
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' })
   const pageWidth = doc.internal.pageSize.getWidth()
 
+  // ---- Discrete company wordmark in upper-left (does not disturb AIA layout) ----
+  if (company?.name) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(30, 41, 59)
+    doc.text(company.name, 40, 22)
+    const contact = [company.phone, company.email].filter(Boolean).join('  ·  ')
+    if (contact) {
+      doc.setFontSize(7)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100, 116, 139)
+      doc.text(contact, 40, 33)
+    }
+    doc.setTextColor(0, 0, 0)
+  }
+
   // ---- G702 Page ----
+  doc.setFont('helvetica', 'bold')
   doc.setFontSize(14)
   doc.text('APPLICATION AND CERTIFICATE FOR PAYMENT', pageWidth / 2, 30, { align: 'center' })
+  doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.text('AIA Document G702', pageWidth / 2, 42, { align: 'center' })
 

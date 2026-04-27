@@ -361,7 +361,7 @@ export default function SageExportPanel({
           label: 'AIA G702/G703 PDF',
           description: 'Application for Payment with continuation sheet',
           icon: FileText,
-          action: () => handleExport('AIA PDF', () => exportAIABillingPDF(project, areas, changeOrders, aiaOptions))
+          action: () => handleExport('AIA PDF', () => exportAIABillingPDF(project, areas, changeOrders, { ...aiaOptions, company }))
         },
         {
           id: 'aia-csv',

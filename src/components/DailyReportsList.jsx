@@ -2,7 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ClipboardList, ChevronDown, ChevronRight, Calendar, Check, CheckCheck, Circle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { hexToRgb, loadImageAsBase64, loadImagesAsBase64 } from '../lib/imageUtils'
+import { loadImagesAsBase64 } from '../lib/imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from '../lib/pdfBranding'
 import { ErrorState, EmptyState, CollapsibleSection } from './ui'
 import { parseLocalDate } from '../lib/utils'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
@@ -250,60 +257,37 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
-    const margin = 20
-    let yPos = margin
+    const margin = 18
 
-    const primaryColor = hexToRgb(branding?.primary_color || '#3B82F6')
-    const secondaryColor = hexToRgb(branding?.secondary_color || '#1E40AF')
-
-    // Header with branding
-    doc.setFillColor(...primaryColor)
-    doc.rect(0, 0, pageWidth, 45, 'F')
-    doc.setFillColor(...secondaryColor)
-    doc.rect(0, 42, pageWidth, 3, 'F')
-
-    // Add logo if available
-    let logoOffset = margin
-    if (branding?.logo_url) {
-      try {
-        const logoBase64 = await loadImageAsBase64(branding.logo_url)
-        if (logoBase64) {
-          doc.addImage(logoBase64, 'PNG', margin, 7, 30, 30)
-          logoOffset = margin + 40
-        }
-      } catch (e) {
-        console.error('Error adding logo:', e)
-      }
+    // Map old branding shape into the shared resolver
+    const brandingForHeader = {
+      primaryColor: branding?.primary_color || branding?.primaryColor,
+      logoUrl: branding?.logo_url || branding?.logoUrl,
     }
+    const primaryColor = resolvePrimaryColor({ branding: brandingForHeader, company })
+    const brandLogo = await loadBrandLogo({ branding: brandingForHeader, company })
 
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(22)
-    doc.setFont('helvetica', 'bold')
-    doc.text(company?.name || 'Company Name', logoOffset, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text('DAILY REPORTS SUMMARY', logoOffset, 30)
+    let yPos = drawDocumentHeader(doc, {
+      title: 'Daily Reports',
+      subtitle: `${exportReports.length} report${exportReports.length !== 1 ? 's' : ''}`,
+      context: { company, branding: brandingForHeader, project },
+      brandLogo,
+      primary: primaryColor,
+    })
 
-    doc.setFontSize(9)
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, 20, { align: 'right' })
-    if (project.job_number) {
-      doc.text(`Job #: ${project.job_number}`, pageWidth - margin, 28, { align: 'right' })
-    }
-
-    yPos = 55
-
-    // Project info
+    // Project info strip
     doc.setFillColor(248, 250, 252)
-    doc.rect(margin, yPos - 5, pageWidth - margin * 2, 20, 'F')
-    doc.setTextColor(...primaryColor)
-    doc.setFontSize(14)
+    doc.roundedRect(margin, yPos, pageWidth - margin * 2, 11, 2, 2, 'F')
+    doc.setFontSize(7.5)
     doc.setFont('helvetica', 'bold')
-    doc.text(`Project: ${project.name}`, margin + 5, yPos + 7)
-    doc.setFontSize(10)
-    doc.setTextColor(100, 100, 100)
-    doc.text(`${exportReports.length} Report${exportReports.length !== 1 ? 's' : ''}`, pageWidth - margin - 5, yPos + 7, { align: 'right' })
-
-    yPos += 25
+    doc.setTextColor(71, 85, 105)
+    doc.text('PROJECT', margin + 5, yPos + 4.5)
+    doc.setFontSize(9.5)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(15, 23, 42)
+    const projInfo = (project?.name || 'Untitled') + (project?.job_number ? `   ·   Job #${project.job_number}` : '')
+    doc.text(projInfo, margin + 22, yPos + 7.5)
+    yPos += 17
 
     // Pre-load all report photos as base64 for embedding
     const reportPhotoData = {}
@@ -439,14 +423,20 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       yPos += 10
     }
 
-    // Footer
+    // Continuation accents + branded footers on every page
     const pageCount = doc.internal.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
+    for (let i = 2; i <= pageCount; i++) {
       doc.setPage(i)
-      doc.setFontSize(8)
-      doc.setTextColor(150, 150, 150)
-      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' })
+      drawContinuationAccent(doc, { primary: primaryColor })
     }
+
+    applyDocumentFooters(doc, {
+      documentLabel: project?.name
+        ? `Daily Reports · ${project.name}`
+        : 'Daily Reports',
+      context: { company, branding: brandingForHeader, project },
+      primary: primaryColor,
+    })
 
     const fileName = `${project.name}_Daily_Reports_${new Date().toISOString().split('T')[0]}.pdf`
     doc.save(fileName)

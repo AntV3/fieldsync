@@ -5,6 +5,13 @@ import { formatCurrency } from '../../lib/corCalculations'
 import { useFilteredPagination } from '../../hooks/useFilteredPagination'
 import Pagination from '../ui/Pagination'
 import CORLogRow from './CORLogRow'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from '../../lib/pdfBranding'
 
 // Status display mapping for client presentation
 const STATUS_DISPLAY = {
@@ -160,33 +167,18 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
       const { default: autoTable } = await import('jspdf-autotable')
 
       const doc = new jsPDF('landscape')
-      const pageWidth = doc.internal.pageSize.width
 
-      // Header
-      doc.setFontSize(18)
-      doc.setFont(undefined, 'bold')
-      doc.text('CHANGE ORDER LOG', pageWidth / 2, 20, { align: 'center' })
+      const primaryColor = resolvePrimaryColor({ company })
+      const brandLogo = await loadBrandLogo({ company })
 
-      doc.setFontSize(12)
-      doc.setFont(undefined, 'normal')
-      doc.text(`Project: ${project.name}`, pageWidth / 2, 28, { align: 'center' })
-      if (project.job_number) {
-        doc.text(`Job #${project.job_number}`, pageWidth / 2, 35, { align: 'center' })
-      }
-      doc.setFontSize(10)
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 42, { align: 'center' })
-
-      // Company info if available
-      if (company?.name) {
-        doc.setFontSize(11)
-        doc.setFont(undefined, 'bold')
-        doc.text(company.name, 14, 20)
-        doc.setFont(undefined, 'normal')
-        if (company.phone) {
-          doc.setFontSize(9)
-          doc.text(company.phone, 14, 25)
-        }
-      }
+      // Editorial header
+      drawDocumentHeader(doc, {
+        title: 'Change Order Log',
+        subtitle: project.job_number ? `Job #${project.job_number}` : '',
+        context: { company, project },
+        brandLogo,
+        primary: primaryColor,
+      })
 
       // Table data - include all editable columns
       const tableData = logEntries.map(entry => [
@@ -263,6 +255,21 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
       doc.setFont(undefined, 'bold')
       doc.setFontSize(10)
       doc.text(`Total Value: ${formatCurrency(summary.grandTotal)}`, col1X, finalY + 24)
+
+      // Continuation accents + branded footers on every page
+      const pageCount = doc.internal.getNumberOfPages()
+      for (let i = 2; i <= pageCount; i++) {
+        doc.setPage(i)
+        drawContinuationAccent(doc, { primary: primaryColor })
+      }
+
+      applyDocumentFooters(doc, {
+        documentLabel: project?.name
+          ? `Change Order Log · ${project.name}`
+          : 'Change Order Log',
+        context: { company, project },
+        primary: primaryColor,
+      })
 
       // Save
       const fileName = `COR_Log_${project.job_number || project.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`

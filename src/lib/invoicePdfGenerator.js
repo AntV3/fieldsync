@@ -6,7 +6,13 @@
  */
 
 import { formatCurrency } from './corCalculations'
-import { hexToRgb, loadImageAsBase64 } from './imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from './pdfBranding'
 
 // Helper: format a date string to long US format
 function formatDate(dateStr) {
@@ -37,67 +43,34 @@ export async function generateInvoicePDF(invoice, project, company) {
   const doc = new jsPDF('portrait', 'mm', 'letter')
   const pageWidth  = doc.internal.pageSize.width
   const pageHeight = doc.internal.pageSize.height
-  const margin = 20
+  const margin = 18
   const contentWidth = pageWidth - margin * 2
 
   // ─── Brand colours ───────────────────────────────────────────────────────────
-  const brandHex = company?.branding_color || company?.primary_color || '#1E3A5F'
-  const primary  = hexToRgb(brandHex)       // company primary (header, accents)
+  const primary  = resolvePrimaryColor({ company })
   const dark     = [17, 24, 39]             // near-black text
   const mid      = [71, 85, 105]            // secondary text
   const subtle   = [148, 163, 184]          // light labels / rules
   const surface  = [248, 250, 252]          // table alt rows / boxes
   const border   = [226, 232, 240]
 
-  let y = 0
+  const brandLogo = await loadBrandLogo({ company })
 
   // ============================================================
-  // TOP HEADER BAND
+  // EDITORIAL HEADER
   // ============================================================
-  const headerH = 48
-  doc.setFillColor(...primary)
-  doc.rect(0, 0, pageWidth, headerH, 'F')
-
-  // Logo (if available)
-  let logoRight = margin
-  if (company?.logo_url) {
-    try {
-      const logoData = await loadImageAsBase64(company.logo_url)
-      if (logoData) {
-        const lh = 28
-        const lw = 28
-        doc.addImage(logoData, 'PNG', margin, (headerH - lh) / 2, lw, lh)
-        logoRight = margin + lw + 10
-      }
-    } catch (_) { /* ignore logo errors */ }
-  }
-
-  // Company name in header
-  doc.setFontSize(15)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text(company?.name || 'Company Name', logoRight, headerH / 2 - 2)
-
-  // Contact details sub-line
-  const taglineParts = [company?.phone, company?.email].filter(Boolean)
-  if (taglineParts.length) {
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(220, 230, 245)
-    doc.text(taglineParts.join('  ·  '), logoRight, headerH / 2 + 5)
-  }
-
-  // "INVOICE" — right side of header
-  doc.setFontSize(26)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text('INVOICE', pageWidth - margin, headerH / 2 + 5, { align: 'right' })
-
-  y = headerH + 14
+  let y = drawDocumentHeader(doc, {
+    title: 'Invoice',
+    subtitle: invoice.invoice_number ? `# ${invoice.invoice_number}` : '',
+    context: { company, project },
+    brandLogo,
+    primary,
+  })
 
   // ============================================================
   // INVOICE META  (left)  +  BILL TO  (right)
   // ============================================================
+  const metaTop = y
   const leftW  = contentWidth * 0.44
   const rightW = contentWidth * 0.44
   const rightX = margin + contentWidth - rightW
@@ -132,7 +105,7 @@ export async function generateInvoicePDF(invoice, project, company) {
   })
 
   // ── Right: Bill To ──────────────────────────────────────────
-  let billY = headerH + 14
+  let billY = metaTop
 
   doc.setFontSize(8)
   doc.setFont('helvetica', 'bold')
@@ -281,30 +254,21 @@ export async function generateInvoicePDF(invoice, project, company) {
   }
 
   // ============================================================
-  // FOOTER (all pages)
+  // CONTINUATION ACCENTS + FOOTERS (all pages)
   // ============================================================
   const totalPgs = doc.internal.getNumberOfPages()
-  for (let i = 1; i <= totalPgs; i++) {
+  for (let i = 2; i <= totalPgs; i++) {
     doc.setPage(i)
-
-    // Thin accent stripe at top of continuation pages
-    if (i > 1) {
-      doc.setFillColor(...primary)
-      doc.rect(0, 0, pageWidth, 2.5, 'F')
-    }
-
-    const fy = pageHeight - 10
-    drawRule(doc, margin, fy - 4, pageWidth - margin, border, 0.3)
-    doc.setFontSize(7.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...subtle)
-    doc.text(
-      `Invoice ${invoice.invoice_number || ''}  ·  Generated ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-      margin,
-      fy
-    )
-    doc.text(`Page ${i} of ${totalPgs}`, pageWidth - margin, fy, { align: 'right' })
+    drawContinuationAccent(doc, { primary })
   }
+
+  applyDocumentFooters(doc, {
+    documentLabel: invoice.invoice_number
+      ? `Invoice ${invoice.invoice_number}`
+      : 'Invoice',
+    context: { company, project },
+    primary,
+  })
 
   return doc
 }

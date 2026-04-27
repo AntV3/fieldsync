@@ -2,7 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { hexToRgb, loadImageAsBase64 } from '../lib/imageUtils'
+import { hexToRgb } from '../lib/imageUtils'
+import {
+  resolvePrimaryColor,
+  loadBrandLogo,
+  drawDocumentHeader,
+  drawContinuationAccent,
+  applyDocumentFooters,
+} from '../lib/pdfBranding'
 import SignatureLinkGenerator from './SignatureLinkGenerator'
 import { TicketSkeleton, CountBadge, EmptyState } from './ui'
 import TMDashboard from './tm/TMDashboard'
@@ -545,82 +552,47 @@ export default function TMList({
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
-    const margin = 20
-    let yPos = margin
+    const margin = 18
 
-    // Get company colors from branding
-    const primaryColor = hexToRgb(branding?.primary_color || '#3B82F6')
-    const secondaryColor = hexToRgb(branding?.secondary_color || '#1E40AF')
-
-    // Company Header with branded colors
-    doc.setFillColor(...primaryColor)
-    doc.rect(0, 0, pageWidth, 45, 'F')
-
-    // Add accent stripe
-    doc.setFillColor(...secondaryColor)
-    doc.rect(0, 42, pageWidth, 3, 'F')
-
-    // Add company logo if available
-    let logoOffset = margin
-    if (branding?.logo_url) {
-      try {
-        const logoBase64 = await loadImageAsBase64(branding.logo_url)
-        if (logoBase64) {
-          // Add logo (max height 30px, maintain aspect ratio)
-          const logoHeight = 30
-          const logoWidth = 30 // Square assumption, will be adjusted by aspect ratio
-          doc.addImage(logoBase64, 'PNG', margin, 7, logoWidth, logoHeight)
-          logoOffset = margin + logoWidth + 10
-        }
-      } catch (e) {
-        console.error('Error adding logo:', e)
-      }
+    const brandingForHeader = {
+      primaryColor: branding?.primary_color || branding?.primaryColor,
+      logoUrl: branding?.logo_url || branding?.logoUrl,
     }
+    const primaryColor = resolvePrimaryColor({ branding: brandingForHeader, company })
+    const brandLogo = await loadBrandLogo({ branding: brandingForHeader, company })
 
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(22)
-    doc.setFont('helvetica', 'bold')
-    doc.text(company?.name || 'Company Name', logoOffset, 20)
+    // Editorial header
+    let yPos = drawDocumentHeader(doc, {
+      title: 'Time & Materials',
+      subtitle: `${exportTickets.length} ticket${exportTickets.length !== 1 ? 's' : ''}  ·  ${filter.charAt(0).toUpperCase() + filter.slice(1)}`,
+      context: { company, branding: brandingForHeader, project },
+      brandLogo,
+      primary: primaryColor,
+    })
 
-    // Add company tagline/subtitle
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text('TIME & MATERIALS REPORT', logoOffset, 30)
-
-    // Right side info
-    doc.setFontSize(9)
-    doc.text(`Report Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`, pageWidth - margin, 18, { align: 'right' })
-    if (project.job_number) {
-      doc.text(`Job #: ${project.job_number}`, pageWidth - margin, 26, { align: 'right' })
-    }
-    doc.text(`Status: ${filter.charAt(0).toUpperCase() + filter.slice(1)}`, pageWidth - margin, 34, { align: 'right' })
-
-    yPos = 55
-
-    // Project Info Box
-    doc.setFillColor(248, 250, 252) // Light gray
-    doc.rect(margin, yPos - 5, pageWidth - (margin * 2), 30, 'F')
-    doc.setDrawColor(...primaryColor)
-    doc.setLineWidth(0.5)
-    doc.rect(margin, yPos - 5, pageWidth - (margin * 2), 30, 'S')
-
-    doc.setTextColor(...primaryColor)
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    doc.text(`Project: ${project.name}`, margin + 5, yPos + 7)
-
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(51, 65, 85)
-
-    // Date range
+    // Project info strip
     const dates = exportTickets.map(t => new Date(t.work_date)).sort((a, b) => a - b)
     const startDate = dates[0]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     const endDate = dates[dates.length - 1]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    doc.text(`Date Range: ${startDate} - ${endDate}`, margin + 5, yPos + 17)
-    doc.text(`Total Tickets: ${exportTickets.length}`, pageWidth - margin - 5, yPos + 7, { align: 'right' })
 
-    yPos += 40
+    doc.setFillColor(248, 250, 252)
+    doc.roundedRect(margin, yPos, pageWidth - margin * 2, 11, 2, 2, 'F')
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('PROJECT', margin + 5, yPos + 4.5)
+    doc.setFontSize(9.5)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(15, 23, 42)
+    const projInfo = (project?.name || 'Untitled') + (project?.job_number ? `   ·   Job #${project.job_number}` : '')
+    doc.text(projInfo, margin + 22, yPos + 7.5)
+    if (startDate && endDate) {
+      doc.setFontSize(8.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(71, 85, 105)
+      doc.text(`${startDate} — ${endDate}`, pageWidth - margin - 4, yPos + 7.5, { align: 'right' })
+    }
+    yPos += 17
 
     // Summary Section
     const grandTotalHours = exportTickets.reduce((sum, t) => sum + calculateTotalHours(t), 0)
@@ -753,7 +725,7 @@ export default function TMList({
           '', '', 'SUBTOTAL:', regHours.toString(), otHours > 0 ? otHours.toString() : '—', (regHours + otHours).toString()
         ]],
         footStyles: {
-          fillColor: secondaryColor,
+          fillColor: primaryColor,
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 9
@@ -884,7 +856,7 @@ export default function TMList({
           '', '', '', '', 'Subtotal:', `$${subtotal.toFixed(2)}`
         ]],
         footStyles: {
-          fillColor: secondaryColor,
+          fillColor: primaryColor,
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 9
@@ -973,7 +945,7 @@ export default function TMList({
       const sigLineY = startY + 18
 
       // Signature line
-      doc.setDrawColor(...secondaryColor)
+      doc.setDrawColor(...primaryColor)
       doc.setLineWidth(0.5)
       doc.line(margin, sigLineY, margin + 70, sigLineY)
       doc.text('Signature', margin, sigLineY + 8)
@@ -1034,16 +1006,20 @@ export default function TMList({
       firstTicket.client_signature_date
     )
 
-    // Add page numbers to all pages
+    // Continuation accents + branded footers on every page
     const totalPages = doc.internal.getNumberOfPages()
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 2; i <= totalPages; i++) {
       doc.setPage(i)
-      const footerY = pageHeight - 15
-      doc.setFontSize(8)
-      doc.setTextColor(148, 163, 184)
-      doc.text(`${company?.name || 'Company'} - Time & Material Report - ${project.name}`, margin, footerY)
-      doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' })
+      drawContinuationAccent(doc, { primary: primaryColor })
     }
+
+    applyDocumentFooters(doc, {
+      documentLabel: project?.name
+        ? `Time & Materials · ${project.name}`
+        : 'Time & Materials Report',
+      context: { company, branding: brandingForHeader, project },
+      primary: primaryColor,
+    })
 
     // Download
     const fileName = `${project.name}_Time_Material_Report_${new Date().toISOString().split('T')[0]}.pdf`
