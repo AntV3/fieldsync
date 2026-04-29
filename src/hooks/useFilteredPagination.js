@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { usePagination } from './usePagination'
 
 /**
@@ -32,10 +32,12 @@ export function useFilteredPagination(items = [], options = {}) {
     totalItems: filteredItems.length
   })
 
-  // Keep totalItems in sync with filtered results
-  useMemo(() => {
+  // Keep totalItems in sync with filtered results. Side effects belong
+  // in useEffect — calling setState inside useMemo violates React's
+  // rules and triggers warnings under React 19 strict mode.
+  useEffect(() => {
     pagination.setTotalItems(filteredItems.length)
-  }, [filteredItems.length])
+  }, [filteredItems.length, pagination.setTotalItems])
 
   const paginatedItems = useMemo(() => {
     return pagination.paginate(filteredItems)
