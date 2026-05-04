@@ -107,8 +107,13 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
     setSubmitting(true)
     try {
-      // Upload new photos to storage in parallel (up to 3 concurrent)
+      // Upload new photos to storage in parallel (up to 3 concurrent).
+      // If any uploads fail, surface the first error so the user knows
+      // their photos didn't reach storage instead of silently submitting
+      // a report without them.
       const uploadedPaths = []
+      let firstUploadError = null
+      let failedUploadCount = 0
       if (photos.length > 0 && project.company_id) {
         setSubmitProgress('Uploading photos...')
         const photosWithFiles = photos.filter(p => p.file)
@@ -121,11 +126,24 @@ export default function DailyReport({ project, onShowToast, onClose }) {
             )
           )
           results.forEach(r => {
-            if (r.status === 'fulfilled' && r.value) uploadedPaths.push(r.value)
-            else if (r.status === 'rejected') console.error('Photo upload failed:', r.reason)
+            if (r.status === 'fulfilled' && r.value) {
+              uploadedPaths.push(r.value)
+            } else if (r.status === 'rejected') {
+              failedUploadCount++
+              if (!firstUploadError) firstUploadError = r.reason
+              console.error('Photo upload failed:', r.reason)
+            }
           })
           setSubmitProgress(`Uploading photos... ${Math.min(i + BATCH_SIZE, photosWithFiles.length)}/${photosWithFiles.length}`)
         }
+      }
+
+      // If every photo failed to upload, abort before submitting so the
+      // user can retry instead of submitting a photoless report.
+      if (failedUploadCount > 0 && uploadedPaths.length === 0) {
+        const reason = firstUploadError?.message || 'check your connection and try again'
+        onShowToast(`Photo upload failed: ${reason}`, 'error')
+        return
       }
 
       // Save notes and photos
@@ -147,14 +165,19 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       const result = await db.submitDailyReport(project.id, 'Field')
 
       if (result) {
-        onShowToast('Daily report submitted!', 'success')
+        if (failedUploadCount > 0) {
+          onShowToast(`Report submitted, but ${failedUploadCount} photo${failedUploadCount === 1 ? '' : 's'} failed to upload`, 'error')
+        } else {
+          onShowToast('Daily report submitted!', 'success')
+        }
         onClose()
       } else {
         onShowToast('Report not sent - check connection', 'error')
       }
     } catch (err) {
       console.error('Error submitting report:', err)
-      onShowToast('Error submitting report', 'error')
+      const detail = err?.message ? `: ${err.message}` : ''
+      onShowToast(`Error submitting report${detail}`, 'error')
     } finally {
       setSubmitting(false)
       setSubmitProgress('')
