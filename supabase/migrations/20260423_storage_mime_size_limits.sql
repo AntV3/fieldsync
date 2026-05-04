@@ -59,7 +59,11 @@ SET
   public             = false
 WHERE id = 'project-documents';
 
--- Sanity: path format for tm-photos must be companyId/projectId/...
+-- Sanity: path format for tm-photos must be
+--   companyId/projectId/ticketId/filename
+-- (matches uploadPhoto / uploadPhotoBase64 in src/lib/db/tmOps.js;
+--  ticketId is also used as a sub-folder for daily-report and
+--  field-observation photos, e.g. `dr-...` / `obs-...`).
 -- Add a CHECK-style guard via the upload policy. Reject anything
 -- that can't be parsed into the expected folder layout.
 DROP POLICY IF EXISTS "Field users can upload tm-photos" ON storage.objects;
@@ -68,7 +72,7 @@ ON storage.objects
 FOR INSERT
 WITH CHECK (
   bucket_id = 'tm-photos'
-  AND name ~ '^[0-9a-fA-F-]{36}/[0-9a-fA-F-]{36}/[^/]+$'
+  AND name ~ '^[0-9a-fA-F-]{36}/[0-9a-fA-F-]{36}/[^/]+/[^/]+$'
   AND (
     auth.uid() IS NOT NULL
     OR EXISTS (
