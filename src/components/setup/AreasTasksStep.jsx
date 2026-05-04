@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ChevronUp, ChevronDown, Trash2, Plus, Settings2 } from 'lucide-react'
-import { safeParseExcel, safeSheetToJson, loadXLSXSafe } from '../../lib/safeXlsx'
+import { safeParseExcel, safeSheetToJson, loadXLSXSafe, XlsxTooLargeError, MAX_XLSX_BYTES } from '../../lib/safeXlsx'
 
 // Currency formatting helpers
 const formatCurrencyDisplay = (value) => {
@@ -332,6 +332,14 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
       onShowToast('Please upload an Excel file (.xlsx, .xls, or .csv)', 'error')
       return
     }
+    if (file.size > MAX_XLSX_BYTES) {
+      onShowToast(
+        `File is too large (${Math.round(file.size / 1024 / 1024)} MB). Max ${Math.round(MAX_XLSX_BYTES / 1024 / 1024)} MB.`,
+        'error',
+      )
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
     setImporting(true)
     try {
       const tasks = await parseExcel(file)
@@ -345,7 +353,11 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
       onShowToast(`Found ${tasks.length} tasks`, 'success')
     } catch (error) {
       console.error('Excel import error:', error)
-      onShowToast('Error reading Excel file', 'error')
+      if (error instanceof XlsxTooLargeError) {
+        onShowToast(error.message, 'error')
+      } else {
+        onShowToast('Error reading Excel file', 'error')
+      }
     } finally {
       setImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ''

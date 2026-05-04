@@ -1,11 +1,10 @@
 /**
  * Safe XLSX Wrapper
  *
- * Mitigates prototype pollution vulnerability in xlsx (SheetJS) package.
- * The xlsx package has a known CVE for prototype pollution when parsing
- * untrusted spreadsheet files. This wrapper:
- * 1. Sanitizes parsed output by stripping dangerous prototype keys
- * 2. Provides a safe dynamic import for consistent usage
+ * Mitigates known CVEs in the abandoned xlsx (SheetJS CE) package:
+ *   - GHSA-4r6h-8v6p-xvw6 (Prototype Pollution): sanitises parsed output.
+ *   - GHSA-5pgg-2g8v-p4x9 (ReDoS via crafted sheet): rejects oversized
+ *     uploads before they reach SheetJS's regex parser.
  *
  * Usage:
  *   import { loadXLSXSafe, safeParseExcel } from '../lib/safeXlsx'
@@ -20,6 +19,31 @@ export const loadXLSXSafe = async () => {
 
 // Keys that could be used for prototype pollution
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
+// Hard cap for spreadsheet uploads. Construction take-offs and SOV exports
+// fit comfortably under 10 MB; anything larger is more likely a ReDoS payload
+// targeting SheetJS than a legitimate workbook.
+export const MAX_XLSX_BYTES = 10 * 1024 * 1024
+
+export class XlsxTooLargeError extends Error {
+  constructor(size, limit = MAX_XLSX_BYTES) {
+    super(
+      `Spreadsheet is ${Math.round(size / 1024)} KB; the maximum allowed size is ${Math.round(limit / 1024)} KB.`,
+    )
+    this.name = 'XlsxTooLargeError'
+    this.size = size
+    this.limit = limit
+  }
+}
+
+const byteLengthOf = (data) => {
+  if (data == null) return 0
+  if (typeof data === 'string') return data.length
+  if (data instanceof ArrayBuffer) return data.byteLength
+  if (ArrayBuffer.isView(data)) return data.byteLength
+  if (typeof data.length === 'number') return data.length
+  return 0
+}
 
 /**
  * Recursively strip dangerous prototype-polluting keys from an object.
@@ -41,6 +65,10 @@ function sanitizeObject(obj) {
  * injected __proto__, constructor, or prototype properties.
  */
 export const safeParseExcel = async (data, options = {}) => {
+  const size = byteLengthOf(data)
+  if (size > MAX_XLSX_BYTES) {
+    throw new XlsxTooLargeError(size)
+  }
   const XLSX = await loadXLSXSafe()
   const workbook = XLSX.read(data, { ...options, type: 'array' })
 
