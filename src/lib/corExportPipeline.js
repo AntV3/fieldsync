@@ -20,6 +20,7 @@
 import { supabase } from './supabase'
 import { observe } from './observability'
 import { calculateCORTotals } from './corCalculations'
+import { generatePDFFromSnapshot } from './corPdfGenerator'
 
 // ============================================
 // CONSTANTS
@@ -642,8 +643,6 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
     }
 
     // Step 5: Generate PDF from snapshot
-    // Import the PDF generator dynamically to avoid circular deps
-    const { generatePDFFromSnapshot } = await import('./corPdfGenerator')
     const pdfResult = await generatePDFFromSnapshot(
       snapshot,
       { project, company, branding }

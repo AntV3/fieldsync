@@ -18,7 +18,8 @@ import {
   getConnectionStatus,
   onConnectionChange,
   getPendingActionCount,
-  syncPendingActions
+  syncPendingActions,
+  initOfflineDB
 } from './offlineManager'
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import {
@@ -51,9 +52,7 @@ import { submittalOps } from './db/submittalOps'
 
 // Initialize offline database (guard for SSR/test environments)
 if (typeof window !== 'undefined') {
-  import('./offlineManager').then(m => m.initOfflineDB().catch(err =>
-    console.error('Failed to init offline DB:', err)
-  ))
+  initOfflineDB().catch(err => console.error('Failed to init offline DB:', err))
 }
 
 // Re-export for other modules
