@@ -447,6 +447,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           areas={areas}
           companyId={companyId}
           onShowToast={onShowToast}
+          onSessionExpired={onExit}
         />
       </div>
     )
