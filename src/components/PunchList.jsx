@@ -1,9 +1,33 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CheckCircle2, Circle, Clock, Plus, X, MapPin, User, Filter, Trash2, Edit3, Save, ChevronDown, ChevronRight } from 'lucide-react'
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, db, clearFieldSession, isFieldMode } from '../lib/supabase'
 import { ConfirmDialog } from './ui'
 import { ListItemSkeleton } from './ui/Skeleton'
 import { EmptyState } from './ui/ErrorState'
+
+const isSessionExpiredError = (err) =>
+  err?.code === '42501' ||
+  err?.code === 'PGRST301' ||
+  err?.message?.includes('row-level security') ||
+  err?.message?.includes('row level security')
+
+const isNetworkError = (err) => {
+  if (!err) return false
+  const msg = err?.message || ''
+  return (
+    err?.name === 'TypeError' ||
+    msg === 'Load failed' ||
+    msg === 'Failed to fetch' ||
+    msg.includes('NetworkError') ||
+    msg.includes('network')
+  )
+}
+
+const friendlyErrorMessage = (err, fallback) => {
+  if (isSessionExpiredError(err)) return 'Session expired — please re-enter your PIN'
+  if (isNetworkError(err)) return 'Connection error — check your internet and try again'
+  return err?.message || fallback
+}
 
 const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High', color: '#ef4444' },
@@ -21,7 +45,7 @@ const STATUS_OPTIONS = [
  * PunchList - Tracks deficiency items that need resolution before project closeout.
  * Items are linked to work areas and can include photos, assignees, and priorities.
  */
-export default function PunchList({ projectId, areas = [], companyId, onShowToast }) {
+export default function PunchList({ projectId, areas = [], companyId, onShowToast, onSessionExpired }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -40,6 +64,15 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
     notes: '',
     photo_url: ''
   })
+
+  const handleOperationError = useCallback(async (err, fallback) => {
+    const msg = friendlyErrorMessage(err, fallback)
+    onShowToast?.(msg, 'error')
+    if (isSessionExpiredError(err) && isFieldMode() && onSessionExpired) {
+      await clearFieldSession()
+      onSessionExpired()
+    }
+  }, [onShowToast, onSessionExpired])
 
   const loadItems = useCallback(async () => {
     if (!projectId || !isSupabaseConfigured) {
@@ -141,10 +174,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
       loadItems()
     } catch (err) {
       console.error('Error saving punch item:', err)
-      const msg = err.message?.includes('row-level security')
-        ? 'Permission denied — please re-enter your PIN and try again'
-        : (err.message || 'Error saving item')
-      onShowToast?.(msg, 'error')
+      await handleOperationError(err, 'Error saving item')
     } finally {
       setSaving(false)
     }
@@ -156,7 +186,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
       loadItems()
     } catch (err) {
       console.error('Error updating status:', err)
-      onShowToast?.('Error updating status', 'error')
+      await handleOperationError(err, 'Error updating status')
     }
   }
 
@@ -173,7 +203,7 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
       loadItems()
     } catch (err) {
       console.error('Error deleting item:', err)
-      onShowToast?.('Error deleting item', 'error')
+      await handleOperationError(err, 'Error deleting item')
     }
   }
 
