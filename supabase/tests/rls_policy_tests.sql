@@ -76,6 +76,7 @@ DECLARE
     'change_order_ticket_associations',
     'crew_checkins',
     'disposal_loads',
+    'disposal_truck_counts',
     'dump_sites',
     'daily_reports',
     'injury_reports',
@@ -83,7 +84,12 @@ DECLARE
     'messages',
     'labor_rates',
     'materials_equipment',
-    'company_branding'
+    'company_branding',
+    'equipment',
+    'project_equipment',
+    'trade_templates',
+    'field_observations',
+    'punch_list_items'
   ];
   tbl TEXT;
   rls_enabled BOOLEAN;
@@ -223,10 +229,13 @@ DECLARE
     'change_orders',
     'crew_checkins',
     'disposal_loads',
+    'disposal_truck_counts',
     'messages',
     'daily_reports',
     'injury_reports',
-    'material_requests'
+    'material_requests',
+    'field_observations',
+    'punch_list_items'
   ];
 BEGIN
   FOREACH tbl IN ARRAY tables_needing_anon
@@ -320,10 +329,16 @@ DECLARE
     'change_orders',
     'crew_checkins',
     'disposal_loads',
+    'disposal_truck_counts',
     'dump_sites',
     'labor_rates',
     'materials_equipment',
-    'company_branding'
+    'company_branding',
+    'equipment',
+    'project_equipment',
+    'trade_templates',
+    'field_observations',
+    'punch_list_items'
   ];
 BEGIN
   FOREACH tbl IN ARRAY tables_needing_anon_select
