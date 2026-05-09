@@ -145,10 +145,7 @@ export default function SpxDashboard() {
 
               {/* Project Table */}
               <Card className="!p-0 overflow-hidden">
-                <ProjectTable
-                  projects={MOCK_PROJECTS}
-                  onView={(id) => console.log('View project:', id)}
-                />
+                <ProjectTable projects={MOCK_PROJECTS} />
               </Card>
             </div>
 
@@ -184,7 +181,7 @@ export default function SpxDashboard() {
                     detail={alert.detail}
                     project={alert.project}
                     timestamp={alert.timestamp}
-                    onDismiss={() => console.log('Dismiss alert:', i)}
+                    onDismiss={() => {}}
                   />
                 ))}
               </Card>
