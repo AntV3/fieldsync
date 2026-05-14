@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Briefcase, HardHat, MessageSquare, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../lib/supabase'
 
-export default function ProjectMessages({ project, company, userName, onShowToast }) {
+export default function ProjectMessages({ project, userName, onShowToast }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)

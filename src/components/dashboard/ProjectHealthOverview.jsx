@@ -18,7 +18,6 @@ export default function ProjectHealthOverview({
   progress,
   revisedContractValue,
   projectData,
-  changeOrderValue,
   selectedProject,
 }) {
   // ---- Budget Health ----

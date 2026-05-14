@@ -17,7 +17,7 @@ import Toast from './Toast'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
 
-export default function InjuryReportsList({ project, companyId, company, user, onShowToast }) {
+export default function InjuryReportsList({ project, companyId, company, user }) {
   const { branding } = useBranding()
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)

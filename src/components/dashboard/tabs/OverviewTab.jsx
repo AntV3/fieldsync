@@ -12,7 +12,6 @@ export default function OverviewTab({
   progress,
   billable,
   revisedContractValue,
-  changeOrderValue,
   areas,
   areasComplete,
   areasWorking,

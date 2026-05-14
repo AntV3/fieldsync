@@ -759,7 +759,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // provided by usePortfolioMetrics hook
 
   // Handler for alert actions
-  const handleAlertAction = useCallback(({ target, projectId, alert }) => {
+  const handleAlertAction = useCallback(({ target, projectId }) => {
     const project = projects.find(p => p.id === projectId)
     if (project) {
       setSelectedProject(project)

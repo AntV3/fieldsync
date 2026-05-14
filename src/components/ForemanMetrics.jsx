@@ -9,7 +9,7 @@ import {
   CheckCircle2, Clock, DollarSign, ArrowLeft
 } from 'lucide-react'
 
-export default function ForemanMetrics({ project, companyId, onBack }) {
+export default function ForemanMetrics({ project, onBack }) {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('week') // week, month
   const [metrics, setMetrics] = useState({
