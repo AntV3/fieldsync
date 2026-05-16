@@ -1,16 +1,20 @@
 /**
  * Safe XLSX Wrapper
  *
- * Mitigates prototype pollution vulnerability in xlsx (SheetJS) package.
- * The xlsx package has a known CVE for prototype pollution when parsing
- * untrusted spreadsheet files. This wrapper:
- * 1. Sanitizes parsed output by stripping dangerous prototype keys
- * 2. Provides a safe dynamic import for consistent usage
+ * Mitigates known xlsx (SheetJS) CVEs when parsing untrusted spreadsheets:
+ *   - Prototype pollution: parsed objects are sanitised below.
+ *   - ReDoS (GHSA-5pgg-2g8v-p4x9): inputs above MAX_PARSE_BYTES are rejected
+ *     before reaching the regex-heavy parser.
  *
  * Usage:
  *   import { loadXLSXSafe, safeParseExcel } from '../lib/safeXlsx'
  *   const XLSX = await loadXLSXSafe()
  */
+
+// Hard cap on parseable spreadsheet size. Real schedules-of-values and T&M
+// imports are well under 1 MB; 10 MB leaves generous headroom while bounding
+// the input the ReDoS-vulnerable parser ever sees.
+export const MAX_PARSE_BYTES = 10 * 1024 * 1024
 
 // Dynamically import xlsx with prototype pollution protection
 export const loadXLSXSafe = async () => {
@@ -20,6 +24,14 @@ export const loadXLSXSafe = async () => {
 
 // Keys that could be used for prototype pollution
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
+function byteLength(data) {
+  if (data == null) return 0
+  if (typeof data === 'string') return data.length
+  if (data.byteLength != null) return data.byteLength
+  if (data.length != null) return data.length
+  return 0
+}
 
 /**
  * Recursively strip dangerous prototype-polluting keys from an object.
@@ -41,6 +53,11 @@ function sanitizeObject(obj) {
  * injected __proto__, constructor, or prototype properties.
  */
 export const safeParseExcel = async (data, options = {}) => {
+  const size = byteLength(data)
+  if (size > MAX_PARSE_BYTES) {
+    const mb = (MAX_PARSE_BYTES / (1024 * 1024)).toFixed(0)
+    throw new Error(`Spreadsheet is too large to import (limit ${mb} MB).`)
+  }
   const XLSX = await loadXLSXSafe()
   const workbook = XLSX.read(data, { ...options, type: 'array' })
 
