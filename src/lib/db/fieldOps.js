@@ -582,58 +582,113 @@ export const fieldOps = {
     return data || []
   },
 
-  // Calculate man day costs for a project
+  // Calculate contract labor costs for a project from daily crew check-ins.
+  //
+  // Each laborer on a daily check-in is auto-captured at 8 hours of contract
+  // labor for that date. Workers who appear on a T&M ticket for the same date
+  // are excluded — their hours are billed as T&M extra work, so counting them
+  // here too would double-count the cost.
   async calculateManDayCosts(projectId, companyId, workType, jobType) {
     if (!isSupabaseConfigured) return { totalCost: 0, totalManDays: 0, breakdown: [] }
 
-    // Get crew check-in history
-    const crewHistory = await this.getCrewCheckinHistory(projectId, 365)
+    // Each laborer on a daily check-in defaults to 8 hours of contract labor
+    // until they're moved to a T&M ticket.
+    const HOURS_PER_CHECKIN_DAY = 8
 
-    // Get labor rates for this work/job type
-    const laborRates = await this.getLaborRates(companyId, workType, jobType)
+    const client = getClient()
 
-    // Build rates lookup: { role: regularRate }
+    // Run independent reads in parallel
+    const [crewHistory, laborRates, classRatesResult, tmTicketsResult] = await Promise.all([
+      this.getCrewCheckinHistory(projectId, 365),
+      this.getLaborRates(companyId, workType, jobType),
+      client
+        .from('labor_class_rates')
+        .select('labor_class_id, regular_rate')
+        .eq('work_type', workType)
+        .eq('job_type', jobType),
+      client
+        .from('t_and_m_tickets')
+        .select('work_date, t_and_m_workers (name)')
+        .eq('project_id', projectId),
+    ])
+
+    // Build hourly-rate lookup by legacy role name
     const ratesLookup = {}
     laborRates.forEach(rate => {
       ratesLookup[rate.role.toLowerCase()] = parseFloat(rate.regular_rate) || 0
     })
 
-    // Calculate costs
+    // Build hourly-rate lookup by labor_class_id (current schema)
+    const classRatesLookup = {}
+    ;(classRatesResult?.data || []).forEach(r => {
+      classRatesLookup[r.labor_class_id] = parseFloat(r.regular_rate) || 0
+    })
+
+    // Build date -> Set(lowercased worker names on a T&M ticket that day).
+    // Once a laborer is associated with T&M work for a date, their cost is
+    // captured via T&M billing, not contract labor.
+    const tmWorkersByDate = {}
+    ;(tmTicketsResult?.data || []).forEach(ticket => {
+      if (!ticket.work_date) return
+      if (!tmWorkersByDate[ticket.work_date]) {
+        tmWorkersByDate[ticket.work_date] = new Set()
+      }
+      ;(ticket.t_and_m_workers || []).forEach(w => {
+        if (w?.name) tmWorkersByDate[ticket.work_date].add(w.name.toLowerCase().trim())
+      })
+    })
+
     let totalCost = 0
     let totalManDays = 0
+    let tmWorkersExcluded = 0
     const byRole = {}
     const byDate = []
 
     crewHistory.forEach(checkin => {
       const workers = checkin.workers || []
+      const tmNamesToday = tmWorkersByDate[checkin.check_in_date] || new Set()
+
       let dayCost = 0
+      let dayContractWorkers = 0
       const dayBreakdown = {}
 
       workers.forEach(worker => {
+        // Skip workers already on a T&M ticket for this date — their hours
+        // are tracked through T&M and would be double-counted here.
+        const nameKey = worker.name?.toLowerCase().trim()
+        if (nameKey && tmNamesToday.has(nameKey)) {
+          tmWorkersExcluded++
+          return
+        }
+
         const role = (worker.role || 'laborer').toLowerCase()
-        const rate = ratesLookup[role] || 0
+        const hourlyRate =
+          (worker.labor_class_id && classRatesLookup[worker.labor_class_id]) ||
+          ratesLookup[role] ||
+          0
+        const dailyCost = hourlyRate * HOURS_PER_CHECKIN_DAY
 
         if (!dayBreakdown[role]) {
           dayBreakdown[role] = { count: 0, cost: 0 }
         }
         dayBreakdown[role].count++
-        dayBreakdown[role].cost += rate
-        dayCost += rate
+        dayBreakdown[role].cost += dailyCost
+        dayCost += dailyCost
+        dayContractWorkers++
 
-        // Track by role totals
         if (!byRole[role]) {
-          byRole[role] = { count: 0, cost: 0, rate }
+          byRole[role] = { count: 0, cost: 0, rate: dailyCost }
         }
         byRole[role].count++
-        byRole[role].cost += rate
+        byRole[role].cost += dailyCost
       })
 
       totalCost += dayCost
-      totalManDays += workers.length
+      totalManDays += dayContractWorkers
 
       byDate.push({
         date: checkin.check_in_date,
-        workers: workers.length,
+        workers: dayContractWorkers,
         cost: dayCost,
         breakdown: dayBreakdown
       })
@@ -644,7 +699,9 @@ export const fieldOps = {
       totalManDays,
       byRole,
       byDate,
-      daysWorked: crewHistory.length
+      daysWorked: crewHistory.length,
+      hoursPerDay: HOURS_PER_CHECKIN_DAY,
+      tmWorkersExcluded
     }
   },
 
