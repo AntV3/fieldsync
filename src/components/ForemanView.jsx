@@ -227,7 +227,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     const finalStatus = area.status === newStatus ? 'not_started' : newStatus
     setUpdating(areaId)
     try {
-      await db.updateAreaStatus(areaId, finalStatus)
+      await db.updateAreaStatus(areaId, finalStatus, project.id)
       setAreas(prev => prev.map(a => a.id === areaId ? { ...a, status: finalStatus } : a))
     } catch (error) {
       console.error('Error updating status:', error)

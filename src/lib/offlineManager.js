@@ -628,7 +628,7 @@ const processAction = async (action, db) => {
 
   switch (type) {
     case ACTION_TYPES.UPDATE_AREA_STATUS:
-      return db.updateAreaStatus(payload.areaId, payload.status)
+      return db.updateAreaStatus(payload.areaId, payload.status, payload.projectId)
 
     case ACTION_TYPES.CREATE_TM_TICKET: {
       // Complex action - create ticket, upload photos, add workers/items

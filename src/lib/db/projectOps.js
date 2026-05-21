@@ -941,7 +941,7 @@ export const projectOps = {
       // If offline, update cache and queue action
       if (!getConnectionStatus()) {
         const area = await updateCachedAreaStatus(id, status)
-        await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
+        await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status, projectId })
         return area
       }
 
@@ -963,7 +963,7 @@ export const projectOps = {
         // If network error, queue for later
         if (error.message?.includes('fetch') || error.message?.includes('network')) {
           const area = await updateCachedAreaStatus(id, status)
-          await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status })
+          await addPendingAction(ACTION_TYPES.UPDATE_AREA_STATUS, { areaId: id, status, projectId })
           return area
         }
         throw error
