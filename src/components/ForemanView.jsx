@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
+import { db, isSupabaseConfigured, getSupabaseClient, isFieldMode } from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
+
+// Field operations run under an anon PIN session; an RLS denial typically
+// means the session has expired and the foreman needs to re-enter their PIN.
+const isSessionExpiredError = (err) =>
+  err?.code === '42501' ||
+  err?.code === 'PGRST301' ||
+  err?.message?.includes('row-level security') ||
+  err?.message?.includes('row level security')
 import {
   Info, CheckSquare,
   ArrowLeft, ChevronDown, ChevronRight,
@@ -215,7 +223,12 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       setExpandedGroups(prev => ({ ...expanded, ...prev }))
     } catch (error) {
       console.error('Error loading areas:', error)
-      onShowToast?.('Error loading areas', 'error')
+      if (isSessionExpiredError(error) && isFieldMode() && onExit) {
+        onShowToast?.('Session expired — please re-enter your PIN', 'error')
+        onExit()
+      } else {
+        onShowToast?.('Error loading areas', 'error')
+      }
     } finally {
       setLoading(false)
     }
@@ -231,7 +244,12 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       setAreas(prev => prev.map(a => a.id === areaId ? { ...a, status: finalStatus } : a))
     } catch (error) {
       console.error('Error updating status:', error)
-      onShowToast?.('Error updating', 'error')
+      if (isSessionExpiredError(error) && isFieldMode() && onExit) {
+        onShowToast?.('Session expired — please re-enter your PIN', 'error')
+        onExit()
+      } else {
+        onShowToast?.('Error updating', 'error')
+      }
     } finally {
       setUpdating(null)
     }
