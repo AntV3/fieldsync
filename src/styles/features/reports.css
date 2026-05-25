@@ -1,5 +1,4 @@
-   Executive Dashboard Styles
-   */
+/* Executive Dashboard Styles */
 
 /* Business Overview - Portfolio Health Command Center */
 .business-overview {
@@ -374,8 +373,7 @@
 }
 
 
-   DAILY REPORTS LIST
-   */
+/* DAILY REPORTS LIST */
 
 .daily-reports-list {
   margin-top: 1.5rem;
@@ -890,8 +888,7 @@
 }
 
 
-   REPORTS TAB STYLES
-   */
+/* REPORTS TAB STYLES */
 
 .reports-tab {
   display: flex;
@@ -1570,8 +1567,7 @@
 }
 
 
-   ACTIVITY TAB STYLES
-   */
+/* ACTIVITY TAB STYLES */
 
 .activity-tab {
   display: flex;

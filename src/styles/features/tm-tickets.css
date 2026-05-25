@@ -4254,8 +4254,7 @@ END MIGRATED */
 }
 
 
-   TM Dashboard Styles
-   */
+/* TM Dashboard Styles */
 
 .tm-dashboard {
   padding: 1rem;
@@ -4719,8 +4718,7 @@ END MIGRATED */
 }
 
 
-   TM FORM FIELD ROW FIX
---- */
+/* TM FORM FIELD ROW FIX */
 
 /* Ensure field row inputs are properly contained */
 .tm-field-row .tm-field-half input {
