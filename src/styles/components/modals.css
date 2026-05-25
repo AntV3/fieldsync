@@ -1,10 +1,10 @@
-/* ============================================
+/*
    Modal Styles
-   ============================================
+
 
    Modal overlay, content, header, body, footer.
    Uses design tokens from variables.css.
-   ============================================ */
+   */
 
 /* Modal Overlay (backdrop with depth-of-field) */
 .modal-overlay {

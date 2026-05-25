@@ -1,5 +1,5 @@
    Foreman View
-   ============================================ */
+   */
 
 .foreman-container {
   min-height: 100vh;
@@ -592,9 +592,9 @@
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*
    NEW FOREMAN VIEW (Clean UI)
-   ============================================ */
+   */
 
 .fm-view {
   min-height: 100vh;
@@ -1365,9 +1365,9 @@
   cursor: not-allowed;
 }
 
-/* ============================================
+/*
    PIN Entry Screen
-   ============================================ */
+   */
 
 .pin-container {
   min-height: 100vh;
@@ -1588,9 +1588,9 @@
   letter-spacing: 0.5rem;
 }
 
-/* ============================================
+/*
    Mobile Responsive Updates
-   ============================================ */
+   */
 
 @media (max-width: 640px) {
   .nav-user {
@@ -1703,9 +1703,9 @@
   }
 }
 
-/* ============================================
+/*
    PDF Import Styles
-   ============================================ */
+   */
 
 .areas-header {
   display: flex;
@@ -2021,9 +2021,9 @@
   background: var(--accent-green, #2ecc71);
 }
 
-/* ============================================
+/*
    Foreman Grouped View
-   ============================================ */
+   */
 
 .foreman-group {
   margin-bottom: 1.5rem;

@@ -1,5 +1,5 @@
    OVERVIEW TAB STYLES
-   ============================================= */
+   */
 
 .overview-tab {
   display: flex;
@@ -1034,9 +1034,9 @@
   font-size: 1.25rem;
 }
 
-/* =============================================
+/*
    ENHANCED OVERVIEW - Visual Dashboard
-   ============================================= */
+   */
 
 /* Split Hero Layout */
 .overview-hero-split {

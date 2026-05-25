@@ -1,6 +1,6 @@
-/* ============================================
+/*
    Financial Chart Components - Enterprise Dashboard
-   ============================================
+
 
    Data Visualization Standards:
    - Monochromatic scales for single-series
@@ -12,7 +12,7 @@
    Color Scales (from variables.css):
    Primary Blue: --data-100 through --data-10
    Secondary: --data-alt-100, --data-alt-60, --data-alt-30
-   ============================================ */
+   */
 
 /* Financial Trend Chart Container */
 .financial-trend-chart {
@@ -342,9 +342,9 @@
   }
 }
 
-/* ============================================
+/*
    Cost Donut Chart
-   ============================================ */
+   */
 .cost-donut {
   animation: chartFadeIn 0.5s ease-out;
 }

@@ -1,13 +1,13 @@
-/* ============================================
+/*
    Theme Overrides - Enterprise Dashboard
-   ============================================
+
 
    Theme-specific component overrides.
    Light theme is now default in :root.
    Dark mode uses [data-theme="dark"].
 
    WCAG 2.1 AA contrast ratios maintained throughout.
-   ============================================ */
+   */
 
 /* ---- Global ---- */
 * {
@@ -37,9 +37,9 @@ body {
   border-width: 0;
 }
 
-/* ============================================
+/*
    Light Mode: Shadows & Depth
-   ============================================ */
+   */
 
 [data-theme="light"] .nav {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 0 rgba(0, 0, 0, 0.02);
@@ -68,9 +68,9 @@ body {
   box-shadow: var(--shadow-card-hover);
 }
 
-/* ============================================
+/*
    Light Mode: Inputs & Forms
-   ============================================ */
+   */
 
 [data-theme="light"] input,
 [data-theme="light"] select,
@@ -98,9 +98,9 @@ body {
   box-shadow: var(--shadow-focus);
 }
 
-/* ============================================
+/*
    Light Mode: Buttons
-   ============================================ */
+   */
 
 [data-theme="light"] .btn-primary,
 [data-theme="light"] .btn-success,
@@ -120,9 +120,9 @@ body {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* ============================================
+/*
    Light Mode: Modals
-   ============================================ */
+   */
 
 [data-theme="light"] .modal-overlay {
   background: rgba(15, 23, 42, 0.45);
@@ -146,25 +146,25 @@ body {
   border-top: 1px solid var(--border-color);
 }
 
-/* ============================================
+/*
    Light Mode: Tables
-   ============================================ */
+   */
 
 [data-theme="light"] table tbody tr:hover {
   background: var(--bg-tertiary);
 }
 
-/* ============================================
+/*
    Light Mode: Progress Bars
-   ============================================ */
+   */
 
 [data-theme="light"] .progress-bar {
   background: var(--progress-bg);
 }
 
-/* ============================================
+/*
    Light Mode: Status Badges (WCAG 4.5:1)
-   ============================================ */
+   */
 
 [data-theme="light"] .status-badge.done,
 [data-theme="light"] .status-badge.approved {
@@ -271,18 +271,18 @@ body {
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*
    Light Mode: Demo Banner
-   ============================================ */
+   */
 
 [data-theme="light"] .demo-banner {
   background: var(--status-warning-bg);
   color: var(--status-warning);
 }
 
-/* ============================================
+/*
    Light Mode: Navigation & Layout
-   ============================================ */
+   */
 
 [data-theme="light"] .nav,
 [data-theme="light"] .sidebar {
@@ -311,9 +311,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Light Mode: Cards & Surfaces
-   ============================================ */
+   */
 
 [data-theme="light"] .card,
 [data-theme="light"] .section-card,
@@ -430,9 +430,9 @@ body {
   box-shadow: 0 1px 2px var(--shadow-color);
 }
 
-/* ============================================
+/*
    Light Mode: Charts
-   ============================================ */
+   */
 
 [data-theme="light"] .chart-container,
 [data-theme="light"] .financial-chart-card {
@@ -440,9 +440,9 @@ body {
   border: 1px solid var(--border-color);
 }
 
-/* ============================================
+/*
    Light Mode: Foreman View
-   ============================================ */
+   */
 
 [data-theme="light"] .foreman-container {
   background: var(--bg-primary);
@@ -542,9 +542,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Light Mode: Field Actions
-   ============================================ */
+   */
 
 [data-theme="light"] .field-action-btn {
   background: var(--bg-card);
@@ -566,9 +566,9 @@ body {
   color: inherit;
 }
 
-/* ============================================
-   Light Mode: T&M Wizard
-   ============================================ */
+/*
+   Light Mode: TM Wizard
+   */
 
 [data-theme="light"] .tm-wizard {
   background: var(--bg-card);
@@ -622,9 +622,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Light Mode: Crew Check-in
-   ============================================ */
+   */
 
 [data-theme="light"] .crew-checkin-container {
   background: var(--bg-card);
@@ -643,9 +643,9 @@ body {
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*
    Light Mode: Daily Report
-   ============================================ */
+   */
 
 [data-theme="light"] .daily-report-form {
   background: var(--bg-card);
@@ -659,9 +659,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Light Mode: Ticket Selector
-   ============================================ */
+   */
 
 [data-theme="light"] .ticket-item {
   background: var(--bg-secondary);
@@ -678,9 +678,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Light Mode: COR Form
-   ============================================ */
+   */
 
 [data-theme="light"] .cor-form-container {
   background: var(--bg-card);
@@ -695,9 +695,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Light Mode: COR Log Preview
-   ============================================ */
+   */
 
 [data-theme="light"] .cor-log-preview {
   background: var(--bg-card);
@@ -814,9 +814,9 @@ body {
   color: var(--text-muted);
 }
 
-/* ============================================
+/*
    Light Mode: COR Card List
-   ============================================ */
+   */
 
 [data-theme="light"] .cor-card {
   background: var(--bg-card);
@@ -934,9 +934,9 @@ body {
   border-radius: var(--radius-md);
 }
 
-/* ============================================
+/*
    Light Mode: Elevated Card Surfaces
-   ============================================ */
+   */
 
 [data-theme="light"] .info-section-card,
 [data-theme="light"] .progress-billing-card,
@@ -957,9 +957,9 @@ body {
   box-shadow: var(--shadow-card-hover);
 }
 
-/* ============================================
+/*
    Light Mode: Notification Center
-   ============================================ */
+   */
 
 [data-theme="light"] .notification-dropdown {
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -975,9 +975,9 @@ body {
   background: rgba(37, 99, 235, 0.07);
 }
 
-/* ============================================
+/*
    Light Mode: Sidebar & Navigation Polish
-   ============================================ */
+   */
 
 [data-theme="light"] .sidebar {
   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.04);
@@ -988,9 +988,9 @@ body {
   border: 1px solid var(--border-color);
 }
 
-/* ============================================
+/*
    Light Mode: Signature & Document Cards
-   ============================================ */
+   */
 
 [data-theme="light"] .signature-document-card,
 [data-theme="light"] .cor-header-card {
@@ -1001,17 +1001,17 @@ body {
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
 }
 
-/* ============================================
+/*
    Light Mode: Settings & Branding
-   ============================================ */
+   */
 
 [data-theme="light"] .settings-section {
   box-shadow: var(--shadow-card);
 }
 
-/* ============================================
+/*
    Light Mode: Pricing Cards
-   ============================================ */
+   */
 
 [data-theme="light"] .labor-rate-card,
 [data-theme="light"] .job-type-section {
@@ -1019,17 +1019,17 @@ body {
   border: 1px solid var(--border-color);
 }
 
-/* ============================================
+/*
    Light Mode: Financials
-   ============================================ */
+   */
 
 [data-theme="light"] .financials-section {
   background: transparent;
 }
 
-/* ============================================
+/*
    Light Mode: Back Buttons
-   ============================================ */
+   */
 
 [data-theme="light"] .back-btn-simple {
   color: var(--text-primary);
@@ -1050,9 +1050,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Light Mode: Empty States
-   ============================================ */
+   */
 
 [data-theme="light"] .foreman-empty,
 [data-theme="light"] .empty-state {
@@ -1067,9 +1067,9 @@ body {
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*
    Light Mode: Filter Pills & Toggles
-   ============================================ */
+   */
 
 [data-theme="light"] .cor-controls,
 [data-theme="light"] .tm-list-filters {
@@ -1134,9 +1134,9 @@ body {
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Dark Mode: SpaceX Glass Surfaces & Enhanced Depth
-   ============================================ */
+   */
 
 [data-theme="dark"] .card,
 [data-theme="dark"] .section-card,
@@ -1173,9 +1173,9 @@ body {
   height: 3px;
 }
 
-/* ============================================
+/*
    Dark Mode: Enhanced Interactive Feedback
-   ============================================ */
+   */
 
 [data-theme="dark"] .btn-primary {
   box-shadow: 0 1px 3px rgba(0, 82, 136, 0.3), 0 0 0 1px rgba(1, 112, 171, 0.2);
@@ -1199,9 +1199,9 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 
-/* ============================================
+/*
    Dark Mode: Visual Hierarchy Refinements
-   ============================================ */
+   */
 
 [data-theme="dark"] .section-header {
   letter-spacing: var(--letter-spacing-caps);
@@ -1216,9 +1216,9 @@ body {
   letter-spacing: var(--letter-spacing-wide);
 }
 
-/* ============================================
+/*
    Dark Mode: Dashboard Cards Glass Treatment
-   ============================================ */
+   */
 
 [data-theme="dark"] .burn-rate-card,
 [data-theme="dark"] .profitability-card,
@@ -1237,9 +1237,9 @@ body {
   transform: translateY(-2px);
 }
 
-/* ============================================
+/*
    Dark Mode: Enhanced Modal Overlay
-   ============================================ */
+   */
 
 [data-theme="dark"] .modal-overlay {
   background: rgba(8, 10, 14, 0.75);
@@ -1254,9 +1254,9 @@ body {
   border-radius: var(--radius-2xl);
 }
 
-/* ============================================
+/*
    Dark Mode: Navigation Glass Effect
-   ============================================ */
+   */
 
 [data-theme="dark"] .nav {
   background: var(--glass-bg);
@@ -1272,9 +1272,9 @@ body {
   box-shadow: 1px 0 0 rgba(255, 255, 255, 0.02);
 }
 
-/* ============================================
+/*
    Dark Mode: Input Focus Glow
-   ============================================ */
+   */
 
 [data-theme="dark"] input:focus,
 [data-theme="dark"] select:focus,
@@ -1283,9 +1283,9 @@ body {
   box-shadow: 0 0 0 3px rgba(1, 112, 171, 0.15), inset 0 0 0 1px rgba(1, 112, 171, 0.3);
 }
 
-/* ============================================
+/*
    Dark Mode: Toast Glass Treatment
-   ============================================ */
+   */
 
 [data-theme="dark"] .toast {
   background: var(--glass-bg);

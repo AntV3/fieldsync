@@ -1,6 +1,6 @@
-/* ============================================
+/*
    Disposal Load Input (Foreman View)
-   ============================================ */
+   */
 
 .disposal-load-input {
   background: var(--bg-card);
@@ -427,9 +427,9 @@
   gap: 0.5rem;
 }
 
-/* ============================================
+/*
    Disposal Summary Card (Office/PM View)
-   ============================================ */
+   */
 
 .disposal-summary-card {
   background: var(--bg-card);
@@ -920,9 +920,9 @@
   gap: 0.25rem;
 }
 
-/* ============================================
+/*
    Responsive for Disposal Components
-   ============================================ */
+   */
 
 @media (max-width: 480px) {
   .disposal-quick-add {

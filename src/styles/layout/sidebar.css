@@ -1,9 +1,9 @@
-/* =====================================================
+/*
    Elegant Financials Redesign
    Clean, intentional, workflow-driven design
-   ===================================================== */
+   */
 
-/* ========== Collapsible Sidebar ========== */
+/* --- Collapsible Sidebar --- */
 
 .financials-layout {
   display: grid;
@@ -308,7 +308,7 @@
   color: var(--primary-color);
 }
 
-/* ========== Unified Section Toolbar ========== */
+/* --- Unified Section Toolbar --- */
 
 .section-toolbar {
   display: flex;
@@ -632,7 +632,7 @@
   min-width: 180px;
 }
 
-/* ========== Responsive Adjustments ========== */
+/* --- Responsive Adjustments --- */
 
 @media (max-width: 1024px) {
   .financials-layout {

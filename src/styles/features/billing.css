@@ -1,8 +1,8 @@
-/* =====================================================
-   Unified Section Controls - COR & T&M Consistency
-   ===================================================== */
+/*
+   Unified Section Controls - COR & TM Consistency
+   */
 
-/* ========== Common Header Pattern ========== */
+/* --- Common Header Pattern --- */
 
 .cor-list-header,
 .tm-list-header {
@@ -52,7 +52,7 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* ========== Header Actions ========== */
+/* --- Header Actions --- */
 
 .cor-header-actions,
 .tm-header-controls {
@@ -62,7 +62,7 @@
   gap: 0.5rem;
 }
 
-/* ========== Display/View Toggle ========== */
+/* --- Display/View Toggle --- */
 
 .cor-display-toggle,
 .tm-display-toggle {
@@ -110,7 +110,7 @@
   font-weight: 600;
 }
 
-/* ========== Export Dropdown ========== */
+/* --- Export Dropdown --- */
 
 .cor-export-dropdown {
   position: relative;
@@ -181,7 +181,7 @@
   background: var(--hover-bg);
 }
 
-/* ========== Filter Controls ========== */
+/* --- Filter Controls --- */
 
 .cor-controls,
 .tm-list-filters {
@@ -362,7 +362,7 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* ========== Summary Bar ========== */
+/* --- Summary Bar --- */
 
 .tm-summary-bar {
   display: flex;
@@ -394,7 +394,7 @@
   color: var(--text-color);
 }
 
-/* ========== Selection Bar ========== */
+/* --- Selection Bar --- */
 
 .cor-selection-bar {
   display: flex;
@@ -413,14 +413,14 @@
   color: var(--primary-color);
 }
 
-/* ========== Main Content Area ========== */
+/* --- Main Content Area --- */
 
 .financials-main {
   flex: 1;
   min-width: 0;
 }
 
-/* ========== Responsive Refinements ========== */
+/* --- Responsive Refinements --- */
 
 @media (max-width: 1024px) {
   .cor-list-header,
@@ -461,9 +461,9 @@
   }
 }
 
-/* ============================================
+/*
    BILLING CENTER STYLES
-   ============================================ */
+   */
 
 .billing-center {
   display: flex;

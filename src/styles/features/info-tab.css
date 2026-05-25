@@ -1,5 +1,5 @@
    INFO TAB STYLES
-   ============================================= */
+   */
 
 .info-tab {
   display: flex;
@@ -356,11 +356,11 @@
 }
 
 
-/* =============================================
+/*
    PHASE ASSIGNMENT EDITOR
    Lets office admins move tasks between phases
    after a project has already been created.
-   ============================================= */
+   */
 
 .phase-assign-group {
   display: flex;

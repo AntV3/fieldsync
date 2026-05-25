@@ -1,6 +1,6 @@
-/* ==========================================
+/*
    Project View - Clean UX Design
-   ========================================== */
+   */
 
 .project-view {
   max-width: 100%;
@@ -14,9 +14,9 @@
   min-height: calc(100vh - 80px);
 }
 
-/* ============================================
+/*
    TABBED PROJECT VIEW - Sticky Header
-   ============================================ */
+   */
 
 .pv-sticky-header {
   position: sticky;
@@ -235,9 +235,9 @@
   margin: 0;
 }
 
-/* =====================================================
+/*
    FINANCIALS TAB - Clean Professional Layout
-   ===================================================== */
+   */
 
 .financials-tab {
   gap: 1.25rem !important;
@@ -1614,9 +1614,9 @@
   margin-bottom: 1rem;
 }
 
-/* ============================================
+/*
    EXECUTIVE FINANCIAL CARD
-   ============================================ */
+   */
 
 .pv-executive-card {
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
@@ -1782,7 +1782,7 @@
   margin-top: 0.15rem;
 }
 
-/* T&M Summary Badge */
+/* TM Summary Badge */
 .pv-tm-summary-badge {
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -1849,9 +1849,9 @@
   }
 }
 
-/* ============================================
+/*
    LEGACY PROJECT VIEW STYLES (kept for compatibility)
-   ============================================ */
+   */
 
 /* Header */
 .pv-header {

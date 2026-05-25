@@ -1,11 +1,11 @@
-/* ============================================
+/*
    Skeleton Loading Components
-   ============================================
+
 
    Loading placeholders that provide visual feedback
    while content is being fetched. Uses shimmer
    animation for better perceived performance.
-   ============================================ */
+   */
 
 /* ---- Base Skeleton ---- */
 
@@ -567,9 +567,9 @@
   border-radius: var(--radius-md, 8px);
 }
 
-/* ============================================
+/*
    SpaceX Dark Mode Skeleton Enhancement
-   ============================================ */
+   */
 
 [data-theme="dark"] .skeleton {
   background: var(--bg-elevated);

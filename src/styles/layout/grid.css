@@ -1,13 +1,13 @@
-/* ============================================
+/*
    Layout Grid & Project Detail View
    Enterprise Dashboard - 12-column fluid grid
-   ============================================
+
 
    Grid: 12 columns, 24px gutters
    Card min width: 280px
    Max content: 1440px (centered beyond)
    All measurements on 8px grid
-   ============================================ */
+   */
 
 /* ---- Dashboard Grid System ---- */
 .dashboard-grid {
@@ -770,9 +770,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*
    SpaceX Layout Utilities
-   ============================================ */
+   */
 
 /* Gap utilities using spacing tokens */
 .gap-1 { gap: var(--space-1); }

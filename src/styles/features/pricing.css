@@ -1,6 +1,6 @@
-/* ============================================
+/*
    Pricing / Materials Manager
-   ============================================ */
+   */
 
 .materials-manager {
   max-width: 1000px;
@@ -592,9 +592,9 @@
   }
 }
 
-/* =============================================
+/*
    NOTIFICATION CENTER STYLES
-   ============================================= */
+   */
 
 .notification-center {
   position: relative;
@@ -881,9 +881,9 @@
   }
 }
 
-/* =============================================
+/*
    NOTIFICATION SETTINGS STYLES
-   ============================================= */
+   */
 
 .notification-settings {
   background: var(--bg-elevated);
@@ -1129,9 +1129,9 @@
   }
 }
 
-/* =====================================================
+/*
    MATERIAL REQUESTS LIST
-   ===================================================== */
+   */
 
 .material-requests-list {
   margin-top: 1.5rem;
@@ -1431,9 +1431,9 @@
   border-top: 1px solid var(--border-color);
 }
 
-/* =====================================================
+/*
    DAILY REPORTS LIST
-   ===================================================== */
+   */
 
 .daily-reports-list {
   margin-top: 1.5rem;
@@ -1879,9 +1879,9 @@
   }
 }
 
-/* =====================================================
+/*
    PROJECT MESSAGES
-   ===================================================== */
+   */
 
 .project-messages {
   margin-top: 1.5rem;
@@ -2086,9 +2086,9 @@
   }
 }
 
-/* ===================
+/*
    Man Day Costs
-=================== */
+--- */
 
 .man-day-costs {
   margin-bottom: var(--space-lg, 1.5rem);
@@ -2337,9 +2337,9 @@
   }
 }
 
-/* ===================
+/*
    Error Boundary
-=================== */
+--- */
 
 .error-boundary {
   display: flex;
@@ -2400,9 +2400,9 @@
   margin-top: 0.5rem;
 }
 
-/* ============================================
+/*
    Error State Component
-   ============================================ */
+   */
 
 .error-state {
   display: flex;
@@ -2517,9 +2517,9 @@
   font-size: 0.75rem;
 }
 
-/* ============================================
+/*
    Empty State Component
-   ============================================ */
+   */
 
 .empty-state {
   display: flex;
@@ -2560,9 +2560,9 @@
   max-width: 300px;
 }
 
-/* ============================================
+/*
    Form Field Validation Components
-   ============================================ */
+   */
 
 .form-field {
   margin-bottom: 1rem;
@@ -2666,9 +2666,9 @@
   margin-top: 0.25rem;
 }
 
-/* ============================================
+/*
    BURN RATE CARD - ENHANCED WITH HAUL-OFF
-   ============================================ */
+   */
 
 .pv-burn-total {
   display: flex;
@@ -2830,9 +2830,9 @@
   font-size: 0.7rem;
 }
 
-/* ============================================
+/*
    PRICING MANAGER - TABBED INTERFACE
-   ============================================ */
+   */
 
 .pricing-manager {
   max-width: 1000px;
@@ -2976,9 +2976,9 @@
   margin: 0.25rem 0;
 }
 
-/* =====================================================
+/*
    LABOR SETUP STYLES (Categories, Classes, Rates)
-   ===================================================== */
+   */
 
 .labor-setup-section .labor-setup-actions {
   display: flex;

@@ -1,6 +1,6 @@
-/* ============================================
+/*
    MEMBERSHIP APPROVAL STYLES
-   ============================================ */
+   */
 
 /* Pending Approval Screen */
 .pending-approval-screen {
@@ -272,9 +272,9 @@
   }
 }
 
-/* ============================================
+/*
    Access Level Badges
-   ============================================ */
+   */
 
 .member-access-level,
 .member-badges {
@@ -326,9 +326,9 @@
   color: var(--accent-green);
 }
 
-/* ============================================
+/*
    Invite Modal & Invitation Styles
-   ============================================ */
+   */
 
 .membership-header-row {
   display: flex;
@@ -572,9 +572,9 @@
   }
 }
 
-/* ============================================
+/*
    Project Team Component
-   ============================================ */
+   */
 
 .project-team {
   background: var(--bg-card);
@@ -744,9 +744,9 @@
   font-size: 0.85rem;
 }
 
-/* ============================================
+/*
    Responsive for Project Team
-   ============================================ */
+   */
 
 @media (max-width: 600px) {
   .project-team-member {

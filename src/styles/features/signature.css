@@ -1,5 +1,5 @@
    SIGNATURE CAPTURE STYLES
-   ===================================================== */
+   */
 
 .signature-modal {
   max-width: 550px;
@@ -73,9 +73,9 @@
   }
 }
 
-/* =====================================================
+/*
    TICKET SELECTOR STYLES
-   ===================================================== */
+   */
 
 .ticket-selector-modal {
   max-width: 700px;
@@ -361,9 +361,9 @@
   }
 }
 
-/* ============================================
+/*
    Signature Workflow Styles
-   ============================================ */
+   */
 
 /* Signature Page (Public) */
 .signature-page {
@@ -1357,9 +1357,9 @@
   }
 }
 
-/* ============================================
+/*
    Full COR Document View (Signature Page)
-   ============================================ */
+   */
 
 .cor-full-document {
   max-width: 900px;
@@ -1496,7 +1496,7 @@
   margin: 0;
 }
 
-/* T&M Backup Documentation Section */
+/* TM Backup Documentation Section */
 .cor-backup-section {
   border: 1px solid var(--accent-blue);
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);

@@ -1,5 +1,5 @@
    NOTIFICATION CENTER STYLES
-   ============================================= */
+   */
 
 .notification-center {
   position: relative;
@@ -287,9 +287,9 @@
   }
 }
 
-/* =============================================
+/*
    NOTIFICATION SETTINGS STYLES
-   ============================================= */
+   */
 
 .notification-settings {
   background: var(--bg-elevated);

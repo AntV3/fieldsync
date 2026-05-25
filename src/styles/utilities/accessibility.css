@@ -1,13 +1,13 @@
-/* ============================================
+/*
    Accessibility Utilities
-   ============================================
+
 
    These utilities ensure ADA/WCAG compliance:
    - Screen reader support
    - Focus indicators
    - Reduced motion support
    - High contrast mode
-   ============================================ */
+   */
 
 /* ---- Screen Reader Only ---- */
 /* Visually hidden but accessible to screen readers */

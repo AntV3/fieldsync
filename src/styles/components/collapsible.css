@@ -1,6 +1,6 @@
-/* ============================================
+/*
    CollapsibleSection - Progressive Disclosure
-   ============================================ */
+   */
 
 .collapsible-section {
   border-radius: var(--radius-md, 8px);

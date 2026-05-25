@@ -1,6 +1,6 @@
-/* ==========================================
+/*
    Schedule Performance Styles
-   ========================================== */
+   */
 
 /* Schedule Section in Portfolio Overview */
 .bo-schedule {
@@ -212,7 +212,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--accent-green);
 }
 
-/* T&M Change Order Badge */
+/* TM Change Order Badge */
 .tm-ce-badge {
   background: rgba(59, 130, 246, 0.15);
   color: var(--accent-blue);
@@ -223,7 +223,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 
-/* T&M COR Link Badge */
+/* TM COR Link Badge */
 .tm-cor-badge {
   display: inline-flex;
   align-items: center;
@@ -243,12 +243,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-color: rgba(245, 158, 11, 0.3);
 }
 
-/* T&M Ticket Card locked state */
+/* TM Ticket Card locked state */
 .tm-ticket-card.locked {
   border-left: 3px solid var(--accent-warning);
 }
 
-/* T&M Lock Notice */
+/* TM Lock Notice */
 .tm-lock-notice {
   display: flex;
   align-items: center;
@@ -266,7 +266,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
 }
 
-/* T&M Change Order Value Display */
+/* TM Change Order Value Display */
 .tm-change-order-value {
   display: flex;
   justify-content: space-between;

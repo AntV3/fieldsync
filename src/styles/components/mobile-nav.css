@@ -1,14 +1,14 @@
-/* ============================================
+/*
    Mobile Navigation Styles
-   ============================================
+
 
    Hamburger menu, mobile drawer, and responsive
    navigation for the office view.
-   ============================================ */
+   */
 
-/* ============================================
+/*
    Mobile Menu Button (Hamburger)
-   ============================================ */
+   */
 
 .mobile-menu-btn {
   display: none; /* Hidden on desktop */
@@ -48,9 +48,9 @@
   transition: all var(--transition-normal);
 }
 
-/* ============================================
+/*
    Mobile Drawer Overlay
-   ============================================ */
+   */
 
 .mobile-drawer-overlay {
   position: fixed;
@@ -68,9 +68,9 @@
   to { opacity: 1; }
 }
 
-/* ============================================
+/*
    Mobile Drawer
-   ============================================ */
+   */
 
 .mobile-drawer {
   position: fixed;
@@ -310,9 +310,9 @@
   color: white;
 }
 
-/* ============================================
+/*
    Responsive Breakpoints
-   ============================================ */
+   */
 
 /* Show mobile menu button, hide desktop nav on mobile */
 @media (max-width: 768px) {

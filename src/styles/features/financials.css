@@ -1,6 +1,6 @@
-/* ============================================
+/*
    Financial Dashboard - Burn Rate, Costs, Profitability
-   ============================================ */
+   */
 
 /* Financials Analysis Row - Side by side layout */
 .financials-analysis-row {
@@ -16,9 +16,9 @@
   }
 }
 
-/* ============================================
+/*
    Burn Rate Card
-   ============================================ */
+   */
 .burn-rate-card {
   background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
@@ -273,9 +273,9 @@
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* ============================================
+/*
    Cost Contributors Card
-   ============================================ */
+   */
 .cost-contributors-card {
   background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
@@ -553,9 +553,9 @@
 }
 
 
-/* ============================================
+/*
    Profitability Card
-   ============================================ */
+   */
 .profitability-card {
   background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
@@ -758,9 +758,9 @@
 }
 
 
-/* ============================================
+/*
    Add Cost Modal
-   ============================================ */
+   */
 .add-cost-modal {
   max-width: 480px;
 }

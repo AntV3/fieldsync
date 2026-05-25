@@ -1,6 +1,6 @@
-/* ============================================
+/*
    Dashboard Feature Styles
-   ============================================
+
 
    Styles for the redesigned dashboard:
    - Risk Score components
@@ -8,7 +8,7 @@
    - Metric Cards
    - Trend Indicators
    - Actionable Insights
-   ============================================ */
+   */
 
 /* ---- Risk Score Gauge ---- */
 .risk-score {
@@ -1688,13 +1688,13 @@
   }
 }
 
-/* ============================================
+/*
    Dashboard Enhancement: F-Pattern KPI Layout
-   ============================================
+
    Critical KPIs sit above the fold.
    Progressive disclosure: summary -> detail -> drill-down.
    60-30-10 rule: 60% data, 30% whitespace, 10% accents.
-   ============================================ */
+   */
 
 /* KPI strip at top of dashboard (above the fold) */
 .dashboard-kpi-strip {
@@ -1757,9 +1757,9 @@
   color: var(--text-primary);
 }
 
-/* ============================================
+/*
    Interactive States & Micro-interactions
-   ============================================ */
+   */
 
 /* Button press feedback (150-300ms transitions) */
 .metric-card--clickable,
@@ -1799,13 +1799,13 @@
   100% { box-shadow: var(--shadow-card), 0 0 0 0 rgba(59, 130, 246, 0); }
 }
 
-/* ============================================
+/*
    Dark Mode Sophistication
-   ============================================
+
    Not inverted colors: reduced brightness, adjusted saturation.
    Elevated surfaces use lighter grays (not pure black).
    Maintained hierarchy through elevation, not just color.
-   ============================================ */
+   */
 
 /* Elevation-based card hierarchy (dark mode) */
 :root .metric-card,
@@ -1832,9 +1832,9 @@
   background: var(--bg-card);
 }
 
-/* ============================================
+/*
    Mobile: Card-Based Stacking
-   ============================================ */
+   */
 @media (max-width: 768px) {
   /* Touch targets >= 44px */
   .smart-alert__action-btn,

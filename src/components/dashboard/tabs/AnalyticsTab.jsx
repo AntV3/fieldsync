@@ -29,9 +29,9 @@ export default function AnalyticsTab({
   allProjects = [],
   crewCheckins = [],
   invoices = [],
-  punchListItems = [],
-  dailyReports = [],
-  onShowToast,
+  _punchListItems = [],
+  _dailyReports = [],
+  _onShowToast,
 }) {
   // ---- Predictive Forecast ----
   const forecast = useMemo(() => {

@@ -151,9 +151,9 @@
   box-shadow: 0 8px 24px var(--shadow-color);
 }
 
-/* ============================================
+/*    
    Comprehensive Light Mode Fixes
-   ============================================ */
+       */
 
 /* Foreman View - ensure all text is readable */
 [data-theme="light"] .foreman-container {
@@ -240,7 +240,7 @@
   border-color: var(--accent-red);
 }
 
-/* T&M Form / Wizard */
+/* TM Form / Wizard */
 [data-theme="light"] .tm-wizard {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -646,9 +646,9 @@
 [data-theme="light"] .cor-log-section.approved .section-total { color: #065f46; }
 [data-theme="light"] .cor-log-section.void .section-total { color: #991b1b; }
 
-/* ===========================================
-   COR CARD LIST - Light Mode Depth & Contrast
-   =========================================== */
+/*    
+   COR CARD LIST - Light Mode Depth and Contrast
+       */
 
 /* COR Cards need visible separation from card background */
 [data-theme="light"] .cor-card {
@@ -751,7 +751,7 @@
   color: #065f46;
 }
 
-/* COR List Header & Stats */
+/* COR List Header and Stats */
 [data-theme="light"] .cor-list-info h3 {
   color: #0f172a;
 }
@@ -771,9 +771,9 @@
   border-radius: 8px;
 }
 
-/* ===========================================
-   GENERAL LIGHT MODE - Add Depth & Warmth
-   =========================================== */
+/*    
+   GENERAL LIGHT MODE - Add Depth and Warmth
+       */
 
 /* Give all cards more presence in light mode */
 [data-theme="light"] .financials-section {
@@ -877,9 +877,9 @@
   color: #64748b;
 }
 
-/* ===========================================
-   FILTER PILLS & TOGGLES - Light Mode
-   =========================================== */
+/*    
+   FILTER PILLS and TOGGLES - Light Mode
+       */
 
 /* Controls bar */
 [data-theme="light"] .cor-controls,
@@ -951,9 +951,9 @@
   color: #1e293b;
 }
 
-/* ===========================================
+/*    
    LIGHT MODE - More Color, Less Blinding White
-   =========================================== */
+       */
 
 /* Warm up the main background */
 [data-theme="light"] body {
@@ -1084,9 +1084,9 @@ body {
   border-width: 0;
 }
 
-/* ============================================
+/*    
    Skeleton Loading Animations
-   ============================================ */
+       */
 
 @keyframes skeleton-shimmer {
   0% {
@@ -1326,9 +1326,9 @@ body {
   margin-top: 0.5rem;
 }
 
-/* ============================================
+/*    
    State-Based Animations
-   ============================================ */
+       */
 
 /* Fade in animation for newly loaded content */
 @keyframes fadeInUp {
@@ -1544,9 +1544,9 @@ body {
   }
 }
 
-/* ============================================
+/*    
    Micro-Visualizations
-   ============================================ */
+       */
 
 /* Count Badge */
 .count-badge {
@@ -1852,9 +1852,9 @@ END MIGRATED */
   outline-offset: 2px;
 }
 
-/* ============================================
+/*    
    Color Contrast Improvements
-   ============================================ */
+       */
 
 /* Ensure form labels are always readable */
 .form-group label,
@@ -2496,9 +2496,9 @@ input[type="number"] {
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*    
    Project Detail View - Compact Layout
-   ============================================ */
+       */
 
 .project-detail-view {
   max-width: 100%;
@@ -3041,9 +3041,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Loading Screen
-   ============================================ */
+       */
 
 .loading-screen {
   min-height: 100vh;
@@ -3109,9 +3109,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Login Screen
-   ============================================ */
+       */
 
 .login-container {
   min-height: 100vh;
@@ -3244,9 +3244,9 @@ END MIGRATED */
   text-decoration: underline;
 }
 
-/* ============================================
+/*    
    Nav User Section
-   ============================================ */
+       */
 
 .nav-user {
   display: flex;
@@ -3350,9 +3350,9 @@ END MIGRATED */
   background: var(--bg-hover);
 }
 
-/* ============================================
+/*    
    Foreman View
-   ============================================ */
+       */
 
 .foreman-container {
   min-height: 100vh;
@@ -3896,9 +3896,9 @@ END MIGRATED */
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*    
    NEW FOREMAN VIEW (Clean UI)
-   ============================================ */
+       */
 
 .fm-view {
   min-height: 100vh;
@@ -4538,9 +4538,9 @@ END MIGRATED */
   cursor: not-allowed;
 }
 
-/* ============================================
+/*    
    PIN Entry Screen
-   ============================================ */
+       */
 
 .pin-container {
   min-height: 100vh;
@@ -4745,9 +4745,9 @@ END MIGRATED */
   letter-spacing: 0.5rem;
 }
 
-/* ============================================
+/*    
    Mobile Responsive Updates
-   ============================================ */
+       */
 
 @media (max-width: 640px) {
   .nav-user {
@@ -4794,9 +4794,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    PDF Import Styles
-   ============================================ */
+       */
 
 .areas-header {
   display: flex;
@@ -4912,9 +4912,9 @@ END MIGRATED */
   padding-left: 0.25rem;
 }
 
-/* ============================================
+/*    
    Foreman Grouped View
-   ============================================ */
+       */
 
 .foreman-group {
   margin-bottom: 1.5rem;
@@ -5020,9 +5020,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
-   T&M WIZARD STYLES
-============================================= */
+/*    
+   TM WIZARD STYLES
+    */
 
 .tm-wizard {
   display: flex;
@@ -5949,9 +5949,9 @@ END MIGRATED */
   color: var(--accent-orange);
 }
 
-/* ============================================
-   T&M Form UX Improvements
-   ============================================ */
+/*    
+   TM Form UX Improvements
+       */
 
 /* Sticky Crew Summary Pill - Floating summary on step 2 */
 .tm-crew-summary-pill {
@@ -6138,7 +6138,7 @@ END MIGRATED */
   color: white;
 }
 
-/* Mobile Touch Targets & iOS Zoom Prevention */
+/* Mobile Touch Targets and iOS Zoom Prevention */
 .tm-wizard input,
 .tm-wizard select,
 .tm-wizard textarea {
@@ -6467,7 +6467,7 @@ END MIGRATED */
   color: var(--text-secondary);
 }
 
-/* T&M Client Signature Modal */
+/* TM Client Signature Modal */
 .tm-client-signature-modal {
   background: var(--bg-primary);
   border-radius: 16px;
@@ -6722,7 +6722,7 @@ END MIGRATED */
   animation: checkPop 0.4s ease-out;
 }
 
-/* Review Step - Notes & Photos Sections */
+/* Review Step - Notes and Photos Sections */
 .tm-notes-section,
 .tm-photos-section {
   background: var(--bg-card);
@@ -7344,9 +7344,9 @@ END MIGRATED */
   color: var(--accent-blue);
 }
 
-/* =============================================
-   T&M CREW SELECTION & QUICK ACTIONS
-============================================= */
+/*    
+   TM CREW SELECTION and QUICK ACTIONS
+    */
 
 /* Crew Summary Bar */
 .tm-crew-summary-bar {
@@ -7561,9 +7561,9 @@ END MIGRATED */
   justify-content: center;
 }
 
-/* =============================================
-   T&M REVIEW - PROMINENT ACTION CARDS
-============================================= */
+/*    
+   TM REVIEW - PROMINENT ACTION CARDS
+    */
 
 .tm-action-card-prominent {
   background: var(--bg-card);
@@ -7759,9 +7759,9 @@ END MIGRATED */
   letter-spacing: 0.5px;
 }
 
-/* =============================================
-   T&M LIST STYLES (Office View)
-============================================= */
+/*    
+   TM LIST STYLES (Office View)
+    */
 
 .tm-list {
   margin-top: 1.5rem;
@@ -8101,7 +8101,7 @@ END MIGRATED */
 }
 END MIGRATED */
 
-/* Foreman T&M Button */
+/* Foreman TM Button */
 .foreman-tm-btn {
   width: 100%;
   margin-bottom: 1rem;
@@ -8110,7 +8110,7 @@ END MIGRATED */
   font-weight: 600;
 }
 
-/* Mobile T&M adjustments */
+/* Mobile TM adjustments */
 @media (max-width: 640px) {
   .tm-category-grid {
     grid-template-columns: 1fr 1fr;
@@ -8139,7 +8139,7 @@ END MIGRATED */
   }
 }
 
-/* T&M List Compact Mode */
+/* TM List Compact Mode */
 .tm-list-compact {
   max-height: 400px;
   overflow-y: auto;
@@ -8213,9 +8213,9 @@ END MIGRATED */
   border-radius: 4px;
 }
 
-/* =============================================
+/*    
    AUTH PAGE STYLES
-   ============================================= */
+       */
 
 .auth-page {
   min-height: 100vh;
@@ -8364,9 +8364,9 @@ END MIGRATED */
   color: var(--text-secondary);
 }
 
-/* =============================================
+/*    
    ONBOARDING STYLES
-   ============================================= */
+       */
 
 .onboarding {
   min-height: 100vh;
@@ -8746,9 +8746,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
+/*    
    COMPANY CODE INPUT STYLES
-   ============================================= */
+       */
 
 .company-code-input {
   margin: 1.5rem 0;
@@ -8821,9 +8821,9 @@ END MIGRATED */
   margin-bottom: 1.5rem;
 }
 
-/* =============================================
-   T&M CERTIFICATION STYLES
-   ============================================= */
+/*    
+   TM CERTIFICATION STYLES
+       */
 
 .tm-certification {
   background: var(--bg-elevated);
@@ -8893,9 +8893,9 @@ END MIGRATED */
   color: var(--accent-red);
 }
 
-/* =============================================
+/*    
    LANDING PAGE STYLES
-   ============================================= */
+       */
 
 .landing-container {
   min-height: 100vh;
@@ -9116,9 +9116,9 @@ END MIGRATED */
   font-size: 0.875rem;
 }
 
-/* =============================================
+/*    
    REGISTRATION STYLES
-   ============================================= */
+       */
 
 .register-container {
   min-height: 100vh;
@@ -9453,9 +9453,9 @@ END MIGRATED */
   margin-bottom: 0.5rem;
 }
 
-/* =============================================
+/*    
    RESPONSIVE
-   ============================================= */
+       */
 
 @media (max-width: 768px) {
   .landing-hero h1 {
@@ -9490,9 +9490,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
+/*    
    APP ENTRY STYLES (Foreman/Office Selection)
-   ============================================= */
+       */
 
 .entry-container {
   min-height: 100vh;
@@ -9778,9 +9778,9 @@ END MIGRATED */
   margin-top: 1rem;
 }
 
-/* ============================================
+/*    
    Crew Check-In Styles
-   ============================================ */
+       */
 
 .crew-checkin {
   background: var(--gradient-card-dark);
@@ -10027,7 +10027,7 @@ END MIGRATED */
   border-top: 1px solid var(--border-color);
 }
 
-/* T&M Crew Picker */
+/* TM Crew Picker */
 .tm-crew-picker {
   background: var(--bg-secondary);
   border-radius: 8px;
@@ -10105,9 +10105,9 @@ END MIGRATED */
   font-weight: bold;
 }
 
-/* ============================================
+/*    
    Daily Report Styles
-   ============================================ */
+       */
 
 .daily-report {
   min-height: 100vh;
@@ -10366,9 +10366,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Messages Styles
-   ============================================ */
+       */
 
 .messages-container {
   display: flex;
@@ -10501,9 +10501,9 @@ END MIGRATED */
   opacity: 0.5;
 }
 
-/* ============================================
+/*    
    Material Request Styles
-   ============================================ */
+       */
 
 .material-request {
   min-height: 100vh;
@@ -10732,9 +10732,9 @@ END MIGRATED */
 }
 
 
-/* =============================================
+/*    
    WHITE-LABEL BRANDING STYLES
-   ============================================= */
+       */
 
 /* Logo Component */
 .app-logo {
@@ -11110,9 +11110,9 @@ END MIGRATED */
   }
 }
 
-/* ==========================================
+/*    
    Executive Dashboard Styles
-   ========================================== */
+       */
 
 /* Business Overview - Portfolio Health Dashboard */
 .business-overview {
@@ -11370,9 +11370,9 @@ END MIGRATED */
   font-size: 0.8rem;
 }
 
-/* ==========================================
+/*    
    Schedule Performance Styles
-   ========================================== */
+       */
 
 /* Schedule Section in Portfolio Overview */
 .bo-schedule {
@@ -11584,7 +11584,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--accent-green);
 }
 
-/* T&M Change Order Badge */
+/* TM Change Order Badge */
 .tm-ce-badge {
   background: rgba(59, 130, 246, 0.15);
   color: var(--accent-blue);
@@ -11595,7 +11595,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 
-/* T&M COR Link Badge */
+/* TM COR Link Badge */
 .tm-cor-badge {
   display: inline-flex;
   align-items: center;
@@ -11615,12 +11615,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-color: rgba(245, 158, 11, 0.3);
 }
 
-/* T&M Ticket Card locked state */
+/* TM Ticket Card locked state */
 .tm-ticket-card.locked {
   border-left: 3px solid var(--accent-warning);
 }
 
-/* T&M Lock Notice */
+/* TM Lock Notice */
 .tm-lock-notice {
   display: flex;
   align-items: center;
@@ -11638,7 +11638,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
 }
 
-/* T&M Change Order Value Display */
+/* TM Change Order Value Display */
 .tm-change-order-value {
   display: flex;
   justify-content: space-between;
@@ -11929,9 +11929,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ==========================================
+/*    
    Project View - Clean UX Design
-   ========================================== */
+       */
 
 .project-view {
   max-width: 100%;
@@ -11944,9 +11944,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   min-height: calc(100vh - 80px);
 }
 
-/* ============================================
+/*    
    TABBED PROJECT VIEW - Sticky Header
-   ============================================ */
+       */
 
 .pv-sticky-header {
   position: sticky;
@@ -12133,9 +12133,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0;
 }
 
-/* =====================================================
+/*    
    FINANCIALS TAB - Clean Professional Layout
-   ===================================================== */
+       */
 
 .financials-tab {
   gap: 1.25rem !important;
@@ -13387,9 +13387,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-bottom: 1rem;
 }
 
-/* ============================================
+/*    
    EXECUTIVE FINANCIAL CARD
-   ============================================ */
+       */
 
 .pv-executive-card {
   background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
@@ -13555,7 +13555,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-top: 0.15rem;
 }
 
-/* T&M Summary Badge */
+/* TM Summary Badge */
 .pv-tm-summary-badge {
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -13617,9 +13617,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ============================================
+/*    
    LEGACY PROJECT VIEW STYLES (kept for compatibility)
-   ============================================ */
+       */
 
 /* Header */
 .pv-header {
@@ -14006,9 +14006,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ==========================================
+/*    
    Company Switcher Styles
-   ========================================== */
+       */
 
 .company-switcher {
   position: relative;
@@ -14108,9 +14108,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ============================================
+/*    
    Pricing / Materials Manager
-   ============================================ */
+       */
 
 .materials-manager {
   max-width: 1000px;
@@ -14698,9 +14698,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* =============================================
+/*    
    NOTIFICATION CENTER STYLES
-   ============================================= */
+       */
 
 .notification-center {
   position: relative;
@@ -14987,9 +14987,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* =============================================
+/*    
    NOTIFICATION SETTINGS STYLES
-   ============================================= */
+       */
 
 .notification-settings {
   background: var(--bg-elevated);
@@ -15235,9 +15235,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* =====================================================
+/*    
    MATERIAL REQUESTS LIST
-   ===================================================== */
+       */
 
 .material-requests-list {
   margin-top: 1.5rem;
@@ -15537,9 +15537,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-top: 1px solid var(--border-color);
 }
 
-/* =====================================================
+/*    
    DAILY REPORTS LIST
-   ===================================================== */
+       */
 
 .daily-reports-list {
   margin-top: 1.5rem;
@@ -15781,7 +15781,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text-tertiary);
 }
 
-/* Daily Reports - Selection & View Mode */
+/* Daily Reports - Selection and View Mode */
 .daily-reports-actions {
   display: flex;
   gap: 0.5rem;
@@ -15985,9 +15985,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* =====================================================
+/*    
    PROJECT MESSAGES
-   ===================================================== */
+       */
 
 .project-messages {
   margin-top: 1.5rem;
@@ -16192,9 +16192,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ===================
+/*    
    Man Day Costs
-=================== */
+    */
 
 .man-day-costs {
   margin-bottom: 1.5rem;
@@ -16437,9 +16437,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ===================
+/*    
    Error Boundary
-=================== */
+    */
 
 .error-boundary {
   display: flex;
@@ -16500,9 +16500,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin-top: 0.5rem;
 }
 
-/* ============================================
+/*    
    Error State Component
-   ============================================ */
+       */
 
 .error-state {
   display: flex;
@@ -16617,9 +16617,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.75rem;
 }
 
-/* ============================================
+/*    
    Empty State Component
-   ============================================ */
+       */
 
 .empty-state {
   display: flex;
@@ -16660,9 +16660,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   max-width: 300px;
 }
 
-/* ============================================
+/*    
    Form Field Validation Components
-   ============================================ */
+       */
 
 .form-field {
   margin-bottom: 1rem;
@@ -16771,9 +16771,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.85rem;
 }
 
-/* ============================================
+/*    
    BURN RATE CARD
-   ============================================ */
+       */
 
 .pv-burn-total {
   display: flex;
@@ -16935,9 +16935,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.7rem;
 }
 
-/* ============================================
+/*    
    PRICING MANAGER - TABBED INTERFACE
-   ============================================ */
+       */
 
 .pricing-manager {
   max-width: 1000px;
@@ -17054,9 +17054,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
 }
 
-/* =====================================================
+/*    
    LABOR SETUP STYLES (Categories, Classes, Rates)
-   ===================================================== */
+       */
 
 .labor-setup-section .labor-setup-actions {
   display: flex;
@@ -17326,9 +17326,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* =====================================================
-   CHANGE ORDER REQUEST (COR) STYLES - Clean Design
-   ===================================================== */
+/*    
+   CHANGE ORDER REQUEST COR STYLES - Clean Design
+       */
 
 .cor-list {
   margin-top: 0;
@@ -17845,7 +17845,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0.5rem;
 }
 
-/* See All Buttons (COR & T&M) */
+/* See All Buttons (COR and TM) */
 .cor-see-all-btn,
 .tm-see-all-btn {
   display: flex;
@@ -17927,9 +17927,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding: 0.75rem 0 0.75rem 1rem;
 }
 
-/* =====================================================
+/*    
    COR DISPLAY MODE TOGGLE
-   ===================================================== */
+       */
 
 .cor-display-toggle {
   display: flex;
@@ -18031,9 +18031,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* =====================================================
+/*    
    COR LOG - Professional Client Presentation Table
-   ===================================================== */
+       */
 
 .cor-log {
   display: flex;
@@ -18687,10 +18687,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ============================
+/*    
    COR Log Preview Styles
    Matches existing cor-log, summary-card, and cor-log-table patterns
-   ============================ */
+       */
 
 .cor-log-preview {
   background: var(--bg-card);
@@ -19174,9 +19174,9 @@ END MIGRATED */
   color: var(--text-primary);
 }
 
-/* =====================================================
+/*    
    COR FORM WIZARD STYLES
-   ===================================================== */
+       */
 
 .cor-form-modal {
   max-width: 800px;
@@ -19497,7 +19497,7 @@ END MIGRATED */
   font-size: 1.1rem;
 }
 
-/* Markups & Fees */
+/* Markups and Fees */
 .markups-section,
 .fees-section {
   margin-bottom: 2rem;
@@ -19823,9 +19823,9 @@ END MIGRATED */
   }
 }
 
-/* =====================================================
+/*    
    SIMPLIFIED COR FORM STYLES
-   ===================================================== */
+       */
 
 .cor-form-simplified {
   max-width: 900px;
@@ -20220,9 +20220,9 @@ END MIGRATED */
   }
 }
 
-/* =====================================================
+/*    
    COR DETAIL VIEW STYLES
-   ===================================================== */
+       */
 
 .cor-detail-modal {
   max-width: 900px;
@@ -20462,7 +20462,7 @@ END MIGRATED */
   font-weight: 500;
 }
 
-/* COR Subtotal & Total */
+/* COR Subtotal and Total */
 .cor-subtotal-row {
   display: flex;
   justify-content: space-between;
@@ -20910,9 +20910,9 @@ END MIGRATED */
   }
 }
 
-/* =====================================================
+/*    
    SIGNATURE CAPTURE STYLES
-   ===================================================== */
+       */
 
 .signature-modal {
   max-width: 550px;
@@ -20986,9 +20986,9 @@ END MIGRATED */
   }
 }
 
-/* =====================================================
+/*    
    TICKET SELECTOR STYLES
-   ===================================================== */
+       */
 
 .ticket-selector-modal {
   max-width: 700px;
@@ -21274,9 +21274,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Signature Workflow Styles
-   ============================================ */
+       */
 
 /* Signature Page (Public) */
 .signature-page {
@@ -22155,9 +22155,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Full COR Document View (Signature Page)
-   ============================================ */
+       */
 
 .cor-full-document {
   max-width: 900px;
@@ -22291,7 +22291,7 @@ END MIGRATED */
   margin: 0;
 }
 
-/* T&M Backup Documentation Section */
+/* TM Backup Documentation Section */
 .cor-backup-section {
   border: 1px solid var(--accent-blue);
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
@@ -22500,9 +22500,9 @@ END MIGRATED */
   flex-shrink: 0;
 }
 
-/* ============================================
+/*    
    Professional Backup Documentation Styles
-   ============================================ */
+       */
 
 /* Official Section Header - Dark professional banner */
 .backup-official-header {
@@ -23071,9 +23071,9 @@ END MIGRATED */
 }
 
 
-/* ============================================
+/*    
    Financial Dashboard - Burn Rate, Costs, Profitability
-   ============================================ */
+       */
 
 /* Financials Analysis Row - Side by side layout */
 .financials-analysis-row {
@@ -23089,9 +23089,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Burn Rate Card
-   ============================================ */
+       */
 .burn-rate-card {
   background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
@@ -23317,9 +23317,9 @@ END MIGRATED */
   font-weight: 600;
 }
 
-/* ============================================
+/*    
    Cost Contributors Card
-   ============================================ */
+       */
 .cost-contributors-card {
   background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
@@ -23576,9 +23576,9 @@ END MIGRATED */
 }
 
 
-/* ============================================
+/*    
    Profitability Card
-   ============================================ */
+       */
 .profitability-card {
   background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);
@@ -23761,9 +23761,9 @@ END MIGRATED */
 }
 
 
-/* ============================================
+/*    
    Add Cost Modal
-   ============================================ */
+       */
 .add-cost-modal {
   max-width: 480px;
 }
@@ -23899,9 +23899,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
+/*    
    OVERVIEW TAB STYLES
-   ============================================= */
+       */
 
 .overview-tab {
   display: flex;
@@ -24801,9 +24801,9 @@ END MIGRATED */
   font-size: 1.25rem;
 }
 
-/* =============================================
+/*    
    ENHANCED OVERVIEW - Visual Dashboard
-   ============================================= */
+       */
 
 /* Split Hero Layout */
 .overview-hero-split {
@@ -25079,9 +25079,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
+/*    
    REPORTS TAB STYLES
-   ============================================= */
+       */
 
 .reports-tab {
   display: flex;
@@ -25677,9 +25677,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
+/*    
    ACTIVITY TAB STYLES
-   ============================================= */
+       */
 
 .activity-tab {
   display: flex;
@@ -25894,9 +25894,9 @@ END MIGRATED */
   padding: 1rem;
 }
 
-/* =============================================
+/*    
    INFO TAB STYLES
-   ============================================= */
+       */
 
 .info-tab {
   display: flex;
@@ -26239,9 +26239,9 @@ END MIGRATED */
   padding: 1rem 1.25rem;
 }
 
-/* =============================================
+/*    
    MOBILE RESPONSIVE - REDESIGNED TABS
-   ============================================= */
+       */
 
 @media (max-width: 768px) {
   .overview-hero-grid {
@@ -26315,9 +26315,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    MEMBERSHIP APPROVAL STYLES
-   ============================================ */
+       */
 
 /* Pending Approval Screen */
 .pending-approval-screen {
@@ -26587,9 +26587,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Access Level Badges
-   ============================================ */
+       */
 
 .member-access-level,
 .member-badges {
@@ -26641,9 +26641,9 @@ END MIGRATED */
   color: #059669;
 }
 
-/* ============================================
+/*    
    Project Team Component
-   ============================================ */
+       */
 
 .project-team {
   background: var(--bg-card);
@@ -26812,9 +26812,9 @@ END MIGRATED */
   font-size: 0.85rem;
 }
 
-/* ============================================
+/*    
    Responsive for Project Team
-   ============================================ */
+       */
 
 @media (max-width: 600px) {
   .project-team-member {
@@ -26830,9 +26830,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
-   T&M Form - Work Info Step Enhancements
-   ============================================ */
+/*    
+   TM Form - Work Info Step Enhancements
+       */
 
 /* Description Field */
 .tm-description-field {
@@ -26855,9 +26855,9 @@ END MIGRATED */
   background: rgba(251, 191, 36, 0.03);
 }
 
-/* ============================================
-   T&M Form - Materials Search
-   ============================================ */
+/*    
+   TM Form - Materials Search
+       */
 
 .tm-search-field {
   margin-bottom: 1.25rem;
@@ -26980,9 +26980,9 @@ END MIGRATED */
   font-size: 0.9rem;
 }
 
-/* ============================================
-   T&M Form - Review Step COR Display
-   ============================================ */
+/*    
+   TM Form - Review Step COR Display
+       */
 
 .tm-review-cor {
   padding: 0.75rem;
@@ -26993,9 +26993,9 @@ END MIGRATED */
   font-weight: 500;
 }
 
-/* ============================================
+/*    
    COR Form Enhancements
-   ============================================ */
+       */
 
 .form-hint {
   display: block;
@@ -27044,9 +27044,9 @@ END MIGRATED */
   border-color: var(--accent-blue);
 }
 
-/* ============================================
-   T&M Backup Verification Display
-   ============================================ */
+/*    
+   TM Backup Verification Display
+       */
 
 .backup-stat.verified {
   color: var(--accent-green);
@@ -27138,9 +27138,9 @@ END MIGRATED */
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*    
    Dollar Input Styling (COR Form)
-   ============================================ */
+       */
 
 .dollar-input-wrapper {
   position: relative;
@@ -27174,9 +27174,9 @@ END MIGRATED */
   padding-left: 1.25rem !important;
 }
 
-/* ============================================
+/*    
    Financial Chart Components
-   ============================================ */
+       */
 
 /* Financial Trend Chart Container */
 .financial-trend-chart {
@@ -27439,9 +27439,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    Cost Donut Chart
-   ============================================ */
+       */
 .cost-donut {
   animation: chartFadeIn 0.5s ease-out;
 }
@@ -27577,9 +27577,9 @@ END MIGRATED */
   }
 }
 
-/* =====================================================
-   T&M Dashboard Styles
-   ===================================================== */
+/*    
+   TM Dashboard Styles
+       */
 
 .tm-dashboard {
   padding: 1rem;
@@ -28027,12 +28027,12 @@ END MIGRATED */
   }
 }
 
-/* =====================================================
+/*    
    Elegant Financials Redesign
    Clean, intentional, workflow-driven design
-   ===================================================== */
+       */
 
-/* ========== Collapsible Sidebar ========== */
+/*     Collapsible Sidebar     */
 
 .financials-layout {
   display: grid;
@@ -28337,7 +28337,7 @@ END MIGRATED */
   color: var(--primary-color);
 }
 
-/* ========== Unified Section Toolbar ========== */
+/*     Unified Section Toolbar     */
 
 .section-toolbar {
   display: flex;
@@ -28661,7 +28661,7 @@ END MIGRATED */
   min-width: 180px;
 }
 
-/* ========== Responsive Adjustments ========== */
+/*     Responsive Adjustments     */
 
 @media (max-width: 1024px) {
   .financials-layout {
@@ -28823,11 +28823,11 @@ END MIGRATED */
   }
 }
 
-/* =====================================================
-   Unified Section Controls - COR & T&M Consistency
-   ===================================================== */
+/*    
+   Unified Section Controls - COR and TM Consistency
+       */
 
-/* ========== Common Header Pattern ========== */
+/*     Common Header Pattern     */
 
 .cor-list-header,
 .tm-list-header {
@@ -28876,7 +28876,7 @@ END MIGRATED */
   font-weight: 600;
 }
 
-/* ========== Header Actions ========== */
+/*     Header Actions     */
 
 .cor-header-actions,
 .tm-header-controls {
@@ -28885,7 +28885,7 @@ END MIGRATED */
   gap: 0.5rem;
 }
 
-/* ========== Display/View Toggle ========== */
+/*     Display/View Toggle     */
 
 .cor-display-toggle,
 .tm-display-toggle {
@@ -28933,7 +28933,7 @@ END MIGRATED */
   font-weight: 600;
 }
 
-/* ========== Export Dropdown ========== */
+/*     Export Dropdown     */
 
 .cor-export-dropdown {
   position: relative;
@@ -29004,7 +29004,7 @@ END MIGRATED */
   background: var(--hover-bg);
 }
 
-/* ========== Filter Controls ========== */
+/*     Filter Controls     */
 
 .cor-controls,
 .tm-list-filters {
@@ -29185,7 +29185,7 @@ END MIGRATED */
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* ========== Summary Bar ========== */
+/*     Summary Bar     */
 
 .tm-summary-bar {
   display: flex;
@@ -29217,7 +29217,7 @@ END MIGRATED */
   color: var(--text-color);
 }
 
-/* ========== Selection Bar ========== */
+/*     Selection Bar     */
 
 .cor-selection-bar {
   display: flex;
@@ -29236,14 +29236,14 @@ END MIGRATED */
   color: var(--primary-color);
 }
 
-/* ========== Main Content Area ========== */
+/*     Main Content Area     */
 
 .financials-main {
   flex: 1;
   min-width: 0;
 }
 
-/* ========== Responsive Refinements ========== */
+/*     Responsive Refinements     */
 
 @media (max-width: 1024px) {
   .cor-list-header,
@@ -29284,9 +29284,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    BILLING CENTER STYLES
-   ============================================ */
+       */
 
 .billing-center {
   display: flex;
@@ -30004,9 +30004,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    EQUIPMENT TRACKING STYLES
-   ============================================ */
+       */
 
 /* Project Equipment Card */
 .project-equipment-card {
@@ -30466,9 +30466,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    PROGRESS BILLING / DRAW REQUESTS STYLES
-   ============================================ */
+       */
 
 /* Progress Billing Card */
 .progress-billing-card {
@@ -30948,9 +30948,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
-   T&M FORM FIELD ROW FIX
-============================================= */
+/*    
+   TM FORM FIELD ROW FIX
+    */
 
 /* Ensure field row inputs are properly contained */
 .tm-field-row .tm-field-half input {
@@ -30984,9 +30984,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
-   T&M LABOR CLASS UI ELEMENTS
-============================================= */
+/*    
+   TM LABOR CLASS UI ELEMENTS
+    */
 
 /* Labor class header with remove button */
 .tm-field-header {
@@ -31110,9 +31110,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
+/*    
    DOCUMENTS TAB - Phase 1 Implementation
-============================================= */
+    */
 
 /* Main container */
 .documents-tab {
@@ -31333,9 +31333,9 @@ END MIGRATED */
   gap: 0.5rem;
 }
 
-/* =============================================
+/*    
    DOCUMENT CARD
-============================================= */
+    */
 
 .document-card {
   display: flex;
@@ -31524,9 +31524,9 @@ END MIGRATED */
   color: var(--accent-red);
 }
 
-/* =============================================
+/*    
    DOCUMENT UPLOAD MODAL
-============================================= */
+    */
 
 .document-upload-modal {
   width: 100%;
@@ -31823,9 +31823,9 @@ END MIGRATED */
   color: var(--accent-blue);
 }
 
-/* =============================================
+/*    
    DOCUMENT DETAIL VIEW
-============================================= */
+    */
 
 .document-detail {
   background: var(--bg-card);
@@ -32186,9 +32186,9 @@ END MIGRATED */
   gap: 0.75rem;
 }
 
-/* =============================================
-   FOLDER SYSTEM - Office & Foreman Views
-============================================= */
+/*    
+   FOLDER SYSTEM - Office and Foreman Views
+    */
 
 /* Folder grid layout */
 .documents-folder-grid {
@@ -32332,9 +32332,9 @@ END MIGRATED */
   margin-top: 0.25rem;
 }
 
-/* =============================================
+/*    
    CLEAN DOCUMENTS UI
-============================================= */
+    */
 
 /* Office View - Container */
 .docs-container {
@@ -32876,9 +32876,9 @@ END MIGRATED */
   color: var(--text-primary);
 }
 
-/* =============================================
+/*    
    FIELD USER DOCUMENTS (Foreman View)
-============================================= */
+    */
 
 .field-docs {
   padding: 1rem;
@@ -33163,9 +33163,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
+/*    
    FOLDER MANAGER (Admin)
-============================================= */
+    */
 
 .folder-manager {
   padding: 1rem;
@@ -33424,9 +33424,9 @@ END MIGRATED */
   box-shadow: 0 0 0 2px var(--bg-card);
 }
 
-/* =============================================
+/*    
    FOLDER GRID - Foreman View
-============================================= */
+    */
 
 .folder-grid {
   padding: 1rem;
@@ -33669,9 +33669,9 @@ END MIGRATED */
   flex-shrink: 0;
 }
 
-/* =============================================
+/*    
    DOCUMENTS - MOBILE RESPONSIVE
-============================================= */
+    */
 
 @media (max-width: 768px) {
   .documents-header {
@@ -33799,9 +33799,9 @@ END MIGRATED */
   }
 }
 
-/* ============================================
+/*    
    UNIVERSAL SEARCH (Cmd+K)
-   ============================================ */
+       */
 
 .universal-search-overlay {
   position: fixed;

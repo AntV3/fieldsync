@@ -1,6 +1,6 @@
-/* =============================================
+/*
    AUTH PAGE STYLES
-   ============================================= */
+   */
 
 .auth-page {
   min-height: 100vh;
@@ -152,9 +152,9 @@
   color: var(--text-secondary);
 }
 
-/* =============================================
+/*
    ONBOARDING STYLES
-   ============================================= */
+   */
 
 .onboarding {
   min-height: 100vh;
@@ -538,9 +538,9 @@
   }
 }
 
-/* =============================================
+/*
    COMPANY CODE INPUT STYLES
-   ============================================= */
+   */
 
 .company-code-input {
   margin: 1.5rem 0;
@@ -613,9 +613,9 @@
   margin-bottom: 1.5rem;
 }
 
-/* =============================================
-   T&M CERTIFICATION STYLES
-   ============================================= */
+/*
+   TM CERTIFICATION STYLES
+   */
 
 .tm-certification {
   background: var(--bg-elevated);
@@ -685,9 +685,9 @@
   color: var(--accent-red);
 }
 
-/* =============================================
+/*
    LANDING PAGE STYLES
-   ============================================= */
+   */
 
 .landing-container {
   min-height: 100vh;
@@ -909,9 +909,9 @@
   font-size: 0.875rem;
 }
 
-/* =============================================
+/*
    REGISTRATION STYLES
-   ============================================= */
+   */
 
 .register-container {
   min-height: 100vh;
@@ -1247,9 +1247,9 @@
   margin-bottom: 0.5rem;
 }
 
-/* =============================================
+/*
    RESPONSIVE
-   ============================================= */
+   */
 
 @media (max-width: 768px) {
   .landing-hero h1 {
@@ -1284,9 +1284,9 @@
   }
 }
 
-/* =============================================
+/*
    APP ENTRY STYLES (Foreman/Office Selection)
-   ============================================= */
+   */
 
 .entry-container {
   min-height: 100vh;
@@ -1528,9 +1528,9 @@
   margin-top: 1rem;
 }
 
-/* =============================================
+/*
    ENTRY BACK BUTTON - Lucide icon alignment
-   ============================================= */
+   */
 
 .entry-back {
   display: flex;
@@ -1538,9 +1538,9 @@
   justify-content: center;
 }
 
-/* =============================================
+/*
    ENHANCED SIGNUP OPTIONS
-   ============================================= */
+   */
 
 .entry-signup-options {
   display: flex;
@@ -1575,9 +1575,9 @@
   flex-shrink: 0;
 }
 
-/* =============================================
+/*
    ONBOARDING STEP INDICATOR
-   ============================================= */
+   */
 
 .onboarding-step-indicator {
   display: flex;
@@ -1658,9 +1658,9 @@
   color: var(--accent-green);
 }
 
-/* =============================================
+/*
    PASSWORD FIELD
-   ============================================= */
+   */
 
 .password-field {
   width: 100%;
@@ -1735,9 +1735,9 @@
   flex-shrink: 0;
 }
 
-/* =============================================
+/*
    INPUT ERROR STATE
-   ============================================= */
+   */
 
 .entry-form input.input-error {
   border-color: var(--accent-red);
@@ -1747,9 +1747,9 @@
   border-color: var(--accent-red);
 }
 
-/* =============================================
+/*
    BUTTON LOADING STATE
-   ============================================= */
+   */
 
 .btn-loading {
   display: flex;
@@ -1773,9 +1773,9 @@
   height: 18px;
 }
 
-/* =============================================
+/*
    ENTRY SUCCESS SCREEN
-   ============================================= */
+   */
 
 .entry-success-icon {
   width: 56px;
@@ -1810,9 +1810,9 @@
   margin: 0;
 }
 
-/* =============================================
+/*
    COMPANY REGISTRATION CODES
-   ============================================= */
+   */
 
 .entry-card-wide {
   max-width: 440px;
@@ -1867,9 +1867,9 @@
   margin: 0;
 }
 
-/* =============================================
+/*
    ENTRY HINT
-   ============================================= */
+   */
 
 .entry-hint {
   color: var(--text-muted);
@@ -1885,9 +1885,9 @@
   margin-top: 1rem;
 }
 
-/* =============================================
+/*
    ENHANCED PENDING APPROVAL SCREEN
-   ============================================= */
+   */
 
 .pending-pulse-ring {
   position: relative;
@@ -1965,9 +1965,9 @@
   margin-top: 0.25rem;
 }
 
-/* =============================================
+/*
    RESPONSIVE - ENTRY ENHANCEMENTS
-   ============================================= */
+   */
 
 @media (max-width: 400px) {
   .entry-codes-grid {

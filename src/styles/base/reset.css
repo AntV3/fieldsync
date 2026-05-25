@@ -1,6 +1,6 @@
-/* ============================================
+/*
    Reset & Base Styles - Enterprise Dashboard
-   ============================================
+
 
    Normalizes browser defaults and sets up
    foundational styling for the app.
@@ -9,7 +9,7 @@
    Anti-patterns avoided:
    - No pure white (#FFFFFF) backgrounds (uses #F5F5F5)
    - No pure black text (uses #202020)
-   ============================================ */
+   */
 
 /* Box-sizing reset */
 *,

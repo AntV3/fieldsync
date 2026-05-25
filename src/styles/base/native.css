@@ -1,7 +1,7 @@
-/* ============================================
+/*
    Native Platform Styles (Capacitor)
    Applied when running inside iOS/Android shell
-   ============================================ */
+   */
 
 /* Safe area insets for devices with notch/dynamic island */
 html.native {

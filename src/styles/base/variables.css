@@ -1,6 +1,6 @@
-/* ============================================
+/*
    CSS Variables - Enterprise Dashboard Design System
-   ============================================
+
 
    This file defines all CSS custom properties based on the
    Enterprise Dashboard UI Specification.
@@ -11,11 +11,11 @@
    Accessibility: All colors meet WCAG 2.1 AA 4.5:1 minimum
 
    Import this FIRST before any other styles.
-   ============================================ */
+   */
 
-/* ============================================
+/*
    Light Theme (Default - Enterprise Standard)
-   ============================================ */
+   */
 :root {
   /* ---- Primary Palette (5 Core Colors) ---- */
   --color-primary: #1C4E80;         /* Primary data viz, key metrics, brand anchor */
@@ -277,9 +277,9 @@
   --content-max-width: 1440px;
 }
 
-/* ============================================
+/*
    Light Mode Explicit (overrides legacy index.css)
-   ============================================ */
+   */
 [data-theme="light"] {
   --bg-primary: var(--bg-canvas);
   --bg-secondary: var(--bg-elevated);
@@ -297,9 +297,9 @@
   --hover-bg: var(--bg-elevated);
 }
 
-/* ============================================
+/*
    Dark Mode Palette (Required per spec)
-   ============================================ */
+   */
 [data-theme="dark"] {
   /* ---- Dark Backgrounds (SpaceX aerospace charcoal) ---- */
   --bg-canvas: #121418;

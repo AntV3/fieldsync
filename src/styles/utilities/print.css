@@ -1,11 +1,11 @@
-/* ============================================
+/*
    Print Stylesheet
-   ============================================
+
 
    Print-friendly styles for dashboard reporting.
    Removes interactive elements, optimizes
    layout for paper, and ensures readability.
-   ============================================ */
+   */
 
 @media print {
   /* ---- Reset for Print ---- */

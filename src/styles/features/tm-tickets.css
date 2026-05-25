@@ -1,6 +1,6 @@
-/* =============================================
-   T&M WIZARD STYLES
-============================================= */
+/*
+   TM WIZARD STYLES
+--- */
 
 .tm-wizard {
   display: flex;
@@ -1056,9 +1056,9 @@
   color: var(--accent-orange);
 }
 
-/* ============================================
-   T&M Form UX Improvements
-   ============================================ */
+/*
+   TM Form UX Improvements
+   */
 
 /* Sticky Crew Summary Pill - Floating summary on step 2 */
 .tm-crew-summary-pill {
@@ -1592,7 +1592,7 @@
   color: var(--text-secondary);
 }
 
-/* T&M Client Signature Modal */
+/* TM Client Signature Modal */
 .tm-client-signature-modal {
   background: var(--bg-primary);
   border-radius: var(--radius-xl);
@@ -2653,9 +2653,9 @@
   background: var(--bg-elevated, #fafbfc);
 }
 
-/* =============================================
-   T&M CREW SELECTION & QUICK ACTIONS
-============================================= */
+/*
+   TM CREW SELECTION & QUICK ACTIONS
+--- */
 
 /* Crew Summary Bar */
 .tm-crew-summary-bar {
@@ -2925,9 +2925,9 @@
   color: var(--text-muted);
 }
 
-/* =============================================
-   T&M REVIEW - PROMINENT ACTION CARDS
-============================================= */
+/*
+   TM REVIEW - PROMINENT ACTION CARDS
+--- */
 
 .tm-action-card-prominent {
   background: var(--bg-card);
@@ -3137,9 +3137,9 @@
   letter-spacing: 0.5px;
 }
 
-/* =============================================
-   T&M LIST STYLES (Office View)
-============================================= */
+/*
+   TM LIST STYLES (Office View)
+--- */
 
 .tm-list {
   margin-top: 1.5rem;
@@ -3166,7 +3166,7 @@
   gap: 0.5rem;
 }
 
-/* T&M Unified Toolbar */
+/* TM Unified Toolbar */
 .tm-toolbar {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -3196,7 +3196,7 @@
   gap: 0.5rem;
 }
 
-/* T&M View Toggle */
+/* TM View Toggle */
 .tm-view-toggle {
   display: flex;
   background: var(--bg-tertiary);
@@ -3224,7 +3224,7 @@
   color: white;
 }
 
-/* T&M Search Bar */
+/* TM Search Bar */
 .tm-search {
   position: relative;
   display: flex;
@@ -3284,7 +3284,7 @@
   color: var(--text-primary);
 }
 
-/* T&M Date Filter */
+/* TM Date Filter */
 .tm-date-filter {
   display: flex;
   align-items: center;
@@ -3748,7 +3748,7 @@ END MIGRATED */
 }
 END MIGRATED */
 
-/* Foreman T&M Button */
+/* Foreman TM Button */
 .foreman-tm-btn {
   width: 100%;
   margin-bottom: 1rem;
@@ -3757,7 +3757,7 @@ END MIGRATED */
   font-weight: 600;
 }
 
-/* Mobile T&M adjustments */
+/* Mobile TM adjustments */
 @media (max-width: 640px) {
   .tm-category-grid {
     grid-template-columns: 1fr 1fr;
@@ -3785,7 +3785,7 @@ END MIGRATED */
     text-align: left;
   }
 
-  /* T&M Toolbar Responsive */
+  /* TM Toolbar Responsive */
   .tm-toolbar-row {
     flex-direction: column;
     align-items: stretch;
@@ -3817,7 +3817,7 @@ END MIGRATED */
   }
 }
 
-/* T&M List Compact Mode */
+/* TM List Compact Mode */
 .tm-list-compact {
   max-height: 400px;
   overflow-y: auto;
@@ -3892,9 +3892,9 @@ END MIGRATED */
 }
 
 
-/* =============================================
-   T&M CERTIFICATION STYLES
-   ============================================= */
+/*
+   TM CERTIFICATION STYLES
+   */
 
 .tm-certification {
   background: var(--bg-elevated);
@@ -3981,9 +3981,9 @@ END MIGRATED */
   border: 1px dashed var(--border-color);
 }
 
-/* ============================================
-   T&M Form - Work Info Step Enhancements
-   ============================================ */
+/*
+   TM Form - Work Info Step Enhancements
+   */
 
 /* Description Field */
 .tm-description-field {
@@ -4007,9 +4007,9 @@ END MIGRATED */
 }
 
 
-/* ============================================
-   T&M Form - Materials Search
-   ============================================ */
+/*
+   TM Form - Materials Search
+   */
 
 .tm-search-field {
   margin-bottom: 1.25rem;
@@ -4132,9 +4132,9 @@ END MIGRATED */
   font-size: 0.9rem;
 }
 
-/* ============================================
-   T&M Form - Review Step COR Display
-   ============================================ */
+/*
+   TM Form - Review Step COR Display
+   */
 
 .tm-review-cor {
   padding: 0.75rem;
@@ -4146,9 +4146,9 @@ END MIGRATED */
 }
 
 
-/* ============================================
-   T&M Backup Verification Display
-   ============================================ */
+/*
+   TM Backup Verification Display
+   */
 
 .backup-stat.verified {
   color: var(--accent-green);
@@ -4254,8 +4254,8 @@ END MIGRATED */
 }
 
 
-   T&M Dashboard Styles
-   ===================================================== */
+   TM Dashboard Styles
+   */
 
 .tm-dashboard {
   padding: 1rem;
@@ -4719,8 +4719,8 @@ END MIGRATED */
 }
 
 
-   T&M FORM FIELD ROW FIX
-============================================= */
+   TM FORM FIELD ROW FIX
+--- */
 
 /* Ensure field row inputs are properly contained */
 .tm-field-row .tm-field-half input {
@@ -4754,9 +4754,9 @@ END MIGRATED */
   }
 }
 
-/* =============================================
-   T&M LABOR CLASS UI ELEMENTS
-============================================= */
+/*
+   TM LABOR CLASS UI ELEMENTS
+--- */
 
 /* Labor class header with remove button */
 .tm-field-header {

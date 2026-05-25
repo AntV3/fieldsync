@@ -1,5 +1,5 @@
    DOCUMENTS TAB - Phase 1 Implementation
-============================================= */
+--- */
 
 /* Main container */
 .documents-tab {
@@ -220,9 +220,9 @@
   gap: 0.5rem;
 }
 
-/* =============================================
+/*
    DOCUMENT CARD
-============================================= */
+--- */
 
 .document-card {
   display: flex;
@@ -412,9 +412,9 @@
   color: var(--accent-red);
 }
 
-/* =============================================
+/*
    DOCUMENT UPLOAD MODAL
-============================================= */
+--- */
 
 .document-upload-modal {
   width: 100%;
@@ -711,9 +711,9 @@
   color: var(--accent-blue);
 }
 
-/* =============================================
+/*
    DOCUMENT DETAIL VIEW
-============================================= */
+--- */
 
 .document-detail {
   background: var(--bg-card);
@@ -1074,9 +1074,9 @@
   gap: 0.75rem;
 }
 
-/* =============================================
+/*
    FOLDER SYSTEM - Office & Foreman Views
-============================================= */
+--- */
 
 /* Folder grid layout */
 .documents-folder-grid {
@@ -1220,9 +1220,9 @@
   margin-top: 0.25rem;
 }
 
-/* =============================================
+/*
    CLEAN DOCUMENTS UI
-============================================= */
+--- */
 
 /* Office View - Container */
 .docs-container {
@@ -1764,9 +1764,9 @@
   color: var(--text-primary);
 }
 
-/* =============================================
+/*
    FIELD USER DOCUMENTS (Foreman View)
-============================================= */
+--- */
 
 .field-docs {
   padding: 1rem;
@@ -2051,9 +2051,9 @@
   }
 }
 
-/* =============================================
+/*
    FOLDER MANAGER (Admin)
-============================================= */
+--- */
 
 .folder-manager {
   padding: 1rem;
@@ -2312,9 +2312,9 @@
   box-shadow: 0 0 0 2px var(--bg-card);
 }
 
-/* =============================================
+/*
    FOLDER GRID - Foreman View
-============================================= */
+--- */
 
 .folder-grid {
   padding: 1rem;
@@ -2557,9 +2557,9 @@
   flex-shrink: 0;
 }
 
-/* =============================================
+/*
    DOCUMENTS - MOBILE RESPONSIVE
-============================================= */
+--- */
 
 @media (max-width: 768px) {
   .documents-header {
@@ -2687,9 +2687,9 @@
   }
 }
 
-/* ============================================
+/*
    UNIVERSAL SEARCH (Cmd+K)
-   ============================================ */
+   */
 
 .universal-search-overlay {
   position: fixed;

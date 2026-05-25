@@ -1,14 +1,14 @@
-/* ============================================
+/*
    Badge and Status Indicator Styles
-   ============================================
+
 
    Status dots, badges, and indicator components.
    Uses design tokens from variables.css.
-   ============================================ */
+   */
 
-/* ============================================
+/*
    Status Dots
-   ============================================ */
+   */
 
 .status-dot-container {
   display: inline-flex;
@@ -80,9 +80,9 @@
   animation: statusPulse 2s ease-in-out infinite;
 }
 
-/* ============================================
+/*
    Status Badges (pill-style)
-   ============================================ */
+   */
 
 .status-badge {
   display: inline-flex;
@@ -128,9 +128,9 @@
   color: var(--accent-red);
 }
 
-/* ============================================
+/*
    Status Indicators (with background)
-   ============================================ */
+   */
 
 .status-indicator {
   display: inline-flex;
@@ -167,9 +167,9 @@
   color: var(--text-secondary);
 }
 
-/* ============================================
+/*
    Status Icons
-   ============================================ */
+   */
 
 .status-icon {
   display: inline-flex;
@@ -196,9 +196,9 @@
   color: var(--accent-blue);
 }
 
-/* ============================================
+/*
    Badge Animation
-   ============================================ */
+   */
 
 @keyframes badgePulse {
   0%, 100% {
@@ -213,9 +213,9 @@
   animation: badgePulse 2s ease-in-out infinite;
 }
 
-/* ============================================
+/*
    Metric Delta (positive/negative indicators)
-   ============================================ */
+   */
 
 .metric-delta {
   display: inline-flex;
@@ -233,9 +233,9 @@
   color: var(--accent-red);
 }
 
-/* ============================================
+/*
    Quick Stats (inline stat display)
-   ============================================ */
+   */
 
 .quick-stats {
   display: flex;
@@ -267,9 +267,9 @@
   opacity: 0.8;
 }
 
-/* ============================================
+/*
    Dark Mode Badge Enhancements
-   ============================================ */
+   */
 
 [data-theme="dark"] .status-badge {
   backdrop-filter: blur(4px);
