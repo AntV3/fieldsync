@@ -14,10 +14,11 @@ export const OverviewProgressGauge = memo(function OverviewProgressGauge({
 }) {
   const [animatedProgress, setAnimatedProgress] = useState(0)
   const animationRef = useRef(null)
+  const currentValueRef = useRef(0)
 
   // Animate progress on mount/change
   useEffect(() => {
-    const startValue = animatedProgress
+    const startValue = currentValueRef.current
     const endValue = Math.min(100, Math.max(0, progress))
     const duration = 800
     const startTime = performance.now()
@@ -30,6 +31,7 @@ export const OverviewProgressGauge = memo(function OverviewProgressGauge({
       const eased = 1 - Math.pow(1 - progressRatio, 3)
       const current = startValue + (endValue - startValue) * eased
 
+      currentValueRef.current = current
       setAnimatedProgress(current)
 
       if (progressRatio < 1) {

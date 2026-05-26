@@ -47,13 +47,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   const [exporting, setExporting] = useState(false)
   const [showTimeline, setShowTimeline] = useState(false)
 
-  // Load all crew check-in history and T&M tickets
-  useEffect(() => {
-    if (!project?.id) return
-    loadData()
-  }, [project?.id])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const [history, tickets] = await Promise.all([
@@ -67,7 +61,12 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     } finally {
       setLoading(false)
     }
-  }
+  }, [project?.id])
+
+  useEffect(() => {
+    if (!project?.id) return
+    loadData()
+  }, [project?.id, loadData])
 
   // Build a lookup: date -> Set of T&M worker names
   const tmWorkersByDate = useMemo(() => {
@@ -93,8 +92,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   }, [crewHistory])
 
   // Selected date metrics
-  const selectedDayWorkers = crewByDate[selectedDate] || []
-  const selectedDayTmNames = tmWorkersByDate[selectedDate] || new Set()
+  const selectedDayWorkers = useMemo(() => crewByDate[selectedDate] || [], [crewByDate, selectedDate])
+  const selectedDayTmNames = useMemo(() => tmWorkersByDate[selectedDate] || new Set(), [tmWorkersByDate, selectedDate])
 
   const todayMetrics = useMemo(() => {
     const contract = []
@@ -333,7 +332,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     } finally {
       setExporting(false)
     }
-  }, [project, selectedDate, todayMetrics, chartData, onShowToast])
+  }, [project, company, selectedDate, selectedDayWorkers, todayMetrics, chartData, onShowToast])
 
   if (loading) {
     return (

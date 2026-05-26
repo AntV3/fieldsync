@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { db } from '../../lib/supabase'
 import { ChevronDown, ChevronRight, Plus, Edit2, Trash2, DollarSign, X, Check, AlertCircle } from 'lucide-react'
 
@@ -29,13 +29,7 @@ export default function LaborRatesSection({ company, onShowToast }) {
   const [classRates, setClassRates] = useState({})
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (company?.id) {
-      loadData()
-    }
-  }, [company?.id])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const data = await db.getLaborClassesWithCategories(company.id)
@@ -54,7 +48,13 @@ export default function LaborRatesSection({ company, onShowToast }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [company?.id, onShowToast])
+
+  useEffect(() => {
+    if (company?.id) {
+      loadData()
+    }
+  }, [company?.id, loadData])
 
   const toggleCategory = (categoryId) => {
     setExpandedCategories(prev => ({

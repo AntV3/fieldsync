@@ -61,7 +61,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         loadAreas(),
         loadTodayStatus(),
         loadPunchListCount()
-      ])
+      ]).catch(err => console.error('Initial load failed:', err))
     }
   }, [project?.id])
 
@@ -118,7 +118,6 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
   const mountedRef = useRef(true)
   useEffect(() => {
-    mountedRef.current = true
     return () => { mountedRef.current = false }
   }, [])
 

@@ -182,18 +182,18 @@ export function useConfirmModal() {
   }, [])
 
   const confirm = useCallback(() => {
-    if (state.resolver) {
-      state.resolver(true)
-    }
-    setState(prev => ({ ...prev, isOpen: false, resolver: null }))
-  }, [state.resolver])
+    setState(prev => {
+      if (prev.resolver) prev.resolver(true)
+      return { ...prev, isOpen: false, resolver: null }
+    })
+  }, [])
 
   const cancel = useCallback(() => {
-    if (state.resolver) {
-      state.resolver(false)
-    }
-    setState(prev => ({ ...prev, isOpen: false, resolver: null }))
-  }, [state.resolver])
+    setState(prev => {
+      if (prev.resolver) prev.resolver(false)
+      return { ...prev, isOpen: false, resolver: null }
+    })
+  }, [])
 
   return {
     isOpen: state.isOpen,

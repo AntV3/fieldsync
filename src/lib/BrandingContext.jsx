@@ -22,21 +22,12 @@ export function BrandingProvider({ children, companyId }) {
   const [branding, setBranding] = useState(DEFAULT_BRANDING)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (companyId) {
-      loadBranding(companyId)
-    } else {
-      // Check if we're on a custom domain
-      loadBrandingByDomain()
-    }
-  }, [companyId])
-
   // Apply branding as CSS variables when branding changes
   useEffect(() => {
     applyBrandingToDOM(branding)
   }, [branding])
 
-  const loadBranding = async (companyId) => {
+  const loadBranding = useCallback(async (id) => {
     try {
       setLoading(true)
 
@@ -50,13 +41,13 @@ export function BrandingProvider({ children, companyId }) {
       const { data, error } = await supabase
         .from('company_branding')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', id)
         .single()
 
       if (error) {
         // If no branding exists, create default one
         if (error.code === 'PGRST116') {
-          await createDefaultBranding(companyId)
+          await createDefaultBranding(id)
         } else {
           console.error('Error loading branding:', error)
         }
@@ -70,9 +61,9 @@ export function BrandingProvider({ children, companyId }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadBrandingByDomain = async () => {
+  const loadBrandingByDomain = useCallback(async () => {
     try {
       setLoading(true)
       const currentDomain = window.location.hostname
@@ -104,7 +95,15 @@ export function BrandingProvider({ children, companyId }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (companyId) {
+      loadBranding(companyId)
+    } else {
+      loadBrandingByDomain()
+    }
+  }, [companyId, loadBranding, loadBrandingByDomain])
 
   const createDefaultBranding = async (companyId) => {
     try {
@@ -263,7 +262,7 @@ export function BrandingProvider({ children, companyId }) {
     } else {
       loadBrandingByDomain()
     }
-  }, [companyId])
+  }, [companyId, loadBranding, loadBrandingByDomain])
 
   const value = useMemo(() => ({
     branding,

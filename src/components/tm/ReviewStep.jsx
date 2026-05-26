@@ -55,7 +55,6 @@ export default function ReviewStep({
   totalWorkers, totalRegHours, totalOTHours,
   submittedByName, setSubmittedByName,
   submittedTicket,
-  submitting, submitProgress,
   foremanSigned, setForemanSigned,
   showForemanSignature, setShowForemanSignature,
   foremanName,

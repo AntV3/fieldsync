@@ -20,7 +20,7 @@ const formatFileSize = (bytes) => {
   return `${size.toFixed(size < 10 ? 1 : 0)} ${units[unitIndex]}`
 }
 
-export default function DocumentUploadModal({ projectId, companyId, folderId, folderName, onClose, onUploadComplete, onShowToast }) {
+export default function DocumentUploadModal({ projectId, companyId, folderId, folderName, onClose, onUploadComplete }) {
   const [files, setFiles] = useState([])
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)

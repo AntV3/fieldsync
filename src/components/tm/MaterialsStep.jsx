@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { CATEGORIES } from './translations'
 import { db } from '../../lib/supabase'
@@ -12,7 +12,7 @@ import { db } from '../../lib/supabase'
  *  - t, lang
  *  - onShowToast
  */
-export default function MaterialsStep({ companyId, items, setItems, t, lang, onShowToast }) {
+export default function MaterialsStep({ companyId, items, setItems, t, onShowToast }) {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [categoryItems, setCategoryItems] = useState([])
   const [loadingItems, setLoadingItems] = useState(false)
@@ -24,12 +24,25 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
   const materialsSearchRef = useRef(null)
   const focusTimeoutRef = useRef(null)
 
+  const loadCategoryItems = useCallback(async (category) => {
+    setLoadingItems(true)
+    try {
+      const data = await db.getMaterialsEquipmentByCategory(companyId, category)
+      setCategoryItems(data)
+    } catch (error) {
+      console.error('Error loading items:', error)
+      onShowToast('Error loading items', 'error')
+    } finally {
+      setLoadingItems(false)
+    }
+  }, [companyId, onShowToast])
+
   // Load items when category selected
   useEffect(() => {
     if (selectedCategory && companyId) {
       loadCategoryItems(selectedCategory)
     }
-  }, [selectedCategory, companyId])
+  }, [selectedCategory, companyId, loadCategoryItems])
 
   // Auto-focus search on mount when no category selected
   useEffect(() => {
@@ -42,19 +55,6 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
       if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current)
     }
   }, [selectedCategory])
-
-  const loadCategoryItems = async (category) => {
-    setLoadingItems(true)
-    try {
-      const data = await db.getMaterialsEquipmentByCategory(companyId, category)
-      setCategoryItems(data)
-    } catch (error) {
-      console.error('Error loading items:', error)
-      onShowToast('Error loading items', 'error')
-    } finally {
-      setLoadingItems(false)
-    }
-  }
 
   const loadAllMaterials = async () => {
     if (allMaterials.length > 0) return

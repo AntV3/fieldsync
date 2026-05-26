@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 
@@ -14,13 +14,7 @@ export default function MaterialsSection({ company, onShowToast }) {
   const [duplicates, setDuplicates] = useState([])
   const [showDuplicates, setShowDuplicates] = useState(false)
 
-  useEffect(() => {
-    if (company?.id) {
-      loadItems()
-    }
-  }, [company?.id])
-
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true)
     try {
       const data = await db.getAllMaterialsEquipment(company.id)
@@ -32,7 +26,13 @@ export default function MaterialsSection({ company, onShowToast }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [company?.id, onShowToast])
+
+  useEffect(() => {
+    if (company?.id) {
+      loadItems()
+    }
+  }, [company?.id, loadItems])
 
   const findDuplicates = (itemList) => {
     const nameMap = {}
