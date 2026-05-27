@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ArrowLeft } from 'lucide-react'
 import { db, getFieldSession, clearFieldSession } from '../../lib/supabase'
+import { sanitize } from '../../lib/sanitize'
 import Logo from '../Logo'
 
 export default function FieldLogin({ onForemanAccess, onShowToast }) {
@@ -128,7 +129,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
 
       if (result.error) {
         console.error('[Foreman Auth] PIN validation failed:', result.error)
-        onShowToast(result.error, 'error')
+        onShowToast('Invalid PIN. Please try again.', 'error')
         setPin('')
         return
       }
@@ -149,8 +150,9 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
       onShowToast('Enter your name to continue', 'error')
       return
     }
-    try { localStorage.setItem('fieldsync_foreman_name', foremanName.trim()) } catch { /* ignore */ }
-    onForemanAccess(foundProject, foremanName.trim())
+    const safeName = sanitize.text(foremanName.trim())
+    try { localStorage.setItem('fieldsync_foreman_name', safeName) } catch { /* ignore */ }
+    onForemanAccess(foundProject, safeName)
   }
 
   // Number pad handler

@@ -565,7 +565,8 @@ export const fieldOps = {
   async getLaborRates(companyId, workType = null, jobType = null) {
     if (!isSupabaseConfigured) return []
 
-    let query = supabase
+    const client = getClient() || supabase
+    let query = client
       .from('labor_rates')
       .select('*')
       .eq('company_id', companyId)
@@ -983,7 +984,8 @@ export const fieldOps = {
       return msg
     }
 
-    const { data, error } = await supabase
+    const client = getClient() || supabase
+    const { data, error } = await client
       .from('messages')
       .insert({
         project_id: projectId,
@@ -1105,7 +1107,8 @@ export const fieldOps = {
       return report
     }
 
-    const { data, error } = await supabase
+    const client = getClient() || supabase
+    const { data, error } = await client
       .from('injury_reports')
       .insert(sanitizeFormData(reportData))
       .select()
@@ -1128,7 +1131,8 @@ export const fieldOps = {
         .sort((a, b) => new Date(b.incident_date) - new Date(a.incident_date))
     }
 
-    const { data, error } = await supabase
+    const client = getClient() || supabase
+    const { data, error } = await client
       .from('injury_reports')
       .select('*')
       .eq('project_id', projectId)
@@ -1153,7 +1157,8 @@ export const fieldOps = {
       return reports.sort((a, b) => new Date(b.incident_date) - new Date(a.incident_date))
     }
 
-    let query = supabase
+    const client = getClient() || supabase
+    let query = client
       .from('injury_reports')
       .select('*, projects(name)')
       .eq('company_id', companyId)
@@ -1180,7 +1185,8 @@ export const fieldOps = {
       return localData.injuryReports.find(r => r.id === reportId)
     }
 
-    const { data, error } = await supabase
+    const client = getClient() || supabase
+    const { data, error } = await client
       .from('injury_reports')
       .select('*, projects(name, pin), users(name, email)')
       .eq('id', reportId)
@@ -1211,7 +1217,8 @@ export const fieldOps = {
       return localData.injuryReports[reportIndex]
     }
 
-    const { data, error } = await supabase
+    const client = getClient() || supabase
+    const { data, error } = await client
       .from('injury_reports')
       .update(sanitizeFormData(updates))
       .eq('id', reportId)
@@ -1245,7 +1252,8 @@ export const fieldOps = {
       return
     }
 
-    const { error } = await supabase
+    const client = getClient() || supabase
+    const { error } = await client
       .from('injury_reports')
       .delete()
       .eq('id', reportId)
@@ -1295,7 +1303,8 @@ export const fieldOps = {
       }
     }
 
-    const { data, error } = await supabase.rpc('get_injury_statistics', {
+    const client = getClient() || supabase
+    const { data, error } = await client.rpc('get_injury_statistics', {
       comp_id: companyId,
       start_date: startDate,
       end_date: endDate

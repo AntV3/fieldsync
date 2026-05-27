@@ -586,7 +586,9 @@ export const syncPendingActions = async (db, options = {}) => {
 
         for (let j = 0; j < batchResults.length; j++) {
           if (batchResults[j].status === 'fulfilled') {
-            results.synced++
+            if (batchResults[j].value?.status !== 'skipped') {
+              results.synced++
+            }
           } else {
             results.failed++
             const action = batch[j]

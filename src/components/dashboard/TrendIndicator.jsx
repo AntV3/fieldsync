@@ -18,7 +18,7 @@ export function TrendIndicator({
   context,
   inverted = false,
   format = 'percent',
-  size = 'md',
+  _size = 'md',
   className = ''
 }) {
   // Determine direction
