@@ -1066,8 +1066,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               projectData={projectData}
               progress={progress}
               billable={billable}
-              revisedContractValue={revisedContractValue}
-              changeOrderValue={changeOrderValue}
               areas={areas}
               areasComplete={areasComplete}
               areasWorking={areasWorking}
@@ -1171,9 +1169,6 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
                 allProjects={projects}
                 crewCheckins={projectData?.crewCheckins || []}
                 invoices={projectData?.invoices || []}
-                punchListItems={projectData?.punchListItems || []}
-                dailyReports={projectData?.dailyReports || []}
-                onShowToast={onShowToast}
               />
             </Suspense>
           )}

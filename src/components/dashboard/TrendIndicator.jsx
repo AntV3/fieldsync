@@ -11,14 +11,12 @@ import { ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react'
  * @param {string} context - Optional context text (e.g., "vs last week")
  * @param {boolean} inverted - If true, down is good (e.g., for costs)
  * @param {string} format - 'percent' | 'currency' | 'number'
- * @param {string} size - 'sm' | 'md' | 'lg'
  */
 export function TrendIndicator({
   value,
   context,
   inverted = false,
   format = 'percent',
-  size = 'md',
   className = ''
 }) {
   // Determine direction

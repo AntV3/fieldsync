@@ -40,7 +40,6 @@ export default function FinancialsTab({
   // COR state
   corListExpanded,
   corRefreshKey,
-  corDisplayMode,
   setCORDisplayMode,
   onToggleCORList,
   onCreateCOR,
@@ -98,7 +97,6 @@ export default function FinancialsTab({
         earnedRevenue={billable}
         totalCosts={projectData?.allCostsTotal || 0}
         profit={projectData?.currentProfit || 0}
-        progress={progress}
         corApprovedValue={changeOrderValue}
         loading={!projectData}
       />

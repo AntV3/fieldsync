@@ -11,8 +11,6 @@ export default function OverviewTab({
   projectData,
   progress,
   billable,
-  revisedContractValue,
-  changeOrderValue,
   areas,
   areasComplete,
   areasWorking,
@@ -63,7 +61,6 @@ export default function OverviewTab({
           equipmentCost={projectData?.projectEquipmentCost || 0}
           materialsCost={projectData?.materialsEquipmentCost || 0}
           otherCost={projectData?.customCostTotal || 0}
-          contractValue={revisedContractValue}
         />
       </div>
 
