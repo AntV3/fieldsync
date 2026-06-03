@@ -12,8 +12,7 @@ export const OverviewFinancialCard = memo(function OverviewFinancialCard({
   laborCost = 0,
   equipmentCost = 0,
   materialsCost = 0,
-  otherCost = 0,
-  contractValue = 0
+  otherCost = 0
 }) {
   const profit = earnedRevenue - totalCosts
   const margin = earnedRevenue > 0 ? (profit / earnedRevenue) * 100 : 0

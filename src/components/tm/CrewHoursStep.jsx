@@ -34,7 +34,7 @@ import BatchHoursModal from './BatchHoursModal'
 export default function CrewHoursStep({
   supervision, operators, laborers,
   dynamicWorkers,
-  activeLaborClassIds, setActiveLaborClassIds,
+  activeLaborClassIds,
   laborCategories, laborClasses,
   hasCustomLaborClasses, loadingLaborClasses,
   todaysCrew,

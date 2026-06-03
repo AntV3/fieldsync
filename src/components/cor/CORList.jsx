@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
-import { hexToRgb } from '../../lib/imageUtils'
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -267,7 +266,6 @@ export default function CORList({
 
       const doc = new jsPDF('landscape')
       const pageWidth = doc.internal.pageSize.width
-      const pageHeight = doc.internal.pageSize.height
       const margin = 18
 
       const brandingForHeader = {
