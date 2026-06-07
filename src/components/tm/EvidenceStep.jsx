@@ -14,7 +14,7 @@ import { createT } from './translations'
  */
 export default function EvidenceStep({
   photos, onPhotoAdd, onRemovePhoto,
-  maxPhotos,
+  maxPhotos: _maxPhotos,
   selectedCorId, setSelectedCorId,
   assignableCORs,
   lang
