@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { calculateEarnedValue, generateSCurveData } from '../lib/earnedValueCalculations'
 
 describe('Earned Value Calculations', () => {
+  // Pin "now" to the midpoint of the baseProject schedule so SPI math is
+  // deterministic — otherwise tests drift as the real clock advances past
+  // 50% of the 2025-06-01 → 2027-06-01 window.
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
+  })
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
   const baseProject = {
     contractValue: 1000000,
     changeOrderValue: 50000,
