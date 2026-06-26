@@ -1,7 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { calculateEarnedValue, generateSCurveData } from '../lib/earnedValueCalculations'
 
 describe('Earned Value Calculations', () => {
+  // Freeze time so SPI-based assertions don't drift as the real date advances.
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-09-01T00:00:00Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   const baseProject = {
     contractValue: 1000000,
     changeOrderValue: 50000,
