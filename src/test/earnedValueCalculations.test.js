@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { calculateEarnedValue, generateSCurveData } from '../lib/earnedValueCalculations'
 
 describe('Earned Value Calculations', () => {
+  // Pin "now" so SPI-dependent assertions don't drift as the calendar moves.
+  // 6 months into a 24-month schedule = ~25% scheduled.
+  const FIXED_NOW = new Date('2025-12-01T00:00:00Z')
   const baseProject = {
     contractValue: 1000000,
     changeOrderValue: 50000,
@@ -9,7 +12,8 @@ describe('Earned Value Calculations', () => {
     actualCosts: 480000,
     startDate: '2025-06-01',
     endDate: '2027-06-01',
-    areas: []
+    areas: [],
+    now: FIXED_NOW
   }
 
   describe('calculateEarnedValue', () => {

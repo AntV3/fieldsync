@@ -31,7 +31,8 @@ export function calculateEarnedValue({
   actualCosts = 0,
   startDate,
   endDate,
-  _areas = []
+  _areas = [],
+  now = new Date()
 }) {
   // BAC = Budget at Completion (revised with change orders)
   const bac = contractValue + changeOrderValue
@@ -43,7 +44,7 @@ export function calculateEarnedValue({
   const earnedValue = (clampedProgress / 100) * bac
 
   // PV = Planned Value (what we should have earned by now based on schedule)
-  const plannedValue = calculatePlannedValue(bac, startDate, endDate)
+  const plannedValue = calculatePlannedValue(bac, startDate, endDate, now)
 
   // AC = Actual Cost
   const actualCost = actualCosts
@@ -103,7 +104,7 @@ export function calculateEarnedValue({
 
     // Projections
     projectedEndDate,
-    percentScheduled: calculatePercentScheduled(startDate, endDate),
+    percentScheduled: calculatePercentScheduled(startDate, endDate, now),
     percentComplete: clampedProgress,
 
     // Status
@@ -120,12 +121,11 @@ export function calculateEarnedValue({
 /**
  * Calculate planned value based on linear schedule
  */
-function calculatePlannedValue(bac, startDate, endDate) {
+function calculatePlannedValue(bac, startDate, endDate, now) {
   if (!startDate || !endDate) return 0
 
   const start = new Date(startDate)
   const end = new Date(endDate)
-  const now = new Date()
 
   const totalDuration = end - start
   if (totalDuration <= 0) return bac
@@ -139,12 +139,11 @@ function calculatePlannedValue(bac, startDate, endDate) {
 /**
  * Calculate what percent of the schedule has elapsed
  */
-function calculatePercentScheduled(startDate, endDate) {
+function calculatePercentScheduled(startDate, endDate, now) {
   if (!startDate || !endDate) return 0
 
   const start = new Date(startDate)
   const end = new Date(endDate)
-  const now = new Date()
 
   const totalDuration = end - start
   if (totalDuration <= 0) return 100
