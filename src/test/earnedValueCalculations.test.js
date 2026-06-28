@@ -73,8 +73,17 @@ describe('Earned Value Calculations', () => {
     })
 
     it('returns healthy status when CPI and SPI are good', () => {
+      // Use dates relative to "now" so the schedule percent doesn't drift over
+      // time and quietly push SPI under the 0.95 healthy threshold.
+      const now = new Date()
+      const start = new Date(now)
+      start.setMonth(start.getMonth() - 1)
+      const end = new Date(now)
+      end.setFullYear(end.getFullYear() + 1)
       const result = calculateEarnedValue({
         ...baseProject,
+        startDate: start.toISOString().split('T')[0],
+        endDate: end.toISOString().split('T')[0],
         actualCosts: 400000 // Well under budget
       })
       expect(result.healthStatus).toBe('healthy')
