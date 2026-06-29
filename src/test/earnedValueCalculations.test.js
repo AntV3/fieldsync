@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { calculateEarnedValue, generateSCurveData } from '../lib/earnedValueCalculations'
 
 describe('Earned Value Calculations', () => {
+  // Lock "now" to the midpoint of baseProject so SPI-dependent assertions are
+  // deterministic regardless of the day the suite runs.
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
+  })
+
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
   const baseProject = {
     contractValue: 1000000,
     changeOrderValue: 50000,
