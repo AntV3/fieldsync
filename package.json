@@ -26,9 +26,18 @@
     "cap:run:ios": "npx cap run ios",
     "cap:run:android": "npx cap run android"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "construction",
+    "field-management",
+    "progress-tracking",
+    "earned-value",
+    "change-orders",
+    "time-and-materials",
+    "supabase",
+    "react"
+  ],
+  "author": "AntV3",
+  "license": "MIT",
   "dependencies": {
     "@capacitor/android": "^8.1.0",
     "@capacitor/app": "^8.0.1",

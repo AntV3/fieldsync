@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { calculateEarnedValue, generateSCurveData } from '../lib/earnedValueCalculations'
 
 describe('Earned Value Calculations', () => {
+  // Fixed "as of" date (project midpoint) keeps schedule-based metrics
+  // deterministic regardless of when the suite runs.
   const baseProject = {
     contractValue: 1000000,
     changeOrderValue: 50000,
@@ -9,6 +11,7 @@ describe('Earned Value Calculations', () => {
     actualCosts: 480000,
     startDate: '2025-06-01',
     endDate: '2027-06-01',
+    now: new Date('2026-06-01'),
     areas: []
   }
 
