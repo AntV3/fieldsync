@@ -1496,6 +1496,42 @@
   background: var(--accent-blue-hover);
 }
 
+.entry-forgot-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-top: 0.25rem;
+  align-self: center;
+}
+
+.entry-forgot-link:hover {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}
+
+.entry-confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 0.5rem auto 0.25rem;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-blue);
+}
+
+.entry-confirm-text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+  margin: 0.5rem 0 1.5rem;
+}
+
 .entry-signup-hint {
   margin-top: 1.5rem;
   padding-top: 1.5rem;

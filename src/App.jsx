@@ -36,6 +36,8 @@ const PrivacyPolicy = lazy(() => import('./components/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./components/legal/TermsOfService'))
 const SpxDashboard = lazy(() => import('./components/spx/SpxDashboard'))
 const AcceptInvite = lazy(() => import('./components/auth/AcceptInvite'))
+const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'))
+const ResetPassword = lazy(() => import('./components/auth/ResetPassword'))
 const PortfolioAnalytics = lazy(() => import('./pages/PortfolioAnalytics'))
 
 // Loading fallback component
@@ -413,6 +415,19 @@ export default function App() {
           <Route path="/register" element={guestOnly(
             <RegisterCompany onShowToast={showToast} />
           )} />
+          <Route path="/forgot-password" element={guestOnly(
+            <Suspense fallback={<PageLoader />}>
+              <ForgotPassword onShowToast={showToast} />
+            </Suspense>
+          )} />
+          {/* Reset password - reachable with an active recovery session, so not guest-gated */}
+          <Route path="/reset-password" element={
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <ResetPassword onShowToast={showToast} />
+              </Suspense>
+            </ErrorBoundary>
+          } />
 
           {/* Accept invitation - accessible to both guests and authenticated users */}
           <Route path="/invite/:token" element={

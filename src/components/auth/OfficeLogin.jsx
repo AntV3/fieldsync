@@ -52,6 +52,12 @@ export default function OfficeLogin({ onOfficeLogin, onShowToast }) {
           >
             Sign In
           </button>
+          <button
+            className="entry-forgot-link"
+            onClick={() => navigate('/forgot-password')}
+          >
+            Forgot password?
+          </button>
         </div>
 
         <div className="entry-signup-hint">
