@@ -28,6 +28,10 @@ npm-debug.log*
 # Local development
 .cache/
 
+# Internal docs — audits, business strategy, planning, diagnostics.
+# Kept on disk for the team but never published to the public repo.
+docs/internal/
+
 # Capacitor native build artifacts
 ios/App/Pods/
 ios/App/App/public/
