@@ -75,6 +75,9 @@ describe('Earned Value Calculations', () => {
     it('returns healthy status when CPI and SPI are good', () => {
       const result = calculateEarnedValue({
         ...baseProject,
+        // Far-future endDate keeps SPI healthy regardless of when the test runs
+        // (calculateEarnedValue reads `new Date()` internally).
+        endDate: '2099-06-01',
         actualCosts: 400000 // Well under budget
       })
       expect(result.healthStatus).toBe('healthy')
