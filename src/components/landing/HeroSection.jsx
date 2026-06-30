@@ -1,11 +1,15 @@
 import { ArrowRight, HardHat, Monitor, Zap } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickAccess }) {
   return (
     <section className="lp-hero">
-      <div className="lp-badge">
-        <Zap size={14} />
-        Real-Time Project Intelligence for Construction
+      <div className="lp-badge-row">
+        <div className="lp-badge">
+          <Zap size={14} />
+          Real-Time Project Intelligence for Construction
+        </div>
+        <span className="lp-badge-beta">Beta</span>
       </div>
 
       <h1 className="lp-hero-title">
@@ -49,6 +53,12 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
         <span className="lp-trust-dot" />
         <span className="lp-trust-badge">Enterprise-Grade Security</span>
       </div>
+
+      <p className="lp-beta-disclaimer">
+        FieldSync is in active beta — the product is live and evolving. Features
+        may change and occasional issues are expected. By using FieldSync you agree
+        to our <Link to="/terms">Terms of Service</Link>.
+      </p>
     </section>
   )
 }

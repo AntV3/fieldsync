@@ -17,7 +17,7 @@ export default function TermsOfService() {
 
       <div className="legal-content">
         <h1>Terms of Service</h1>
-        <p className="legal-effective">Effective Date: February 28, 2026</p>
+        <p className="legal-effective">Effective Date: June 30, 2026</p>
 
         <section>
           <h2>1. Acceptance of Terms</h2>
@@ -41,7 +41,29 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>3. Accounts and Registration</h2>
+          <h2>3. Beta Service</h2>
+          <p>
+            FieldSync is currently offered as a <strong>beta (pre-release)</strong> service.
+            This means the Service is still under active development and is provided for
+            evaluation and early use. By using the Service, you acknowledge and agree that:
+          </p>
+          <ul>
+            <li>The Service may contain bugs, errors, or interruptions, and may not operate reliably or be available at all times.</li>
+            <li>Features may be added, changed, suspended, or removed at any time without notice.</li>
+            <li>Data you enter may, in rare cases, be lost, corrupted, or become temporarily inaccessible, and you are responsible for maintaining your own backups of critical information.</li>
+            <li>The Service should not be relied upon as your sole or definitive record for billing, legal, contractual, or dispute-resolution purposes. You are responsible for independently retaining supporting documentation.</li>
+            <li>We may discontinue the beta, or any portion of the Service, at any time.</li>
+          </ul>
+          <p>
+            The beta Service is provided &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; in accordance with the
+            Disclaimer of Warranties and Limitation of Liability sections below. We welcome
+            your feedback, and any feedback you provide may be used to improve the Service
+            without obligation or compensation to you.
+          </p>
+        </section>
+
+        <section>
+          <h2>4. Accounts and Registration</h2>
           <ul>
             <li>You must provide accurate and complete information when creating an account.</li>
             <li>You are responsible for maintaining the security of your account credentials.</li>
@@ -52,7 +74,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>4. Acceptable Use</h2>
+          <h2>5. Acceptable Use</h2>
           <p>You agree not to:</p>
           <ul>
             <li>Use the Service for any unlawful purpose or in violation of any applicable law</li>
@@ -67,7 +89,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>5. Your Data</h2>
+          <h2>6. Your Data</h2>
           <h3>5.1 Ownership</h3>
           <p>
             You retain all rights to the data you submit to the Service (&quot;Your Data&quot;),
@@ -100,7 +122,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>6. Subscription and Payment</h2>
+          <h2>7. Subscription and Payment</h2>
           <ul>
             <li>Access to the Service may require a paid subscription after any applicable free trial period.</li>
             <li>Subscription fees are billed in advance on a monthly or annual basis.</li>
@@ -112,7 +134,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>7. Free Trial</h2>
+          <h2>8. Free Trial</h2>
           <p>
             We may offer a free trial period. At the end of the trial, your account will
             require a paid subscription to continue using the Service. We will notify you
@@ -121,7 +143,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>8. Intellectual Property</h2>
+          <h2>9. Intellectual Property</h2>
           <p>
             The Service, including its design, code, features, documentation, and branding,
             is owned by FieldSync and protected by intellectual property laws. You may not
@@ -131,7 +153,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>9. Third-Party Services</h2>
+          <h2>10. Third-Party Services</h2>
           <p>
             The Service integrates with third-party services including Supabase (database
             and authentication), Stripe (payment processing), and Vercel (hosting). Your
@@ -141,7 +163,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>10. Availability and Support</h2>
+          <h2>11. Availability and Support</h2>
           <ul>
             <li>We strive to maintain high availability but do not guarantee uninterrupted access.</li>
             <li>The Service includes offline functionality to mitigate connectivity disruptions.</li>
@@ -151,7 +173,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>11. Limitation of Liability</h2>
+          <h2>12. Limitation of Liability</h2>
           <p>
             TO THE MAXIMUM EXTENT PERMITTED BY LAW, FIELDSYNC AND ITS OFFICERS, DIRECTORS,
             EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
@@ -170,7 +192,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>12. Disclaimer of Warranties</h2>
+          <h2>13. Disclaimer of Warranties</h2>
           <p>
             THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY
             KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING WARRANTIES OF
@@ -179,7 +201,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>13. Indemnification</h2>
+          <h2>14. Indemnification</h2>
           <p>
             You agree to indemnify, defend, and hold harmless FieldSync from any claims,
             damages, losses, or expenses (including reasonable attorneys&apos; fees) arising from
@@ -189,7 +211,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>14. Termination</h2>
+          <h2>15. Termination</h2>
           <ul>
             <li>You may cancel your account at any time through the Service or by contacting us.</li>
             <li>We may suspend or terminate your account if you violate these Terms.</li>
@@ -200,7 +222,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>15. Governing Law</h2>
+          <h2>16. Governing Law</h2>
           <p>
             These Terms are governed by and construed in accordance with the laws of the
             State of Delaware, without regard to its conflict of law principles. Any disputes
@@ -210,7 +232,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>16. Changes to These Terms</h2>
+          <h2>17. Changes to These Terms</h2>
           <p>
             We may modify these Terms at any time. We will provide notice of material changes
             by posting the updated Terms and updating the Effective Date. Your continued use
@@ -220,7 +242,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>17. Miscellaneous</h2>
+          <h2>18. Miscellaneous</h2>
           <ul>
             <li>If any provision of these Terms is found unenforceable, the remaining provisions remain in effect.</li>
             <li>Our failure to enforce any right does not constitute a waiver of that right.</li>
@@ -230,7 +252,7 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>18. Contact Us</h2>
+          <h2>19. Contact Us</h2>
           <p>If you have questions about these Terms, contact us at:</p>
           <p>
             <strong>FieldSync</strong><br />
