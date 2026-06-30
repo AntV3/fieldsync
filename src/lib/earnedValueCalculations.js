@@ -22,6 +22,9 @@
  * @param {string} params.startDate - Project start date
  * @param {string} params.endDate - Planned end date
  * @param {Array} params.areas - Work areas with status, weight, scheduled_value
+ * @param {Date} [params.now] - "As of" date for schedule-based metrics
+ *   (planned value, SPI, projections). Defaults to the current date.
+ *   Pass an explicit date to compute metrics as of a billing-period close.
  * @returns {Object} Earned value metrics
  */
 export function calculateEarnedValue({
@@ -31,6 +34,7 @@ export function calculateEarnedValue({
   actualCosts = 0,
   startDate,
   endDate,
+  now = new Date(),
   _areas = []
 }) {
   // BAC = Budget at Completion (revised with change orders)
@@ -43,7 +47,7 @@ export function calculateEarnedValue({
   const earnedValue = (clampedProgress / 100) * bac
 
   // PV = Planned Value (what we should have earned by now based on schedule)
-  const plannedValue = calculatePlannedValue(bac, startDate, endDate)
+  const plannedValue = calculatePlannedValue(bac, startDate, endDate, now)
 
   // AC = Actual Cost
   const actualCost = actualCosts
@@ -103,7 +107,7 @@ export function calculateEarnedValue({
 
     // Projections
     projectedEndDate,
-    percentScheduled: calculatePercentScheduled(startDate, endDate),
+    percentScheduled: calculatePercentScheduled(startDate, endDate, now),
     percentComplete: clampedProgress,
 
     // Status
@@ -120,12 +124,11 @@ export function calculateEarnedValue({
 /**
  * Calculate planned value based on linear schedule
  */
-function calculatePlannedValue(bac, startDate, endDate) {
+function calculatePlannedValue(bac, startDate, endDate, now = new Date()) {
   if (!startDate || !endDate) return 0
 
   const start = new Date(startDate)
   const end = new Date(endDate)
-  const now = new Date()
 
   const totalDuration = end - start
   if (totalDuration <= 0) return bac
@@ -139,12 +142,11 @@ function calculatePlannedValue(bac, startDate, endDate) {
 /**
  * Calculate what percent of the schedule has elapsed
  */
-function calculatePercentScheduled(startDate, endDate) {
+function calculatePercentScheduled(startDate, endDate, now = new Date()) {
   if (!startDate || !endDate) return 0
 
   const start = new Date(startDate)
   const end = new Date(endDate)
-  const now = new Date()
 
   const totalDuration = end - start
   if (totalDuration <= 0) return 100
@@ -206,14 +208,14 @@ export function generateSCurveData({
   progressPercent = 0,
   actualCosts = 0,
   startDate,
-  endDate
+  endDate,
+  now = new Date()
 }) {
   if (!startDate || !endDate) return []
 
   const bac = contractValue + changeOrderValue
   const start = new Date(startDate)
   const end = new Date(endDate)
-  const now = new Date()
   const totalDays = Math.max(1, (end - start) / (1000 * 60 * 60 * 24))
 
   const points = []

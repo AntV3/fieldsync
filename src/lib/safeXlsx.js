@@ -21,6 +21,20 @@ export const loadXLSXSafe = async () => {
 // Keys that could be used for prototype pollution
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
+// Hard cap on parsed input. The xlsx (SheetJS) ReDoS advisory
+// (GHSA-5pgg-2g8v-p4x9) is amplified by large inputs; capping the byte
+// size before handing data to XLSX.read bounds the worst case. 10 MB is
+// comfortably above any real area/task import spreadsheet.
+const MAX_PARSE_BYTES = 10 * 1024 * 1024
+
+/** Best-effort byte length for ArrayBuffer / TypedArray / array inputs. */
+function byteLengthOf(data) {
+  if (!data) return 0
+  if (typeof data.byteLength === 'number') return data.byteLength
+  if (typeof data.length === 'number') return data.length
+  return 0
+}
+
 /**
  * Recursively strip dangerous prototype-polluting keys from an object.
  */
@@ -41,8 +55,16 @@ function sanitizeObject(obj) {
  * injected __proto__, constructor, or prototype properties.
  */
 export const safeParseExcel = async (data, options = {}) => {
+  const { maxBytes = MAX_PARSE_BYTES, ...readOptions } = options
+  const size = byteLengthOf(data)
+  if (size > maxBytes) {
+    throw new Error(
+      `Spreadsheet is too large to import (${Math.round(size / 1024 / 1024)} MB). ` +
+        `Maximum is ${Math.round(maxBytes / 1024 / 1024)} MB.`
+    )
+  }
   const XLSX = await loadXLSXSafe()
-  const workbook = XLSX.read(data, { ...options, type: 'array' })
+  const workbook = XLSX.read(data, { ...readOptions, type: 'array' })
 
   // Sanitize every sheet's data in place
   for (const name of workbook.SheetNames) {

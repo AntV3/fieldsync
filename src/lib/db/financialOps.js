@@ -271,8 +271,10 @@ export const financialOps = {
   // ============================================
 
   generateShareToken() {
+    // 24 chars over a 62-symbol alphabet ≈ 143 bits of entropy, well
+    // beyond brute-force range for a public share link.
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    const array = new Uint8Array(12)
+    const array = new Uint8Array(24)
     crypto.getRandomValues(array)
     return Array.from(array, b => chars[b % chars.length]).join('')
   },
