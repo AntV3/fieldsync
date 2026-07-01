@@ -187,7 +187,7 @@ export default function RegisterCompany({ onShowToast }) {
           <Logo className="entry-logo" showPoweredBy={false} />
           <StepIndicator steps={['Company', 'Your Account']} currentStep={1} />
           <p className="entry-subtitle">Register your company</p>
-          <p className="entry-hint">Set up your company on FieldSync — free, no credit card required</p>
+          <p className="entry-hint">Set up your company on FieldSync — free during beta, no credit card required</p>
 
           <div className="entry-form">
             <input

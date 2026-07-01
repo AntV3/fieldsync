@@ -124,20 +124,21 @@ export default function TermsOfService() {
         <section>
           <h2>7. Price</h2>
           <ul>
-            <li>FieldSync is free to use. No paid subscription is required to access the Service.</li>
-            <li>We do not require a credit card or any payment information to create an account or use the Service.</li>
-            <li>We may introduce optional paid plans or features in the future. If we do, they will be strictly optional and will require your explicit consent before you are charged.</li>
-            <li>The features available to you today will not be moved behind a required paywall without reasonable advance notice.</li>
+            <li>FieldSync is currently in beta and is free to use during the beta period. No paid subscription is required to access the Service today.</li>
+            <li>We do not require a credit card or any payment information to create an account or use the Service during the beta.</li>
+            <li>We intend to introduce paid plans after the beta period. If we do, we will give you reasonable advance notice, and no charge will ever be applied without your explicit consent.</li>
+            <li>We will not move features behind a required paywall without reasonable advance notice.</li>
           </ul>
         </section>
 
         <section>
-          <h2>8. Future Paid Features</h2>
+          <h2>8. Future Paid Plans</h2>
           <p>
-            No charges are made for use of the Service today. If we introduce paid plans in
-            the future, we will notify you in advance, and you will never be charged without
-            first providing payment information and explicitly agreeing to a paid plan. You
-            will always be able to decline and continue using the free features then available.
+            No charges are made for use of the Service during the beta period. We expect to
+            offer paid plans once FieldSync leaves beta. If and when we do, we will notify you
+            in advance, and you will never be charged without first providing payment
+            information and explicitly agreeing to a paid plan. You will always be able to
+            decline before any charge applies.
           </p>
         </section>
 
