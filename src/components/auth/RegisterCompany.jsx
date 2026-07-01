@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -15,6 +15,20 @@ export default function RegisterCompany({ onShowToast }) {
   const [registerEmail, setRegisterEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
   const [createdCompany, setCreatedCompany] = useState(null)
+
+  // Once the company is created, the new admin is already signed in. Send them
+  // straight into the app's main menu (dashboard). We give a brief window so the
+  // access codes stay visible, then redirect automatically. Reloading on the
+  // /register route lets the guest-only guard forward the authenticated user to
+  // /dashboard once their session is picked up.
+  const goToDashboard = () => window.location.reload()
+
+  useEffect(() => {
+    if (registerStep === 3 && createdCompany) {
+      const timer = setTimeout(goToDashboard, 6000)
+      return () => clearTimeout(timer)
+    }
+  }, [registerStep, createdCompany])
 
   const handleRegisterCompany = async () => {
     if (loading) return
@@ -147,11 +161,15 @@ export default function RegisterCompany({ onShowToast }) {
 
           <button
             className="entry-login-btn"
-            onClick={() => window.location.reload()}
+            onClick={goToDashboard}
             style={{ marginTop: '0.5rem' }}
           >
             Go to Dashboard
           </button>
+
+          <p className="entry-hint" style={{ marginTop: '0.75rem' }}>
+            Taking you to your dashboard automatically&hellip;
+          </p>
         </div>
       </div>
     )
@@ -169,7 +187,7 @@ export default function RegisterCompany({ onShowToast }) {
           <Logo className="entry-logo" showPoweredBy={false} />
           <StepIndicator steps={['Company', 'Your Account']} currentStep={1} />
           <p className="entry-subtitle">Register your company</p>
-          <p className="entry-hint">Set up your company on FieldSync</p>
+          <p className="entry-hint">Set up your company on FieldSync — free, no credit card required</p>
 
           <div className="entry-form">
             <input

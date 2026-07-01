@@ -122,23 +122,22 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>7. Subscription and Payment</h2>
+          <h2>7. Price</h2>
           <ul>
-            <li>Access to the Service may require a paid subscription after any applicable free trial period.</li>
-            <li>Subscription fees are billed in advance on a monthly or annual basis.</li>
-            <li>All fees are non-refundable except as required by law or as explicitly stated in our refund policy.</li>
-            <li>We may change pricing with 30 days&apos; notice. Changes take effect at the start of your next billing cycle.</li>
-            <li>If payment fails, we may suspend access to the Service until payment is resolved.</li>
-            <li>You are responsible for all taxes applicable to your subscription.</li>
+            <li>FieldSync is free to use. No paid subscription is required to access the Service.</li>
+            <li>We do not require a credit card or any payment information to create an account or use the Service.</li>
+            <li>We may introduce optional paid plans or features in the future. If we do, they will be strictly optional and will require your explicit consent before you are charged.</li>
+            <li>The features available to you today will not be moved behind a required paywall without reasonable advance notice.</li>
           </ul>
         </section>
 
         <section>
-          <h2>8. Free Trial</h2>
+          <h2>8. Future Paid Features</h2>
           <p>
-            We may offer a free trial period. At the end of the trial, your account will
-            require a paid subscription to continue using the Service. We will notify you
-            before your trial expires. No charges are made during the trial period.
+            No charges are made for use of the Service today. If we introduce paid plans in
+            the future, we will notify you in advance, and you will never be charged without
+            first providing payment information and explicitly agreeing to a paid plan. You
+            will always be able to decline and continue using the free features then available.
           </p>
         </section>
 
@@ -156,7 +155,7 @@ export default function TermsOfService() {
           <h2>10. Third-Party Services</h2>
           <p>
             The Service integrates with third-party services including Supabase (database
-            and authentication), Stripe (payment processing), and Vercel (hosting). Your
+            and authentication) and Vercel (hosting). Your
             use of these services is subject to their respective terms and privacy policies.
             We are not responsible for the practices of third-party service providers.
           </p>
