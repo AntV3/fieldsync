@@ -122,23 +122,23 @@ export default function TermsOfService() {
         </section>
 
         <section>
-          <h2>7. Subscription and Payment</h2>
+          <h2>7. Price</h2>
           <ul>
-            <li>Access to the Service may require a paid subscription after any applicable free trial period.</li>
-            <li>Subscription fees are billed in advance on a monthly or annual basis.</li>
-            <li>All fees are non-refundable except as required by law or as explicitly stated in our refund policy.</li>
-            <li>We may change pricing with 30 days&apos; notice. Changes take effect at the start of your next billing cycle.</li>
-            <li>If payment fails, we may suspend access to the Service until payment is resolved.</li>
-            <li>You are responsible for all taxes applicable to your subscription.</li>
+            <li>FieldSync is currently in beta and is free to use during the beta period. No paid subscription is required to access the Service today.</li>
+            <li>We do not require a credit card or any payment information to create an account or use the Service during the beta.</li>
+            <li>We intend to introduce paid plans after the beta period. If we do, we will give you reasonable advance notice, and no charge will ever be applied without your explicit consent.</li>
+            <li>We will not move features behind a required paywall without reasonable advance notice.</li>
           </ul>
         </section>
 
         <section>
-          <h2>8. Free Trial</h2>
+          <h2>8. Future Paid Plans</h2>
           <p>
-            We may offer a free trial period. At the end of the trial, your account will
-            require a paid subscription to continue using the Service. We will notify you
-            before your trial expires. No charges are made during the trial period.
+            No charges are made for use of the Service during the beta period. We expect to
+            offer paid plans once FieldSync leaves beta. If and when we do, we will notify you
+            in advance, and you will never be charged without first providing payment
+            information and explicitly agreeing to a paid plan. You will always be able to
+            decline before any charge applies.
           </p>
         </section>
 
@@ -156,7 +156,7 @@ export default function TermsOfService() {
           <h2>10. Third-Party Services</h2>
           <p>
             The Service integrates with third-party services including Supabase (database
-            and authentication), Stripe (payment processing), and Vercel (hosting). Your
+            and authentication) and Vercel (hosting). Your
             use of these services is subject to their respective terms and privacy policies.
             We are not responsible for the practices of third-party service providers.
           </p>

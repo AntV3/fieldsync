@@ -43,7 +43,6 @@ export default function PrivacyPolicy() {
             <li><strong>Project Data:</strong> Project names, contract values, progress areas, daily reports, crew check-ins, time and materials records, change order requests, and other construction-related data you enter.</li>
             <li><strong>Photos and Files:</strong> Images, documents, and files you upload as evidence or project documentation.</li>
             <li><strong>Signatures:</strong> Electronic signatures collected through our signature feature.</li>
-            <li><strong>Payment Information:</strong> Billing details processed through our third-party payment processor (Stripe). We do not store full credit card numbers on our servers.</li>
             <li><strong>Communications:</strong> Messages you send to us for support or feedback.</li>
           </ul>
 
@@ -84,7 +83,7 @@ export default function PrivacyPolicy() {
           <ul>
             <li><strong>Within Your Company:</strong> Project data and activity are visible to other members of your company based on their access level and role.</li>
             <li><strong>Public Share Links:</strong> Data you share via public view or signature links is accessible to anyone with the link, subject to expiration settings.</li>
-            <li><strong>Service Providers:</strong> We use trusted third parties for hosting (Vercel), database services (Supabase), payment processing (Stripe), and error monitoring. These providers are contractually obligated to protect your data.</li>
+            <li><strong>Service Providers:</strong> We use trusted third parties for hosting (Vercel), database services (Supabase), and error monitoring. These providers are contractually obligated to protect your data.</li>
             <li><strong>Legal Requirements:</strong> We may disclose information if required by law, regulation, legal process, or government request.</li>
             <li><strong>Business Transfers:</strong> In the event of a merger, acquisition, or sale of assets, your information may be transferred as part of that transaction.</li>
           </ul>
