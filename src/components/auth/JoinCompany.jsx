@@ -113,7 +113,13 @@ export default function JoinCompany({ onShowToast }) {
         })
 
         if (signInError) {
-          onShowToast('Account exists with different password. Use your existing password.', 'error')
+          const needsConfirmation = signInError.message?.toLowerCase().includes('confirm')
+          onShowToast(
+            needsConfirmation
+              ? 'This email still needs to be confirmed. Check your inbox for the confirmation link, then try again.'
+              : 'An account with this email already exists. Use your existing password.',
+            'error'
+          )
           setLoading(false)
           return
         }
@@ -165,6 +171,13 @@ export default function JoinCompany({ onShowToast }) {
       } else {
         userId = authData.user?.id
         if (!userId) throw new Error('Failed to create user')
+
+        if (!authData.session) {
+          // Email confirmation is on — without a session the profile inserts
+          // below would be rejected. Ask the user to confirm and come back.
+          onShowToast('Account created! Check your email for a confirmation link, then come back and join again.', 'info')
+          return
+        }
 
         const { error: userError } = await supabase
           .from('users')

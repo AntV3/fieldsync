@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UserPlus, ArrowLeft } from 'lucide-react'
+import { UserPlus, Building2, ArrowLeft } from 'lucide-react'
 import Logo from '../Logo'
 
 export default function OfficeLogin({ onOfficeLogin, onShowToast }) {
@@ -65,6 +65,10 @@ export default function OfficeLogin({ onOfficeLogin, onShowToast }) {
             <button className="entry-join-link" onClick={() => navigate('/login/office/join')}>
               <UserPlus size={16} />
               <span>Join your company</span>
+            </button>
+            <button className="entry-join-link" onClick={() => navigate('/register')}>
+              <Building2 size={16} />
+              <span>Register a new company</span>
             </button>
           </div>
         </div>

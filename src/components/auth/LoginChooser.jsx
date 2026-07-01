@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { HardHat, Briefcase, ArrowLeft } from 'lucide-react'
+import { isSupabaseConfigured } from '../../lib/supabase'
 import Logo from '../Logo'
 
 export default function LoginChooser() {
@@ -9,6 +10,13 @@ export default function LoginChooser() {
     <div className="entry-container">
       <div className="entry-card animate-fade-in-up">
         <Logo className="entry-logo" showPoweredBy={false} />
+
+        {!isSupabaseConfigured && (
+          <p className="entry-hint" style={{ color: 'var(--accent-red, #d33)' }}>
+            This deployment isn&apos;t connected to a backend yet — sign-in is
+            disabled. See the README to configure Supabase.
+          </p>
+        )}
 
         <div className="entry-buttons stagger-children">
           <button

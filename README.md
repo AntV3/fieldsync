@@ -10,9 +10,11 @@ A construction progress tracking app that connects field crews to the office wit
 - **Binary Progress**: No guessing - areas are either "Working" or "Done"
 - **Defensible Billing**: Progress ties directly to contract value for clear billing
 
-## Quick Start (Demo Mode)
+## Quick Start
 
-The app works immediately in demo mode, storing data in your browser's localStorage.
+FieldSync needs a Supabase project to run — sign-in, project data, and sync
+all live there (the free tier works fine). Set up Supabase first (below),
+then:
 
 ```bash
 npm install
@@ -21,9 +23,10 @@ npm run dev
 
 Open http://localhost:5173 in your browser.
 
-## Production Setup with Supabase
+> Without Supabase credentials the UI will load, but sign-in and data
+> storage are disabled.
 
-For real multi-device sync, you'll need to set up Supabase (free tier works fine).
+## Setting Up Supabase
 
 ### 1. Create a Supabase Project
 

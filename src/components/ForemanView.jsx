@@ -71,13 +71,14 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       const today = new Date().toISOString().split('T')[0]
 
       // Parallelize all independent queries instead of running sequentially
-      const [crew, todayTicketCount, disposal, truckData] = await Promise.all([
+      const [crew, todayTicketCount, disposal, truckData, todayReport] = await Promise.all([
         db.getCrewCheckin(project.id, today),
         // Use date-filtered count query instead of loading ALL tickets then filtering
         db.getTMTicketCountByDate?.(project.id, today) ??
           db.getTMTickets?.(project.id).then(tickets => (tickets || []).filter(t => t.work_date === today).length),
         db.getDisposalLoads?.(project.id, today) || [],
-        db.getTruckCount?.(project.id, today)
+        db.getTruckCount?.(project.id, today),
+        db.getDailyReport?.(project.id, today)
       ])
 
       const crewWorkers = crew?.workers || []
@@ -86,7 +87,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         crewCheckedIn: crewWorkers.length > 0,
         crewCount: crewWorkers.length,
         tmTicketsToday: typeof todayTicketCount === 'number' ? todayTicketCount : 0,
-        dailyReportDone: false, // We'll track this separately
+        dailyReportDone: Boolean(todayReport),
         disposalLoadsToday: (disposal || []).reduce((sum, d) => sum + (d.load_count || 1), 0),
         trucksUsedToday: truckData?.truck_count || 0
       })
@@ -210,8 +211,10 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       const groups = (phaseData && phaseData.length > 0)
         ? phaseData.map(p => p.name)
         : [...new Set(areaData.map(a => a.group_name || 'General'))]
+      // Expand everything by default — the core action (tap Working/Done)
+      // shouldn't hide behind an extra tap per phase group.
       const expanded = {}
-      groups.forEach(g => expanded[g] = false)
+      groups.forEach(g => expanded[g] = true)
       setExpandedGroups(prev => ({ ...expanded, ...prev }))
     } catch (error) {
       console.error('Error loading areas:', error)
@@ -224,14 +227,18 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const handleStatusUpdate = async (areaId, newStatus) => {
     const area = areas.find(a => a.id === areaId)
     if (!area) return
-    const finalStatus = area.status === newStatus ? 'not_started' : newStatus
+    const previousStatus = area.status
+    const finalStatus = previousStatus === newStatus ? 'not_started' : newStatus
+    // Optimistic: flip the UI immediately so the tap feels instant on slow
+    // job-site connections, then roll back if the server rejects it.
+    setAreas(prev => prev.map(a => a.id === areaId ? { ...a, status: finalStatus } : a))
     setUpdating(areaId)
     try {
       await db.updateAreaStatus(areaId, finalStatus)
-      setAreas(prev => prev.map(a => a.id === areaId ? { ...a, status: finalStatus } : a))
     } catch (error) {
       console.error('Error updating status:', error)
-      onShowToast?.('Error updating', 'error')
+      setAreas(prev => prev.map(a => a.id === areaId ? { ...a, status: previousStatus } : a))
+      onShowToast?.(`Couldn't update "${area.name}" — check your connection and try again`, 'error')
     } finally {
       setUpdating(null)
     }
@@ -538,14 +545,14 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
                                 onClick={() => handleStatusUpdate(area.id, 'working')}
                                 disabled={updating === area.id}
                               >
-                                <Clock size={14} />
+                                <Clock size={18} />
                               </button>
                               <button
                                 className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
                                 onClick={() => handleStatusUpdate(area.id, 'done')}
                                 disabled={updating === area.id}
                               >
-                                <CheckCircle2 size={14} />
+                                <CheckCircle2 size={18} />
                               </button>
                             </div>
                           </div>
@@ -567,14 +574,14 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
                       onClick={() => handleStatusUpdate(area.id, 'working')}
                       disabled={updating === area.id}
                     >
-                      <Clock size={14} />
+                      <Clock size={18} />
                     </button>
                     <button
                       className={`fm-status-btn done ${area.status === 'done' ? 'active' : ''}`}
                       onClick={() => handleStatusUpdate(area.id, 'done')}
                       disabled={updating === area.id}
                     >
-                      <CheckCircle2 size={14} />
+                      <CheckCircle2 size={18} />
                     </button>
                   </div>
                 </div>

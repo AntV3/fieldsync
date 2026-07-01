@@ -23,13 +23,11 @@ export default memo(function ProgressBillingCard({
   const [drawRequests, setDrawRequests] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Calculate contract values
+  // Calculate contract values (cents)
   const originalContract = useMemo(() => {
-    return areas.reduce((sum, area) => {
-      const value = (area.square_footage || 0) * (area.price_per_sqft || 0)
-      return sum + Math.round(value * 100) // Convert to cents
-    }, 0)
-  }, [areas])
+    return areas.reduce((sum, area) =>
+      sum + drawRequestOps.areaScheduledValueCents(area, project?.contract_value), 0)
+  }, [areas, project?.contract_value])
 
   const approvedCOs = useMemo(() => {
     // getCORStats returns dollars; convert to cents to match originalContract
