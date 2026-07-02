@@ -260,6 +260,34 @@ export const drawRequestOps = {
   },
 
   /**
+   * Scheduled value for a single area, in cents.
+   * Priority: explicit scheduled_value (dollars, from the SOV setup step)
+   * → square_footage × price_per_sqft → weight% of the project contract value.
+   * The setup wizard only writes weight/scheduled_value, so the fallbacks are
+   * what make draw requests usable for normally-created projects.
+   */
+  areaScheduledValueCents(area, contractValue = 0) {
+    const explicit = Number(area?.scheduled_value)
+    if (Number.isFinite(explicit) && explicit > 0) {
+      return Math.round(explicit * 100)
+    }
+    // Convert to cents first to avoid floating-point errors in multiplication
+    const sqft = Math.round((area?.square_footage || 0) * 100) // hundredths of a sqft
+    const pricePerSqft = Math.round((area?.price_per_sqft || 0) * 100) // cents
+    if (sqft > 0 && pricePerSqft > 0) {
+      // sqft (in hundredths) * price (in cents) / 100 = total in cents
+      return Math.round((sqft * pricePerSqft) / 100)
+    }
+    const weight = parseFloat(area?.weight) || 0
+    const contract = Number(contractValue) || 0
+    if (weight > 0 && contract > 0) {
+      // contract (dollars) × weight (%) → cents: contract × 100 × weight / 100
+      return Math.round(contract * weight)
+    }
+    return 0
+  },
+
+  /**
    * Get schedule of values from project areas
    * Returns areas with their scheduled values for use in draw requests
    */
@@ -269,31 +297,30 @@ export const drawRequestOps = {
       return []
     }
 
-    const { data, error } = await supabase
-      .from('areas')
-      .select('id, name, square_footage, price_per_sqft')
-      .eq('project_id', projectId)
-      .order('created_at')
+    const [{ data, error }, { data: project }] = await Promise.all([
+      supabase
+        .from('areas')
+        .select('id, name, weight, scheduled_value, square_footage, price_per_sqft')
+        .eq('project_id', projectId)
+        .order('created_at'),
+      supabase
+        .from('projects')
+        .select('contract_value')
+        .eq('id', projectId)
+        .single()
+    ])
 
     if (error) {
       console.error('Error fetching schedule of values:', error)
       return []
     }
 
-    // Calculate scheduled value for each area
-    // Convert to cents first to avoid floating-point errors in multiplication
-    return (data || []).map((area, index) => {
-      const sqft = Math.round((area.square_footage || 0) * 100) // cents-per-sqft precision
-      const pricePerSqft = Math.round((area.price_per_sqft || 0) * 100) // cents
-      // sqft (in hundredths) * price (in cents) / 100 = total in cents
-      const scheduledValue = Math.round((sqft * pricePerSqft) / 100)
-      return {
-        area_id: area.id,
-        item_number: String(index + 1),
-        description: area.name,
-        scheduled_value: scheduledValue
-      }
-    })
+    return (data || []).map((area, index) => ({
+      area_id: area.id,
+      item_number: String(index + 1),
+      description: area.name,
+      scheduled_value: this.areaScheduledValueCents(area, project?.contract_value)
+    }))
   },
 
   /**

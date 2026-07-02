@@ -219,13 +219,28 @@ export {
   syncPendingActions
 }
 
+const drainPendingActions = async () => {
+  if (!isSupabaseConfigured || !getConnectionStatus()) return
+  try {
+    if ((await getPendingActionCount()) > 0) {
+      await syncPendingActions(db)
+    }
+  } catch (err) {
+    console.error('Error syncing pending actions:', err)
+  }
+}
+
 // Sync pending actions when coming back online
 onConnectionChange(async (online) => {
-  if (online && isSupabaseConfigured) {
-    try {
-      await syncPendingActions(db)
-    } catch (err) {
-      console.error('Error syncing pending actions:', err)
-    }
-  }
+  if (online) await drainPendingActions()
 })
+
+// The 'online' event only fires on a transition. Actions queued offline would
+// otherwise strand forever when the app is reopened already-online, so also
+// drain the queue on startup and whenever the app returns to the foreground.
+if (typeof window !== 'undefined') {
+  setTimeout(drainPendingActions, 3000)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') drainPendingActions()
+  })
+}

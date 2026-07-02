@@ -5,7 +5,8 @@ import { formatCurrency, calculateValueProgress, calculateScheduleInsights, shou
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download, ArrowLeft } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download, ArrowLeft, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
 import OnboardingWizard from './onboarding/OnboardingWizard'
@@ -26,6 +27,7 @@ const SubmittalList = lazy(() => import('./SubmittalList'))
 const SageExportPanel = lazy(() => import('./SageExportPanel'))
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
+  const navigate = useNavigate()
   const [projects, setProjects] = useState([])
   const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
@@ -330,7 +332,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         weeklyDisposal,
         projectEquipment,
         projectInvoices,
-        punchListItems
+        punchListItems,
+        changeOrders
       ] = await Promise.all([
         safeAsync(() => db.getAreas(project.id), { fallback: [], context: { operation: 'getAreas', projectId: project.id } }),
         safeAsync(() => db.getTMTickets(project.id), { fallback: [], context: { operation: 'getTMTickets', projectId: project.id } }),
@@ -344,7 +347,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getWeeklyDisposalSummary(project.id, 4), { fallback: [], context: { operation: 'getWeeklyDisposalSummary', projectId: project.id } }),
         safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } }),
         safeAsync(() => db.getProjectInvoices(project.id), { fallback: [], context: { operation: 'getProjectInvoices', projectId: project.id } }),
-        safeAsync(() => db.getPunchListItems(project.id), { fallback: [], context: { operation: 'getPunchListItems', projectId: project.id } })
+        safeAsync(() => db.getPunchListItems(project.id), { fallback: [], context: { operation: 'getPunchListItems', projectId: project.id } }),
+        safeAsync(() => db.getCORs(project.id), { fallback: [], context: { operation: 'getCORs', projectId: project.id } })
       ])
 
       // Calculate progress - use SOV values if available
@@ -522,6 +526,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         corBilledValue: corStats?.total_billed_value || 0,
         corTotalCount: corStats?.total_cors || 0,
         corStats: corStats,
+        changeOrders: changeOrders || [],
         scheduleStatus: scheduleInsights.scheduleStatus,
         scheduleVariance: scheduleInsights.scheduleVariance,
         scheduleLabel: scheduleInsights.scheduleLabel,
@@ -574,6 +579,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       return enhancedData
     } catch (error) {
       console.error(`Error loading details for project ${project.id}:`, error)
+      onShowToast?.('Could not load project details. Showing summary data only.', 'error')
       return { ...project, hasError: true, _detailsLoaded: false }
     }
   }
@@ -1294,6 +1300,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           <ClipboardList size={48} className="empty-state-icon" />
           <h3>No Projects Yet</h3>
           <p>Create your first project to get started</p>
+          <button className="btn btn-primary" onClick={() => navigate('/projects/new')}>
+            <Plus size={16} />
+            Create Project
+          </button>
           {!showOnboarding && (
             <button className="empty-state-guide-btn" onClick={() => setShowOnboarding(true)}>
               <Info size={16} />

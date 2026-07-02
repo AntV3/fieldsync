@@ -50,8 +50,6 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const [data, setData] = useState(INITIAL_DATA)
   const [creating, setCreating] = useState(false)
 
-  const totalWeight = data.areas.reduce((sum, area) => sum + (parseFloat(area.weight) || 0), 0)
-
   const validateStep = (stepNum) => {
     switch (stepNum) {
       case 1: {
@@ -89,7 +87,16 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
           onShowToast('Please add at least one area with a name and weight', 'error')
           return false
         }
-        if (Math.abs(totalWeight - 100) > 0.1) {
+        // A weight on an unnamed row would pass a raw total check but be
+        // dropped on save, silently skewing all progress math afterward.
+        const unnamedWeighted = data.areas.some(a => !a.name.trim() && parseFloat(a.weight) > 0)
+        if (unnamedWeighted) {
+          onShowToast('Every area with a weight needs a name (or remove its weight)', 'error')
+          return false
+        }
+        // Validate against the areas that will actually be saved
+        const savedWeight = validAreas.reduce((sum, a) => sum + parseFloat(a.weight), 0)
+        if (Math.abs(savedWeight - 100) > 0.1) {
           onShowToast('Area weights must total 100%', 'error')
           return false
         }

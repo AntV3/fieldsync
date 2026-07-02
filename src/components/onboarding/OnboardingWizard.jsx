@@ -12,6 +12,7 @@ import {
   Smartphone,
   Monitor,
   ArrowRight,
+  X,
 } from 'lucide-react'
 import { completeOnboarding } from './onboardingState'
 
@@ -178,6 +179,10 @@ export default function OnboardingWizard({ company, user, onShowToast, onCreateP
   return (
     <div className="ob-overlay">
       <div className="ob-wizard">
+        <button className="ob-close" onClick={handleSkip} aria-label="Close guide">
+          <X size={18} />
+        </button>
+
         {/* Step indicator */}
         <div className="ob-progress">
           {steps.map((_, i) => (

@@ -178,7 +178,11 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
       }
 
       if (result.noAccess) {
-        showToast('No company access. Please contact admin.', 'error')
+        // Half-authenticated with no company is a dead end — sign out and
+        // point the user at the join/register flows (mirrors checkAuth).
+        showToast('This account has no company yet. Join or register a company to continue.', 'error')
+        await auth.signOut()
+        navigate('/login/office/join')
         return
       }
 

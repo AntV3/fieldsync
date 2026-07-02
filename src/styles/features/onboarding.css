@@ -36,6 +36,29 @@
   display: flex;
   flex-direction: column;
   animation: ob-slide-up 0.35s ease-out;
+  position: relative;
+}
+
+.ob-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.ob-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 @keyframes ob-slide-up {

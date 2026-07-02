@@ -30,13 +30,15 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
     }
   }, [])
 
-  // Auto-skip company code + PIN entry if a remember-me session exists.
-  // The session token already authorizes API calls; we just rebuild the
-  // company/project shapes the UI expects so the foreman lands on the
-  // name confirmation step (or straight onto /field if name is saved).
+  // Auto-skip company code + PIN entry if a valid session exists — either a
+  // remember-me session or a still-live sessionStorage one (e.g. the foreman
+  // just refreshed the page mid-shift). The session token already authorizes
+  // API calls; we just rebuild the company/project shapes the UI expects so
+  // the foreman lands on the name confirmation step (or straight onto /field
+  // if name is saved).
   useEffect(() => {
     const session = getFieldSession()
-    if (!session?.remembered) return
+    if (!session?.token) return
     if (!session.projectId || !session.companyId) return
 
     const remembered = {

@@ -24,6 +24,7 @@ export default memo(function DrawRequestModal({
   onDownloadPDF
 }) {
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
 
   // Draw request header fields
@@ -42,13 +43,11 @@ export default memo(function DrawRequestModal({
 
   const isEditMode = !!editDrawRequest
 
-  // Calculate contract values
+  // Calculate contract values (cents)
   const originalContract = useMemo(() => {
-    return areas.reduce((sum, area) => {
-      const value = (area.square_footage || 0) * (area.price_per_sqft || 0)
-      return sum + Math.round(value * 100)
-    }, 0)
-  }, [areas])
+    return areas.reduce((sum, area) =>
+      sum + drawRequestOps.areaScheduledValueCents(area, project?.contract_value), 0)
+  }, [areas, project?.contract_value])
 
   // getCORStats returns dollars; convert to cents to match originalContract
   const approvedCOs = Math.round((corStats?.total_approved_value || 0) * 100)
@@ -60,13 +59,14 @@ export default memo(function DrawRequestModal({
 
     try {
       setLoading(true)
+      setLoadError(false)
 
       if (editDrawRequest) {
         // Edit mode - populate from existing draw request
         setDrawNumber(editDrawRequest.draw_number)
         setPeriodStart(editDrawRequest.period_start || '')
         setPeriodEnd(editDrawRequest.period_end || '')
-        setRetentionPercent((editDrawRequest.retention_percent || 1000) / 100)
+        setRetentionPercent((editDrawRequest.retention_percent ?? 1000) / 100)
         setNotes(editDrawRequest.notes || '')
         setPreviousBillings(editDrawRequest.previous_billings || 0)
         setPreviousRetention(editDrawRequest.previous_retention || 0)
@@ -108,6 +108,7 @@ export default memo(function DrawRequestModal({
       }
     } catch (error) {
       console.error('Error initializing draw request:', error)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -253,6 +254,15 @@ export default memo(function DrawRequestModal({
             <div className="draw-request-loading">
               <div className="loading-spinner" />
               <p>Loading schedule of values...</p>
+            </div>
+          </div>
+        ) : loadError ? (
+          <div className="modal-body">
+            <div className="draw-request-loading">
+              <p>Couldn&apos;t load the schedule of values. Check your connection and try again.</p>
+              <button type="button" className="btn btn-primary" onClick={initializeDrawRequest}>
+                Retry
+              </button>
             </div>
           </div>
         ) : (

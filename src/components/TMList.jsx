@@ -444,96 +444,111 @@ export default function TMList({
 
     onShowToast('Preparing Excel export...', 'info')
 
-    // Dynamic import - only loads XLSX when user actually exports
-    const XLSX = (await loadXLSX()).default || await loadXLSX()
+    try {
+      // Dynamic import - only loads XLSX when user actually exports
+      const XLSX = (await loadXLSX()).default || await loadXLSX()
 
-    // Create workers sheet
-    const workersData = []
-    // Create items sheet
-    const itemsData = []
-    // Create summary sheet
-    const summaryData = []
+      // Create workers sheet
+      const workersData = []
+      // Create items sheet
+      const itemsData = []
+      // Create summary sheet
+      const summaryData = []
 
-    exportTickets.forEach(ticket => {
-      const ticketDate = formatDate(ticket.work_date)
-      const ticketStatus = ticket.status
+      exportTickets.forEach(ticket => {
+        const ticketDate = formatDate(ticket.work_date)
+        const ticketStatus = ticket.status
       
-      // Workers
-      if (ticket.t_and_m_workers) {
-        ticket.t_and_m_workers.forEach(worker => {
-          const regHours = parseFloat(worker.hours) || 0
-          const otHours = parseFloat(worker.overtime_hours) || 0
-          workersData.push({
-            'Date': ticketDate,
-            'Status': ticketStatus,
-            'Worker Name': worker.name,
-            'Role': worker.role || 'Laborer',
-            'Regular Hours': regHours,
-            'OT Hours': otHours,
-            'Total Hours': regHours + otHours
+        // Workers
+        if (ticket.t_and_m_workers) {
+          ticket.t_and_m_workers.forEach(worker => {
+            const regHours = parseFloat(worker.hours) || 0
+            const otHours = parseFloat(worker.overtime_hours) || 0
+            workersData.push({
+              'Date': ticketDate,
+              'Status': ticketStatus,
+              'Worker Name': worker.name,
+              'Role': worker.role || 'Laborer',
+              'Regular Hours': regHours,
+              'OT Hours': otHours,
+              'Total Hours': regHours + otHours
+            })
           })
-        })
-      }
+        }
       
-      // Items
-      if (ticket.t_and_m_items) {
-        ticket.t_and_m_items.forEach(item => {
-          const itemName = item.custom_name || item.materials_equipment?.name || 'Unknown'
-          const category = item.custom_category || item.materials_equipment?.category || 'Unknown'
-          const unit = item.materials_equipment?.unit || 'each'
-          const costPer = item.materials_equipment?.cost_per_unit || 0
-          const total = item.quantity * costPer
+        // Items
+        if (ticket.t_and_m_items) {
+          ticket.t_and_m_items.forEach(item => {
+            const itemName = item.custom_name || item.materials_equipment?.name || 'Unknown'
+            const category = item.custom_category || item.materials_equipment?.category || 'Unknown'
+            const unit = item.materials_equipment?.unit || 'each'
+            // Custom items carry their own unit_cost; catalog items use the linked cost
+            const costPer = parseFloat(item.unit_cost) || item.materials_equipment?.cost_per_unit || 0
+            const total = item.quantity * costPer
           
-          itemsData.push({
-            'Date': ticketDate,
-            'Status': ticketStatus,
-            'Category': category,
-            'Item': itemName,
-            'Quantity': item.quantity,
-            'Unit': unit,
-            'Cost/Unit': costPer,
-            'Total': total
+            itemsData.push({
+              'Date': ticketDate,
+              'Status': ticketStatus,
+              'Category': category,
+              'Item': itemName,
+              'Quantity': item.quantity,
+              'Unit': unit,
+              'Cost/Unit': costPer,
+              'Total': total
+            })
           })
-        })
-      }
+        }
       
-      // Summary
-      summaryData.push({
-        'Date': ticketDate,
-        'Status': ticketStatus,
-        'Workers': ticket.t_and_m_workers?.length || 0,
-        'Total Hours': calculateTotalHours(ticket),
-        'Items': ticket.t_and_m_items?.length || 0,
-        'Materials Cost': calculateTicketTotal(ticket),
-        'Notes': ticket.notes || ''
+        // Summary
+        summaryData.push({
+          'Date': ticketDate,
+          'Status': ticketStatus,
+          'Workers': ticket.t_and_m_workers?.length || 0,
+          'Total Hours': calculateTotalHours(ticket),
+          'Items': ticket.t_and_m_items?.length || 0,
+          'Materials Cost': calculateTicketTotal(ticket),
+          'Notes': ticket.notes || ''
+        })
       })
-    })
 
-    // Create workbook
-    const wb = XLSX.utils.book_new()
+      // Create workbook
+      const wb = XLSX.utils.book_new()
     
-    // Add sheets
-    const summarySheet = XLSX.utils.json_to_sheet(summaryData)
-    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
+      // Add sheets
+      const summarySheet = XLSX.utils.json_to_sheet(summaryData)
+      XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
     
-    if (workersData.length > 0) {
-      const workersSheet = XLSX.utils.json_to_sheet(workersData)
-      XLSX.utils.book_append_sheet(wb, workersSheet, 'Workers')
+      if (workersData.length > 0) {
+        const workersSheet = XLSX.utils.json_to_sheet(workersData)
+        XLSX.utils.book_append_sheet(wb, workersSheet, 'Workers')
+      }
+    
+      if (itemsData.length > 0) {
+        const itemsSheet = XLSX.utils.json_to_sheet(itemsData)
+        XLSX.utils.book_append_sheet(wb, itemsSheet, 'Materials & Equipment')
+      }
+    
+      // Download
+      const fileName = `${project.name}_Time_Material_${new Date().toISOString().split('T')[0]}.xlsx`
+      XLSX.writeFile(wb, fileName)
+      onShowToast('Export downloaded!', 'success')
+    } catch (error) {
+      console.error('Error exporting T&M Excel:', error)
+      onShowToast('Excel export failed. Please try again.', 'error')
     }
-    
-    if (itemsData.length > 0) {
-      const itemsSheet = XLSX.utils.json_to_sheet(itemsData)
-      XLSX.utils.book_append_sheet(wb, itemsSheet, 'Materials & Equipment')
-    }
-    
-    // Download
-    const fileName = `${project.name}_Time_Material_${new Date().toISOString().split('T')[0]}.xlsx`
-    XLSX.writeFile(wb, fileName)
-    onShowToast('Export downloaded!', 'success')
   }
 
   // Export to PDF - Professional format with company branding (loads jsPDF on-demand)
   const exportToPDF = async () => {
+    try {
+      await generateTMPdf()
+    } catch (error) {
+      console.error('Error exporting T&M PDF:', error)
+      onShowToast('PDF export failed. Please try again.', 'error')
+    }
+  }
+
+  const generateTMPdf = async () => {
     const exportTickets = getExportTickets()
 
     if (exportTickets.length === 0) {
@@ -790,7 +805,8 @@ export default function TMList({
           const itemName = item.custom_name || item.materials_equipment?.name || 'Unknown'
           const category = item.custom_category || item.materials_equipment?.category || 'Other'
           const unit = item.materials_equipment?.unit || 'each'
-          const costPer = item.materials_equipment?.cost_per_unit || 0
+          // Custom items carry their own unit_cost; catalog items use the linked cost
+          const costPer = parseFloat(item.unit_cost) || item.materials_equipment?.cost_per_unit || 0
           const total = item.quantity * costPer
 
           if (!categoryData[category]) {

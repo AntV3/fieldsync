@@ -243,7 +243,7 @@ export default function App() {
     <div>
       <a href="#main-content" className="skip-link">Skip to main content</a>
       {!isSupabaseConfigured && (
-        <div className="demo-banner">Demo Mode - Data saved locally in your browser</div>
+        <div className="demo-banner">Backend not configured — data cannot be saved. See the README to connect Supabase.</div>
       )}
 
       <nav className="nav">
@@ -457,7 +457,9 @@ export default function App() {
                 </TradeConfigProvider>
               </BrandingProvider>
             ) : (
-              <Navigate to="/login" replace />
+              // A page refresh drops foremanProject from memory, but the field
+              // session token survives in storage — FieldLogin auto-resumes it.
+              <Navigate to="/login/field" replace />
             )
           } />
 

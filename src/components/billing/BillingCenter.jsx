@@ -222,11 +222,15 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   }
 
   // Handle invoice creation success
-  const handleInvoiceCreated = async (invoice) => {
+  const handleInvoiceCreated = async (invoice, warning) => {
     setShowInvoiceModal(false)
     clearSelection()
     await loadData()
-    onShowToast?.(`Invoice ${invoice.invoice_number} created`, 'success')
+    if (warning) {
+      onShowToast?.(warning, 'error')
+    } else {
+      onShowToast?.(`Invoice ${invoice.invoice_number} created`, 'success')
+    }
   }
 
   // Get selected items for invoice modal

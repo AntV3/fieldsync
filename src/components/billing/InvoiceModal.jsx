@@ -182,12 +182,20 @@ export default function InvoiceModal({
       // Create invoice
       const invoice = await db.createInvoice(invoiceData, itemsData)
 
-      // Mark CORs and T&M tickets as billed
-      const corIds = selectedItems.cors.map(c => c.id)
-      const tmIds = selectedItems.tickets.map(t => t.id)
-      await db.markItemsBilled(corIds, tmIds)
+      // Mark CORs and T&M tickets as billed. The invoice already exists at
+      // this point, so a failure here must not surface as "invoice failed" —
+      // retrying from that message would create a duplicate invoice.
+      let warning = null
+      try {
+        const corIds = selectedItems.cors.map(c => c.id)
+        const tmIds = selectedItems.tickets.map(t => t.id)
+        await db.markItemsBilled(corIds, tmIds)
+      } catch (markError) {
+        console.error('Error marking items billed:', markError)
+        warning = `Invoice ${invoice.invoice_number} was created, but some items could not be marked as billed.`
+      }
 
-      onSuccess?.(invoice)
+      onSuccess?.(invoice, warning)
     } catch (error) {
       console.error('Error creating invoice:', error)
       setErrors({ submit: 'Failed to create invoice. Please try again.' })
