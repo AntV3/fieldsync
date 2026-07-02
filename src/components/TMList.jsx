@@ -359,9 +359,8 @@ export default function TMList({
     let total = 0
     if (ticket.t_and_m_items) {
       ticket.t_and_m_items.forEach(item => {
-        if (item.materials_equipment?.cost_per_unit) {
-          total += item.quantity * item.materials_equipment.cost_per_unit
-        }
+        const costPer = parseFloat(item.unit_cost) || item.materials_equipment?.cost_per_unit || 0
+        total += (item.quantity || 0) * costPer
       })
     }
     return total

@@ -302,6 +302,16 @@ export default function SageExportPanel({
     return exportSageJobCostCSV(project, tickets, costCodes)
   }
 
+  // getCORs() returns only count aggregates, not the line-item rows the Sage
+  // change-order CSV needs to break out labor / materials / equipment / subs.
+  // Hydrate each COR with its full line items before exporting.
+  const loadCORsAndExport = async () => {
+    const fullCORs = await Promise.all(
+      (changeOrders || []).map(co => db.getCORById(co.id).catch(() => co))
+    )
+    return exportSageChangeOrdersCSV(project, fullCORs)
+  }
+
   const sections = [
     {
       id: 'sage',
@@ -321,7 +331,7 @@ export default function SageExportPanel({
           label: 'Change Orders',
           description: 'Approved CORs for Sage budget revision import',
           icon: Receipt,
-          action: () => handleExport('Change Orders', () => exportSageChangeOrdersCSV(project, changeOrders)),
+          action: () => handleExport('Change Orders', loadCORsAndExport),
           disabled: !changeOrders?.length
         },
         {

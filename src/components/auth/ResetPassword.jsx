@@ -23,21 +23,32 @@ export default function ResetPassword({ onShowToast }) {
       setStatus('ready')
     }
 
-    // The recovery link establishes a session via detectSessionInUrl and
-    // fires a PASSWORD_RECOVERY event. Listen for it, and also check for an
-    // already-established session in case the event fired before mount.
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || session) markReady()
+    // Only unlock the form if this page was reached via a recovery link, not
+    // because the user happens to be signed in. Supabase places the recovery
+    // token in the URL hash (type=recovery) before detectSessionInUrl fires
+    // the PASSWORD_RECOVERY event and clears the hash. If neither is present,
+    // an existing session is a normal login, which must not silently bypass
+    // the email-ownership check.
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    const hasRecoveryHash = /(^|&|#)type=recovery(&|$)/.test(hash)
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') markReady()
     })
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) markReady()
-    })
+    if (hasRecoveryHash) {
+      // Recovery token was in the URL; the event will fire once the session lands.
+      // If detectSessionInUrl already consumed the hash before this effect ran,
+      // an active session is safe to treat as the recovery session.
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session) markReady()
+      })
+    }
 
-    // If no recovery session shows up shortly, treat the link as invalid/expired.
+    // Give the recovery-session handshake enough time even on slow connections.
     const timer = setTimeout(() => {
       if (!resolved) setStatus('invalid')
-    }, 4000)
+    }, 15000)
 
     return () => {
       sub?.subscription?.unsubscribe()
