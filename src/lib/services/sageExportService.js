@@ -204,11 +204,9 @@ export async function exportChangeOrderSummary(projectId) {
     if (projErr) throw projErr
 
     const { data: cors, error: corErr } = await supabase
-      .from('change_order_requests')
+      .from('change_orders')
       .select(`
         id, cor_number, title, status, cor_total, approved_at,
-        cost_code_id,
-        cost_codes (code, description, category),
         change_order_labor (description, total),
         change_order_materials (description, total),
         change_order_equipment (description, total),
@@ -243,7 +241,7 @@ export async function exportChangeOrderSummary(projectId) {
         'Original Amount': originalAmount.toFixed(2),
         'Revised Amount': revisedAmount.toFixed(2),
         'Approved Date': co.approved_at ? formatSageDate(co.approved_at.split('T')[0]) : '',
-        'Cost Code': co.cost_codes?.code || '',
+        'Cost Code': '',
         'Labor': labor.toFixed(2),
         'Material': materials.toFixed(2),
         'Equipment': equipment.toFixed(2),

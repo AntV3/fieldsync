@@ -221,19 +221,12 @@ export const documentOps = {
 
     // Check project storage limit (250 MB default)
     const STORAGE_LIMIT = 250 * 1024 * 1024 // 250 MB
-    const { data: usageData } = await client
-      .rpc('get_project_storage_bytes', { p_project_id: projectId })
-      .maybeSingle()
-    // Fallback: if RPC not available, use a lightweight sum query
-    let currentUsage = usageData?.total_bytes ?? null
-    if (currentUsage === null) {
-      const { data: sizeRows } = await client
-        .from('documents')
-        .select('file_size_bytes')
-        .eq('project_id', projectId)
-        .is('archived_at', null)
-      currentUsage = sizeRows?.reduce((sum, doc) => sum + (doc.file_size_bytes || 0), 0) || 0
-    }
+    const { data: sizeRows } = await client
+      .from('documents')
+      .select('file_size_bytes')
+      .eq('project_id', projectId)
+      .is('archived_at', null)
+    const currentUsage = sizeRows?.reduce((sum, doc) => sum + (doc.file_size_bytes || 0), 0) || 0
     if (currentUsage + file.size > STORAGE_LIMIT) {
       const usedMB = Math.round(currentUsage / 1024 / 1024)
       const limitMB = Math.round(STORAGE_LIMIT / 1024 / 1024)

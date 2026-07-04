@@ -235,7 +235,7 @@ export function BrandingProvider({ children, companyId }) {
       const filePath = `branding/${fileName}`
 
       const { error } = await supabase.storage
-        .from('public')
+        .from('company-branding')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -247,7 +247,7 @@ export function BrandingProvider({ children, companyId }) {
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('public')
+        .from('company-branding')
         .getPublicUrl(filePath)
 
       return { success: true, url: publicUrl }
