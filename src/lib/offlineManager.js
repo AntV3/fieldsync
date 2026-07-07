@@ -576,9 +576,22 @@ export const syncPendingActions = async (db, options = {}) => {
               await removePendingAction(action.id)
               return { status: 'skipped' }
             }
-            await processAction(action, db)
-            // Mark as synced BEFORE removing from queue to prevent orphaned actions on crash
-            await markAsSynced(action.idempotency_key)
+            // Mark as synced BEFORE processing to prevent duplicate creates on
+            // crash between processAction and markAsSynced. If processAction
+            // throws, clear the marker so the action can retry.
+            if (action.idempotency_key) {
+              await markAsSynced(action.idempotency_key)
+            }
+            try {
+              await processAction(action, db)
+            } catch (err) {
+              if (action.idempotency_key) {
+                await clearSyncedMarker(action.idempotency_key).catch(markerErr =>
+                  console.warn('[offlineSync] failed to clear synced marker', action.id, markerErr)
+                )
+              }
+              throw err
+            }
             await removePendingAction(action.id)
             return { status: 'synced' }
           })
@@ -647,12 +660,13 @@ const processAction = async (action, db) => {
       return db.saveCrewCheckin(
         payload.projectId,
         payload.workers,
+        payload.createdBy ?? null,
         payload.checkInDate
       )
 
     case ACTION_TYPES.SUBMIT_DAILY_REPORT:
-      await db.saveDailyReport(payload.projectId, payload.reportData)
-      return db.submitDailyReport(payload.projectId, payload.submittedBy)
+      await db.saveDailyReport(payload.projectId, payload.reportData, payload.reportDate)
+      return db.submitDailyReport(payload.projectId, payload.submittedBy, payload.reportDate)
 
     case ACTION_TYPES.SEND_MESSAGE:
       return db.sendMessage(

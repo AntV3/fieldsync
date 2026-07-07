@@ -179,6 +179,10 @@ export default function JoinCompany({ onShowToast }) {
           return
         }
 
+        // Insert users row WITHOUT company_id: the ensure_user_membership
+        // trigger auto-creates an ACTIVE membership whenever users.company_id
+        // is set, which would bypass admin approval. company_id stays null
+        // until the admin approves the pending user_companies row below.
         const { error: userError } = await supabase
           .from('users')
           .insert({
@@ -186,7 +190,6 @@ export default function JoinCompany({ onShowToast }) {
             email: normalizedEmail,
             password_hash: 'managed_by_supabase_auth',
             name: joinName.trim(),
-            company_id: joinCompany.id,
             role: 'member',
             is_active: true
           })
