@@ -132,19 +132,33 @@ export const corOps = {
     }
   },
 
-  // Get all CORs for a project
+  // Get all CORs for a project. Pass filters.includeLineItems=true when the
+  // caller needs the actual labor/materials/equipment/subcontractor rows
+  // (e.g. Sage/AIA change-order exports) instead of just counts.
   async getCORs(projectId, filters = {}) {
     if (isSupabaseConfigured) {
-      let query = supabase
-        .from('change_orders')
-        .select(`
-          *,
-          areas (id, name),
+      const lineItemsSelect = filters.includeLineItems
+        ? `
+          change_order_labor (*),
+          change_order_materials (*),
+          change_order_equipment (*),
+          change_order_subcontractors (*),
+          tickets_count:change_order_ticket_associations(count)
+        `
+        : `
           labor_count:change_order_labor(count),
           materials_count:change_order_materials(count),
           equipment_count:change_order_equipment(count),
           subcontractors_count:change_order_subcontractors(count),
           tickets_count:change_order_ticket_associations(count)
+        `
+
+      let query = supabase
+        .from('change_orders')
+        .select(`
+          *,
+          areas (id, name),
+          ${lineItemsSelect}
         `)
         .eq('project_id', projectId)
 

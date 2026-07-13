@@ -348,7 +348,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => equipmentOps.getProjectEquipment(project.id), { fallback: [], context: { operation: 'getProjectEquipment', projectId: project.id } }),
         safeAsync(() => db.getProjectInvoices(project.id), { fallback: [], context: { operation: 'getProjectInvoices', projectId: project.id } }),
         safeAsync(() => db.getPunchListItems(project.id), { fallback: [], context: { operation: 'getPunchListItems', projectId: project.id } }),
-        safeAsync(() => db.getCORs(project.id), { fallback: [], context: { operation: 'getCORs', projectId: project.id } })
+        safeAsync(() => db.getCORs(project.id, { includeLineItems: true }), { fallback: [], context: { operation: 'getCORs', projectId: project.id } })
       ])
 
       // Calculate progress - use SOV values if available

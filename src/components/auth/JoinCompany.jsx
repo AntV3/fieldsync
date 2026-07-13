@@ -147,6 +147,32 @@ export default function JoinCompany({ onShowToast }) {
           return
         }
 
+        // Seed public.users first — the on-signup path inserts it below, but
+        // when the user returns after email confirmation signUp reports the
+        // account already exists and jumps straight here, leaving public.users
+        // empty. Without a row here loadUserAndCompany later fails with
+        // "Profile not found" after admin approval.
+        const { error: userError } = await supabase
+          .from('users')
+          .upsert(
+            {
+              id: userId,
+              email: normalizedEmail,
+              password_hash: 'managed_by_supabase_auth',
+              name: joinName.trim(),
+              company_id: joinCompany.id,
+              role: 'member',
+              is_active: true
+            },
+            { onConflict: 'id' }
+          )
+
+        if (userError) {
+          console.error('Error seeding users row:', userError)
+          await supabase.auth.signOut()
+          throw new Error('Failed to submit join request')
+        }
+
         const { error: ucError } = await supabase
           .from('user_companies')
           .insert({

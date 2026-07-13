@@ -15,9 +15,6 @@ export default function RegisterCompany({ onShowToast }) {
   const [registerEmail, setRegisterEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
   const [createdCompany, setCreatedCompany] = useState(null)
-  // When Supabase email confirmation is on, signUp returns no session — the
-  // user must confirm before they can sign in, so skip the dashboard redirect.
-  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false)
 
   // Once the company is created, the new admin is already signed in. Send them
   // straight into the app's main menu (dashboard). We give a brief window so the
@@ -27,11 +24,11 @@ export default function RegisterCompany({ onShowToast }) {
   const goToDashboard = () => window.location.reload()
 
   useEffect(() => {
-    if (registerStep === 3 && createdCompany && !needsEmailConfirmation) {
+    if (registerStep === 3 && createdCompany) {
       const timer = setTimeout(goToDashboard, 6000)
       return () => clearTimeout(timer)
     }
-  }, [registerStep, createdCompany, needsEmailConfirmation])
+  }, [registerStep, createdCompany])
 
   const handleRegisterCompany = async () => {
     if (loading) return
@@ -93,7 +90,19 @@ export default function RegisterCompany({ onShowToast }) {
       } else {
         userId = authData.user?.id
         if (!userId) throw new Error('Failed to create account')
-        setNeedsEmailConfirmation(!authData.session)
+        // With Supabase email confirmation on, signUp returns no session. The
+        // register_company RPC is GRANT EXECUTE ... TO authenticated, so
+        // calling it now would fail with insufficient privilege. Ask the user
+        // to confirm and retry — on the second attempt signUp reports the
+        // user already exists and the branch above signs them in, then the
+        // RPC below runs with a real authenticated session and succeeds.
+        if (!authData.session) {
+          onShowToast(
+            `Check ${normalizedEmail} for a confirmation link. Once confirmed, submit this form again to finish creating your company.`,
+            'info'
+          )
+          return
+        }
       }
 
       // Step 2: Try atomic RPC registration
@@ -163,34 +172,16 @@ export default function RegisterCompany({ onShowToast }) {
             Save these codes now. You can also find them in your company settings later.
           </p>
 
-          {needsEmailConfirmation ? (
-            <>
-              <button
-                className="entry-login-btn"
-                onClick={() => navigate('/login/office')}
-                style={{ marginTop: '0.5rem' }}
-              >
-                Go to Sign In
-              </button>
-              <p className="entry-hint" style={{ marginTop: '0.75rem' }}>
-                We sent a confirmation link to <strong>{registerEmail.toLowerCase().trim()}</strong>.
-                Confirm your email, then sign in to open your dashboard.
-              </p>
-            </>
-          ) : (
-            <>
-              <button
-                className="entry-login-btn"
-                onClick={goToDashboard}
-                style={{ marginTop: '0.5rem' }}
-              >
-                Go to Dashboard
-              </button>
-              <p className="entry-hint" style={{ marginTop: '0.75rem' }}>
-                Taking you to your dashboard automatically&hellip;
-              </p>
-            </>
-          )}
+          <button
+            className="entry-login-btn"
+            onClick={goToDashboard}
+            style={{ marginTop: '0.5rem' }}
+          >
+            Go to Dashboard
+          </button>
+          <p className="entry-hint" style={{ marginTop: '0.75rem' }}>
+            Taking you to your dashboard automatically&hellip;
+          </p>
         </div>
       </div>
     )
