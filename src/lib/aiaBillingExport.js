@@ -11,6 +11,7 @@
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { toCSV } from './financialExport'
+import { areaScheduledValueDollars } from './drawRequestOps'
 
 // ============================================
 // G703 Continuation Sheet Data Builder
@@ -35,7 +36,7 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
 
   // Original contract line items from areas
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    const scheduledValue = areaScheduledValueDollars(area, project?.contract_value)
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

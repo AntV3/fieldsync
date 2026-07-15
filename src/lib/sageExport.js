@@ -16,6 +16,7 @@
  */
 
 import { toCSV } from './financialExport'
+import { areaScheduledValueDollars } from './drawRequestOps'
 
 // Sage 300 CRE cost type codes: 1=Material, 2=Labor, 3=Equipment, 4=Subcontract, 5=Other
 const SAGE_COST_TYPES = {
@@ -277,7 +278,7 @@ export function exportSageProjectSetupCSV(project, areas, financialData = {}) {
   for (const area of (areas || [])) {
     rows.push({
       field: `SOV - ${area.name}`,
-      value: (area.sov_value || area.weight || 0).toFixed(2)
+      value: areaScheduledValueDollars(area, project?.contract_value).toFixed(2)
     })
   }
 

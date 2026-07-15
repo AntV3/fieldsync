@@ -3,6 +3,25 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 
+/**
+ * Scheduled value for a single area, in dollars.
+ * Priority: explicit scheduled_value (from the SOV setup step)
+ * → square_footage × price_per_sqft → weight% of the project contract value.
+ * Mirrors drawRequestOps.areaScheduledValueCents so AIA/Sage exports show
+ * the same numbers a draw request would.
+ */
+export function areaScheduledValueDollars(area, contractValue = 0) {
+  const explicit = Number(area?.scheduled_value)
+  if (Number.isFinite(explicit) && explicit > 0) return explicit
+  const sqft = Number(area?.square_footage) || 0
+  const price = Number(area?.price_per_sqft) || 0
+  if (sqft > 0 && price > 0) return sqft * price
+  const weight = parseFloat(area?.weight) || 0
+  const contract = Number(contractValue) || 0
+  if (weight > 0 && contract > 0) return contract * (weight / 100)
+  return 0
+}
+
 export const drawRequestOps = {
   /**
    * Get next draw number for a project
@@ -267,24 +286,7 @@ export const drawRequestOps = {
    * what make draw requests usable for normally-created projects.
    */
   areaScheduledValueCents(area, contractValue = 0) {
-    const explicit = Number(area?.scheduled_value)
-    if (Number.isFinite(explicit) && explicit > 0) {
-      return Math.round(explicit * 100)
-    }
-    // Convert to cents first to avoid floating-point errors in multiplication
-    const sqft = Math.round((area?.square_footage || 0) * 100) // hundredths of a sqft
-    const pricePerSqft = Math.round((area?.price_per_sqft || 0) * 100) // cents
-    if (sqft > 0 && pricePerSqft > 0) {
-      // sqft (in hundredths) * price (in cents) / 100 = total in cents
-      return Math.round((sqft * pricePerSqft) / 100)
-    }
-    const weight = parseFloat(area?.weight) || 0
-    const contract = Number(contractValue) || 0
-    if (weight > 0 && contract > 0) {
-      // contract (dollars) × weight (%) → cents: contract × 100 × weight / 100
-      return Math.round(contract * weight)
-    }
-    return 0
+    return Math.round(areaScheduledValueDollars(area, contractValue) * 100)
   },
 
   /**
