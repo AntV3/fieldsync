@@ -156,11 +156,13 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
+        console.error('Office login failed (signInWithPassword):', error)
         showToast(error.message || 'Invalid credentials', 'error')
         return
       }
 
       if (!data?.user?.id) {
+        console.error('Office login: no user returned from signInWithPassword', data)
         showToast('Login failed — no user returned', 'error')
         return
       }
