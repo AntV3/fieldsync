@@ -33,6 +33,21 @@ export function formatCurrency(amount) {
   }).format(amount)
 }
 
+/**
+ * Compact currency for dense dashboards: $4.2M / $312K / $840.
+ */
+export function formatCurrencyCompact(amount) {
+  const n = Number(amount) || 0
+  const sign = n < 0 ? '-' : ''
+  const abs = Math.abs(n)
+  if (abs >= 1_000_000) {
+    const m = abs / 1_000_000
+    return `${sign}$${m >= 100 ? Math.round(m) : m.toFixed(1)}M`
+  }
+  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}K`
+  return `${sign}$${Math.round(abs)}`
+}
+
 export function calculateProgress(areas) {
   if (!areas || areas.length === 0) return 0
 

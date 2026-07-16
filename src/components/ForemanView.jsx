@@ -248,6 +248,14 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))
   }
 
+  // One-tap cycle from the home screen area cards:
+  // not_started → working → done → not_started
+  const handleAreaCycle = (area) => {
+    const order = ['not_started', 'working', 'done']
+    const next = order[(order.indexOf(area.status) + 1) % order.length]
+    handleStatusUpdate(area.id, next)
+  }
+
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark'
     document.documentElement.setAttribute('data-theme', newTheme)
@@ -633,8 +641,13 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       {/* New Mobile-First Landing Page */}
       <ForemanLanding
         project={project}
+        foremanName={foremanName}
         todayStatus={todayStatus}
         progress={progress}
+        areas={areas}
+        areasLoading={loading}
+        updatingAreaId={updating}
+        onAreaCycle={handleAreaCycle}
         areasWorking={areasWorking}
         areasDone={areasDone}
         areasRemaining={areasRemaining}

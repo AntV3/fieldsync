@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
 import { db, equipmentOps } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
-import { formatCurrency, calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
+import { formatCurrencyCompact, calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
@@ -917,6 +917,22 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     }
   }, [selectedProject?.id]) // onShowToast is stable (memoized in App.jsx)
 
+  // Cycle an area's field status from the SOV panel: not_started → working → done → not_started
+  // Mirrors the field app's one-tap update; optimistic flip with rollback on failure.
+  const handleAreaStatusCycle = useCallback(async (area) => {
+    const order = ['not_started', 'working', 'done']
+    const next = order[(order.indexOf(area.status) + 1) % order.length]
+    const previous = area.status
+    setAreas(prev => prev.map(a => a.id === area.id ? { ...a, status: next } : a))
+    try {
+      await db.updateAreaStatus(area.id, next)
+    } catch (error) {
+      console.error('Error updating area status:', error)
+      setAreas(prev => prev.map(a => a.id === area.id ? { ...a, status: previous } : a))
+      onShowToast?.(`Couldn't update "${area.name}" — try again`, 'error')
+    }
+  }, [onShowToast])
+
   // Memoize stats for FinancialsNav to prevent re-renders from inline object creation
   const financialsNavStats = useMemo(() => ({
     corCount: projectData?.corTotalCount || 0,
@@ -993,36 +1009,61 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               <button className="pv-action" onClick={() => setShowShareModal(true)}>Share</button>
               <button className="pv-action" onClick={() => setShowNotificationSettings(true)}>Alerts</button>
               <button className="pv-action" onClick={handleEditClick}>Edit</button>
+              <button className="pv-action sdx-action-primary" onClick={handleCreateCOR}>
+                <Plus size={14} aria-hidden="true" />
+                New COR
+              </button>
             </div>
           </div>
 
           {/* Project Title */}
-          <div className="pv-header-title">
-            <h1>{selectedProject.name}</h1>
-            {(selectedProject.job_number || selectedProject.work_type) && (
-              <span className="pv-header-meta">
-                {selectedProject.job_number && `Job #${selectedProject.job_number}`}
-                {selectedProject.job_number && selectedProject.work_type && ' • '}
-                {selectedProject.work_type}
+          <div className="pv-header-title sdx-header-title">
+            <div className="sdx-title-row">
+              <h1>{selectedProject.name}</h1>
+              {projectData?.hasScheduleData && (
+                <span className={`sdx-status-pill ${projectData.scheduleStatus}`}>
+                  <span className="sdx-status-dot" aria-hidden="true" />
+                  {projectData.scheduleStatus === 'behind'
+                    ? `${Math.abs(projectData.scheduleVariance)}% behind`
+                    : projectData.scheduleStatus === 'ahead'
+                      ? `${Math.abs(projectData.scheduleVariance)}% ahead`
+                      : 'On track'}
+                </span>
+              )}
+            </div>
+            {(selectedProject.job_number || selectedProject.work_type || selectedProject.general_contractor) && (
+              <span className="pv-header-meta sdx-header-meta">
+                {[
+                  selectedProject.job_number && `JOB #${selectedProject.job_number}`,
+                  selectedProject.work_type,
+                  selectedProject.general_contractor && `GC: ${selectedProject.general_contractor}`
+                ].filter(Boolean).join(' · ')}
               </span>
             )}
           </div>
 
           {/* Key Metrics Bar - Critical KPIs above the fold (F-pattern) */}
-          <div className="pv-metrics-bar" role="region" aria-label="Key project metrics">
+          <div className="pv-metrics-bar sdx-metrics-bar" role="region" aria-label="Key project metrics">
             <div className="pv-metric">
-              <span className="pv-metric-value" aria-label={`${progress} percent complete`}>{progress}%</span>
+              <span className="pv-metric-value sdx-metric-navy" aria-label={`${progress} percent complete`}>{progress}%</span>
               <span className="pv-metric-label">Complete</span>
             </div>
             <div className="pv-metric-divider" aria-hidden="true"></div>
             <div className="pv-metric">
-              <span className="pv-metric-value">{formatCurrency(billable)}</span>
-              <span className="pv-metric-label">Billed</span>
+              <span className="pv-metric-value">{formatCurrencyCompact(billable)}</span>
+              <span className="pv-metric-label">Billed to date</span>
             </div>
             <div className="pv-metric-divider" aria-hidden="true"></div>
             <div className="pv-metric">
-              <span className="pv-metric-value highlight">{formatCurrency(revisedContractValue - billable)}</span>
-              <span className="pv-metric-label">Remaining</span>
+              <span className="pv-metric-value sdx-metric-accent">{formatCurrencyCompact(revisedContractValue - billable)}</span>
+              <span className="pv-metric-label">Remaining value</span>
+            </div>
+            <div className="pv-metric-divider" aria-hidden="true"></div>
+            <div className="pv-metric">
+              <span className={`pv-metric-value ${(projectData?.profitMargin || 0) >= 0 ? 'highlight' : 'sdx-metric-danger'}`}>
+                {projectData?._detailsLoaded ? `${(projectData.profitMargin || 0).toFixed(1)}%` : '—'}
+              </span>
+              <span className="pv-metric-label">Profit margin</span>
             </div>
           </div>
 
@@ -1083,6 +1124,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               onShowToast={onShowToast}
               onSetActiveTab={setActiveProjectTab}
               onExportFieldDocuments={handleExportFieldDocuments}
+              onAreaStatusCycle={handleAreaStatusCycle}
+              onViewCOR={handleViewCOR}
             />
           )}
 

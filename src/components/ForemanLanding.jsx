@@ -2,19 +2,22 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
-  Pin, PinOff, Settings, TrendingUp, Clock, CheckCircle2, ClipboardCheck,
-  MessageSquareText, NotebookPen
+  Pin, PinOff, Settings, CheckCircle2, ClipboardCheck,
+  MessageSquareText, NotebookPen, RefreshCw, Home, Plus, MoreHorizontal
 } from 'lucide-react'
 import { useTradeConfig } from '../lib/TradeConfigContext'
+import { getPendingActionCount } from '../lib/offlineManager'
+import { formatCurrencyCompact } from '../lib/utils'
 
 /**
  * ForemanLanding - Mobile-first landing page for foremen
  *
- * Features:
- * - Metrics snapshot (tappable for full view)
- * - Pinnable action cards
- * - Collapsible "More Actions" section
- * - Zero training required UX
+ * Redesigned around the one-tap Working/Done loop:
+ * - Greeting header + offline sync banner
+ * - Dark "today" progress card
+ * - "Update your areas" tap-to-cycle list (the core field action)
+ * - Pinnable quick action cards + collapsible "More Actions"
+ * - Bottom tab bar (Home / Reports / + / Team / More)
  */
 
 // Base actions available to all trades
@@ -27,27 +30,27 @@ const BASE_ACTIONS = {
   },
   tm: {
     id: 'tm',
-    label: 'Time & Material',
+    label: 'T&M Ticket',
     icon: FileText,
-    description: 'Create time & material ticket'
+    description: 'Extra work'
   },
   report: {
     id: 'report',
-    label: 'Daily Report',
+    label: 'Daily Log',
     icon: ClipboardList,
-    description: 'Submit end-of-day report'
+    description: 'End-of-day report'
   },
   observations: {
     id: 'observations',
-    label: 'Field Observations',
+    label: 'Add Photos',
     icon: NotebookPen,
-    description: 'Log photos & notes with timestamp'
+    description: 'Geo-tagged notes'
   },
   progress: {
     id: 'progress',
     label: 'Update Progress',
     icon: CheckSquare,
-    description: 'Mark tasks complete'
+    description: 'Work by phase'
   },
   disposal: {
     id: 'disposal',
@@ -65,41 +68,69 @@ const BASE_ACTIONS = {
     id: 'metrics',
     label: 'Project Metrics',
     icon: BarChart2,
-    description: 'View charts & trends'
+    description: 'Charts & trends'
   },
   punchlist: {
     id: 'punchlist',
     label: 'Punch List',
     icon: ClipboardCheck,
-    description: 'View & resolve punch items'
+    description: 'Resolve punch items'
   },
   rfis: {
     id: 'rfis',
     label: 'RFIs',
     icon: MessageSquareText,
-    description: 'Submit questions to office'
+    description: 'Ask the office'
   },
   injury: {
     id: 'injury',
     label: 'Report Injury',
     icon: AlertTriangle,
-    description: 'Log safety incident',
+    description: 'Flag now',
     isDanger: true
   }
 }
 
 // Fallback default pinned actions
-const FALLBACK_PINNED = ['crew', 'disposal', 'tm', 'report', 'progress']
+const FALLBACK_PINNED = ['report', 'observations', 'tm', 'injury']
 
 // Storage key generator
 const getPinStorageKey = (projectId) => `fm_pinned_${projectId}`
 
+const AREA_STATUS_META = {
+  done: { label: 'Done', className: 'done' },
+  working: { label: 'Working', className: 'working' },
+  not_started: { label: 'Not started', className: 'not-started' }
+}
+
+const AREAS_PREVIEW_COUNT = 8
+
+function greetingForNow() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function initialsOf(name) {
+  return String(name || 'FS')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join('') || 'FS'
+}
+
 export default function ForemanLanding({
   project,
+  foremanName,
   todayStatus,
   progress,
+  areas = [],
+  areasLoading = false,
+  updatingAreaId = null,
+  onAreaCycle,
   areasWorking,
-  areasDone,
   areasRemaining,
   punchListOpenCount,
   onNavigate,
@@ -109,6 +140,32 @@ export default function ForemanLanding({
   const tradeConfig = useTradeConfig()
   const configuredActions = tradeConfig?.resolvedConfig?.field_actions
   const truckLoadTrackingEnabled = tradeConfig?.resolvedConfig?.enable_truck_load_tracking ?? false
+
+  // Offline sync banner state
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true))
+  const [pendingSyncCount, setPendingSyncCount] = useState(0)
+  const [showAllAreas, setShowAllAreas] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    const refreshPending = () => {
+      getPendingActionCount()
+        .then(count => { if (mounted) setPendingSyncCount(count || 0) })
+        .catch(() => {})
+    }
+    const handleOnline = () => { setIsOnline(true); refreshPending() }
+    const handleOffline = () => { setIsOnline(false); refreshPending() }
+    refreshPending()
+    const interval = setInterval(refreshPending, 30000)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      mounted = false
+      clearInterval(interval)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   // Resolve available actions: base actions filtered by trade config
   const ALL_ACTIONS = useMemo(() => {
@@ -196,7 +253,7 @@ export default function ForemanLanding({
   // Get unpinned actions (for "More Actions" section)
   const unpinnedActions = useMemo(() => {
     return Object.keys(ALL_ACTIONS).filter(id => !pinnedIds.includes(id))
-  }, [pinnedIds])
+  }, [ALL_ACTIONS, pinnedIds])
 
   // Get status info for an action
   const getActionStatus = useCallback((actionId) => {
@@ -211,13 +268,13 @@ export default function ForemanLanding({
         return {
           done: false,
           badge: todayStatus.tmTicketsToday > 0 ? `${todayStatus.tmTicketsToday} today` : null,
-          status: todayStatus.tmTicketsToday > 0 ? `${todayStatus.tmTicketsToday} created` : 'Create new'
+          status: todayStatus.tmTicketsToday > 0 ? `${todayStatus.tmTicketsToday} created` : 'Extra work'
         }
       case 'report':
         return {
           done: todayStatus.dailyReportDone,
           badge: null,
-          status: todayStatus.dailyReportDone ? 'Submitted' : 'Not submitted'
+          status: todayStatus.dailyReportDone ? 'Submitted' : 'Due today'
         }
       case 'progress':
         return {
@@ -248,6 +305,8 @@ export default function ForemanLanding({
     }
   }, [todayStatus, progress, areasRemaining, punchListOpenCount])
 
+  const visibleAreas = showAllAreas ? areas : areas.slice(0, AREAS_PREVIEW_COUNT)
+
   // Render a pinned action card
   const renderPinnedAction = (actionId) => {
     const action = ALL_ACTIONS[actionId]
@@ -257,32 +316,30 @@ export default function ForemanLanding({
     const status = getActionStatus(actionId)
 
     return (
-      <div key={actionId} className="fm-pinned-card-wrapper">
+      <div key={actionId} className="sdx-fld-qa-wrapper">
         <button
-          className={`fm-pinned-card ${status.done ? 'completed' : ''} ${action.isDanger ? 'danger' : ''}`}
+          className={`sdx-fld-qa ${status.done ? 'completed' : ''} ${action.isDanger ? 'danger' : ''}`}
           onClick={() => !isEditMode && onNavigate(actionId)}
           disabled={isEditMode}
         >
-          <div className="fm-pinned-icon">
-            <Icon size={28} />
-          </div>
-          <span className="fm-pinned-label">{action.label}</span>
-          {status.badge && !isEditMode && (
-            <span className="fm-pinned-badge">{status.badge}</span>
-          )}
+          <span className="sdx-fld-qa-icon" aria-hidden="true">
+            <Icon size={19} />
+          </span>
+          <span className="sdx-fld-qa-text">
+            <span className="sdx-fld-qa-label">{action.label}</span>
+            <span className="sdx-fld-qa-sub">{status.badge || status.status || action.description}</span>
+          </span>
           {status.done && !isEditMode && (
-            <div className="fm-pinned-check">
-              <CheckCircle2 size={18} />
-            </div>
+            <CheckCircle2 size={16} className="sdx-fld-qa-check" aria-hidden="true" />
           )}
         </button>
         {isEditMode && (
           <button
-            className="fm-pin-toggle pinned"
+            className="sdx-fld-pin-toggle pinned"
             onClick={() => togglePin(actionId)}
             aria-label={`Unpin ${action.label}`}
           >
-            <PinOff size={16} />
+            <PinOff size={14} />
           </button>
         )}
       </div>
@@ -298,25 +355,25 @@ export default function ForemanLanding({
     const status = getActionStatus(actionId)
 
     return (
-      <div key={actionId} className="fm-action-row-wrapper">
+      <div key={actionId} className="sdx-fld-row-wrapper">
         <button
-          className={`fm-action-row ${action.isDanger ? 'danger' : ''}`}
+          className={`sdx-fld-action-row ${action.isDanger ? 'danger' : ''}`}
           onClick={() => !isEditMode && onNavigate(actionId)}
           disabled={isEditMode}
         >
-          <Icon size={20} />
-          <span className="fm-action-label">{action.label}</span>
+          <Icon size={19} />
+          <span className="sdx-fld-action-label">{action.label}</span>
           {status.badge && !isEditMode && (
-            <span className="fm-action-badge">{status.badge}</span>
+            <span className="sdx-fld-action-badge">{status.badge}</span>
           )}
         </button>
         {isEditMode && (
           <button
-            className="fm-pin-toggle"
+            className="sdx-fld-pin-toggle"
             onClick={() => togglePin(actionId)}
             aria-label={`Pin ${action.label}`}
           >
-            <Pin size={16} />
+            <Pin size={14} />
           </button>
         )}
       </div>
@@ -324,597 +381,181 @@ export default function ForemanLanding({
   }
 
   return (
-    <div className="fm-landing">
-      {/* Metrics Snapshot - Tappable */}
-      <button
-        className="fm-metrics-snapshot"
-        onClick={() => onNavigate('metrics')}
-        aria-label="View full project metrics"
-      >
-        <div className="fm-snapshot-header">
-          <TrendingUp size={18} />
-          <span>Project Overview</span>
-          <ChevronDown size={16} className="fm-snapshot-arrow" />
-        </div>
-        <div className="fm-snapshot-stats">
-          <div className="fm-snapshot-stat main">
-            <span className="fm-snapshot-value">{progress}%</span>
-            <span className="fm-snapshot-label">Complete</span>
-          </div>
-          <div className="fm-snapshot-divider" />
-          <div className="fm-snapshot-stat">
-            <span className="fm-snapshot-value">{areasWorking}</span>
-            <span className="fm-snapshot-label">In Progress</span>
-          </div>
-          <div className="fm-snapshot-stat">
-            <span className="fm-snapshot-value">{areasDone}</span>
-            <span className="fm-snapshot-label">Done</span>
-          </div>
-          <div className="fm-snapshot-stat">
-            <span className="fm-snapshot-value">{areasRemaining}</span>
-            <span className="fm-snapshot-label">Remaining</span>
+    <div className="fm-landing sdx-fld">
+      {/* Greeting */}
+      <div className="sdx-fld-greeting">
+        <div className="sdx-fld-greeting-text">
+          <div className="sdx-fld-project">{project?.name}</div>
+          <div className="sdx-fld-hello">
+            {greetingForNow()}{foremanName ? `, ${foremanName.split(' ')[0]}` : ''}
           </div>
         </div>
-        {truckLoadTrackingEnabled && (
-          <div className="fm-snapshot-loads">
-            <div className="fm-snapshot-load-stat">
-              <Truck size={16} />
-              <span className="fm-snapshot-load-value">{todayStatus.disposalLoadsToday || 0}</span>
-              <span className="fm-snapshot-load-label">Disposal Loads</span>
-            </div>
-            <div className="fm-snapshot-load-divider" />
-            <div className="fm-snapshot-load-stat">
-              <Truck size={16} />
-              <span className="fm-snapshot-load-value">{todayStatus.trucksUsedToday || 0}</span>
-              <span className="fm-snapshot-load-label">Trucks Used</span>
-            </div>
-          </div>
-        )}
-        {todayStatus.crewCheckedIn && (
-          <div className="fm-snapshot-today">
-            <Clock size={14} />
-            <span>{todayStatus.crewCount} crew on site today</span>
-          </div>
-        )}
-      </button>
-
-      {/* Pinned Actions Header */}
-      <div className="fm-section-header">
-        <h2>Quick Actions</h2>
-        <button
-          className={`fm-edit-btn ${isEditMode ? 'active' : ''}`}
-          onClick={() => setIsEditMode(!isEditMode)}
-          aria-label={isEditMode ? 'Done editing' : 'Customize actions'}
-        >
-          {isEditMode ? 'Done' : <Settings size={18} />}
-        </button>
+        <div className="sdx-fld-avatar" aria-hidden="true">{initialsOf(foremanName || project?.name)}</div>
       </div>
 
-      {isEditMode && (
-        <p className="fm-edit-hint">Tap icons to pin/unpin actions</p>
+      {/* Offline sync banner */}
+      {(!isOnline || pendingSyncCount > 0) && (
+        <div className="sdx-fld-sync" role="status">
+          <span className="sdx-fld-sync-icon" aria-hidden="true"><RefreshCw size={17} /></span>
+          <span className="sdx-fld-sync-text">
+            <span className="sdx-fld-sync-title">
+              {pendingSyncCount > 0
+                ? `${pendingSyncCount} update${pendingSyncCount !== 1 ? 's' : ''} saved offline`
+                : 'Working offline'}
+            </span>
+            <span className="sdx-fld-sync-sub">
+              {isOnline ? 'Syncing to office…' : 'Will sync to office when connected'}
+            </span>
+          </span>
+        </div>
       )}
 
-      {/* Pinned Actions Grid */}
-      <div className="fm-pinned-grid stagger-children">
-        {pinnedIds.map(renderPinnedAction)}
+      {/* Today dark card */}
+      <button className="sdx-fld-today" onClick={() => onNavigate('metrics')} aria-label="View full project metrics">
+        <div className="sdx-fld-today-head">
+          <span className="sdx-fld-today-label">Today's progress</span>
+          <span className="sdx-fld-today-link">View metrics →</span>
+        </div>
+        <div className="sdx-fld-today-stats">
+          <div className="sdx-fld-today-stat">
+            <span className="sdx-fld-today-value">{progress}%</span>
+            <span className="sdx-fld-today-sub">complete</span>
+          </div>
+          <div className="sdx-fld-today-stat">
+            <span className="sdx-fld-today-value">{todayStatus.crewCount || 0}</span>
+            <span className="sdx-fld-today-sub">on site</span>
+          </div>
+          <div className="sdx-fld-today-stat">
+            <span className={`sdx-fld-today-value ${areasWorking > 0 ? 'accent' : ''}`}>{areasWorking}</span>
+            <span className="sdx-fld-today-sub">working</span>
+          </div>
+          <div className="sdx-fld-today-stat">
+            <span className={`sdx-fld-today-value ${punchListOpenCount > 0 ? 'warn' : 'ok'}`}>{punchListOpenCount ?? '—'}</span>
+            <span className="sdx-fld-today-sub">punch open</span>
+          </div>
+        </div>
+      </button>
+
+      {/* Update your areas — one-tap status cycle */}
+      <div className="sdx-fld-section">
+        <div className="sdx-fld-section-head">
+          <span className="sdx-fld-section-title">Update your areas</span>
+          <span className="sdx-fld-section-hint">tap to advance</span>
+        </div>
+        {areasLoading ? (
+          <div className="sdx-fld-areas-empty">Loading areas…</div>
+        ) : areas.length === 0 ? (
+          <div className="sdx-fld-areas-empty">Office will add work areas to this project</div>
+        ) : (
+          <div className="sdx-fld-areas">
+            {visibleAreas.map(area => {
+              const meta = AREA_STATUS_META[area.status] || AREA_STATUS_META.not_started
+              return (
+                <button
+                  key={area.id}
+                  className={`sdx-fld-area ${updatingAreaId === area.id ? 'updating' : ''}`}
+                  onClick={() => onAreaCycle?.(area)}
+                  disabled={updatingAreaId === area.id}
+                  aria-label={`${area.name}: ${meta.label}. Tap to advance status.`}
+                >
+                  <span className={`sdx-dot ${meta.className}`} aria-hidden="true" />
+                  <span className="sdx-fld-area-text">
+                    <span className="sdx-fld-area-name">{area.name}</span>
+                    <span className="sdx-fld-area-sub">
+                      {[
+                        area.scheduled_value ? formatCurrencyCompact(area.scheduled_value) : (area.weight ? `${area.weight}%` : null),
+                        area.group_name
+                      ].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                  <span className={`sdx-pill ${meta.className}`}>{meta.label}</span>
+                </button>
+              )
+            })}
+            {areas.length > AREAS_PREVIEW_COUNT && (
+              <button className="sdx-fld-areas-more" onClick={() => setShowAllAreas(v => !v)}>
+                {showAllAreas ? 'Show fewer' : `Show all ${areas.length} areas`}
+              </button>
+            )}
+            <button className="sdx-fld-areas-phases" onClick={() => onNavigate('progress')}>
+              View by phase →
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Quick actions (pinned, customizable) */}
+      <div className="sdx-fld-section">
+        <div className="sdx-fld-section-head">
+          <span className="sdx-fld-section-title">Quick actions</span>
+          <button
+            className={`sdx-fld-edit-btn ${isEditMode ? 'active' : ''}`}
+            onClick={() => setIsEditMode(!isEditMode)}
+            aria-label={isEditMode ? 'Done editing' : 'Customize actions'}
+          >
+            {isEditMode ? 'Done' : <Settings size={16} />}
+          </button>
+        </div>
+
+        {isEditMode && (
+          <p className="sdx-fld-edit-hint">Tap icons to pin/unpin actions</p>
+        )}
+
+        <div className="sdx-fld-qa-grid stagger-children">
+          {pinnedIds.map(renderPinnedAction)}
+        </div>
       </div>
 
       {/* More Actions Section */}
       {unpinnedActions.length > 0 && (
-        <div className="fm-more-section">
+        <div className="sdx-fld-more" id="sdx-fld-more">
           <button
-            className="fm-more-header"
+            className="sdx-fld-more-header"
             onClick={() => setMoreCollapsed(!moreCollapsed)}
             aria-expanded={!moreCollapsed}
           >
-            <span>More Actions</span>
-            {moreCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+            <span>More actions</span>
+            {moreCollapsed ? <ChevronDown size={19} /> : <ChevronUp size={19} />}
           </button>
 
           {!moreCollapsed && (
-            <div className="fm-more-content">
+            <div className="sdx-fld-more-content">
               {unpinnedActions.map(renderUnpinnedAction)}
             </div>
           )}
         </div>
       )}
 
-      <style>{`
-        .fm-landing {
-          padding: 0 1rem 2rem;
-        }
-
-        /* Metrics Snapshot - Premium Hero Card */
-        .fm-metrics-snapshot {
-          width: 100%;
-          background: var(--gradient-blue, linear-gradient(135deg, #3b82f6, #2563eb, #1d4ed8));
-          border: none;
-          border-radius: 16px;
-          padding: 1.25rem;
-          color: white;
-          text-align: left;
-          cursor: pointer;
-          margin-bottom: 1.5rem;
-          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
-          box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25), 0 2px 8px rgba(0,0,0,0.15);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .fm-metrics-snapshot::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 50%;
-          background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
-          pointer-events: none;
-          border-radius: 16px 16px 0 0;
-        }
-
-        .fm-metrics-snapshot::after {
-          content: '';
-          position: absolute;
-          bottom: -40px;
-          right: -40px;
-          width: 160px;
-          height: 160px;
-          background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-          pointer-events: none;
-        }
-
-        .fm-metrics-snapshot:active {
-          transform: scale(0.98);
-        }
-
-        .fm-snapshot-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-          opacity: 0.9;
-          margin-bottom: 0.875rem;
-          font-weight: 500;
-          position: relative;
-          z-index: 1;
-        }
-
-        .fm-snapshot-arrow {
-          margin-left: auto;
-          opacity: 0.7;
-        }
-
-        .fm-snapshot-stats {
-          display: flex;
-          align-items: center;
-          gap: 0.875rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .fm-snapshot-stat {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          flex: 1;
-        }
-
-        .fm-snapshot-stat.main {
-          flex: 1.5;
-          align-items: flex-start;
-        }
-
-        .fm-snapshot-value {
-          font-size: 1.625rem;
-          font-weight: 700;
-          line-height: 1.2;
-          font-variant-numeric: tabular-nums;
-          letter-spacing: -0.02em;
-        }
-
-        .fm-snapshot-stat.main .fm-snapshot-value {
-          font-size: 2.25rem;
-        }
-
-        .fm-snapshot-label {
-          font-size: 0.68rem;
-          opacity: 0.85;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          font-weight: 600;
-          margin-top: 0.1rem;
-        }
-
-        .fm-snapshot-divider {
-          width: 1px;
-          height: 44px;
-          background: rgba(255,255,255,0.25);
-        }
-
-        .fm-snapshot-loads {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 1rem;
-          margin-top: 0.875rem;
-          padding-top: 0.875rem;
-          border-top: 1px solid rgba(255,255,255,0.15);
-          position: relative;
-          z-index: 1;
-        }
-
-        .fm-snapshot-load-stat {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          flex: 1;
-          justify-content: center;
-        }
-
-        .fm-snapshot-load-value {
-          font-size: 1.25rem;
-          font-weight: 700;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .fm-snapshot-load-label {
-          font-size: 0.7rem;
-          opacity: 0.85;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          font-weight: 600;
-        }
-
-        .fm-snapshot-load-divider {
-          width: 1px;
-          height: 28px;
-          background: rgba(255,255,255,0.25);
-        }
-
-        .fm-snapshot-today {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-top: 0.875rem;
-          padding-top: 0.875rem;
-          border-top: 1px solid rgba(255,255,255,0.15);
-          font-size: 0.8rem;
-          opacity: 0.9;
-          font-weight: 500;
-          position: relative;
-          z-index: 1;
-        }
-
-        /* Section Header */
-        .fm-section-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 0.875rem;
-        }
-
-        .fm-section-header h2 {
-          font-size: 1.05rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          margin: 0;
-          letter-spacing: -0.01em;
-        }
-
-        .fm-edit-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.5rem;
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 10px;
-          color: var(--text-secondary);
-          cursor: pointer;
-          font-size: 0.8rem;
-          min-width: 36px;
-          min-height: 36px;
-          transition: all 0.2s ease;
-          box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.1));
-        }
-
-        .fm-edit-btn:hover {
-          border-color: var(--accent-blue, #3b82f6);
-        }
-
-        .fm-edit-btn.active {
-          background: var(--gradient-blue, var(--primary-color, #3b82f6));
-          border-color: transparent;
-          color: white;
-          padding: 0.5rem 1rem;
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .fm-edit-hint {
-          font-size: 0.8rem;
-          color: var(--text-secondary);
-          margin: 0 0 0.75rem;
-          text-align: center;
-          font-weight: 500;
-        }
-
-        /* Pinned Actions Grid */
-        .fm-pinned-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 0.875rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .fm-pinned-card-wrapper {
-          position: relative;
-        }
-
-        .fm-pinned-card {
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 1.375rem 1rem;
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-xl, 16px);
-          cursor: pointer;
-          transition: all var(--transition-normal, 0.25s cubic-bezier(0.4, 0, 0.2, 1));
-          min-height: 114px;
-          position: relative;
-          box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.1));
-          overflow: hidden;
-        }
-
-        .fm-pinned-card::before {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: var(--gradient-blue, linear-gradient(90deg, #3b82f6, #2563eb));
-          opacity: 0;
-          transition: opacity 0.2s ease;
-        }
-
-        .fm-pinned-card:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: var(--shadow-card-hover, 0 8px 25px rgba(0,0,0,0.15));
-          border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .fm-pinned-card:hover:not(:disabled)::before {
-          opacity: 1;
-        }
-
-        .fm-pinned-card:active:not(:disabled) {
-          transform: scale(0.97);
-        }
-
-        .fm-pinned-card:disabled {
-          opacity: 0.7;
-          cursor: default;
-        }
-
-        .fm-pinned-card.completed {
-          border-color: rgba(34, 197, 94, 0.4);
-          background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
-          box-shadow: var(--shadow-glow-green, 0 0 20px rgba(16, 185, 129, 0.15));
-        }
-
-        .fm-pinned-card.completed::before {
-          background: var(--gradient-green, linear-gradient(90deg, #22c55e, #16a34a));
-          opacity: 1;
-        }
-
-        .fm-pinned-card.danger {
-          border-color: rgba(245, 158, 11, 0.4);
-        }
-
-        .fm-pinned-card.danger::before {
-          background: linear-gradient(90deg, #f59e0b, #d97706);
-        }
-
-        .fm-pinned-card.danger .fm-pinned-icon {
-          color: #f59e0b;
-        }
-
-        .fm-pinned-icon {
-          color: var(--primary-color, #3b82f6);
-          margin-bottom: 0.625rem;
-          transition: transform 0.2s ease;
-        }
-
-        .fm-pinned-card:hover:not(:disabled) .fm-pinned-icon {
-          transform: scale(1.08);
-        }
-
-        .fm-pinned-label {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--text-primary);
-          text-align: center;
-          letter-spacing: -0.01em;
-        }
-
-        .fm-pinned-badge {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          background: var(--gradient-blue, var(--primary-color, #3b82f6));
-          color: white;
-          font-size: 0.68rem;
-          font-weight: 700;
-          padding: 0.2rem 0.55rem;
-          border-radius: 10px;
-          box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-        }
-
-        .fm-pinned-check {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          color: #22c55e;
-          filter: drop-shadow(0 1px 3px rgba(34, 197, 94, 0.3));
-        }
-
-        .fm-pin-toggle {
-          position: absolute;
-          top: -8px;
-          right: -8px;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: var(--bg-card);
-          border: 2px solid var(--border-color);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          color: var(--text-secondary);
-          transition: all 0.2s ease;
-          z-index: 10;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-
-        .fm-pin-toggle:hover {
-          background: var(--bg-elevated);
-          transform: scale(1.1);
-        }
-
-        .fm-pin-toggle.pinned {
-          background: #ef4444;
-          border-color: #ef4444;
-          color: white;
-          box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-        }
-
-        /* More Actions Section */
-        .fm-more-section {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 14px;
-          overflow: hidden;
-          box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.1));
-        }
-
-        .fm-more-header {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 1rem 1.125rem;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: var(--text-primary);
-          transition: background 0.15s ease;
-        }
-
-        .fm-more-header:hover {
-          background: var(--bg-secondary, rgba(255,255,255,0.02));
-        }
-
-        .fm-more-header:active {
-          background: var(--bg-elevated);
-        }
-
-        .fm-more-content {
-          border-top: 1px solid var(--border-color);
-        }
-
-        .fm-action-row-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .fm-action-row-wrapper .fm-pin-toggle {
-          position: static;
-          margin-right: 0.75rem;
-          flex-shrink: 0;
-        }
-
-        .fm-action-row {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          gap: 0.875rem;
-          padding: 1.125rem;
-          background: transparent;
-          border: none;
-          border-bottom: 1px solid var(--border-color);
-          cursor: pointer;
-          text-align: left;
-          color: var(--text-primary);
-          transition: all 0.2s ease;
-        }
-
-        .fm-action-row:last-child {
-          border-bottom: none;
-        }
-
-        .fm-action-row:hover:not(:disabled) {
-          background: var(--bg-secondary, rgba(255,255,255,0.02));
-          padding-left: 1.25rem;
-        }
-
-        .fm-action-row:active:not(:disabled) {
-          background: var(--bg-elevated);
-        }
-
-        .fm-action-row:disabled {
-          opacity: 0.7;
-          cursor: default;
-        }
-
-        .fm-action-row.danger {
-          color: #f59e0b;
-        }
-
-        .fm-action-row svg {
-          transition: color 0.15s ease;
-        }
-
-        .fm-action-row:hover:not(:disabled) svg {
-          color: var(--accent-blue, #3b82f6);
-        }
-
-        .fm-action-row.danger:hover:not(:disabled) svg {
-          color: #f59e0b;
-        }
-
-        .fm-action-label {
-          flex: 1;
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
-
-        .fm-action-badge {
-          font-size: 0.72rem;
-          color: var(--text-secondary);
-          background: var(--bg-elevated);
-          padding: 0.25rem 0.625rem;
-          border-radius: 20px;
-          font-weight: 600;
-        }
-
-        /* Dark mode adjustments */
-        [data-theme="dark"] .fm-metrics-snapshot {
-          background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 60%, #172554 100%);
-          box-shadow: 0 4px 20px rgba(30, 64, 175, 0.3), 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        [data-theme="dark"] .fm-pinned-card.completed {
-          background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.04) 100%);
-        }
-      `}</style>
+      {/* Bottom tab bar */}
+      <nav className="sdx-fld-tabbar" aria-label="Field navigation">
+        <button className="sdx-fld-tab active" aria-current="page">
+          <Home size={20} />
+          <span>Home</span>
+        </button>
+        <button className="sdx-fld-tab" onClick={() => onNavigate('report')}>
+          <ClipboardList size={20} />
+          <span>Reports</span>
+        </button>
+        <button className="sdx-fld-fab" onClick={() => onNavigate('tm')} aria-label="New T&M ticket">
+          <Plus size={23} />
+        </button>
+        <button className="sdx-fld-tab" onClick={() => onNavigate('crew')}>
+          <Users size={20} />
+          <span>Team</span>
+        </button>
+        <button
+          className="sdx-fld-tab"
+          onClick={() => {
+            setMoreCollapsed(false)
+            requestAnimationFrame(() => {
+              document.getElementById('sdx-fld-more')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            })
+          }}
+        >
+          <MoreHorizontal size={20} />
+          <span>More</span>
+        </button>
+      </nav>
     </div>
   )
 }
