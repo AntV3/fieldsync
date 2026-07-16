@@ -34,7 +34,6 @@ const TradeProfileSettings = lazy(() => import('./components/settings/TradeProfi
 const LandingPage = lazy(() => import('./components/landing/LandingPage'))
 const PrivacyPolicy = lazy(() => import('./components/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./components/legal/TermsOfService'))
-const SpxDashboard = lazy(() => import('./components/spx/SpxDashboard'))
 const AcceptInvite = lazy(() => import('./components/auth/AcceptInvite'))
 const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'))
 const ResetPassword = lazy(() => import('./components/auth/ResetPassword'))
@@ -506,15 +505,6 @@ export default function App() {
                     </Suspense>
                   </ErrorBoundary>
                 )
-          } />
-
-          {/* SpaceX-styled v2 dashboard */}
-          <Route path="/v2" element={
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <SpxDashboard />
-              </Suspense>
-            </ErrorBoundary>
           } />
 
           {/* 404 catch-all */}
