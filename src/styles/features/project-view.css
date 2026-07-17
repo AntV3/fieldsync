@@ -354,6 +354,59 @@
   }
 }
 
+/* Compact single-line summary strip shown on CORs/Tickets/Billing sub-tabs */
+.hero-metrics-compact {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.625rem;
+  padding: 0.625rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.hero-metrics-compact-item strong {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.hero-metrics-compact-item.positive strong {
+  color: var(--accent-green);
+}
+
+.hero-metrics-compact-item.negative strong {
+  color: var(--accent-red);
+}
+
+.hero-metrics-compact-sep {
+  color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .hero-metrics-compact {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Muted sublabel pill (e.g. "— margin" while awaiting cost data) */
+.hero-metric-pill--muted {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+/* Small helper hint under a metric value */
+.hero-metric-helper {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .hero-metric-card {
   background: var(--gradient-card-dark);
   border: 1px solid var(--border-color);

@@ -28,14 +28,18 @@ export default function ProfitabilityCard({
   const projectedProfit = projectedRevenue - projectedCosts
   const projectedMargin = projectedRevenue > 0 ? (projectedProfit / projectedRevenue) * 100 : 0
 
+  // No costs recorded yet — a 100% margin with full green bars reads as a
+  // success state, which is misleading before any cost data exists
+  const awaitingCosts = totalCosts === 0
+
   // Determine status
   const isHealthy = currentMargin >= 20
   const isWarning = currentMargin >= 0 && currentMargin < 20
   const isLoss = currentMargin < 0
 
-  const status = isHealthy ? 'healthy' : isWarning ? 'warning' : 'loss'
-  const statusLabel = isHealthy ? 'On Track' : isWarning ? 'Watch Margin' : 'Over Cost'
-  const StatusIcon = isHealthy ? CheckCircle : isWarning ? AlertCircle : TrendingDown
+  const status = awaitingCosts ? 'no-data' : isHealthy ? 'healthy' : isWarning ? 'warning' : 'loss'
+  const statusLabel = awaitingCosts ? 'Awaiting cost data' : isHealthy ? 'On Track' : isWarning ? 'Watch Margin' : 'Over Cost'
+  const StatusIcon = awaitingCosts ? AlertCircle : isHealthy ? CheckCircle : isWarning ? AlertCircle : TrendingDown
 
   return (
     <div className={`profitability-card ${status}`}>
@@ -55,14 +59,14 @@ export default function ProfitabilityCard({
         <div className="profit-metric">
           <div className="profit-metric-header">
             <span className="profit-metric-label">Current Margin</span>
-            <span className={`profit-metric-value ${currentMargin < 0 ? 'negative' : ''}`}>
-              {Math.round(currentMargin)}%
+            <span className={`profit-metric-value ${awaitingCosts ? 'no-data' : currentMargin < 0 ? 'negative' : ''}`}>
+              {awaitingCosts ? '—' : `${Math.round(currentMargin)}%`}
             </span>
           </div>
           <div className="profit-bar-container">
             <div
-              className={`profit-bar ${currentMargin < 0 ? 'negative' : currentMargin < 20 ? 'warning' : 'healthy'}`}
-              style={{ width: `${Math.min(Math.abs(currentMargin), 100)}%` }}
+              className={`profit-bar ${awaitingCosts ? 'no-data' : currentMargin < 0 ? 'negative' : currentMargin < 20 ? 'warning' : 'healthy'}`}
+              style={{ width: awaitingCosts ? '100%' : `${Math.min(Math.abs(currentMargin), 100)}%` }}
             ></div>
           </div>
         </div>
@@ -72,14 +76,14 @@ export default function ProfitabilityCard({
           <div className="profit-metric">
             <div className="profit-metric-header">
               <span className="profit-metric-label">Projected Final</span>
-              <span className={`profit-metric-value ${projectedMargin < 0 ? 'negative' : ''}`}>
-                {Math.round(projectedMargin)}%
+              <span className={`profit-metric-value ${awaitingCosts ? 'no-data' : projectedMargin < 0 ? 'negative' : ''}`}>
+                {awaitingCosts ? '—' : `${Math.round(projectedMargin)}%`}
               </span>
             </div>
             <div className="profit-bar-container">
               <div
-                className={`profit-bar ${projectedMargin < 0 ? 'negative' : projectedMargin < 20 ? 'warning' : 'healthy'}`}
-                style={{ width: `${Math.min(Math.abs(projectedMargin), 100)}%` }}
+                className={`profit-bar ${awaitingCosts ? 'no-data' : projectedMargin < 0 ? 'negative' : projectedMargin < 20 ? 'warning' : 'healthy'}`}
+                style={{ width: awaitingCosts ? '100%' : `${Math.min(Math.abs(projectedMargin), 100)}%` }}
               ></div>
             </div>
           </div>
@@ -103,7 +107,7 @@ export default function ProfitabilityCard({
         </div>
       </div>
 
-      {progress > 10 && (
+      {progress > 10 && !awaitingCosts && (
         <ProfitInsight
           isHealthy={isHealthy}
           isWarning={isWarning}

@@ -146,16 +146,19 @@ export default memo(function FinancialsNav({
 
                 {/* Icon with optional badge dot */}
                 <div className="financials-nav-icon">
-                  <Icon size={collapsed ? 22 : 20} />
+                  <Icon size={24} />
                   {/* Badge dot for pending items */}
                   {badge && badge.pending > 0 && (
                     <span className="financials-nav-dot" />
                   )}
                 </div>
 
-                {/* Collapsed mode: show short label below icon */}
+                {/* Collapsed mode: show short label (with count) below icon */}
                 {collapsed && (
-                  <span className="financials-nav-short-label">{item.shortLabel}</span>
+                  <span className="financials-nav-short-label">
+                    {item.shortLabel}
+                    {badge ? ` (${badge.count})` : ''}
+                  </span>
                 )}
 
                 {/* Expanded mode: show full content */}
@@ -197,10 +200,11 @@ export default memo(function FinancialsNav({
         <button
           className="financials-nav-expand-btn"
           onClick={onToggleCollapse}
-          aria-label="Expand sidebar"
+          aria-label="Expand navigation menu"
+          title="Show full navigation labels"
         >
           <ChevronRight size={14} />
-          <span>Expand</span>
+          <span>Expand Menu</span>
         </button>
       )}
     </nav>

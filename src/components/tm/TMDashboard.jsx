@@ -13,6 +13,48 @@ import {
  * TMDashboard - Visual summary and charts for T&M Tickets section
  * Shows key metrics, status distribution, and trends
  */
+
+/** Tiny inline sparkline: tickets created per week over the last 4 weeks */
+function WeeklySparkline({ counts = [] }) {
+  const width = 64
+  const height = 20
+  const max = Math.max(...counts, 1)
+  const stepX = width / (counts.length - 1 || 1)
+  const points = counts.map((c, i) => {
+    const x = i * stepX
+    // Leave 2px padding top/bottom so the line isn't clipped
+    const y = height - 2 - (c / max) * (height - 4)
+    return `${x},${y}`
+  })
+
+  return (
+    <svg
+      className="tm-card-sparkline"
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      aria-label={`Tickets per week, last 4 weeks: ${counts.join(', ')}`}
+      role="img"
+    >
+      <polyline
+        points={points.join(' ')}
+        fill="none"
+        stroke="var(--primary-color)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.8"
+      />
+      {/* Dot on the current week */}
+      <circle
+        cx={points.length ? points[points.length - 1].split(',')[0] : 0}
+        cy={points.length ? points[points.length - 1].split(',')[1] : 0}
+        r="2"
+        fill="var(--primary-color)"
+      />
+    </svg>
+  )
+}
 export default function TMDashboard({ tickets = [], laborRates = {} }) {
   // Calculate comprehensive metrics
   const metrics = useMemo(() => {
@@ -29,14 +71,15 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
         materialsCost: 0,
         uniqueWorkers: 0,
         avgHoursPerTicket: 0,
-        approvalRate: 0,
+        approvalRate: null,
         pendingValue: 0,
         approvedValue: 0,
         billedValue: 0,
         workersByRole: {},
         topWorkers: [],
         byMonth: [],
-        byStatus: []
+        byStatus: [],
+        weeklyCounts: [0, 0, 0, 0]
       }
     }
 
@@ -99,11 +142,25 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
       .sort((a, b) => b.hours - a.hours)
       .slice(0, 5)
 
-    // Approval rate
+    // Approval rate - null when nothing has been approved/rejected yet,
+    // so pending-only projects show "No approvals yet" instead of a misleading 0%
     const completedTickets = approved + billed + rejected
     const approvalRate = completedTickets > 0
       ? Math.round(((approved + billed) / completedTickets) * 100)
-      : 0
+      : null
+
+    // Tickets created per week over the last 4 weeks (for the sparkline)
+    const now = new Date()
+    const weeklyCounts = [0, 0, 0, 0]
+    tickets.forEach(ticket => {
+      const s = String(ticket.work_date)
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
+      const daysAgo = (now - d) / (1000 * 60 * 60 * 24)
+      if (daysAgo >= 0 && daysAgo < 28) {
+        // Index 0 = oldest week, 3 = current week
+        weeklyCounts[3 - Math.min(Math.floor(daysAgo / 7), 3)] += 1
+      }
+    })
 
     // Value calculations (estimate labor cost using default rates if no rates provided)
     const defaultRates = {
@@ -216,7 +273,8 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
       workersByRole,
       topWorkers,
       byMonth,
-      byStatus
+      byStatus,
+      weeklyCounts
     }
   }, [tickets, laborRates])
 
@@ -272,6 +330,10 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
           <div className="tm-card-content">
             <span className="tm-card-value">{metrics.total}</span>
             <span className="tm-card-label">Total Tickets</span>
+            <span className="tm-card-trend">
+              <WeeklySparkline counts={metrics.weeklyCounts} />
+              <span className="tm-card-trend-label">4 wks</span>
+            </span>
           </div>
         </div>
 
@@ -343,8 +405,17 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
             <TrendingUp size={16} />
             <span>Approval Rate</span>
           </div>
-          <div className="tm-status-count">{metrics.approvalRate}%</div>
-          <div className="tm-status-value">{metrics.approved + metrics.billed} / {metrics.total - metrics.pending}</div>
+          {metrics.approvalRate === null ? (
+            <>
+              <div className="tm-status-count no-data">—</div>
+              <div className="tm-status-value">No approvals yet</div>
+            </>
+          ) : (
+            <>
+              <div className="tm-status-count">{metrics.approvalRate}%</div>
+              <div className="tm-status-value">{metrics.approved + metrics.billed} / {metrics.approved + metrics.billed + metrics.rejected}</div>
+            </>
+          )}
         </div>
       </div>
 

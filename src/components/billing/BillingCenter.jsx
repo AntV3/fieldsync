@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { Receipt, Plus, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, AlertCircle, Eye, X } from 'lucide-react'
+import { Receipt, Plus, FileText, ClipboardList, Send, DollarSign, Download, MoreVertical, CheckCircle, AlertCircle, Eye, X, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { downloadInvoicePDF } from '../../lib/invoicePdfGenerator'
@@ -14,7 +14,33 @@ const STATUS_CONFIG = {
   void: { label: 'Void', icon: AlertCircle, className: 'status-void' }
 }
 
-export default function BillingCenter({ project, company, user, onShowToast }) {
+/**
+ * Horizontal billing workflow pipeline:
+ * Pending Review → Approved → Ready to Bill → Invoiced → Paid
+ * Gray for empty stages, blue for stages with items, green for Paid.
+ */
+function BillingPipeline({ stages }) {
+  return (
+    <div className="billing-pipeline" role="list" aria-label="Billing workflow pipeline">
+      {stages.map((stage, index) => {
+        const state = stage.count > 0 ? (stage.isTerminal ? 'complete' : 'active') : 'empty'
+        return (
+          <div key={stage.label} className="billing-pipeline-step" role="listitem">
+            <div className={`billing-pipeline-node ${state}`}>
+              <span className="billing-pipeline-count">{stage.count}</span>
+            </div>
+            <span className={`billing-pipeline-label ${state}`}>{stage.label}</span>
+            {index < stages.length - 1 && (
+              <ChevronRight size={14} className="billing-pipeline-arrow" aria-hidden="true" />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function BillingCenter({ project, company, user, onShowToast, workflowStats }) {
   const [billableItems, setBillableItems] = useState({ cors: [], tickets: [] })
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -255,6 +281,28 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
   const hasBillableItems = billableItems.cors.length > 0 || billableItems.tickets.length > 0
   const hasSelection = totals.selectedCount > 0
 
+  // Billing workflow pipeline stage counts
+  const pipelineStages = useMemo(() => {
+    const readyToBill = billableItems.cors.length + billableItems.tickets.length
+    const invoiced = invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'void').length
+    const paid = invoices.filter(inv => inv.status === 'paid').length
+
+    return [
+      { label: 'Pending Review', count: workflowStats?.pendingReview ?? 0 },
+      { label: 'Approved', count: workflowStats?.approved ?? 0 },
+      { label: 'Ready to Bill', count: readyToBill },
+      { label: 'Invoiced', count: invoiced },
+      { label: 'Paid', count: paid, isTerminal: true }
+    ]
+  }, [billableItems, invoices, workflowStats])
+
+  // "+ Create Invoice" from the empty Invoices section: select everything billable, then open the modal
+  const handleCreateInvoiceFromEmpty = () => {
+    if (!hasBillableItems) return
+    if (!hasSelection) selectAll()
+    handleCreateInvoice()
+  }
+
   if (loading) {
     return (
       <div className="billing-center loading">
@@ -268,6 +316,9 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
 
   return (
     <div className="billing-center">
+      {/* Billing Workflow Pipeline */}
+      <BillingPipeline stages={pipelineStages} />
+
       {/* Ready to Bill Section */}
       <div className="billing-section">
         <div className="billing-section-header">
@@ -293,10 +344,14 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
         </div>
 
         {!hasBillableItems ? (
-          <div className="billing-empty-state">
+          <div className="billing-empty-state billing-empty-dashed">
             <CheckCircle size={32} className="text-success" />
             <p>No items ready to bill</p>
-            <span>Approved CORs and signed Time & Material tickets will appear here</span>
+            <span>Items land here automatically once they're billing-ready:</span>
+            <ul className="billing-empty-steps">
+              <li>Approve pending Change Order Requests (CORs)</li>
+              <li>Get Time &amp; Material tickets signed</li>
+            </ul>
           </div>
         ) : (
           <>
@@ -406,6 +461,20 @@ export default function BillingCenter({ project, company, user, onShowToast }) {
             <Receipt size={32} />
             <p>No invoices yet</p>
             <span>Create an invoice from the items above</span>
+            <span
+              className="billing-empty-cta-wrapper"
+              title={!hasBillableItems ? 'Approve items above first' : undefined}
+            >
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleCreateInvoiceFromEmpty}
+                disabled={!hasBillableItems}
+                aria-disabled={!hasBillableItems}
+              >
+                <Plus size={14} />
+                Create Invoice
+              </button>
+            </span>
           </div>
         ) : (
           <div className="invoice-list">

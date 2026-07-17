@@ -112,9 +112,56 @@ export default function FinancialTrendChart({
   if (!chartData.length) {
     return (
       <div className="financial-trend-chart empty">
-        <div className="chart-empty-state">
-          <p>No financial data available yet.</p>
-          <span>Start tracking labor and costs to see trends.</span>
+        <div className="chart-skeleton-wrapper">
+          {/* Placeholder chart skeleton hinting at the trend chart that appears once data exists */}
+          <svg
+            className="chart-skeleton"
+            viewBox="0 0 600 220"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {/* Horizontal gridlines */}
+            {[40, 85, 130, 175].map(y => (
+              <line
+                key={y}
+                x1="40"
+                y1={y}
+                x2="590"
+                y2={y}
+                stroke="var(--border-color)"
+                strokeWidth="1"
+                strokeDasharray="3 5"
+              />
+            ))}
+            {/* Y axis */}
+            <line x1="40" y1="20" x2="40" y2="200" stroke="var(--border-color)" strokeWidth="1" />
+            {/* X axis */}
+            <line x1="40" y1="200" x2="590" y2="200" stroke="var(--border-color)" strokeWidth="1" />
+            {/* Revenue-like rising trend */}
+            <path
+              d="M40 185 C 120 180, 170 150, 240 140 S 380 100, 450 80 S 560 45, 590 40"
+              fill="none"
+              stroke="var(--text-muted)"
+              strokeWidth="2"
+              strokeDasharray="6 6"
+              strokeLinecap="round"
+              opacity="0.5"
+            />
+            {/* Costs-like gentler trend */}
+            <path
+              d="M40 195 C 130 192, 200 178, 280 172 S 440 150, 590 135"
+              fill="none"
+              stroke="var(--text-muted)"
+              strokeWidth="2"
+              strokeDasharray="2 6"
+              strokeLinecap="round"
+              opacity="0.35"
+            />
+          </svg>
+          <div className="chart-empty-state chart-empty-overlay">
+            <p>No financial data available yet.</p>
+            <span>Start tracking labor and costs to see trends.</span>
+          </div>
         </div>
       </div>
     )
@@ -357,6 +404,8 @@ export default function FinancialTrendChart({
             {(() => {
               const last = chartData[chartData.length - 1]
               if (!last || !last.revenue) return '0%'
+              // No cost data yet — a "100%" margin is misleading, show em dash instead
+              if (!last.costs) return '—'
               const margin = ((last.revenue - last.costs) / last.revenue) * 100
               return `${margin.toFixed(1)}%`
             })()}
