@@ -1,7 +1,8 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useMemo } from 'react'
 import { HardHat, Menu, Download } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
-import { exportProjectFinancials, exportToQuickBooksIIF } from '../../../lib/financialExport'
+import { db } from '../../../lib/supabase'
+import { exportProjectFinancials, exportToQuickBooksIIF, exportCORLogCSV, exportInvoicesCSV } from '../../../lib/financialExport'
 import SageExport from '../../billing/SageExport'
 import HeroMetrics from '../../HeroMetrics'
 import FinancialsNav from '../../FinancialsNav'
@@ -63,36 +64,76 @@ export default function FinancialsTab({
   onDeleteCost,
   onShowToast
 }) {
+  // Billing workflow stage counts for the Billing sub-tab pipeline
+  const billingWorkflowStats = useMemo(() => ({
+    pendingReview: (projectData?.corPendingCount || 0) + (projectData?.pendingTickets || 0),
+    approved: (projectData?.corStats?.approved_count || 0) + (projectData?.approvedTickets || 0)
+  }), [projectData?.corPendingCount, projectData?.pendingTickets, projectData?.corStats?.approved_count, projectData?.approvedTickets])
+
+  // Contextual CSV export - exports data relevant to the active sub-tab
+  const handleExportCSV = async () => {
+    if (financialsSection === 'cors') {
+      exportCORLogCSV(projectData?.changeOrders || [], selectedProject)
+      return
+    }
+    if (financialsSection === 'billing') {
+      try {
+        const invoices = await db.getProjectInvoices(selectedProject.id)
+        exportInvoicesCSV(invoices || [], selectedProject)
+      } catch (error) {
+        console.error('Error exporting invoices:', error)
+        onShowToast?.('Error exporting invoices', 'error')
+      }
+      return
+    }
+    exportProjectFinancials(selectedProject, {
+      earnedRevenue: billable,
+      approvedCORs: null,
+      laborByDate: projectData?.laborByDate,
+      customCosts: projectData?.customCosts
+    })
+  }
+
+  const exportCSVLabel = financialsSection === 'cors'
+    ? 'Export CORs CSV'
+    : financialsSection === 'billing'
+      ? 'Export Invoices CSV'
+      : 'Export CSV'
+
   return (
     <div className="pv-tab-panel financials-tab">
-      {/* Export Actions */}
-      <div className="export-actions">
-        <button
-          className="btn btn-ghost btn-small"
-          onClick={() => exportProjectFinancials(selectedProject, {
-            earnedRevenue: billable,
-            approvedCORs: null,
-            laborByDate: projectData?.laborByDate,
-            customCosts: projectData?.customCosts
-          })}
-        >
-          <Download size={14} /> Export CSV
-        </button>
-        <button
-          className="btn btn-ghost btn-small"
-          onClick={() => exportToQuickBooksIIF(selectedProject, {
-            totalLaborCost: projectData?.laborCost || 0
-          })}
-        >
-          <Download size={14} /> QuickBooks
-        </button>
-        <SageExport
-          project={selectedProject}
-          company={company}
-          onShowToast={onShowToast}
-        />
-      </div>
-      {/* Key Metrics - Hero Section (Always visible) */}
+      {/* Export Actions - hidden on the Tickets sub-tab, which has its own CSV/Excel/PDF exports */}
+      {financialsSection !== 'tickets' && (
+        <div className="export-actions">
+          <button
+            className="btn btn-ghost btn-small"
+            onClick={handleExportCSV}
+            title={
+              financialsSection === 'cors'
+                ? 'Export change order log as CSV'
+                : financialsSection === 'billing'
+                  ? 'Export invoices as CSV'
+                  : 'Export project financial summary as CSV'
+            }
+          >
+            <Download size={14} /> {exportCSVLabel}
+          </button>
+          <button
+            className="btn btn-ghost btn-small"
+            onClick={() => exportToQuickBooksIIF(selectedProject, {
+              totalLaborCost: projectData?.laborCost || 0
+            })}
+          >
+            <Download size={14} /> QuickBooks
+          </button>
+          <SageExport
+            project={selectedProject}
+            company={company}
+            onShowToast={onShowToast}
+          />
+        </div>
+      )}
+      {/* Key Metrics - full cards on Overview, compact one-line strip on sub-tabs */}
       <HeroMetrics
         contractValue={selectedProject?.contract_value || 0}
         earnedRevenue={billable}
@@ -101,6 +142,7 @@ export default function FinancialsTab({
         progress={progress}
         corApprovedValue={changeOrderValue}
         loading={!projectData}
+        compact={financialsSection !== 'overview'}
       />
 
       {/* Split Layout with Collapsible Navigation */}
@@ -223,11 +265,13 @@ export default function FinancialsTab({
                 <Suspense fallback={<TicketSkeleton />}>
                   <CORLogPreview
                     project={selectedProject}
+                    company={company}
                     onShowToast={onShowToast}
                     onToggleList={onToggleCORList}
                     showingList={corListExpanded}
                     onViewFullLog={() => setCORDisplayMode('log')}
                     onCreateCOR={onCreateCOR}
+                    onViewCOR={onViewCOR}
                   />
                 </Suspense>
               </div>
@@ -286,6 +330,7 @@ export default function FinancialsTab({
                   company={company}
                   user={user}
                   onShowToast={onShowToast}
+                  workflowStats={billingWorkflowStats}
                 />
               </Suspense>
             </div>

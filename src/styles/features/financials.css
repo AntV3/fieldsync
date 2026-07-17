@@ -98,6 +98,14 @@
   color: var(--status-danger);
 }
 
+/* Muted "No cost data" label shown instead of a status badge when costs are $0 */
+.burn-status-no-data {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .burn-rate-hero {
   margin-bottom: 0.875rem;
 }
@@ -528,6 +536,7 @@
   color: var(--accent-red);
 }
 
+/* Prominent CTA so adding costs is discoverable (was a subtle dashed text link) */
 .cost-add-btn {
   display: flex;
   align-items: center;
@@ -536,20 +545,21 @@
   width: 100%;
   padding: 0.75rem;
   margin-top: 1rem;
-  background: transparent;
-  border: 1px dashed var(--border-color);
+  background: var(--blue-subtle, rgba(59, 130, 246, 0.08));
+  border: 1.5px solid var(--accent-blue, var(--accent-primary));
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  color: var(--accent-blue, var(--accent-primary));
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-normal);
 }
 
 .cost-add-btn:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
+  background: var(--accent-blue, var(--accent-primary));
+  border-color: var(--accent-blue, var(--accent-primary));
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
 }
 
 
@@ -638,6 +648,16 @@
   color: var(--status-danger);
 }
 
+/* Neutral badge while no cost data exists — avoids a misleading green "On Track" */
+.profitability-status.no-data {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.profitability-card.no-data {
+  border-left: 3px solid var(--border-color);
+}
+
 .profitability-metrics {
   display: flex;
   flex-direction: column;
@@ -697,6 +717,16 @@
 
 .profit-bar.negative {
   background: var(--accent-red);
+}
+
+/* Grayed-out bar while awaiting cost data */
+.profit-bar.no-data {
+  background: var(--border-color);
+  opacity: 0.6;
+}
+
+.profit-metric-value.no-data {
+  color: var(--text-muted);
 }
 
 .profitability-summary {

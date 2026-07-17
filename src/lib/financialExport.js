@@ -206,6 +206,66 @@ export function exportTMTicketsCSV(tickets, project) {
 }
 
 /**
+ * Export the project's COR log as CSV (used by the CORs sub-tab export button)
+ */
+export function exportCORLogCSV(changeOrders, project) {
+  const headers = [
+    { key: 'corNumber', label: 'COR #' },
+    { key: 'title', label: 'Title' },
+    { key: 'status', label: 'Status' },
+    { key: 'amount', label: 'Amount' },
+    { key: 'createdDate', label: 'Created Date' },
+    { key: 'approvedDate', label: 'Approved Date' }
+  ]
+
+  const rows = (changeOrders || []).map(cor => ({
+    corNumber: cor.cor_number || '',
+    title: cor.title || 'Untitled',
+    status: cor.status || '',
+    // cor_total is stored in cents
+    amount: ((cor.cor_total || 0) / 100).toFixed(2),
+    createdDate: cor.created_at ? String(cor.created_at).split('T')[0] : '',
+    approvedDate: cor.approved_at ? String(cor.approved_at).split('T')[0] : ''
+  }))
+
+  const csv = toCSV(headers, rows)
+  const filename = `${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_CORs_${new Date().toISOString().split('T')[0]}.csv`
+  downloadFile(csv, filename)
+}
+
+/**
+ * Export the project's invoices as CSV (used by the Billing sub-tab export button)
+ */
+export function exportInvoicesCSV(invoices, project) {
+  const headers = [
+    { key: 'invoiceNumber', label: 'Invoice #' },
+    { key: 'invoiceDate', label: 'Invoice Date' },
+    { key: 'dueDate', label: 'Due Date' },
+    { key: 'status', label: 'Status' },
+    { key: 'subtotal', label: 'Subtotal' },
+    { key: 'retention', label: 'Retention' },
+    { key: 'total', label: 'Total' },
+    { key: 'amountPaid', label: 'Amount Paid' }
+  ]
+
+  const rows = (invoices || []).map(inv => ({
+    invoiceNumber: inv.invoice_number || '',
+    invoiceDate: inv.invoice_date ? String(inv.invoice_date).split('T')[0] : '',
+    dueDate: inv.due_date ? String(inv.due_date).split('T')[0] : '',
+    status: inv.status || '',
+    // invoice amounts are stored in cents
+    subtotal: ((inv.subtotal || 0) / 100).toFixed(2),
+    retention: ((inv.retention_amount || 0) / 100).toFixed(2),
+    total: ((inv.total || 0) / 100).toFixed(2),
+    amountPaid: ((inv.amount_paid || 0) / 100).toFixed(2)
+  }))
+
+  const csv = toCSV(headers, rows)
+  const filename = `${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Invoices_${new Date().toISOString().split('T')[0]}.csv`
+  downloadFile(csv, filename)
+}
+
+/**
  * Export to QuickBooks IIF format (General Journal Entry)
  * IIF = Intuit Interchange Format - importable by QuickBooks Desktop
  */

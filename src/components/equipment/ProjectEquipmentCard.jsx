@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, memo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
 import { Truck, Plus, Calendar, RotateCcw, ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
@@ -30,6 +30,7 @@ export default memo(function ProjectEquipmentCard({
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(true)
   const [totalCost, setTotalCost] = useState(0)
+  const autoCollapsedRef = useRef(false)
 
   // Memoized load function to avoid stale closures
   const loadEquipment = useCallback(async () => {
@@ -39,6 +40,15 @@ export default memo(function ProjectEquipmentCard({
       setLoading(true)
       const data = await equipmentOps.getProjectEquipment(project.id)
       setProjectEquipment(data || [])
+
+      // Start collapsed when there's nothing tracked yet, so the empty
+      // section doesn't take up space below the fold (once per project)
+      if (!autoCollapsedRef.current) {
+        autoCollapsedRef.current = true
+        if (!data || data.length === 0) {
+          setExpanded(false)
+        }
+      }
 
       // Calculate total cost
       const cost = equipmentOps.calculateProjectEquipmentCost(data || [])
@@ -122,14 +132,14 @@ export default memo(function ProjectEquipmentCard({
             <Plus size={14} />
             <span>Add</span>
           </button>
-          {projectEquipment.length > 0 && (
-            <button
-              className="btn btn-sm btn-ghost"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          )}
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
+            title={expanded ? 'Collapse section' : 'Expand section'}
+          >
+            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
         </div>
       </div>
 
@@ -138,16 +148,22 @@ export default memo(function ProjectEquipmentCard({
           <div className="loading-spinner small" />
         </div>
       ) : projectEquipment.length === 0 ? (
-        <div className="equipment-empty">
-          <p>No equipment tracked on this project</p>
-          <button
-            className="btn btn-sm btn-outline"
-            onClick={() => onAddEquipment?.()}
-          >
-            <Plus size={14} />
-            Track Equipment
-          </button>
-        </div>
+        expanded ? (
+          <div className="equipment-empty">
+            <p>No equipment tracked on this project</p>
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => onAddEquipment?.()}
+            >
+              <Plus size={14} />
+              Track Equipment
+            </button>
+          </div>
+        ) : (
+          <div className="equipment-summary-collapsed">
+            <span>No equipment tracked</span>
+          </div>
+        )
       ) : expanded ? (
         <>
           {/* Active Equipment */}

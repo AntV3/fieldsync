@@ -4365,6 +4365,26 @@ END MIGRATED */
   color: var(--text-muted);
 }
 
+/* Mini trend sparkline on the Total Tickets card */
+.tm-card-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.tm-card-sparkline {
+  display: block;
+  flex-shrink: 0;
+}
+
+.tm-card-trend-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps, 0.05em);
+}
+
 /* Status Cards Row */
 .tm-status-cards {
   display: grid;
@@ -4411,6 +4431,11 @@ END MIGRATED */
   font-weight: 700;
   color: var(--text-color);
   line-height: 1;
+}
+
+/* Em dash shown when there are no completed approvals to compute a rate from */
+.tm-status-count.no-data {
+  color: var(--text-muted);
 }
 
 .tm-status-value {

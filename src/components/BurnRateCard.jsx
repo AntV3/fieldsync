@@ -42,6 +42,9 @@ export default function BurnRateCard({
   // Count how many secondary cost categories exist
   const secondaryCostCount = [materialsEquipmentCost, projectEquipmentCost, customCostTotal].filter(c => c > 0).length
 
+  // No cost data recorded yet — an "On Budget" badge on $0 costs is misleading
+  const hasCostData = totalBurn > 0
+
   // Calculate burn status relative to progress
   const expectedBurnAtProgress = contractValue * (progress / 100) * 0.6 // Assume 60% cost ratio as healthy
   const burnStatus = totalBurn <= expectedBurnAtProgress ? 'on-budget' : totalBurn <= expectedBurnAtProgress * 1.2 ? 'warning' : 'over-budget'
@@ -94,10 +97,14 @@ export default function BurnRateCard({
           <h3>Burn Rate</h3>
           <InfoTooltip text="Daily Burn = Total Costs ÷ Days Worked. Projected at Completion = Total Costs ÷ (Progress % ÷ 100)" />
         </div>
-        <div className={`burn-status ${burnStatus}`}>
-          <StatusIcon size={14} />
-          <span>{statusLabel}</span>
-        </div>
+        {hasCostData ? (
+          <div className={`burn-status ${burnStatus}`}>
+            <StatusIcon size={14} />
+            <span>{statusLabel}</span>
+          </div>
+        ) : (
+          <span className="burn-status-no-data">No cost data</span>
+        )}
       </div>
 
       <div className="burn-rate-hero">

@@ -16,6 +16,15 @@ const formatCurrency = (amount) => {
   }).format(amount || 0)
 }
 
+// Compact currency for the single-line summary strip ($2.5M, $980K)
+const formatCurrencyCompact = (amount) => {
+  const value = amount || 0
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000) return `${value < 0 ? '-' : ''}$${(abs / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  if (abs >= 1_000) return `${value < 0 ? '-' : ''}$${(abs / 1_000).toFixed(0)}K`
+  return formatCurrency(value)
+}
+
 /** Decorative spark line SVG watermark for bottom-right corner of cards */
 const SparkLineWatermark = ({ color }) => (
   <svg
@@ -52,7 +61,9 @@ const MetricCard = memo(function MetricCard({
   trend,
   previousValue,
   showPulse = false,
-  tooltip
+  tooltip,
+  subLabelMuted = false,
+  helperText
 }) {
   const variantColors = {
     default: 'var(--accent-blue)',
@@ -110,9 +121,19 @@ const MetricCard = memo(function MetricCard({
       </div>
 
       {subLabel && (
-        <span className="hero-metric-sublabel hero-metric-pill" style={{ background: bg, color }}>
-          {subLabel}
-        </span>
+        subLabelMuted ? (
+          <span className="hero-metric-sublabel hero-metric-pill hero-metric-pill--muted">
+            {subLabel}
+          </span>
+        ) : (
+          <span className="hero-metric-sublabel hero-metric-pill" style={{ background: bg, color }}>
+            {subLabel}
+          </span>
+        )
+      )}
+
+      {helperText && (
+        <span className="hero-metric-helper">{helperText}</span>
       )}
 
       {progress !== undefined && (
@@ -144,6 +165,7 @@ export default memo(function HeroMetrics({
   progress = 0,
   corApprovedValue = 0,
   loading = false,
+  compact = false, // Single-line summary strip for sub-tabs (CORs/Tickets/Billing)
   previousData // Optional: for trend indicators
 }) {
   // Calculate derived values
@@ -153,23 +175,52 @@ export default memo(function HeroMetrics({
   const revenueProgress = revisedContract > 0 ? ((earnedRevenue / revisedContract) * 100) : 0
   const costProgress = revisedContract > 0 ? ((totalCosts / revisedContract) * 100) : 0
 
+  // With $0 costs a "100% margin" is technically right but reads as a success
+  // state — treat margins as unknown until cost data exists
+  const awaitingCosts = totalCosts === 0
+
   // Determine profit status
   const profitVariant = useMemo(() => {
+    if (awaitingCosts) return 'default'
     if (profitMargin >= 20) return 'success'
     if (profitMargin >= 10) return 'warning'
     if (profitMargin < 0) return 'danger'
     return 'default'
-  }, [profitMargin])
+  }, [profitMargin, awaitingCosts])
 
   // Determine cost status
   const costVariant = useMemo(() => {
+    if (awaitingCosts) return 'default'
     if (costRatio <= 60) return 'success'
     if (costRatio <= 80) return 'warning'
     return 'danger'
-  }, [costRatio])
+  }, [costRatio, awaitingCosts])
 
   if (loading) {
-    return <HeroMetricsSkeleton />
+    return compact ? null : <HeroMetricsSkeleton />
+  }
+
+  // Compact single-line strip for sub-tabs where the full cards would repeat
+  if (compact) {
+    return (
+      <div className="hero-metrics-compact" role="region" aria-label="Financial summary">
+        <span className="hero-metrics-compact-item">
+          <strong>{formatCurrencyCompact(revisedContract)}</strong> contract
+        </span>
+        <span className="hero-metrics-compact-sep" aria-hidden="true">·</span>
+        <span className="hero-metrics-compact-item">
+          <strong>{formatCurrencyCompact(earnedRevenue)}</strong> earned
+        </span>
+        <span className="hero-metrics-compact-sep" aria-hidden="true">·</span>
+        <span className="hero-metrics-compact-item">
+          <strong>{formatCurrencyCompact(totalCosts)}</strong> costs
+        </span>
+        <span className="hero-metrics-compact-sep" aria-hidden="true">·</span>
+        <span className={`hero-metrics-compact-item ${profit > 0 && !awaitingCosts ? 'positive' : profit < 0 ? 'negative' : ''}`}>
+          <strong>{formatCurrencyCompact(profit)}</strong> profit
+        </span>
+      </div>
+    )
   }
 
   return (
@@ -205,8 +256,9 @@ export default memo(function HeroMetrics({
         label="Total Costs"
         value={totalCosts}
         formattedValue={formatCurrency(totalCosts)}
-        progress={costProgress}
-        progressLabel={`${Math.round(costRatio)}% of revenue`}
+        progress={awaitingCosts ? undefined : costProgress}
+        progressLabel={awaitingCosts ? undefined : `${Math.round(costRatio)}% of revenue`}
+        helperText={awaitingCosts ? 'Enter costs to track margins' : undefined}
         variant={costVariant}
         previousValue={previousData?.totalCosts}
         trend={previousData ? totalCosts : undefined}
@@ -219,11 +271,12 @@ export default memo(function HeroMetrics({
         label="Profit"
         value={profit}
         formattedValue={formatCurrency(profit)}
-        subLabel={`${profitMargin >= 0 ? '+' : ''}${profitMargin.toFixed(1)}% margin`}
+        subLabel={awaitingCosts ? '— margin' : `${profitMargin >= 0 ? '+' : ''}${profitMargin.toFixed(1)}% margin`}
+        subLabelMuted={awaitingCosts}
         variant={profitVariant}
         previousValue={previousData?.profit}
         trend={previousData ? profit : undefined}
-        showPulse={profit > 0}
+        showPulse={profit > 0 && !awaitingCosts}
         tooltip="Earned Revenue − Total Costs. Margin = Profit ÷ Earned Revenue × 100"
       />
     </div>
