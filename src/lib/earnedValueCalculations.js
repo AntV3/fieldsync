@@ -25,6 +25,10 @@
  * @param {Date} [params.now] - "As of" date for schedule-based metrics
  *   (planned value, SPI, projections). Defaults to the current date.
  *   Pass an explicit date to compute metrics as of a billing-period close.
+ * @param {number} [params.earnedValueOverride] - Actual earned revenue (e.g.
+ *   sum of completed SOV line values). When provided (> 0), used as EV instead
+ *   of the progress-based approximation so EVM agrees with the earned revenue
+ *   shown elsewhere in the app. Clamped to BAC.
  * @returns {Object} Earned value metrics
  */
 export function calculateEarnedValue({
@@ -35,6 +39,7 @@ export function calculateEarnedValue({
   startDate,
   endDate,
   now = new Date(),
+  earnedValueOverride = null,
   _areas = []
 }) {
   // BAC = Budget at Completion (revised with change orders)
@@ -44,7 +49,11 @@ export function calculateEarnedValue({
   const clampedProgress = Math.min(100, Math.max(0, progressPercent))
 
   // EV = Earned Value (what we've earned based on completion)
-  const earnedValue = (clampedProgress / 100) * bac
+  // Prefer the actual earned revenue when supplied so SOV-based projects
+  // report the same EV here as the financial cards report as "earned"
+  const earnedValue = (earnedValueOverride != null && earnedValueOverride > 0)
+    ? Math.min(earnedValueOverride, bac)
+    : (clampedProgress / 100) * bac
 
   // PV = Planned Value (what we should have earned by now based on schedule)
   const plannedValue = calculatePlannedValue(bac, startDate, endDate, now)

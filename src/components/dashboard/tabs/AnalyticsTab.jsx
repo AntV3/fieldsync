@@ -7,6 +7,7 @@ import ProjectHealthOverview from '../ProjectHealthOverview'
 import EarnedValueCard from '../../charts/EarnedValueCard'
 import TradeKPICard from '../TradeKPICard'
 import { generateProjectForecast } from '../../../lib/forecastCalculations'
+import { buildEquipmentCostByDate } from '../../../lib/chartDataTransforms'
 import { generateCashFlowProjection } from '../../../lib/cashFlowCalculations'
 import { analyzeResourceCapacity } from '../../../lib/resourceCalculations'
 
@@ -44,13 +45,15 @@ export default function AnalyticsTab({
       contractValue: selectedProject.contract_value || selectedProject.contractValue || 0,
       changeOrderValue: changeOrderValue || 0,
       progressPercent: progress,
-      actualCosts: projectData?.allCostsTotal || billable || 0,
+      // Costs only — never substitute earned revenue for spend, or the
+      // budget forecast reports phantom costs on projects with no cost data
+      actualCosts: projectData?.allCostsTotal || 0,
       startDate: selectedProject.start_date || selectedProject.startDate,
       endDate: selectedProject.end_date || selectedProject.endDate,
       costHistory,
       progressHistory,
     })
-  }, [selectedProject, projectData, progress, billable, changeOrderValue])
+  }, [selectedProject, projectData, progress, changeOrderValue])
 
   // ---- Cash Flow (used by Health Overview) ----
   const cashFlow = useMemo(() => {
@@ -247,6 +250,7 @@ export default function AnalyticsTab({
             startDate={selectedProject.start_date}
             endDate={selectedProject.end_date}
             areas={areas}
+            earnedRevenue={billable}
           />
         </div>
       )}
@@ -290,39 +294,30 @@ export default function AnalyticsTab({
 
 // ---- Data Helpers ----
 
+// Daily cost history covering the SAME four categories as allCostsTotal
+// (labor, T&M materials, custom costs, equipment rental) so the trend-based
+// forecast isn't mixing an all-in actual with a partial burn history.
 function buildCostHistory(projectData) {
   if (!projectData) return []
 
-  const entries = []
-
-  if (projectData.laborByDate && Array.isArray(projectData.laborByDate)) {
-    for (const entry of projectData.laborByDate) {
-      const date = entry.date || entry.work_date
-      if (!date) continue
-      entries.push({
-        date,
-        dailyCost: entry.total || entry.cost || entry.amount || 0,
-      })
-    }
+  const byDate = {}
+  const add = (date, cost) => {
+    if (!date || !cost) return
+    byDate[date] = (byDate[date] || 0) + cost
   }
 
-  if (projectData.materialsEquipmentByDate && Array.isArray(projectData.materialsEquipmentByDate)) {
-    for (const entry of projectData.materialsEquipmentByDate) {
-      const date = entry.date || entry.work_date
-      if (!date) continue
-      const existing = entries.find(e => e.date === date)
-      if (existing) {
-        existing.dailyCost += entry.total || entry.cost || entry.amount || 0
-      } else {
-        entries.push({
-          date,
-          dailyCost: entry.total || entry.cost || entry.amount || 0,
-        })
-      }
-    }
-  }
+  ;(projectData.laborByDate || []).forEach(entry =>
+    add(entry.date || entry.work_date, entry.total || entry.cost || entry.amount || 0))
+  ;(projectData.materialsEquipmentByDate || []).forEach(entry =>
+    add(entry.date || entry.work_date, entry.total || entry.cost || entry.amount || 0))
+  ;(projectData.customCosts || []).forEach(cost =>
+    add(cost.cost_date, parseFloat(cost.amount) || 0))
+  Object.entries(buildEquipmentCostByDate(projectData.projectEquipment || [])).forEach(([date, cost]) =>
+    add(date, cost))
 
-  return entries.sort((a, b) => new Date(a.date) - new Date(b.date))
+  return Object.entries(byDate)
+    .map(([date, dailyCost]) => ({ date, dailyCost }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
 }
 
 function buildProgressHistory(projectData, currentProgress) {

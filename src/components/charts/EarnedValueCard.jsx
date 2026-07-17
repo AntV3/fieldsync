@@ -17,7 +17,10 @@ export default function EarnedValueCard({
   actualCosts = 0,
   startDate,
   endDate,
-  areas = []
+  areas = [],
+  // Actual earned revenue (billable) so EVM's EV matches the "earned" figure
+  // shown on the Financials tab instead of a progress-based approximation
+  earnedRevenue = null
 }) {
   const ev = useMemo(() =>
     calculateEarnedValue({
@@ -27,9 +30,10 @@ export default function EarnedValueCard({
       actualCosts,
       startDate,
       endDate,
+      earnedValueOverride: earnedRevenue,
       areas
     }),
-    [contractValue, changeOrderValue, progressPercent, actualCosts, startDate, endDate, areas]
+    [contractValue, changeOrderValue, progressPercent, actualCosts, startDate, endDate, earnedRevenue, areas]
   )
 
   const sCurveData = useMemo(() =>

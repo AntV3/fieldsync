@@ -138,7 +138,7 @@ export default function FinancialsTab({
         contractValue={selectedProject?.contract_value || 0}
         earnedRevenue={billable}
         totalCosts={projectData?.allCostsTotal || 0}
-        profit={projectData?.currentProfit || 0}
+        profit={billable - (projectData?.allCostsTotal || 0)}
         progress={progress}
         corApprovedValue={changeOrderValue}
         loading={!projectData}
@@ -252,7 +252,12 @@ export default function FinancialsTab({
                   <span className="financials-details-value">{formatCurrency(projectData?.laborCost || 0)}</span>
                 </summary>
                 <div className="financials-details-content">
-                  <ManDayCosts project={selectedProject} company={company} onShowToast={onShowToast} />
+                  <ManDayCosts
+                    project={selectedProject}
+                    company={company}
+                    onShowToast={onShowToast}
+                    laborCostData={projectData?.laborCostData}
+                  />
                 </div>
               </details>
             </div>
@@ -331,6 +336,7 @@ export default function FinancialsTab({
                   user={user}
                   onShowToast={onShowToast}
                   workflowStats={billingWorkflowStats}
+                  refreshKey={corRefreshKey}
                 />
               </Suspense>
             </div>

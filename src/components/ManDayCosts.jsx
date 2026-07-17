@@ -4,12 +4,19 @@ import { db } from '../lib/supabase'
 import { ListItemSkeleton } from './ui/Skeleton'
 import { EmptyState } from './ui/ErrorState'
 
-export default function ManDayCosts({ project, company, onShowToast }) {
-  const [costData, setCostData] = useState(null)
-  const [loading, setLoading] = useState(true)
+// When `laborCostData` is provided (Dashboard's shared calculateManDayCosts
+// result, kept fresh by its realtime refresh), render from it directly so this
+// card always shows the same labor numbers as the burn rate and hero metrics.
+// The self-fetching path remains as a fallback for standalone usage.
+export default function ManDayCosts({ project, company, onShowToast, laborCostData = null }) {
+  const [fetchedData, setFetchedData] = useState(null)
+  const [loading, setLoading] = useState(!laborCostData)
   const [expanded, setExpanded] = useState(false)
 
+  const costData = laborCostData ?? fetchedData
+
   useEffect(() => {
+    if (laborCostData) return // fed from shared project data — no separate fetch
     if (project?.id && company?.id) {
       loadCostData()
 
@@ -22,7 +29,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
         if (subscription) db.unsubscribe?.(subscription)
       }
     }
-  }, [project?.id, company?.id])
+  }, [project?.id, company?.id, laborCostData])
 
   const loadCostData = async () => {
     try {
@@ -32,7 +39,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
         project.work_type || 'demolition',
         project.job_type || 'standard'
       )
-      setCostData(data)
+      setFetchedData(data)
     } catch (error) {
       console.error('Error loading man day costs:', error)
       if (onShowToast) {
@@ -71,7 +78,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
     return labels[role] || role.charAt(0).toUpperCase() + role.slice(1)
   }
 
-  if (loading) {
+  if (loading && !costData) {
     return (
       <div className="man-day-costs card">
         <div className="man-day-header">
@@ -132,7 +139,7 @@ export default function ManDayCosts({ project, company, onShowToast }) {
               : '$0'
             }
           </span>
-          <span className="stat-label">Avg Cost/Day</span>
+          <span className="stat-label">Avg Labor Cost/Day</span>
         </div>
       </div>
 

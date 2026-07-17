@@ -142,7 +142,6 @@ export default function App() {
     handleMfaCancel,
   } = useAuthState({ navigate, locationPathname: location.pathname, showToast })
 
-  const [, setProjects] = useState([])
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
@@ -150,22 +149,10 @@ export default function App() {
 
   const handleProjectCreated = () => {
     navigate('/dashboard')
-    if (company?.id) loadProjects()
-  }
-
-  const loadProjects = async () => {
-    if (!company?.id) return
-    try {
-      const projectList = await db.getProjects(company.id)
-      setProjects(projectList)
-    } catch (error) {
-      console.error('Error loading projects:', error)
-    }
   }
 
   useEffect(() => {
     if (company?.id && authReady) {
-      loadProjects()
       loadPendingRequestCount()
     }
   }, [company?.id, authReady]) // eslint-disable-line react-hooks/exhaustive-deps
