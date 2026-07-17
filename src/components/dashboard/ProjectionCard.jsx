@@ -1,5 +1,5 @@
 import React from 'react'
-import { TrendingUp, Calendar, DollarSign, Target, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { TrendingUp, Calendar, DollarSign, Target } from 'lucide-react'
 import { InfoTooltip } from '../ui'
 
 /**
@@ -158,39 +158,6 @@ export function ProjectionsPanel({
           />
         )}
       </div>
-    </div>
-  )
-}
-
-/**
- * Simple projection summary for compact display
- */
-export function ProjectionSummary({
-  estimatedCompletionCost,
-  originalBudget,
-  estimatedFinalMargin,
-  className = ''
-}) {
-  const overBudget = estimatedCompletionCost && originalBudget && estimatedCompletionCost > originalBudget
-  const underMargin = estimatedFinalMargin !== null && estimatedFinalMargin < 20
-
-  if (!overBudget && !underMargin) {
-    return (
-      <div className={`projection-summary projection-summary--good ${className}`}>
-        <span className="projection-summary__icon"><CheckCircle2 size={16} /></span>
-        <span>Projections look healthy</span>
-      </div>
-    )
-  }
-
-  return (
-    <div className={`projection-summary projection-summary--warning ${className}`}>
-      <span className="projection-summary__icon"><AlertTriangle size={16} /></span>
-      <span>
-        {overBudget && `Tracking ${((estimatedCompletionCost / originalBudget - 1) * 100).toFixed(0)}% over budget`}
-        {overBudget && underMargin && ' • '}
-        {underMargin && `Margin projected at ${estimatedFinalMargin.toFixed(0)}%`}
-      </span>
     </div>
   )
 }

@@ -212,23 +212,4 @@ export function NoAlertsMessage({ className = '' }) {
   )
 }
 
-/**
- * Helper to aggregate alerts from multiple projects
- */
-export function aggregateAlerts(projectAlerts) {
-  // Flatten all alerts from all projects
-  const allAlerts = projectAlerts.flatMap(p => p.alerts || [])
-
-  // Sort by priority
-  const priorityOrder = { critical: 0, warning: 1, info: 2 }
-  allAlerts.sort((a, b) => {
-    const priorityDiff = priorityOrder[a.type] - priorityOrder[b.type]
-    if (priorityDiff !== 0) return priorityDiff
-    // Secondary sort by project name
-    return (a.projectName || '').localeCompare(b.projectName || '')
-  })
-
-  return allAlerts
-}
-
 export default SmartAlerts

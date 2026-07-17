@@ -208,17 +208,6 @@ export const deleteFromStore = async (storeName, key) => {
   }))
 }
 
-// Clear entire store
-export const clearStore = async (storeName) => {
-  await initOfflineDB()
-  return withRetry(() => new Promise((resolve, reject) => {
-    const store = getStore(storeName, 'readwrite')
-    const request = store.clear()
-    request.onsuccess = () => resolve()
-    request.onerror = () => reject(request.error)
-  }))
-}
-
 // ============================================
 // Pending Actions Queue
 // ============================================
@@ -665,21 +654,6 @@ const processAction = async (action, db) => {
     default:
       throw new Error(`Unknown action type: ${type}`)
   }
-}
-
-// ============================================
-// Cached Data Helpers
-// ============================================
-
-// Save generic cached data with key
-export const setCachedData = async (key, data) => {
-  return saveToStore(STORES.CACHED_DATA, { key, data, cached_at: new Date().toISOString() })
-}
-
-// Get generic cached data by key
-export const getCachedData = async (key) => {
-  const result = await getFromStore(STORES.CACHED_DATA, key)
-  return result?.data || null
 }
 
 // Export store names for external use
