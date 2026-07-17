@@ -134,17 +134,6 @@ export const withRetry = async (fn, maxRetries = 3, baseDelay = 1000) => {
   throw lastError
 }
 
-export const validateAmount = (amount) => {
-  if (amount === null || amount === undefined) return true
-  const num = parseFloat(amount)
-  return !isNaN(num) && num >= 0 && num < 10000000
-}
-
-export const validateTextLength = (text, maxLength = 10000) => {
-  if (!text) return true
-  return text.length <= maxLength
-}
-
 export const sanitizeText = (text) => {
   if (!text) return text
   return text.replace(/\0/g, '').trim()

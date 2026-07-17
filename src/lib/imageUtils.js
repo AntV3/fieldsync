@@ -302,22 +302,3 @@ export function getGPSLocation(timeout = 5000) {
   })
 }
 
-/**
- * Get dimensions of an image file
- * @param {File} file - Image file
- * @returns {Promise<{width: number, height: number}>}
- */
-export function getImageDimensions(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      URL.revokeObjectURL(img.src)
-      resolve({ width: img.width, height: img.height })
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(img.src)
-      reject(new Error('Failed to load image'))
-    }
-    img.src = URL.createObjectURL(file)
-  })
-}
