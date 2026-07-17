@@ -1,5 +1,5 @@
 import { Suspense, lazy, useMemo, useState } from 'react'
-import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight, ShieldCheck } from 'lucide-react'
+import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight, ShieldCheck, CheckCircle2, ChevronDown } from 'lucide-react'
 import { formatCurrencyCompact } from '../../../lib/utils'
 import { OverviewCrewMetrics } from '../../overview'
 import DisposalSummary from '../../DisposalSummary'
@@ -67,6 +67,7 @@ export default function OverviewTab({
   const { resolvedConfig } = useTradeConfig()
   const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
   const [activityTab, setActivityTab] = useState('feed')
+  const [expandedAreaId, setExpandedAreaId] = useState(null)
 
   const originalContract = selectedProject?.contract_value || 0
   const remainingValue = revisedContractValue - billable
@@ -203,10 +204,17 @@ export default function OverviewTab({
           </div>
         </div>
 
-        <button className="sdx-card sdx-kpi sdx-kpi-clickable" onClick={() => onSetActiveTab('financials')}>
+        <button
+          className={`sdx-card sdx-kpi sdx-kpi-clickable ${pendingApprovalCount > 0 ? 'sdx-kpi-attention' : ''}`}
+          onClick={() => onSetActiveTab('financials')}
+        >
           <div className="sdx-kpi-head">
             <span className="sdx-label">Open approvals</span>
-            {pendingApprovalCount > 0 && <span className="sdx-alert-dot" aria-hidden="true" />}
+            {pendingApprovalCount > 0 && (
+              <span className="sdx-alert-badge" aria-label={`${pendingApprovalCount} items awaiting approval`}>
+                {pendingApprovalCount}
+              </span>
+            )}
           </div>
           <div className="sdx-kpi-figure-row">
             <span className="sdx-kpi-figure">{pendingApprovalCount}</span>
@@ -226,32 +234,55 @@ export default function OverviewTab({
             <span className="sdx-kpi-figure">{formatCurrencyCompact(projectData?.dailyBurn || 0)}</span>
             <span className="sdx-kpi-unit">/day</span>
           </div>
-          <div className="sdx-stack-bar" aria-hidden="true">
-            <span className="seg-navy" style={{ width: `${burnShares.labor}%` }} />
-            <span className="seg-accent" style={{ width: `${burnShares.materials}%` }} />
-            <span className="seg-amber" style={{ width: `${burnShares.equipment}%` }} />
-          </div>
-          <div className="sdx-kpi-sub">
-            Labor {burnShares.labor}% · Matl {burnShares.materials}% · Equip {burnShares.equipment}%
-          </div>
+          {burnTotal > 0 ? (
+            <>
+              <div className="sdx-stack-bar" aria-hidden="true">
+                <span className="seg-navy" style={{ width: `${burnShares.labor}%` }} />
+                <span className="seg-accent" style={{ width: `${burnShares.materials}%` }} />
+                <span className="seg-amber" style={{ width: `${burnShares.equipment}%` }} />
+              </div>
+              <div className="sdx-kpi-sub">
+                Labor {burnShares.labor}% · Matl {burnShares.materials}% · Equip {burnShares.equipment}%
+              </div>
+            </>
+          ) : (
+            <div className="sdx-kpi-empty">
+              <span>Track costs to see daily burn</span>
+              <button className="sdx-link" onClick={() => onSetActiveTab('financials')}>Enter costs →</button>
+            </div>
+          )}
         </div>
 
         <div className="sdx-card sdx-kpi">
           <div className="sdx-kpi-head">
             <span className="sdx-label">Safety</span>
-            <ShieldCheck size={15} className={projectData?.recentInjuryCount > 0 ? 'sdx-icon-warn' : 'sdx-icon-ok'} aria-hidden="true" />
+            {(projectData?.injuryReportsCount || 0) === 0 ? (
+              <CheckCircle2 size={15} className="sdx-icon-ok" aria-hidden="true" />
+            ) : (
+              <ShieldCheck size={15} className={projectData?.recentInjuryCount > 0 ? 'sdx-icon-warn' : 'sdx-icon-ok'} aria-hidden="true" />
+            )}
           </div>
           <div className="sdx-kpi-figure-row">
-            <span className={`sdx-kpi-figure ${projectData?.recentInjuryCount > 0 ? '' : 'ok'}`}>
-              {projectData?.daysSinceLastInjury ?? '—'}
-            </span>
-            <span className="sdx-kpi-unit">
-              {projectData?.daysSinceLastInjury != null ? 'days incident-free' : 'no incidents recorded'}
-            </span>
+            {projectData?.daysSinceLastInjury != null ? (
+              <>
+                <span className={`sdx-kpi-figure ${projectData?.recentInjuryCount > 0 ? '' : 'ok'}`}>
+                  {projectData.daysSinceLastInjury}
+                </span>
+                <span className="sdx-kpi-unit">days since last incident</span>
+              </>
+            ) : (
+              <>
+                <span className="sdx-kpi-figure ok">✓</span>
+                <span className="sdx-kpi-unit">no incidents recorded</span>
+              </>
+            )}
           </div>
-          <div className="sdx-kpi-sub">
-            {projectData?.injuryReportsCount || 0} report{(projectData?.injuryReportsCount || 0) !== 1 ? 's' : ''} total
-            {projectData?.recentInjuryCount > 0 && ` · ${projectData.recentInjuryCount} in last 30 days`}
+          <div className="sdx-kpi-sub sdx-kpi-sub-row">
+            <span>
+              {projectData?.injuryReportsCount || 0} report{(projectData?.injuryReportsCount || 0) !== 1 ? 's' : ''} total
+              {projectData?.recentInjuryCount > 0 && ` · ${projectData.recentInjuryCount} in last 30 days`}
+            </span>
+            <button className="sdx-link" onClick={() => onSetActiveTab('reports')}>File report →</button>
           </div>
         </div>
       </div>
@@ -294,29 +325,88 @@ export default function OverviewTab({
               {(areas || []).map(area => {
                 const meta = STATUS_META[area.status] || STATUS_META.not_started
                 const done = area.status === 'done'
+                const expanded = expandedAreaId === area.id
+                const toggleExpanded = () => setExpandedAreaId(expanded ? null : area.id)
                 return (
-                  <div key={area.id} className="sdx-sov-row" role="listitem">
-                    <div className="sdx-sov-area">
-                      <span className={`sdx-dot ${meta.className}`} aria-hidden="true" />
-                      <div className="sdx-sov-name-wrap">
-                        <div className="sdx-sov-name">{area.name}</div>
-                        {area.group_name && <div className="sdx-sov-sub">{area.group_name}</div>}
+                  <div key={area.id} role="listitem">
+                    <div
+                      className={`sdx-sov-row sdx-sov-row-clickable ${expanded ? 'expanded' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expanded}
+                      aria-label={`${area.name}: ${expanded ? 'collapse' : 'expand'} details`}
+                      onClick={toggleExpanded}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          toggleExpanded()
+                        }
+                      }}
+                    >
+                      <div className="sdx-sov-area">
+                        <span className={`sdx-dot ${meta.className}`} aria-hidden="true" />
+                        <div className="sdx-sov-name-wrap">
+                          <div className="sdx-sov-name">{area.name}</div>
+                          {area.group_name && <div className="sdx-sov-sub">{area.group_name}</div>}
+                        </div>
+                        <ChevronDown size={14} className="sdx-sov-chevron" aria-hidden="true" />
+                      </div>
+                      <div className="sdx-sov-value">{renderAreaValue(area)}</div>
+                      <div className="sdx-sov-status">
+                        <button
+                          className={`sdx-pill ${meta.className}`}
+                          onClick={(e) => { e.stopPropagation(); onAreaStatusCycle?.(area) }}
+                          title="Click to cycle status"
+                          aria-label={`${area.name}: ${meta.label}. Click to cycle status.`}
+                        >
+                          {meta.label}
+                        </button>
+                      </div>
+                      <div className={`sdx-sov-earned ${done ? 'earned' : ''}`}>
+                        {done ? renderAreaValue(area) : '—'}
                       </div>
                     </div>
-                    <div className="sdx-sov-value">{renderAreaValue(area)}</div>
-                    <div className="sdx-sov-status">
-                      <button
-                        className={`sdx-pill ${meta.className}`}
-                        onClick={() => onAreaStatusCycle?.(area)}
-                        title="Click to cycle status"
-                        aria-label={`${area.name}: ${meta.label}. Click to cycle status.`}
-                      >
-                        {meta.label}
-                      </button>
-                    </div>
-                    <div className={`sdx-sov-earned ${done ? 'earned' : ''}`}>
-                      {done ? renderAreaValue(area) : '—'}
-                    </div>
+                    {expanded && (
+                      <div className="sdx-sov-detail">
+                        <div className="sdx-sov-detail-grid">
+                          <div>
+                            <span className="sdx-label">Weight</span>
+                            <span className="sdx-sov-detail-value">{area.weight || 0}%</span>
+                          </div>
+                          <div>
+                            <span className="sdx-label">Scheduled value</span>
+                            <span className="sdx-sov-detail-value">
+                              {area.scheduled_value ? formatCurrencyCompact(area.scheduled_value) : '—'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="sdx-label">Field status</span>
+                            <span className="sdx-sov-detail-value">{meta.label}</span>
+                          </div>
+                          {area.group_name && (
+                            <div>
+                              <span className="sdx-label">Group</span>
+                              <span className="sdx-sov-detail-value">{area.group_name}</span>
+                            </div>
+                          )}
+                          {area.updated_at && (
+                            <div>
+                              <span className="sdx-label">Last updated</span>
+                              <span className="sdx-sov-detail-value">{timeAgo(area.updated_at)}</span>
+                            </div>
+                          )}
+                        </div>
+                        {area.notes && <p className="sdx-sov-detail-notes">{area.notes}</p>}
+                        <div className="sdx-sov-detail-actions">
+                          <button className="sdx-link" onClick={() => onSetActiveTab('financials')}>
+                            View T&M tickets →
+                          </button>
+                          <button className="sdx-link" onClick={() => onSetActiveTab('reports')}>
+                            View reports →
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -330,7 +420,12 @@ export default function OverviewTab({
             </div>
           </div>
 
-          {/* Live field feed / Pending approvals */}
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div className="sdx-col">
+          {/* Live field feed / Pending approvals — kept high on the page:
+              real-time field activity is one of the most-checked panels */}
           <div className="sdx-card sdx-panel" role="region" aria-label="Field activity">
             <div className="sdx-panel-header sdx-panel-header-tight">
               <div className="sdx-seg" role="tablist" aria-label="Activity view">
@@ -406,10 +501,7 @@ export default function OverviewTab({
               </div>
             )}
           </div>
-        </div>
 
-        {/* RIGHT COLUMN */}
-        <div className="sdx-col">
           {/* Contract to date waterfall */}
           <div className="sdx-card sdx-panel" role="region" aria-label="Contract to date">
             <div className="sdx-panel-header">
@@ -454,8 +546,13 @@ export default function OverviewTab({
 
           {/* Schedule + Labor mini cards */}
           <div className="sdx-mini-grid">
-            <div className="sdx-card sdx-mini">
-              <span className="sdx-label">Schedule</span>
+            <div className={`sdx-card sdx-mini ${projectData?.scheduleStatus === 'behind' ? 'danger' : ''}`}>
+              <div className="sdx-mini-head">
+                <span className="sdx-label">Schedule</span>
+                {projectData?.scheduleStatus === 'behind' && (
+                  <AlertTriangle size={14} className="sdx-mini-warn-icon" aria-hidden="true" />
+                )}
+              </div>
               <div className={`sdx-mini-figure ${projectData?.scheduleStatus === 'behind' ? 'bad' : projectData?.scheduleStatus === 'ahead' ? 'ok' : ''}`}>
                 {projectData?.hasScheduleData
                   ? `${projectData.scheduleVariance > 0 ? '+' : ''}${projectData.scheduleVariance}%`
@@ -467,8 +564,13 @@ export default function OverviewTab({
                   : 'No schedule dates set'}
               </div>
             </div>
-            <div className="sdx-card sdx-mini">
-              <span className="sdx-label">Labor vs plan</span>
+            <div className={`sdx-card sdx-mini ${projectData?.laborStatus === 'over' ? 'warn' : ''}`}>
+              <div className="sdx-mini-head">
+                <span className="sdx-label">Labor vs plan</span>
+                {projectData?.laborStatus === 'over' && (
+                  <AlertTriangle size={14} className="sdx-mini-warn-icon" aria-hidden="true" />
+                )}
+              </div>
               <div className={`sdx-mini-figure ${projectData?.laborStatus === 'over' ? 'bad' : projectData?.hasLaborData ? 'ok' : ''}`}>
                 {projectData?.hasLaborData
                   ? `${projectData.laborVariance > 0 ? '+' : ''}${projectData.laborVariance}%`

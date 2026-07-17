@@ -153,13 +153,17 @@ export default memo(function HeroMetrics({
   const revenueProgress = revisedContract > 0 ? ((earnedRevenue / revisedContract) * 100) : 0
   const costProgress = revisedContract > 0 ? ((totalCosts / revisedContract) * 100) : 0
 
+  // Margin is meaningless without any costs tracked (would always read 100%)
+  const hasCostData = totalCosts > 0
+
   // Determine profit status
   const profitVariant = useMemo(() => {
+    if (!hasCostData) return 'default'
     if (profitMargin >= 20) return 'success'
     if (profitMargin >= 10) return 'warning'
     if (profitMargin < 0) return 'danger'
     return 'default'
-  }, [profitMargin])
+  }, [profitMargin, hasCostData])
 
   // Determine cost status
   const costVariant = useMemo(() => {
@@ -218,12 +222,12 @@ export default memo(function HeroMetrics({
         icon={PiggyBank}
         label="Profit"
         value={profit}
-        formattedValue={formatCurrency(profit)}
-        subLabel={`${profitMargin >= 0 ? '+' : ''}${profitMargin.toFixed(1)}% margin`}
+        formattedValue={hasCostData ? formatCurrency(profit) : '—'}
+        subLabel={hasCostData ? `${profitMargin >= 0 ? '+' : ''}${profitMargin.toFixed(1)}% margin` : 'No costs tracked yet'}
         variant={profitVariant}
-        previousValue={previousData?.profit}
-        trend={previousData ? profit : undefined}
-        showPulse={profit > 0}
+        previousValue={hasCostData ? previousData?.profit : undefined}
+        trend={hasCostData && previousData ? profit : undefined}
+        showPulse={hasCostData && profit > 0}
         tooltip="Earned Revenue − Total Costs. Margin = Profit ÷ Earned Revenue × 100"
       />
     </div>

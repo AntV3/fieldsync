@@ -5,7 +5,7 @@ import { formatCurrencyCompact, calculateValueProgress, calculateScheduleInsight
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download, ArrowLeft, Plus } from 'lucide-react'
+import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download, ArrowLeft, Plus, AlertTriangle, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
@@ -56,6 +56,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [editingDrawRequest, setEditingDrawRequest] = useState(null)
   const [drawRequestRefreshKey, setDrawRequestRefreshKey] = useState(0)
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete())
+  const [quickActionsFabOpen, setQuickActionsFabOpen] = useState(false)
   const [costCodes, setCostCodes] = useState([])
 
   // Universal Search (Cmd+K)
@@ -609,6 +610,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         const completedAreas = project.completedAreas || 0
         const progress = totalAreas > 0 ? Math.round((completedAreas / totalAreas) * 100) : 0
 
+        // Estimate earned value from summary progress so portfolio rollups
+        // (total earned, % complete) aren't zero before details load on-demand.
+        // Refined with SOV-weighted values once the project is opened.
+        const estimatedEarned = (progress / 100) * (project.contract_value || 0)
+
         return {
           ...project,
           // Basic metrics from summary (already loaded)
@@ -621,7 +627,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           recentDailyReports: project.dailyReportsThisWeek || 0,
           corTotalCount: project.corCount || 0,
           // Placeholder values - loaded on-demand when selected
-          billable: 0,
+          billable: estimatedEarned,
           changeOrderValue: 0,
           revisedContractValue: project.contract_value || 0,
           changeOrderPending: 0,
@@ -629,7 +635,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           injuryReportsCount: 0,
           lastDailyReport: null,
           isValueBased: false,
-          earnedValue: 0,
+          earnedValue: estimatedEarned,
           totalSOVValue: 0,
           laborCost: 0,
           laborDaysWorked: 0,
@@ -719,6 +725,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setAreas([])
     handleCancelEdit()
     setActiveProjectTab('overview')
+    setQuickActionsFabOpen(false)
     loadProjects()
   }
 
@@ -981,14 +988,16 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const areasWorking = areas.filter(a => a.status === 'working').length
     const areasNotStarted = areas.filter(a => a.status === 'not_started').length
 
-    // Tab definitions with pending badges
+    // Tab definitions with pending badges and activity counts.
+    // Counts come from data already loaded via loadProjectDetails (no extra queries);
+    // tabs whose counts aren't in projectData (RFIs, Submittals, Documents) show none.
     const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)
     const tabs = [
       { id: 'overview', label: 'Overview', Icon: LayoutGrid },
-      { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
+      { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount, count: (projectData?.totalTickets || 0) + (projectData?.corTotalCount || 0) },
       { id: 'rfis', label: 'RFIs', Icon: MessageSquareText },
       { id: 'submittals', label: 'Submittals', Icon: FileCheck },
-      { id: 'reports', label: 'Reports', Icon: ClipboardList },
+      { id: 'reports', label: 'Reports', Icon: ClipboardList, count: (projectData?.dailyReportsCount || 0) + (projectData?.injuryReportsCount || 0) },
       { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
       { id: 'exports', label: 'Exports', Icon: Download },
       { id: 'documents', label: 'Documents', Icon: FolderOpen },
@@ -1009,6 +1018,20 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               <button className="pv-action" onClick={() => setShowShareModal(true)}>Share</button>
               <button className="pv-action" onClick={() => setShowNotificationSettings(true)}>Alerts</button>
               <button className="pv-action" onClick={handleEditClick}>Edit</button>
+              <button
+                className="pv-action sdx-action-secondary"
+                onClick={() => { setActiveProjectTab('financials'); setFinancialsSection('tickets') }}
+              >
+                <Plus size={14} aria-hidden="true" />
+                New T&M
+              </button>
+              <button
+                className="pv-action sdx-action-secondary"
+                onClick={() => setActiveProjectTab('reports')}
+              >
+                <Plus size={14} aria-hidden="true" />
+                Daily Report
+              </button>
               <button className="pv-action sdx-action-primary" onClick={handleCreateCOR}>
                 <Plus size={14} aria-hidden="true" />
                 New COR
@@ -1021,8 +1044,10 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             <div className="sdx-title-row">
               <h1>{selectedProject.name}</h1>
               {projectData?.hasScheduleData && (
-                <span className={`sdx-status-pill ${projectData.scheduleStatus}`}>
-                  <span className="sdx-status-dot" aria-hidden="true" />
+                <span className={`sdx-status-pill ${projectData.scheduleStatus}`} role={projectData.scheduleStatus === 'behind' ? 'alert' : undefined}>
+                  {projectData.scheduleStatus === 'behind'
+                    ? <AlertTriangle size={14} aria-hidden="true" />
+                    : <span className="sdx-status-dot" aria-hidden="true" />}
                   {projectData.scheduleStatus === 'behind'
                     ? `${Math.abs(projectData.scheduleVariance)}% behind`
                     : projectData.scheduleStatus === 'ahead'
@@ -1059,12 +1084,20 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               <span className="pv-metric-label">Remaining value</span>
             </div>
             <div className="pv-metric-divider" aria-hidden="true"></div>
-            <div className="pv-metric">
-              <span className={`pv-metric-value ${(projectData?.profitMargin || 0) >= 0 ? 'highlight' : 'sdx-metric-danger'}`}>
-                {projectData?._detailsLoaded ? `${(projectData.profitMargin || 0).toFixed(1)}%` : '—'}
-              </span>
-              <span className="pv-metric-label">Profit margin</span>
-            </div>
+            {/* Margin is meaningless until costs exist (100% margin on $0 costs is misleading) */}
+            {projectData?._detailsLoaded && (projectData?.allCostsTotal || 0) <= 0 ? (
+              <div className="pv-metric">
+                <span className="pv-metric-value sdx-metric-empty" title="Enter labor, material, or equipment costs to see profit margin">—</span>
+                <span className="pv-metric-label">No costs tracked</span>
+              </div>
+            ) : (
+              <div className="pv-metric">
+                <span className={`pv-metric-value ${(projectData?.profitMargin || 0) >= 0 ? 'highlight' : 'sdx-metric-danger'}`}>
+                  {projectData?._detailsLoaded ? `${(projectData.profitMargin || 0).toFixed(1)}%` : '—'}
+                </span>
+                <span className="pv-metric-label">Profit margin</span>
+              </div>
+            )}
           </div>
 
           {/* Tab Navigation - ARIA tablist for keyboard navigation */}
@@ -1096,8 +1129,11 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               >
                 <tab.Icon size={16} className="pv-tab-icon" aria-hidden="true" />
                 <span className="pv-tab-label">{tab.label}</span>
+                {tab.count > 0 && (
+                  <span className="pv-tab-count" aria-label={`${tab.count} total items`}>{tab.count}</span>
+                )}
                 {tab.badge > 0 && (
-                  <span className="pv-tab-badge" aria-label={`${tab.badge} items`}>{tab.badge}</span>
+                  <span className="pv-tab-badge" aria-label={`${tab.badge} items pending`}>{tab.badge}</span>
                 )}
               </button>
             ))}
@@ -1323,6 +1359,47 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           onDrawRequestSaved={() => { setShowDrawRequestModal(false); setEditingDrawRequest(null); setDrawRequestRefreshKey(prev => prev + 1); onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success') }}
           onCloseDrawRequestModal={() => { setShowDrawRequestModal(false); setEditingDrawRequest(null) }}
         />
+
+        {/* Mobile floating quick actions (speed dial) — header quick-action
+            buttons are hidden at phone widths in favor of this */}
+        <div className="sdx-quick-fab">
+          {quickActionsFabOpen && (
+            <div className="sdx-quick-fab-menu" role="menu" aria-label="Quick actions">
+              <button
+                role="menuitem"
+                className="sdx-quick-fab-item primary"
+                onClick={() => { setQuickActionsFabOpen(false); handleCreateCOR() }}
+              >
+                <Plus size={15} aria-hidden="true" />
+                New COR
+              </button>
+              <button
+                role="menuitem"
+                className="sdx-quick-fab-item"
+                onClick={() => { setQuickActionsFabOpen(false); setActiveProjectTab('financials'); setFinancialsSection('tickets') }}
+              >
+                <Plus size={15} aria-hidden="true" />
+                New T&M
+              </button>
+              <button
+                role="menuitem"
+                className="sdx-quick-fab-item"
+                onClick={() => { setQuickActionsFabOpen(false); setActiveProjectTab('reports') }}
+              >
+                <Plus size={15} aria-hidden="true" />
+                Daily Report
+              </button>
+            </div>
+          )}
+          <button
+            className={`sdx-quick-fab-main ${quickActionsFabOpen ? 'open' : ''}`}
+            onClick={() => setQuickActionsFabOpen(prev => !prev)}
+            aria-expanded={quickActionsFabOpen}
+            aria-label={quickActionsFabOpen ? 'Close quick actions' : 'Open quick actions'}
+          >
+            {quickActionsFabOpen ? <X size={22} aria-hidden="true" /> : <Plus size={22} aria-hidden="true" />}
+          </button>
+        </div>
       </div>
     )
   }

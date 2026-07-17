@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
+import { Settings, ChevronDown } from 'lucide-react'
 import { isSupabaseConfigured, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { TradeConfigProvider } from './lib/TradeConfigContext'
@@ -145,8 +146,29 @@ export default function App() {
   const [, setProjects] = useState([])
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const settingsMenuRef = useRef(null)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
+
+  // Close the Settings dropdown on outside click / Escape
+  useEffect(() => {
+    if (!showSettingsMenu) return
+    const onPointerDown = (e) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(e.target)) {
+        setShowSettingsMenu(false)
+      }
+    }
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setShowSettingsMenu(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [showSettingsMenu])
 
   const handleProjectCreated = () => {
     navigate('/dashboard')
@@ -255,17 +277,35 @@ export default function App() {
               Analytics
             </button>
             <button className={`nav-tab ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => navigate('/projects/new')}>+ New Project</button>
-            <button className={`nav-tab ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => navigate('/pricing')}>Pricing</button>
-            {isAdmin && (
-              <button className={`nav-tab ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => navigate('/branding')}>Branding</button>
-            )}
-            {isAdmin && (
-              <button className={`nav-tab ${location.pathname === '/team' ? 'active' : ''}`} onClick={() => navigate('/team')}>
-                Team
-                {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
+            {/* Settings dropdown consolidates Pricing / Branding / Team / Account */}
+            <div className="nav-settings" ref={settingsMenuRef}>
+              <button
+                className={`nav-tab nav-settings-trigger ${['/pricing', '/branding', '/team', '/account'].includes(location.pathname) ? 'active' : ''}`}
+                onClick={() => setShowSettingsMenu(prev => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={showSettingsMenu}
+              >
+                <Settings size={14} aria-hidden="true" />
+                Settings
+                <ChevronDown size={12} className={`nav-settings-caret ${showSettingsMenu ? 'open' : ''}`} aria-hidden="true" />
+                {isAdmin && pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
               </button>
-            )}
-            <button className={`nav-tab ${location.pathname === '/account' ? 'active' : ''}`} onClick={() => navigate('/account')}>Account</button>
+              {showSettingsMenu && (
+                <div className="nav-settings-dropdown" role="menu" aria-label="Settings">
+                  <button role="menuitem" className={`nav-settings-item ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => { navigate('/pricing'); setShowSettingsMenu(false) }}>Pricing</button>
+                  {isAdmin && (
+                    <button role="menuitem" className={`nav-settings-item ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => { navigate('/branding'); setShowSettingsMenu(false) }}>Branding</button>
+                  )}
+                  {isAdmin && (
+                    <button role="menuitem" className={`nav-settings-item ${location.pathname === '/team' ? 'active' : ''}`} onClick={() => { navigate('/team'); setShowSettingsMenu(false) }}>
+                      Team
+                      {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
+                    </button>
+                  )}
+                  <button role="menuitem" className={`nav-settings-item ${location.pathname === '/account' ? 'active' : ''}`} onClick={() => { navigate('/account'); setShowSettingsMenu(false) }}>Account</button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="nav-user nav-user-desktop">
             <ThemeToggle compact />
@@ -344,6 +384,11 @@ export default function App() {
                 <button className={`mobile-nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => { navigate('/dashboard'); setShowMobileMenu(false) }}>Dashboard</button>
                 <button className={`mobile-nav-item ${location.pathname === '/portfolio-analytics' ? 'active' : ''}`} onClick={() => { navigate('/portfolio-analytics'); setShowMobileMenu(false) }}>Portfolio Analytics</button>
                 <button className={`mobile-nav-item ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => { navigate('/projects/new'); setShowMobileMenu(false) }}>+ New Project</button>
+              </div>
+            </div>
+            <div className="mobile-drawer-section">
+              <div className="mobile-section-title">Settings</div>
+              <div className="mobile-nav-list">
                 <button className={`mobile-nav-item ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => { navigate('/pricing'); setShowMobileMenu(false) }}>Pricing</button>
                 {isAdmin && (
                   <button className={`mobile-nav-item ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => { navigate('/branding'); setShowMobileMenu(false) }}>Branding</button>

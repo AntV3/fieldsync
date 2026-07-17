@@ -1280,3 +1280,270 @@ button.sdx-pill:active { transform: scale(0.97); }
 @media (min-width: 900px) {
   .sdx-fld-tabbar { position: sticky; margin: 0 -1rem; }
 }
+
+/* ============================================================
+   OFFICE — dashboard UX refinements
+   (warning states, approvals badge, quick actions, SOV details)
+   ============================================================ */
+
+/* Header schedule pill: behind-schedule state is a first-class warning */
+.sdx-status-pill.behind {
+  gap: 7px;
+  padding: 6px 13px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+/* Empty-value metric in the header stats bar (e.g. margin with no costs) */
+.sdx-metric-empty {
+  color: var(--text-muted);
+  cursor: help;
+}
+
+/* Secondary header quick actions (outlined) */
+.sdx-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-blue);
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  font-weight: 600;
+}
+
+.sdx-action-secondary:hover {
+  border-color: var(--accent-blue) !important;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+/* Open approvals: numbered pulsing badge (replaces the 8px dot) */
+.sdx-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent-red);
+  color: #fff;
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  animation: sdx-badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sdx-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+/* KPI card carrying pending work: amber left border */
+.sdx-kpi-attention {
+  border-left: 3px solid var(--accent-amber);
+}
+
+/* KPI empty-state helper (e.g. Daily burn with no costs) */
+.sdx-kpi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* KPI sub line with a trailing action link (Safety card) */
+.sdx-kpi-sub-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Mini metric cards in warning / danger state */
+.sdx-mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sdx-mini.danger {
+  border-left: 3px solid var(--accent-red);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.06), transparent 60%), var(--bg-card);
+}
+
+.sdx-mini.warn {
+  border-left: 3px solid var(--accent-amber);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.06), transparent 60%), var(--bg-card);
+}
+
+.sdx-mini.danger .sdx-mini-warn-icon { color: var(--accent-red); }
+.sdx-mini.warn .sdx-mini-warn-icon { color: var(--accent-amber); }
+
+/* SOV rows: clickable + expandable detail */
+.sdx-sov-row-clickable { cursor: pointer; }
+
+/* Rows are wrapped in listitem divs (row + optional detail), which makes the
+   base `.sdx-sov-row:last-child` border reset match every row — restore the
+   dividers and only drop the border on the true last row of the list */
+.sdx-sov-row.sdx-sov-row-clickable { border-bottom: 1px solid var(--border-light); }
+.sdx-sov-rows > [role="listitem"]:last-child > .sdx-sov-row-clickable { border-bottom: none; }
+.sdx-sov-rows > [role="listitem"]:last-child > .sdx-sov-detail { border-bottom: none; }
+
+.sdx-sov-row-clickable:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+
+.sdx-sov-row-clickable.expanded { background: var(--hover-bg); }
+
+.sdx-sov-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: transform var(--duration-fast, 150ms) ease, opacity var(--duration-fast, 150ms) ease;
+}
+
+.sdx-sov-row-clickable:hover .sdx-sov-chevron,
+.sdx-sov-row-clickable:focus-visible .sdx-sov-chevron,
+.sdx-sov-row-clickable.expanded .sdx-sov-chevron { opacity: 1; }
+
+.sdx-sov-row-clickable.expanded .sdx-sov-chevron { transform: rotate(180deg); }
+
+.sdx-sov-detail {
+  padding: 0.7rem 1rem 0.9rem 2.15rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.sdx-sov-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 1.75rem;
+}
+
+.sdx-sov-detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sdx-sov-detail-value {
+  font-family: var(--font-data);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sdx-sov-detail-notes {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.sdx-sov-detail-actions {
+  display: flex;
+  gap: 18px;
+  margin-top: 9px;
+}
+
+/* Tab activity count chip (total items, distinct from the pending badge) */
+.pv-tab-count {
+  font-family: var(--font-data);
+  font-size: 0.64rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.pv-tab.active .pv-tab-count {
+  color: var(--accent-blue);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+/* Mobile floating quick actions (speed dial) */
+.sdx-quick-fab { display: none; }
+
+@media (max-width: 768px) {
+  /* Header keeps only the primary action; secondary ones move to the FAB */
+  .pv-actions .sdx-action-secondary { display: none; }
+
+  .sdx-quick-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-sticky, 200);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .sdx-quick-fab-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .sdx-quick-fab-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 15px;
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.35);
+    animation: sdx-fab-item-in 140ms ease both;
+  }
+
+  .sdx-quick-fab-item.primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+  }
+
+  .sdx-quick-fab-main {
+    width: 54px;
+    height: 54px;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 10px 22px -6px rgba(59, 130, 246, 0.65);
+    transition: transform var(--duration-fast, 150ms) ease;
+  }
+
+  .sdx-quick-fab-main:active { transform: scale(0.94); }
+
+  @keyframes sdx-fab-item-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sdx-alert-badge { animation: none; }
+  .sdx-quick-fab-item { animation: none; }
+}
