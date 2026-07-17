@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, Flame } from 'lucide-react'
 import { InfoTooltip } from './ui'
+import { HEALTHY_COST_RATIO, WARNING_COST_RATIO } from '../lib/constants'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -45,9 +46,12 @@ export default function BurnRateCard({
   // No cost data recorded yet — an "On Budget" badge on $0 costs is misleading
   const hasCostData = totalBurn > 0
 
-  // Calculate burn status relative to progress
-  const expectedBurnAtProgress = contractValue * (progress / 100) * 0.6 // Assume 60% cost ratio as healthy
-  const burnStatus = totalBurn <= expectedBurnAtProgress ? 'on-budget' : totalBurn <= expectedBurnAtProgress * 1.2 ? 'warning' : 'over-budget'
+  // Calculate burn status relative to progress, using the same shared
+  // cost-ratio bands as the hero metrics (≤60% healthy, ≤80% warning)
+  const earnedAtProgress = contractValue * (progress / 100)
+  const burnStatus = totalBurn <= earnedAtProgress * HEALTHY_COST_RATIO
+    ? 'on-budget'
+    : totalBurn <= earnedAtProgress * WARNING_COST_RATIO ? 'warning' : 'over-budget'
 
   const statusLabel = {
     'on-budget': 'On Budget',
@@ -178,7 +182,7 @@ export default function BurnRateCard({
       {progress > 0 && (
         <div className="burn-projection">
           <span className="projection-label">Projected at completion:</span>
-          <span className={`projection-value ${projectedTotalCost > contractValue * 0.7 ? 'warning' : ''}`}>
+          <span className={`projection-value ${projectedTotalCost > contractValue * WARNING_COST_RATIO ? 'warning' : ''}`}>
             {formatCurrency(projectedTotalCost)}
           </span>
         </div>

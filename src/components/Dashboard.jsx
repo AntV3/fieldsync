@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { db, equipmentOps } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
 import { formatCurrencyCompact, calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
+import { buildEquipmentCostByDate } from '../lib/chartDataTransforms'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
@@ -338,7 +339,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         safeAsync(() => db.getAreas(project.id), { fallback: [], context: { operation: 'getAreas', projectId: project.id } }),
         safeAsync(() => db.getTMTickets(project.id), { fallback: [], context: { operation: 'getTMTickets', projectId: project.id } }),
         safeAsync(() => db.getChangeOrderTotals(project.id), { fallback: null, context: { operation: 'getChangeOrderTotals', projectId: project.id } }),
-        safeAsync(() => db.getDailyReports(project.id, 100), { fallback: [], context: { operation: 'getDailyReports', projectId: project.id } }),
+        safeAsync(() => db.getDailyReports(project.id, 365), { fallback: [], context: { operation: 'getDailyReports', projectId: project.id } }),
         safeAsync(() => db.getInjuryReports(project.id), { fallback: [], context: { operation: 'getInjuryReports', projectId: project.id } }),
         safeAsync(() => db.calculateManDayCosts(project.id, company?.id, project.work_type || 'demolition', project.job_type || 'standard'), { fallback: null, context: { operation: 'calculateManDayCosts', projectId: project.id } }),
         safeAsync(() => db.getProjectCosts(project.id), { fallback: [], context: { operation: 'getProjectCosts', projectId: project.id } }),
@@ -428,11 +429,18 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       const currentProfit = billable - allCostsTotal
       const profitMargin = billable > 0 ? (currentProfit / billable) * 100 : 0
 
-      // Burn rate
+      // Burn rate — same cost categories as allCostsTotal spread over every
+      // distinct date that carried any cost (labor, materials, custom, or
+      // equipment rental), so the burn card and trend chart stay in agreement
       const laborDays = laborCosts?.byDate?.length || 0
-      const materialsDays = materialsEquipmentByDateArray.length
-      const totalBurnDays = Math.max(laborDays, materialsDays)
-      const totalBurn = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
+      const equipmentCostByDate = buildEquipmentCostByDate(projectEquipment || [])
+      const burnDates = new Set()
+      ;(laborCosts?.byDate || []).forEach(d => { if ((d.cost || 0) > 0) burnDates.add(d.date) })
+      materialsEquipmentByDateArray.forEach(d => burnDates.add(d.date))
+      customCosts.forEach(c => { if (c.cost_date) burnDates.add(c.cost_date) })
+      Object.keys(equipmentCostByDate).forEach(d => burnDates.add(d))
+      const totalBurnDays = burnDates.size
+      const totalBurn = allCostsTotal
       const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
       // Schedule insights
@@ -509,10 +517,16 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         laborDaysWorked: laborDays,
         laborManDays: laborCosts?.totalManDays || 0,
         laborByDate: laborCosts?.byDate || [],
+        // Full labor cost breakdown so child components (ManDayCosts) can
+        // render from the same data instead of re-fetching their own copy
+        laborCostData: laborCosts || null,
         dailyBurn,
         materialsEquipmentCost,
         materialsEquipmentByDate: materialsEquipmentByDateArray,
         projectEquipmentCost,
+        // Raw equipment rows so charts can accrue rental cost per day with
+        // the same math that produced projectEquipmentCost
+        projectEquipment: projectEquipment || [],
         customCosts,
         customCostTotal,
         totalBurn,
@@ -635,10 +649,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           laborDaysWorked: 0,
           laborManDays: 0,
           laborByDate: [],
+          laborCostData: null,
           dailyBurn: 0,
           materialsEquipmentCost: 0,
           materialsEquipmentByDate: [],
           projectEquipmentCost: 0,
+          projectEquipment: [],
           customCosts: [],
           customCostTotal: 0,
           totalBurn: 0,
@@ -906,16 +922,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const handleDeleteCost = useCallback(async (costId) => {
     try {
       await db.deleteProjectCost(costId)
-      // Invalidate cache for this project so fresh data is loaded
-      if (selectedProject?.id) {
-        projectDetailsCacheRef.current.delete(selectedProject.id)
-      }
-      loadProjects()
+      // Full refresh (summary + selected project details) so every card
+      // recomputes, even if the realtime event is missed
+      debouncedRefresh()
       onShowToast?.('Cost deleted', 'success')
     } catch (_err) {
       onShowToast?.('Error deleting cost', 'error')
     }
-  }, [selectedProject?.id]) // onShowToast is stable (memoized in App.jsx)
+  }, [debouncedRefresh]) // onShowToast is stable (memoized in App.jsx)
 
   // Cycle an area's field status from the SOV panel: not_started → working → done → not_started
   // Mirrors the field app's one-tap update; optimistic flip with rollback on failure.
@@ -958,6 +972,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   if (selectedProject) {
     // Extract memoized values
     const { progress, billable, changeOrderValue, revisedContractValue } = progressCalculations
+
+    // Live profit margin derived from the same live `billable` shown beside it,
+    // so the header metrics always agree with each other (projectData.profitMargin
+    // is a snapshot from the last detail load and can lag area status changes)
+    const liveProfit = billable - (projectData?.allCostsTotal || 0)
+    const liveProfitMargin = billable > 0 ? (liveProfit / billable) * 100 : 0
 
     // Edit Mode
     if (editMode && editData) {
@@ -1060,8 +1080,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             </div>
             <div className="pv-metric-divider" aria-hidden="true"></div>
             <div className="pv-metric">
-              <span className={`pv-metric-value ${(projectData?.profitMargin || 0) >= 0 ? 'highlight' : 'sdx-metric-danger'}`}>
-                {projectData?._detailsLoaded ? `${(projectData.profitMargin || 0).toFixed(1)}%` : '—'}
+              <span className={`pv-metric-value ${liveProfitMargin >= 0 ? 'highlight' : 'sdx-metric-danger'}`}>
+                {projectData?._detailsLoaded ? `${liveProfitMargin.toFixed(1)}%` : '—'}
               </span>
               <span className="pv-metric-label">Profit margin</span>
             </div>
@@ -1287,7 +1307,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           showCORForm={showCORForm}
           editingCOR={editingCOR}
           onCloseCORForm={() => { setShowCORForm(false); setEditingCOR(null) }}
-          onCORSaved={() => { setShowCORForm(false); setEditingCOR(null); setCORRefreshKey(prev => prev + 1) }}
+          onCORSaved={() => { setShowCORForm(false); setEditingCOR(null); debouncedRefresh({ refreshCOR: true }) }}
           showCORDetail={showCORDetail}
           viewingCOR={viewingCOR}
           onCloseCORDetail={() => { setShowCORDetail(false); setViewingCOR(null) }}
@@ -1303,8 +1323,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               setSavingCost(true)
               await db.addProjectCost(selectedProject.id, company.id, costData)
               setShowAddCostModal(false)
-              projectDetailsCacheRef.current.delete(selectedProject.id)
-              loadProjects()
+              // Full refresh so hero metrics, burn rate, and charts all pick
+              // up the new cost even if the realtime event is missed
+              debouncedRefresh()
               onShowToast('Cost added successfully', 'success')
             } catch (err) {
               console.error('Error adding cost:', err)
@@ -1315,12 +1336,12 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           }}
           showEquipmentModal={showEquipmentModal}
           editingEquipment={editingEquipment}
-          onEquipmentSaved={() => { setShowEquipmentModal(false); setEditingEquipment(null); setEquipmentRefreshKey(prev => prev + 1); onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success') }}
+          onEquipmentSaved={() => { setShowEquipmentModal(false); setEditingEquipment(null); setEquipmentRefreshKey(prev => prev + 1); debouncedRefresh(); onShowToast(editingEquipment ? 'Equipment updated' : 'Equipment added', 'success') }}
           onCloseEquipmentModal={() => { setShowEquipmentModal(false); setEditingEquipment(null) }}
           showDrawRequestModal={showDrawRequestModal}
           editingDrawRequest={editingDrawRequest}
           projectsData={projectsData}
-          onDrawRequestSaved={() => { setShowDrawRequestModal(false); setEditingDrawRequest(null); setDrawRequestRefreshKey(prev => prev + 1); onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success') }}
+          onDrawRequestSaved={() => { setShowDrawRequestModal(false); setEditingDrawRequest(null); setDrawRequestRefreshKey(prev => prev + 1); debouncedRefresh(); onShowToast(editingDrawRequest ? 'Draw request updated' : 'Draw request created', 'success') }}
           onCloseDrawRequestModal={() => { setShowDrawRequestModal(false); setEditingDrawRequest(null) }}
         />
       </div>

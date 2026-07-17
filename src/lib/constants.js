@@ -25,6 +25,15 @@ export const VALIDATION = {
 }
 
 // ============================================
+// FINANCIAL HEALTH THRESHOLDS
+// ============================================
+// Shared cost-ratio bands so every card/badge grades budget health the
+// same way: costs ≤ 60% of earned value is healthy, ≤ 80% is a warning,
+// above that is over budget.
+export const HEALTHY_COST_RATIO = 0.6
+export const WARNING_COST_RATIO = 0.8
+
+// ============================================
 // DEFAULT COLORS
 // ============================================
 export const COLORS = {

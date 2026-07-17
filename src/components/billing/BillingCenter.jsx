@@ -40,7 +40,7 @@ function BillingPipeline({ stages }) {
   )
 }
 
-export default function BillingCenter({ project, company, user, onShowToast, workflowStats }) {
+export default function BillingCenter({ project, company, user, onShowToast, workflowStats, refreshKey = 0 }) {
   const [billableItems, setBillableItems] = useState({ cors: [], tickets: [] })
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -76,7 +76,9 @@ export default function BillingCenter({ project, company, user, onShowToast, wor
       if (corSub) db.unsubscribe?.(corSub)
       if (tmSub) db.unsubscribe?.(tmSub)
     }
-  }, [project.id])
+    // refreshKey: bumped by Dashboard on COR save/approval so billable items
+    // reload even if the realtime event is missed
+  }, [project.id, refreshKey])
 
   const loadData = async () => {
     try {

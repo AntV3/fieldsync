@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { DollarSign, TrendingUp, Receipt, PiggyBank } from 'lucide-react'
 import { HeroMetricsSkeleton, MiniProgress, TrendIndicator, InfoTooltip } from './ui'
+import { HEALTHY_COST_RATIO, WARNING_COST_RATIO } from '../lib/constants'
 
 /**
  * HeroMetrics - Top-level financial summary for project dashboard
@@ -191,8 +192,8 @@ export default memo(function HeroMetrics({
   // Determine cost status
   const costVariant = useMemo(() => {
     if (awaitingCosts) return 'default'
-    if (costRatio <= 60) return 'success'
-    if (costRatio <= 80) return 'warning'
+    if (costRatio <= HEALTHY_COST_RATIO * 100) return 'success'
+    if (costRatio <= WARNING_COST_RATIO * 100) return 'warning'
     return 'danger'
   }, [costRatio, awaitingCosts])
 

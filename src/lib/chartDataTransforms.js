@@ -6,10 +6,47 @@
 // ============================================
 
 import { chartColors, costCategories } from '../components/charts/chartConfig'
+import { parseLocalDate } from './utils'
+
+/**
+ * Accrue equipment rental cost per calendar day.
+ * Mirrors equipmentOps.calculateProjectEquipmentCost (daily_rate × inclusive
+ * days on site, open rentals accrue through today) so per-date series sum to
+ * the same total shown on the burn rate and cost contributor cards.
+ *
+ * @param {Array} projectEquipment - project_equipment rows ({ start_date, end_date, daily_rate })
+ * @returns {Object} Map of 'YYYY-MM-DD' → accrued cost for that day
+ */
+export function buildEquipmentCostByDate(projectEquipment = []) {
+  const byDate = {}
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  projectEquipment.forEach(eq => {
+    const rate = parseFloat(eq?.daily_rate) || 0
+    if (!eq?.start_date || rate <= 0) return
+
+    const start = parseLocalDate(eq.start_date)
+    start.setHours(0, 0, 0, 0)
+    const end = eq.end_date ? parseLocalDate(eq.end_date) : new Date(today)
+    end.setHours(0, 0, 0, 0)
+
+    // Inclusive day count, minimum 1 (same rule as calculateProjectEquipmentCost)
+    const days = Math.min(3650, Math.max(1, Math.floor((end - start) / 86400000) + 1))
+    const cursor = new Date(start)
+    for (let i = 0; i < days; i++) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`
+      byDate[key] = (byDate[key] || 0) + rate
+      cursor.setDate(cursor.getDate() + 1)
+    }
+  })
+
+  return byDate
+}
 
 /**
  * Build cumulative time-series for the Financial Trend Chart
- * Merges labor, materials/equipment, T&M, and COR data by date
+ * Merges labor, materials/equipment, equipment rental, T&M, and COR data by date
  * Uses actual area completion dates for revenue tracking
  *
  * @param {Object} projectData - Computed project data from Dashboard
@@ -26,6 +63,9 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   const laborByDate = projectData?.laborByDate || []
   const materialsEquipmentByDate = projectData?.materialsEquipmentByDate || []
   const customCosts = projectData?.customCosts || []
+  // Equipment rental accrual per day — included so the chart's cumulative
+  // "costs" line lands on the same total as allCostsTotal/totalBurn
+  const equipmentByDate = buildEquipmentCostByDate(projectData?.projectEquipment || [])
 
   // Collect all unique dates from all sources
   const dateSet = new Set()
@@ -35,6 +75,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
   customCosts.forEach(c => {
     if (c.cost_date) dateSet.add(c.cost_date)
   })
+  Object.keys(equipmentByDate).forEach(d => dateSet.add(d))
 
   // Add T&M ticket dates
   tmTickets.forEach(t => {
@@ -155,7 +196,8 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       const laborCost = laborDay?.cost || 0
       const materialsEquipmentCost = materialsEquipmentByDateMap[date] || 0
       const customCost = customByDate[date] || 0
-      totalCostForFallback += laborCost + materialsEquipmentCost + customCost
+      const equipmentCost = equipmentByDate[date] || 0
+      totalCostForFallback += laborCost + materialsEquipmentCost + customCost + equipmentCost
     })
   }
 
@@ -178,8 +220,13 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
     // Custom costs for this date
     const customCost = customByDate[date] || 0
 
-    // Accumulate all costs (labor + materials/equipment + custom)
-    const dailyTotalCost = laborCost + materialsEquipmentCost + customCost
+    // Equipment rental accrued on this date
+    const equipmentCost = equipmentByDate[date] || 0
+
+    // Accumulate all costs (labor + materials/equipment + custom + equipment rental)
+    // Must match the categories in Dashboard's allCostsTotal so the chart and
+    // the burn rate / profitability cards report the same "total costs"
+    const dailyTotalCost = laborCost + materialsEquipmentCost + customCost + equipmentCost
     cumulativeCost += dailyTotalCost
 
     // Accumulate T&M billing value (what we charge client)
@@ -216,6 +263,7 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
       dailyLabor: Math.round(laborCost),
       dailyRevenue: Math.round(dailyRevenue),
       dailyMaterials: Math.round(materialsEquipmentCost),
+      dailyEquipment: Math.round(equipmentCost),
       dailyCustom: Math.round(customCost),
       dailyTM: Math.round(tmDayValue),
       dailyTotal: Math.round(dailyTotalCost),
