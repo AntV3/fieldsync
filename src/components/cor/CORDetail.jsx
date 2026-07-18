@@ -27,7 +27,7 @@ const formatTime12 = (timeStr) => {
   return `${h12}:${minutes}${ampm}`
 }
 
-export default function CORDetail({ cor, project, company, areas, onClose, onEdit, onShowToast, onStatusChange }) {
+export default function CORDetail({ cor, project, company, user, areas, onClose, onEdit, onShowToast, onStatusChange }) {
   const [loading, setLoading] = useState(true)
   const [actionInProgress, setActionInProgress] = useState(false)
   const [corData, setCORData] = useState(cor)
@@ -141,7 +141,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     if (!confirm('Approve this change order request?')) return
     setActionInProgress(true)
     try {
-      const updated = await db.approveCOR(corData.id)
+      const updated = await db.approveCOR(corData.id, user?.id)
       setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR approved', 'success')
       onStatusChange?.()
@@ -164,7 +164,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
 
     setActionInProgress(true)
     try {
-      const updated = await db.rejectCOR(corData.id, reason)
+      const updated = await db.rejectCOR(corData.id, reason, user?.id)
       setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR rejected', 'success')
       onStatusChange?.()

@@ -123,7 +123,8 @@ export default function OverviewTab({
         key: `cor-${c.id}`,
         id: c.cor_number || 'COR',
         item: c.title || 'Untitled change order',
-        value: parseFloat(c.cor_total) || parseFloat(c.total_amount) || 0,
+        // cor_total is stored in cents; convert to dollars for the formatter below
+        value: (parseFloat(c.cor_total) || 0) / 100,
         status: c.status === 'draft' ? 'Draft' : 'Review',
         statusClass: c.status === 'draft' ? 'muted' : 'warn',
         onClick: onViewCOR ? () => onViewCOR(c) : undefined
