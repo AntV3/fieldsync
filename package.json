@@ -16,7 +16,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "verify": "npm run lint && npm run test && npm run build",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
     "precommit": "npm run lint && npm run test",
     "prepare": "husky",
     "cap:sync": "npx cap sync",
@@ -74,6 +75,7 @@
     "globals": "^15.14.0",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
+    "typescript": "^7.0.2",
     "vite": "^7.2.6",
     "vitest": "^4.0.16"
   }
