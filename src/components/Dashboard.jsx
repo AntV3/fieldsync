@@ -694,6 +694,20 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Keep selectedProject ref in sync for debouncedRefresh to access without stale closures
   selectedProjectRef.current = selectedProject
 
+  // Reset dashboard sub-section state whenever the selected project changes so
+  // "Field Activity" and "Project Info" don't reopen on the previous project's
+  // sub-section (e.g. leaving Project A on Submittals, then opening Project B).
+  const previousProjectIdRef = useRef(null)
+  useEffect(() => {
+    const currentId = selectedProject?.id ?? null
+    if (previousProjectIdRef.current !== null && previousProjectIdRef.current !== currentId) {
+      setFieldSection('reports')
+      setInfoSection('details')
+      setFinancialsSection('overview')
+    }
+    previousProjectIdRef.current = currentId
+  }, [selectedProject?.id])
+
   const handleSelectProject = async (project) => {
     // Set the project immediately for responsive UI
     setSelectedProject(project)
