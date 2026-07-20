@@ -151,7 +151,7 @@ if (selectedCorId) {
 
 #### HIGH: Field User RLS Policy Deployment Unknown
 
-**Location:** `database/migration_complete_fixes.sql` lines 48-53
+**Location:** `supabase/migrations/20241201000090_complete_fixes.sql` lines 48-53
 
 **Policy Defined:**
 ```sql
@@ -349,7 +349,7 @@ WHERE t.assigned_cor_id IS NOT NULL
 
 **Goal:** Ensure production has all required schema and policies
 **Risk:** LOW (additive changes)
-**Files:** `database/migration_complete_fixes.sql`
+**Files:** `supabase/migrations/20241201000090_complete_fixes.sql`
 
 **Go/No-Go:** Run verification queries above. If policies/functions missing, apply migration.
 
@@ -573,7 +573,7 @@ const handleFixIntegrity = async () => {
 
 ### Changes Made
 
-**1. Database Migration (`database/migration_import_status.sql`)**
+**1. Database Migration (`supabase/migrations/20241201000200_import_status.sql`)**
 - Added `import_status` column ('pending', 'completed', 'failed')
 - Added `import_failed_at` timestamp
 - Added `import_error` text for error messages
@@ -606,7 +606,7 @@ const handleFixIntegrity = async () => {
 ### Files Modified
 | File | Lines Changed |
 |------|---------------|
-| `database/migration_import_status.sql` | NEW (50 lines) |
+| `supabase/migrations/20241201000200_import_status.sql` | NEW (50 lines) |
 | `src/lib/supabase.js` | +55 lines |
 | `src/components/TMForm.jsx` | +8 lines |
 | `src/components/TMList.jsx` | +45 lines |
@@ -617,7 +617,7 @@ const handleFixIntegrity = async () => {
 1. **Apply migration:**
    ```sql
    -- Run in Supabase SQL Editor
-   -- Contents of database/migration_import_status.sql
+   -- Contents of supabase/migrations/20241201000200_import_status.sql
    ```
 
 2. **Deploy code:** Standard Vercel deployment

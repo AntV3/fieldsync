@@ -180,7 +180,13 @@ corExportPipeline.js  →  corPdfGenerator.js  →  PDF output
 
 ---
 
-## 4. Database Migrations (`database/`)
+## 4. Database Migrations (`supabase/migrations/`)
+
+> The legacy `database/` directory was consolidated into
+> `supabase/migrations/` with timestamp prefixes. The tables below
+> keep the original (pre-move) file names — prepend the timestamp
+> prefix to locate a file, or check `supabase/MIGRATION_LOG.md`
+> for the complete old-name → new-name mapping.
 
 ### Core Schema
 
@@ -451,7 +457,7 @@ db.createInjuryReport(data)
 | COR math/totals | `src/lib/corCalculations.js` |
 | Offline caching | `src/lib/offlineManager.js` |
 | CSS variables | `src/index.css` (top of file) |
-| RLS policies | `database/migration_*.sql` files |
+| RLS policies | `supabase/migrations/*.sql` files |
 | Component styles | `src/index.css` (search by component name) |
 
 ### "Which component handles...?"
