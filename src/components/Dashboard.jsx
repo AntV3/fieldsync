@@ -5,7 +5,7 @@ import { formatCurrencyCompact, calculateValueProgress, calculateScheduleInsight
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { LayoutGrid, DollarSign, ClipboardList, Info, FolderOpen, BarChart3, MessageSquareText, FileCheck, Download, ArrowLeft, Plus } from 'lucide-react'
+import { LayoutDashboard, DollarSign, ClipboardList, HardHat, Info, FolderOpen, ArrowLeft, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useUniversalSearch } from './UniversalSearch'
 import { TicketSkeleton } from './ui'
@@ -18,13 +18,9 @@ import DashboardModals from './dashboard/DashboardModals'
 // Lazy load tab components - only load the active tab's code
 const OverviewTab = lazy(() => import('./dashboard/tabs/OverviewTab'))
 const FinancialsTab = lazy(() => import('./dashboard/tabs/FinancialsTab'))
-const ReportsTab = lazy(() => import('./dashboard/tabs/ReportsTab'))
-const InfoTab = lazy(() => import('./dashboard/tabs/InfoTab'))
+const FieldActivityTab = lazy(() => import('./dashboard/tabs/FieldActivityTab'))
 const DocumentsTab = lazy(() => import('./documents/DocumentsTab'))
-const AnalyticsTab = lazy(() => import('./dashboard/tabs/AnalyticsTab'))
-const RFIList = lazy(() => import('./RFIList'))
-const SubmittalList = lazy(() => import('./SubmittalList'))
-const SageExportPanel = lazy(() => import('./SageExportPanel'))
+const ProjectInfoTab = lazy(() => import('./dashboard/tabs/ProjectInfoTab'))
 
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const navigate = useNavigate()
@@ -36,7 +32,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   const [showShareModal, setShowShareModal] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [activeProjectTab, setActiveProjectTab] = useState('overview')
-  const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors' | 'tickets'
+  const [fieldSection, setFieldSection] = useState('reports') // 'reports' | 'rfis' | 'submittals' | 'observations' | 'punchlist'
+  const [infoSection, setInfoSection] = useState('details') // 'details' | 'analytics' | 'team' | 'settings'
+  const [financialsSection, setFinancialsSection] = useState('overview') // 'overview' | 'cors' | 'tickets' | 'billing' | 'exports'
   const [financialsSidebarCollapsed, setFinancialsSidebarCollapsed] = useState(true) // Start collapsed for more real estate
   const [financialsSidebarMobileOpen, setFinancialsSidebarMobileOpen] = useState(false) // For mobile sidebar overlay
   const [corListExpanded, setCORListExpanded] = useState(false) // Whether the full card list is shown below the log
@@ -719,8 +717,43 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     setAreas([])
     handleCancelEdit()
     setActiveProjectTab('overview')
+    setFieldSection('reports')
+    setInfoSection('details')
     loadProjects()
   }
+
+  // Navigate to a tab, mapping legacy tab ids (from before the 9→5 consolidation)
+  // to their new home: parent tab + sub-section
+  const setProjectTab = useCallback((tabId) => {
+    switch (tabId) {
+      case 'reports':
+        setActiveProjectTab('field')
+        setFieldSection('reports')
+        break
+      case 'rfis':
+        setActiveProjectTab('field')
+        setFieldSection('rfis')
+        break
+      case 'submittals':
+        setActiveProjectTab('field')
+        setFieldSection('submittals')
+        break
+      case 'exports':
+        setActiveProjectTab('financials')
+        setFinancialsSection('exports')
+        break
+      case 'analytics':
+        setActiveProjectTab('info')
+        setInfoSection('analytics')
+        break
+      case 'info':
+        setActiveProjectTab('info')
+        setInfoSection('details')
+        break
+      default:
+        setActiveProjectTab(tabId)
+    }
+  }, [])
 
   // Edit handlers provided by useProjectEdit hook
 
@@ -773,7 +806,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       if (target === 'financials') {
         setActiveProjectTab('financials')
       } else if (target === 'reports') {
-        setActiveProjectTab('reports')
+        setActiveProjectTab('field')
+        setFieldSection('reports')
       } else if (target === 'cors') {
         setActiveProjectTab('financials')
         setFinancialsSection('cors')
@@ -981,18 +1015,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const areasWorking = areas.filter(a => a.status === 'working').length
     const areasNotStarted = areas.filter(a => a.status === 'not_started').length
 
-    // Tab definitions with pending badges
+    // Tab definitions with pending badges - 5 consolidated tabs
     const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)
     const tabs = [
-      { id: 'overview', label: 'Overview', Icon: LayoutGrid },
+      { id: 'overview', label: 'Overview', Icon: LayoutDashboard },
       { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
-      { id: 'rfis', label: 'RFIs', Icon: MessageSquareText },
-      { id: 'submittals', label: 'Submittals', Icon: FileCheck },
-      { id: 'reports', label: 'Reports', Icon: ClipboardList },
-      { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
-      { id: 'exports', label: 'Exports', Icon: Download },
+      { id: 'field', label: 'Field Activity', Icon: HardHat },
       { id: 'documents', label: 'Documents', Icon: FolderOpen },
-      { id: 'info', label: 'Info', Icon: Info }
+      { id: 'info', label: 'Project Info', Icon: Info }
     ]
 
     return (
@@ -1121,8 +1151,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               areasNotStarted={areasNotStarted}
               companyId={company?.id}
               company={company}
+              allProjects={projects}
               onShowToast={onShowToast}
-              onSetActiveTab={setActiveProjectTab}
+              onSetActiveTab={setProjectTab}
               onExportFieldDocuments={handleExportFieldDocuments}
               onAreaStatusCycle={handleAreaStatusCycle}
               onViewCOR={handleViewCOR}
@@ -1168,78 +1199,24 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
               onViewDraw={handleViewDraw}
               onAddCost={handleAddCost}
               onDeleteCost={handleDeleteCost}
+              costCodes={costCodes}
+              allProjects={projects}
               onShowToast={onShowToast}
             />
           )}
 
-          {/* RFIs TAB */}
-          {activeProjectTab === 'rfis' && (
+          {/* FIELD ACTIVITY TAB (Reports, RFIs, Submittals, Observations, Punch List) */}
+          {activeProjectTab === 'field' && (
             <Suspense fallback={<TicketSkeleton />}>
-              <RFIList
-                project={selectedProject}
-                company={company}
-                onShowToast={onShowToast}
-              />
-            </Suspense>
-          )}
-
-          {/* SUBMITTALS TAB */}
-          {activeProjectTab === 'submittals' && (
-            <Suspense fallback={<TicketSkeleton />}>
-              <SubmittalList
-                project={selectedProject}
-                company={company}
-                onShowToast={onShowToast}
-              />
-            </Suspense>
-          )}
-
-          {/* REPORTS TAB */}
-          {activeProjectTab === 'reports' && (
-            <ReportsTab
-              selectedProject={selectedProject}
-              projectData={projectData}
-              areas={areas}
-              company={company}
-              user={user}
-              onShowToast={onShowToast}
-            />
-          )}
-
-          {/* ANALYTICS TAB */}
-          {activeProjectTab === 'analytics' && (
-            <Suspense fallback={<TicketSkeleton />}>
-              <AnalyticsTab
+              <FieldActivityTab
                 selectedProject={selectedProject}
                 projectData={projectData}
-                progress={progress}
-                billable={billable}
-                revisedContractValue={revisedContractValue}
-                changeOrderValue={changeOrderValue}
                 areas={areas}
-                allProjects={projects}
-                crewCheckins={projectData?.crewCheckins || []}
-                invoices={projectData?.invoices || []}
-                punchListItems={projectData?.punchListItems || []}
-                dailyReports={projectData?.dailyReports || []}
-                onShowToast={onShowToast}
-              />
-            </Suspense>
-          )}
-
-          {/* EXPORTS TAB (Sage, AIA, QuickBooks) */}
-          {activeProjectTab === 'exports' && (
-            <Suspense fallback={<TicketSkeleton />}>
-              <SageExportPanel
-                project={selectedProject}
                 company={company}
-                areas={areas}
-                changeOrders={projectData?.changeOrders || []}
-                costCodes={costCodes}
-                financialData={projectData || {}}
-                allProjects={projects}
-                projectDataMap={{}}
+                user={user}
                 onShowToast={onShowToast}
+                fieldSection={fieldSection}
+                setFieldSection={setFieldSection}
               />
             </Suspense>
           )}
@@ -1258,18 +1235,29 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
             </div>
           )}
 
-          {/* INFO TAB */}
+          {/* PROJECT INFO TAB (Details, Analytics, Team, Settings) */}
           {activeProjectTab === 'info' && (
-            <InfoTab
-              selectedProject={selectedProject}
-              company={company}
-              user={user}
-              isAdmin={isAdmin}
-              areas={areas}
-              onAreasChanged={() => loadAreas(selectedProject.id)}
-              onShowToast={onShowToast}
-              onEditClick={handleEditClick}
-            />
+            <Suspense fallback={<TicketSkeleton />}>
+              <ProjectInfoTab
+                selectedProject={selectedProject}
+                projectData={projectData}
+                company={company}
+                user={user}
+                isAdmin={isAdmin}
+                areas={areas}
+                progress={progress}
+                billable={billable}
+                revisedContractValue={revisedContractValue}
+                changeOrderValue={changeOrderValue}
+                allProjects={projects}
+                onAreasChanged={() => loadAreas(selectedProject.id)}
+                onShowToast={onShowToast}
+                onEditClick={handleEditClick}
+                onOpenAlerts={() => setShowNotificationSettings(true)}
+                infoSection={infoSection}
+                setInfoSection={setInfoSection}
+              />
+            </Suspense>
           )}
         </div>
 

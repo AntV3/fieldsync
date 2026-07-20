@@ -12,7 +12,12 @@ export default function InfoTab({
   areas,
   onAreasChanged,
   onShowToast,
-  onEditClick
+  onEditClick,
+  // Section visibility - the Project Info tab surfaces Team/Security/Cost Codes
+  // in its own sub-tabs, so it renders Details with these turned off
+  showTeam = true,
+  showSecurity = true,
+  showCostCodes = true
 }) {
   if (!selectedProject) {
     return <div className="pv-tab-panel info-tab"><p>No project selected.</p></div>
@@ -160,13 +165,15 @@ export default function InfoTab({
       </div>
 
       {/* Project Team */}
-      <ProjectTeam
-        project={selectedProject}
-        company={company}
-        user={user}
-        isAdmin={isAdmin}
-        onShowToast={onShowToast}
-      />
+      {showTeam && (
+        <ProjectTeam
+          project={selectedProject}
+          company={company}
+          user={user}
+          isAdmin={isAdmin}
+          onShowToast={onShowToast}
+        />
+      )}
 
       {/* Tasks by Phase - admin-only reassignment of tasks to phases */}
       {isAdmin && (
@@ -179,7 +186,7 @@ export default function InfoTab({
       )}
 
       {/* Cost Codes (Job Costing) */}
-      {(company?.id || selectedProject?.company_id) && (
+      {showCostCodes && (company?.id || selectedProject?.company_id) && (
         <div className="info-section-card">
           <CostCodeManager
             companyId={company?.id || selectedProject?.company_id}
@@ -189,9 +196,11 @@ export default function InfoTab({
       )}
 
       {/* Account Security */}
-      <div className="info-section-card">
-        <MFASetup onShowToast={onShowToast} />
-      </div>
+      {showSecurity && (
+        <div className="info-section-card">
+          <MFASetup onShowToast={onShowToast} />
+        </div>
+      )}
     </div>
   )
 }
