@@ -52,9 +52,10 @@ and run each file under `supabase/migrations/` in lexicographic
 order (they are timestamp-prefixed, e.g. `20241215_*.sql` first,
 `20260423_*.sql` last).
 
-> The legacy `database/` directory contains historical flat files
-> applied to the original prod database. Treat it as read-only
-> history — all new schema work goes through `supabase/migrations/`.
+> Legacy flat files that used to live in `database/` have been
+> consolidated into `supabase/migrations/` with timestamp prefixes
+> (`20241201*_*.sql`). See `supabase/MIGRATION_LOG.md` for the full
+> history of every migration and its applied status.
 
 ### 3. Get Your API Keys
 
@@ -151,8 +152,7 @@ fieldsync/
 │   ├── test/                      # Vitest unit tests
 │   ├── App.jsx                    # Root component & view router
 │   └── main.jsx                   # Entry point
-├── database/                      # SQL migrations (manual)
-├── supabase/migrations/           # Supabase CLI migrations
+├── supabase/migrations/           # All SQL migrations (see supabase/MIGRATION_LOG.md)
 ├── docs/                          # Architecture & developer guides
 └── index.html
 ```

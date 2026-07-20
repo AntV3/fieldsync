@@ -654,7 +654,7 @@ ON cor_export_snapshots(cor_id, exported_at DESC);
 
 | File | Changes |
 |------|---------|
-| `database/migration_photo_reliability.sql` | NEW - Complete database migration |
+| `supabase/migrations/20241201000260_photo_reliability.sql` | NEW - Complete database migration |
 | `src/components/TMForm.jsx` | Photo state tracking, retry UI, status indicators |
 | `src/lib/supabase.js` | Photo verification, audit logging, export snapshots |
 | `src/lib/corPdfExport.js` | Photo pre-verification, snapshot creation |
@@ -744,7 +744,7 @@ if (result.snapshot) {
 Apply the migration to enable full functionality:
 ```bash
 # Apply via Supabase CLI or dashboard
-supabase db push < database/migration_photo_reliability.sql
+supabase db push < supabase/migrations/20241201000260_photo_reliability.sql
 ```
 
 **Tables Created:**

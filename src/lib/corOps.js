@@ -125,7 +125,7 @@ export const corOps = {
       if (error) {
         // Check if the error is due to missing group_name column
         if (error.message?.includes('group_name') || error.code === 'PGRST204') {
-          throw new Error('COR grouping requires a database migration. Please run database/migration_cor_enhancements.sql in Supabase SQL Editor.')
+          throw new Error('COR grouping requires a database migration. Please run supabase/migrations/20241201000110_cor_enhancements.sql in Supabase SQL Editor.')
         }
         throw error
       }

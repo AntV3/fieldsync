@@ -105,10 +105,8 @@ fieldsync-source/
 │   │
 │   └── archived/               # Deprecated components (DO NOT USE)
 │
-├── database/                   # SQL migrations
-│   ├── schema.sql
-│   ├── migration_*.sql
-│   └── ...
+├── supabase/migrations/        # SQL migrations (timestamp-prefixed)
+│   └── ...                     # See supabase/MIGRATION_LOG.md
 │
 ├── docs/                       # Documentation
 │   ├── PROJECT_CONTEXT.md      # Canonical source of truth
@@ -440,10 +438,10 @@ async getMyNewData(companyId) {
 
 ### Add a New Migration
 
-1. Create file in `database/` with naming: `migration_[feature_name].sql`
+1. Create file in `supabase/migrations/` with naming: `YYYYMMDD_[feature_name].sql`
 2. Add comments explaining the migration
 3. Run in Supabase SQL Editor
-4. Update `docs/PROJECT_CONTEXT.md` migration history
+4. Record it in `supabase/MIGRATION_LOG.md` (date, purpose, applied status)
 
 ### Add a Toast Message
 
@@ -577,7 +575,7 @@ Foremen access via PIN - no Supabase auth. Their requests go through as `anon` r
 │ CSS Variables:        var(--bg-primary), var(--text-primary)    │
 │ Component location:   src/components/                           │
 │ Utilities location:   src/lib/                                  │
-│ Migrations:           database/migration_*.sql                  │
+│ Migrations:           supabase/migrations/*.sql                 │
 │ Main docs:            docs/PROJECT_CONTEXT.md                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
