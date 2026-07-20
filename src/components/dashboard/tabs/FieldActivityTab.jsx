@@ -31,8 +31,10 @@ export default function FieldActivityTab({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false)
 
-  // Counts for sections not covered by projectData (RFIs, submittals, observations)
-  const [sectionCounts, setSectionCounts] = useState({ rfis: null, submittals: null, observations: null })
+  // Counts for sections not covered by projectData (RFIs, submittals, observations).
+  // undefined means "not loaded yet" so the sub-nav skips its empty/badge treatment
+  // during the initial fetch; TabSubNav only renders 0-empty state for numeric counts.
+  const [sectionCounts, setSectionCounts] = useState({ rfis: undefined, submittals: undefined, observations: undefined })
 
   useEffect(() => {
     if (!selectedProject?.id) return
@@ -62,7 +64,10 @@ export default function FieldActivityTab({
   }, [sidebarMobileOpen])
 
   const reportsCount = projectData?.dailyReportsCount || 0
-  const punchListCount = (projectData?.punchListItems || []).length
+  // "Items to close out" — closed items shouldn't inflate the badge.
+  const punchListItems = projectData?.punchListItems || []
+  const openPunchListCount = punchListItems.filter(item => item.status !== 'complete').length
+  const totalPunchListCount = punchListItems.length
 
   const navItems = useMemo(() => ([
     {
@@ -79,7 +84,7 @@ export default function FieldActivityTab({
       shortLabel: 'RFIs',
       icon: MessageSquareText,
       description: 'Requests for information',
-      count: sectionCounts.rfis ?? 0
+      count: sectionCounts.rfis
     },
     {
       id: 'submittals',
@@ -87,7 +92,7 @@ export default function FieldActivityTab({
       shortLabel: 'Submittals',
       icon: FileCheck,
       description: 'Shop drawings & samples',
-      count: sectionCounts.submittals ?? 0
+      count: sectionCounts.submittals
     },
     {
       id: 'observations',
@@ -95,7 +100,7 @@ export default function FieldActivityTab({
       shortLabel: 'Observ.',
       icon: NotebookPen,
       description: 'Field photos & notes',
-      count: sectionCounts.observations ?? 0
+      count: sectionCounts.observations
     },
     {
       id: 'punchlist',
@@ -103,13 +108,19 @@ export default function FieldActivityTab({
       shortLabel: 'Punch',
       icon: ListChecks,
       description: 'Items to close out',
-      count: punchListCount
+      count: openPunchListCount
     }
-  ]), [reportsCount, sectionCounts, punchListCount])
+  ]), [reportsCount, sectionCounts, openPunchListCount])
 
-  // Onboarding state: counts loaded and every section is empty
-  const countsLoaded = sectionCounts.rfis !== null
-  const allEmpty = countsLoaded && navItems.every(item => item.count === 0)
+  // Onboarding state: counts loaded and the project has truly no field data
+  // (a fully-closed punch list still counts as data, so use the raw total here).
+  const countsLoaded = sectionCounts.rfis !== undefined
+  const allEmpty = countsLoaded
+    && reportsCount === 0
+    && (sectionCounts.rfis ?? 0) === 0
+    && (sectionCounts.submittals ?? 0) === 0
+    && (sectionCounts.observations ?? 0) === 0
+    && totalPunchListCount === 0
 
   const handleSectionChange = (section) => {
     setFieldSection(section)
