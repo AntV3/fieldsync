@@ -19,6 +19,7 @@ const TMList = lazy(() => import('../../TMList'))
 const CORLogPreview = lazy(() => import('../../cor/CORLogPreview'))
 const CORList = lazy(() => import('../../cor/CORList'))
 const BillingCenter = lazy(() => import('../../billing/BillingCenter'))
+const SageExportPanel = lazy(() => import('../../SageExportPanel'))
 
 export default function FinancialsTab({
   selectedProject,
@@ -62,6 +63,9 @@ export default function FinancialsTab({
   // Costs
   onAddCost,
   onDeleteCost,
+  // Exports sub-tab
+  costCodes = [],
+  allProjects = [],
   onShowToast
 }) {
   // Billing workflow stage counts for the Billing sub-tab pipeline
@@ -102,8 +106,9 @@ export default function FinancialsTab({
 
   return (
     <div className="pv-tab-panel financials-tab">
-      {/* Export Actions - hidden on the Tickets sub-tab, which has its own CSV/Excel/PDF exports */}
-      {financialsSection !== 'tickets' && (
+      {/* Export Actions - hidden on the Tickets sub-tab (own CSV/Excel/PDF exports)
+          and on the Exports sub-tab (full export center) */}
+      {financialsSection !== 'tickets' && financialsSection !== 'exports' && (
         <div className="export-actions">
           <button
             className="btn btn-ghost btn-small"
@@ -331,6 +336,25 @@ export default function FinancialsTab({
                   user={user}
                   onShowToast={onShowToast}
                   workflowStats={billingWorkflowStats}
+                />
+              </Suspense>
+            </div>
+          )}
+
+          {/* EXPORTS SECTION (CSV, QuickBooks, Sage 300, AIA) */}
+          {financialsSection === 'exports' && (
+            <div className="financials-exports animate-fade-in">
+              <Suspense fallback={<TicketSkeleton />}>
+                <SageExportPanel
+                  project={selectedProject}
+                  company={company}
+                  areas={areas}
+                  changeOrders={projectData?.changeOrders || []}
+                  costCodes={costCodes}
+                  financialData={projectData || {}}
+                  allProjects={allProjects}
+                  projectDataMap={{}}
+                  onShowToast={onShowToast}
                 />
               </Suspense>
             </div>

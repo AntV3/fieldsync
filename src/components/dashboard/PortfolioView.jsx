@@ -1,4 +1,5 @@
-import { Search, AlertTriangle } from 'lucide-react'
+import { Search, AlertTriangle, BarChart3 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { formatCurrency } from '../../lib/utils'
 import UniversalSearch from '../UniversalSearch'
 import { SmartAlerts } from './SmartAlerts'
@@ -21,6 +22,8 @@ export default function PortfolioView({
   onSelectTicket,
   onSelectCOR,
 }) {
+  const navigate = useNavigate()
+
   // Destructure portfolioMetrics
   const {
     totalOriginalContract,
@@ -67,6 +70,10 @@ export default function PortfolioView({
       <div className="business-overview">
         <div className="bo-header">
           <h2 className="bo-title">Portfolio Overview</h2>
+          <button className="search-trigger-btn" onClick={() => navigate('/portfolio-analytics')} title="Portfolio-level analytics across all projects">
+            <BarChart3 size={16} />
+            <span>Analytics</span>
+          </button>
           <button className="search-trigger-btn" onClick={() => setSearchOpen(true)}>
             <Search size={16} />
             <span>Search</span>

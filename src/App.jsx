@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
+import { Settings as SettingsIcon, ChevronDown } from 'lucide-react'
 import { isSupabaseConfigured, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { TradeConfigProvider } from './lib/TradeConfigContext'
@@ -145,6 +146,7 @@ export default function App() {
   const [, setProjects] = useState([])
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
@@ -250,22 +252,38 @@ export default function App() {
           <Logo />
           <div className="nav-tabs nav-tabs-desktop">
             <button className={`nav-tab ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => navigate('/dashboard')}>Dashboard</button>
-            <button className={`nav-tab ${location.pathname === '/portfolio-analytics' ? 'active' : ''}`} onClick={() => navigate('/portfolio-analytics')}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign: 'middle', marginRight: 4}}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-              Analytics
-            </button>
             <button className={`nav-tab ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => navigate('/projects/new')}>+ New Project</button>
-            <button className={`nav-tab ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => navigate('/pricing')}>Pricing</button>
-            {isAdmin && (
-              <button className={`nav-tab ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => navigate('/branding')}>Branding</button>
-            )}
-            {isAdmin && (
-              <button className={`nav-tab ${location.pathname === '/team' ? 'active' : ''}`} onClick={() => navigate('/team')}>
-                Team
+            <div className="nav-settings">
+              <button
+                className={`nav-tab nav-settings-trigger ${['/pricing', '/branding', '/team', '/account'].includes(location.pathname) ? 'active' : ''}`}
+                onClick={() => setShowSettingsMenu(prev => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={showSettingsMenu}
+              >
+                <SettingsIcon size={14} />
+                Settings
                 {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
+                <ChevronDown size={12} className={`nav-settings-chevron ${showSettingsMenu ? 'open' : ''}`} />
               </button>
-            )}
-            <button className={`nav-tab ${location.pathname === '/account' ? 'active' : ''}`} onClick={() => navigate('/account')}>Account</button>
+              {showSettingsMenu && (
+                <>
+                  <div className="nav-settings-backdrop" onClick={() => setShowSettingsMenu(false)} aria-hidden="true" />
+                  <div className="nav-settings-dropdown" role="menu">
+                    <button role="menuitem" className={`nav-settings-item ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => { navigate('/pricing'); setShowSettingsMenu(false) }}>Pricing</button>
+                    {isAdmin && (
+                      <button role="menuitem" className={`nav-settings-item ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => { navigate('/branding'); setShowSettingsMenu(false) }}>Branding</button>
+                    )}
+                    {isAdmin && (
+                      <button role="menuitem" className={`nav-settings-item ${location.pathname === '/team' ? 'active' : ''}`} onClick={() => { navigate('/team'); setShowSettingsMenu(false) }}>
+                        Team
+                        {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
+                      </button>
+                    )}
+                    <button role="menuitem" className={`nav-settings-item ${location.pathname === '/account' ? 'active' : ''}`} onClick={() => { navigate('/account'); setShowSettingsMenu(false) }}>Account</button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <div className="nav-user nav-user-desktop">
             <ThemeToggle compact />
@@ -342,8 +360,12 @@ export default function App() {
               <div className="mobile-section-title">Navigation</div>
               <div className="mobile-nav-list">
                 <button className={`mobile-nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => { navigate('/dashboard'); setShowMobileMenu(false) }}>Dashboard</button>
-                <button className={`mobile-nav-item ${location.pathname === '/portfolio-analytics' ? 'active' : ''}`} onClick={() => { navigate('/portfolio-analytics'); setShowMobileMenu(false) }}>Portfolio Analytics</button>
                 <button className={`mobile-nav-item ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => { navigate('/projects/new'); setShowMobileMenu(false) }}>+ New Project</button>
+              </div>
+            </div>
+            <div className="mobile-drawer-section">
+              <div className="mobile-section-title">Settings</div>
+              <div className="mobile-nav-list">
                 <button className={`mobile-nav-item ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => { navigate('/pricing'); setShowMobileMenu(false) }}>Pricing</button>
                 {isAdmin && (
                   <button className={`mobile-nav-item ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => { navigate('/branding'); setShowMobileMenu(false) }}>Branding</button>

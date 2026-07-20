@@ -795,3 +795,21 @@
   }
 }
 
+
+/* ============================================
+   Sub-nav empty items (progressive disclosure)
+   ============================================ */
+
+/* Dim sub-nav items with zero entries so populated sections stand out,
+   but keep them visible so users can still create the first item */
+.financials-nav-item.is-empty:not(.active) .financials-nav-label,
+.financials-nav-item.is-empty:not(.active) .financials-nav-icon,
+.financials-nav-item.is-empty:not(.active) .financials-nav-short-label {
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+
+.financials-nav-item.is-empty .financials-nav-desc {
+  font-style: italic;
+  opacity: 0.75;
+}

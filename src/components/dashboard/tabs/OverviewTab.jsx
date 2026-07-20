@@ -1,10 +1,11 @@
-import { Suspense, lazy, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight, ShieldCheck } from 'lucide-react'
 import { formatCurrencyCompact } from '../../../lib/utils'
 import { OverviewCrewMetrics } from '../../overview'
 import DisposalSummary from '../../DisposalSummary'
+import ProjectHealthOverview from '../ProjectHealthOverview'
+import useProjectAnalytics from '../../../hooks/useProjectAnalytics'
 import { useTradeConfig } from '../../../lib/TradeConfigContext'
-const PunchList = lazy(() => import('../../PunchList'))
 
 const STATUS_META = {
   done: { label: 'Done', className: 'done' },
@@ -58,6 +59,7 @@ export default function OverviewTab({
   areasNotStarted,
   companyId,
   company,
+  allProjects = [],
   onShowToast,
   onSetActiveTab,
   onExportFieldDocuments,
@@ -67,6 +69,19 @@ export default function OverviewTab({
   const { resolvedConfig } = useTradeConfig()
   const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
   const [activityTab, setActivityTab] = useState('feed')
+
+  // Key analytics pulled into Overview: health gauge + action items
+  const { forecast, cashFlow, resourceData } = useProjectAnalytics({
+    selectedProject,
+    projectData,
+    progress,
+    billable,
+    revisedContractValue,
+    changeOrderValue,
+    allProjects,
+    crewCheckins: projectData?.crewCheckins || [],
+    invoices: projectData?.invoices || [],
+  })
 
   const originalContract = selectedProject?.contract_value || 0
   const remainingValue = revisedContractValue - billable
@@ -255,6 +270,18 @@ export default function OverviewTab({
           </div>
         </div>
       </div>
+
+      {/* Project Health: gauge, per-dimension signals & action items (from Analytics) */}
+      <ProjectHealthOverview
+        forecast={forecast}
+        cashFlow={cashFlow}
+        resourceData={resourceData}
+        progress={progress}
+        revisedContractValue={revisedContractValue}
+        projectData={projectData}
+        changeOrderValue={changeOrderValue}
+        selectedProject={selectedProject}
+      />
 
       {/* Row 2: main two-column grid */}
       <div className="sdx-main-grid">
@@ -527,16 +554,6 @@ export default function OverviewTab({
           onShowToast={onShowToast}
         />
       )}
-
-      {/* Punch List */}
-      <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
-        <PunchList
-          projectId={selectedProject?.id}
-          areas={areas}
-          companyId={companyId}
-          onShowToast={onShowToast}
-        />
-      </Suspense>
 
       {/* Quick Nav + Exports */}
       <div className="overview-bottom-strip">

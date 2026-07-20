@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { BarChart3, FileText, ClipboardList, Receipt, ChevronRight, ChevronLeft, PanelLeftOpen, X } from 'lucide-react'
+import { BarChart3, FileText, ClipboardList, Receipt, Download, ChevronRight, ChevronLeft, PanelLeftOpen, X } from 'lucide-react'
 import { CountBadge } from './ui'
 
 /**
@@ -44,6 +44,14 @@ const NAV_ITEMS = [
     icon: Receipt,
     description: 'Invoices & billing',
     step: 3
+  },
+  {
+    id: 'exports',
+    label: 'Exports',
+    shortLabel: 'Exports',
+    icon: Download,
+    description: 'CSV, QuickBooks & Sage',
+    step: null
   }
 ]
 
@@ -129,7 +137,7 @@ export default memo(function FinancialsNav({
           const isActive = activeSection === item.id
           const Icon = item.icon
           const badge = getBadge(item.id)
-          const showConnector = index < NAV_ITEMS.length - 1 && item.step !== null
+          const showConnector = item.step !== null && NAV_ITEMS[index + 1]?.step != null
 
           return (
             <div key={item.id} className="financials-nav-item-wrapper">
