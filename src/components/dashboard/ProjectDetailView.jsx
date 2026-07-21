@@ -1,5 +1,5 @@
 import { useMemo, lazy, Suspense } from 'react'
-import { LayoutDashboard, DollarSign, HardHat, Info, FolderOpen } from 'lucide-react'
+import { LayoutDashboard, DollarSign, ClipboardList, Info, FolderOpen } from 'lucide-react'
 import { TicketSkeleton, ErrorBoundary } from '../ui'
 import ProjectEditForm from './ProjectEditForm'
 import ProjectHeader from './ProjectHeader'
@@ -84,7 +84,7 @@ export default function ProjectDetailView({
   const tabs = [
     { id: 'overview', label: 'Overview', Icon: LayoutDashboard },
     { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
-    { id: 'field', label: 'Field Activity', Icon: HardHat },
+    { id: 'field', label: 'Field Activity', Icon: ClipboardList },
     { id: 'documents', label: 'Documents', Icon: FolderOpen },
     { id: 'info', label: 'Project Info', Icon: Info }
   ]

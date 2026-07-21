@@ -13583,13 +13583,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: 0.95rem;
   }
 
+  /* Mobile tabs are icon-only (labels handled in styles/features/project-view.css) */
   .pv-tab {
     padding: 0.6rem 0.75rem;
     font-size: 0.8rem;
-  }
-
-  .pv-tab-icon {
-    display: none;
   }
 
   .pv-quick-stats {
