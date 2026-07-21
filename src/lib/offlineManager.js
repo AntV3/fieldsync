@@ -27,9 +27,29 @@ const resetConnection = () => {
   db = null
 }
 
+// True when a real IndexedDB implementation is present (browser). False in
+// jsdom/tests and SSR, where callers should degrade to a no-op instead of
+// throwing ReferenceError deep inside a .open() call.
+export const hasIndexedDB = () => typeof indexedDB !== 'undefined'
+
+// Distinct error thrown when IndexedDB is not available in this environment.
+// Callers that must run in tests/SSR check for this by name and swallow it
+// silently rather than logging real-looking errors.
+export class IDBUnavailableError extends Error {
+  constructor() {
+    super('IndexedDB is not available in this environment')
+    this.name = 'IDBUnavailableError'
+  }
+}
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
+    if (!hasIndexedDB()) {
+      reject(new IDBUnavailableError())
+      return
+    }
+
     if (db) {
       resolve(db)
       return
