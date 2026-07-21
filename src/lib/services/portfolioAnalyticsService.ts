@@ -4,11 +4,146 @@
  * Uses existing Supabase client and RLS — user only sees their company's data.
  */
 
-import { supabase, isSupabaseConfigured } from '../supabaseClient'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { supabase as maybeSupabase, isSupabaseConfigured } from '../supabaseClient'
 import { observe } from '../observability'
+import type { AreaRow, ChangeOrderRow, CrewCheckinRow, ProjectRow, TMTicketRow } from '../types/database'
+
+// Every exported function guards on isSupabaseConfigured before touching the
+// client, so the null case (demo mode) never reaches a query.
+const supabase = maybeSupabase as SupabaseClient
+
+// ============================================
+// Result types
+// ============================================
+
+export interface PortfolioFinancialSummary {
+  totalContractValue: number
+  totalEarned: number
+  totalCORApproved: number
+  totalTMValue: number
+  totalCrewManDays: number
+  totalRevenue: number
+  totalCosts: number
+  totalProfit: number
+  margin: number
+  projectCount: number
+}
+
+export interface ProjectFinancialComparisonEntry {
+  name: string
+  fullName: string
+  budget: number
+  earned: number
+  progress: number
+}
+
+export interface MonthlyRevenueEntry {
+  month: string
+  label: string
+  earned: number
+  costs: number
+  corValue: number
+  revenue: number
+}
+
+export interface PortfolioLaborSummary {
+  totalCrewToday: number
+  avgCrewLast7Days: number
+  avgCrewLast30Days: number
+  totalManDays: number
+  utilization: number
+}
+
+export interface CrewDistributionEntry {
+  name: string
+  fullName: string
+  today: number
+  avg7Days: number
+  avg30Days: number
+}
+
+export interface LaborCostByProjectEntry {
+  name: string
+  fullName: string
+  laborCost: number
+}
+
+export interface PortfolioProgressSummary {
+  avgCompletion: number
+  onTrack: number
+  behind: number
+  ahead: number
+  totalProjects: number
+  projectsWithScheduleData: number
+}
+
+export interface ScheduleVarianceEntry {
+  name: string
+  fullName: string
+  actual: number
+  expected: number | null
+  variance: number | null
+  hasScheduleData: boolean
+}
+
+export interface AreaCompletionRateEntry {
+  name: string
+  fullName: string
+  totalAreas: number
+  completedAreas: number
+  /** Areas completed per week */
+  velocity: number
+  completionRate: number
+}
+
+export interface CORSummary {
+  total: number
+  approved: number
+  pending: number
+  rejected: number
+  approvedValue: number
+  pendingValue: number
+  rejectedValue: number
+  totalValue: number
+  approvalRate: number
+  avgProcessingDays: number
+}
+
+export interface CORByProjectEntry {
+  name: string
+  fullName: string
+  approved: number
+  pending: number
+  rejected: number
+}
+
+export interface CORTrendEntry {
+  month: string
+  label: string
+  count: number
+  value: number
+}
+
+export type HealthColor = 'green' | 'yellow' | 'red'
+
+export interface RiskMatrixEntry {
+  name: string
+  fullName: string
+  contractValue: number
+  progress: number
+  expected: number | null
+  budgetHealth: HealthColor
+  scheduleHealth: HealthColor
+  /** 2-6 scale (sum of budget + schedule health) */
+  healthScore: number
+  costRatio: number
+  scheduleVariance: number | null
+  hasScheduleData: boolean
+}
 
 /** Log errors via observability */
-function logError(operation, companyId, error) {
+function logError(operation: string, companyId: string | undefined, error: Error): void {
   observe.error('database', { message: error.message, operation, company_id: companyId })
 }
 
@@ -16,7 +151,7 @@ function logError(operation, companyId, error) {
 // Financial rollups
 // ============================================
 
-export async function getPortfolioFinancialSummary(companyId) {
+export async function getPortfolioFinancialSummary(companyId: string): Promise<PortfolioFinancialSummary> {
   if (!isSupabaseConfigured || !companyId) return defaultFinancialSummary()
   try {
   const { data: projects, error } = await supabase
@@ -28,7 +163,7 @@ export async function getPortfolioFinancialSummary(companyId) {
   if (error) throw error
   if (!projects?.length) return defaultFinancialSummary()
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
 
   // Fetch areas, change orders, T&M tickets, and crew checkins in parallel
   const [areasRes, corsRes, ticketsRes, checkinsRes] = await Promise.all([
@@ -45,12 +180,12 @@ export async function getPortfolioFinancialSummary(companyId) {
   let totalCrewManDays = 0
 
   // Compute earned per project from area weights
-  const areasByProject = groupBy(areasRes.data || [], 'project_id')
-  const corsByProject = groupBy(corsRes.data || [], 'project_id')
-  const ticketsByProject = groupBy(ticketsRes.data || [], 'project_id')
-  const checkinsByProject = groupBy(checkinsRes.data || [], 'project_id')
+  const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
+  const corsByProject = groupBy((corsRes.data || []) as ChangeOrderRow[], 'project_id')
+  const ticketsByProject = groupBy((ticketsRes.data || []) as TMTicketRow[], 'project_id')
+  const checkinsByProject = groupBy((checkinsRes.data || []) as CrewCheckinRow[], 'project_id')
 
-  for (const project of projects) {
+  for (const project of projects as ProjectRow[]) {
     const cv = project.contract_value || 0
     totalContractValue += cv
 
@@ -95,10 +230,10 @@ export async function getPortfolioFinancialSummary(companyId) {
     margin: Math.round(margin * 10) / 10,
     projectCount: projects.length,
   }
-  } catch (err) { logError('getPortfolioFinancialSummary', companyId, err); return defaultFinancialSummary() }
+  } catch (err) { logError('getPortfolioFinancialSummary', companyId, err as Error); return defaultFinancialSummary() }
 }
 
-export async function getProjectFinancialComparison(companyId) {
+export async function getProjectFinancialComparison(companyId: string): Promise<ProjectFinancialComparisonEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
   try {
   const { data: projects, error } = await supabase
@@ -110,16 +245,16 @@ export async function getProjectFinancialComparison(companyId) {
   if (error) throw error
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes] = await Promise.all([
     supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
     supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
   ])
 
-  const areasByProject = groupBy(areasRes.data || [], 'project_id')
-  const corsByProject = groupBy(corsRes.data || [], 'project_id')
+  const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
+  const corsByProject = groupBy((corsRes.data || []) as ChangeOrderRow[], 'project_id')
 
-  return projects.map(p => {
+  return (projects as ProjectRow[]).map(p => {
     const areas = areasByProject[p.id] || []
     const progress = calculateWeightedProgress(areas)
     const earned = (p.contract_value || 0) * (progress / 100)
@@ -135,10 +270,10 @@ export async function getProjectFinancialComparison(companyId) {
       progress,
     }
   }).sort((a, b) => b.budget - a.budget)
-  } catch (err) { logError('getProjectFinancialComparison', companyId, err); return [] }
+  } catch (err) { logError('getProjectFinancialComparison', companyId, err as Error); return [] }
 }
 
-export async function getMonthlyRevenueTimeline(companyId, months = 12) {
+export async function getMonthlyRevenueTimeline(companyId: string, months = 12): Promise<MonthlyRevenueEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
   try {
   const startDate = new Date()
@@ -152,7 +287,7 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
 
   // Fetch actual financial data: approved CORs and T&M tickets with timestamps
   const [corsRes, ticketsRes, areasRes] = await Promise.all([
@@ -170,7 +305,7 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   ])
 
   // Build monthly buckets
-  const monthlyMap = {}
+  const monthlyMap: Record<string, MonthlyRevenueEntry> = {}
   const now = new Date()
   for (let i = months - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -181,26 +316,27 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
       earned: 0,
       costs: 0,
       corValue: 0,
+      revenue: 0,
     }
   }
 
   // Build per-project total weight for earned value calculation
-  const allAreas = areasRes.data || []
+  const allAreas = (areasRes.data || []) as AreaRow[]
   // We need all areas (complete + incomplete) for weight totals
   // But we only fetched complete ones — recalculate from projects
-  const totalWeightByProject = {}
+  const totalWeightByProject: Record<string, number> = {}
   // Fetch all areas for weight totals (including incomplete)
   const { data: allAreasForWeight } = await supabase
     .from('areas')
     .select('project_id, weight')
     .in('project_id', projectIds)
 
-  for (const area of (allAreasForWeight || [])) {
+  for (const area of ((allAreasForWeight || []) as AreaRow[])) {
     totalWeightByProject[area.project_id] = (totalWeightByProject[area.project_id] || 0) + (area.weight || 1)
   }
 
-  const projectContractValues = {}
-  for (const p of projects) {
+  const projectContractValues: Record<string, number> = {}
+  for (const p of projects as ProjectRow[]) {
     projectContractValues[p.id] = p.contract_value || 0
   }
 
@@ -217,7 +353,7 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   }
 
   // Attribute approved COR values to the month they were approved
-  for (const cor of (corsRes.data || [])) {
+  for (const cor of ((corsRes.data || []) as ChangeOrderRow[])) {
     if (!cor.updated_at) continue
     const d = new Date(cor.updated_at)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -227,7 +363,7 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   }
 
   // Attribute T&M costs to the month they were created
-  for (const ticket of (ticketsRes.data || [])) {
+  for (const ticket of ((ticketsRes.data || []) as TMTicketRow[])) {
     if (!ticket.created_at) continue
     const d = new Date(ticket.created_at)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -246,14 +382,14 @@ export async function getMonthlyRevenueTimeline(companyId, months = 12) {
   }
 
   return Object.values(monthlyMap)
-  } catch (err) { logError('getMonthlyRevenueTimeline', companyId, err); return [] }
+  } catch (err) { logError('getMonthlyRevenueTimeline', companyId, err as Error); return [] }
 }
 
 // ============================================
 // Labor & crew analytics
 // ============================================
 
-export async function getPortfolioLaborSummary(companyId) {
+export async function getPortfolioLaborSummary(companyId: string): Promise<PortfolioLaborSummary> {
   if (!isSupabaseConfigured || !companyId) return defaultLaborSummary()
   try {
   const { data: projects } = await supabase
@@ -264,7 +400,7 @@ export async function getPortfolioLaborSummary(companyId) {
 
   if (!projects?.length) return defaultLaborSummary()
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as Pick<ProjectRow, 'id'>[]).map(p => p.id)
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -274,7 +410,7 @@ export async function getPortfolioLaborSummary(companyId) {
     .in('project_id', projectIds)
     .gte('checkin_date', thirtyDaysAgo.toISOString().split('T')[0])
 
-  const allCheckins = checkins || []
+  const allCheckins = (checkins || []) as CrewCheckinRow[]
   const today = new Date().toISOString().split('T')[0]
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -301,10 +437,10 @@ export async function getPortfolioLaborSummary(companyId) {
     totalManDays,
     utilization: totalManDays > 0 ? Math.min(Math.round((totalManDays / (projects.length * 30 * 5)) * 100), 100) : 0,
   }
-  } catch (err) { logError('getPortfolioLaborSummary', companyId, err); return defaultLaborSummary() }
+  } catch (err) { logError('getPortfolioLaborSummary', companyId, err as Error); return defaultLaborSummary() }
 }
 
-export async function getCrewDistribution(companyId) {
+export async function getCrewDistribution(companyId: string): Promise<CrewDistributionEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
 
   const { data: projects } = await supabase
@@ -315,7 +451,7 @@ export async function getCrewDistribution(companyId) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -325,13 +461,13 @@ export async function getCrewDistribution(companyId) {
     .in('project_id', projectIds)
     .gte('checkin_date', thirtyDaysAgo.toISOString().split('T')[0])
 
-  const checkinsByProject = groupBy(checkins || [], 'project_id')
+  const checkinsByProject = groupBy((checkins || []) as CrewCheckinRow[], 'project_id')
   const today = new Date().toISOString().split('T')[0]
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
   const sevenStr = sevenDaysAgo.toISOString().split('T')[0]
 
-  return projects.map(p => {
+  return (projects as ProjectRow[]).map(p => {
     const pc = checkinsByProject[p.id] || []
     const todayCount = pc.filter(c => c.checkin_date === today).reduce((s, c) => s + (c.worker_count || 1), 0)
     const weekCheckins = pc.filter(c => c.checkin_date >= sevenStr)
@@ -348,7 +484,7 @@ export async function getCrewDistribution(companyId) {
   }).sort((a, b) => b.avg30Days - a.avg30Days)
 }
 
-export async function getLaborCostByProject(companyId) {
+export async function getLaborCostByProject(companyId: string): Promise<LaborCostByProjectEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
 
   const { data: projects } = await supabase
@@ -359,15 +495,15 @@ export async function getLaborCostByProject(companyId) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: tickets } = await supabase
     .from('t_and_m_tickets')
     .select('project_id, total_value')
     .in('project_id', projectIds)
 
-  const ticketsByProject = groupBy(tickets || [], 'project_id')
+  const ticketsByProject = groupBy((tickets || []) as TMTicketRow[], 'project_id')
 
-  return projects.map(p => {
+  return (projects as ProjectRow[]).map(p => {
     const laborCost = (ticketsByProject[p.id] || []).reduce((s, t) => s + (t.total_value || 0), 0)
     return {
       name: truncateName(p.name),
@@ -381,7 +517,7 @@ export async function getLaborCostByProject(companyId) {
 // Progress & schedule
 // ============================================
 
-export async function getPortfolioProgressSummary(companyId) {
+export async function getPortfolioProgressSummary(companyId: string): Promise<PortfolioProgressSummary> {
   if (!isSupabaseConfigured || !companyId) return defaultProgressSummary()
   try {
   const { data: projects } = await supabase
@@ -392,13 +528,13 @@ export async function getPortfolioProgressSummary(companyId) {
 
   if (!projects?.length) return defaultProgressSummary()
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
     .select('project_id, weight, is_complete')
     .in('project_id', projectIds)
 
-  const areasByProject = groupBy(areas || [], 'project_id')
+  const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
 
   let totalWeightedProgress = 0
   let totalWeight = 0
@@ -408,7 +544,7 @@ export async function getPortfolioProgressSummary(companyId) {
 
   let withScheduleData = 0
 
-  for (const project of projects) {
+  for (const project of projects as ProjectRow[]) {
     const pAreas = areasByProject[project.id] || []
     const progress = calculateWeightedProgress(pAreas)
     const expected = calculateExpectedProgress(project.start_date, project.end_date)
@@ -434,10 +570,10 @@ export async function getPortfolioProgressSummary(companyId) {
     totalProjects: projects.length,
     projectsWithScheduleData: withScheduleData,
   }
-  } catch (err) { logError('getPortfolioProgressSummary', companyId, err); return defaultProgressSummary() }
+  } catch (err) { logError('getPortfolioProgressSummary', companyId, err as Error); return defaultProgressSummary() }
 }
 
-export async function getScheduleVarianceByProject(companyId) {
+export async function getScheduleVarianceByProject(companyId: string): Promise<ScheduleVarianceEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
 
   const { data: projects } = await supabase
@@ -448,15 +584,15 @@ export async function getScheduleVarianceByProject(companyId) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
     .select('project_id, weight, is_complete')
     .in('project_id', projectIds)
 
-  const areasByProject = groupBy(areas || [], 'project_id')
+  const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
 
-  return projects.map(p => {
+  return (projects as ProjectRow[]).map(p => {
     const pAreas = areasByProject[p.id] || []
     const actual = calculateWeightedProgress(pAreas)
     const expected = calculateExpectedProgress(p.start_date, p.end_date)
@@ -465,14 +601,14 @@ export async function getScheduleVarianceByProject(companyId) {
       name: truncateName(p.name),
       fullName: p.name,
       actual: Math.round(actual),
-      expected: hasScheduleData ? Math.round(expected) : null,
-      variance: hasScheduleData ? Math.round(actual - expected) : null,
+      expected: expected !== null ? Math.round(expected) : null,
+      variance: expected !== null ? Math.round(actual - expected) : null,
       hasScheduleData,
     }
   })
 }
 
-export async function getAreaCompletionRates(companyId) {
+export async function getAreaCompletionRates(companyId: string): Promise<AreaCompletionRateEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
 
   const { data: projects } = await supabase
@@ -483,15 +619,15 @@ export async function getAreaCompletionRates(companyId) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
     .select('project_id, weight, is_complete, created_at, updated_at')
     .in('project_id', projectIds)
 
-  const areasByProject = groupBy(areas || [], 'project_id')
+  const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
 
-  return projects.map(p => {
+  return (projects as ProjectRow[]).map(p => {
     const pAreas = areasByProject[p.id] || []
     const totalAreas = pAreas.length
     const completedAreas = pAreas.filter(a => a.is_complete).length
@@ -513,7 +649,7 @@ export async function getAreaCompletionRates(companyId) {
 // Change orders
 // ============================================
 
-export async function getCORSummaryAcrossProjects(companyId) {
+export async function getCORSummaryAcrossProjects(companyId: string): Promise<CORSummary> {
   if (!isSupabaseConfigured || !companyId) return defaultCORSummary()
   try {
   const { data: projects } = await supabase
@@ -524,13 +660,13 @@ export async function getCORSummaryAcrossProjects(companyId) {
 
   if (!projects?.length) return defaultCORSummary()
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as Pick<ProjectRow, 'id'>[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
     .select('project_id, total_value, status, created_at, updated_at')
     .in('project_id', projectIds)
 
-  const allCors = cors || []
+  const allCors = (cors || []) as ChangeOrderRow[]
   let approved = 0, pending = 0, rejected = 0
   let approvedValue = 0, pendingValue = 0, rejectedValue = 0
 
@@ -544,7 +680,7 @@ export async function getCORSummaryAcrossProjects(companyId) {
   const totalWithDates = allCors.filter(c => c.created_at && c.updated_at && c.status === 'approved')
   const avgProcessingDays = totalWithDates.length > 0
     ? Math.round(totalWithDates.reduce((s, c) => {
-        return s + (new Date(c.updated_at) - new Date(c.created_at)) / (1000 * 60 * 60 * 24)
+        return s + (new Date(c.updated_at as string).getTime() - new Date(c.created_at as string).getTime()) / (1000 * 60 * 60 * 24)
       }, 0) / totalWithDates.length)
     : 0
 
@@ -556,10 +692,10 @@ export async function getCORSummaryAcrossProjects(companyId) {
     approvalRate: allCors.length > 0 ? Math.round((approved / allCors.length) * 100) : 0,
     avgProcessingDays,
   }
-  } catch (err) { logError('getCORSummaryAcrossProjects', companyId, err); return defaultCORSummary() }
+  } catch (err) { logError('getCORSummaryAcrossProjects', companyId, err as Error); return defaultCORSummary() }
 }
 
-export async function getCORByProject(companyId) {
+export async function getCORByProject(companyId: string): Promise<CORByProjectEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
 
   const { data: projects } = await supabase
@@ -570,15 +706,15 @@ export async function getCORByProject(companyId) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
     .select('project_id, total_value, status')
     .in('project_id', projectIds)
 
-  const corsByProject = groupBy(cors || [], 'project_id')
+  const corsByProject = groupBy((cors || []) as ChangeOrderRow[], 'project_id')
 
-  return projects.map(p => {
+  return (projects as ProjectRow[]).map(p => {
     const pCors = corsByProject[p.id] || []
     return {
       name: truncateName(p.name),
@@ -591,7 +727,7 @@ export async function getCORByProject(companyId) {
     .sort((a, b) => (b.approved + b.pending + b.rejected) - (a.approved + a.pending + a.rejected))
 }
 
-export async function getCORTrendByMonth(companyId, months = 12) {
+export async function getCORTrendByMonth(companyId: string, months = 12): Promise<CORTrendEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
 
   const startDate = new Date()
@@ -605,14 +741,14 @@ export async function getCORTrendByMonth(companyId, months = 12) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as Pick<ProjectRow, 'id'>[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
     .select('created_at, total_value, status')
     .in('project_id', projectIds)
     .gte('created_at', startDate.toISOString())
 
-  const monthlyMap = {}
+  const monthlyMap: Record<string, CORTrendEntry> = {}
   const now = new Date()
   for (let i = months - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -625,8 +761,8 @@ export async function getCORTrendByMonth(companyId, months = 12) {
     }
   }
 
-  for (const cor of (cors || [])) {
-    const d = new Date(cor.created_at)
+  for (const cor of ((cors || []) as ChangeOrderRow[])) {
+    const d = new Date(cor.created_at as string)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (monthlyMap[key]) {
       monthlyMap[key].count++
@@ -641,7 +777,7 @@ export async function getCORTrendByMonth(companyId, months = 12) {
 // Risk & health
 // ============================================
 
-export async function getPortfolioRiskMatrix(companyId) {
+export async function getPortfolioRiskMatrix(companyId: string): Promise<RiskMatrixEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
   try {
   const { data: projects } = await supabase
@@ -652,18 +788,18 @@ export async function getPortfolioRiskMatrix(companyId) {
 
   if (!projects?.length) return []
 
-  const projectIds = projects.map(p => p.id)
+  const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes, ticketsRes] = await Promise.all([
     supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
     supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
     supabase.from('t_and_m_tickets').select('project_id, total_value').in('project_id', projectIds),
   ])
 
-  const areasByProject = groupBy(areasRes.data || [], 'project_id')
-  const corsByProject = groupBy(corsRes.data || [], 'project_id')
-  const ticketsByProject = groupBy(ticketsRes.data || [], 'project_id')
+  const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
+  const corsByProject = groupBy((corsRes.data || []) as ChangeOrderRow[], 'project_id')
+  const ticketsByProject = groupBy((ticketsRes.data || []) as TMTicketRow[], 'project_id')
 
-  return projects.map(p => {
+  return (projects as ProjectRow[]).map(p => {
     const cv = p.contract_value || 0
     const areas = areasByProject[p.id] || []
     const progress = calculateWeightedProgress(areas)
@@ -677,13 +813,13 @@ export async function getPortfolioRiskMatrix(companyId) {
     const totalBudget = cv + approvedCORValue
     const costRatio = totalBudget > 0 ? tmCost / totalBudget : 0
     const hasScheduleData = expected !== null
-    const scheduleVariance = hasScheduleData ? progress - expected : 0
+    const scheduleVariance = expected !== null ? progress - expected : 0
 
     // Budget health: green if cost < 70% of budget, yellow if < 90%, red if >= 90%
-    const budgetHealth = costRatio < 0.7 ? 'green' : costRatio < 0.9 ? 'yellow' : 'red'
+    const budgetHealth: HealthColor = costRatio < 0.7 ? 'green' : costRatio < 0.9 ? 'yellow' : 'red'
     // Schedule health: green if on/ahead, yellow if slightly behind, red if far behind
     // Projects without schedule dates default to green (no data to assess)
-    const scheduleHealth = !hasScheduleData ? 'green'
+    const scheduleHealth: HealthColor = !hasScheduleData ? 'green'
       : scheduleVariance >= -5 ? 'green' : scheduleVariance >= -15 ? 'yellow' : 'red'
 
     const healthScore = (
@@ -705,10 +841,10 @@ export async function getPortfolioRiskMatrix(companyId) {
       hasScheduleData,
     }
   }).sort((a, b) => a.healthScore - b.healthScore) // worst health first
-  } catch (err) { logError('getPortfolioRiskMatrix', companyId, err); return [] }
+  } catch (err) { logError('getPortfolioRiskMatrix', companyId, err as Error); return [] }
 }
 
-export async function getProjectHealthScores(companyId) {
+export async function getProjectHealthScores(companyId: string): Promise<RiskMatrixEntry[]> {
   // Reuses risk matrix data, returns sorted by health score
   return getPortfolioRiskMatrix(companyId)
 }
@@ -717,17 +853,17 @@ export async function getProjectHealthScores(companyId) {
 // Helpers
 // ============================================
 
-function groupBy(arr, key) {
-  const map = {}
+function groupBy<T>(arr: T[], key: keyof T): Record<string, T[]> {
+  const map: Record<string, T[]> = {}
   for (const item of arr) {
-    const k = item[key]
+    const k = String(item[key])
     if (!map[k]) map[k] = []
     map[k].push(item)
   }
   return map
 }
 
-function calculateWeightedProgress(areas) {
+function calculateWeightedProgress(areas: AreaRow[]): number {
   if (!areas?.length) return 0
   let totalWeight = 0
   let completedWeight = 0
@@ -739,7 +875,7 @@ function calculateWeightedProgress(areas) {
   return totalWeight > 0 ? (completedWeight / totalWeight) * 100 : 0
 }
 
-function calculateExpectedProgress(startDate, endDate) {
+function calculateExpectedProgress(startDate?: string | null, endDate?: string | null): number | null {
   if (!startDate || !endDate) return null // no dates = no expected progress (excluded from schedule variance)
   const start = new Date(startDate).getTime()
   const end = new Date(endDate).getTime()
@@ -750,30 +886,30 @@ function calculateExpectedProgress(startDate, endDate) {
   return ((now - start) / (end - start)) * 100
 }
 
-function truncateName(name) {
+function truncateName(name: string | null | undefined): string {
   if (!name) return ''
   return name.length > 25 ? name.substring(0, 22) + '...' : name
 }
 
-function defaultFinancialSummary() {
+function defaultFinancialSummary(): PortfolioFinancialSummary {
   return {
     totalContractValue: 0, totalEarned: 0, totalCORApproved: 0, totalTMValue: 0,
     totalCrewManDays: 0, totalRevenue: 0, totalCosts: 0, totalProfit: 0, margin: 0, projectCount: 0,
   }
 }
 
-function defaultLaborSummary() {
+function defaultLaborSummary(): PortfolioLaborSummary {
   return {
     totalCrewToday: 0, avgCrewLast7Days: 0, avgCrewLast30Days: 0,
     totalManDays: 0, utilization: 0,
   }
 }
 
-function defaultProgressSummary() {
+function defaultProgressSummary(): PortfolioProgressSummary {
   return { avgCompletion: 0, onTrack: 0, behind: 0, ahead: 0, totalProjects: 0, projectsWithScheduleData: 0 }
 }
 
-function defaultCORSummary() {
+function defaultCORSummary(): CORSummary {
   return {
     total: 0, approved: 0, pending: 0, rejected: 0,
     approvedValue: 0, pendingValue: 0, rejectedValue: 0,

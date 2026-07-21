@@ -12,7 +12,14 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error(`[ErrorBoundary:${this.props.section || 'unknown'}]`, error, errorInfo)
+    // Log the failing section, the error, the component stack, and any
+    // extra props passed to the boundary (useful debugging context)
+    const { children: _children, fallback: _fallback, ...contextProps } = this.props
+    console.error(
+      `[ErrorBoundary:${this.props.section || 'unknown'}]`,
+      error,
+      { componentStack: errorInfo?.componentStack, props: contextProps }
+    )
   }
 
   handleReset = () => {

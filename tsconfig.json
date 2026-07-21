@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    /* Type checking: strict for .ts files; .js/.jsx are resolvable for
+       imports (allowJs) but not type-checked yet (checkJs off) — the React
+       component layer is still plain JSX. */
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@styles/*": ["./src/styles/*"]
+    }
+  },
+  "include": ["src"]
+}
