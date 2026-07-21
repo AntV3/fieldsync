@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronRight,
   Calendar, User
 } from 'lucide-react'
+import { EmptyState, ListItemSkeleton } from './ui'
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: '#6b7280', bg: '#6b728015' },
@@ -208,11 +209,19 @@ export default function RFIList({ project, company, onShowToast }) {
 
       {/* RFI List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>Loading RFIs...</div>
+        <ListItemSkeleton count={4} />
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
-          {rfis.length === 0 ? 'No RFIs yet. Create one to start tracking.' : 'No matching RFIs.'}
-        </div>
+        rfis.length === 0 ? (
+          <EmptyState
+            icon={MessageSquareText}
+            title="Track questions to your architect or engineer"
+            message="RFIs help document design clarifications and their cost impact, so every answer is on the record."
+            actionLabel="+ New RFI"
+            onAction={() => { resetForm(); setShowForm(true) }}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>No matching RFIs.</div>
+        )
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {filtered.map(rfi => {

@@ -395,8 +395,8 @@ export default function PunchList({ projectId, areas = [], companyId, onShowToas
         items.length === 0 ? (
           <EmptyState
             icon={CheckCircle2}
-            title="No punch items yet"
-            message="Add items that need attention before project closeout."
+            title="Track closeout work to done"
+            message="Punch lists capture deficiencies found during walkthroughs so nothing is missed before handoff. Add the first item that needs attention before closeout."
           />
         ) : (
           <EmptyState

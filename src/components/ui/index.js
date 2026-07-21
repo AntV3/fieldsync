@@ -7,6 +7,9 @@ export {
   FinancialRowSkeleton,
   ChartSkeleton,
   TicketSkeleton,
+  TableRowSkeleton,
+  TabContentSkeleton,
+  ChartAreaSkeleton,
   HeroMetricsSkeleton
 } from './Skeleton'
 

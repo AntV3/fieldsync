@@ -600,3 +600,93 @@
     background: #e2e8f0;
   }
 }
+
+/* ============================================
+   Table row skeleton
+   ============================================ */
+
+.table-skeleton {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+}
+
+.table-skeleton-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 16px;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.table-skeleton-row:last-child { border-bottom: none; }
+
+.table-skeleton-header {
+  background: var(--bg-elevated);
+}
+
+/* ============================================
+   Tab content skeleton (tab switching)
+   ============================================ */
+
+.tab-content-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem 0;
+}
+
+.tab-content-skeleton-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.tab-content-skeleton-main {
+  display: grid;
+  grid-template-columns: 1.62fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .tab-content-skeleton-kpis { grid-template-columns: repeat(2, 1fr); }
+  .tab-content-skeleton-main { grid-template-columns: 1fr; }
+}
+
+/* ============================================
+   Chart skeleton: axis lines + pulsing area
+   ============================================ */
+
+.chart-area-skeleton {
+  display: flex;
+  gap: 8px;
+  padding: 1rem;
+}
+
+.chart-area-skeleton-y {
+  width: 1px;
+  background: var(--border-color);
+}
+
+.chart-area-skeleton-plot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.chart-area-skeleton-area {
+  height: 70%;
+  border-radius: 8px 8px 0 0;
+  background: var(--bg-tertiary, rgba(148, 163, 184, 0.14));
+  clip-path: polygon(0 78%, 12% 62%, 26% 70%, 40% 42%, 56% 55%, 70% 25%, 84% 40%, 100% 12%, 100% 100%, 0 100%);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.chart-area-skeleton-x {
+  height: 1px;
+  background: var(--border-color);
+}

@@ -724,8 +724,8 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       {reports.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
-          title="No daily reports yet"
-          message="Reports from the field will appear here"
+          title="A daily record of what happened on site"
+          message="Daily reports capture work performed, crew counts, weather, and issues. Foremen submit them from the field view, and they appear here for the office record."
         />
       ) : filteredReports.length === 0 ? (
         <EmptyState

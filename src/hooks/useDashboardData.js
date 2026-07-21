@@ -534,9 +534,23 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       const data = await db.getProjectDashboardSummary(company?.id)
       setProjects(data)
 
-      // Create lightweight enhanced data using ONLY summary metrics from the RPC
-      // This uses data already returned from getProjectDashboardSummary (no additional queries!)
-      // Detailed data is loaded on-demand via loadProjectDetails when a project is selected
+      // Batch-fetch area status/values for ALL projects in one query so
+      // portfolio-level earned value is real, not a 0 placeholder. Without
+      // this the portfolio header showed "0% earned" while individual
+      // projects (whose details load on-demand) showed real earned value.
+      const allAreas = await safeAsync(
+        () => db.getAreasForProjects(data.map(p => p.id)),
+        { fallback: [], context: { operation: 'getAreasForProjects', companyId: company?.id } }
+      )
+      const areasByProject = new Map()
+      for (const area of allAreas || []) {
+        if (!areasByProject.has(area.project_id)) areasByProject.set(area.project_id, [])
+        areasByProject.get(area.project_id).push(area)
+      }
+
+      // Create lightweight enhanced data using summary metrics from the RPC
+      // plus the batched areas. Detailed data (costs, tickets, CORs, ...) is
+      // still loaded on-demand via loadProjectDetails when a project is selected
       const enhanced = data.map(project => {
         // Check if we have cached detailed data for this project
         const cached = projectDetailsCacheRef.current.get(project.id)
@@ -545,34 +559,39 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
           return cached.data
         }
 
-        // Use summary data from RPC (no additional queries needed)
-        // Progress is estimated from area counts in the summary
-        const totalAreas = project.areaCount || 0
-        const completedAreas = project.completedAreas || 0
-        const progress = totalAreas > 0 ? Math.round((completedAreas / totalAreas) * 100) : 0
+        // Earned value from the batched areas — same math as loadProjectDetails
+        const projectAreas = areasByProject.get(project.id) || []
+        const progressData = calculateValueProgress(projectAreas)
+        const progress = progressData.progress
+        const contractValue = project.contract_value || 0
+        // Change orders aren't in the summary RPC, so revised contract = original here;
+        // loadProjectDetails refines this once a project is opened
+        const billable = progressData.isValueBased
+          ? progressData.earnedValue
+          : (progress / 100) * contractValue
 
         return {
           ...project,
           // Basic metrics from summary (already loaded)
           progress,
-          areas: [], // Loaded on-demand when project selected
+          areas: [], // Full area rows loaded on-demand when project selected
           totalTickets: project.ticketCount || 0,
           pendingTickets: project.pendingTicketCount || 0,
           approvedTickets: project.approvedTicketCount || 0,
           dailyReportsCount: project.dailyReportsThisWeek || 0,
           recentDailyReports: project.dailyReportsThisWeek || 0,
           corTotalCount: project.corCount || 0,
+          billable,
+          isValueBased: progressData.isValueBased,
+          earnedValue: progressData.earnedValue,
+          totalSOVValue: progressData.totalValue,
           // Placeholder values - loaded on-demand when selected
-          billable: 0,
           changeOrderValue: 0,
-          revisedContractValue: project.contract_value || 0,
+          revisedContractValue: contractValue,
           changeOrderPending: 0,
           tmTickets: [],
           injuryReportsCount: 0,
           lastDailyReport: null,
-          isValueBased: false,
-          earnedValue: 0,
-          totalSOVValue: 0,
           laborCost: 0,
           laborDaysWorked: 0,
           laborManDays: 0,

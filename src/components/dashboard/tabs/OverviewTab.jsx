@@ -1,6 +1,7 @@
-import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight } from 'lucide-react'
+import { ClipboardList, DollarSign, FileText, AlertTriangle, Download, ArrowRight, Users } from 'lucide-react'
 import { formatCurrencyCompact } from '../../../lib/utils'
 import { OverviewCrewMetrics } from '../../overview'
+import { CollapsibleSection } from '../../ui'
 import DisposalSummary from '../../DisposalSummary'
 import ProjectHealthOverview from '../ProjectHealthOverview'
 import ScheduleOfValues from '../ScheduleOfValues'
@@ -89,8 +90,14 @@ export default function OverviewTab({
     })
   }
 
+  // Section 4 starts collapsed when there's nothing in it yet
+  const hasCrewData = (projectData?.crewDaysTracked || 0) > 0 || (projectData?.crewCheckins?.length || 0) > 0
+  const hasDisposalData = (projectData?.disposalTotalLoads || 0) > 0
+
   return (
     <div className="pv-tab-panel overview-tab sdx-overview animate-fade-in" role="region" aria-label="Project overview">
+      {/* ============ Section 1: Summary cards + SOV + Project Health ============ */}
+      <section className="overview-section" aria-label="Project summary">
       {/* Row 1: KPI cards */}
       <div className="sdx-kpi-grid" role="region" aria-label="Key performance indicators">
         <div className="sdx-card sdx-kpi">
@@ -143,21 +150,8 @@ export default function OverviewTab({
         <SafetyCard projectData={projectData} />
       </div>
 
-      {/* Project Health: gauge, per-dimension signals & action items (from Analytics) */}
-      <ProjectHealthOverview
-        forecast={forecast}
-        cashFlow={cashFlow}
-        resourceData={resourceData}
-        progress={progress}
-        revisedContractValue={revisedContractValue}
-        projectData={projectData}
-        changeOrderValue={changeOrderValue}
-        selectedProject={selectedProject}
-      />
-
-      {/* Row 2: main two-column grid */}
+      {/* SOV + Project Health side by side */}
       <div className="sdx-main-grid">
-        {/* LEFT COLUMN */}
         <div className="sdx-col">
           <ScheduleOfValues
             areas={areas}
@@ -170,39 +164,91 @@ export default function OverviewTab({
             isValueBased={isValueBased}
             onAreaStatusCycle={onAreaStatusCycle}
           />
-
-          <LiveFieldFeed
+        </div>
+        <div className="sdx-col">
+          <ProjectHealthOverview
+            forecast={forecast}
+            cashFlow={cashFlow}
+            resourceData={resourceData}
+            progress={progress}
+            revisedContractValue={revisedContractValue}
             projectData={projectData}
-            pendingApprovalCount={pendingApprovalCount}
-            onSetActiveTab={onSetActiveTab}
-            onViewCOR={onViewCOR}
+            changeOrderValue={changeOrderValue}
+            selectedProject={selectedProject}
           />
         </div>
+      </div>
+      </section>
 
-        {/* RIGHT COLUMN */}
-        <div className="sdx-col">
-          <ContractToDate
-            originalContract={originalContract}
-            changeOrderValue={changeOrderValue}
-            revisedContractValue={revisedContractValue}
-            billable={billable}
-            pendingApprovalValue={pendingApprovalValue}
-          />
+      {/* ============ Section 2: Live Field Feed (prominent) ============ */}
+      <section className="overview-section overview-section--feed" aria-label="Live field feed">
+        <div className="overview-section-head">
+          <h2 className="overview-section-title">
+            <span className="sdx-live-dot" aria-hidden="true" />
+            Live Field Feed
+          </h2>
+          <span className="overview-section-hint">Real-time activity from the field</span>
+        </div>
+        <LiveFieldFeed
+          projectData={projectData}
+          pendingApprovalCount={pendingApprovalCount}
+          onSetActiveTab={onSetActiveTab}
+          onViewCOR={onViewCOR}
+        />
+      </section>
 
-          {/* Schedule + Labor mini cards */}
-          <div className="sdx-mini-grid">
-            <ScheduleCard projectData={projectData} selectedProject={selectedProject} />
-            <LaborCard projectData={projectData} selectedProject={selectedProject} />
+      {/* ============ Section 3: Contract, Schedule & Labor (sidebar layout) ============ */}
+      <section className="overview-section" aria-label="Contract and schedule">
+        <div className="overview-section-head">
+          <h2 className="overview-section-title">Contract &amp; Schedule</h2>
+        </div>
+        <div className="sdx-main-grid">
+          <div className="sdx-col">
+            <ContractToDate
+              originalContract={originalContract}
+              changeOrderValue={changeOrderValue}
+              revisedContractValue={revisedContractValue}
+              billable={billable}
+              pendingApprovalValue={pendingApprovalValue}
+            />
           </div>
+          <div className="sdx-col">
+            {/* Schedule + Labor mini cards */}
+            <div className="sdx-mini-grid">
+              <ScheduleCard projectData={projectData} selectedProject={selectedProject} />
+              <LaborCard projectData={projectData} selectedProject={selectedProject} />
+            </div>
+          </div>
+        </div>
+      </section>
 
+      {/* ============ Section 4: Crew On-Site + Disposal (collapsible) ============ */}
+      <section className="overview-section" aria-label="Crew and disposal">
+        <CollapsibleSection
+          title="Crew On-Site & Disposal"
+          icon={<Users size={16} />}
+          variant="card"
+          defaultOpen={hasCrewData || hasDisposalData}
+          summary={!hasCrewData && !hasDisposalData ? 'No crew or disposal activity yet' : undefined}
+        >
           {/* Crews on site (full crew metrics: timeline + export) */}
           <OverviewCrewMetrics
             project={selectedProject}
             company={company}
             onShowToast={onShowToast}
           />
-        </div>
-      </div>
+
+          {/* Disposal Loads (read-only summary; entry is field-only) */}
+          {truckLoadTrackingEnabled && (
+            <DisposalSummary
+              project={selectedProject}
+              company={company}
+              period="week"
+              onShowToast={onShowToast}
+            />
+          )}
+        </CollapsibleSection>
+      </section>
 
       {/* Needs Attention (only shown when there are items) */}
       {attentionItems.length > 0 && (
@@ -229,16 +275,6 @@ export default function OverviewTab({
             })}
           </div>
         </div>
-      )}
-
-      {/* Disposal Loads (read-only summary; entry is field-only) */}
-      {truckLoadTrackingEnabled && (
-        <DisposalSummary
-          project={selectedProject}
-          company={company}
-          period="week"
-          onShowToast={onShowToast}
-        />
       )}
 
       {/* Quick Nav + Exports */}

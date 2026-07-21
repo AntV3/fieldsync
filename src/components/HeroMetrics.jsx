@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { DollarSign, TrendingUp, Receipt, PiggyBank } from 'lucide-react'
+import { DollarSign, TrendingUp, Receipt, PiggyBank, AlertTriangle } from 'lucide-react'
 import { HeroMetricsSkeleton, MiniProgress, TrendIndicator, InfoTooltip } from './ui'
 
 /**
@@ -81,11 +81,14 @@ const MetricCard = memo(function MetricCard({
 
   const color = variantColors[variant]
   const bg = variantBgs[variant]
+  // Warning/danger states get stronger visual treatment: colored left border,
+  // alert icon, and a larger, bolder value so problems can't be missed
+  const isAlert = variant === 'warning' || variant === 'danger'
 
   return (
     <div
-      className="hero-metric-card hover-lift animate-fade-in-up"
-      style={{ borderTop: `2px solid ${color}` }}
+      className={`hero-metric-card hover-lift animate-fade-in-up ${isAlert ? 'hero-metric-card--alert' : ''}`}
+      style={{ borderTop: `2px solid ${color}`, ...(isAlert && { borderLeft: `3px solid ${color}` }) }}
     >
       <div className="hero-metric-header">
         <div
@@ -100,12 +103,13 @@ const MetricCard = memo(function MetricCard({
         </div>
         <span className="hero-metric-label">{label}</span>
         {tooltip && <InfoTooltip text={tooltip} />}
+        {isAlert && <AlertTriangle size={15} style={{ color }} aria-label="Needs attention" />}
         {showPulse && <PulseIndicator />}
       </div>
 
       <div className="hero-metric-value-row">
         <span
-          className={`hero-metric-value hero-metric-value--prominent hero-metric-${variant}`}
+          className={`hero-metric-value hero-metric-value--prominent hero-metric-${variant} ${isAlert ? 'hero-metric-value--alert' : ''}`}
           style={{ background: `${color}0D`, padding: '0.1em 0.35em', borderRadius: '6px' }}
         >
           {formattedValue}

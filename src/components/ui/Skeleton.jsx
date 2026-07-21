@@ -165,6 +165,58 @@ export const TicketSkeleton = memo(function TicketSkeleton({ count = 3 }) {
   )
 })
 
+// Skeleton for table rows (data fetching in tabular views)
+export const TableRowSkeleton = memo(function TableRowSkeleton({ rows = 5, cols = 4 }) {
+  return (
+    <div className="table-skeleton" aria-busy="true" aria-label="Loading table">
+      <div className="table-skeleton-row table-skeleton-header">
+        {Array.from({ length: cols }).map((_, i) => (
+          <Skeleton key={i} width={`${60 + ((i * 13) % 30)}%`} height="0.7rem" />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="table-skeleton-row">
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} width={`${55 + (((r + c) * 17) % 40)}%`} height="0.9rem" />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+})
+
+// Full-panel skeleton for tab content switching: card-shaped pulsing blocks
+// mirroring the common tab layout (KPI row + two content cards)
+export const TabContentSkeleton = memo(function TabContentSkeleton() {
+  return (
+    <div className="tab-content-skeleton" aria-busy="true" aria-label="Loading tab">
+      <div className="tab-content-skeleton-kpis">
+        {[1, 2, 3, 4].map(i => (
+          <Skeleton key={i} height="96px" borderRadius="12px" />
+        ))}
+      </div>
+      <div className="tab-content-skeleton-main">
+        <Skeleton height="280px" borderRadius="12px" />
+        <Skeleton height="280px" borderRadius="12px" />
+      </div>
+      <Skeleton height="160px" borderRadius="12px" />
+    </div>
+  )
+})
+
+// Chart loading skeleton: static axis lines with a pulsing plot area
+export const ChartAreaSkeleton = memo(function ChartAreaSkeleton({ height = '220px' }) {
+  return (
+    <div className="chart-area-skeleton" style={{ height }} aria-busy="true" aria-label="Loading chart">
+      <div className="chart-area-skeleton-y" />
+      <div className="chart-area-skeleton-plot">
+        <div className="chart-area-skeleton-area" />
+        <div className="chart-area-skeleton-x" />
+      </div>
+    </div>
+  )
+})
+
 // Skeleton for hero metrics row
 export const HeroMetricsSkeleton = memo(function HeroMetricsSkeleton() {
   return (
