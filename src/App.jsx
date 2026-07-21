@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
-import { Settings as SettingsIcon, ChevronDown } from 'lucide-react'
 import { isSupabaseConfigured, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { TradeConfigProvider } from './lib/TradeConfigContext'
@@ -13,6 +12,7 @@ import OfficeLogin from './components/auth/OfficeLogin'
 import JoinCompany from './components/auth/JoinCompany'
 import RegisterCompany from './components/auth/RegisterCompany'
 import Logo from './components/Logo'
+import SettingsDropdown from './components/nav/SettingsDropdown'
 import ThemeToggle from './components/ThemeToggle'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineIndicator from './components/OfflineIndicator'
@@ -146,7 +146,6 @@ export default function App() {
   const [, setProjects] = useState([])
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
@@ -253,37 +252,7 @@ export default function App() {
           <div className="nav-tabs nav-tabs-desktop">
             <button className={`nav-tab ${location.pathname === '/dashboard' ? 'active' : ''}`} onClick={() => navigate('/dashboard')}>Dashboard</button>
             <button className={`nav-tab ${location.pathname === '/projects/new' ? 'active' : ''}`} onClick={() => navigate('/projects/new')}>+ New Project</button>
-            <div className="nav-settings">
-              <button
-                className={`nav-tab nav-settings-trigger ${['/pricing', '/branding', '/team', '/account'].includes(location.pathname) ? 'active' : ''}`}
-                onClick={() => setShowSettingsMenu(prev => !prev)}
-                aria-haspopup="menu"
-                aria-expanded={showSettingsMenu}
-              >
-                <SettingsIcon size={14} />
-                Settings
-                {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
-                <ChevronDown size={12} className={`nav-settings-chevron ${showSettingsMenu ? 'open' : ''}`} />
-              </button>
-              {showSettingsMenu && (
-                <>
-                  <div className="nav-settings-backdrop" onClick={() => setShowSettingsMenu(false)} aria-hidden="true" />
-                  <div className="nav-settings-dropdown" role="menu">
-                    <button role="menuitem" className={`nav-settings-item ${location.pathname === '/pricing' ? 'active' : ''}`} onClick={() => { navigate('/pricing'); setShowSettingsMenu(false) }}>Pricing</button>
-                    {isAdmin && (
-                      <button role="menuitem" className={`nav-settings-item ${location.pathname === '/branding' ? 'active' : ''}`} onClick={() => { navigate('/branding'); setShowSettingsMenu(false) }}>Branding</button>
-                    )}
-                    {isAdmin && (
-                      <button role="menuitem" className={`nav-settings-item ${location.pathname === '/team' ? 'active' : ''}`} onClick={() => { navigate('/team'); setShowSettingsMenu(false) }}>
-                        Team
-                        {pendingRequestCount > 0 && <span className="nav-tab-badge">{pendingRequestCount}</span>}
-                      </button>
-                    )}
-                    <button role="menuitem" className={`nav-settings-item ${location.pathname === '/account' ? 'active' : ''}`} onClick={() => { navigate('/account'); setShowSettingsMenu(false) }}>Account</button>
-                  </div>
-                </>
-              )}
-            </div>
+            <SettingsDropdown isAdmin={isAdmin} pendingRequestCount={pendingRequestCount} />
           </div>
           <div className="nav-user nav-user-desktop">
             <ThemeToggle compact />

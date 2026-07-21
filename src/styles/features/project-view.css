@@ -188,6 +188,49 @@
   border-color: var(--primary-color);
 }
 
+/* Mobile: icon-only tabs; the active tab reveals its label below the icon.
+   The tab row stays horizontally scrollable via .pv-tabs overflow-x. */
+@media (max-width: 768px) {
+  .pv-tabs {
+    gap: 0;
+  }
+
+  .pv-tab {
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.875rem;
+    min-height: 52px;
+    flex: 1 0 auto;
+  }
+
+  .pv-tab .pv-tab-icon {
+    display: block;
+  }
+
+  .pv-tab .pv-tab-label {
+    display: none;
+  }
+
+  .pv-tab.active .pv-tab-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1;
+  }
+
+  .pv-tab-badge {
+    position: absolute;
+    top: 0.2rem;
+    right: 0.3rem;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 0.25rem;
+    margin-left: 0;
+    font-size: 0.6rem;
+  }
+}
+
 /* Tab Content Area */
 .pv-tab-content {
   flex: 1;

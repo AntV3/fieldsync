@@ -112,6 +112,8 @@ export default function ProjectHealthOverview({
             <span className="health-overview__alerts-title">Action Items</span>
             {signals
               .filter(s => s.status === 'critical' || s.status === 'warning')
+              .sort((a, b) => (a.status === b.status ? a.score - b.score : a.status === 'critical' ? -1 : 1))
+              .slice(0, 3)
               .map((s, i) => (
                 <div key={i} className={`health-alert health-alert--${s.status}`}>
                   <div className="health-alert__icon-wrap">
