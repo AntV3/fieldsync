@@ -95,7 +95,13 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
           setProjectsData(prev => prev.map(p =>
             p.id === currentProject.id ? detailed : p
           ))
-          setSelectedProject(detailed)
+          // Only re-apply the fresh detail to selectedProject if the user is
+          // still on the same project. Detail loads run 400ms-2s of Supabase
+          // fan-out; without this guard a Back click or switch to another
+          // project mid-flight would yank the user back to the stale project.
+          if (selectedProjectRef.current?.id === currentProject.id) {
+            setSelectedProject(detailed)
+          }
         }
       }
     }, 150)
@@ -178,15 +184,20 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     }
   }, [navigateToProjectId, projects, onProjectNavigated])
 
-  // Per-project real-time subscriptions for the selected project
+  // Per-project real-time subscriptions for the selected project.
+  // Dependency is `selectedProject?.id` (not the whole object) because
+  // debouncedRefresh replaces selectedProject with a fresh reference after
+  // every subscription fire; keying on the id keeps the ~9 channels stable
+  // across those refreshes and avoids the tear-down/rebuild churn (plus the
+  // tiny window between unsub and resub where events fall on the floor).
   useEffect(() => {
-    if (selectedProject) {
-      loadAreas(selectedProject.id)
+    const projectId = selectedProject?.id
+    if (projectId) {
+      loadAreas(projectId)
 
       // Subscribe to real-time updates for the selected project
       // All callbacks use debouncedRefresh to prevent cascading refreshes
       const subscriptions = []
-      const projectId = selectedProject.id
 
       // Areas subscription - also refreshes areas list
       const areasSub = db.subscribeToAreas?.(projectId, () => {
@@ -246,7 +257,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
         subscriptions.forEach(sub => db.unsubscribe?.(sub))
       }
     }
-  }, [selectedProject, debouncedRefresh])
+  }, [selectedProject?.id, debouncedRefresh])
 
   // Load detailed data for a single project (on-demand, with caching)
   // This replaces the previous N+1 pattern where ALL project details were loaded upfront
@@ -646,13 +657,19 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     if (!project._detailsLoaded) {
       const detailedProject = await loadProjectDetails(project)
 
-      // Update projectsData with the detailed version
+      // Update projectsData with the detailed version (safe regardless of
+      // current selection — this is just cached array data).
       setProjectsData(prev => prev.map(p =>
         p.id === project.id ? detailedProject : p
       ))
 
-      // Update selectedProject with detailed data
-      setSelectedProject(detailedProject)
+      // Only re-apply detail to selectedProject if the user is still on
+      // this project. Between the setSelectedProject above and this await
+      // resolving (400ms-2s), the user may have hit Back or clicked
+      // another project - without this guard we'd yank them back.
+      if (selectedProjectRef.current?.id === project.id) {
+        setSelectedProject(detailedProject)
+      }
     }
   }
 
