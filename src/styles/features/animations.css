@@ -464,6 +464,14 @@
   animation: shimmerGlow 2s ease-in-out infinite;
 }
 
+/* ---- Tab Switch Fade (200ms) ---- */
+/* Panels remount on tab change, so the animation plays on each switch */
+.pv-tab-content > .pv-tab-panel,
+.pa-tab-content,
+.tab-fade {
+  animation: fadeIn 200ms ease-out;
+}
+
 /* ---- Reduced Motion Preferences ---- */
 
 @media (prefers-reduced-motion: reduce) {

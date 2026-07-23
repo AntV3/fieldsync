@@ -1,6 +1,6 @@
 import { memo, useState, useEffect } from 'react'
 import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react'
-import { CountBadge } from '../ui'
+import { CountBadge, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
 
 const formatTime12 = (timeStr) => {
@@ -128,7 +128,7 @@ const TMTicketCard = memo(function TMTicketCard({
               <CheckCircle size={12} /> Client
             </span>
           )}
-          <span className={`tm-ticket-status ${ticket.status}`}>{ticket.status}</span>
+          <StatusBadge status={ticket.status} />
         </div>
         <div className="tm-ticket-summary">
           <div className="tm-ticket-hours-block">

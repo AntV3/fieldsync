@@ -33,6 +33,7 @@
 }
 
 .card:hover {
+  border-color: var(--color-accent);
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
@@ -54,6 +55,7 @@
 }
 
 .section-card:hover {
+  border-color: var(--color-accent);
   box-shadow: var(--shadow-card-hover);
 }
 

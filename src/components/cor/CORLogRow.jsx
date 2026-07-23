@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Edit3, Check, X, Loader2, ChevronDown } from 'lucide-react'
 import { formatCurrency } from '../../lib/corCalculations'
+import StatusBadge from '../ui/StatusBadge'
 
 // Available status options for editing
 const STATUS_OPTIONS = [
@@ -208,7 +209,7 @@ export default function CORLogRow({
       </td>
       <td className="col-amount">{formatCurrency(entry.changeOrder.corTotal || 0)}</td>
       <td className="col-status editable" onClick={onEdit}>
-        <span className={`cor-log-status ${status.className}`}>{status.label}</span>
+        <StatusBadge status={entry.changeOrder?.status} label={status.label} />
       </td>
       <td className="col-comments editable" onClick={onEdit}>
         {entry.comments || <span className="placeholder">Click to add...</span>}

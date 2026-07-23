@@ -1,4 +1,5 @@
 import { useBranding } from '../lib/BrandingContext'
+import LogoMark from './ui/LogoMark'
 
 export default function Logo({ className = '', showPoweredBy = false }) {
   const { branding } = useBranding()
@@ -13,6 +14,7 @@ export default function Logo({ className = '', showPoweredBy = false }) {
         />
       ) : (
         <div className="logo">
+          <LogoMark />
           {branding.custom_app_name
             ? branding.custom_app_name
             : <>Field<span>Sync</span></>

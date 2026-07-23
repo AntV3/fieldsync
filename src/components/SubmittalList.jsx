@@ -8,17 +8,17 @@ import {
   FileCheck, Plus, Search, ChevronDown, ChevronRight,
   Calendar, RotateCcw
 } from 'lucide-react'
-import { EmptyState, ListItemSkeleton } from './ui'
+import { EmptyState, ListItemSkeleton, StatusBadge } from './ui'
 
 const STATUS_CONFIG = {
-  draft: { label: 'Draft', color: '#6b7280', bg: '#6b728015' },
-  submitted: { label: 'Submitted', color: '#3b82f6', bg: '#3b82f615' },
-  under_review: { label: 'Under Review', color: '#f59e0b', bg: '#f59e0b15' },
-  approved: { label: 'Approved', color: '#10b981', bg: '#10b98115' },
-  approved_as_noted: { label: 'Approved as Noted', color: '#10b981', bg: '#10b98115' },
-  revise_resubmit: { label: 'Revise & Resubmit', color: '#ef4444', bg: '#ef444415' },
-  rejected: { label: 'Rejected', color: '#ef4444', bg: '#ef444415' },
-  closed: { label: 'Closed', color: '#6b7280', bg: '#6b728015' }
+  draft: { label: 'Draft' },
+  submitted: { label: 'Submitted' },
+  under_review: { label: 'Under Review' },
+  approved: { label: 'Approved' },
+  approved_as_noted: { label: 'Approved as Noted' },
+  revise_resubmit: { label: 'Revise & Resubmit' },
+  rejected: { label: 'Rejected' },
+  closed: { label: 'Closed' }
 }
 
 const TYPE_LABELS = {
@@ -281,10 +281,10 @@ export default function SubmittalList({ project, company, costCodes = [], onShow
                       {sub.cost_codes.code}
                     </span>
                   )}
-                  <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.75rem', background: statusCfg.bg, color: statusCfg.color, fontWeight: 500 }}>
-                    {statusCfg.label}
-                    {isOverdue && ' (Overdue)'}
-                  </span>
+                  <StatusBadge
+                    status={isOverdue ? 'overdue' : sub.status}
+                    label={`${statusCfg.label}${isOverdue ? ' (Overdue)' : ''}`}
+                  />
                 </div>
 
                 {isExpanded && (

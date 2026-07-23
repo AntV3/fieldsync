@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle, Check, Settings, Circle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import Logo from './Logo'
+import StatusBadge from './ui/StatusBadge'
 
 export default function PublicView({ shareToken }) {
   const [loading, setLoading] = useState(true)
@@ -156,11 +157,10 @@ export default function PublicView({ shareToken }) {
                         <span className="area-name">{area.name}</span>
                         <span className="area-weight">{area.weight}%</span>
                       </div>
-                      <div className={`area-status status-${area.status}`}>
-                        {area.status === 'done' ? (<><Check size={14} /> Complete</>) :
-                         area.status === 'working' ? (<><Settings size={14} /> In Progress</>) :
-                         (<><Circle size={14} /> Not Started</>)}
-                      </div>
+                      <StatusBadge
+                        status={area.status}
+                        label={area.status === 'done' ? 'Complete' : area.status === 'working' ? 'In Progress' : 'Not Started'}
+                      />
                     </div>
                   ))}
                 </div>
@@ -215,9 +215,7 @@ export default function PublicView({ shareToken }) {
                   <div key={index} className="tm-item">
                     <div className="tm-header">
                       <span className="tm-date">{formatDate(ticket.work_date)}</span>
-                      <span className={`tm-status status-${ticket.status}`}>
-                        {ticket.status}
-                      </span>
+                      <StatusBadge status={ticket.status} />
                     </div>
                     {ticket.notes && (
                       <div className="tm-description">{ticket.notes}</div>

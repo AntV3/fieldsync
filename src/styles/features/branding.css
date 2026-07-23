@@ -18,14 +18,23 @@
 
 .app-logo .logo {
   font-family: 'Space Mono', monospace;
-  font-size: 1.25rem;
+  font-size: 1.125rem; /* 18px wordmark next to 28px mark */
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.5px;
+  white-space: nowrap;
 }
 
 .app-logo .logo span {
   color: var(--primary-color, var(--accent-blue));
+}
+
+/* Brand mark scales with the wordmark: 1.55em ~= 28px at 18px text */
+.app-logo .logo-mark {
+  width: 1.55em;
+  height: 1.55em;
+  vertical-align: -0.42em;
+  margin-right: 0.4em;
 }
 
 .powered-by {

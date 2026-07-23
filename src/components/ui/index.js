@@ -46,3 +46,7 @@ export { default as ConfirmDialog } from './ConfirmDialog'
 export { default as CollapsibleSection } from './CollapsibleSection'
 
 export { default as ErrorBoundary } from './ErrorBoundary'
+
+export { default as LogoMark } from './LogoMark'
+
+export { default as StatusBadge } from './StatusBadge'

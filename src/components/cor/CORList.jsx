@@ -20,10 +20,10 @@ import CORCard from './CORCard'
 // Status display mapping for exports
 const STATUS_DISPLAY = {
   draft: { label: 'Draft', color: [107, 114, 128], bgColor: [243, 244, 246] },
-  pending_approval: { label: 'Pending Approval', color: [217, 119, 6], bgColor: [254, 243, 199] },
-  approved: { label: 'Approved', color: [5, 150, 105], bgColor: [209, 250, 229] },
+  pending_approval: { label: 'Pending Approval', color: [180, 83, 9], bgColor: [254, 243, 199] },
+  approved: { label: 'Approved', color: [21, 128, 61], bgColor: [220, 252, 231] },
   rejected: { label: 'Rejected', color: [220, 38, 38], bgColor: [254, 226, 226] },
-  billed: { label: 'Billed', color: [37, 99, 235], bgColor: [219, 234, 254] },
+  billed: { label: 'Billed', color: [1, 112, 171], bgColor: [212, 233, 245] },
   closed: { label: 'Closed', color: [75, 85, 99], bgColor: [229, 231, 235] }
 }
 

@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { Eye, Edit3, Trash2, Send, CheckSquare, Square, CheckCircle } from 'lucide-react'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange } from '../../lib/corCalculations'
+import StatusBadge from '../ui/StatusBadge'
 
 /**
  * Memoized COR Card component
@@ -63,12 +64,7 @@ const CORCard = memo(function CORCard({
             </button>
           )}
           <span className="cor-number">{cor.cor_number}</span>
-          <span
-            className="cor-status-badge"
-            style={{ backgroundColor: statusInfo.bgColor, color: statusInfo.color }}
-          >
-            {statusInfo.label}
-          </span>
+          <StatusBadge status={cor.status} label={statusInfo.label} />
           {(cor.gc_signature_data || cor.client_signature_data) && (
             <span className="cor-signed-badge" title={`Signed by ${cor.gc_signature_name || cor.client_signature_name || 'Client'}`}>
               <CheckCircle size={12} /> Signed

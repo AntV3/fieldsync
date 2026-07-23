@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Check, Search, FileText, Users, Package, Truck, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { dollarsToCents } from '../../lib/corCalculations'
+import StatusBadge from '../ui/StatusBadge'
 
 // Generate secure random ID suffix
 const generateRandomId = () => {
@@ -336,7 +337,7 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
                       <div className="ticket-item-info" onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}>
                         <div className="ticket-item-header">
                           <span className="ticket-date">{formatDate(ticket.work_date || ticket.ticket_date)}</span>
-                          <span className={`ticket-status ${ticket.status}`}>{ticket.status}</span>
+                          <StatusBadge status={ticket.status} />
                           {ticket.ce_pco_number && (
                             <span className="ticket-pco">CE/PCO: {ticket.ce_pco_number}</span>
                           )}
