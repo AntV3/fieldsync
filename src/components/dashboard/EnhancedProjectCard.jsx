@@ -1,6 +1,6 @@
 import { formatCurrency, getOverallStatus, getOverallStatusLabel } from '../../lib/utils'
 
-export default function EnhancedProjectCard({ project, riskScore, riskStatus, onClick }) {
+export default function EnhancedProjectCard({ project, riskScore, riskStatus, newActivityCount = 0, onClick }) {
   const status = getOverallStatus(project.areas || [])
   const statusLabel = getOverallStatusLabel(project.areas || [])
   const profit = project.contract_value - project.billable
@@ -28,7 +28,19 @@ export default function EnhancedProjectCard({ project, riskScore, riskStatus, on
             <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
           </div>
         </div>
-        <span className={`status-badge ${status}`}>{statusLabel}</span>
+        <div className="project-card-header-right">
+          {newActivityCount > 0 && (
+            <span
+              className="project-card-live-badge"
+              title={`${newActivityCount} new field update${newActivityCount !== 1 ? 's' : ''}`}
+              aria-label={`${newActivityCount} new field updates`}
+            >
+              <span className="sdx-live-dot" aria-hidden="true" />
+              {newActivityCount}
+            </span>
+          )}
+          <span className={`status-badge ${status}`}>{statusLabel}</span>
+        </div>
       </div>
       <div className="project-stats-row">
         <div className="project-stat">

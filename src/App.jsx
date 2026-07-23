@@ -149,9 +149,12 @@ export default function App() {
   const [navigateToProjectId, setNavigateToProjectId] = useState(null)
   const [pendingRequestCount, setPendingRequestCount] = useState(0)
 
-  const handleProjectCreated = () => {
+  const handleProjectCreated = (project) => {
     navigate('/dashboard')
     if (company?.id) loadProjects()
+    // Land the user inside their new project so the guided tour's
+    // "everything appears here" steps point at a real screen
+    if (project?.id) setNavigateToProjectId(project.id)
   }
 
   const loadProjects = async () => {

@@ -1376,3 +1376,379 @@ button.sdx-pill:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) {
   .sdx-live-dot { animation: none; }
 }
+
+/* ============================================================
+   PHASE 6 — real-time hero: live feed, indicators, quick
+   actions, approvals banner
+   ============================================================ */
+
+/* ---------- Live Field Feed hero card ---------- */
+
+.sdx-feed-hero {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.sdx-feed-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sdx-feed-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sdx-feed-hero-title h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-display, 0.08em);
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.sdx-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-green);
+  font-family: var(--font-data);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  transition: box-shadow var(--duration-fast, 150ms) ease;
+}
+
+.sdx-live-badge.burst {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.sdx-feed-fresh {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-green);
+  animation: sdx-fresh-in 300ms ease;
+}
+
+@keyframes sdx-fresh-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Feed entry: avatar with a small type-icon badge */
+.sdx-feed-hero .sdx-feed-item { padding: 0.9rem 1.25rem; }
+
+.sdx-feed-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+}
+
+.sdx-feed-kind-icon {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.sdx-feed-kind-icon.tm { color: var(--accent-green); }
+.sdx-feed-kind-icon.crew { color: var(--primary-color); }
+.sdx-feed-kind-icon.area { color: var(--accent-blue); }
+.sdx-feed-kind-icon.report { color: var(--accent-blue); }
+.sdx-feed-kind-icon.safety { color: var(--accent-amber); }
+
+.sdx-feed-avatar.crew { background: rgba(30, 64, 175, 0.14); color: var(--primary-color); }
+.sdx-feed-avatar.area { background: rgba(59, 130, 246, 0.14); color: var(--accent-blue); }
+
+.sdx-feed-action {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.sdx-feed-meta .sdx-feed-time { margin-left: auto; }
+
+/* ---------- Portfolio card: new-field-activity badge ---------- */
+
+.project-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-card-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-green);
+  font-family: var(--font-data);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* ---------- Header quick actions + mobile FAB ---------- */
+
+.sdx-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--primary-color) !important;
+  color: var(--primary-color) !important;
+  background: transparent !important;
+  font-weight: 600;
+}
+
+.sdx-action-secondary:hover {
+  background: rgba(30, 64, 175, 0.08) !important;
+}
+
+.pv-fab-wrap {
+  display: none;
+  position: fixed;
+  right: 1.1rem;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.pv-fab {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-color);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  transition: transform var(--duration-fast, 150ms) ease;
+}
+
+.pv-fab.open { transform: rotate(90deg); }
+
+.pv-fab-dial {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  animation: pv-fab-dial-in 160ms ease;
+}
+
+@keyframes pv-fab-dial-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.pv-fab-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.pv-fab-option-label {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+
+.pv-fab-option-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+}
+
+@media (max-width: 768px) {
+  .pv-actions .pv-action-quick { display: none; }
+  .pv-fab-wrap { display: flex; }
+}
+
+/* ---------- Pending approvals banner ---------- */
+
+.pv-approvals-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0.75rem 1.25rem 0;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.12);
+  animation: sdx-fresh-in 200ms ease;
+}
+
+.pv-approvals-banner-icon {
+  color: var(--accent-amber);
+  flex-shrink: 0;
+}
+
+.pv-approvals-banner-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.pv-approvals-banner-text strong { font-weight: 700; }
+
+.pv-approvals-banner-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent-amber);
+  color: #1a1a1a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter var(--duration-fast, 150ms) ease;
+}
+
+.pv-approvals-banner-cta:hover { filter: brightness(1.06); }
+
+.pv-approvals-banner-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pv-approvals-banner-dismiss:hover {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--text-primary);
+}
+
+@media (max-width: 560px) {
+  .pv-approvals-banner {
+    flex-wrap: wrap;
+    margin: 0.75rem 0.75rem 0;
+  }
+  .pv-approvals-banner-cta { margin-left: auto; }
+}
+
+/* ---------- Quick-form modal (T&M ticket / daily report) ---------- */
+
+.quick-form-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.quick-form-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: min(860px, 100%);
+  max-height: min(92vh, 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.quick-form-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.quick-form-modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.quick-form-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.quick-form-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--hover-bg);
+}
+
+.quick-form-modal-content {
+  overflow-y: auto;
+  padding: 1rem 1.1rem 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .quick-form-modal-overlay { padding: 0; }
+  .quick-form-modal {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+  }
+}

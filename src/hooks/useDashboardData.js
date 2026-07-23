@@ -25,6 +25,13 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
   const [costCodes, setCostCodes] = useState([])
   const [corRefreshKey, setCORRefreshKey] = useState(0)
 
+  // Realtime field-activity indicators:
+  // - fieldActivity: unseen field-event count per project (badges on portfolio cards)
+  // - activityPulse: increments when a field event lands for the SELECTED project
+  //   (pulses the Live Field Feed header)
+  const [fieldActivity, setFieldActivity] = useState({})
+  const [activityPulse, setActivityPulse] = useState(0)
+
   const bumpCORRefresh = useCallback(() => setCORRefreshKey(prev => prev + 1), [])
 
   // Debounce ref to prevent cascading refreshes from multiple subscription callbacks
@@ -101,6 +108,30 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     }, 150)
   }, [])
 
+  // Record a field-originated realtime event (crew check-in, T&M ticket,
+  // daily report, area update, incident). Selected project pulses the live
+  // feed; other projects accumulate an unseen-activity badge.
+  const recordFieldActivity = useCallback((payload) => {
+    const projectId = payload?.new?.project_id || payload?.old?.project_id
+    if (!projectId) return
+    if (selectedProjectRef.current?.id === projectId) {
+      setActivityPulse(prev => prev + 1)
+    } else {
+      setFieldActivity(prev => ({ ...prev, [projectId]: (prev[projectId] || 0) + 1 }))
+    }
+  }, [])
+
+  // Clear the unseen-activity badge once the office user opens the project
+  const markProjectActivitySeen = useCallback((projectId) => {
+    if (!projectId) return
+    setFieldActivity(prev => {
+      if (!prev[projectId]) return prev
+      const next = { ...prev }
+      delete next[projectId]
+      return next
+    })
+  }, [])
+
   // Cleanup debounce timeout and mounted flag on unmount
   useEffect(() => {
     mountedRef.current = true
@@ -140,11 +171,11 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     // Uses debounced refresh to coalesce rapid updates from multiple sources
     const subscription = db.subscribeToCompanyActivity?.(company.id, currentIds, {
       onMessage: () => debouncedRefresh(),
-      onTMTicket: () => debouncedRefresh(),
-      onCrewCheckin: () => debouncedRefresh(), // Crew check-ins affect labor costs
-      onAreaUpdate: () => debouncedRefresh(), // Area updates affect progress
+      onTMTicket: (payload) => { recordFieldActivity(payload); debouncedRefresh() },
+      onCrewCheckin: (payload) => { recordFieldActivity(payload); debouncedRefresh() }, // Crew check-ins affect labor costs
+      onAreaUpdate: (payload) => { recordFieldActivity(payload); debouncedRefresh() }, // Area updates affect progress
       onCORChange: () => debouncedRefresh({ refreshCOR: true }), // COR changes
-      onInjuryReport: () => debouncedRefresh(),
+      onInjuryReport: (payload) => { recordFieldActivity(payload); debouncedRefresh() },
       onProjectChange: () => debouncedRefresh(), // Project details changed
       onMaterialsEquipmentChange: () => debouncedRefresh(), // Pricing updates
       onLaborRateChange: () => debouncedRefresh(), // Labor rate updates
@@ -153,7 +184,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       onDrawRequestChange: () => debouncedRefresh(), // Draw request changes
       onProjectEquipmentChange: () => debouncedRefresh(), // Equipment added/removed/returned
       onProjectCostChange: () => debouncedRefresh(), // Custom cost entries
-      onDailyReportChange: () => debouncedRefresh() // Daily reports submitted from field
+      onDailyReportChange: (payload) => { recordFieldActivity(payload); debouncedRefresh() } // Daily reports submitted from field
     })
 
     return () => {
@@ -162,7 +193,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company?.id, projectIdsKey, debouncedRefresh])
+  }, [company?.id, projectIdsKey, debouncedRefresh, recordFieldActivity])
 
   // Handle navigation from notifications
   // Use a ref to prevent re-running this effect when projects data refreshes
@@ -173,10 +204,11 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       if (project) {
         lastNavigatedIdRef.current = navigateToProjectId
         setSelectedProject(project)
+        markProjectActivitySeen(project.id)
         onProjectNavigated?.() // Clear the navigation request
       }
     }
-  }, [navigateToProjectId, projects, onProjectNavigated])
+  }, [navigateToProjectId, projects, onProjectNavigated, markProjectActivitySeen])
 
   // Per-project real-time subscriptions for the selected project
   useEffect(() => {
@@ -660,6 +692,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
   const handleSelectProject = async (project) => {
     // Set the project immediately for responsive UI
     setSelectedProject(project)
+    markProjectActivitySeen(project.id)
 
     // If detailed data hasn't been loaded yet, load it now (lazy loading)
     if (!project._detailsLoaded) {
@@ -750,6 +783,9 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     handleSelectProject,
     invalidateProjectCache,
     projectData,
-    progressCalculations
+    progressCalculations,
+    fieldActivity,
+    activityPulse,
+    markProjectActivitySeen
   }
 }

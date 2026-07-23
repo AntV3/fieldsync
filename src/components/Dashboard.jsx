@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom'
 import { useUniversalSearch } from './UniversalSearch'
 import { ErrorBoundary } from './ui'
 import OnboardingWizard from './onboarding/OnboardingWizard'
-import { isOnboardingComplete } from './onboarding/onboardingState'
+import ProjectOnboardingTour from './onboarding/ProjectOnboardingTour'
+import { isOnboardingComplete, consumePendingProjectTour } from './onboarding/onboardingState'
 import useDashboardData from '../hooks/useDashboardData'
 import useProjectViewState from '../hooks/useProjectViewState'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
@@ -24,6 +25,8 @@ import PortfolioView from './dashboard/PortfolioView'
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const navigate = useNavigate()
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete())
+  // Guided setup tour queued by the project creation wizard (shows once)
+  const [projectTour, setProjectTour] = useState(() => consumePendingProjectTour())
 
   // Data layer: projects, selected project details, areas, subscriptions, cache
   const {
@@ -31,7 +34,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     areas, setAreas, loading, costCodes,
     corRefreshKey, bumpCORRefresh, debouncedRefresh,
     loadProjects, loadAreas, handleSelectProject, invalidateProjectCache,
-    projectData, progressCalculations
+    projectData, progressCalculations,
+    fieldActivity, activityPulse
   } = useDashboardData({ company, onShowToast, navigateToProjectId, onProjectNavigated })
 
   // Detail-view UI state: tabs, sections, sidebars, and modal visibility
@@ -168,9 +172,21 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     )
   }
 
+  // Guided setup tour overlays whichever view is active after creation
+  const projectTourOverlay = projectTour ? (
+    <ProjectOnboardingTour
+      pin={projectTour.pin}
+      projectName={projects.find(p => p.id === projectTour.projectId)?.name}
+      onShowToast={onShowToast}
+      onClose={() => setProjectTour(null)}
+    />
+  ) : null
+
   // Project Detail View
   if (selectedProject) {
     return (
+      <>
+      {projectTourOverlay}
       <ProjectDetailView
         selectedProject={selectedProject}
         projectData={projectData}
@@ -187,6 +203,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         corRefreshKey={corRefreshKey}
         bumpCORRefresh={bumpCORRefresh}
         debouncedRefresh={debouncedRefresh}
+        activityPulse={activityPulse}
         onBack={handleBack}
         onShowToast={onShowToast}
         onExportFieldDocuments={handleExportFieldDocuments}
@@ -196,6 +213,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         onSaveCost={handleSaveCost}
         onDeleteProject={() => edit.handleDeleteProject(loadProjects)}
       />
+      </>
     )
   }
 
@@ -233,6 +251,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Portfolio overview
   return (
     <>
+      {projectTourOverlay}
       {showOnboarding && (
         <OnboardingWizard
           company={company}
@@ -249,6 +268,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           projectHealth={projectHealth}
           scheduleMetrics={scheduleMetrics}
           riskAnalysis={riskAnalysis}
+          fieldActivity={fieldActivity}
           isSearchOpen={isSearchOpen}
           setSearchOpen={setSearchOpen}
           closeSearch={closeSearch}
