@@ -36,7 +36,7 @@ export default function OverviewTab({
   onSetActiveTab,
   onExportFieldDocuments,
   onAreaStatusCycle,
-  onViewCOR
+  activityPulse = 0
 }) {
   const { resolvedConfig } = useTradeConfig()
   const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
@@ -96,7 +96,7 @@ export default function OverviewTab({
 
   return (
     <div className="pv-tab-panel overview-tab sdx-overview animate-fade-in" role="region" aria-label="Project overview">
-      {/* ============ Section 1: Summary cards + SOV + Project Health ============ */}
+      {/* ============ Section 1: Summary cards ============ */}
       <section className="overview-section" aria-label="Project summary">
       {/* Row 1: KPI cards */}
       <div className="sdx-kpi-grid" role="region" aria-label="Key performance indicators">
@@ -149,8 +149,19 @@ export default function OverviewTab({
 
         <SafetyCard projectData={projectData} />
       </div>
+      </section>
 
-      {/* SOV + Project Health side by side */}
+      {/* ============ Section 2: Live Field Feed (hero card, right below summary) ============ */}
+      <section className="overview-section overview-section--feed" aria-label="Live field feed">
+        <LiveFieldFeed
+          projectData={projectData}
+          onSetActiveTab={onSetActiveTab}
+          activityPulse={activityPulse}
+        />
+      </section>
+
+      {/* ============ Section 3: SOV + Project Health ============ */}
+      <section className="overview-section" aria-label="Schedule of values and project health">
       <div className="sdx-main-grid">
         <div className="sdx-col">
           <ScheduleOfValues
@@ -180,24 +191,7 @@ export default function OverviewTab({
       </div>
       </section>
 
-      {/* ============ Section 2: Live Field Feed (prominent) ============ */}
-      <section className="overview-section overview-section--feed" aria-label="Live field feed">
-        <div className="overview-section-head">
-          <h2 className="overview-section-title">
-            <span className="sdx-live-dot" aria-hidden="true" />
-            Live Field Feed
-          </h2>
-          <span className="overview-section-hint">Real-time activity from the field</span>
-        </div>
-        <LiveFieldFeed
-          projectData={projectData}
-          pendingApprovalCount={pendingApprovalCount}
-          onSetActiveTab={onSetActiveTab}
-          onViewCOR={onViewCOR}
-        />
-      </section>
-
-      {/* ============ Section 3: Contract, Schedule & Labor (sidebar layout) ============ */}
+      {/* ============ Section 4: Contract, Schedule & Labor (sidebar layout) ============ */}
       <section className="overview-section" aria-label="Contract and schedule">
         <div className="overview-section-head">
           <h2 className="overview-section-title">Contract &amp; Schedule</h2>
@@ -222,7 +216,7 @@ export default function OverviewTab({
         </div>
       </section>
 
-      {/* ============ Section 4: Crew On-Site + Disposal (collapsible) ============ */}
+      {/* ============ Section 5: Crew On-Site + Disposal (collapsible) ============ */}
       <section className="overview-section" aria-label="Crew and disposal">
         <CollapsibleSection
           title="Crew On-Site & Disposal"

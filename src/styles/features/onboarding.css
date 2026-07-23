@@ -468,3 +468,77 @@
     padding: 0.75rem 1.25rem 1.25rem;
   }
 }
+
+/* ============================================================
+   Project onboarding tour (post-project-creation guided setup)
+   ============================================================ */
+
+.pt-tour { max-width: 460px; }
+
+.pt-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.pt-step-icon { margin-bottom: 0; }
+
+.pt-pin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.5rem;
+  padding: 1rem 1.5rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+}
+
+.pt-pin-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pt-pin-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pt-pin-value code {
+  font-family: var(--font-data, monospace);
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--text-primary);
+}
+
+.pt-capability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0.5rem;
+  width: 100%;
+  max-width: 280px;
+}
+
+.pt-capability {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pt-capability svg { color: var(--primary-color); flex-shrink: 0; }

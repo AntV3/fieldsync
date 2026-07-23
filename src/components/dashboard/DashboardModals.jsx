@@ -9,6 +9,8 @@ const CORLog = lazy(() => import('../cor/CORLog'))
 const DrawRequestModal = lazy(() => import('../billing/DrawRequestModal'))
 const EquipmentModal = lazy(() => import('../equipment/EquipmentModal'))
 const AddCostModal = lazy(() => import('../AddCostModal'))
+const TMForm = lazy(() => import('../TMForm'))
+const DailyReport = lazy(() => import('../DailyReport'))
 
 export default function DashboardModals(props) {
   const {
@@ -18,6 +20,8 @@ export default function DashboardModals(props) {
     showCORForm, editingCOR, onCloseCORForm, onCORSaved,
     showCORDetail, viewingCOR, onCloseCORDetail, onEditCORFromDetail, onCORStatusChange,
     corDisplayMode, onCloseCORLog,
+    showTMTicketModal, onCloseTMTicketModal, onTMTicketSaved,
+    showDailyReportModal, onCloseDailyReportModal,
     showAddCostModal, savingCost, onCloseAddCostModal, onSaveCost,
     showEquipmentModal, editingEquipment, onEquipmentSaved, onCloseEquipmentModal,
     showDrawRequestModal, editingDrawRequest, projectsData, onDrawRequestSaved, onCloseDrawRequestModal,
@@ -93,6 +97,50 @@ export default function DashboardModals(props) {
             <div className="cor-log-modal-content">
               <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
                 <CORLog project={selectedProject} company={company} onShowToast={onShowToast} />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick action: New T&M Ticket (same form the field uses) */}
+      {showTMTicketModal && (
+        <div className="quick-form-modal-overlay" onClick={onCloseTMTicketModal}>
+          <div className="quick-form-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="quick-form-modal-header">
+              <h2>New T&amp;M Ticket</h2>
+              <button className="quick-form-modal-close" onClick={onCloseTMTicketModal} title="Close" aria-label="Close"><X size={16} /></button>
+            </div>
+            <div className="quick-form-modal-content">
+              <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+                <TMForm
+                  project={selectedProject}
+                  companyId={company?.id || selectedProject?.company_id}
+                  onSubmit={onTMTicketSaved}
+                  onCancel={onCloseTMTicketModal}
+                  onShowToast={onShowToast}
+                />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick action: Daily Report (same compiler the field uses) */}
+      {showDailyReportModal && (
+        <div className="quick-form-modal-overlay" onClick={onCloseDailyReportModal}>
+          <div className="quick-form-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="quick-form-modal-header">
+              <h2>Daily Report</h2>
+              <button className="quick-form-modal-close" onClick={onCloseDailyReportModal} title="Close" aria-label="Close"><X size={16} /></button>
+            </div>
+            <div className="quick-form-modal-content">
+              <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+                <DailyReport
+                  project={selectedProject}
+                  onShowToast={onShowToast}
+                  onClose={onCloseDailyReportModal}
+                />
               </Suspense>
             </div>
           </div>

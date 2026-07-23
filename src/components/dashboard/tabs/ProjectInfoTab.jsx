@@ -1,11 +1,12 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { Info, BarChart3, Users, Settings, Menu, Bell, KeyRound } from 'lucide-react'
+import { Info, BarChart3, Users, Settings, Menu, Bell, KeyRound, PlayCircle } from 'lucide-react'
 import { TicketSkeleton } from '../../ui'
 import TabSubNav from './TabSubNav'
 import InfoTab from './InfoTab'
 import ProjectTeam from '../../ProjectTeam'
 import CostCodeManager from '../../CostCodeManager'
 import MFASetup from '../../MFASetup'
+import ProjectOnboardingTour from '../../onboarding/ProjectOnboardingTour'
 
 const AnalyticsTab = lazy(() => import('./AnalyticsTab'))
 
@@ -44,6 +45,7 @@ export default function ProjectInfoTab({
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false)
+  const [showTour, setShowTour] = useState(false)
 
   // Prevent body scroll when the mobile sidebar is open
   useEffect(() => {
@@ -167,6 +169,14 @@ export default function ProjectInfoTab({
                       <span className="info-detail-value">No foreman PIN set — edit the project to add one.</span>
                     </div>
                   )}
+                  <p className="project-settings-hint">
+                    New to FieldSync? Replay the guided setup tour that walks through
+                    the PIN, field submissions, and real-time approvals.
+                  </p>
+                  <button className="btn btn-secondary" onClick={() => setShowTour(true)}>
+                    <PlayCircle size={16} />
+                    Replay tour
+                  </button>
                 </div>
               </div>
 
@@ -205,6 +215,16 @@ export default function ProjectInfoTab({
           )}
         </div>
       </div>
+
+      {/* Replayable guided setup tour */}
+      {showTour && (
+        <ProjectOnboardingTour
+          pin={selectedProject?.pin}
+          projectName={selectedProject?.name}
+          onShowToast={onShowToast}
+          onClose={() => setShowTour(false)}
+        />
+      )}
     </div>
   )
 }

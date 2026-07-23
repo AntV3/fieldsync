@@ -12,6 +12,7 @@ export default function PortfolioView({
   projectHealth,
   scheduleMetrics,
   riskAnalysis,
+  fieldActivity = {},
   isSearchOpen,
   setSearchOpen,
   closeSearch,
@@ -263,6 +264,7 @@ export default function PortfolioView({
               project={project}
               riskScore={projectRisk?.riskScore}
               riskStatus={projectRisk?.riskStatus}
+              newActivityCount={fieldActivity[project.id] || 0}
               onClick={() => onSelectProject(project)}
             />
           )

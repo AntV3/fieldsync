@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { isProjectTourComplete, setPendingProjectTour } from './onboarding/onboardingState'
 import ProjectBasicsStep from './setup/ProjectBasicsStep'
 import ContactsStep from './setup/ContactsStep'
 import ScheduleAccessStep from './setup/ScheduleAccessStep'
@@ -235,9 +236,14 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       }
 
       onShowToast('Project created!', 'success')
+      // Queue the guided setup tour (PIN → field → real-time approvals);
+      // Dashboard consumes this on mount and only shows it once per device.
+      if (!isProjectTourComplete()) {
+        setPendingProjectTour({ projectId: project.id, pin: data.pin })
+      }
       setData(INITIAL_DATA)
       setStep(1)
-      onProjectCreated()
+      onProjectCreated(project)
     } catch (error) {
       console.error('Error creating project:', error)
       onShowToast('Error creating project', 'error')

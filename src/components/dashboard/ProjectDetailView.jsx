@@ -5,6 +5,7 @@ import ProjectEditForm from './ProjectEditForm'
 import ProjectHeader from './ProjectHeader'
 import ProjectSummaryBar from './ProjectSummaryBar'
 import ProjectTabNav from './ProjectTabNav'
+import PendingApprovalsBanner from './PendingApprovalsBanner'
 import DashboardModals from './DashboardModals'
 
 // Lazy load tab components - only load the active tab's code
@@ -38,6 +39,7 @@ export default function ProjectDetailView({
   corRefreshKey,
   bumpCORRefresh,
   debouncedRefresh,
+  activityPulse = 0,
   onBack,
   onShowToast,
   onExportFieldDocuments,
@@ -101,6 +103,8 @@ export default function ProjectDetailView({
           onOpenAlerts={() => view.setShowNotificationSettings(true)}
           onEditClick={edit.handleEditClick}
           onCreateCOR={view.handleCreateCOR}
+          onCreateTMTicket={view.handleCreateTMTicket}
+          onCreateDailyReport={view.handleCreateDailyReport}
         />
         <ProjectSummaryBar
           progress={progress}
@@ -114,6 +118,13 @@ export default function ProjectDetailView({
           onTabChange={view.setActiveProjectTab}
         />
       </div>
+
+      {/* Pending approvals call-to-action (persistent, dismissable) */}
+      <PendingApprovalsBanner
+        projectId={selectedProject.id}
+        pendingCount={(projectData?.pendingTickets || 0) + (projectData?.corPendingCount || 0)}
+        onView={() => view.setProjectTab('financials')}
+      />
 
       {/* Tab Content */}
       <div className="pv-tab-content" role="tabpanel" id={`tabpanel-${view.activeProjectTab}`} aria-labelledby={`tab-${view.activeProjectTab}`}>
@@ -138,7 +149,7 @@ export default function ProjectDetailView({
                 onSetActiveTab={view.setProjectTab}
                 onExportFieldDocuments={onExportFieldDocuments}
                 onAreaStatusCycle={onAreaStatusCycle}
-                onViewCOR={view.handleViewCOR}
+                activityPulse={activityPulse}
               />
             </Suspense>
           </ErrorBoundary>
@@ -277,6 +288,11 @@ export default function ProjectDetailView({
         onCORStatusChange={() => { bumpCORRefresh(); debouncedRefresh({ refreshCOR: true }) }}
         corDisplayMode={view.corDisplayMode}
         onCloseCORLog={() => view.setCORDisplayMode('list')}
+        showTMTicketModal={view.showTMTicketModal}
+        onCloseTMTicketModal={() => view.setShowTMTicketModal(false)}
+        onTMTicketSaved={() => { view.setShowTMTicketModal(false); debouncedRefresh() }}
+        showDailyReportModal={view.showDailyReportModal}
+        onCloseDailyReportModal={() => { view.setShowDailyReportModal(false); debouncedRefresh() }}
         showAddCostModal={view.showAddCostModal}
         savingCost={view.savingCost}
         onCloseAddCostModal={() => view.setShowAddCostModal(false)}

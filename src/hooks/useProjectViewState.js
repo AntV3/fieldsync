@@ -24,6 +24,8 @@ export default function useProjectViewState() {
   const [editingCOR, setEditingCOR] = useState(null)
   const [showCORDetail, setShowCORDetail] = useState(false)
   const [viewingCOR, setViewingCOR] = useState(null)
+  const [showTMTicketModal, setShowTMTicketModal] = useState(false)
+  const [showDailyReportModal, setShowDailyReportModal] = useState(false)
   const [showAddCostModal, setShowAddCostModal] = useState(false)
   const [savingCost, setSavingCost] = useState(false)
   const [showEquipmentModal, setShowEquipmentModal] = useState(false)
@@ -143,6 +145,14 @@ export default function useProjectViewState() {
     setShowCORForm(true)
   }, [])
 
+  const handleCreateTMTicket = useCallback(() => {
+    setShowTMTicketModal(true)
+  }, [])
+
+  const handleCreateDailyReport = useCallback(() => {
+    setShowDailyReportModal(true)
+  }, [])
+
   const handleViewCOR = useCallback((cor) => {
     setViewingCOR(cor)
     setShowCORDetail(true)
@@ -173,6 +183,8 @@ export default function useProjectViewState() {
     editingCOR, setEditingCOR,
     showCORDetail, setShowCORDetail,
     viewingCOR, setViewingCOR,
+    showTMTicketModal, setShowTMTicketModal,
+    showDailyReportModal, setShowDailyReportModal,
     showAddCostModal, setShowAddCostModal,
     savingCost, setSavingCost,
     showEquipmentModal, setShowEquipmentModal,
@@ -194,6 +206,8 @@ export default function useProjectViewState() {
     handleCloseMobileSidebar,
     handleToggleCORList,
     handleCreateCOR,
+    handleCreateTMTicket,
+    handleCreateDailyReport,
     handleViewCOR,
     handleEditCOR,
     handleAddCost
