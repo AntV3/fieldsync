@@ -8,6 +8,7 @@ import {
   FileCheck, Plus, Search, ChevronDown, ChevronRight,
   Calendar, RotateCcw
 } from 'lucide-react'
+import { EmptyState, ListItemSkeleton } from './ui'
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: '#6b7280', bg: '#6b728015' },
@@ -223,11 +224,19 @@ export default function SubmittalList({ project, company, costCodes = [], onShow
 
       {/* Submittal List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>Loading submittals...</div>
+        <ListItemSkeleton count={4} />
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
-          {submittals.length === 0 ? 'No submittals yet.' : 'No matching submittals.'}
-        </div>
+        submittals.length === 0 ? (
+          <EmptyState
+            icon={FileCheck}
+            title="Track submittals through review"
+            message="Log shop drawings, product data, and samples, then follow each one from submission to approval so nothing slips past its required date."
+            actionLabel="+ New Submittal"
+            onAction={() => { resetForm(); setShowForm(true) }}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>No matching submittals.</div>
+        )
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {filtered.map(sub => {

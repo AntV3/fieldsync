@@ -912,6 +912,23 @@ export const projectOps = {
     }
   },
 
+  // Batch-fetch the fields needed for earned-value math across many projects
+  // in a single query (used by the portfolio dashboard so per-project earned
+  // values don't require loading full project details N times)
+  async getAreasForProjects(projectIds) {
+    if (!projectIds || projectIds.length === 0) return []
+    if (isSupabaseConfigured) {
+      const client = getClient()
+      const { data, error } = await client
+        .from('areas')
+        .select('project_id, status, scheduled_value, weight')
+        .in('project_id', projectIds)
+      if (error) throw error
+      return data || []
+    }
+    return getLocalData().areas.filter(a => projectIds.includes(a.project_id))
+  },
+
   async createArea(area) {
     if (isSupabaseConfigured) {
       const client = getClient()

@@ -225,7 +225,7 @@ export default function FieldActivityTab({
 
           {fieldSection === 'punchlist' && (
             <div className="animate-fade-in">
-              <Suspense fallback={<div className="loading-placeholder">Loading punch list...</div>}>
+              <Suspense fallback={<TicketSkeleton />}>
                 <PunchList
                   projectId={selectedProject?.id}
                   areas={areas}

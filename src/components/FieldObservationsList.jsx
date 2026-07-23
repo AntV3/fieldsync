@@ -173,10 +173,10 @@ export default function FieldObservationsList({ project, company, onShowToast })
         <div className="fol-loading">Loading observations...</div>
       ) : filtered.length === 0 ? (
         <div className="fol-empty">
-          <NotebookPen size={32} />
-          <p>{observations.length === 0 ? 'No field observations yet' : 'No observations match your filters'}</p>
+          <NotebookPen size={48} />
+          <p>{observations.length === 0 ? 'Capture site conditions as they happen' : 'No observations match your filters'}</p>
           {observations.length === 0 && (
-            <span>Foremen can log observations from the field view</span>
+            <span>Field observations document site conditions, delays, and verbal directives with photos. Foremen log them from the field view, and they appear here for the office record.</span>
           )}
         </div>
       ) : (

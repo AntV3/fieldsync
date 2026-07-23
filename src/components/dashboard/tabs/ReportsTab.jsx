@@ -105,7 +105,7 @@ export default function ReportsTab({
       </div>
 
       {/* Photo Timeline */}
-      <Suspense fallback={<div className="loading-placeholder">Loading photos...</div>}>
+      <Suspense fallback={<TicketSkeleton />}>
         <PhotoTimeline
           projectId={selectedProject?.id}
           projectName={selectedProject?.name}

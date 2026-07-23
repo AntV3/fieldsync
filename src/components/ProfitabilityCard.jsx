@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TrendingDown, AlertCircle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import { InfoTooltip } from './ui'
 
 // Helper to format currency
@@ -39,7 +39,7 @@ export default function ProfitabilityCard({
 
   const status = awaitingCosts ? 'no-data' : isHealthy ? 'healthy' : isWarning ? 'warning' : 'loss'
   const statusLabel = awaitingCosts ? 'Awaiting cost data' : isHealthy ? 'On Track' : isWarning ? 'Watch Margin' : 'Over Cost'
-  const StatusIcon = awaitingCosts ? AlertCircle : isHealthy ? CheckCircle : isWarning ? AlertCircle : TrendingDown
+  const StatusIcon = awaitingCosts ? AlertCircle : isHealthy ? CheckCircle : AlertTriangle
 
   return (
     <div className={`profitability-card ${status}`}>

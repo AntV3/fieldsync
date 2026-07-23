@@ -1,6 +1,6 @@
 import { useMemo, lazy, Suspense } from 'react'
 import { LayoutDashboard, DollarSign, ClipboardList, Info, FolderOpen } from 'lucide-react'
-import { TicketSkeleton, ErrorBoundary } from '../ui'
+import { TabContentSkeleton, ErrorBoundary } from '../ui'
 import ProjectEditForm from './ProjectEditForm'
 import ProjectHeader from './ProjectHeader'
 import ProjectSummaryBar from './ProjectSummaryBar'
@@ -120,7 +120,7 @@ export default function ProjectDetailView({
         {/* OVERVIEW TAB */}
         {view.activeProjectTab === 'overview' && (
           <ErrorBoundary section="Overview">
-            <Suspense fallback={<TicketSkeleton />}>
+            <Suspense fallback={<TabContentSkeleton />}>
               <OverviewTab
                 selectedProject={selectedProject}
                 projectData={projectData}
@@ -147,7 +147,7 @@ export default function ProjectDetailView({
         {/* FINANCIALS TAB */}
         {view.activeProjectTab === 'financials' && (
           <ErrorBoundary section="Financials">
-            <Suspense fallback={<TicketSkeleton />}>
+            <Suspense fallback={<TabContentSkeleton />}>
               <FinancialsTab
                 selectedProject={selectedProject}
                 company={company}
@@ -196,7 +196,7 @@ export default function ProjectDetailView({
         {/* FIELD ACTIVITY TAB (Reports, RFIs, Submittals, Observations, Punch List) */}
         {view.activeProjectTab === 'field' && (
           <ErrorBoundary section="Field Activity">
-            <Suspense fallback={<TicketSkeleton />}>
+            <Suspense fallback={<TabContentSkeleton />}>
               <FieldActivityTab
                 selectedProject={selectedProject}
                 projectData={projectData}
@@ -215,7 +215,7 @@ export default function ProjectDetailView({
         {view.activeProjectTab === 'documents' && (
           <div className="pv-tab-panel documents-tab">
             <ErrorBoundary section="Documents">
-              <Suspense fallback={<TicketSkeleton />}>
+              <Suspense fallback={<TabContentSkeleton />}>
                 <DocumentsTab
                   project={selectedProject}
                   companyId={company?.id || selectedProject?.company_id}
@@ -230,7 +230,7 @@ export default function ProjectDetailView({
         {/* PROJECT INFO TAB (Details, Analytics, Team, Settings) */}
         {view.activeProjectTab === 'info' && (
           <ErrorBoundary section="Project Info">
-            <Suspense fallback={<TicketSkeleton />}>
+            <Suspense fallback={<TabContentSkeleton />}>
               <ProjectInfoTab
                 selectedProject={selectedProject}
                 projectData={projectData}

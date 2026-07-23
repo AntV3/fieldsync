@@ -975,3 +975,39 @@
   font-weight: 500;
 }
 
+
+/* ============================================
+   Warning-state emphasis (misleading-metrics fix)
+   Cards in a warning/over state get a colored left
+   border and larger, bolder status text.
+   ============================================ */
+
+.burn-rate-card--warning {
+  border-left: 3px solid var(--accent-amber);
+}
+
+.burn-rate-card--over-budget {
+  border-left: 3px solid var(--accent-red);
+}
+
+.burn-rate-card--warning .burn-status,
+.burn-rate-card--over-budget .burn-status {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.burn-rate-card--over-budget .burn-rate-value {
+  color: var(--accent-red);
+  font-weight: 800;
+}
+
+.profitability-card.warning .profitability-status,
+.profitability-card.loss .profitability-status {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.profitability-card.loss .profit-metric-value.negative {
+  font-size: 1.05em;
+  font-weight: 800;
+}

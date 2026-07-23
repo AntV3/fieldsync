@@ -104,7 +104,7 @@ export const EmptyState = memo(function EmptyState({
     <div className="empty-state" role="status">
       {Icon && (
         <div className="empty-state-icon-wrapper">
-          <Icon size={32} className="empty-state-icon" aria-hidden="true" />
+          <Icon size={48} className="empty-state-icon" aria-hidden="true" />
         </div>
       )}
       <h4 className="empty-state-title">{title}</h4>

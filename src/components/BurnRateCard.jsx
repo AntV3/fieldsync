@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, ChevronRight, Flame } from 'lucide-react'
+import { TrendingDown, ChevronDown, ChevronUp, ChevronRight, Flame, AlertTriangle } from 'lucide-react'
 import { InfoTooltip } from './ui'
 
 // Helper to format currency
@@ -55,7 +55,7 @@ export default function BurnRateCard({
     'over-budget': 'Over Budget'
   }[burnStatus]
 
-  const StatusIcon = burnStatus === 'on-budget' ? TrendingDown : burnStatus === 'warning' ? Minus : TrendingUp
+  const StatusIcon = burnStatus === 'on-budget' ? TrendingDown : AlertTriangle
 
   // Calculate projected total cost at completion
   const burnPerProgress = progress > 0 ? totalBurn / (progress / 100) : 0
@@ -90,7 +90,7 @@ export default function BurnRateCard({
   const maxDailyCost = Math.max(...combinedByDate.map(d => d.total), 1)
 
   return (
-    <div className="burn-rate-card">
+    <div className={`burn-rate-card ${hasCostData ? `burn-rate-card--${burnStatus}` : ''}`}>
       <div className="burn-rate-header">
         <div className="burn-rate-title">
           <Flame size={18} className="burn-icon" />

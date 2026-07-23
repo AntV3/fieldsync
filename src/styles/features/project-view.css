@@ -2432,3 +2432,14 @@
   color: var(--text-secondary);
   line-height: 1.5;
 }
+
+/* Warning/danger hero metric cards: amplified so problems can't be missed */
+.hero-metric-card--alert .hero-metric-label {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hero-metric-value--alert {
+  font-size: 1.15em;
+  font-weight: 800;
+}

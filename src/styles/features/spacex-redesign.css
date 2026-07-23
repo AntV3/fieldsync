@@ -1280,3 +1280,96 @@ button.sdx-pill:active { transform: scale(0.97); }
 @media (min-width: 900px) {
   .sdx-fld-tabbar { position: sticky; margin: 0 -1rem; }
 }
+
+/* ---------- Warning-state mini cards ---------- */
+
+.sdx-mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sdx-mini--alert-amber { border-left: 3px solid var(--accent-amber); }
+.sdx-mini--alert-red { border-left: 3px solid var(--accent-red); }
+
+.sdx-mini-alert-icon.amber { color: var(--accent-amber); }
+.sdx-mini-alert-icon.red { color: var(--accent-red); }
+
+.sdx-mini-figure--alert {
+  font-size: 1.55rem;
+  font-weight: 800;
+}
+
+/* ---------- Overview visual hierarchy: sections ---------- */
+
+/* Wider breathing room between cards (16-24px gaps) */
+.sdx-overview { gap: 1.5rem; }
+.sdx-overview .sdx-kpi-grid { gap: 1rem; }
+.sdx-overview .sdx-main-grid { gap: 1.25rem; }
+.sdx-overview .sdx-col { gap: 1.25rem; }
+.sdx-overview .sdx-mini-grid { gap: 1rem; }
+
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Subtle divider between sections */
+.overview-section + .overview-section {
+  border-top: 1px solid var(--border-light);
+  padding-top: 1.25rem;
+}
+
+.overview-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.overview-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-display, 0.08em);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.overview-section-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Live Field Feed: prominent card + pulsing real-time indicator */
+.overview-section--feed .sdx-panel {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.overview-section--feed .sdx-feed-item { padding: 1rem 1.25rem; }
+
+.sdx-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  animation: sdx-live-pulse 2s ease-out infinite;
+}
+
+@keyframes sdx-live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sdx-live-dot { animation: none; }
+}

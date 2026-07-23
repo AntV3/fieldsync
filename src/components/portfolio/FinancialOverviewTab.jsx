@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { DollarSign, TrendingUp, Percent, Briefcase, Info } from 'lucide-react'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts'
-import { MetricSkeleton, ChartSkeleton } from '../ui'
+import { MetricSkeleton, ChartSkeleton, ChartAreaSkeleton } from '../ui'
 import { formatCurrency } from '../../lib/utils'
 import { chartColors, tooltipStyle, formatChartCurrency } from '../charts/chartConfig'
 import {
@@ -40,7 +40,7 @@ export default function FinancialOverviewTab({ companyId }) {
           {[1, 2, 3, 4].map(i => <div key={i} className="pa-metric-card"><MetricSkeleton /></div>)}
         </div>
         <div className="pa-charts-grid">
-          <div className="pa-chart-card"><ChartSkeleton /></div>
+          <div className="pa-chart-card"><ChartAreaSkeleton /></div>
           <div className="pa-chart-card"><ChartSkeleton /></div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from 'react'
 import { BarChart2, DollarSign, Users, Target, FileText, Shield } from 'lucide-react'
-import { ChartSkeleton } from '../components/ui'
+import { ChartSkeleton, ChartAreaSkeleton } from '../components/ui'
 
 // Lazy load each tab independently
 const FinancialOverviewTab = lazy(() => import('../components/portfolio/FinancialOverviewTab'))
@@ -30,7 +30,7 @@ function TabSkeleton() {
       </div>
       <div className="pa-charts-grid">
         <div className="pa-chart-card"><ChartSkeleton /></div>
-        <div className="pa-chart-card"><ChartSkeleton /></div>
+        <div className="pa-chart-card"><ChartAreaSkeleton /></div>
       </div>
     </div>
   )
