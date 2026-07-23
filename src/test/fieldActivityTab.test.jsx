@@ -24,6 +24,13 @@ vi.mock('../lib/TradeConfigContext', () => ({
   TradeConfigProvider: ({ children }) => children
 }))
 
+// FieldObservationsList (lazy-loaded by the tab) calls useBranding, which
+// throws without a provider — mock it so late-resolving imports can't crash
+vi.mock('../lib/BrandingContext', () => ({
+  useBranding: () => ({ branding: {} }),
+  BrandingProvider: ({ children }) => children
+}))
+
 import FieldActivityTab from '../components/dashboard/tabs/FieldActivityTab'
 
 const project = { id: 'p1', name: 'Test Project', company_id: 'c1' }

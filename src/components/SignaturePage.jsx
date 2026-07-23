@@ -4,6 +4,7 @@ import { db } from '../lib/supabase'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
 import SignatureCanvas from './ui/SignatureCanvas'
+import StatusBadge from './ui/StatusBadge'
 
 // Helper to format date
 const formatDate = (dateString) => {
@@ -25,27 +26,6 @@ const formatTime = (timeStr) => {
   return `${h12}:${minutes}${ampm}`
 }
 
-// Status badge component
-const StatusBadge = ({ status }) => {
-  const statusMap = {
-    draft: { label: 'Draft', color: '#6b7280', bg: '#f3f4f6' },
-    pending_approval: { label: 'Pending Approval', color: '#d97706', bg: '#fef3c7' },
-    foreman_signed: { label: 'Foreman Signed', color: '#2563eb', bg: '#dbeafe' },
-    approved: { label: 'Approved', color: '#059669', bg: '#d1fae5' },
-    rejected: { label: 'Rejected', color: '#dc2626', bg: '#fee2e2' },
-    billed: { label: 'Billed', color: '#2563eb', bg: '#dbeafe' },
-    closed: { label: 'Closed', color: '#4b5563', bg: '#e5e7eb' }
-  }
-  const info = statusMap[status] || statusMap.draft
-  return (
-    <span
-      className="cor-status-badge"
-      style={{ color: info.color, backgroundColor: info.bg }}
-    >
-      {info.label}
-    </span>
-  )
-}
 
 export default function SignaturePage({ signatureToken }) {
   const [loading, setLoading] = useState(true)

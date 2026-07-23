@@ -82,50 +82,119 @@
 
 /* ============================================
    Status Badges (pill-style)
+   ============================================
+
+   Canonical badge spec (StatusBadge component):
+   4px 12px padding, 12px text, full-round pill.
+   Variants: info (blue), success (green),
+   warning (amber), danger (red), neutral (gray).
    ============================================ */
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  min-height: 24px;
-  border-radius: var(--radius-sm);
-  font-size: 0.6875rem;
+  gap: var(--space-1);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
   font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-caps);
   white-space: nowrap;
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.status-badge.not-started,
-.status-badge.not_started {
-  background: var(--bg-tertiary);
-  color: var(--text-muted);
+/* ---- Semantic variants (StatusBadge component) ---- */
+.status-badge--info {
+  background: var(--blue-subtle);
+  color: var(--status-info);
 }
 
-.status-badge.pending,
-.status-badge.working {
+.status-badge--success {
+  background: var(--green-subtle);
+  color: var(--status-success);
+}
+
+.status-badge--warning {
   background: var(--amber-subtle);
-  color: var(--accent-amber);
+  color: var(--status-warning);
+}
+
+.status-badge--danger {
+  background: var(--red-subtle);
+  color: var(--status-danger);
+}
+
+.status-badge--neutral {
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral);
+}
+
+/* Soft attention pulse for pending approvals */
+@keyframes badgePendingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+}
+
+.status-badge--pulse {
+  animation: badgePendingPulse 2.4s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-badge--pulse {
+    animation: none;
+  }
+}
+
+/* ---- Legacy modifier classes (map to the same palette) ---- */
+.status-badge.not-started,
+.status-badge.not_started,
+.status-badge.draft,
+.status-badge.closed,
+.status-badge.expired {
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral);
+}
+
+.status-badge.pending {
+  background: var(--amber-subtle);
+  color: var(--status-warning);
+  animation: badgePendingPulse 2.4s ease-out infinite;
+}
+
+.status-badge.working {
+  background: var(--blue-subtle);
+  color: var(--status-info);
 }
 
 .status-badge.done,
 .status-badge.approved,
 .status-badge.completed {
   background: var(--green-subtle);
-  color: var(--accent-green);
+  color: var(--status-success);
 }
 
 .status-badge.billed {
   background: var(--blue-subtle);
-  color: var(--accent-blue);
+  color: var(--status-info);
 }
 
 .status-badge.rejected,
-.status-badge.error {
+.status-badge.error,
+.status-badge.revoked {
   background: var(--red-subtle);
-  color: var(--accent-red);
+  color: var(--status-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-badge.pending {
+    animation: none;
+  }
 }
 
 /* ============================================
@@ -276,35 +345,15 @@
   -webkit-backdrop-filter: blur(4px);
 }
 
-[data-theme="dark"] .status-badge.pending,
-[data-theme="dark"] .status-badge.working {
-  background: rgba(245, 184, 74, 0.12);
-}
-
-[data-theme="dark"] .status-badge.done,
-[data-theme="dark"] .status-badge.approved,
-[data-theme="dark"] .status-badge.completed {
-  background: rgba(63, 168, 122, 0.12);
-}
-
-[data-theme="dark"] .status-badge.billed {
-  background: rgba(1, 112, 171, 0.12);
-}
-
-[data-theme="dark"] .status-badge.rejected,
-[data-theme="dark"] .status-badge.error {
-  background: rgba(240, 132, 90, 0.12);
-}
-
 [data-theme="dark"] .status-icon.done,
 [data-theme="dark"] .status-icon.signed {
-  background: rgba(63, 168, 122, 0.15);
-  box-shadow: 0 0 8px rgba(63, 168, 122, 0.2);
+  background: rgba(74, 222, 128, 0.15);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.2);
 }
 
 [data-theme="dark"] .status-icon.working {
-  background: rgba(245, 184, 74, 0.15);
-  box-shadow: 0 0 8px rgba(245, 184, 74, 0.2);
+  background: rgba(251, 191, 36, 0.15);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
 }
 
 [data-theme="dark"] .status-icon.pending {

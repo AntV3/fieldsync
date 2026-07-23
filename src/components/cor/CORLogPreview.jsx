@@ -3,6 +3,7 @@ import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Table, List,
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import StatusBadge from '../ui/StatusBadge'
 
 /**
  * CORLogPreview - COR Log view for the Financials tab
@@ -366,9 +367,7 @@ export default function CORLogPreview({
                     <td className="cor-title">{entry.changeOrder?.title || 'Untitled'}</td>
                     <td className="cor-amount">{formatCurrency(entry.changeOrder?.corTotal || 0)}</td>
                     <td>
-                      <span className={`cor-status-badge ${STATUS_DISPLAY[status]?.className || ''}`}>
-                        {STATUS_DISPLAY[status]?.label || status}
-                      </span>
+                      <StatusBadge status={status} label={STATUS_DISPLAY[status]?.label} />
                     </td>
                     <td className="cor-date">
                       {entry.changeOrder?.createdAt

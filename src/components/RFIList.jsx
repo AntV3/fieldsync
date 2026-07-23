@@ -9,13 +9,13 @@ import {
   ChevronDown, ChevronRight,
   Calendar, User
 } from 'lucide-react'
-import { EmptyState, ListItemSkeleton } from './ui'
+import { EmptyState, ListItemSkeleton, StatusBadge } from './ui'
 
 const STATUS_CONFIG = {
-  draft: { label: 'Draft', color: '#6b7280', bg: '#6b728015' },
-  open: { label: 'Open', color: '#3b82f6', bg: '#3b82f615' },
-  answered: { label: 'Answered', color: '#10b981', bg: '#10b98115' },
-  closed: { label: 'Closed', color: '#6b7280', bg: '#6b728015' }
+  draft: { label: 'Draft' },
+  open: { label: 'Open' },
+  answered: { label: 'Answered' },
+  closed: { label: 'Closed' }
 }
 
 const PRIORITY_CONFIG = {
@@ -265,10 +265,10 @@ export default function RFIList({ project, company, onShowToast }) {
                   <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.75rem', color: priorityCfg.color, border: `1px solid ${priorityCfg.color}40` }}>
                     {priorityCfg.label}
                   </span>
-                  <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.75rem', background: statusCfg.bg, color: statusCfg.color, fontWeight: 500 }}>
-                    {statusCfg.label}
-                    {isOverdue && ' (Overdue)'}
-                  </span>
+                  <StatusBadge
+                    status={isOverdue ? 'overdue' : rfi.status}
+                    label={`${statusCfg.label}${isOverdue ? ' (Overdue)' : ''}`}
+                  />
                 </div>
 
                 {/* Expanded Detail */}

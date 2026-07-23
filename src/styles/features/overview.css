@@ -1160,7 +1160,7 @@
 
 .financial-metric-value {
   font-family: var(--font-data);
-  font-size: 1.5rem;
+  font-size: 2rem; /* 32px hero number */
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   line-height: 1.1;

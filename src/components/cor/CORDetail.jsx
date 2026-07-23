@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
-import { CollapsibleSection } from '../ui'
+import { CollapsibleSection, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
 import {
   formatCurrency,
@@ -410,12 +410,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
           </div>
 
           <div className="cor-detail-meta">
-            <span
-              className="cor-detail-status"
-              style={{ backgroundColor: statusInfo.bgColor, color: statusInfo.color }}
-            >
-              {statusInfo.label}
-            </span>
+            <StatusBadge status={corData.status} label={statusInfo.label} />
             {corData.group_name && (
               <span className="cor-detail-group">{corData.group_name}</span>
             )}
@@ -801,9 +796,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                             </span>
                           )}
                         </div>
-                        <span className={`backup-ticket-status status-${ticket.status}`}>
-                          {ticket.status}
-                        </span>
+                        <StatusBadge status={ticket.status} />
                       </div>
 
                       {isExpanded && (

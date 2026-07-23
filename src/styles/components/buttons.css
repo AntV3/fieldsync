@@ -31,6 +31,12 @@
   cursor: not-allowed;
 }
 
+/* Universal hover micro-interaction: subtle lift + deeper shadow */
+.btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
 /* Universal press micro-interaction */
 .btn:active:not(:disabled) {
   transform: scale(0.97);

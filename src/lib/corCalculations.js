@@ -237,23 +237,23 @@ export const getStatusInfo = (status) => {
     },
     pending_approval: {
       label: 'Pending Approval',
-      color: '#d97706', // amber
+      color: '#b45309', // brand warning (readable on light amber)
       bgColor: '#fef3c7'
     },
     approved: {
       label: 'Approved',
-      color: '#059669', // green
-      bgColor: '#d1fae5'
+      color: '#15803d', // brand success (readable on light green)
+      bgColor: '#dcfce7'
     },
     rejected: {
       label: 'Rejected',
-      color: '#dc2626', // red
+      color: '#dc2626', // brand danger (readable on light red)
       bgColor: '#fee2e2'
     },
     billed: {
       label: 'Billed',
-      color: '#2563eb', // blue
-      bgColor: '#dbeafe'
+      color: '#0170ab', // brand accent blue
+      bgColor: '#d4e9f5'
     },
     closed: {
       label: 'Closed',

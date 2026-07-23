@@ -31,20 +31,21 @@
   background: var(--text-muted);
 }
 
-.sdx-dot.done { background: var(--accent-green); }
-.sdx-dot.working { background: var(--accent-amber); }
+.sdx-dot.done { background: var(--color-success); }
+.sdx-dot.working { background: var(--accent-blue); }
 .sdx-dot.not-started { background: var(--text-muted); opacity: 0.55; }
 
+/* Matches the canonical .status-badge spec (4px 12px, 12px text, full round) */
 .sdx-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 4px 11px;
+  padding: 4px 12px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-full, 999px);
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: var(--letter-spacing-caps, 0.06em);
   text-transform: uppercase;
@@ -55,21 +56,21 @@
 }
 
 .sdx-pill.done {
-  background: rgba(16, 185, 129, 0.14);
-  border-color: rgba(16, 185, 129, 0.35);
-  color: var(--accent-green);
+  background: var(--green-subtle);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: var(--status-success);
 }
 
 .sdx-pill.working {
-  background: rgba(245, 158, 11, 0.14);
-  border-color: rgba(245, 158, 11, 0.35);
-  color: var(--accent-amber);
+  background: var(--blue-subtle);
+  border-color: rgba(0, 145, 213, 0.35);
+  color: var(--status-info);
 }
 
 .sdx-pill.not-started {
-  background: var(--bg-elevated);
+  background: var(--status-neutral-bg);
   border-color: var(--border-color);
-  color: var(--text-secondary);
+  color: var(--status-neutral);
 }
 
 button.sdx-pill:hover { filter: brightness(1.12); }
@@ -160,15 +161,17 @@ button.sdx-pill:active { transform: scale(0.97); }
 }
 
 .sdx-status-pill.behind {
-  color: var(--accent-amber);
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.4);
+  color: var(--status-danger);
+  background: var(--red-subtle);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
-.sdx-status-pill.ahead {
-  color: var(--accent-green);
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.4);
+.sdx-status-pill.ahead,
+.sdx-status-pill.on-track,
+.sdx-status-pill.on_track {
+  color: var(--status-success);
+  background: var(--green-subtle);
+  border-color: rgba(34, 197, 94, 0.4);
 }
 
 .sdx-header-meta {
@@ -340,8 +343,8 @@ button.sdx-pill:active { transform: scale(0.97); }
 .sdx-panel-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 1rem; /* 16px section header */
+  font-weight: var(--font-weight-semibold, 600);
   letter-spacing: var(--letter-spacing-caps, 0.06em);
   text-transform: uppercase;
   color: var(--text-primary);

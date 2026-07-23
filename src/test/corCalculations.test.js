@@ -539,7 +539,7 @@ describe('getStatusInfo', () => {
 
   it('returns draft info for approved status', () => {
     expect(getStatusInfo('approved').label).toBe('Approved')
-    expect(getStatusInfo('approved').color).toBe('#059669')
+    expect(getStatusInfo('approved').color).toBe('#15803d')
   })
 
   it('returns draft as default for unknown status', () => {

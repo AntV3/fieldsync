@@ -314,30 +314,30 @@
   flex-shrink: 0;
 }
 
-.status-badge {
-  display: flex;
+.document-status .status-badge {
+  display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-lg);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
 
-.status-badge.pending {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--accent-yellow);
+.document-status .status-badge.pending {
+  background: var(--amber-subtle);
+  color: var(--status-warning);
 }
 
-.status-badge.rejected {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--accent-red);
+.document-status .status-badge.rejected {
+  background: var(--red-subtle);
+  color: var(--status-danger);
 }
 
-.status-badge.current {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--accent-green);
+.document-status .status-badge.current {
+  background: var(--green-subtle);
+  color: var(--status-success);
 }
 
 /* Document actions */
