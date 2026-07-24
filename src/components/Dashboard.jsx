@@ -35,7 +35,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     corRefreshKey, bumpCORRefresh, debouncedRefresh,
     loadProjects, loadAreas, handleSelectProject, invalidateProjectCache,
     projectData, progressCalculations,
-    fieldActivity, activityPulse
+    fieldActivity, activityPulse, markProjectActivitySeen
   } = useDashboardData({ company, onShowToast, navigateToProjectId, onProjectNavigated })
 
   // Detail-view UI state: tabs, sections, sidebars, and modal visibility
@@ -63,6 +63,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     const project = projects.find(p => p.id === projectId)
     if (project) {
       setSelectedProject(project)
+      // Clearing the unseen-activity badge — opening the project from an
+      // alert counts as "seen", same as opening from the portfolio card.
+      markProjectActivitySeen(project.id)
       // Navigate to appropriate tab based on action target
       if (target === 'financials') {
         view.setActiveProjectTab('financials')
