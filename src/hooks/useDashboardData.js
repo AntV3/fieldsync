@@ -4,6 +4,21 @@ import { safeAsync } from '../lib/errorHandler'
 import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 
 /**
+ * Real-time payload guard for field-activity indicators. Returns the
+ * project id to record activity against, or null when the event should not
+ * pulse the LIVE feed or increment the unseen-activity badge.
+ *
+ * DELETEs are dropped: a foreman removing a mistaken T&M ticket, area, or
+ * report is not new field work — pulsing "New activity" on a delete would
+ * mislead the office user into looking for content that's no longer there.
+ * Exported so the guard can be unit-tested in isolation.
+ */
+export function getFieldActivityProjectId(payload) {
+  if (!payload || payload.eventType === 'DELETE') return null
+  return payload?.new?.project_id || payload?.old?.project_id || null
+}
+
+/**
  * useDashboardData - Data layer for the office Dashboard.
  *
  * Owns everything about fetching and caching project data:
@@ -112,7 +127,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
   // daily report, area update, incident). Selected project pulses the live
   // feed; other projects accumulate an unseen-activity badge.
   const recordFieldActivity = useCallback((payload) => {
-    const projectId = payload?.new?.project_id || payload?.old?.project_id
+    const projectId = getFieldActivityProjectId(payload)
     if (!projectId) return
     if (selectedProjectRef.current?.id === projectId) {
       setActivityPulse(prev => prev + 1)
