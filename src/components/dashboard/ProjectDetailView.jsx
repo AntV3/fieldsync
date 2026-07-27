@@ -81,8 +81,13 @@ export default function ProjectDetailView({
   const areasWorking = areas.filter(a => a.status === 'working').length
   const areasNotStarted = areas.filter(a => a.status === 'not_started').length
 
-  // Tab definitions with pending badges - 5 consolidated tabs
-  const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)
+  // Tab definitions with pending badges - 5 consolidated tabs.
+  // Source of truth for pending approvals: pending T&M tickets (t_and_m_tickets.status='pending')
+  // + pending CORs (change_orders.status='pending_approval'). Same formula the pending-approvals
+  // banner below and the Overview "Open approvals" KPI use, so all three agree.
+  // NOTE: projectData.changeOrderPending is a different metric (pending T&M tickets that carry a
+  // CE/PCO number, from getChangeOrderTotals) and would double-count against pendingTickets.
+  const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.corPendingCount || 0)
   const tabs = [
     { id: 'overview', label: 'Overview', Icon: LayoutDashboard },
     { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },

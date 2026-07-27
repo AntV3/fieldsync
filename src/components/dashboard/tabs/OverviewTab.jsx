@@ -80,12 +80,17 @@ export default function OverviewTab({
       tab: 'financials'
     })
   }
-  if (projectData?.changeOrderPending > 0) {
+  // Use corPendingCount (COR rows from change_orders) so this row matches the
+  // "Open approvals" KPI above and the pending-approvals banner. changeOrderPending
+  // comes from getChangeOrderTotals and actually counts pending T&M tickets tagged
+  // with a CE/PCO number — labelling those as "change orders pending" was misleading
+  // (the count could disagree with the CORs chip on the same screen).
+  if (projectData?.corPendingCount > 0) {
     attentionItems.push({
       id: 'pending-co',
       type: 'info',
       icon: FileText,
-      label: `${projectData.changeOrderPending} change order${projectData.changeOrderPending !== 1 ? 's' : ''} pending`,
+      label: `${projectData.corPendingCount} change order${projectData.corPendingCount !== 1 ? 's' : ''} pending`,
       tab: 'financials'
     })
   }
