@@ -29,6 +29,31 @@ export default function PendingApprovalsBanner({ projectId, pendingCount, onView
     }
   }, [projectId])
 
+  // If pendingCount drops below the dismissed threshold, follow it down so
+  // any subsequent uptick re-surfaces the banner. Without this the banner
+  // would stay hidden forever after the user worked the queue to zero:
+  // dismissed at 5 → approve all 5 (count 0) → a new item lands (count 1) →
+  // `1 <= 5` still hides it.
+  //
+  // We read the stored floor directly from sessionStorage rather than the
+  // `dismissedAt` state, so we don't race the project-change effect above
+  // and clobber its fresh read with a stale closure from the previous
+  // project.
+  useEffect(() => {
+    if (typeof pendingCount !== 'number') return
+    let stored = -1
+    try {
+      const raw = sessionStorage.getItem(dismissKey(projectId))
+      if (raw !== null) stored = parseInt(raw, 10)
+    } catch (_e) { /* fall through with -1 */ }
+    if (pendingCount < stored) {
+      setDismissedAt(pendingCount)
+      try {
+        sessionStorage.setItem(dismissKey(projectId), String(pendingCount))
+      } catch (_e) { /* ignore */ }
+    }
+  }, [pendingCount, projectId])
+
   if (!pendingCount || pendingCount <= dismissedAt) return null
 
   const handleDismiss = () => {
