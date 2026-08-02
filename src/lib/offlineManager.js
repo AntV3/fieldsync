@@ -27,11 +27,24 @@ const resetConnection = () => {
   db = null
 }
 
+// Sentinel code for the "no IndexedDB in this environment" case (SSR, jsdom
+// test runs, Safari private mode, some embedded WebViews). Callers that log
+// init failures can check `err?.code === INDEXED_DB_UNAVAILABLE` to stay quiet
+// when the platform simply doesn't support offline storage.
+export const INDEXED_DB_UNAVAILABLE = 'INDEXED_DB_UNAVAILABLE'
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (typeof indexedDB === 'undefined') {
+      const err = new Error('IndexedDB is not available in this environment')
+      err.code = INDEXED_DB_UNAVAILABLE
+      reject(err)
       return
     }
 
