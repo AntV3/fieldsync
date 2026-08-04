@@ -61,23 +61,26 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Handler for alert actions
   const handleAlertAction = useCallback(({ target, projectId }) => {
     const project = projects.find(p => p.id === projectId)
-    if (project) {
-      setSelectedProject(project)
-      // Navigate to appropriate tab based on action target
-      if (target === 'financials') {
-        view.setActiveProjectTab('financials')
-      } else if (target === 'reports') {
-        view.setActiveProjectTab('field')
-        view.setFieldSection('reports')
-      } else if (target === 'cors') {
-        view.setActiveProjectTab('financials')
-        view.setFinancialsSection('cors')
-      } else {
-        view.setActiveProjectTab('overview')
-      }
+    if (!project) return
+    // Route through handleSelectProject so lazy detail-load and
+    // markProjectActivitySeen run — the Financials/Overview surfaces the
+    // alert lands on depend on the full detail shape (tmTickets, corStats,
+    // laborCost) which the summary `projects` array doesn't carry.
+    handleSelectProject(project)
+    // Navigate to appropriate tab based on action target
+    if (target === 'financials') {
+      view.setActiveProjectTab('financials')
+    } else if (target === 'reports') {
+      view.setActiveProjectTab('field')
+      view.setFieldSection('reports')
+    } else if (target === 'cors') {
+      view.setActiveProjectTab('financials')
+      view.setFinancialsSection('cors')
+    } else {
+      view.setActiveProjectTab('overview')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects])
+  }, [projects, handleSelectProject])
 
   // Field document export handler
   const handleExportFieldDocuments = useCallback(async (type = 'all') => {
