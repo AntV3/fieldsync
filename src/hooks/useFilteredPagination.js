@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { usePagination } from './usePagination'
 
 /**
@@ -32,10 +32,22 @@ export function useFilteredPagination(items = [], options = {}) {
     totalItems: filteredItems.length
   })
 
-  // Keep totalItems in sync with filtered results
-  useMemo(() => {
+  // Keep totalItems in sync with filtered results. This is a side effect
+  // (calling a setter), so it belongs in useEffect — running it inside
+  // useMemo would set state during render and trip React 19's warnings.
+  useEffect(() => {
     pagination.setTotalItems(filteredItems.length)
-  }, [filteredItems.length])
+  }, [filteredItems.length, pagination.setTotalItems])
+
+  // If an external caller shrinks `items` (e.g. after a delete or reload)
+  // past the current page, snap the page back into range so the user
+  // doesn't land on an empty slice.
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredItems.length / pagination.itemsPerPage))
+    if (pagination.page > maxPage) {
+      pagination.goToPage(maxPage)
+    }
+  }, [filteredItems.length, pagination.itemsPerPage, pagination.page, pagination.goToPage])
 
   const paginatedItems = useMemo(() => {
     return pagination.paginate(filteredItems)
