@@ -153,7 +153,7 @@ export default function usePortfolioMetrics(projectsData) {
         const riskInput = {
           id: p.id,
           name: p.name,
-          totalCosts: p.totalCosts || 0,
+          totalCosts: p.allCostsTotal || 0,
           earnedRevenue: p.billable || 0,
           actualProgress: p.progress || 0,
           expectedProgress: p.expectedProgress || p.progress,
