@@ -314,6 +314,7 @@ export const projectOps = {
           .select(`
             workers,
             project_id,
+            check_in_date,
             projects!inner(id, name, company_id)
           `)
           .eq('projects.company_id', companyId)
