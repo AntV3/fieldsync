@@ -113,7 +113,7 @@ export interface MaterialsEquipmentRow {
 export interface CrewCheckinRow {
   project_id: string
   worker_count: number | null
-  checkin_date: string // YYYY-MM-DD
+  check_in_date: string // YYYY-MM-DD
   created_at?: string
 }
 
