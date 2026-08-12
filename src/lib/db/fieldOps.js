@@ -262,7 +262,18 @@ export const fieldOps = {
       const weekKey = weekStart.toISOString().split('T')[0]
 
       if (!weeklyData[weekKey]) {
-        weeklyData[weekKey] = { week: weekKey, concrete: 0, trash: 0, metals: 0, hazardous_waste: 0 }
+        weeklyData[weekKey] = {
+          week: weekKey,
+          concrete: 0,
+          trash: 0,
+          metals: 0,
+          hazardous_waste: 0,
+          copper: 0,
+          asphalt: 0
+        }
+      }
+      if (weeklyData[weekKey][row.load_type] === undefined) {
+        weeklyData[weekKey][row.load_type] = 0
       }
       weeklyData[weekKey][row.load_type] += row.load_count
     })
