@@ -43,17 +43,22 @@ export default function useProjectAnalytics({
 
   // ---- Cash Flow ----
   const cashFlow = useMemo(() => {
-    const projects = allProjects.length > 0 ? allProjects : selectedProject ? [{
-      id: selectedProject.id,
-      name: selectedProject.name,
-      contractValue: selectedProject.contract_value || selectedProject.contractValue || 0,
-      changeOrderValue: changeOrderValue || 0,
-      progress,
-      totalCosts: projectData?.allCostsTotal || 0,
-      totalBilled: projectData?.totalBilled || 0,
-      startDate: selectedProject.start_date || selectedProject.startDate,
-      endDate: selectedProject.end_date || selectedProject.endDate,
-    }] : []
+    // Portfolio projects from useDashboardData carry actual costs on
+    // `allCostsTotal`; cashFlowCalculations reads `totalCosts`, so map here
+    // to keep the burn-rate proxy on real cost data.
+    const projects = allProjects.length > 0
+      ? allProjects.map(p => ({ ...p, totalCosts: p.allCostsTotal || 0 }))
+      : selectedProject ? [{
+        id: selectedProject.id,
+        name: selectedProject.name,
+        contractValue: selectedProject.contract_value || selectedProject.contractValue || 0,
+        changeOrderValue: changeOrderValue || 0,
+        progress,
+        totalCosts: projectData?.allCostsTotal || 0,
+        totalBilled: projectData?.totalBilled || 0,
+        startDate: selectedProject.start_date || selectedProject.startDate,
+        endDate: selectedProject.end_date || selectedProject.endDate,
+      }] : []
 
     if (projects.length === 0) return null
 

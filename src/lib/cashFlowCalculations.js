@@ -389,7 +389,11 @@ function estimateMonthlyEarningRate(project) {
 }
 
 function estimateMonthlyCostRate(project, _costHistory) {
-  const totalCosts = project.totalCosts || project.billable || 0
+  // `billable` is earned revenue (progress × contract), NOT actual costs —
+  // using it as a burn-rate proxy inflates payables on profitable projects
+  // and understates them on over-budget ones. Prefer the explicit cost fields
+  // and fall back to the contract-value estimate below when neither is set.
+  const totalCosts = project.totalCosts || project.allCostsTotal || 0
   const startDate = project.startDate || project.start_date
 
   // Use actual burn rate if available
