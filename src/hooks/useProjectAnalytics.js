@@ -15,7 +15,6 @@ export default function useProjectAnalytics({
   selectedProject,
   projectData,
   progress,
-  billable,
   revisedContractValue,
   changeOrderValue,
   allProjects = [],
@@ -33,13 +32,16 @@ export default function useProjectAnalytics({
       contractValue: selectedProject.contract_value || selectedProject.contractValue || 0,
       changeOrderValue: changeOrderValue || 0,
       progressPercent: progress,
-      actualCosts: projectData?.allCostsTotal || billable || 0,
+      // Do NOT fall back to `billable` (earned revenue) — that produces a
+      // spurious CPI≈1 and a false "on budget" reading when cost tracking is
+      // absent. Let forecastCosts see zero and mark confidence as low.
+      actualCosts: projectData?.allCostsTotal || 0,
       startDate: selectedProject.start_date || selectedProject.startDate,
       endDate: selectedProject.end_date || selectedProject.endDate,
       costHistory,
       progressHistory,
     })
-  }, [selectedProject, projectData, progress, billable, changeOrderValue])
+  }, [selectedProject, projectData, progress, changeOrderValue])
 
   // ---- Cash Flow ----
   const cashFlow = useMemo(() => {
