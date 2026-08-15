@@ -340,7 +340,11 @@ export function exportSageWIPScheduleCSV(projects, projectDataMap = {}) {
     const overUnder = totalBilled - earnedRevenue
     const totalCosts = data.allCostsTotal || data.totalCosts || 0
     const projectedProfit = progress > 0 ? revisedContract - (totalCosts / (progress / 100)) : revisedContract
-    const margin = revisedContract > 0 ? ((revisedContract - totalCosts) / revisedContract * 100) : 0
+    // Margin % must track PROJECTED profit, not raw costs — otherwise the
+    // adjacent columns contradict each other for any project past 0% but
+    // shy of 100% (e.g. a −$600K projected loss shown next to a 60% margin
+    // when costs are running 4× planned).
+    const margin = revisedContract > 0 ? (projectedProfit / revisedContract * 100) : 0
 
     return {
       job: p.job_number || '',
