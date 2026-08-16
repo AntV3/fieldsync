@@ -167,7 +167,7 @@ export async function getPortfolioFinancialSummary(companyId: string): Promise<P
 
   // Fetch areas, change orders, T&M tickets, and crew checkins in parallel
   const [areasRes, corsRes, ticketsRes, checkinsRes] = await Promise.all([
-    supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
+    supabase.from('areas').select('project_id, weight, status').in('project_id', projectIds),
     supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
     supabase.from('t_and_m_tickets').select('project_id, total_value, status').in('project_id', projectIds),
     supabase.from('crew_checkins').select('project_id, worker_count, checkin_date').in('project_id', projectIds),
@@ -247,7 +247,7 @@ export async function getProjectFinancialComparison(companyId: string): Promise<
 
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes] = await Promise.all([
-    supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
+    supabase.from('areas').select('project_id, weight, status').in('project_id', projectIds),
     supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
   ])
 
@@ -299,9 +299,9 @@ export async function getMonthlyRevenueTimeline(companyId: string, months = 12):
       .select('project_id, total_value, created_at')
       .in('project_id', projectIds),
     supabase.from('areas')
-      .select('project_id, weight, is_complete, updated_at')
+      .select('project_id, weight, status, updated_at')
       .in('project_id', projectIds)
-      .eq('is_complete', true),
+      .eq('status', 'done'),
   ])
 
   // Build monthly buckets
@@ -531,7 +531,7 @@ export async function getPortfolioProgressSummary(companyId: string): Promise<Po
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
-    .select('project_id, weight, is_complete')
+    .select('project_id, weight, status')
     .in('project_id', projectIds)
 
   const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
@@ -587,7 +587,7 @@ export async function getScheduleVarianceByProject(companyId: string): Promise<S
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
-    .select('project_id, weight, is_complete')
+    .select('project_id, weight, status')
     .in('project_id', projectIds)
 
   const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
@@ -622,7 +622,7 @@ export async function getAreaCompletionRates(companyId: string): Promise<AreaCom
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
-    .select('project_id, weight, is_complete, created_at, updated_at')
+    .select('project_id, weight, status, created_at, updated_at')
     .in('project_id', projectIds)
 
   const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
@@ -630,7 +630,7 @@ export async function getAreaCompletionRates(companyId: string): Promise<AreaCom
   return (projects as ProjectRow[]).map(p => {
     const pAreas = areasByProject[p.id] || []
     const totalAreas = pAreas.length
-    const completedAreas = pAreas.filter(a => a.is_complete).length
+    const completedAreas = pAreas.filter(a => a.status === 'done').length
     const projectAge = Math.max(1, Math.ceil((Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24 * 7))) // weeks
     const velocity = totalAreas > 0 ? Math.round((completedAreas / projectAge) * 10) / 10 : 0
 
@@ -673,7 +673,7 @@ export async function getCORSummaryAcrossProjects(companyId: string): Promise<CO
   for (const cor of allCors) {
     const val = cor.total_value || 0
     if (cor.status === 'approved') { approved++; approvedValue += val }
-    else if (cor.status === 'pending') { pending++; pendingValue += val }
+    else if (cor.status === 'pending_approval') { pending++; pendingValue += val }
     else if (cor.status === 'rejected') { rejected++; rejectedValue += val }
   }
 
@@ -720,7 +720,7 @@ export async function getCORByProject(companyId: string): Promise<CORByProjectEn
       name: truncateName(p.name),
       fullName: p.name,
       approved: pCors.filter(c => c.status === 'approved').length,
-      pending: pCors.filter(c => c.status === 'pending').length,
+      pending: pCors.filter(c => c.status === 'pending_approval').length,
       rejected: pCors.filter(c => c.status === 'rejected').length,
     }
   }).filter(p => p.approved + p.pending + p.rejected > 0)
@@ -790,7 +790,7 @@ export async function getPortfolioRiskMatrix(companyId: string): Promise<RiskMat
 
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes, ticketsRes] = await Promise.all([
-    supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
+    supabase.from('areas').select('project_id, weight, status').in('project_id', projectIds),
     supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
     supabase.from('t_and_m_tickets').select('project_id, total_value').in('project_id', projectIds),
   ])
@@ -870,7 +870,7 @@ function calculateWeightedProgress(areas: AreaRow[]): number {
   for (const area of areas) {
     const w = area.weight || 1
     totalWeight += w
-    if (area.is_complete) completedWeight += w
+    if (area.status === 'done') completedWeight += w
   }
   return totalWeight > 0 ? (completedWeight / totalWeight) * 100 : 0
 }

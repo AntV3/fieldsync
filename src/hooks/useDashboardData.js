@@ -375,7 +375,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
-      // Project equipment rental costs (daily rate * days on site, stored in cents)
+      // Project equipment rental costs (daily rate * days on site, dollars)
       const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 

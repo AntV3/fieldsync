@@ -171,7 +171,8 @@ export default memo(function ProjectEquipmentCard({
             <div className="equipment-list">
               {activeEquipment.map(item => {
                 const days = equipmentOps.calculateDaysOnSite(item.start_date, item.end_date)
-                const cost = item.daily_rate * days
+                const dailyRateDollars = (item.daily_rate || 0) / 100
+                const cost = dailyRateDollars * days
 
                 return (
                   <div key={item.id} className="equipment-item active">
@@ -185,7 +186,7 @@ export default memo(function ProjectEquipmentCard({
                       </div>
                       <div className="equipment-item-cost">
                         <span className="equipment-rate">
-                          {formatCurrency(item.daily_rate)}/day
+                          {formatCurrency(dailyRateDollars)}/day
                         </span>
                         <span className="equipment-days">{days} days</span>
                         <span className="equipment-total">{formatCurrency(cost)}</span>
@@ -230,7 +231,7 @@ export default memo(function ProjectEquipmentCard({
               <div className="equipment-list returned">
                 {returnedEquipment.map(item => {
                   const days = equipmentOps.calculateDaysOnSite(item.start_date, item.end_date)
-                  const cost = item.daily_rate * days
+                  const cost = ((item.daily_rate || 0) / 100) * days
 
                   return (
                     <div key={item.id} className="equipment-item returned">
