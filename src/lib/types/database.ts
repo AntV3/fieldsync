@@ -34,9 +34,8 @@ export interface AreaRow {
   name: string
   /** Relative weight used for % progress when no scheduled value is set */
   weight: number | null
-  is_complete: boolean
-  /** Field status driven from the field app */
-  status?: 'not_started' | 'working' | 'done' | string
+  /** Field status driven from the field app; 'done' means the area is complete */
+  status: 'not_started' | 'working' | 'done' | string
   /** SOV dollar value; when present, earned value is value-based */
   scheduled_value?: number | null
   group_name?: string | null
@@ -48,7 +47,7 @@ export interface ChangeOrderRow {
   id: string
   project_id: string
   total_value: number | null
-  status: 'approved' | 'pending' | 'rejected' | string
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'billed' | 'closed' | string
   created_at?: string
   updated_at?: string | null
 }

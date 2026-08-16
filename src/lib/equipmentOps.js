@@ -291,7 +291,9 @@ export const equipmentOps = {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    return projectEquipment.reduce((total, eq) => {
+    // daily_rate is stored in cents; convert to dollars so callers can sum
+    // with other dollar-denominated cost fields (labor, materials, etc.).
+    const totalCents = projectEquipment.reduce((total, eq) => {
       const startDate = parseLocalDate(eq.start_date)
       startDate.setHours(0, 0, 0, 0)
 
@@ -308,6 +310,8 @@ export const equipmentOps = {
 
       return total + (eq.daily_rate * days)
     }, 0)
+
+    return totalCents / 100
   },
 
   /**
