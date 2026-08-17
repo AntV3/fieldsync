@@ -34,8 +34,7 @@ export interface AreaRow {
   name: string
   /** Relative weight used for % progress when no scheduled value is set */
   weight: number | null
-  is_complete: boolean
-  /** Field status driven from the field app */
+  /** Field status driven from the field app — 'done' means the area is complete */
   status?: 'not_started' | 'working' | 'done' | string
   /** SOV dollar value; when present, earned value is value-based */
   scheduled_value?: number | null
@@ -44,11 +43,17 @@ export interface AreaRow {
   updated_at?: string | null
 }
 
+/**
+ * change_orders workflow: draft → pending_approval → approved → billed → closed,
+ * plus rejected. Aggregations here use `cor_total` (stored in CENTS — divide by 100
+ * for dollar values).
+ */
 export interface ChangeOrderRow {
   id: string
   project_id: string
-  total_value: number | null
-  status: 'approved' | 'pending' | 'rejected' | string
+  /** Total in cents */
+  cor_total: number | null
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'billed' | 'closed' | string
   created_at?: string
   updated_at?: string | null
 }
@@ -82,7 +87,11 @@ export interface TMTicketRow {
   work_date?: string | null // YYYY-MM-DD
   notes?: string | null
   status: 'pending' | 'approved' | 'rejected' | string
-  total_value?: number | null
+  /** Change-order value for CE/PCO tickets, in dollars. `t_and_m_tickets` has
+   * no rolled-up "total_value" column — item-level totals live on the
+   * per-ticket workers/items rows. */
+  change_order_value?: number | string | null
+  ce_pco_number?: string | null
   cost_code_id?: string | null
   created_at?: string
 }
@@ -112,8 +121,9 @@ export interface MaterialsEquipmentRow {
 
 export interface CrewCheckinRow {
   project_id: string
-  worker_count: number | null
-  checkin_date: string // YYYY-MM-DD
+  /** JSONB array of workers on site that day; count comes from `workers.length` */
+  workers?: Array<{ name?: string | null; [key: string]: unknown }> | null
+  check_in_date: string // YYYY-MM-DD
   created_at?: string
 }
 
