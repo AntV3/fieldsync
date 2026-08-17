@@ -633,9 +633,14 @@ const processAction = async (action, db) => {
     }
 
     case ACTION_TYPES.SAVE_CREW_CHECKIN:
+      // saveCrewCheckin signature is (projectId, workers, createdBy, date).
+      // The check-in date must land in the 4th slot; passing it in the 3rd
+      // makes Postgres reject the row (created_by is a UUID FK), the replay
+      // loop retries then drops the action, and the check-in vanishes.
       return db.saveCrewCheckin(
         payload.projectId,
         payload.workers,
+        payload.createdBy ?? null,
         payload.checkInDate
       )
 

@@ -408,6 +408,7 @@ export const fieldOps = {
       await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
         projectId,
         workers,
+        createdBy,
         checkInDate: checkDate
       })
       return checkin
@@ -429,6 +430,7 @@ export const fieldOps = {
       await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
         projectId,
         workers,
+        createdBy,
         checkInDate: checkDate
       })
       return checkin
@@ -463,12 +465,14 @@ export const fieldOps = {
           project_id: projectId,
           check_in_date: checkDate,
           workers: workers,
+          created_by: createdBy,
           _offline: true
         }
         await cacheCrewCheckin(checkin)
         await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
           projectId,
           workers,
+          createdBy,
           checkInDate: checkDate
         })
         return checkin
