@@ -14,6 +14,7 @@ import {
 } from '../lib/sageExport'
 import { exportToQuickBooksIIF } from '../lib/financialExport'
 import { exportAIABillingPDF, exportAIABillingCSV } from '../lib/aiaBillingExport'
+import { areaScheduledValueDollars } from '../lib/utils'
 import {
   Download, FileSpreadsheet, Building2, Receipt,
   FileText, BarChart3, Hash, ChevronDown, ChevronRight,
@@ -177,7 +178,7 @@ function ExportPreview({ project, areas, financialData }) {
         <>
           <div style={sectionHead}>Schedule of Values ({areas.length} items)</div>
           {areas.map((area, i) => {
-            const sovVal = area.sov_value || area.weight || 0
+            const sovVal = areaScheduledValueDollars(area, contractValue)
             return (
               <div key={area.id || i} style={row}>
                 <span style={{ color: 'var(--text-secondary, #5F5F5F)' }}>{area.name}</span>
