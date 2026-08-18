@@ -61,6 +61,28 @@ export function calculateProgress(areas) {
 }
 
 /**
+ * Dollar-denominated schedule-of-values amount for a single area.
+ *
+ * Priority ladder mirrors drawRequestOps.areaScheduledValueCents:
+ *   1. explicit `scheduled_value` (dollars, from the SOV setup step)
+ *   2. `weight` (%) × project contract value
+ *   3. 0
+ *
+ * The setup wizard writes `weight` and (optionally) `scheduled_value`, so on
+ * projects that skip the SOV step only `weight` is populated. Consumers that
+ * treat `weight` as dollars (or read a nonexistent `sov_value` field) end up
+ * emitting percentage points where dollar figures are expected.
+ */
+export function areaScheduledValueDollars(area, contractValue = 0) {
+  const explicit = Number(area?.scheduled_value)
+  if (Number.isFinite(explicit) && explicit > 0) return explicit
+  const weight = Number(area?.weight) || 0
+  const contract = Number(contractValue) || 0
+  if (weight > 0 && contract > 0) return (weight / 100) * contract
+  return 0
+}
+
+/**
  * Calculate progress based on SOV scheduled values when available
  * Falls back to percentage-based calculation if no scheduled values exist
  * @param {Array} areas - Array of area objects

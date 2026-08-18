@@ -8,7 +8,8 @@ import {
   calculateProgress,
   calculateValueProgress,
   getOverallStatus,
-  formatStatus
+  formatStatus,
+  areaScheduledValueDollars
 } from '../lib/utils'
 
 // ============================================
@@ -128,5 +129,44 @@ describe('formatStatus', () => {
 
   it('returns unknown status as-is', () => {
     expect(formatStatus('unknown')).toBe('unknown')
+  })
+})
+
+// ============================================
+// areaScheduledValueDollars tests
+// ============================================
+describe('areaScheduledValueDollars', () => {
+  it('uses explicit scheduled_value when set', () => {
+    expect(areaScheduledValueDollars({ scheduled_value: 125000, weight: 25 }, 500000)).toBe(125000)
+  })
+
+  it('falls back to weight percent of contract value when scheduled_value is unset', () => {
+    expect(areaScheduledValueDollars({ weight: 25 }, 500000)).toBe(125000)
+    expect(areaScheduledValueDollars({ weight: 10 }, 200000)).toBe(20000)
+  })
+
+  it('never treats weight as a dollar amount when contract value is missing', () => {
+    // Regression: exports previously returned `area.weight` (a percent) as dollars,
+    // producing "Scheduled Value $25.00" on AIA G702/G703 pay applications when a
+    // $500K project had four areas weighted 25/25/25/25.
+    expect(areaScheduledValueDollars({ weight: 25 }, 0)).toBe(0)
+    expect(areaScheduledValueDollars({ weight: 25 })).toBe(0)
+  })
+
+  it('ignores the nonexistent sov_value field', () => {
+    // Regression: aiaBillingExport/sageExport/SageExportPanel read `area.sov_value`,
+    // which is never written by the schema. The fallback then landed on weight.
+    expect(areaScheduledValueDollars({ sov_value: 999, weight: 25 }, 500000)).toBe(125000)
+  })
+
+  it('returns 0 for missing or empty input', () => {
+    expect(areaScheduledValueDollars(null, 500000)).toBe(0)
+    expect(areaScheduledValueDollars({}, 500000)).toBe(0)
+    expect(areaScheduledValueDollars({ scheduled_value: 0, weight: 0 }, 500000)).toBe(0)
+  })
+
+  it('rejects non-positive scheduled_value and falls through', () => {
+    expect(areaScheduledValueDollars({ scheduled_value: -100, weight: 25 }, 500000)).toBe(125000)
+    expect(areaScheduledValueDollars({ scheduled_value: '', weight: 25 }, 500000)).toBe(125000)
   })
 })
