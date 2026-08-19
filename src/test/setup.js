@@ -28,5 +28,30 @@ class MockIntersectionObserver {
 }
 window.IntersectionObserver = MockIntersectionObserver
 
+// jsdom doesn't ship IndexedDB. Give components that read from the offline
+// store (OfflineIndicator, offlineManager) a request that fails cleanly
+// instead of throwing ReferenceError, so their .catch paths run in tests.
+if (typeof indexedDB === 'undefined') {
+  const failingRequest = () => {
+    const request = {
+      result: null,
+      error: new Error('IndexedDB unavailable in test environment'),
+      onerror: null,
+      onsuccess: null,
+      onupgradeneeded: null,
+    }
+    queueMicrotask(() => {
+      if (typeof request.onerror === 'function') request.onerror({ target: request })
+    })
+    return request
+  }
+  globalThis.indexedDB = {
+    open: failingRequest,
+    deleteDatabase: failingRequest,
+    cmp: () => 0,
+    databases: async () => [],
+  }
+}
+
 // Suppress console errors during tests (optional - comment out to see errors)
 // console.error = () => {}

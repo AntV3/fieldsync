@@ -4,6 +4,23 @@ import { safeAsync } from '../lib/errorHandler'
 import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
 
 /**
+ * Sums non-draft invoices into a single "total billed" figure in dollars.
+ *
+ * invoices.total (and legacy `amount`) are stored as INTEGER cents in
+ * Supabase (see supabase/migrations/20241201000050_billing.sql). The
+ * portfolio / cash-flow / Sage-export code that consumes this figure
+ * treats it as dollars alongside `billable` and cost totals, so the sum
+ * has to be converted before being handed off — otherwise an invoiced
+ * project instantly reports zero unbilled receivables and Sage WIP over-
+ * or under-billing flips sign.
+ */
+export function sumInvoicesToDollars(invoices) {
+  return (invoices || [])
+    .filter(inv => inv && inv.status !== 'draft')
+    .reduce((sum, inv) => sum + (parseFloat(inv.total) || parseFloat(inv.amount) || 0), 0) / 100
+}
+
+/**
  * useDashboardData - Data layer for the office Dashboard.
  *
  * Owns everything about fetching and caching project data:
@@ -379,10 +396,8 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
-      // Total billed from invoices (for cash flow analytics)
-      const totalBilled = (projectInvoices || [])
-        .filter(inv => inv.status !== 'draft')
-        .reduce((sum, inv) => sum + (parseFloat(inv.total) || parseFloat(inv.amount) || 0), 0)
+      // Cents → dollars for downstream analytics; see sumInvoicesToDollars.
+      const totalBilled = sumInvoicesToDollars(projectInvoices)
 
       // Crew check-ins formatted for resource analytics (with worker_count for each entry)
       const crewCheckins = (crewHistory || []).map(checkin => ({
@@ -698,13 +713,17 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     if (!project._detailsLoaded) {
       const detailedProject = await loadProjectDetails(project)
 
-      // Update projectsData with the detailed version
+      // Always cache the detailed version back into projectsData
       setProjectsData(prev => prev.map(p =>
         p.id === project.id ? detailedProject : p
       ))
 
-      // Update selectedProject with detailed data
-      setSelectedProject(detailedProject)
+      // Only update selectedProject if this project is still selected.
+      // Without the guard, a slow response for A can arrive after the user
+      // has clicked B and snap the dashboard back to A's metrics.
+      if (selectedProjectRef.current?.id === project.id) {
+        setSelectedProject(detailedProject)
+      }
     }
   }
 
