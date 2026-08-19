@@ -2,6 +2,30 @@ import { useMemo } from 'react'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 
 /**
+ * Builds the input object passed to calculateRiskScore for a single
+ * enhanced project. Extracted so field names stay in sync with the
+ * enhanced-project shape emitted by useDashboardData.loadProjectDetails —
+ * a previous version read `p.totalCosts`, which does not exist on the
+ * enhanced project (the field is `allCostsTotal`), silently forcing every
+ * project's budget factor to 0 and its status to 'healthy'.
+ */
+export function buildRiskInput(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    totalCosts: p.allCostsTotal || 0,
+    earnedRevenue: p.billable || 0,
+    actualProgress: p.progress || 0,
+    expectedProgress: p.expectedProgress || p.progress,
+    pendingCORValue: p.corPendingValue || 0,
+    contractValue: p.revisedContractValue || p.contract_value || 0,
+    lastReportDate: p.lastDailyReport,
+    recentInjuryCount: p.recentInjuryCount || 0,
+    startDate: p.start_date,
+  }
+}
+
+/**
  * Computes portfolio-level financial metrics, project health, schedule metrics,
  * and risk analysis from enhanced project data.
  *
@@ -150,19 +174,7 @@ export default function usePortfolioMetrics(projectsData) {
     const projectRisks = projectsData
       .filter(p => p._detailsLoaded) // Skip projects without detailed data
       .map(p => {
-        const riskInput = {
-          id: p.id,
-          name: p.name,
-          totalCosts: p.totalCosts || 0,
-          earnedRevenue: p.billable || 0,
-          actualProgress: p.progress || 0,
-          expectedProgress: p.expectedProgress || p.progress,
-          pendingCORValue: p.corPendingValue || 0,
-          contractValue: p.revisedContractValue || p.contract_value || 0,
-          lastReportDate: p.lastDailyReport,
-          recentInjuryCount: p.recentInjuryCount || 0,
-          startDate: p.start_date
-        }
+        const riskInput = buildRiskInput(p)
 
         const riskResult = calculateRiskScore(riskInput)
         const alerts = generateSmartAlerts(riskResult, { ...riskInput, name: p.name })
