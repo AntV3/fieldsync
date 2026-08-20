@@ -80,11 +80,18 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
     (a.work_date || '').localeCompare(b.work_date || '')
   )
 
+  // Map raw materials_equipment.category values to a Sage cost type. Rentals
+  // are booked as equipment in Sage; unknown categories fall back to material
+  // so nothing gets silently dropped from the export.
+  const resolveItemCostType = (rawCategory) => {
+    if (rawCategory === 'rental') return 'equipment'
+    return SAGE_COST_TYPES[rawCategory] ? rawCategory : 'material'
+  }
+
   for (const ticket of sortedTickets) {
     const costCode = costCodes.find(c => c.id === ticket.cost_code_id)
     // Use different default categories for labor vs material when no cost code assigned
     const laborCategory = costCode?.code || DEFAULT_CATEGORIES.labor
-    const materialCategory = costCode?.code || DEFAULT_CATEGORIES.material
     const workDate = formatSageDate(ticket.work_date)
 
     // Labor entries from T&M workers
@@ -127,18 +134,24 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
       }
     }
 
-    // Material entries from T&M items
+    // T&M item entries — the ticket's items span materials, equipment,
+    // rentals, subcontractor line items and "other", each of which lands in
+    // a different Sage cost bucket. Hardcoding them all as Material would
+    // over-state material spend and blind equipment/subcontract analyses.
     for (const item of (ticket.t_and_m_items || [])) {
       const qty = parseFloat(item.quantity) || 0
       const unitCost = item.materials_equipment?.cost_per_unit || 0
       if (qty > 0 && unitCost > 0) {
+        const itemKind = resolveItemCostType(item.materials_equipment?.category)
+        const costTypeInfo = SAGE_COST_TYPES[itemKind]
+        const itemCategory = costCode?.code || DEFAULT_CATEGORIES[itemKind]
         rows.push({
           job: jobNumber,
           extra: '',
-          costType: SAGE_COST_TYPES.material.code,
-          category: materialCategory,
+          costType: costTypeInfo.code,
+          category: itemCategory,
           transDate: workDate,
-          description: `Material - ${item.materials_equipment?.name || item.description || 'Material'}`,
+          description: `${costTypeInfo.label} - ${item.materials_equipment?.name || item.description || costTypeInfo.label}`,
           units: qty.toFixed(2),
           unitCost: unitCost.toFixed(2),
           amount: (qty * unitCost).toFixed(2),

@@ -104,6 +104,9 @@ export interface TMItemRow {
 export interface MaterialsEquipmentRow {
   name: string | null
   cost_per_unit: number | null
+  unit?: string | null
+  /** Sage-facing bucket the item belongs to; drives cost-type mapping on export. */
+  category?: 'material' | 'labor' | 'equipment' | 'rental' | 'subcontractor' | 'other' | string | null
 }
 
 // ============================================

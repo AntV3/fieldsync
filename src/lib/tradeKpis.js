@@ -40,10 +40,13 @@ export const BUILT_IN_KPIS = {
     unit: '%',
     icon: 'DollarSign',
     calculate: (projectData) => {
-      const contract = projectData?.project?.contract_value
-      const billed = projectData?.billedTotal
+      // enhanced projects from useDashboardData spread the project row at the
+      // top level, so contract_value is not nested under `.project`; the
+      // billed-to-date field is `totalBilled`, not `billedTotal`.
+      const contract = projectData?.contract_value ?? projectData?.project?.contract_value
+      const billed = projectData?.totalBilled ?? projectData?.billedTotal
       if (!contract || contract === 0) return null
-      return Math.round((billed / contract) * 100)
+      return Math.round(((billed || 0) / contract) * 100)
     }
   },
   crew_utilization: {
@@ -52,7 +55,14 @@ export const BUILT_IN_KPIS = {
     unit: 'workers',
     icon: 'Users',
     calculate: (projectData) => {
-      return projectData?.todaysCrewCount ?? null
+      if (projectData?.todaysCrewCount != null) return projectData.todaysCrewCount
+      // enhanced projects carry crewByDate keyed by YYYY-MM-DD; today's key
+      // gives the same "workers on site today" number the KPI wants.
+      const byDate = projectData?.crewByDate
+      if (!byDate) return null
+      const today = new Date().toISOString().split('T')[0]
+      const count = byDate[today]
+      return typeof count === 'number' ? count : null
     }
   },
   tm_ticket_volume: {
@@ -61,7 +71,15 @@ export const BUILT_IN_KPIS = {
     unit: 'tickets',
     icon: 'FileText',
     calculate: (projectData) => {
-      return projectData?.weeklyTicketCount ?? null
+      if (projectData?.weeklyTicketCount != null) return projectData.weeklyTicketCount
+      // Fall back to counting the enhanced project's tmTickets in the last 7
+      // days by work_date; useDashboardData doesn't emit a weekly rollup.
+      const tickets = projectData?.tmTickets
+      if (!Array.isArray(tickets)) return null
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - 7)
+      const cutoffStr = cutoff.toISOString().split('T')[0]
+      return tickets.filter(t => (t.work_date || '') >= cutoffStr).length
     }
   }
 }

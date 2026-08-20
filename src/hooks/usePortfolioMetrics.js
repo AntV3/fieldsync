@@ -2,6 +2,25 @@ import { useMemo } from 'react'
 import { calculateRiskScore, generateSmartAlerts, calculateProjections } from '../lib/riskCalculations'
 
 /**
+ * Compute the schedule's expected progress percentage from calendar time
+ * elapsed. useDashboardData does not emit an `expectedProgress` field, so
+ * without this the schedule risk factor falls back to actualProgress and
+ * variance collapses to 0 for every project — every project reports
+ * "schedule healthy" no matter how far behind. Returns null when the
+ * project has no start/end dates set.
+ */
+export function computeExpectedProgress(startDate, endDate) {
+  if (!startDate || !endDate) return null
+  const start = new Date(startDate).getTime()
+  const end = new Date(endDate).getTime()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null
+  const now = Date.now()
+  if (now <= start) return 0
+  if (now >= end) return 100
+  return ((now - start) / (end - start)) * 100
+}
+
+/**
  * Computes portfolio-level financial metrics, project health, schedule metrics,
  * and risk analysis from enhanced project data.
  *
@@ -156,7 +175,7 @@ export default function usePortfolioMetrics(projectsData) {
           totalCosts: p.totalCosts || 0,
           earnedRevenue: p.billable || 0,
           actualProgress: p.progress || 0,
-          expectedProgress: p.expectedProgress || p.progress,
+          expectedProgress: p.expectedProgress ?? computeExpectedProgress(p.start_date, p.end_date),
           pendingCORValue: p.corPendingValue || 0,
           contractValue: p.revisedContractValue || p.contract_value || 0,
           lastReportDate: p.lastDailyReport,
