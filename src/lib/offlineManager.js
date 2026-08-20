@@ -612,7 +612,9 @@ const fetchServerRecord = async (db, actionType, payload) => {
 }
 
 // Process individual action
-const processAction = async (action, db) => {
+// Exported so unit tests can exercise the action-type → db-call routing
+// without setting up an IndexedDB queue.
+export const processAction = async (action, db) => {
   const { type, payload } = action
 
   switch (type) {
@@ -644,11 +646,15 @@ const processAction = async (action, db) => {
       return db.submitDailyReport(payload.projectId, payload.submittedBy)
 
     case ACTION_TYPES.SEND_MESSAGE:
+      // sendMessage signature is (projectId, message, senderType, senderName).
+      // The queued payload carries the message body as `content`; passing it
+      // in the wrong slot stores the message text in the sender_name column
+      // and the sender name in the message column.
       return db.sendMessage(
         payload.projectId,
+        payload.content,
         payload.senderType,
-        payload.senderName,
-        payload.content
+        payload.senderName
       )
 
     default:

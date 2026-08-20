@@ -125,7 +125,7 @@ export async function exportJobCostTransactions(
         cost_code_id,
         cost_codes (id, code, description, category),
         t_and_m_workers (name, classification, hours, overtime_hours, rate),
-        t_and_m_items (description, quantity, materials_equipment (name, cost_per_unit))
+        t_and_m_items (description, quantity, materials_equipment (name, cost_per_unit, category))
       `)
       .eq('project_id', projectId)
       .order('work_date', { ascending: true })
@@ -146,12 +146,19 @@ export async function exportJobCostTransactions(
     let totalLaborAmount = 0
     let totalMaterialAmount = 0
 
+    // Map raw materials_equipment.category values to a Sage cost bucket.
+    // Rentals book to Equipment in Sage; unknown categories default to
+    // Material so nothing is silently dropped from the export.
+    const resolveItemCostType = (rawCategory?: string | null): keyof typeof SAGE_COST_TYPE_MAP => {
+      if (rawCategory === 'rental') return 'equipment'
+      return (rawCategory && rawCategory in SAGE_COST_TYPE_MAP) ? rawCategory : 'material'
+    }
+
     for (const ticket of ((tickets || []) as unknown as TMTicketExportRow[])) {
       const costCode = ticket.cost_codes
       const workDate = formatSageDate(ticket.work_date)
       // Use the ticket's cost code if assigned, otherwise use type-specific defaults
       const laborCategory = costCode?.code || DEFAULT_CATEGORIES.labor
-      const materialCategory = costCode?.code || DEFAULT_CATEGORIES.material
 
       // Labor entries
       let laborTotal = 0
@@ -200,7 +207,10 @@ export async function exportJobCostTransactions(
         }
       }
 
-      // Material entries
+      // T&M item entries — items span materials, equipment, rentals,
+      // subcontractor line items and "other", each of which maps to a
+      // different Sage cost type. Hardcoding them all as Material would
+      // over-state material spend and blind equipment/subcontract analyses.
       let materialTotal = 0
       for (const item of (ticket.t_and_m_items || [])) {
         const qty = parseFloat(String(item.quantity)) || 0
@@ -208,14 +218,16 @@ export async function exportJobCostTransactions(
         if (qty > 0 && unitCost > 0) {
           const amount = qty * unitCost
           totalAmount += amount
-          materialTotal += amount
+          const itemKind = resolveItemCostType(item.materials_equipment?.category)
+          if (itemKind === 'material') materialTotal += amount
+          const itemCategory = costCode?.code || DEFAULT_CATEGORIES[itemKind]
           rows.push({
             'Job Number': jobNumber,
             'Extra': '',
-            'Cost Type': SAGE_COST_TYPE_MAP.material,
-            'Category': materialCategory,
+            'Cost Type': SAGE_COST_TYPE_MAP[itemKind],
+            'Category': itemCategory,
             'Trans Date': workDate,
-            'Description': `Material - ${item.materials_equipment?.name || item.description || 'Material'}`,
+            'Description': `${itemKind[0].toUpperCase()}${itemKind.slice(1)} - ${item.materials_equipment?.name || item.description || itemKind}`,
             'Units': qty.toFixed(2),
             'Unit Cost': unitCost.toFixed(2),
             'Amount': amount.toFixed(2),
