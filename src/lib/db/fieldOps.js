@@ -851,7 +851,8 @@ export const fieldOps = {
       await addPendingAction(ACTION_TYPES.SUBMIT_DAILY_REPORT, {
         projectId,
         reportData: cachedReport || {},
-        submittedBy
+        submittedBy,
+        date: reportDate
       })
       return report
     }
@@ -914,7 +915,8 @@ export const fieldOps = {
         await addPendingAction(ACTION_TYPES.SUBMIT_DAILY_REPORT, {
           projectId,
           reportData: compiled,
-          submittedBy
+          submittedBy,
+          date: reportDate
         })
         return report
       }

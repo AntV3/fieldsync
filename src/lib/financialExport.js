@@ -122,16 +122,25 @@ export function exportCORDetail(cor, _project) {
   rows.push({ section: 'Period', description: `${cor.period_start || ''} to ${cor.period_end || ''}`, quantity: '', unit: '', rate: '', total: '' })
   rows.push({ section: '', description: '', quantity: '', unit: '', rate: '', total: '' })
 
-  // Labor (grouped by class and type)
+  // Labor (grouped by class and type; regular and overtime kept on separate rows
+  // so quantity × rate reconciles to total for each row)
   if (cor.change_order_labor?.length > 0) {
     rows.push({ section: 'LABOR', description: '', quantity: '', unit: '', rate: '', total: '' })
     const laborGroups = groupLaborItems(cor.change_order_labor)
     laborGroups.forEach(group => {
       rows.push({ section: group.label, description: '', quantity: '', unit: '', rate: '', total: '' })
       group.items.forEach(item => {
+        const label = item.labor_class || item.description || item.classification
         const regHrs = parseFloat(item.regular_hours) || 0
         const otHrs = parseFloat(item.overtime_hours) || 0
-        rows.push({ section: '', description: item.labor_class || item.description || item.classification, quantity: regHrs + otHrs, unit: 'hours', rate: (parseInt(item.regular_rate) || 0) / 100, total: (parseInt(item.total) || 0) / 100 })
+        const regRate = (parseInt(item.regular_rate) || 0) / 100
+        const otRate = (parseInt(item.overtime_rate) || 0) / 100
+        if (regHrs > 0) {
+          rows.push({ section: '', description: label, quantity: regHrs, unit: 'reg hours', rate: regRate, total: Math.round(regHrs * regRate * 100) / 100 })
+        }
+        if (otHrs > 0) {
+          rows.push({ section: '', description: label, quantity: otHrs, unit: 'OT hours', rate: otRate, total: Math.round(otHrs * otRate * 100) / 100 })
+        }
       })
       rows.push({ section: '', description: `${group.label} Subtotal`, quantity: '', unit: '', rate: '', total: (group.subtotal || 0) / 100 })
     })
