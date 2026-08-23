@@ -187,7 +187,11 @@ export function exportSageChangeOrdersCSV(project, changeOrders = []) {
     const equipment = (co.change_order_equipment || []).reduce((s, e) => s + (parseInt(e.total) || 0), 0) / 100
     const subs = (co.change_order_subcontractors || []).reduce((s, sc) => s + (parseInt(sc.total) || 0), 0) / 100
     const subtotal = labor + materials + equipment + subs
-    const total = (co.cor_total || 0) / 100
+    const markupTotal = ((parseInt(co.labor_markup_amount) || 0)
+      + (parseInt(co.materials_markup_amount) || 0)
+      + (parseInt(co.equipment_markup_amount) || 0)
+      + (parseInt(co.subcontractors_markup_amount) || 0)) / 100
+    const total = (parseInt(co.cor_total) || 0) / 100
 
     return {
       job: jobNumber,
@@ -200,7 +204,7 @@ export function exportSageChangeOrdersCSV(project, changeOrders = []) {
       equipmentAmount: equipment.toFixed(2),
       subcontractAmount: subs.toFixed(2),
       totalAmount: subtotal.toFixed(2),
-      markupPct: subtotal > 0 ? ((total - subtotal) / subtotal * 100).toFixed(1) : '0.0',
+      markupPct: subtotal > 0 ? (markupTotal / subtotal * 100).toFixed(1) : '0.0',
       totalWithMarkup: total.toFixed(2)
     }
   })

@@ -640,8 +640,8 @@ const processAction = async (action, db) => {
       )
 
     case ACTION_TYPES.SUBMIT_DAILY_REPORT:
-      await db.saveDailyReport(payload.projectId, payload.reportData)
-      return db.submitDailyReport(payload.projectId, payload.submittedBy)
+      await db.saveDailyReport(payload.projectId, payload.reportData, payload.date)
+      return db.submitDailyReport(payload.projectId, payload.submittedBy, payload.date)
 
     case ACTION_TYPES.SEND_MESSAGE:
       return db.sendMessage(
