@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { usePagination } from './usePagination'
 
 /**
@@ -32,10 +32,14 @@ export function useFilteredPagination(items = [], options = {}) {
     totalItems: filteredItems.length
   })
 
-  // Keep totalItems in sync with filtered results
-  useMemo(() => {
+  // Keep totalItems in sync with filtered results. Must be an effect, not
+  // a memo — pagination.setTotalItems calls setState on usePagination, and
+  // running it during render leaves pagination.totalPages one render behind
+  // the filtered length (a filter that drops results from 100 → 5 briefly
+  // rendered "Page 1 of 10" before settling on "Page 1 of 1").
+  useEffect(() => {
     pagination.setTotalItems(filteredItems.length)
-  }, [filteredItems.length])
+  }, [filteredItems.length, pagination.setTotalItems])
 
   const paginatedItems = useMemo(() => {
     return pagination.paginate(filteredItems)

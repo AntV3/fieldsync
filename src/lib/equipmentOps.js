@@ -303,8 +303,10 @@ export const equipmentOps = {
         endDate = today
       }
 
-      // Calculate days (inclusive)
-      const days = Math.max(1, Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)
+      // Calculate days (inclusive). Round rather than floor so a DST
+      // spring-forward inside the range doesn't shave the diff below a whole
+      // number of days and under-bill one day of daily_rate.
+      const days = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)
 
       return total + (eq.daily_rate * days)
     }, 0)
@@ -325,7 +327,7 @@ export const equipmentOps = {
     }
     end.setHours(0, 0, 0, 0)
 
-    return Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1)
+    return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1)
   },
 
   // ----------------------------------------
