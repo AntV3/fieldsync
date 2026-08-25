@@ -270,7 +270,18 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
                     if (existingItem) {
                       updateItemQuantity(items.indexOf(existingItem), existingItem.quantity + 1)
                     } else {
-                      setItems([...items, { ...item, quantity: 1, isCustom: false }])
+                      // TMForm submits by material_equipment_id (or custom_name);
+                      // spreading the search result kept item.id but never populated
+                      // material_equipment_id, so the row landed in the DB with a
+                      // null name and exported as "Unknown".
+                      setItems([...items, {
+                        material_equipment_id: item.id,
+                        name: item.name,
+                        unit: item.unit,
+                        category: item.category,
+                        quantity: 1,
+                        isCustom: false
+                      }])
                     }
                     setMaterialSearch('')
                     setSearchResults([])

@@ -70,13 +70,14 @@ export const rfiOps = {
 
     const rfiNumber = await rfiOps.getNextRFINumber(projectId)
 
+    const status = rfiData.status || 'open'
     const sanitized = sanitize.object({
       project_id: projectId,
       company_id: companyId,
       rfi_number: rfiNumber,
       subject: rfiData.subject,
       question: rfiData.question,
-      status: rfiData.status || 'open',
+      status,
       priority: rfiData.priority || 'normal',
       cost_impact: rfiData.cost_impact || false,
       schedule_impact: rfiData.schedule_impact || false,
@@ -85,7 +86,10 @@ export const rfiOps = {
       assigned_to: rfiData.assigned_to || null,
       submitted_by: rfiData.submitted_by || null,
       due_date: rfiData.due_date || null,
-      submitted_at: rfiData.status === 'open' ? new Date().toISOString() : null
+      // Stamp submitted_at based on the resolved status, not the caller's
+      // (usually absent) raw input — otherwise the stock New RFI form always
+      // stores null and breaks response-time/overdue tracking.
+      submitted_at: status === 'open' ? new Date().toISOString() : null
     })
 
     const { data, error } = await supabase
