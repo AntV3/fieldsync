@@ -153,7 +153,10 @@ export default function usePortfolioMetrics(projectsData) {
         const riskInput = {
           id: p.id,
           name: p.name,
-          totalCosts: p.totalCosts || 0,
+          // Enhanced projects from useDashboardData expose costs as `allCostsTotal`,
+          // not `totalCosts`. Falling back to 0 made every project register as
+          // 0% budget consumed and marked all budget factors "healthy".
+          totalCosts: p.totalCosts ?? p.allCostsTotal ?? 0,
           earnedRevenue: p.billable || 0,
           actualProgress: p.progress || 0,
           expectedProgress: p.expectedProgress || p.progress,

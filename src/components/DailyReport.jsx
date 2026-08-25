@@ -154,11 +154,15 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       if (uploadedPaths.length > 0) {
         reportData.photos = uploadedPaths
       }
-      await db.saveDailyReport(project.id, reportData)
+      const savedReport = await db.saveDailyReport(project.id, reportData)
 
-      // Save custom trade-specific fields
-      if (Object.keys(customFieldValues).length > 0) {
-        await db.saveCustomFieldData(project.id, 'daily_report', project.id, customFieldValues)
+      // Save custom trade-specific fields keyed to THIS report id.
+      // Using project.id as the entity id makes every day's save overwrite
+      // the previous day's values and hides them from the reader (which
+      // pulls by report.id).
+      const reportEntityId = savedReport?.id || report?.id
+      if (Object.keys(customFieldValues).length > 0 && reportEntityId) {
+        await db.saveCustomFieldData(project.id, 'daily_report', reportEntityId, customFieldValues)
       }
 
       // Then submit

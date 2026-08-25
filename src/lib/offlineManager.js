@@ -521,24 +521,19 @@ export const syncPendingActions = async (db, options = {}) => {
           }
         }
 
-        // Mark as synced BEFORE processing to prevent double-replay on crash.
-        // If processAction fails, the action is still in the queue (removePendingAction
-        // hasn't been called), but the idempotency key prevents re-processing on retry.
+        // Updates (UPDATE_AREA_STATUS is the only type in this loop) are
+        // idempotent on the server — the same .eq('id', X).update({...})
+        // twice produces the same row. Process FIRST, then mark synced. If
+        // the tab is killed between mark and process, the previous ordering
+        // would silently drop the update on the next sync cycle.
+        await processAction(action, db)
         if (action.idempotency_key) {
           await markAsSynced(action.idempotency_key)
         }
-        await processAction(action, db)
         await removePendingAction(action.id)
         results.synced++
       } catch (error) {
         results.failed++
-        // If we marked as synced but processAction failed, clear the synced marker
-        // so the action can be retried on the next sync cycle.
-        if (action.idempotency_key) {
-          await clearSyncedMarker(action.idempotency_key).catch(markerErr =>
-            console.warn('[offlineSync] failed to clear synced marker', action.id, markerErr)
-          )
-        }
         await updatePendingAction(action.id, {
           attempts: (action.attempts || 0) + 1,
           last_error: error.message,
@@ -565,9 +560,23 @@ export const syncPendingActions = async (db, options = {}) => {
               await removePendingAction(action.id)
               return { status: 'skipped' }
             }
-            await processAction(action, db)
-            // Mark as synced BEFORE removing from queue to prevent orphaned actions on crash
-            await markAsSynced(action.idempotency_key)
+            // Creates are NOT idempotent on the server (no server-side key
+            // check), so mark BEFORE processing. Worst case on a mid-flight
+            // tab kill is a lost create (discoverable by the user) rather
+            // than a silent duplicate T&M ticket / message on next sync.
+            if (action.idempotency_key) {
+              await markAsSynced(action.idempotency_key)
+            }
+            try {
+              await processAction(action, db)
+            } catch (err) {
+              if (action.idempotency_key) {
+                await clearSyncedMarker(action.idempotency_key).catch(markerErr =>
+                  console.warn('[offlineSync] failed to clear synced marker', action.id, markerErr)
+                )
+              }
+              throw err
+            }
             await removePendingAction(action.id)
             return { status: 'synced' }
           })

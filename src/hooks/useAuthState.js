@@ -133,6 +133,26 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
+      // Enforce MFA on refresh/deep-link. signInWithPassword mints an AAL1
+      // session before the TOTP challenge, so a user who refreshes mid-
+      // challenge would land on /dashboard without ever entering a code.
+      // Re-raise the challenge here whenever the account has a verified
+      // factor but the current session is still AAL1.
+      try {
+        const { data: factors } = await supabase.auth.mfa.listFactors()
+        const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
+        if (verifiedFactor) {
+          const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+          if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+            setMfaFactorId(verifiedFactor.id)
+            setMfaPending(true)
+            return
+          }
+        }
+      } catch (mfaErr) {
+        console.warn('[auth] MFA status check failed', mfaErr)
+      }
+
       // Navigate to dashboard if on login/root (preserve existing office routes)
       const isPublicRoute = locationPathname.startsWith('/view/') || locationPathname.startsWith('/sign/')
       const isOfficeRoute = ['/dashboard', '/projects/new', '/pricing', '/branding', '/team', '/account'].includes(locationPathname)

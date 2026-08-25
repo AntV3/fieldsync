@@ -188,6 +188,15 @@ export function exportSageChangeOrdersCSV(project, changeOrders = []) {
     const subs = (co.change_order_subcontractors || []).reduce((s, sc) => s + (parseInt(sc.total) || 0), 0) / 100
     const subtotal = labor + materials + equipment + subs
     const total = (co.cor_total || 0) / 100
+    // Markup % should measure markup on top of raw costs only. cor_total also
+    // rolls in liability insurance, bond, and license fees, so deriving it from
+    // (total - subtotal) inflates the reported markup by ~2.5 pts on every CO.
+    const markupTotal = (
+      (co.labor_markup_amount || 0) +
+      (co.materials_markup_amount || 0) +
+      (co.equipment_markup_amount || 0) +
+      (co.subcontractors_markup_amount || 0)
+    ) / 100
 
     return {
       job: jobNumber,
@@ -200,7 +209,7 @@ export function exportSageChangeOrdersCSV(project, changeOrders = []) {
       equipmentAmount: equipment.toFixed(2),
       subcontractAmount: subs.toFixed(2),
       totalAmount: subtotal.toFixed(2),
-      markupPct: subtotal > 0 ? ((total - subtotal) / subtotal * 100).toFixed(1) : '0.0',
+      markupPct: subtotal > 0 ? (markupTotal / subtotal * 100).toFixed(1) : '0.0',
       totalWithMarkup: total.toFixed(2)
     }
   })
