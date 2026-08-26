@@ -66,6 +66,7 @@ export default function FinancialsTab({
   // Exports sub-tab
   costCodes = [],
   allProjects = [],
+  allProjectsData = [],
   onShowToast
 }) {
   // Billing workflow stage counts for the Billing sub-tab pipeline
@@ -352,8 +353,8 @@ export default function FinancialsTab({
                   changeOrders={projectData?.changeOrders || []}
                   costCodes={costCodes}
                   financialData={projectData || {}}
-                  allProjects={allProjects}
-                  projectDataMap={{}}
+                  allProjects={allProjectsData.length ? allProjectsData : allProjects}
+                  projectDataMap={Object.fromEntries((allProjectsData || []).map(p => [p.id, p]))}
                   onShowToast={onShowToast}
                 />
               </Suspense>

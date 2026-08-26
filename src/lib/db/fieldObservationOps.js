@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured, observe, getClient } from './client'
+import { getLocalDateString } from '../utils'
 
 export const fieldObservationOps = {
   async getFieldObservations(projectId, { startDate = null, endDate = null, limit = 500 } = {}) {
@@ -54,7 +55,11 @@ export const fieldObservationOps = {
     if (!client) throw new Error('Database client not available')
 
     const now = observedAt || new Date().toISOString()
-    const observationDate = now.split('T')[0]
+    // observation_date is stored as YYYY-MM-DD in the user's local timezone,
+    // NOT the UTC prefix of the ISO timestamp (which rolls to tomorrow after
+    // ~5 PM in negative-UTC-offset zones and files the observation on the
+    // wrong day).
+    const observationDate = getLocalDateString(new Date(now))
 
     const { data, error } = await client
       .from('field_observations')

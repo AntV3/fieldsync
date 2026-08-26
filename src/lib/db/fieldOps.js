@@ -16,6 +16,7 @@ import {
   sanitizeFormData,
   sanitize
 } from './client'
+import { getLocalDateString } from '../utils'
 
 export const fieldOps = {
   // ============================================
@@ -371,7 +372,7 @@ export const fieldOps = {
   async getCrewCheckin(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    const checkDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -391,7 +392,7 @@ export const fieldOps = {
   async saveCrewCheckin(projectId, workers, createdBy = null, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    const checkDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -713,7 +714,7 @@ export const fieldOps = {
   async getDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -733,7 +734,7 @@ export const fieldOps = {
   async compileDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     // Run all queries in parallel for faster loading
@@ -747,9 +748,14 @@ export const fieldOps = {
     const areas = areasResult?.data || []
     const tickets = ticketsResult?.data || []
 
+    // Compare local YYYY-MM-DD on both sides. completed_at is a UTC ISO
+    // timestamp; a startsWith against the local report date would drop
+    // areas finished after ~5 PM in negative-UTC-offset zones (the UTC
+    // date rolls to tomorrow before the local day ends).
     const completedToday = areas.filter(a =>
       a.status === 'done' &&
-      a.completed_at?.startsWith(reportDate)
+      a.completed_at &&
+      getLocalDateString(new Date(a.completed_at)) === reportDate
     )
 
     // Count photos from T&M tickets AND report-level photos
@@ -772,7 +778,7 @@ export const fieldOps = {
   async saveDailyReport(projectId, reportData, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -831,7 +837,7 @@ export const fieldOps = {
   async submitDailyReport(projectId, submittedBy, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
 
     // If offline, queue the submission
     if (!getConnectionStatus()) {

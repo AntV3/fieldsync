@@ -708,7 +708,11 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     }
   }
 
-  // Auto-archive projects that have been complete for 30+ days
+  // Auto-archive projects that have been complete for 30+ days.
+  // Depend on the (id, status) signature so a status change from active →
+  // complete triggers the check even when the project count is unchanged
+  // (length-only deps missed those transitions entirely).
+  const projectStatusKey = projectsData.map(p => `${p.id}:${p.status}`).join(',')
   useEffect(() => {
     const checkAutoArchive = async () => {
       for (const project of projectsData) {
@@ -727,7 +731,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       checkAutoArchive()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectsData.length]) // Run when projects data loads
+  }, [projectStatusKey])
 
   // Memoize selected project data lookup to avoid repeated finds
   const projectData = useMemo(() => {
