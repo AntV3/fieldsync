@@ -188,15 +188,27 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
-      // Check MFA
-      const { data: factors } = await supabase.auth.mfa.listFactors()
+      // Check MFA. On a soft failure from listFactors, cross-check the
+      // session's current AAL — if the account requires aal2 but we are
+      // still on aal1, fail closed (sign out) instead of navigating to
+      // /dashboard, which would bypass MFA whenever listFactors errored.
+      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors()
       const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
       if (verifiedFactor) {
         setMfaFactorId(verifiedFactor.id)
         setMfaPending(true)
-      } else {
-        navigate('/dashboard')
+        return
       }
+      if (factorsError) {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+          console.error('MFA check failed and account requires aal2', factorsError)
+          await auth.signOut()
+          showToast('Could not verify two-factor status. Please try again.', 'error')
+          return
+        }
+      }
+      navigate('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
       showToast('Login failed', 'error')

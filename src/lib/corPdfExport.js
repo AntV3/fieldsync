@@ -345,7 +345,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       startY: yPos,
       body: [[
         { content: `Subtotal: ${formatCurrency(totals.labor_subtotal)}`, colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
-        { content: `+${formatPercent(cor.labor_markup_percent || 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
+        { content: `+${formatPercent(cor.labor_markup_percent ?? 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
         { content: formatCurrency(totals.labor_subtotal + totals.labor_markup_amount), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
@@ -386,7 +386,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       ]),
       foot: [[
         { content: `Subtotal: ${formatCurrency(totals.materials_subtotal)}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
-        { content: `+${formatPercent(cor.materials_markup_percent || 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
+        { content: `+${formatPercent(cor.materials_markup_percent ?? 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
         { content: formatCurrency(totals.materials_subtotal + totals.materials_markup_amount), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
@@ -428,7 +428,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       ]),
       foot: [[
         { content: `Subtotal: ${formatCurrency(totals.equipment_subtotal)}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
-        { content: `+${formatPercent(cor.equipment_markup_percent || 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
+        { content: `+${formatPercent(cor.equipment_markup_percent ?? 1500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
         { content: formatCurrency(totals.equipment_subtotal + totals.equipment_markup_amount), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
@@ -468,7 +468,7 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
       ]),
       foot: [[
         { content: `Subtotal: ${formatCurrency(totals.subcontractors_subtotal)}`, colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } },
-        { content: `+${formatPercent(cor.subcontractors_markup_percent || 500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
+        { content: `+${formatPercent(cor.subcontractors_markup_percent ?? 500)} Markup`, colSpan: 1, styles: { halign: 'right' } },
         { content: formatCurrency(totals.subcontractors_subtotal + totals.subcontractors_markup_amount), styles: { fontStyle: 'bold' } }
       ]],
       margin: { left: margin, right: margin },
@@ -511,15 +511,15 @@ export async function exportCORToPDF(cor, project, company, branding = {}, tmTic
   // Additional Fees
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
-  doc.text(`Liability Insurance (${formatPercent(cor.liability_insurance_percent || 144)}):`, totalsCol1, yPos)
+  doc.text(`Liability Insurance (${formatPercent(cor.liability_insurance_percent ?? 144)}):`, totalsCol1, yPos)
   doc.text(formatCurrency(totals.liability_insurance_amount), totalsCol2, yPos, { align: 'right' })
   yPos += 6
 
-  doc.text(`Bond (${formatPercent(cor.bond_percent || 100)}):`, totalsCol1, yPos)
+  doc.text(`Bond (${formatPercent(cor.bond_percent ?? 100)}):`, totalsCol1, yPos)
   doc.text(formatCurrency(totals.bond_amount), totalsCol2, yPos, { align: 'right' })
   yPos += 6
 
-  doc.text(`City License Fee (${formatPercent(cor.license_fee_percent || 10)}):`, totalsCol1, yPos)
+  doc.text(`City License Fee (${formatPercent(cor.license_fee_percent ?? 10)}):`, totalsCol1, yPos)
   doc.text(formatCurrency(totals.license_fee_amount), totalsCol2, yPos, { align: 'right' })
   yPos += 10
 

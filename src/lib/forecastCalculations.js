@@ -504,14 +504,13 @@ function calculateProgressRate(costHistory, progressPercent) {
   return progressPercent / days
 }
 
-function calculatePlannedValueAtDate(bac, startDate, endDate) {
+function calculatePlannedValueAtDate(bac, startDate, endDate, at = new Date()) {
   if (!startDate || !endDate) return 0
   const start = new Date(startDate)
   const end = new Date(endDate)
-  const now = new Date()
   const totalDuration = end - start
   if (totalDuration <= 0) return bac
-  const elapsed = now - start
+  const elapsed = at - start
   return Math.min(1, Math.max(0, elapsed / totalDuration)) * bac
 }
 
@@ -590,7 +589,9 @@ function generateWeeklyCostForecast({ actualCosts, bestEstimate, recentBurnRate,
     points.push({
       date: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       projected: Math.round(cumCost),
-      budget: Math.round(calculatePlannedValueAtDate(bestEstimate, startDate, endDate) || bestEstimate),
+      // Planned-value curve must climb week-by-week; pass the point's own
+      // date so the "budget" line isn't a flat today-value across the chart.
+      budget: Math.round(calculatePlannedValueAtDate(bestEstimate, startDate, endDate, weekDate) || bestEstimate),
     })
 
     if (cumCost >= bestEstimate) break

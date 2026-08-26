@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
  * useProjectViewState - UI state for the project detail view.
@@ -48,9 +48,13 @@ export default function useProjectViewState() {
     }
   }, [financialsSidebarMobileOpen])
 
-  // When navigating to tickets section, switch to full mode to show dashboard
+  // First time the user visits the Tickets section, land on the full
+  // dashboard; on later visits keep whatever mode they last picked so
+  // switching sections doesn't discard their preview/full choice.
+  const seenTicketsSectionRef = useRef(false)
   useEffect(() => {
-    if (financialsSection === 'tickets') {
+    if (financialsSection === 'tickets' && !seenTicketsSectionRef.current) {
+      seenTicketsSectionRef.current = true
       setTMViewMode('full')
     }
   }, [financialsSection])

@@ -13,19 +13,30 @@ export default function MFAChallenge({ factorId, onVerified, onCancel }) {
     setError(null)
     try {
       const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
-      if (challengeError) throw challengeError
+      if (challengeError) {
+        // A challenge-side failure isn't the user's fault — surface the real reason
+        // instead of locking them into a fake "invalid code" loop.
+        setError(challengeError.message || 'Could not start verification. Please try again.')
+        return
+      }
 
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId,
         challengeId: challenge.id,
         code
       })
-      if (verifyError) throw verifyError
+      if (verifyError) {
+        const looksLikeInvalidCode = /invalid|code|token|otp|expired/i.test(verifyError.message || '')
+        setError(looksLikeInvalidCode
+          ? 'Invalid code. Please try again.'
+          : (verifyError.message || 'Verification failed. Please try again.'))
+        if (looksLikeInvalidCode) setCode('')
+        return
+      }
 
       onVerified()
-    } catch {
-      setError('Invalid code. Please try again.')
-      setCode('')
+    } catch (err) {
+      setError(err?.message || 'Verification failed. Please try again.')
     } finally {
       setVerifying(false)
     }

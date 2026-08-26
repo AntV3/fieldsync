@@ -34,7 +34,6 @@ export interface AreaRow {
   name: string
   /** Relative weight used for % progress when no scheduled value is set */
   weight: number | null
-  is_complete: boolean
   /** Field status driven from the field app */
   status?: 'not_started' | 'working' | 'done' | string
   /** SOV dollar value; when present, earned value is value-based */
@@ -47,8 +46,9 @@ export interface AreaRow {
 export interface ChangeOrderRow {
   id: string
   project_id: string
-  total_value: number | null
-  status: 'approved' | 'pending' | 'rejected' | string
+  /** Total in cents (schema: change_orders.cor_total INTEGER). Divide by 100 for dollars. */
+  cor_total: number | null
+  status: 'approved' | 'pending_approval' | 'rejected' | string
   created_at?: string
   updated_at?: string | null
 }
@@ -82,7 +82,8 @@ export interface TMTicketRow {
   work_date?: string | null // YYYY-MM-DD
   notes?: string | null
   status: 'pending' | 'approved' | 'rejected' | string
-  total_value?: number | null
+  // NOTE: there is no total column on t_and_m_tickets — totals must be
+  // computed from t_and_m_workers + t_and_m_items joins.
   cost_code_id?: string | null
   created_at?: string
 }

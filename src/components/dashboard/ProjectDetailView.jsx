@@ -198,6 +198,7 @@ export default function ProjectDetailView({
                 onDeleteCost={onDeleteCost}
                 costCodes={costCodes}
                 allProjects={projects}
+                allProjectsData={projectsData}
                 onShowToast={onShowToast}
               />
             </Suspense>
