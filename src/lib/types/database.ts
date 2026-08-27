@@ -34,9 +34,8 @@ export interface AreaRow {
   name: string
   /** Relative weight used for % progress when no scheduled value is set */
   weight: number | null
-  is_complete: boolean
-  /** Field status driven from the field app */
-  status?: 'not_started' | 'working' | 'done' | string
+  /** Field status driven from the field app; no `is_complete` column exists in the schema */
+  status: 'not_started' | 'working' | 'done' | string
   /** SOV dollar value; when present, earned value is value-based */
   scheduled_value?: number | null
   group_name?: string | null
@@ -47,8 +46,9 @@ export interface AreaRow {
 export interface ChangeOrderRow {
   id: string
   project_id: string
-  total_value: number | null
-  status: 'approved' | 'pending' | 'rejected' | string
+  /** Total in cents (see migration 20241201000060_change_orders.sql) */
+  cor_total: number | null
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'billed' | 'closed' | string
   created_at?: string
   updated_at?: string | null
 }
@@ -81,8 +81,12 @@ export interface TMTicketRow {
   project_id: string
   work_date?: string | null // YYYY-MM-DD
   notes?: string | null
-  status: 'pending' | 'approved' | 'rejected' | string
-  total_value?: number | null
+  status: 'pending_approval' | 'approved' | 'rejected' | string
+  /**
+   * There is no aggregate total column on t_and_m_tickets. Real dollar totals
+   * live in the `t_and_m_workers` and `t_and_m_items` child tables and must
+   * be joined and summed to compute a ticket's value.
+   */
   cost_code_id?: string | null
   created_at?: string
 }
@@ -112,8 +116,9 @@ export interface MaterialsEquipmentRow {
 
 export interface CrewCheckinRow {
   project_id: string
-  worker_count: number | null
-  checkin_date: string // YYYY-MM-DD
+  /** JSONB array of worker records; crew count = workers.length */
+  workers: unknown[] | null
+  check_in_date: string // YYYY-MM-DD
   created_at?: string
 }
 
