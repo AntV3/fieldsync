@@ -87,11 +87,16 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
     const materialCategory = costCode?.code || DEFAULT_CATEGORIES.material
     const workDate = formatSageDate(ticket.work_date)
 
-    // Labor entries from T&M workers
+    // Labor entries from T&M workers.
+    // Workers persist role + labor_class_id (see tmOps.addTMWorkers); there is
+    // no `rate` or `classification` column on t_and_m_workers. Rate is looked
+    // up from labor_class_rates via the caller-provided `laborRates` map
+    // keyed by labor_class_id.
     for (const worker of (ticket.t_and_m_workers || [])) {
       const regHours = parseFloat(worker.hours) || 0
       const otHours = parseFloat(worker.overtime_hours) || 0
-      const rate = parseFloat(worker.rate || laborRates[worker.classification]) || 0
+      const rate = parseFloat(laborRates[worker.labor_class_id]) || 0
+      const roleLabel = worker.role || worker.labor_classes?.name || 'General'
 
       if (regHours > 0) {
         rows.push({
@@ -100,7 +105,7 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
           costType: SAGE_COST_TYPES.labor.code,
           category: laborCategory,
           transDate: workDate,
-          description: `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+          description: `Labor - ${worker.name || 'Worker'} (${roleLabel})`,
           units: regHours.toFixed(2),
           unitCost: rate.toFixed(2),
           amount: (regHours * rate).toFixed(2),
@@ -117,7 +122,7 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
           costType: SAGE_COST_TYPES.labor.code,
           category: laborCategory,
           transDate: workDate,
-          description: `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+          description: `OT Labor - ${worker.name || 'Worker'} (${roleLabel})`,
           units: otHours.toFixed(2),
           unitCost: otRate.toFixed(2),
           amount: (otHours * otRate).toFixed(2),

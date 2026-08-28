@@ -72,21 +72,34 @@ export function projectReceivables(projects, invoices, config) {
   const now = new Date()
   const entries = []
 
-  // Outstanding invoices (already billed, awaiting payment)
+  // Outstanding invoices (already billed, awaiting payment).
+  // Invoice status enum (migration 20241201000050_billing.sql:31) is
+  // 'draft' | 'sent' | 'partial' | 'paid' | 'void' — there is no 'pending'
+  // or 'overdue'. Amounts live in `total` / `amount_paid` as INTEGER cents,
+  // not a flat `amount` field, and the date column is `invoice_date`.
   const outstanding = invoices.filter(inv =>
-    inv.status === 'sent' || inv.status === 'pending' || inv.status === 'overdue'
+    inv && (inv.status === 'sent' || inv.status === 'partial')
   )
 
   for (const inv of outstanding) {
-    const invoiceDate = new Date(inv.date || inv.created_at)
+    const invoiceDate = new Date(inv.invoice_date || inv.date || inv.created_at)
     const dueDate = new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
     const isOverdue = dueDate < now
+    // Convert cents → dollars and net out any partial payments so the
+    // downstream forecast lines up with progress-derived projections.
+    const totalCents = parseFloat(inv.total)
+    const paidCents = parseFloat(inv.amount_paid)
+    const outstandingDollars = Math.max(
+      0,
+      ((Number.isFinite(totalCents) ? totalCents : 0) -
+        (Number.isFinite(paidCents) ? paidCents : 0)) / 100
+    )
 
     entries.push({
       type: 'outstanding',
       projectId: inv.project_id,
       projectName: inv.project_name || 'Unknown',
-      amount: inv.amount || 0,
+      amount: Math.round(outstandingDollars),
       date: invoiceDate.toISOString().split('T')[0],
       expectedDate: dueDate.toISOString().split('T')[0],
       status: isOverdue ? 'overdue' : 'pending',
