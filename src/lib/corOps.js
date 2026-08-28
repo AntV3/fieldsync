@@ -1310,12 +1310,13 @@ export const corOps = {
 
   async rejectCOR(corId, reason = null, rejectedBy = null) {
     if (isSupabaseConfigured) {
+      // Timing for the transition is captured by _logCORStatusChange; the
+      // change_orders row itself has no rejected_at column.
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           status: 'rejected',
           rejection_reason: reason,
-          rejected_at: new Date().toISOString(),
           // Clear any previous approval
           approved_by: null,
           approved_at: null
@@ -1326,7 +1327,6 @@ export const corOps = {
         .single()
       if (error) throw error
 
-      // Log the status change with rejection reason
       await this._logCORStatusChange(corId, 'rejected', rejectedBy, reason || 'Rejected')
 
       return data
@@ -1336,12 +1336,10 @@ export const corOps = {
 
   async markCORAsBilled(corId, userId = null) {
     if (isSupabaseConfigured) {
+      // change_orders has no billed_at column; the status-change log preserves timing.
       const { data, error } = await supabase
         .from('change_orders')
-        .update({
-          status: 'billed',
-          billed_at: new Date().toISOString()
-        })
+        .update({ status: 'billed' })
         .eq('id', corId)
         .in('status', ['approved'])
         .select()
@@ -1357,12 +1355,10 @@ export const corOps = {
 
   async closeCOR(corId, userId = null) {
     if (isSupabaseConfigured) {
+      // change_orders has no closed_at column; the status-change log preserves timing.
       const { data, error } = await supabase
         .from('change_orders')
-        .update({
-          status: 'closed',
-          closed_at: new Date().toISOString()
-        })
+        .update({ status: 'closed' })
         .eq('id', corId)
         .in('status', ['billed'])
         .select()

@@ -87,12 +87,18 @@ export interface TMTicketRow {
   created_at?: string
 }
 
+// t_and_m_workers persists the columns tmOps.addTMWorkers writes; there is
+// no `classification` column and no `rate` column. Rate lives in
+// labor_class_rates keyed by labor_class_id + project work_type/job_type
+// and must be joined by the caller, not selected off this row.
 export interface TMWorkerRow {
   name: string | null
-  classification: string | null
+  role: string | null
   hours: number | string | null
   overtime_hours: number | string | null
-  rate: number | string | null
+  labor_class_id: string | null
+  time_started?: string | null
+  time_ended?: string | null
 }
 
 export interface TMItemRow {

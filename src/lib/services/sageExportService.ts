@@ -107,15 +107,45 @@ export async function exportJobCostTransactions(
 
   const start = performance.now()
   try {
-    // Fetch project for job number
+    // Fetch project for job number and rate-lookup keys
     const { data: project, error: projErr } = await supabase
       .from('projects')
-      .select('id, name, job_number')
+      .select('id, name, job_number, company_id, work_type, job_type')
       .eq('id', projectId)
       .single()
 
     if (projErr) throw projErr
-    const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
+    const typedProject = project as Pick<
+      ProjectRow,
+      'id' | 'name' | 'job_number' | 'company_id' | 'work_type' | 'job_type'
+    >
+
+    // Build a labor_class_id → hourly rate lookup for the project's
+    // work_type/job_type. t_and_m_workers has no rate column — rate lives
+    // in labor_class_rates and must be joined here rather than selected off
+    // the worker row (that select returned a PostgREST 400 and aborted the
+    // whole export).
+    const workType = typedProject.work_type || 'demolition'
+    const jobType = typedProject.job_type || 'standard'
+    const laborRates: Record<string, number> = {}
+    if (typedProject.company_id) {
+      const { data: rateRows, error: rateErr } = await supabase
+        .from('labor_class_rates')
+        .select('labor_class_id, regular_rate')
+        .eq('work_type', workType)
+        .eq('job_type', jobType)
+      if (rateErr) {
+        observe.error('database', {
+          message: rateErr.message,
+          operation: 'exportJobCostTransactions.laborRates',
+          project_id: projectId
+        })
+      } else {
+        for (const r of (rateRows || []) as { labor_class_id: string; regular_rate: string | number }[]) {
+          laborRates[r.labor_class_id] = parseFloat(String(r.regular_rate)) || 0
+        }
+      }
+    }
 
     // Fetch T&M tickets with workers and items, joined to cost codes
     let query = supabase
@@ -124,7 +154,7 @@ export async function exportJobCostTransactions(
         id, work_date, notes, status,
         cost_code_id,
         cost_codes (id, code, description, category),
-        t_and_m_workers (name, classification, hours, overtime_hours, rate),
+        t_and_m_workers (name, role, hours, overtime_hours, labor_class_id),
         t_and_m_items (description, quantity, materials_equipment (name, cost_per_unit))
       `)
       .eq('project_id', projectId)
@@ -158,7 +188,8 @@ export async function exportJobCostTransactions(
       for (const worker of (ticket.t_and_m_workers || [])) {
         const regHours = parseFloat(String(worker.hours)) || 0
         const otHours = parseFloat(String(worker.overtime_hours)) || 0
-        const rate = parseFloat(String(worker.rate)) || 0
+        const rate = worker.labor_class_id ? (laborRates[worker.labor_class_id] || 0) : 0
+        const roleLabel = worker.role || 'General'
 
         if (regHours > 0) {
           const amount = regHours * rate
@@ -170,7 +201,7 @@ export async function exportJobCostTransactions(
             'Cost Type': SAGE_COST_TYPE_MAP.labor,
             'Category': laborCategory,
             'Trans Date': workDate,
-            'Description': `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+            'Description': `Labor - ${worker.name || 'Worker'} (${roleLabel})`,
             'Units': regHours.toFixed(2),
             'Unit Cost': rate.toFixed(2),
             'Amount': amount.toFixed(2),
@@ -190,7 +221,7 @@ export async function exportJobCostTransactions(
             'Cost Type': SAGE_COST_TYPE_MAP.labor,
             'Category': laborCategory,
             'Trans Date': workDate,
-            'Description': `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+            'Description': `OT Labor - ${worker.name || 'Worker'} (${roleLabel})`,
             'Units': otHours.toFixed(2),
             'Unit Cost': otRate.toFixed(2),
             'Amount': amount.toFixed(2),
