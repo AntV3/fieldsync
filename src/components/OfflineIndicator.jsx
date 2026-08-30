@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getConnectionStatus, onConnectionChange, getPendingActionCount } from '../lib/supabase'
+import { isOfflineSupported } from '../lib/offlineManager'
 
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(getConnectionStatus())
@@ -11,6 +12,11 @@ export default function OfflineIndicator() {
   const syncedTimeoutRef = useRef(null)
 
   useEffect(() => {
+    // Without IndexedDB (SSR, jsdom, restricted webviews) there is nothing
+    // to sync — skip subscriptions and polling instead of repeatedly logging
+    // a warning for every failed read.
+    const offlineAvailable = isOfflineSupported()
+
     // Subscribe to connection changes
     const unsubscribe = onConnectionChange(async (online) => {
       setIsOnline(online)
@@ -27,29 +33,33 @@ export default function OfflineIndicator() {
         wasOfflineRef.current = true
       }
 
+      if (!offlineAvailable) return
+
       // Update pending count
       const count = await getPendingActionCount()
       setPendingCount(count)
     })
 
     // Initial pending count check
-    getPendingActionCount()
-      .then(setPendingCount)
-      .catch(err => console.warn('[OfflineIndicator] failed to read pending count', err))
+    if (offlineAvailable) {
+      getPendingActionCount()
+        .then(setPendingCount)
+        .catch(err => console.warn('[OfflineIndicator] failed to read pending count', err))
+    }
 
     // Periodically check pending count when offline
-    const interval = setInterval(async () => {
+    const interval = offlineAvailable ? setInterval(async () => {
       if (!getConnectionStatus()) {
         try {
           const count = await getPendingActionCount()
           setPendingCount(count)
         } catch (_e) { /* offline - ignore */ }
       }
-    }, 5000)
+    }, 5000) : null
 
     return () => {
       unsubscribe()
-      clearInterval(interval)
+      if (interval) clearInterval(interval)
       if (syncedTimeoutRef.current) clearTimeout(syncedTimeoutRef.current)
     }
   }, []) // Empty dependency array - runs once on mount

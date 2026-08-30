@@ -27,11 +27,22 @@ const resetConnection = () => {
   db = null
 }
 
+// True in environments that expose IndexedDB (regular browsers). False in
+// SSR, jsdom-based tests, and restricted webviews / private-browsing modes
+// that strip storage APIs. Callers can use this to skip offline features
+// entirely instead of triggering a rejected initOfflineDB() promise.
+export const isOfflineSupported = () => typeof indexedDB !== 'undefined'
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isOfflineSupported()) {
+      reject(new Error('IndexedDB is not available in this environment'))
       return
     }
 

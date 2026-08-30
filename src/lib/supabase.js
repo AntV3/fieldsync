@@ -49,8 +49,11 @@ import { costCodeOps } from './db/costCodeOps'
 import { rfiOps } from './db/rfiOps'
 import { submittalOps } from './db/submittalOps'
 
-// Initialize offline database (guard for SSR/test environments)
-if (typeof window !== 'undefined') {
+// Initialize offline database (guard for SSR/test environments and
+// browsers where IndexedDB is unavailable — private-browsing modes, some
+// in-app webviews). jsdom exposes `window` but not `indexedDB`, which is
+// why we also check the storage API itself.
+if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
   import('./offlineManager').then(m => m.initOfflineDB().catch(err =>
     console.error('Failed to init offline DB:', err)
   ))
