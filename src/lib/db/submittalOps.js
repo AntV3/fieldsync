@@ -114,6 +114,11 @@ export const submittalOps = {
     const sanitized = sanitize.object(
       Object.fromEntries(Object.entries(updates).filter(([k]) => allowed.includes(k)))
     )
+    // sanitize.object leaves empty strings as ''; DATE/UUID/TIMESTAMPTZ columns
+    // reject '' with 22007 / 22P02, so coerce them to null.
+    for (const k of ['required_date', 'cost_code_id', 'submitted_at', 'returned_at', 'approved_at']) {
+      if (sanitized[k] === '') sanitized[k] = null
+    }
     sanitized.updated_at = new Date().toISOString()
 
     // Auto-set timestamps based on status

@@ -48,9 +48,14 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
     const now = new Date()
     if (expirationType === '30days') {
       now.setDate(now.getDate() + 30)
-    } else if (expirationType === '90days') {
+      return now.toISOString()
+    }
+    if (expirationType === '90days') {
       now.setDate(now.getDate() + 90)
-    } else if (expirationType === 'custom' && customExpiration) {
+      return now.toISOString()
+    }
+    if (expirationType === 'custom') {
+      if (!customExpiration) return undefined // signals validation failure
       return new Date(customExpiration).toISOString()
     }
 
@@ -58,9 +63,13 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
   }
 
   const handleGenerateLink = async () => {
+    const expiresAt = calculateExpiresAt()
+    if (expiresAt === undefined) {
+      setToast({ type: 'error', message: 'Pick a custom expiration date before generating the link.' })
+      return
+    }
     setLoading(true)
     try {
-      const expiresAt = calculateExpiresAt()
 
       const share = await db.createProjectShare(
         project.id,

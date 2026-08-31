@@ -469,9 +469,11 @@ export default function App() {
           <Route path="/pricing" element={requireAuth(officeLayout(
             <PricingManager company={company} onShowToast={showToast} />
           ))} />
-          <Route path="/branding" element={requireAuth(officeLayout(
-            <BrandingSettings company={company} onShowToast={showToast} />
-          ))} />
+          <Route path="/branding" element={requireAuth(
+            isAdmin
+              ? officeLayout(<BrandingSettings company={company} onShowToast={showToast} />)
+              : <Navigate to="/dashboard" replace />
+          )} />
           <Route path="/team" element={requireAuth(
             isAdmin
               ? officeLayout(<MembershipManager company={company} user={user} onShowToast={showToast} />)

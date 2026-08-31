@@ -35,7 +35,9 @@ export function detectConflict(localRecord, serverRecord, compareFields = []) {
   const conflicts = []
   const fieldsToCheck = compareFields.length > 0
     ? compareFields
-    : Object.keys(localRecord).filter(k => !k.startsWith('_') && k !== 'id' && k !== 'created_at')
+    : Object.keys(localRecord).filter(k =>
+        !k.startsWith('_') && k !== 'id' && k !== 'created_at' && k !== 'updated_at'
+      )
 
   for (const field of fieldsToCheck) {
     const localVal = localRecord[field]
