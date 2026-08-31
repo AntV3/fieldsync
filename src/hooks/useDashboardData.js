@@ -210,15 +210,20 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     }
   }, [navigateToProjectId, projects, onProjectNavigated, markProjectActivitySeen])
 
-  // Per-project real-time subscriptions for the selected project
+  // Per-project real-time subscriptions for the selected project.
+  // Depend on the project ID only — `selectedProject` is a new object every
+  // debouncedRefresh, and the whole-object dep would tear down and rebuild
+  // 9 channels on every realtime event.
+  const selectedProjectId = selectedProject?.id
   useEffect(() => {
-    if (selectedProject) {
-      loadAreas(selectedProject.id)
+    if (selectedProjectId) {
+      // Use ref so the effect doesn't re-run when loadAreas re-renders.
+      loadAreasRef.current?.(selectedProjectId)
 
       // Subscribe to real-time updates for the selected project
       // All callbacks use debouncedRefresh to prevent cascading refreshes
       const subscriptions = []
-      const projectId = selectedProject.id
+      const projectId = selectedProjectId
 
       // Areas subscription - also refreshes areas list
       const areasSub = db.subscribeToAreas?.(projectId, () => {
@@ -278,7 +283,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
         subscriptions.forEach(sub => db.unsubscribe?.(sub))
       }
     }
-  }, [selectedProject, debouncedRefresh])
+  }, [selectedProjectId, debouncedRefresh])
 
   // Load detailed data for a single project (on-demand, with caching)
   // This replaces the previous N+1 pattern where ALL project details were loaded upfront

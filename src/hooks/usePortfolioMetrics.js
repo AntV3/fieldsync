@@ -147,16 +147,29 @@ export default function usePortfolioMetrics(projectsData) {
 
   // Risk analysis: only compute for projects with loaded detail data
   const riskAnalysis = useMemo(() => {
+    const now = Date.now()
     const projectRisks = projectsData
       .filter(p => p._detailsLoaded) // Skip projects without detailed data
       .map(p => {
+        // Expected progress from schedule: linear from start_date to end_date.
+        // Enhanced projects from useDashboardData don't carry expectedProgress;
+        // matches the schedule health calc in ProjectHealthOverview.
+        const startMs = p.start_date ? new Date(p.start_date).getTime() : null
+        const endMs = (p.end_date || p.endDate) ? new Date(p.end_date || p.endDate).getTime() : null
+        let expectedProgress = p.progress || 0
+        if (startMs && endMs && endMs > startMs) {
+          const totalDays = (endMs - startMs) / (1000 * 60 * 60 * 24)
+          const elapsed = Math.max(0, (now - startMs) / (1000 * 60 * 60 * 24))
+          expectedProgress = Math.min(100, (elapsed / totalDays) * 100)
+        }
+
         const riskInput = {
           id: p.id,
           name: p.name,
-          totalCosts: p.totalCosts || 0,
+          totalCosts: p.allCostsTotal || 0,
           earnedRevenue: p.billable || 0,
           actualProgress: p.progress || 0,
-          expectedProgress: p.expectedProgress || p.progress,
+          expectedProgress,
           pendingCORValue: p.corPendingValue || 0,
           contractValue: p.revisedContractValue || p.contract_value || 0,
           lastReportDate: p.lastDailyReport,

@@ -38,6 +38,7 @@ export default function SignatureCanvas({
   const [hasSignature, setHasSignature] = useState(false)
   const [isDrawing, setIsDrawing] = useState(false)
   const [acknowledged, setAcknowledged] = useState(!requireAcknowledgment)
+  const [saving, setSaving] = useState(false)
 
   // Derive display strings
   const displayTitle = slot
@@ -143,8 +144,8 @@ export default function SignatureCanvas({
 
   const isValid = hasSignature && signerName.trim() && acknowledged
 
-  const handleSave = () => {
-    if (!isValid) return
+  const handleSave = async () => {
+    if (!isValid || saving) return
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -161,7 +162,15 @@ export default function SignatureCanvas({
       result.signerCompany = signerCompany.trim() || null
     }
 
-    onSave(result)
+    setSaving(true)
+    try {
+      // onSave may be async (public-link flow persists a signatures row); await it
+      // so the Submit button stays disabled through the write and a double-tap
+      // can't create a duplicate signatures row for the same request/slot.
+      await onSave(result)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -294,10 +303,10 @@ export default function SignatureCanvas({
           <button
             className="btn btn-primary"
             onClick={handleSave}
-            disabled={!isValid}
+            disabled={!isValid || saving}
             aria-label={enhanced ? 'Submit signature' : 'Save signature'}
           >
-            <Check size={16} aria-hidden="true" /> {enhanced ? 'Submit Signature' : 'Save Signature'}
+            <Check size={16} aria-hidden="true" /> {saving ? 'Submitting…' : (enhanced ? 'Submit Signature' : 'Save Signature')}
           </button>
         </div>
       </div>

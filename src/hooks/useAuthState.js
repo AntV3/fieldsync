@@ -119,6 +119,25 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
+      // MFA gate for session restore (page reload after password step).
+      // handleOfficeLogin also gates on MFA, but checkAuth runs on every mount,
+      // so without this a user could sign in → reload → land on /dashboard at
+      // AAL1 without completing the second factor.
+      try {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal?.nextLevel === 'aal2' && aal.currentLevel === 'aal1') {
+          const { data: factors } = await supabase.auth.mfa.listFactors()
+          const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
+          if (verifiedFactor) {
+            setMfaFactorId(verifiedFactor.id)
+            setMfaPending(true)
+            return
+          }
+        }
+      } catch (mfaErr) {
+        console.warn('[auth] MFA AAL check failed, continuing:', mfaErr?.message)
+      }
+
       const result = await loadUserAndCompany(authUser.id)
       if (!result) return
 

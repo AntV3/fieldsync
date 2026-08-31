@@ -112,6 +112,11 @@ export const rfiOps = {
     const sanitized = sanitize.object(
       Object.fromEntries(Object.entries(updates).filter(([k]) => allowed.includes(k)))
     )
+    // sanitize.object leaves empty strings as ''; DATE/UUID/TIMESTAMPTZ columns
+    // reject '' with 22007 / 22P02, so coerce them to null.
+    for (const k of ['due_date', 'submitted_at', 'answered_at', 'closed_at', 'assigned_to', 'answered_by']) {
+      if (sanitized[k] === '') sanitized[k] = null
+    }
     sanitized.updated_at = new Date().toISOString()
 
     // Auto-set timestamps based on status changes

@@ -41,7 +41,9 @@ export const BUILT_IN_KPIS = {
     icon: 'DollarSign',
     calculate: (projectData) => {
       const contract = projectData?.project?.contract_value
-      const billed = projectData?.billedTotal
+      // billedTotal isn't populated on the dashboard project object — fall back to
+      // accumulated cost so the KPI reports spend-vs-contract instead of NaN%.
+      const billed = projectData?.billedTotal ?? projectData?.allCostsTotal ?? 0
       if (!contract || contract === 0) return null
       return Math.round((billed / contract) * 100)
     }

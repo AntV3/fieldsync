@@ -134,7 +134,12 @@ export default function LiveFieldFeed({ projectData, onSetActiveTab, activityPul
       </div>
 
       <div className="sdx-feed">
-        {feedItems.length === 0 && (
+        {feedItems.length === 0 && projectData?._detailsLoaded === false && (
+          <div className="sdx-empty-row" aria-live="polite">
+            Loading recent activity…
+          </div>
+        )}
+        {feedItems.length === 0 && projectData?._detailsLoaded !== false && (
           <div className="sdx-empty-row">
             No field activity yet — crew check-ins, T&amp;M tickets, and daily reports will appear here the moment they&apos;re submitted.
           </div>
