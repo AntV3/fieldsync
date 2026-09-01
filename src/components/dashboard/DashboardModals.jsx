@@ -78,6 +78,7 @@ export default function DashboardModals(props) {
             project={selectedProject}
             company={company}
             areas={areas}
+            user={user}
             onClose={onCloseCORDetail}
             onEdit={onEditCORFromDetail}
             onShowToast={onShowToast}

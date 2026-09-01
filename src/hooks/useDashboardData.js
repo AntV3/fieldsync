@@ -446,7 +446,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Disposal totals from weekly data
       const disposalTotalLoads = (weeklyDisposal || []).reduce((sum, w) => {
-        return sum + (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0)
+        return sum + (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0) + (w.copper || 0) + (w.asphalt || 0)
       }, 0)
 
       // Days since last injury

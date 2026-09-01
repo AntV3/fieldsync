@@ -271,6 +271,7 @@ export default function FinancialsTab({
                   <CORLogPreview
                     project={selectedProject}
                     company={company}
+                    user={user}
                     onShowToast={onShowToast}
                     onToggleList={onToggleCORList}
                     showingList={corListExpanded}
