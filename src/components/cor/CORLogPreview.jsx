@@ -40,6 +40,7 @@ const FULL_LIST_THRESHOLD = 10
 export default function CORLogPreview({
   project,
   company,
+  user,
   onShowToast,
   onToggleList,      // Toggles the full card list below
   showingList,       // Whether the list is currently expanded
@@ -148,7 +149,7 @@ export default function CORLogPreview({
 
     setActionInProgress(corId)
     try {
-      await db.approveCOR(corId)
+      await db.approveCOR(corId, user?.id)
       onShowToast?.('COR approved', 'success')
       await loadCORLog()
     } catch (error) {

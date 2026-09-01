@@ -138,15 +138,18 @@ export default function ReportsTab({
                 <div className="reports-disposal-chart">
                   <div className="reports-disposal-bars">
                     {(projectData?.weeklyDisposal || []).map((week, i) => {
-                      const total = (week.concrete || 0) + (week.trash || 0) + (week.metals || 0) + (week.hazardous_waste || 0)
-                      const maxWeek = Math.max(...(projectData?.weeklyDisposal || []).map(w => (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0))) || 1
+                      const weekTotal = w => (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0) + (w.copper || 0) + (w.asphalt || 0)
+                      const total = weekTotal(week)
+                      const maxWeek = Math.max(...(projectData?.weeklyDisposal || []).map(weekTotal)) || 1
                       return (
                         <div key={i} className="reports-disposal-bar-col">
                           <div className="reports-disposal-bar-stack" style={{ height: `${(total / maxWeek) * 100}%` }}>
                             {week.concrete > 0 && <div className="reports-disposal-seg concrete" style={{ flex: week.concrete }} title={`Concrete: ${week.concrete}`}></div>}
-                            {week.trash > 0 && <div className="reports-disposal-seg trash" style={{ flex: week.trash }} title={`Trash: ${week.trash}`}></div>}
+                            {week.asphalt > 0 && <div className="reports-disposal-seg asphalt" style={{ flex: week.asphalt }} title={`Asphalt: ${week.asphalt}`}></div>}
                             {week.metals > 0 && <div className="reports-disposal-seg metals" style={{ flex: week.metals }} title={`Metals: ${week.metals}`}></div>}
+                            {week.copper > 0 && <div className="reports-disposal-seg copper" style={{ flex: week.copper }} title={`Copper: ${week.copper}`}></div>}
                             {week.hazardous_waste > 0 && <div className="reports-disposal-seg hazardous" style={{ flex: week.hazardous_waste }} title={`Hazardous: ${week.hazardous_waste}`}></div>}
+                            {week.trash > 0 && <div className="reports-disposal-seg trash" style={{ flex: week.trash }} title={`Trash: ${week.trash}`}></div>}
                           </div>
                           <span className="reports-disposal-bar-label">
                             {new Date(week.week + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

@@ -300,7 +300,7 @@ export const drawRequestOps = {
     const [{ data, error }, { data: project }] = await Promise.all([
       supabase
         .from('areas')
-        .select('id, name, weight, scheduled_value, square_footage, price_per_sqft')
+        .select('id, name, weight, scheduled_value')
         .eq('project_id', projectId)
         .order('created_at'),
       supabase
