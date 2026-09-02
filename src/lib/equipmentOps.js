@@ -2,7 +2,7 @@
 // Extracted from supabase.js for maintainability
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { parseLocalDate } from './utils'
+import { parseLocalDate, getLocalDateString } from './utils'
 
 export const equipmentOps = {
   // ----------------------------------------
@@ -257,8 +257,12 @@ export const equipmentOps = {
    * Mark equipment as returned (set end_date)
    */
   async markEquipmentReturned(projectEquipmentId, endDate = null) {
+    // Store the user's LOCAL calendar day, not the UTC day. Otherwise
+    // marking equipment returned after 4-5pm PT rolls to tomorrow's UTC
+    // date, and calculateProjectEquipmentCost (inclusive-day math on
+    // local-parsed dates) then bills one extra day.
     return this.updateProjectEquipment(projectEquipmentId, {
-      end_date: endDate || new Date().toISOString().split('T')[0]
+      end_date: endDate || getLocalDateString()
     })
   },
 

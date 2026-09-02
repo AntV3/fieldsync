@@ -16,6 +16,7 @@ import {
   sanitizeFormData,
   sanitize
 } from './client'
+import { parseLocalDate, getLocalDateString } from '../utils'
 
 export const fieldOps = {
   // ============================================
@@ -253,13 +254,16 @@ export const fieldOps = {
 
     if (error) throw error
 
-    // Group by week and load type
+    // Group by week and load type. work_date is a bare YYYY-MM-DD, so parse
+    // it as a local calendar day — otherwise `new Date()` reads it as UTC
+    // midnight and getDay() (which is LOCAL) shifts Sunday loads into the
+    // prior week for anyone west of UTC.
     const weeklyData = {}
     data?.forEach(row => {
-      const date = new Date(row.work_date)
+      const date = parseLocalDate(row.work_date)
       const weekStart = new Date(date)
       weekStart.setDate(date.getDate() - date.getDay())
-      const weekKey = weekStart.toISOString().split('T')[0]
+      const weekKey = getLocalDateString(weekStart)
 
       if (!weeklyData[weekKey]) {
         weeklyData[weekKey] = { week: weekKey, concrete: 0, trash: 0, metals: 0, hazardous_waste: 0 }
@@ -747,10 +751,16 @@ export const fieldOps = {
     const areas = areasResult?.data || []
     const tickets = ticketsResult?.data || []
 
-    const completedToday = areas.filter(a =>
-      a.status === 'done' &&
-      a.completed_at?.startsWith(reportDate)
-    )
+    // areas has no dedicated completed_at; the row's updated_at is the
+    // last transition timestamp, so "done today" means status=done AND
+    // updated_at fell on reportDate (the local calendar day the report
+    // is for). Compare via the local-date string, not a UTC prefix.
+    const completedToday = areas.filter(a => {
+      if (a.status !== 'done' || !a.updated_at) return false
+      const d = new Date(a.updated_at)
+      const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      return local === reportDate
+    })
 
     // Count photos from T&M tickets AND report-level photos
     const tmPhotosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)

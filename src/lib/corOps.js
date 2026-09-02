@@ -1272,6 +1272,20 @@ export const corOps = {
 
   async approveCOR(corId, userId) {
     if (isSupabaseConfigured) {
+      // Resolve approver identity from the auth session when the caller
+      // didn't supply one. Without this, the self-approval guard below
+      // was silently defeated whenever userId was undefined, and
+      // approved_by was written as NULL — erasing the audit trail.
+      let approverId = userId
+      if (!approverId) {
+        const { data: userData, error: userErr } = await supabase.auth.getUser()
+        if (userErr) throw userErr
+        approverId = userData?.user?.id
+      }
+      if (!approverId) {
+        throw new Error('Cannot approve COR: no authenticated user.')
+      }
+
       // Separation of duties: prevent self-approval
       // The person who submitted should not be the same person who approves
       const { data: cor, error: fetchError } = await supabase
@@ -1281,7 +1295,7 @@ export const corOps = {
         .single()
       if (fetchError) throw fetchError
 
-      if (userId && (userId === cor.submitted_by || userId === cor.created_by)) {
+      if (approverId === cor.submitted_by || approverId === cor.created_by) {
         throw new Error('Separation of duties: COR cannot be approved by the person who created or submitted it. A different authorized user must approve.')
       }
 
@@ -1289,7 +1303,7 @@ export const corOps = {
         .from('change_orders')
         .update({
           status: 'approved',
-          approved_by: userId,
+          approved_by: approverId,
           approved_at: new Date().toISOString(),
           // Clear any previous rejection
           rejection_reason: null
@@ -1301,7 +1315,7 @@ export const corOps = {
       if (error) throw error
 
       // Log the status change
-      await this._logCORStatusChange(corId, 'approved', userId, 'Approved')
+      await this._logCORStatusChange(corId, 'approved', approverId, 'Approved')
 
       return data
     }
@@ -1378,12 +1392,36 @@ export const corOps = {
 
   async saveCORSignature(corId, signatureData, signerName) {
     if (isSupabaseConfigured) {
+      // Separation of duties: the person capturing the GC signature must
+      // not be the same user who submitted or created the COR — otherwise
+      // the sign-panel becomes a way to bypass approveCOR's guard by
+      // typing the GC's name and drawing any scribble.
+      const { data: userData, error: userErr } = await supabase.auth.getUser()
+      if (userErr) throw userErr
+      const approverId = userData?.user?.id
+      if (!approverId) {
+        throw new Error('Cannot sign COR: no authenticated user.')
+      }
+
+      const { data: cor, error: fetchError } = await supabase
+        .from('change_orders')
+        .select('submitted_by, created_by')
+        .eq('id', corId)
+        .single()
+      if (fetchError) throw fetchError
+
+      if (approverId === cor.submitted_by || approverId === cor.created_by) {
+        throw new Error('Separation of duties: COR cannot be signed for approval by the person who created or submitted it. A different authorized user must capture the signature.')
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           gc_signature_data: signatureData,
           gc_signature_name: signerName,
           gc_signature_date: new Date().toISOString(),
+          approved_by: approverId,
+          approved_at: new Date().toISOString(),
           status: 'approved' // Auto-approve when signed
         })
         .eq('id', corId)

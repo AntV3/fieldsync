@@ -119,6 +119,28 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
+      // MFA gate: if the user has an enrolled/verified TOTP factor but the
+      // current session is only aal1 (password), a page reload during the
+      // pending challenge would otherwise land them on the dashboard
+      // without ever completing MFA. Re-arm the challenge here.
+      try {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2') {
+          const { data: factors } = await supabase.auth.mfa.listFactors()
+          const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
+          if (verifiedFactor) {
+            setMfaFactorId(verifiedFactor.id)
+            setMfaPending(true)
+            setLoading(false)
+            return
+          }
+        }
+      } catch (mfaErr) {
+        // If MFA APIs are unavailable, treat as not enrolled and continue —
+        // any downstream RLS still applies. Log for observability.
+        console.warn('[auth] MFA AAL check failed:', mfaErr?.message)
+      }
+
       const result = await loadUserAndCompany(authUser.id)
       if (!result) return
 

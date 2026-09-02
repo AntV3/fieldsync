@@ -8,6 +8,7 @@ import {
   ClipboardList, Clock, DollarSign, Users, TrendingUp,
   CheckCircle, AlertCircle, FileText
 } from 'lucide-react'
+import { parseLocalDate } from '../../lib/utils'
 
 /**
  * TMDashboard - Visual summary and charts for T&M Tickets section
@@ -208,7 +209,7 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
     // Monthly data for trend chart
     const monthlyData = {}
     tickets.forEach(ticket => {
-      const date = new Date(ticket.work_date)
+      const date = parseLocalDate(ticket.work_date)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
 

@@ -239,8 +239,11 @@ export function generateSCurveData({
     }
 
     if (isPast || isCurrent) {
-      // Interpolate EV and AC to current point
-      const timePercent = Math.min(1, (pointDate - start) / (now - start))
+      // Interpolate EV and AC to current point. Guard against now === start
+      // (a snapshot generated at the project kickoff instant) — the divisor
+      // would be 0 and the first S-curve point would render as NaN.
+      const elapsed = now - start
+      const timePercent = elapsed > 0 ? Math.min(1, (pointDate - start) / elapsed) : 0
       point.earnedValue = Math.round(timePercent * (progressPercent / 100) * bac)
       point.actualCost = Math.round(timePercent * actualCosts)
     }
