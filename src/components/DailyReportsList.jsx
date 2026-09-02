@@ -90,21 +90,22 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     let filtered = [...reports]
 
     // Apply date filter if set
+    // report_date is a bare YYYY-MM-DD (the day the report is FOR); parse it
+    // as the user's local calendar day. Fall back to created_at (TIMESTAMPTZ)
+    // when there is no explicit report_date.
+    const reportDay = (r) => r.report_date
+      ? parseLocalDate(r.report_date)
+      : new Date(r.created_at)
+
     if (dateFilter.start) {
       const startDate = parseLocalDate(dateFilter.start)
       startDate.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate >= startDate
-      })
+      filtered = filtered.filter(r => reportDay(r) >= startDate)
     }
     if (dateFilter.end) {
       const endDate = parseLocalDate(dateFilter.end)
       endDate.setHours(23, 59, 59, 999)
-      filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate <= endDate
-      })
+      filtered = filtered.filter(r => reportDay(r) <= endDate)
     }
 
     // In recent mode, show only last 7 days
@@ -112,10 +113,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       sevenDaysAgo.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate >= sevenDaysAgo
-      })
+      filtered = filtered.filter(r => reportDay(r) >= sevenDaysAgo)
     }
 
     return filtered
@@ -127,7 +125,9 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     const groups = {}
     filteredReports.forEach(report => {
-      const date = new Date(report.report_date || report.created_at)
+      const date = report.report_date
+        ? parseLocalDate(report.report_date)
+        : new Date(report.created_at)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 

@@ -15,6 +15,7 @@ import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
 import { exportTMTicketsCSV } from '../lib/financialExport'
 import { loadXLSXSafe } from '../lib/safeXlsx'
+import { parseLocalDate } from '../lib/utils'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
 const loadXLSX = loadXLSXSafe
@@ -1048,22 +1049,20 @@ export default function TMList({
       ? [...tickets]
       : tickets.filter(t => t.status === filter)
 
+    // work_date is a bare YYYY-MM-DD; parse it as the local calendar day so
+    // negative-UTC users don't lose first-of-month tickets to the prior month.
+    const ticketDay = (t) => parseLocalDate(t.work_date)
+
     // Apply date filter if set
     if (dateFilter.start) {
-      const startDate = new Date(dateFilter.start)
+      const startDate = parseLocalDate(dateFilter.start)
       startDate.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
-        return ticketDate >= startDate
-      })
+      filtered = filtered.filter(t => ticketDay(t) >= startDate)
     }
     if (dateFilter.end) {
-      const endDate = new Date(dateFilter.end)
+      const endDate = parseLocalDate(dateFilter.end)
       endDate.setHours(23, 59, 59, 999)
-      filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
-        return ticketDate <= endDate
-      })
+      filtered = filtered.filter(t => ticketDay(t) <= endDate)
     }
 
     // In preview mode, show only current month's tickets
@@ -1072,8 +1071,8 @@ export default function TMList({
       const currentMonth = now.getMonth()
       const currentYear = now.getFullYear()
       filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
-        return ticketDate.getMonth() === currentMonth && ticketDate.getFullYear() === currentYear
+        const d = ticketDay(t)
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear
       })
     }
     // In recent mode (not preview), show only last 7 days
@@ -1081,10 +1080,7 @@ export default function TMList({
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       sevenDaysAgo.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
-        return ticketDate >= sevenDaysAgo
-      })
+      filtered = filtered.filter(t => ticketDay(t) >= sevenDaysAgo)
     }
 
     // Apply search filter
@@ -1114,7 +1110,7 @@ export default function TMList({
 
     const groups = {}
     filteredTickets.forEach(ticket => {
-      const date = new Date(ticket.work_date)
+      const date = parseLocalDate(ticket.work_date)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
