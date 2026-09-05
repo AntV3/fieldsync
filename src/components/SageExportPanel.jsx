@@ -177,7 +177,7 @@ function ExportPreview({ project, areas, financialData }) {
         <>
           <div style={sectionHead}>Schedule of Values ({areas.length} items)</div>
           {areas.map((area, i) => {
-            const sovVal = area.sov_value || area.weight || 0
+            const sovVal = Number(area.scheduled_value) || 0
             return (
               <div key={area.id || i} style={row}>
                 <span style={{ color: 'var(--text-secondary, #5F5F5F)' }}>{area.name}</span>

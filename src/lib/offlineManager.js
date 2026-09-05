@@ -633,9 +633,13 @@ const processAction = async (action, db) => {
     }
 
     case ACTION_TYPES.SAVE_CREW_CHECKIN:
+      // saveCrewCheckin signature is (projectId, workers, createdBy, date).
+      // Passing checkInDate into the createdBy slot poisoned created_by with
+      // an ISO date string and dropped the intended date entirely.
       return db.saveCrewCheckin(
         payload.projectId,
         payload.workers,
+        payload.createdBy || null,
         payload.checkInDate
       )
 

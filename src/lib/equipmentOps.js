@@ -221,8 +221,12 @@ export const equipmentOps = {
       return null
     }
 
-    // Allowlist: only permit safe fields to be updated
+    // Allowlist: only permit safe fields to be updated.
+    // `equipment_name` and `equipment_id` belong here — the modal lets the
+    // user rename equipment and switch between catalog vs. custom, and both
+    // updates were silently discarded before.
     const ALLOWED_FIELDS = [
+      'equipment_id', 'equipment_name',
       'daily_rate', 'start_date', 'end_date', 'notes', 'status'
     ]
     const filtered = { updated_at: new Date().toISOString() }

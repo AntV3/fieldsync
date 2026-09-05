@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { isValidEmail, generateCode, StepIndicator, PasswordInput } from './authUtils'
+import { isValidEmail, generateCode, StepIndicator, PasswordInput, hasVerifiedMFAFactor } from './authUtils'
 import Logo from '../Logo'
 
 export default function RegisterCompany({ onShowToast }) {
@@ -84,6 +84,18 @@ export default function RegisterCompany({ onShowToast }) {
         if (existingUser?.company_id) {
           await supabase.auth.signOut()
           onShowToast('An account with this email already exists. Sign in instead.', 'error')
+          return
+        }
+
+        // signInWithPassword above brought the session up at AAL1 with no
+        // MFA challenge. If this account already has TOTP enrolled, sign
+        // them out and send them through /login/office rather than running
+        // register_company (which would attach the new company to a session
+        // that never proved the second factor).
+        if (await hasVerifiedMFAFactor()) {
+          await supabase.auth.signOut()
+          onShowToast('An account with this email already exists. Sign in with your authenticator first.', 'error')
+          navigate('/login/office')
           return
         }
 

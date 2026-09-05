@@ -427,15 +427,10 @@ export const documentOps = {
 
     const newVersion = (versions?.[0]?.version || 1) + 1
 
-    // Mark all previous versions as not current
-    const { error: markError } = await client
-      .from('documents')
-      .update({ is_current: false })
-      .or(`id.eq.${parentDocumentId},parent_document_id.eq.${parentDocumentId}`)
-
-    if (markError) throw markError
-
-    // Upload the new version
+    // Upload the new version FIRST. If we flipped is_current=false on the
+    // prior versions first and the upload failed (storage cap, RLS, network),
+    // the document would vanish from every listing because both
+    // getProjectDocuments and getFolderDocuments filter is_current=true.
     const result = await this.uploadDocument(companyId, projectId, file, {
       name: metadata.name || parentDoc.name,
       description: metadata.description || parentDoc.description,
@@ -445,6 +440,19 @@ export const documentOps = {
       resourceType: parentDoc.resource_type,
       resourceId: parentDoc.resource_id
     })
+
+    // Now that the new row exists, demote every prior version and promote
+    // the new one. If the demote step fails we roll the new row back so the
+    // caller sees a clean error rather than a duplicate-current state.
+    const { error: markError } = await client
+      .from('documents')
+      .update({ is_current: false })
+      .or(`id.eq.${parentDocumentId},parent_document_id.eq.${parentDocumentId}`)
+
+    if (markError) {
+      await client.from('documents').delete().eq('id', result.id)
+      throw markError
+    }
 
     // Update the new document with version info
     const { data: updatedDoc, error: updateError } = await client

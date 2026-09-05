@@ -33,9 +33,11 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
     }
   }
 
-  // Original contract line items from areas
+  // Original contract line items from areas.
+  // The `areas` table stores dollar scheduled value in `scheduled_value` (DECIMAL(12,2));
+  // `weight` is a percentage and would produce a ~$10 line item on a $100k area.
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    const scheduledValue = Number(area.scheduled_value) || 0
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

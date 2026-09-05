@@ -53,8 +53,11 @@ export const fieldObservationOps = {
     const client = getClient()
     if (!client) throw new Error('Database client not available')
 
-    const now = observedAt || new Date().toISOString()
-    const observationDate = now.split('T')[0]
+    const nowDate = observedAt ? new Date(observedAt) : new Date()
+    const now = nowDate.toISOString()
+    // observation_date is a DATE column and should reflect the observer's
+    // local calendar day (evening entries were rolling into tomorrow UTC).
+    const observationDate = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}-${String(nowDate.getDate()).padStart(2, '0')}`
 
     const { data, error } = await client
       .from('field_observations')
