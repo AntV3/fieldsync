@@ -273,11 +273,12 @@ export function exportSageProjectSetupCSV(project, areas, financialData = {}) {
     { field: 'SCHEDULE OF VALUES', value: '' }
   ]
 
-  // Add areas as SOV lines
+  // Add areas as SOV lines. The real dollar column is `scheduled_value`
+  // (DECIMAL(12,2)); `weight` is a percentage and would emit ~$10 rows.
   for (const area of (areas || [])) {
     rows.push({
       field: `SOV - ${area.name}`,
-      value: (area.sov_value || area.weight || 0).toFixed(2)
+      value: (Number(area.scheduled_value) || 0).toFixed(2)
     })
   }
 

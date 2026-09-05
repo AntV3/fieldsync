@@ -1,5 +1,21 @@
 import { useState } from 'react'
 import { Eye, EyeOff, Check } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+
+// Returns true if the currently signed-in user has a verified TOTP factor
+// enrolled. The password-flow entry points (ResetPassword, AcceptInvite's
+// sign-in branch, RegisterCompany's existing-account branch) all bypass the
+// MFA prompt that the office-login path runs, so callers use this to detect
+// the bypass and route the user through /login/office instead of landing
+// them straight on /dashboard at AAL1.
+export async function hasVerifiedMFAFactor() {
+  try {
+    const { data } = await supabase.auth.mfa.listFactors()
+    return !!data?.totp?.find(f => f.status === 'verified')
+  } catch {
+    return false
+  }
+}
 
 // Password strength calculator
 export function getPasswordStrength(pwd) {

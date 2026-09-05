@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Logo from '../Logo'
 import { supabase } from '../../lib/supabase'
+import { hasVerifiedMFAFactor } from './authUtils'
 
 export default function ResetPassword({ onShowToast }) {
   const navigate = useNavigate()
@@ -63,6 +64,16 @@ export default function ResetPassword({ onShowToast }) {
     try {
       const { error } = await supabase.auth.updateUser({ password })
       if (error) throw error
+      // If the account has MFA enrolled, updateUser leaves the session at
+      // AAL1 without ever running the TOTP challenge. Sign the user out and
+      // route them through /login/office so MFA gates the password reset
+      // the same way it gates a normal sign-in.
+      if (await hasVerifiedMFAFactor()) {
+        await supabase.auth.signOut()
+        onShowToast('Password updated. Sign in with your authenticator to continue.', 'success')
+        navigate('/login/office')
+        return
+      }
       onShowToast('Password updated. You are now signed in.', 'success')
       navigate('/dashboard')
     } catch (err) {

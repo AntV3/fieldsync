@@ -8,6 +8,8 @@
  * - Progress-based revenue recognition
  */
 
+import { parseLocalDate } from './utils'
+
 // ---- Configuration ----
 
 export const CASH_FLOW_CONFIG = {
@@ -72,21 +74,32 @@ export function projectReceivables(projects, invoices, config) {
   const now = new Date()
   const entries = []
 
-  // Outstanding invoices (already billed, awaiting payment)
+  // Outstanding invoices (already billed, awaiting payment).
+  // Schema statuses are draft|sent|partial|paid|void; a partially paid
+  // invoice still has an outstanding remainder.
   const outstanding = invoices.filter(inv =>
-    inv.status === 'sent' || inv.status === 'pending' || inv.status === 'overdue'
+    inv.status === 'sent' || inv.status === 'partial'
   )
 
   for (const inv of outstanding) {
-    const invoiceDate = new Date(inv.date || inv.created_at)
-    const dueDate = new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
+    // `total` is stored in cents on the invoices table; `amount_paid` too.
+    // Convert to dollars for the cash-flow model which works in dollars.
+    const totalCents = inv.total || 0
+    const paidCents = inv.amount_paid || 0
+    const remainingDollars = Math.max(0, (totalCents - paidCents) / 100)
+    if (remainingDollars <= 0) continue
+
+    const invoiceDate = parseLocalDate(inv.invoice_date) || new Date(inv.created_at)
+    const dueDate = inv.due_date
+      ? (parseLocalDate(inv.due_date) || new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000))
+      : new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
     const isOverdue = dueDate < now
 
     entries.push({
       type: 'outstanding',
       projectId: inv.project_id,
       projectName: inv.project_name || 'Unknown',
-      amount: inv.amount || 0,
+      amount: remainingDollars,
       date: invoiceDate.toISOString().split('T')[0],
       expectedDate: dueDate.toISOString().split('T')[0],
       status: isOverdue ? 'overdue' : 'pending',

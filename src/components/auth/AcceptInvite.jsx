@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { db, supabase } from '../../lib/supabase'
-import { isValidEmail, PasswordInput } from './authUtils'
+import { isValidEmail, PasswordInput, hasVerifiedMFAFactor } from './authUtils'
 import Logo from '../Logo'
 import { Check, AlertTriangle, Shield, User, Briefcase } from 'lucide-react'
 
@@ -157,6 +157,17 @@ export default function AcceptInvite({ onShowToast }) {
       if (signInError) {
         onShowToast('Invalid email or password', 'error')
         setSubmitting(false)
+        return
+      }
+
+      // Accepting the invitation and admitting to /dashboard both need to
+      // wait until MFA has actually run. Sign the user out and route them
+      // through /login/office; the invitation link stays live so they can
+      // click Accept again after completing the TOTP challenge.
+      if (await hasVerifiedMFAFactor()) {
+        await supabase.auth.signOut()
+        onShowToast('Sign in with your authenticator, then reopen this invitation link to accept.', 'info')
+        navigate('/login/office')
         return
       }
 
