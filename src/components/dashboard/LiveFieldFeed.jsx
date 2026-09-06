@@ -70,10 +70,13 @@ export default function LiveFieldFeed({ projectData, onSetActiveTab, activityPul
     }
     for (const c of (projectData?.crewCheckins || projectData?.crewHistory || []).slice(0, 8)) {
       const workerCount = c.worker_count ?? (c.workers || []).length
+      // crew_checkins.created_by is a UUID (auth user id), not a display
+      // name — surfacing it here painted the feed with raw UUIDs. There
+      // is no display-name column, so fall back to a friendly label.
       items.push({
         id: `crew-${c.id || c.check_in_date}`,
         ts: c.created_at || c.updated_at || c.check_in_date,
-        who: c.created_by || 'Foreman',
+        who: c.created_by_name || c.foreman_name || 'Foreman',
         kind: 'crew',
         action: 'checked in crew',
         item: `${workerCount} worker${workerCount !== 1 ? 's' : ''} on site`
@@ -102,13 +105,18 @@ export default function LiveFieldFeed({ projectData, onSetActiveTab, activityPul
       })
     }
     for (const ir of (projectData?.injuryReports || []).slice(0, 3)) {
+      // The injury_reports table stores the reporter as reported_by_name and
+      // the injured person as employee_name; the incident narrative lives in
+      // incident_description (see migration 20241201000210_injury_reports).
+      // The prior ir.reported_by / ir.description keys don't exist, so every
+      // safety entry rendered as "Field crew — Safety incident" with no detail.
       items.push({
         id: `inj-${ir.id}`,
         ts: ir.created_at || ir.incident_date,
-        who: ir.reported_by || ir.injured_person_name || 'Field crew',
+        who: ir.reported_by_name || ir.employee_name || 'Field crew',
         kind: 'safety',
         action: 'reported an incident',
-        item: ir.description || ir.injury_description || 'Safety incident'
+        item: ir.incident_description || ir.injury_type || 'Safety incident'
       })
     }
     return items
