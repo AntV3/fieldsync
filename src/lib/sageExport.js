@@ -273,11 +273,23 @@ export function exportSageProjectSetupCSV(project, areas, financialData = {}) {
     { field: 'SCHEDULE OF VALUES', value: '' }
   ]
 
-  // Add areas as SOV lines
+  // Add areas as SOV lines. areas.scheduled_value is the real dollar
+  // column (migration 20241201000040_area_scheduled_value); areas.weight
+  // is a DECIMAL(5,2) percentage. The prior `sov_value || weight`
+  // formula listed "$25.00" for a 25%-weighted area in Sage Job Setup.
+  const contractValue = Number(project?.contract_value) || 0
+  const totalWeight = (areas || []).reduce(
+    (sum, a) => sum + (parseFloat(a.weight) || 0), 0
+  )
   for (const area of (areas || [])) {
+    const explicitSov = Number(area.scheduled_value) || 0
+    const weightSov = totalWeight > 0
+      ? contractValue * ((parseFloat(area.weight) || 0) / totalWeight)
+      : 0
+    const sovValue = explicitSov > 0 ? explicitSov : weightSov
     rows.push({
       field: `SOV - ${area.name}`,
-      value: (area.sov_value || area.weight || 0).toFixed(2)
+      value: sovValue.toFixed(2)
     })
   }
 
