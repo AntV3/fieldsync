@@ -33,9 +33,25 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
     }
   }
 
+  // Contract-value pool for weight-derived SOV fallback (areas without an
+  // explicit dollar SOV). Sums to the project contract even when only
+  // some areas have scheduled_value set.
+  const contractValue = Number(project?.contract_value) || 0
+  const totalWeight = (areas || []).reduce(
+    (sum, a) => sum + (parseFloat(a.weight) || 0), 0
+  )
+
   // Original contract line items from areas
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    // areas.scheduled_value is the real dollar column (migration
+    // 20241201000040_area_scheduled_value). areas.weight is a percentage
+    // (DECIMAL(5,2), sums to ~100 across a project) — treating it as
+    // dollars produced "$25.00" for a 25%-weighted area on G703.
+    const explicitSov = Number(area.scheduled_value) || 0
+    const weightSov = totalWeight > 0
+      ? contractValue * ((parseFloat(area.weight) || 0) / totalWeight)
+      : 0
+    const scheduledValue = explicitSov > 0 ? explicitSov : weightSov
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

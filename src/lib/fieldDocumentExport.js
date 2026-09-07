@@ -443,8 +443,10 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
   y = drawProjectStrip(doc, project, y)
 
   // ── Summary stats ──
-  const openCount = reports.filter(r => r.status === 'open').length
-  const closedCount = reports.filter(r => r.status !== 'open').length
+  // injury_reports.status enum is ('reported', 'under_investigation', 'closed');
+  // treat anything other than 'closed' as still open.
+  const openCount = reports.filter(r => r.status !== 'closed').length
+  const closedCount = reports.filter(r => r.status === 'closed').length
   const critCount = reports.filter(r => r.injury_type === 'critical').length
 
   doc.setFontSize(8)
@@ -485,7 +487,7 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
     doc.text(badgeText, MARGIN + 8 + badgeW / 2, y + 13, { align: 'center' })
 
     // Status badge (right side)
-    const isOpen = report.status === 'open'
+    const isOpen = report.status !== 'closed'
     const statusColor = isOpen ? COLORS.amber : COLORS.green
     const statusText = isOpen ? 'OPEN' : 'CLOSED'
     const statusW = doc.getTextWidth(statusText) + 8
@@ -499,7 +501,8 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
     y += 20
 
     // Description
-    if (report.description) {
+    const description = report.incident_description
+    if (description) {
       doc.setFontSize(8)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(...COLORS.mid)
@@ -511,13 +514,14 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(...COLORS.text)
-      const lines = doc.splitTextToSize(report.description, CONTENT_WIDTH - 16)
+      const lines = doc.splitTextToSize(description, CONTENT_WIDTH - 16)
       doc.text(lines, MARGIN + 10, y)
       y += lines.length * 4 + 3
     }
 
     // Location
-    if (report.location) {
+    const location = report.incident_location
+    if (location) {
       doc.setFontSize(8)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(...COLORS.mid)
@@ -529,12 +533,13 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(...COLORS.text)
-      doc.text(report.location, MARGIN + 10, y)
+      doc.text(location, MARGIN + 10, y)
       y += 6
     }
 
     // Corrective actions
-    if (report.corrective_actions) {
+    const correctiveActions = report.corrective_actions_planned
+    if (correctiveActions) {
       y = checkPage(doc, y, 12)
       doc.setFontSize(8)
       doc.setFont('helvetica', 'bold')
@@ -547,7 +552,7 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(...COLORS.text)
-      const actionLines = doc.splitTextToSize(report.corrective_actions, CONTENT_WIDTH - 16)
+      const actionLines = doc.splitTextToSize(correctiveActions, CONTENT_WIDTH - 16)
       doc.text(actionLines, MARGIN + 10, y)
       y += actionLines.length * 4 + 3
     }
@@ -867,7 +872,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
     const metricsBody = []
     if (totalCrewCount > 0) metricsBody.push(['Total Crew-Days', totalCrewCount.toString()])
     if (totalIncidents > 0) {
-      const openInc = incidentReports.filter(r => r.status === 'open').length
+      const openInc = incidentReports.filter(r => r.status !== 'closed').length
       metricsBody.push(['Total Incidents', `${totalIncidents} (${openInc} open)`])
     }
     if (totalCheckins > 0) metricsBody.push(['Total Worker Check-Ins', totalCheckins.toString()])
@@ -1065,14 +1070,16 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
       doc.setTextColor(...COLORS.text)
       doc.setFontSize(9)
 
-      if (report.description) {
+      const incDesc = report.incident_description
+      if (incDesc) {
         doc.setFont('helvetica', 'normal')
-        const lines = doc.splitTextToSize(report.description, CONTENT_WIDTH - 12)
+        const lines = doc.splitTextToSize(incDesc, CONTENT_WIDTH - 12)
         doc.text(lines, MARGIN + 6, y)
         y += lines.length * 4 + 2
       }
 
-      if (report.location) {
+      const incLoc = report.incident_location
+      if (incLoc) {
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(...COLORS.mid)
         doc.setFontSize(8)
@@ -1080,7 +1087,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(...COLORS.text)
         doc.setFontSize(9)
-        doc.text(report.location, MARGIN + 24, y)
+        doc.text(incLoc, MARGIN + 24, y)
         y += 6
       }
 

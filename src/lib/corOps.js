@@ -1378,16 +1378,21 @@ export const corOps = {
 
   async saveCORSignature(corId, signatureData, signerName) {
     if (isSupabaseConfigured) {
+      // The GC signature is captured AFTER approval (CORDetail only exposes
+      // the sign button when status === 'approved' && !gc_signature_data).
+      // Guarding on 'pending_approval' here matched zero rows and every
+      // signature save toasted "Error saving signature". Do not re-write
+      // status or clobber approved_at/approved_by — approveCOR already set
+      // them; signing only records the signature block.
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           gc_signature_data: signatureData,
           gc_signature_name: signerName,
-          gc_signature_date: new Date().toISOString(),
-          status: 'approved' // Auto-approve when signed
+          gc_signature_date: new Date().toISOString()
         })
         .eq('id', corId)
-        .in('status', ['pending_approval']) // Only allow signing CORs that are pending approval
+        .in('status', ['approved'])
         .select()
         .single()
       if (error) throw error
@@ -2436,27 +2441,41 @@ export const corOps = {
     return true
   },
 
-  // Mark CORs and T&M tickets as billed after creating invoice
-  async markItemsBilled(corIds = [], tmIds = []) {
+  // Mark CORs and T&M tickets as billed after creating invoice.
+  // Both writes gate on status='approved' so a stale/incorrect id list
+  // cannot silently rewrite a draft, rejected, or already-closed row to
+  // 'billed'. markCORAsBilled/updateTMTicketStatus siblings gate the same
+  // way — this bulk path was the only unguarded one.
+  async markItemsBilled(corIds = [], tmIds = [], userId = null) {
     if (isSupabaseConfigured) {
-      // Update CORs to 'billed' status
       if (corIds.length > 0) {
-        const { error: corsError } = await supabase
+        const { data: billedCors, error: corsError } = await supabase
           .from('change_orders')
-          .update({ status: 'billed' })
+          .update({
+            status: 'billed',
+            billed_at: new Date().toISOString()
+          })
           .in('id', corIds)
+          .in('status', ['approved'])
+          .select('id')
 
         if (corsError) {
           console.error('Error marking CORs as billed:', corsError)
+        } else {
+          // Audit-log each successful transition so the cor_status_history
+          // trail matches the single-COR markCORAsBilled path.
+          for (const row of billedCors || []) {
+            await this._logCORStatusChange(row.id, 'billed', userId, 'Marked as billed (bulk)')
+          }
         }
       }
 
-      // Update T&M tickets to 'billed' status
       if (tmIds.length > 0) {
         const { error: tmError } = await supabase
           .from('t_and_m_tickets')
           .update({ status: 'billed' })
           .in('id', tmIds)
+          .in('status', ['approved'])
 
         if (tmError) {
           console.error('Error marking T&M tickets as billed:', tmError)

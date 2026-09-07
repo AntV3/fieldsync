@@ -173,20 +173,32 @@ function ExportPreview({ project, areas, financialData }) {
       ))}
 
       {/* Schedule of Values */}
-      {areas.length > 0 && (
-        <>
-          <div style={sectionHead}>Schedule of Values ({areas.length} items)</div>
-          {areas.map((area, i) => {
-            const sovVal = area.sov_value || area.weight || 0
-            return (
-              <div key={area.id || i} style={row}>
-                <span style={{ color: 'var(--text-secondary, #5F5F5F)' }}>{area.name}</span>
-                <span style={valStyle}>{sovVal > 0 ? fmtCurrency(sovVal) : '—'}</span>
-              </div>
-            )
-          })}
-        </>
-      )}
+      {areas.length > 0 && (() => {
+        // Mirror sageExport.exportSageProjectSetupCSV so the preview matches
+        // the CSV. areas.scheduled_value is dollars; areas.weight is a
+        // percentage (sums to ~100), never a dollar amount.
+        const totalWeight = areas.reduce(
+          (sum, a) => sum + (parseFloat(a.weight) || 0), 0
+        )
+        return (
+          <>
+            <div style={sectionHead}>Schedule of Values ({areas.length} items)</div>
+            {areas.map((area, i) => {
+              const explicitSov = Number(area.scheduled_value) || 0
+              const weightSov = totalWeight > 0
+                ? contractValue * ((parseFloat(area.weight) || 0) / totalWeight)
+                : 0
+              const sovVal = explicitSov > 0 ? explicitSov : weightSov
+              return (
+                <div key={area.id || i} style={row}>
+                  <span style={{ color: 'var(--text-secondary, #5F5F5F)' }}>{area.name}</span>
+                  <span style={valStyle}>{sovVal > 0 ? fmtCurrency(sovVal) : '—'}</span>
+                </div>
+              )
+            })}
+          </>
+        )
+      })()}
 
       {/* Cost Breakdown */}
       <div style={sectionHead}>Cost Breakdown</div>
