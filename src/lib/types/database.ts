@@ -89,10 +89,10 @@ export interface TMTicketRow {
 
 export interface TMWorkerRow {
   name: string | null
-  classification: string | null
   hours: number | string | null
   overtime_hours: number | string | null
-  rate: number | string | null
+  labor_class_id: string | null
+  labor_classes?: { id: string; name: string | null } | null
 }
 
 export interface TMItemRow {

@@ -57,7 +57,7 @@ function downloadFile(content, filename, mimeType = 'text/csv') {
  * Format matches Sage's CSV import template:
  * Job, Extra, Cost Type, Category, Transaction Date, Description, Units, Amount
  */
-export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRates = {}) {
+export function exportSageJobCostCSV(project, tickets, costCodes = [], ratesByLaborClassId = {}) {
   const headers = [
     { key: 'job', label: 'Job' },
     { key: 'extra', label: 'Extra' },
@@ -87,11 +87,17 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
     const materialCategory = costCode?.code || DEFAULT_CATEGORIES.material
     const workDate = formatSageDate(ticket.work_date)
 
-    // Labor entries from T&M workers
+    // Labor entries from T&M workers.
+    // Rates are keyed on labor_class_id — the t_and_m_workers table has no rate
+    // or classification column, so we resolve both from the labor_classes /
+    // labor_class_rates lookup passed in by the caller.
     for (const worker of (ticket.t_and_m_workers || [])) {
       const regHours = parseFloat(worker.hours) || 0
       const otHours = parseFloat(worker.overtime_hours) || 0
-      const rate = parseFloat(worker.rate || laborRates[worker.classification]) || 0
+      const classEntry = worker.labor_class_id ? ratesByLaborClassId[worker.labor_class_id] : null
+      const regRate = parseFloat(classEntry?.regular_rate) || 0
+      const otRate = parseFloat(classEntry?.overtime_rate) || 0
+      const className = classEntry?.name || 'General'
 
       if (regHours > 0) {
         rows.push({
@@ -100,24 +106,23 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
           costType: SAGE_COST_TYPES.labor.code,
           category: laborCategory,
           transDate: workDate,
-          description: `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+          description: `Labor - ${worker.name || 'Worker'} (${className})`,
           units: regHours.toFixed(2),
-          unitCost: rate.toFixed(2),
-          amount: (regHours * rate).toFixed(2),
+          unitCost: regRate.toFixed(2),
+          amount: (regHours * regRate).toFixed(2),
           vendor: '',
           reference: `TM-${ticket.id?.substring(0, 8) || ''}`
         })
       }
 
       if (otHours > 0) {
-        const otRate = rate * 1.5
         rows.push({
           job: jobNumber,
           extra: '',
           costType: SAGE_COST_TYPES.labor.code,
           category: laborCategory,
           transDate: workDate,
-          description: `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+          description: `OT Labor - ${worker.name || 'Worker'} (${className})`,
           units: otHours.toFixed(2),
           unitCost: otRate.toFixed(2),
           amount: (otHours * otRate).toFixed(2),

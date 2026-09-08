@@ -107,24 +107,30 @@ export async function exportJobCostTransactions(
 
   const start = performance.now()
   try {
-    // Fetch project for job number
+    // Fetch project for job number + rate context (labor rates key on work_type/job_type)
     const { data: project, error: projErr } = await supabase
       .from('projects')
-      .select('id, name, job_number')
+      .select('id, name, job_number, company_id, work_type, job_type')
       .eq('id', projectId)
       .single()
 
     if (projErr) throw projErr
-    const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
+    const typedProject = project as Pick<
+      ProjectRow,
+      'id' | 'name' | 'job_number' | 'company_id' | 'work_type' | 'job_type'
+    >
 
-    // Fetch T&M tickets with workers and items, joined to cost codes
+    // Fetch T&M tickets with workers and items, joined to cost codes.
+    // Worker rates live in labor_class_rates (keyed on labor_class_id + work_type +
+    // job_type), not on t_and_m_workers, so we join labor_classes for the display
+    // name and resolve rates from a company-wide lookup below.
     let query = supabase
       .from('t_and_m_tickets')
       .select(`
         id, work_date, notes, status,
         cost_code_id,
         cost_codes (id, code, description, category),
-        t_and_m_workers (name, classification, hours, overtime_hours, rate),
+        t_and_m_workers (name, hours, overtime_hours, labor_class_id, labor_classes (id, name)),
         t_and_m_items (description, quantity, materials_equipment (name, cost_per_unit))
       `)
       .eq('project_id', projectId)
@@ -139,6 +145,39 @@ export async function exportJobCostTransactions(
 
     const { data: tickets, error: ticketErr } = await query
     if (ticketErr) throw ticketErr
+
+    // Build a labor_class_id → { regular_rate, overtime_rate } lookup scoped to
+    // this project's company and work/job type. Falls back to 0 when a class has
+    // no rate configured, which mirrors the previous silent-zero behaviour but is
+    // now correct when rates do exist.
+    const workType = typedProject.work_type || 'demolition'
+    const jobType = typedProject.job_type || 'standard'
+    const rateLookup: Record<string, { regular_rate: number; overtime_rate: number }> = {}
+    if (typedProject.company_id) {
+      const { data: classRows } = await supabase
+        .from('labor_classes')
+        .select('id, labor_class_rates (work_type, job_type, regular_rate, overtime_rate)')
+        .eq('company_id', typedProject.company_id)
+      for (const lc of (classRows || []) as Array<{
+        id: string
+        labor_class_rates?: Array<{
+          work_type: string
+          job_type: string
+          regular_rate: number | string | null
+          overtime_rate: number | string | null
+        }> | null
+      }>) {
+        const match = (lc.labor_class_rates || []).find(
+          (r) => r.work_type === workType && r.job_type === jobType
+        )
+        if (match) {
+          rateLookup[lc.id] = {
+            regular_rate: Number(match.regular_rate) || 0,
+            overtime_rate: Number(match.overtime_rate) || 0
+          }
+        }
+      }
+    }
 
     const jobNumber = typedProject.job_number || typedProject.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
     const rows: SageRow[] = []
@@ -158,10 +197,14 @@ export async function exportJobCostTransactions(
       for (const worker of (ticket.t_and_m_workers || [])) {
         const regHours = parseFloat(String(worker.hours)) || 0
         const otHours = parseFloat(String(worker.overtime_hours)) || 0
-        const rate = parseFloat(String(worker.rate)) || 0
+        const classId = worker.labor_class_id || ''
+        const rates = (classId && rateLookup[classId]) || { regular_rate: 0, overtime_rate: 0 }
+        const regRate = rates.regular_rate
+        const otRate = rates.overtime_rate
+        const className = worker.labor_classes?.name || 'General'
 
         if (regHours > 0) {
-          const amount = regHours * rate
+          const amount = regHours * regRate
           totalAmount += amount
           laborTotal += amount
           rows.push({
@@ -170,9 +213,9 @@ export async function exportJobCostTransactions(
             'Cost Type': SAGE_COST_TYPE_MAP.labor,
             'Category': laborCategory,
             'Trans Date': workDate,
-            'Description': `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+            'Description': `Labor - ${worker.name || 'Worker'} (${className})`,
             'Units': regHours.toFixed(2),
-            'Unit Cost': rate.toFixed(2),
+            'Unit Cost': regRate.toFixed(2),
             'Amount': amount.toFixed(2),
             'Vendor': worker.name || '',
             'Reference': `TM-${ticket.id?.substring(0, 8) || ''}`
@@ -180,7 +223,6 @@ export async function exportJobCostTransactions(
         }
 
         if (otHours > 0) {
-          const otRate = rate * 1.5
           const amount = otHours * otRate
           totalAmount += amount
           laborTotal += amount
@@ -190,7 +232,7 @@ export async function exportJobCostTransactions(
             'Cost Type': SAGE_COST_TYPE_MAP.labor,
             'Category': laborCategory,
             'Trans Date': workDate,
-            'Description': `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+            'Description': `OT Labor - ${worker.name || 'Worker'} (${className})`,
             'Units': otHours.toFixed(2),
             'Unit Cost': otRate.toFixed(2),
             'Amount': amount.toFixed(2),
