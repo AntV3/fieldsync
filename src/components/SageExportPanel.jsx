@@ -299,7 +299,27 @@ export default function SageExportPanel({
 
   const loadTicketsAndExport = async () => {
     const tickets = await db.getTMTickets(project.id)
-    return exportSageJobCostCSV(project, tickets, costCodes)
+    // Worker rates live in labor_class_rates keyed on (labor_class_id, work_type,
+    // job_type); build the lookup here so the exporter can price each labor line.
+    const ratesByLaborClassId = {}
+    if (company?.id) {
+      const workType = project?.work_type || 'demolition'
+      const jobType = project?.job_type || 'standard'
+      const classes = (await db.getAllLaborClassRates?.(company.id)) || []
+      for (const lc of classes) {
+        const match = (lc.labor_class_rates || []).find(
+          r => r.work_type === workType && r.job_type === jobType
+        )
+        if (match) {
+          ratesByLaborClassId[lc.id] = {
+            name: lc.name,
+            regular_rate: match.regular_rate,
+            overtime_rate: match.overtime_rate
+          }
+        }
+      }
+    }
+    return exportSageJobCostCSV(project, tickets, costCodes, ratesByLaborClassId)
   }
 
   const sections = [
