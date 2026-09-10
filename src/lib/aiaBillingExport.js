@@ -33,9 +33,21 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
     }
   }
 
-  // Original contract line items from areas
+  const contractValue = Number(project?.contract_value) || 0
+
+  // Original contract line items from areas.
+  // areas.scheduled_value is the real dollar column (see migration
+  // 20241201000040_area_scheduled_value.sql). area.weight is a percentage
+  // (0-100), so when scheduled_value is null we must convert it to dollars
+  // against the project's contract value — never fall through as a raw
+  // percentage into the SOV, which would produce a $12.50 G702 for a $500K job
+  // and negative Line 8 payment-due once any prior draw is applied.
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    const rawScheduled = Number(area.scheduled_value)
+    const weight = Number(area.weight) || 0
+    const scheduledValue = Number.isFinite(rawScheduled) && rawScheduled > 0
+      ? rawScheduled
+      : (contractValue > 0 ? (weight / 100) * contractValue : 0)
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

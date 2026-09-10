@@ -130,26 +130,31 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   }, [companyMaterials, equipmentSearch])
 
   const addMaterialFromLibrary = (libraryItem) => {
+    // materials_equipment.cost_per_unit is stored in dollars; the COR form's
+    // unit_cost / total are cents (see the parseFloat(...) * 100 write path
+    // and the / 100 read path in the inputs below). Convert on add.
+    const unitCostCents = Math.round((parseFloat(libraryItem.cost_per_unit) || 0) * 100)
     setMaterialsItems([...materialsItems, {
       description: libraryItem.name,
       source_type: 'field_ticket',
       source_reference: '',
       quantity: 1,
       unit: libraryItem.unit || 'each',
-      unit_cost: libraryItem.cost_per_unit || 0,
-      total: libraryItem.cost_per_unit || 0
+      unit_cost: unitCostCents,
+      total: unitCostCents
     }])
   }
 
   const addEquipmentFromLibrary = (libraryItem) => {
+    const unitCostCents = Math.round((parseFloat(libraryItem.cost_per_unit) || 0) * 100)
     setEquipmentItems([...equipmentItems, {
       description: libraryItem.name,
       source_type: 'rental',
       source_reference: '',
       quantity: 1,
       unit: libraryItem.unit || 'day',
-      unit_cost: libraryItem.cost_per_unit || 0,
-      total: libraryItem.cost_per_unit || 0
+      unit_cost: unitCostCents,
+      total: unitCostCents
     }])
   }
 
