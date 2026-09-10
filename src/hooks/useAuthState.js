@@ -119,6 +119,33 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
+      // MFA gate on reload / new tab / SIGNED_IN / TOKEN_REFRESHED. Supabase
+      // persists an aal1 session to localStorage the moment signInWithPassword
+      // returns, before the MFAChallenge modal completes. Without this check,
+      // reloading the tab (which drops React state but keeps the aal1 token)
+      // lets checkAuth call loadUserAndCompany + navigate straight to
+      // /dashboard, fully bypassing the second factor. Consult
+      // getAuthenticatorAssuranceLevel and short-circuit into the challenge
+      // when the user has a verified TOTP factor but is still at aal1.
+      try {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2') {
+          const { data: factors } = await supabase.auth.mfa.listFactors()
+          const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
+          if (verifiedFactor) {
+            setMfaFactorId(verifiedFactor.id)
+            setMfaPending(true)
+            setLoading(false)
+            return
+          }
+        }
+      } catch (mfaErr) {
+        // If the MFA API itself fails (offline, transient), fall through
+        // rather than hard-blocking login — but log so this doesn't hide a
+        // real problem.
+        console.warn('[auth] MFA level check failed:', mfaErr?.message || mfaErr)
+      }
+
       const result = await loadUserAndCompany(authUser.id)
       if (!result) return
 

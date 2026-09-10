@@ -107,24 +107,59 @@ export async function exportJobCostTransactions(
 
   const start = performance.now()
   try {
-    // Fetch project for job number
+    // Fetch project for job number + rate context (work_type/job_type drive the
+    // labor_class_rates lookup below).
     const { data: project, error: projErr } = await supabase
       .from('projects')
-      .select('id, name, job_number')
+      .select('id, name, job_number, work_type, job_type, company_id')
       .eq('id', projectId)
       .single()
 
     if (projErr) throw projErr
-    const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
+    const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'> & {
+      work_type?: string | null
+      job_type?: string | null
+      company_id?: string | null
+    }
 
-    // Fetch T&M tickets with workers and items, joined to cost codes
+    // Fetch labor class rates for this project's work/job type so we can price
+    // T&M worker rows. `t_and_m_workers` has no `rate` or `classification`
+    // columns (see 20241201000010_schema.sql + 20241201000220_labor_classes.sql);
+    // rates live on labor_class_rates keyed by (labor_class_id, work_type, job_type).
+    const workType = typedProject.work_type || 'demolition'
+    const jobType = typedProject.job_type || 'standard'
+    const rateByLaborClassId = new Map<string, number>()
+    const nameByLaborClassId = new Map<string, string>()
+    if (typedProject.company_id) {
+      const { data: classes } = await supabase
+        .from('labor_classes')
+        .select('id, name, labor_class_rates (work_type, job_type, regular_rate)')
+        .eq('company_id', typedProject.company_id)
+      for (const lc of ((classes || []) as Array<{
+        id: string
+        name: string
+        labor_class_rates?: Array<{ work_type: string; job_type: string; regular_rate: number | string }>
+      }>)) {
+        nameByLaborClassId.set(lc.id, lc.name)
+        const match = (lc.labor_class_rates || []).find(
+          r => r.work_type === workType && r.job_type === jobType
+        )
+        if (match) {
+          const rate = parseFloat(String(match.regular_rate)) || 0
+          if (rate > 0) rateByLaborClassId.set(lc.id, rate)
+        }
+      }
+    }
+
+    // Fetch T&M tickets with workers and items, joined to cost codes.
+    // Select only real worker columns; rate is resolved from labor_class_rates above.
     let query = supabase
       .from('t_and_m_tickets')
       .select(`
         id, work_date, notes, status,
         cost_code_id,
         cost_codes (id, code, description, category),
-        t_and_m_workers (name, classification, hours, overtime_hours, rate),
+        t_and_m_workers (name, role, labor_class_id, hours, overtime_hours),
         t_and_m_items (description, quantity, materials_equipment (name, cost_per_unit))
       `)
       .eq('project_id', projectId)
@@ -158,7 +193,10 @@ export async function exportJobCostTransactions(
       for (const worker of (ticket.t_and_m_workers || [])) {
         const regHours = parseFloat(String(worker.hours)) || 0
         const otHours = parseFloat(String(worker.overtime_hours)) || 0
-        const rate = parseFloat(String(worker.rate)) || 0
+        const laborClassId = (worker as { labor_class_id?: string | null }).labor_class_id
+        const role = (worker as { role?: string | null }).role || 'General'
+        const className = (laborClassId && nameByLaborClassId.get(laborClassId)) || role
+        const rate = (laborClassId && rateByLaborClassId.get(laborClassId)) || 0
 
         if (regHours > 0) {
           const amount = regHours * rate
@@ -170,7 +208,7 @@ export async function exportJobCostTransactions(
             'Cost Type': SAGE_COST_TYPE_MAP.labor,
             'Category': laborCategory,
             'Trans Date': workDate,
-            'Description': `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+            'Description': `Labor - ${worker.name || 'Worker'} (${className})`,
             'Units': regHours.toFixed(2),
             'Unit Cost': rate.toFixed(2),
             'Amount': amount.toFixed(2),
@@ -190,7 +228,7 @@ export async function exportJobCostTransactions(
             'Cost Type': SAGE_COST_TYPE_MAP.labor,
             'Category': laborCategory,
             'Trans Date': workDate,
-            'Description': `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+            'Description': `OT Labor - ${worker.name || 'Worker'} (${className})`,
             'Units': otHours.toFixed(2),
             'Unit Cost': otRate.toFixed(2),
             'Amount': amount.toFixed(2),
@@ -268,7 +306,7 @@ export async function exportChangeOrderSummary(projectId: string): Promise<SageE
     const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
 
     const { data: cors, error: corErr } = await supabase
-      .from('change_order_requests')
+      .from('change_orders')
       .select(`
         id, cor_number, title, status, cor_total, approved_at,
         cost_code_id,
