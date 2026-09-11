@@ -375,8 +375,10 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
-      // Project equipment rental costs (daily rate * days on site, stored in cents)
-      const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
+      // Project equipment rental costs (daily rate * days on site).
+      // daily_rate is stored in cents (INTEGER), so convert to dollars before
+      // adding it to the other dollar-denominated cost buckets.
+      const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || []) / 100
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
       // Total billed from invoices (for cash flow analytics)

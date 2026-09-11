@@ -119,6 +119,29 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
+      // Enforce MFA on session restore. Without this, a user who signed in with
+      // a password (aal1) and never completed the TOTP challenge could refresh
+      // past the MFA modal and land on the dashboard.
+      try {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+          const { data: factors } = await supabase.auth.mfa.listFactors()
+          const verifiedFactor = factors?.totp?.find(f => f.status === 'verified')
+          if (verifiedFactor) {
+            setMfaFactorId(verifiedFactor.id)
+            setMfaPending(true)
+            setLoading(false)
+            return
+          }
+        }
+      } catch (mfaErr) {
+        // If the MFA check itself fails, don't silently grant dashboard access.
+        console.warn('[auth] MFA check failed, forcing sign-in:', mfaErr)
+        await supabase.auth.signOut({ scope: 'local' })
+        setLoading(false)
+        return
+      }
+
       const result = await loadUserAndCompany(authUser.id)
       if (!result) return
 

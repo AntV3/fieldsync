@@ -165,24 +165,26 @@ export async function getPortfolioFinancialSummary(companyId: string): Promise<P
 
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
 
-  // Fetch areas, change orders, T&M tickets, and crew checkins in parallel
+  // Fetch areas, change orders, T&M tickets, and crew checkins in parallel.
+  // change_orders stores its total as cor_total (cents); there is no total_value.
+  // t_and_m_tickets has no per-ticket total column at all — see the TODO note
+  // below for how the TM cost is currently accounted.
   const [areasRes, corsRes, ticketsRes, checkinsRes] = await Promise.all([
     supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
-    supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
-    supabase.from('t_and_m_tickets').select('project_id, total_value, status').in('project_id', projectIds),
+    supabase.from('change_orders').select('project_id, cor_total, status').in('project_id', projectIds),
+    supabase.from('t_and_m_tickets').select('project_id, status').in('project_id', projectIds),
     supabase.from('crew_checkins').select('project_id, worker_count, checkin_date').in('project_id', projectIds),
   ])
 
   let totalContractValue = 0
   let totalEarned = 0
   let totalCORApproved = 0
-  let totalTMValue = 0
+  const totalTMValue = 0 // TODO: derive from joined labor/items rows (see fieldOps.calculateManDayCosts)
   let totalCrewManDays = 0
 
   // Compute earned per project from area weights
   const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
   const corsByProject = groupBy((corsRes.data || []) as ChangeOrderRow[], 'project_id')
-  const ticketsByProject = groupBy((ticketsRes.data || []) as TMTicketRow[], 'project_id')
   const checkinsByProject = groupBy((checkinsRes.data || []) as CrewCheckinRow[], 'project_id')
 
   for (const project of projects as ProjectRow[]) {
@@ -194,16 +196,10 @@ export async function getPortfolioFinancialSummary(companyId: string): Promise<P
     const progress = calculateWeightedProgress(areas)
     totalEarned += cv * (progress / 100)
 
-    // COR approved values
+    // COR approved values — cor_total is in cents, convert to dollars.
     const cors = corsByProject[project.id] || []
     for (const cor of cors) {
-      if (cor.status === 'approved') totalCORApproved += cor.total_value || 0
-    }
-
-    // T&M ticket values
-    const tickets = ticketsByProject[project.id] || []
-    for (const t of tickets) {
-      totalTMValue += t.total_value || 0
+      if (cor.status === 'approved') totalCORApproved += (cor.cor_total || 0) / 100
     }
 
     // Crew man-days (each checkin worker_count = workers on site that day)
@@ -212,6 +208,7 @@ export async function getPortfolioFinancialSummary(companyId: string): Promise<P
       totalCrewManDays += c.worker_count || 1
     }
   }
+  void ticketsRes // TODO: aggregate ticket-derived costs (labor + materials)
 
   const totalCosts = totalTMValue // T&M tickets as tracked costs
   const totalRevenue = totalEarned + totalCORApproved
@@ -248,7 +245,7 @@ export async function getProjectFinancialComparison(companyId: string): Promise<
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes] = await Promise.all([
     supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
-    supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
+    supabase.from('change_orders').select('project_id, cor_total, status').in('project_id', projectIds),
   ])
 
   const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
@@ -260,7 +257,7 @@ export async function getProjectFinancialComparison(companyId: string): Promise<
     const earned = (p.contract_value || 0) * (progress / 100)
     const cors = (corsByProject[p.id] || [])
       .filter(c => c.status === 'approved')
-      .reduce((sum, c) => sum + (c.total_value || 0), 0)
+      .reduce((sum, c) => sum + (c.cor_total || 0) / 100, 0)
 
     return {
       name: truncateName(p.name),
@@ -289,14 +286,16 @@ export async function getMonthlyRevenueTimeline(companyId: string, months = 12):
 
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
 
-  // Fetch actual financial data: approved CORs and T&M tickets with timestamps
+  // Fetch actual financial data: approved CORs and T&M tickets with timestamps.
+  // cor_total is in cents; there is no total_value column. Ticket cost is
+  // pending a proper labor+items derivation — see TODO in the loop below.
   const [corsRes, ticketsRes, areasRes] = await Promise.all([
     supabase.from('change_orders')
-      .select('project_id, total_value, status, updated_at')
+      .select('project_id, cor_total, status, updated_at')
       .in('project_id', projectIds)
       .eq('status', 'approved'),
     supabase.from('t_and_m_tickets')
-      .select('project_id, total_value, created_at')
+      .select('project_id, created_at')
       .in('project_id', projectIds),
     supabase.from('areas')
       .select('project_id, weight, is_complete, updated_at')
@@ -352,25 +351,20 @@ export async function getMonthlyRevenueTimeline(companyId: string, months = 12):
     }
   }
 
-  // Attribute approved COR values to the month they were approved
+  // Attribute approved COR values to the month they were approved (cents → $)
   for (const cor of ((corsRes.data || []) as ChangeOrderRow[])) {
     if (!cor.updated_at) continue
     const d = new Date(cor.updated_at)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (monthlyMap[key]) {
-      monthlyMap[key].corValue += cor.total_value || 0
+      monthlyMap[key].corValue += (cor.cor_total || 0) / 100
     }
   }
 
-  // Attribute T&M costs to the month they were created
-  for (const ticket of ((ticketsRes.data || []) as TMTicketRow[])) {
-    if (!ticket.created_at) continue
-    const d = new Date(ticket.created_at)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (monthlyMap[key]) {
-      monthlyMap[key].costs += ticket.total_value || 0
-    }
-  }
+  // TODO: attribute T&M costs to the month they were created. Requires
+  // deriving cost from labor_class_rates × hours + materials_equipment cost;
+  // wired via the tickets query above once that helper exists.
+  void ticketsRes
 
   // Round values
   for (const entry of Object.values(monthlyMap)) {
@@ -496,15 +490,18 @@ export async function getLaborCostByProject(companyId: string): Promise<LaborCos
   if (!projects?.length) return []
 
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
+  // TODO: t_and_m_tickets has no total_value column; a proper labor-cost
+  // derivation joins t_and_m_workers × labor_class_rates. Until then the
+  // per-project labor cost surfaces as $0 so the query does not fail.
   const { data: tickets } = await supabase
     .from('t_and_m_tickets')
-    .select('project_id, total_value')
+    .select('project_id')
     .in('project_id', projectIds)
 
   const ticketsByProject = groupBy((tickets || []) as TMTicketRow[], 'project_id')
 
   return (projects as ProjectRow[]).map(p => {
-    const laborCost = (ticketsByProject[p.id] || []).reduce((s, t) => s + (t.total_value || 0), 0)
+    const laborCost = (ticketsByProject[p.id] || []).reduce((s) => s + 0, 0)
     return {
       name: truncateName(p.name),
       fullName: p.name,
@@ -663,7 +660,7 @@ export async function getCORSummaryAcrossProjects(companyId: string): Promise<CO
   const projectIds = (projects as Pick<ProjectRow, 'id'>[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
-    .select('project_id, total_value, status, created_at, updated_at')
+    .select('project_id, cor_total, status, created_at, updated_at')
     .in('project_id', projectIds)
 
   const allCors = (cors || []) as ChangeOrderRow[]
@@ -671,7 +668,7 @@ export async function getCORSummaryAcrossProjects(companyId: string): Promise<CO
   let approvedValue = 0, pendingValue = 0, rejectedValue = 0
 
   for (const cor of allCors) {
-    const val = cor.total_value || 0
+    const val = (cor.cor_total || 0) / 100
     if (cor.status === 'approved') { approved++; approvedValue += val }
     else if (cor.status === 'pending') { pending++; pendingValue += val }
     else if (cor.status === 'rejected') { rejected++; rejectedValue += val }
@@ -709,7 +706,7 @@ export async function getCORByProject(companyId: string): Promise<CORByProjectEn
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
-    .select('project_id, total_value, status')
+    .select('project_id, status')
     .in('project_id', projectIds)
 
   const corsByProject = groupBy((cors || []) as ChangeOrderRow[], 'project_id')
@@ -744,7 +741,7 @@ export async function getCORTrendByMonth(companyId: string, months = 12): Promis
   const projectIds = (projects as Pick<ProjectRow, 'id'>[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
-    .select('created_at, total_value, status')
+    .select('created_at, cor_total, status')
     .in('project_id', projectIds)
     .gte('created_at', startDate.toISOString())
 
@@ -766,7 +763,7 @@ export async function getCORTrendByMonth(companyId: string, months = 12): Promis
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (monthlyMap[key]) {
       monthlyMap[key].count++
-      monthlyMap[key].value += cor.total_value || 0
+      monthlyMap[key].value += (cor.cor_total || 0) / 100
     }
   }
 
@@ -791,8 +788,9 @@ export async function getPortfolioRiskMatrix(companyId: string): Promise<RiskMat
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes, ticketsRes] = await Promise.all([
     supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
-    supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
-    supabase.from('t_and_m_tickets').select('project_id, total_value').in('project_id', projectIds),
+    supabase.from('change_orders').select('project_id, cor_total, status').in('project_id', projectIds),
+    // TODO: replace with a labor+items-derived cost query — no total_value column exists.
+    supabase.from('t_and_m_tickets').select('project_id').in('project_id', projectIds),
   ])
 
   const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
@@ -807,8 +805,9 @@ export async function getPortfolioRiskMatrix(companyId: string): Promise<RiskMat
 
     const approvedCORValue = (corsByProject[p.id] || [])
       .filter(c => c.status === 'approved')
-      .reduce((s, c) => s + (c.total_value || 0), 0)
-    const tmCost = (ticketsByProject[p.id] || []).reduce((s, t) => s + (t.total_value || 0), 0)
+      .reduce((s, c) => s + (c.cor_total || 0) / 100, 0)
+    // Placeholder while TM cost derivation is unimplemented — see TODO above.
+    const tmCost = (ticketsByProject[p.id] || []).reduce((s) => s + 0, 0)
 
     const totalBudget = cv + approvedCORValue
     const costRatio = totalBudget > 0 ? tmCost / totalBudget : 0

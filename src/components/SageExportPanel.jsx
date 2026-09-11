@@ -4,7 +4,7 @@
  * Includes a live data preview so users can verify data before exporting.
  */
 import { useState } from 'react'
-import { db } from '../lib/supabase'
+import { db, supabase } from '../lib/supabase'
 import {
   exportSageJobCostCSV,
   exportSageChangeOrdersCSV,
@@ -177,7 +177,7 @@ function ExportPreview({ project, areas, financialData }) {
         <>
           <div style={sectionHead}>Schedule of Values ({areas.length} items)</div>
           {areas.map((area, i) => {
-            const sovVal = area.sov_value || area.weight || 0
+            const sovVal = Number(area.scheduled_value || 0)
             return (
               <div key={area.id || i} style={row}>
                 <span style={{ color: 'var(--text-secondary, #5F5F5F)' }}>{area.name}</span>
@@ -299,7 +299,34 @@ export default function SageExportPanel({
 
   const loadTicketsAndExport = async () => {
     const tickets = await db.getTMTickets(project.id)
-    return exportSageJobCostCSV(project, tickets, costCodes)
+    // Look up rates so labor rows have a non-zero unit cost. Uses the same
+    // resolution the on-screen calculator does: labor_class_rates (current
+    // schema) first, then legacy labor_rates by role.
+    const workType = project?.work_type || null
+    const jobType = project?.job_type || null
+    const companyId = company?.id || project?.company_id
+    let classQuery = supabase
+      .from('labor_class_rates')
+      .select('labor_class_id, regular_rate, overtime_rate, work_type, job_type')
+    if (workType) classQuery = classQuery.eq('work_type', workType)
+    if (jobType) classQuery = classQuery.eq('job_type', jobType)
+    let roleQuery = supabase
+      .from('labor_rates')
+      .select('role, regular_rate, overtime_rate, work_type, job_type')
+    if (companyId) roleQuery = roleQuery.eq('company_id', companyId)
+    if (workType) roleQuery = roleQuery.eq('work_type', workType)
+    if (jobType) roleQuery = roleQuery.eq('job_type', jobType)
+    const [classRes, roleRes] = await Promise.all([classQuery, roleQuery])
+    const byClass = {}
+    for (const r of (classRes.data || [])) {
+      byClass[r.labor_class_id] = { regular: r.regular_rate, overtime: r.overtime_rate }
+    }
+    const byRole = {}
+    for (const r of (roleRes.data || [])) {
+      if (!r.role) continue
+      byRole[String(r.role).toLowerCase()] = { regular: r.regular_rate, overtime: r.overtime_rate }
+    }
+    return exportSageJobCostCSV(project, tickets, costCodes, { byClass, byRole })
   }
 
   const sections = [

@@ -72,21 +72,35 @@ export function projectReceivables(projects, invoices, config) {
   const now = new Date()
   const entries = []
 
-  // Outstanding invoices (already billed, awaiting payment)
+  // Outstanding invoices (already billed, awaiting payment).
+  // Invoice statuses per supabase/migrations/20241201000050_billing.sql:
+  //   draft | sent | partial | paid | void
+  // There is no 'pending' or 'overdue' status — overdue is derived from due_date.
+  // Amounts are stored in cents on `total` and `amount_paid`.
   const outstanding = invoices.filter(inv =>
-    inv.status === 'sent' || inv.status === 'pending' || inv.status === 'overdue'
+    inv.status === 'sent' || inv.status === 'partial'
   )
 
   for (const inv of outstanding) {
-    const invoiceDate = new Date(inv.date || inv.created_at)
-    const dueDate = new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
+    const invoiceDate = new Date(inv.invoice_date || inv.date || inv.created_at)
+    const dueDate = inv.due_date
+      ? new Date(inv.due_date)
+      : new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
     const isOverdue = dueDate < now
+
+    // Prefer the cents-based schema (total + amount_paid). Fall back to a
+    // pre-computed `amount` for callers that pass an already-normalized shape.
+    const totalCents = Number(inv.total)
+    const paidCents = Number(inv.amount_paid) || 0
+    const outstandingDollars = Number.isFinite(totalCents)
+      ? Math.max(0, (totalCents - paidCents) / 100)
+      : Number(inv.amount) || 0
 
     entries.push({
       type: 'outstanding',
       projectId: inv.project_id,
       projectName: inv.project_name || 'Unknown',
-      amount: inv.amount || 0,
+      amount: outstandingDollars,
       date: invoiceDate.toISOString().split('T')[0],
       expectedDate: dueDate.toISOString().split('T')[0],
       status: isOverdue ? 'overdue' : 'pending',
