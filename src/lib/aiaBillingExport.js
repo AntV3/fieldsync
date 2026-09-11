@@ -35,7 +35,10 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
 
   // Original contract line items from areas
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    // Schedule of Values comes from areas.scheduled_value (dollars).
+    // Never fall back to areas.weight — weight is a percentage and would put
+    // "$5" on the G702/G703 for a $50,000 area.
+    const scheduledValue = area.scheduled_value || 0
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

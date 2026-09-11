@@ -1310,12 +1310,14 @@ export const corOps = {
 
   async rejectCOR(corId, reason = null, rejectedBy = null) {
     if (isSupabaseConfigured) {
+      // Note: change_orders has no rejected_at/billed_at/closed_at columns —
+      // the audit timestamps live in cor_status_history rows created by
+      // _logCORStatusChange below.
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           status: 'rejected',
           rejection_reason: reason,
-          rejected_at: new Date().toISOString(),
           // Clear any previous approval
           approved_by: null,
           approved_at: null
@@ -1338,10 +1340,7 @@ export const corOps = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
-        .update({
-          status: 'billed',
-          billed_at: new Date().toISOString()
-        })
+        .update({ status: 'billed' })
         .eq('id', corId)
         .in('status', ['approved'])
         .select()
@@ -1359,10 +1358,7 @@ export const corOps = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('change_orders')
-        .update({
-          status: 'closed',
-          closed_at: new Date().toISOString()
-        })
+        .update({ status: 'closed' })
         .eq('id', corId)
         .in('status', ['billed'])
         .select()
@@ -2436,31 +2432,48 @@ export const corOps = {
     return true
   },
 
-  // Mark CORs and T&M tickets as billed after creating invoice
-  async markItemsBilled(corIds = [], tmIds = []) {
-    if (isSupabaseConfigured) {
-      // Update CORs to 'billed' status
-      if (corIds.length > 0) {
-        const { error: corsError } = await supabase
-          .from('change_orders')
-          .update({ status: 'billed' })
-          .in('id', corIds)
+  // Mark CORs and T&M tickets as billed after creating invoice.
+  //
+  // Guards the update so only rows in a status that legitimately transitions
+  // to 'billed' are flipped, and writes one cor_status_history row per COR
+  // that was actually updated. Without the .in('status', ...) filter a caller
+  // that accidentally passed a draft/rejected COR id would silently jump the
+  // state machine from draft → billed with no audit trail.
+  async markItemsBilled(corIds = [], tmIds = [], userId = null) {
+    if (!isSupabaseConfigured) return
 
-        if (corsError) {
-          console.error('Error marking CORs as billed:', corsError)
+    // Update CORs (approved -> billed only)
+    if (corIds.length > 0) {
+      const { data: updated, error: corsError } = await supabase
+        .from('change_orders')
+        .update({ status: 'billed' })
+        .in('id', corIds)
+        .in('status', ['approved'])
+        .select('id')
+
+      if (corsError) {
+        console.error('Error marking CORs as billed:', corsError)
+      } else if (updated?.length) {
+        for (const row of updated) {
+          try {
+            await this._logCORStatusChange(row.id, 'billed', userId, 'Marked as billed via invoice')
+          } catch (logErr) {
+            console.warn('Failed to log COR status change:', logErr)
+          }
         }
       }
+    }
 
-      // Update T&M tickets to 'billed' status
-      if (tmIds.length > 0) {
-        const { error: tmError } = await supabase
-          .from('t_and_m_tickets')
-          .update({ status: 'billed' })
-          .in('id', tmIds)
+    // Update T&M tickets (pending or approved -> billed only)
+    if (tmIds.length > 0) {
+      const { error: tmError } = await supabase
+        .from('t_and_m_tickets')
+        .update({ status: 'billed' })
+        .in('id', tmIds)
+        .in('status', ['pending', 'approved'])
 
-        if (tmError) {
-          console.error('Error marking T&M tickets as billed:', tmError)
-        }
+      if (tmError) {
+        console.error('Error marking T&M tickets as billed:', tmError)
       }
     }
   },

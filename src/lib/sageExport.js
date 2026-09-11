@@ -57,7 +57,15 @@ function downloadFile(content, filename, mimeType = 'text/csv') {
  * Format matches Sage's CSV import template:
  * Job, Extra, Cost Type, Category, Transaction Date, Description, Units, Amount
  */
-export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRates = {}) {
+/**
+ * @param {object} rates - Optional rate lookups. Shape:
+ *   { byClass: { [labor_class_id]: {regular, overtime} },
+ *     byRole:  { [role_lowercased]: {regular, overtime} } }
+ *   When a worker cannot be resolved, its rate is 0 (still emits a row so
+ *   the ticket appears; downstream users should notice the $0 amount and
+ *   assign a rate rather than silently exporting phantom columns).
+ */
+export function exportSageJobCostCSV(project, tickets, costCodes = [], rates = {}) {
   const headers = [
     { key: 'job', label: 'Job' },
     { key: 'extra', label: 'Extra' },
@@ -80,6 +88,25 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
     (a.work_date || '').localeCompare(b.work_date || '')
   )
 
+  const byClass = rates?.byClass || {}
+  const byRole = rates?.byRole || {}
+  const resolveRate = (worker) => {
+    if (worker?.labor_class_id && byClass[worker.labor_class_id]) {
+      const r = byClass[worker.labor_class_id]
+      const reg = parseFloat(r.regular) || 0
+      const ot = parseFloat(r.overtime) || reg * 1.5
+      return { reg, ot }
+    }
+    const roleKey = (worker?.role || '').toLowerCase()
+    if (roleKey && byRole[roleKey]) {
+      const r = byRole[roleKey]
+      const reg = parseFloat(r.regular) || 0
+      const ot = parseFloat(r.overtime) || reg * 1.5
+      return { reg, ot }
+    }
+    return { reg: 0, ot: 0 }
+  }
+
   for (const ticket of sortedTickets) {
     const costCode = costCodes.find(c => c.id === ticket.cost_code_id)
     // Use different default categories for labor vs material when no cost code assigned
@@ -87,11 +114,14 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
     const materialCategory = costCode?.code || DEFAULT_CATEGORIES.material
     const workDate = formatSageDate(ticket.work_date)
 
-    // Labor entries from T&M workers
+    // Labor entries from T&M workers.
+    // Rate comes from labor_class_rates (by labor_class_id) or labor_rates
+    // (by role) — t_and_m_workers has neither `rate` nor `classification`.
     for (const worker of (ticket.t_and_m_workers || [])) {
       const regHours = parseFloat(worker.hours) || 0
       const otHours = parseFloat(worker.overtime_hours) || 0
-      const rate = parseFloat(worker.rate || laborRates[worker.classification]) || 0
+      const { reg: rate, ot: otRate } = resolveRate(worker)
+      const classification = worker.role || 'General'
 
       if (regHours > 0) {
         rows.push({
@@ -100,7 +130,7 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
           costType: SAGE_COST_TYPES.labor.code,
           category: laborCategory,
           transDate: workDate,
-          description: `Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+          description: `Labor - ${worker.name || 'Worker'} (${classification})`,
           units: regHours.toFixed(2),
           unitCost: rate.toFixed(2),
           amount: (regHours * rate).toFixed(2),
@@ -110,14 +140,13 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
       }
 
       if (otHours > 0) {
-        const otRate = rate * 1.5
         rows.push({
           job: jobNumber,
           extra: '',
           costType: SAGE_COST_TYPES.labor.code,
           category: laborCategory,
           transDate: workDate,
-          description: `OT Labor - ${worker.name || 'Worker'} (${worker.classification || 'General'})`,
+          description: `OT Labor - ${worker.name || 'Worker'} (${classification})`,
           units: otHours.toFixed(2),
           unitCost: otRate.toFixed(2),
           amount: (otHours * otRate).toFixed(2),
@@ -273,11 +302,12 @@ export function exportSageProjectSetupCSV(project, areas, financialData = {}) {
     { field: 'SCHEDULE OF VALUES', value: '' }
   ]
 
-  // Add areas as SOV lines
+  // Add areas as SOV lines.
+  // Never fall back to areas.weight — it is a percentage, not a dollar amount.
   for (const area of (areas || [])) {
     rows.push({
       field: `SOV - ${area.name}`,
-      value: (area.sov_value || area.weight || 0).toFixed(2)
+      value: Number(area.scheduled_value || 0).toFixed(2)
     })
   }
 

@@ -47,7 +47,8 @@ export interface AreaRow {
 export interface ChangeOrderRow {
   id: string
   project_id: string
-  total_value: number | null
+  /** Total in cents (INTEGER, see supabase/migrations/20241201000060_change_orders.sql:62) */
+  cor_total: number | null
   status: 'approved' | 'pending' | 'rejected' | string
   created_at?: string
   updated_at?: string | null
@@ -82,17 +83,16 @@ export interface TMTicketRow {
   work_date?: string | null // YYYY-MM-DD
   notes?: string | null
   status: 'pending' | 'approved' | 'rejected' | string
-  total_value?: number | null
   cost_code_id?: string | null
   created_at?: string
 }
 
 export interface TMWorkerRow {
   name: string | null
-  classification: string | null
+  role: string | null
+  labor_class_id: string | null
   hours: number | string | null
   overtime_hours: number | string | null
-  rate: number | string | null
 }
 
 export interface TMItemRow {
