@@ -864,13 +864,20 @@ export const fieldOps = {
       throw new Error('Database client not available')
     }
 
-    // Fetch existing report to preserve photos and notes saved earlier
+    // Fetch existing report to preserve photos/notes saved earlier — and
+    // to detect a report that has already been submitted, so a second
+    // click doesn't silently overwrite the original audit trail
+    // (submitted_at, submitted_by).
     const { data: existing } = await client
       .from('daily_reports')
-      .select('photos, field_notes, issues')
+      .select('status, photos, field_notes, issues')
       .eq('project_id', projectId)
       .eq('report_date', reportDate)
       .maybeSingle()
+
+    if (existing?.status === 'submitted') {
+      throw new Error('Daily report for this date has already been submitted.')
+    }
 
     // Merge: compiled metrics + preserved report-level data
     const upsertData = {

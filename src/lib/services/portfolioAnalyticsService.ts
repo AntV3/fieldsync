@@ -673,7 +673,9 @@ export async function getCORSummaryAcrossProjects(companyId: string): Promise<CO
   for (const cor of allCors) {
     const val = cor.total_value || 0
     if (cor.status === 'approved') { approved++; approvedValue += val }
-    else if (cor.status === 'pending') { pending++; pendingValue += val }
+    // The change_orders CHECK constraint stores this state as 'pending_approval';
+    // 'pending' is never persisted.
+    else if (cor.status === 'pending_approval') { pending++; pendingValue += val }
     else if (cor.status === 'rejected') { rejected++; rejectedValue += val }
   }
 
@@ -720,7 +722,7 @@ export async function getCORByProject(companyId: string): Promise<CORByProjectEn
       name: truncateName(p.name),
       fullName: p.name,
       approved: pCors.filter(c => c.status === 'approved').length,
-      pending: pCors.filter(c => c.status === 'pending').length,
+      pending: pCors.filter(c => c.status === 'pending_approval').length,
       rejected: pCors.filter(c => c.status === 'rejected').length,
     }
   }).filter(p => p.approved + p.pending + p.rejected > 0)

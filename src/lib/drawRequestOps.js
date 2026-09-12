@@ -126,7 +126,9 @@ export const drawRequestOps = {
       throw drError
     }
 
-    // Insert items if provided
+    // Insert items if provided. If the items write fails, roll back the
+    // parent draw so the caller doesn't end up with a zero-item draw that
+    // silently under-counts future billings via getPreviousBillingTotals.
     if (items && items.length > 0) {
       const itemsWithDrawId = items.map((item, index) => ({
         ...item,
@@ -140,7 +142,8 @@ export const drawRequestOps = {
 
       if (itemsError) {
         console.error('Error creating draw request items:', itemsError)
-        // Don't throw - draw request was created, items can be added later
+        await supabase.from('draw_requests').delete().eq('id', dr.id)
+        throw itemsError
       }
     }
 
@@ -149,7 +152,9 @@ export const drawRequestOps = {
   },
 
   /**
-   * Update a draw request
+   * Update a draw request. Only content fields are writable through this
+   * path — state transitions must go through updateDrawRequestStatus so the
+   * status enum and paired timestamp columns stay consistent.
    */
   async updateDrawRequest(drawRequestId, updates) {
     if (!isSupabaseConfigured) {
@@ -157,9 +162,30 @@ export const drawRequestOps = {
       return null
     }
 
+    const ALLOWED_FIELDS = [
+      'period_start',
+      'period_end',
+      'original_contract',
+      'approved_changes',
+      'previous_billings',
+      'current_billing',
+      'retention_percent',
+      'retention_held',
+      'previous_retention',
+      'notes',
+      // Timestamps written by updateDrawRequestStatus
+      'status',
+      'submitted_at',
+      'approved_at',
+      'paid_at'
+    ]
+    const filtered = Object.fromEntries(
+      Object.entries(updates || {}).filter(([k]) => ALLOWED_FIELDS.includes(k))
+    )
+
     const { data, error } = await supabase
       .from('draw_requests')
-      .update(updates)
+      .update(filtered)
       .eq('id', drawRequestId)
       .select()
       .single()
@@ -238,7 +264,9 @@ export const drawRequestOps = {
   },
 
   /**
-   * Delete a draft draw request
+   * Delete a draft draw request. Once submitted, approved, or paid the
+   * draw is part of the billing history and getPreviousBillingTotals reads
+   * from it, so deletion is refused unless the draw is still a draft.
    */
   async deleteDrawRequest(drawRequestId) {
     if (!isSupabaseConfigured) {
@@ -246,14 +274,20 @@ export const drawRequestOps = {
       return false
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('draw_requests')
       .delete()
       .eq('id', drawRequestId)
+      .eq('status', 'draft')
+      .select('id')
 
     if (error) {
       console.error('Error deleting draw request:', error)
       throw error
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('Only draft draw requests can be deleted')
     }
 
     return true
@@ -262,21 +296,12 @@ export const drawRequestOps = {
   /**
    * Scheduled value for a single area, in cents.
    * Priority: explicit scheduled_value (dollars, from the SOV setup step)
-   * → square_footage × price_per_sqft → weight% of the project contract value.
-   * The setup wizard only writes weight/scheduled_value, so the fallbacks are
-   * what make draw requests usable for normally-created projects.
+   * → weight% of the project contract value.
    */
   areaScheduledValueCents(area, contractValue = 0) {
     const explicit = Number(area?.scheduled_value)
     if (Number.isFinite(explicit) && explicit > 0) {
       return Math.round(explicit * 100)
-    }
-    // Convert to cents first to avoid floating-point errors in multiplication
-    const sqft = Math.round((area?.square_footage || 0) * 100) // hundredths of a sqft
-    const pricePerSqft = Math.round((area?.price_per_sqft || 0) * 100) // cents
-    if (sqft > 0 && pricePerSqft > 0) {
-      // sqft (in hundredths) * price (in cents) / 100 = total in cents
-      return Math.round((sqft * pricePerSqft) / 100)
     }
     const weight = parseFloat(area?.weight) || 0
     const contract = Number(contractValue) || 0
@@ -300,7 +325,7 @@ export const drawRequestOps = {
     const [{ data, error }, { data: project }] = await Promise.all([
       supabase
         .from('areas')
-        .select('id, name, weight, scheduled_value, square_footage, price_per_sqft')
+        .select('id, name, weight, scheduled_value')
         .eq('project_id', projectId)
         .order('created_at'),
       supabase

@@ -524,13 +524,20 @@ export const tmOps = {
       if (photoLocations) {
         updateData.photo_locations = photoLocations
       }
+      // Photos are part of the legal signed record. Once the ticket is
+      // approved/billed/closed, refuse to rewrite them so an office user
+      // can't retroactively swap the evidence on a billed ticket.
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update(updateData)
         .eq('id', ticketId)
+        .in('status', ['pending', 'foreman_signed', 'client_signed'])
         .select()
-        .single()
+        .maybeSingle()
       if (error) throw error
+      if (!data) {
+        throw new Error('Cannot update photos on an approved, billed, or closed ticket')
+      }
       return data
     }
     return null
@@ -543,6 +550,10 @@ export const tmOps = {
       if (!client) {
         throw new Error('Database client not available')
       }
+      // The foreman signature is only valid while the ticket is still
+      // being assembled on-site. Re-signing after a client sign-off,
+      // approval, or billing would silently overwrite the on-record
+      // signature and (via the status write) unbill the ticket.
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
@@ -550,12 +561,16 @@ export const tmOps = {
           foreman_signature_name: signatureData.signerName,
           foreman_signature_title: signatureData.signerTitle,
           foreman_signature_date: signatureData.signedAt,
-          status: 'foreman_signed' // Update status to indicate foreman has signed
+          status: 'foreman_signed'
         })
         .eq('id', ticketId)
+        .eq('status', 'pending')
         .select()
-        .single()
+        .maybeSingle()
       if (error) throw error
+      if (!data) {
+        throw new Error('Foreman signature can only be captured on a pending ticket')
+      }
       return data
     }
     return null
@@ -568,6 +583,8 @@ export const tmOps = {
       if (!client) {
         throw new Error('Database client not available')
       }
+      // A client counter-sign is only valid on a foreman-signed ticket
+      // that hasn't been approved/billed yet.
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
@@ -576,13 +593,17 @@ export const tmOps = {
           client_signature_title: signatureData.signerTitle,
           client_signature_company: signatureData.signerCompany,
           client_signature_date: signatureData.signedAt,
-          client_signature_ip: null, // Not available in on-site signing
-          status: 'client_signed' // Update status to indicate client has signed
+          client_signature_ip: null,
+          status: 'client_signed'
         })
         .eq('id', ticketId)
+        .eq('status', 'foreman_signed')
         .select()
-        .single()
+        .maybeSingle()
       if (error) throw error
+      if (!data) {
+        throw new Error('Client signature can only be captured on a foreman-signed ticket')
+      }
       return data
     }
     return null
@@ -594,12 +615,19 @@ export const tmOps = {
       if (!client) {
         throw new Error('Database client not available')
       }
-      // Workers and items cascade delete automatically
-      const { error } = await client
+      // Once a ticket is client-signed, approved, billed, or closed it is
+      // part of the legal record — and may be referenced by a COR via
+      // source_ticket_id. Only unsigned drafts are safe to delete.
+      const { data, error } = await client
         .from('t_and_m_tickets')
         .delete()
         .eq('id', ticketId)
+        .in('status', ['pending', 'foreman_signed'])
+        .select('id')
       if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error('Only pending or foreman-signed tickets can be deleted')
+      }
     }
   },
 

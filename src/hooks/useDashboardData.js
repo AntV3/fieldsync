@@ -379,10 +379,13 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
-      // Total billed from invoices (for cash flow analytics)
+      // Total billed from invoices (for cash flow analytics).
+      // invoices.total is stored as INTEGER cents; convert to dollars so it
+      // adds to the other dollar-denominated totals downstream (portfolio
+      // unbilledRevenue, cash-flow projections).
       const totalBilled = (projectInvoices || [])
         .filter(inv => inv.status !== 'draft')
-        .reduce((sum, inv) => sum + (parseFloat(inv.total) || parseFloat(inv.amount) || 0), 0)
+        .reduce((sum, inv) => sum + (Number(inv.total) || 0) / 100, 0)
 
       // Crew check-ins formatted for resource analytics (with worker_count for each entry)
       const crewCheckins = (crewHistory || []).map(checkin => ({
