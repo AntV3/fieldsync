@@ -54,13 +54,12 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
     })
     setFoundProject(remembered)
 
-    const savedName = (() => {
-      try { return localStorage.getItem('fieldsync_foreman_name') || '' } catch { return '' }
-    })()
-    if (savedName.trim()) {
-      onForemanAccess(remembered, savedName.trim())
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // Do NOT auto-call onForemanAccess with a remembered name. Field
+    // tablets are shared between crew members; a stored name from a
+    // previous foreman would end up stamped on the incoming user's
+    // tickets, daily reports, and signature lines. The user must
+    // re-confirm their name on the next screen instead.
+  }, [])
 
   // Forget the remembered session and start the login flow over.
   const forgetRememberedSession = async () => {

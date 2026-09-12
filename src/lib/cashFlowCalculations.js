@@ -72,23 +72,35 @@ export function projectReceivables(projects, invoices, config) {
   const now = new Date()
   const entries = []
 
-  // Outstanding invoices (already billed, awaiting payment)
+  // Outstanding invoices (already billed, awaiting payment). The invoices
+  // status CHECK allows only draft/sent/partial/paid/void — 'pending' and
+  // 'overdue' never appear in the DB. 'partial' still has an open balance
+  // and needs to be counted.
   const outstanding = invoices.filter(inv =>
-    inv.status === 'sent' || inv.status === 'pending' || inv.status === 'overdue'
+    inv.status === 'sent' || inv.status === 'partial'
   )
 
   for (const inv of outstanding) {
-    const invoiceDate = new Date(inv.date || inv.created_at)
-    const dueDate = new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
-    const isOverdue = dueDate < now
+    // invoice_date is the source of truth in the schema; fall back only if
+    // it isn't populated on the joined row.
+    const invoiceDate = new Date(inv.invoice_date || inv.date || inv.created_at)
+    const scheduledDue = inv.due_date
+      ? new Date(inv.due_date)
+      : new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
+    const isOverdue = scheduledDue < now
+    // total and amount_paid are cents in the schema; convert to dollars for
+    // the rest of the cash-flow model.
+    const totalCents = Number(inv.total) || 0
+    const paidCents = Number(inv.amount_paid) || 0
+    const outstandingDollars = Math.max(0, (totalCents - paidCents) / 100)
 
     entries.push({
       type: 'outstanding',
       projectId: inv.project_id,
       projectName: inv.project_name || 'Unknown',
-      amount: inv.amount || 0,
+      amount: outstandingDollars,
       date: invoiceDate.toISOString().split('T')[0],
-      expectedDate: dueDate.toISOString().split('T')[0],
+      expectedDate: scheduledDue.toISOString().split('T')[0],
       status: isOverdue ? 'overdue' : 'pending',
       source: 'invoice',
     })

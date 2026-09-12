@@ -63,7 +63,12 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
   // Handle download
   const handleDownload = async () => {
     await db.logDocumentAccess(document.id, 'downloaded')
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${document.storage_path}`
+    // The bucket is private; a signed URL is required.
+    const url = await db.getDocumentSignedUrl(document.storage_path)
+    if (!url) {
+      onShowToast?.('Could not open document', 'error')
+      return
+    }
     window.open(url, '_blank')
   }
 
@@ -281,7 +286,12 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
                     className="version-download"
                     onClick={async () => {
                       await db.logDocumentAccess(version.id, 'downloaded')
-                      window.open(`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${version.storage_path}`, '_blank')
+                      const url = await db.getDocumentSignedUrl(version.storage_path)
+                      if (!url) {
+                        onShowToast?.('Could not open document', 'error')
+                        return
+                      }
+                      window.open(url, '_blank')
                     }}
                     title="Download this version"
                   >

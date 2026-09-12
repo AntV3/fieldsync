@@ -1376,18 +1376,33 @@ export const corOps = {
     return null
   },
 
-  async saveCORSignature(corId, signatureData, signerName) {
+  async saveCORSignature(corId, signatureData, signerName, signerUserId = null) {
     if (isSupabaseConfigured) {
+      // Signing a COR transitions it to 'approved', so the same
+      // separation-of-duties rule enforced in approveCOR applies here:
+      // the creator/submitter cannot rubber-stamp their own COR through
+      // the signature flow.
+      const { data: cor, error: fetchError } = await supabase
+        .from('change_orders')
+        .select('submitted_by, created_by')
+        .eq('id', corId)
+        .single()
+      if (fetchError) throw fetchError
+
+      if (signerUserId && (signerUserId === cor.submitted_by || signerUserId === cor.created_by)) {
+        throw new Error('Separation of duties: a COR cannot be signed/approved by the person who created or submitted it.')
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           gc_signature_data: signatureData,
           gc_signature_name: signerName,
           gc_signature_date: new Date().toISOString(),
-          status: 'approved' // Auto-approve when signed
+          status: 'approved'
         })
         .eq('id', corId)
-        .in('status', ['pending_approval']) // Only allow signing CORs that are pending approval
+        .in('status', ['pending_approval'])
         .select()
         .single()
       if (error) throw error
@@ -1587,13 +1602,24 @@ export const corOps = {
     return null
   },
 
-  // Update change order status (with valid transition enforcement)
+  // Update change order status (with valid transition enforcement).
+  // The 'approved' transition is not accepted here because it needs the
+  // separation-of-duties check + approved_by stamp that live in
+  // approveCOR; and 'rejected' likewise records a rejection_reason via
+  // rejectCOR. Callers targeting either of those states must go through
+  // those dedicated methods so the audit trail stays complete.
   async updateChangeOrderStatus(changeOrderId, status) {
     if (isSupabaseConfigured) {
-      // Enforce valid status values and transitions
+      if (status === 'approved') {
+        throw new Error('Use approveCOR(corId, userId) to approve a change order.')
+      }
+      if (status === 'rejected') {
+        throw new Error('Use rejectCOR(corId, reason, userId) to reject a change order.')
+      }
+
       const VALID_TRANSITIONS = {
         draft: ['pending_approval'],
-        pending_approval: ['approved', 'rejected', 'draft'],
+        pending_approval: ['draft'],
         approved: ['billed', 'draft'],
         rejected: ['draft', 'pending_approval'],
         billed: ['closed'],
@@ -2364,12 +2390,31 @@ export const corOps = {
     return (localData.invoices || []).find(i => i.id === invoiceId)
   },
 
-  // Update invoice
+  // Update invoice — only allow a fixed set of fields through, so a
+  // caller cannot flip identity, ownership, or the immutable audit trail
+  // (invoice_number / company_id / project_id / created_at) through this
+  // generic update path.
   async updateInvoice(invoiceId, updates) {
+    const ALLOWED_FIELDS = [
+      'status',
+      'due_date',
+      'invoice_date',
+      'notes',
+      'sent_at',
+      'paid_at',
+      'amount_paid',
+      'bill_to_name',
+      'bill_to_address',
+      'bill_to_contact'
+    ]
+    const filtered = Object.fromEntries(
+      Object.entries(updates || {}).filter(([k]) => ALLOWED_FIELDS.includes(k))
+    )
+
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('invoices')
-        .update(updates)
+        .update(filtered)
         .eq('id', invoiceId)
         .select()
         .single()
@@ -2384,7 +2429,7 @@ export const corOps = {
     const localData = getLocalData()
     const index = (localData.invoices || []).findIndex(i => i.id === invoiceId)
     if (index >= 0) {
-      localData.invoices[index] = { ...localData.invoices[index], ...updates }
+      localData.invoices[index] = { ...localData.invoices[index], ...filtered }
       setLocalData(localData)
       return localData.invoices[index]
     }

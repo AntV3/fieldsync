@@ -221,10 +221,16 @@ export default function DocumentsTab({ project, companyId, onShowToast, userRole
         case 'view':
           setSelectedDocument(document)
           break
-        case 'download':
+        case 'download': {
           await db.logDocumentAccess(document.id, 'downloaded')
-          window.open(document.url || `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${document.storage_path}`, '_blank')
+          const url = await db.getDocumentSignedUrl(document.storage_path)
+          if (!url) {
+            onShowToast?.('Could not open document', 'error')
+            break
+          }
+          window.open(url, '_blank')
           break
+        }
         case 'archive':
           await db.archiveDocument(document.id)
           if (selectedFolder) {

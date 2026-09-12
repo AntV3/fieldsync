@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { FileSpreadsheet, FileText, Loader2, RefreshCw, Clock, CheckCircle, XCircle, Search, X } from 'lucide-react'
-import { db } from '../../lib/supabase'
+import { db, supabase } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import { useFilteredPagination } from '../../hooks/useFilteredPagination'
 import Pagination from '../ui/Pagination'
@@ -74,9 +74,18 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
       // Update log entry fields
       await db.updateCORLogEntry(entryId, updates)
 
-      // If status changed, update the change order status too
+      // If status changed, route through the operation that matches the
+      // target state so the audit trail stays complete and the separation
+      // of duties on approvals is enforced.
       if (updates.status) {
-        await db.updateChangeOrderStatus(changeOrderId, updates.status)
+        const currentUserId = (await supabase.auth.getUser())?.data?.user?.id || null
+        if (updates.status === 'approved') {
+          await db.approveCOR(changeOrderId, currentUserId)
+        } else if (updates.status === 'rejected') {
+          await db.rejectCOR(changeOrderId, updates.comments || null, currentUserId)
+        } else {
+          await db.updateChangeOrderStatus(changeOrderId, updates.status)
+        }
       }
 
       // Update local state

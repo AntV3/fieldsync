@@ -3,6 +3,22 @@
  */
 import { getClient, observe, validate, escapePostgrestFilter } from './client'
 
+// The project-documents bucket was flipped to private in
+// 20260402_security_critical_fixes.sql, so any public /object/public/...
+// URL now 400s for viewers. Callers should use this to open a document.
+export async function getDocumentSignedUrl(storagePath, expiresInSeconds = 300) {
+  const client = getClient()
+  if (!client || !storagePath) return null
+  const { data, error } = await client.storage
+    .from('project-documents')
+    .createSignedUrl(storagePath, expiresInSeconds)
+  if (error) {
+    console.error('Error creating signed document URL:', error)
+    return null
+  }
+  return data?.signedUrl || null
+}
+
 export const documentOps = {
   // ---- FOLDERS ----
 
@@ -263,12 +279,8 @@ export const documentOps = {
 
       if (storageResult.error) throw storageResult.error
 
-      // Get public URL (synchronous, no network call)
-      const { data: urlData } = client.storage
-        .from('project-documents')
-        .getPublicUrl(storagePath)
-
-      const uploadedUrl = urlData.publicUrl
+      // Bucket is private; callers open documents via getDocumentSignedUrl.
+      // No usable public URL to return.
 
       // Determine approval status (contracts need approval)
       const approvalStatus = metadata.category === 'contracts' ? 'pending' : 'approved'
@@ -309,7 +321,7 @@ export const documentOps = {
         success: true
       })
 
-      return { ...document, url: uploadedUrl }
+      return { ...document }
     } catch (error) {
       observe.error('storage', {
         message: error.message,
