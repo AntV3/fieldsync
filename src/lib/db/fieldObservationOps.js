@@ -83,14 +83,28 @@ export const fieldObservationOps = {
     return data
   },
 
+  // Only the content of an observation can be edited. Attribution
+  // (project_id, company_id, user_id, foreman_name), timestamps
+  // (observed_at, observation_date), and audit columns stay frozen —
+  // field_observations is anon-writable behind can_access_project() RLS,
+  // so any crew with a valid PIN session on the project could otherwise
+  // rewrite who logged an observation.
   async updateFieldObservation(id, updates) {
     if (!isSupabaseConfigured) return null
     const client = getClient()
     if (!client) throw new Error('Database client not available')
 
+    const ALLOWED_FIELDS = ['description', 'location', 'photos']
+    const filtered = {}
+    for (const key of ALLOWED_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(updates || {}, key)) {
+        filtered[key] = updates[key]
+      }
+    }
+
     const { data, error } = await client
       .from('field_observations')
-      .update(updates)
+      .update(filtered)
       .eq('id', id)
       .select()
       .single()

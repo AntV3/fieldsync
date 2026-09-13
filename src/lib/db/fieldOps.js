@@ -121,9 +121,16 @@ export const fieldOps = {
     return data
   },
 
-  // Update an existing disposal load entry
-  async updateDisposalLoad(id, loadType, loadCount, notes = null) {
+  // Update an existing disposal load entry. projectId is required so the
+  // mutation is scoped to the caller's project — RLS on disposal_loads is
+  // anon-writable behind can_access_project(), so this defense-in-depth
+  // filter mirrors what deletePunchListItem already enforces.
+  async updateDisposalLoad(id, projectId, loadType, loadCount, notes = null) {
     if (!isSupabaseConfigured) return null
+
+    if (!projectId) {
+      throw new Error('updateDisposalLoad requires projectId for tenant safety')
+    }
 
     const client = getClient()
     if (!client) {
@@ -138,6 +145,7 @@ export const fieldOps = {
         notes
       })
       .eq('id', id)
+      .eq('project_id', projectId)
       .select()
       .single()
 
@@ -148,9 +156,14 @@ export const fieldOps = {
     return data
   },
 
-  // Delete a disposal load entry
-  async deleteDisposalLoad(id) {
+  // Delete a disposal load entry. See updateDisposalLoad for why projectId
+  // is required.
+  async deleteDisposalLoad(id, projectId) {
     if (!isSupabaseConfigured) return false
+
+    if (!projectId) {
+      throw new Error('deleteDisposalLoad requires projectId for tenant safety')
+    }
 
     const client = getClient()
     if (!client) {
@@ -161,6 +174,7 @@ export const fieldOps = {
       .from('disposal_loads')
       .delete()
       .eq('id', id)
+      .eq('project_id', projectId)
 
     if (error) {
       observe.error('database', { message: error.message, operation: 'deleteDisposalLoad' })
@@ -1193,7 +1207,12 @@ export const fieldOps = {
     return data
   },
 
-  // Update an injury report
+  // Update an injury report. Callers pass a full `updates` object but only
+  // fields the UI is allowed to change are written; audit-trail columns
+  // (company_id, project_id, incident_date, reported_by_*, osha_recordable,
+  // reported_to_osha, created_by/at, closed_at/by) cannot be rewritten this
+  // way, and a report already `closed` is frozen — reopen via
+  // updateInjuryReport({ status: 'reported' }) first if edits are needed.
   async updateInjuryReport(reportId, updates) {
     if (!isSupabaseConfigured) {
       const localData = getLocalData()
@@ -1211,12 +1230,42 @@ export const fieldOps = {
       return localData.injuryReports[reportIndex]
     }
 
-    const { data, error } = await supabase
+    const ALLOWED_FIELDS = [
+      'incident_location', 'incident_description', 'injury_type', 'body_part_affected',
+      'employee_name', 'employee_phone', 'employee_email', 'employee_address',
+      'employee_job_title', 'employee_hire_date',
+      'medical_treatment_required', 'medical_facility_name', 'medical_facility_address',
+      'hospitalized',
+      'witnesses', 'photos',
+      'immediate_actions_taken', 'corrective_actions_planned',
+      'safety_equipment_used', 'safety_equipment_failed',
+      'osha_case_number', 'workers_comp_claim', 'workers_comp_claim_number',
+      'status',
+      'days_away_from_work', 'restricted_work_days'
+    ]
+
+    const sanitized = sanitizeFormData(updates)
+    const filtered = {}
+    for (const key of ALLOWED_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(sanitized, key)) {
+        filtered[key] = sanitized[key]
+      }
+    }
+
+    let query = supabase
       .from('injury_reports')
-      .update(sanitizeFormData(updates))
+      .update(filtered)
       .eq('id', reportId)
-      .select()
-      .single()
+
+    // Freeze closed reports from silent mutation. closeInjuryReport bypasses
+    // this via updateInjuryReport({ status: 'closed', … }) on a not-yet-closed
+    // report; explicit reopens set status: 'reported' or 'under_investigation'
+    // and match on the current 'closed' row.
+    if (filtered.status !== 'reported' && filtered.status !== 'under_investigation') {
+      query = query.neq('status', 'closed')
+    }
+
+    const { data, error } = await query.select().single()
 
     if (error) {
       console.error('Error updating injury report:', error)
@@ -1225,13 +1274,35 @@ export const fieldOps = {
     return data
   },
 
-  // Close an injury report
+  // Close an injury report. Writes the audit columns directly so
+  // updateInjuryReport's allowlist can keep closed_at/closed_by off-limits
+  // for arbitrary callers.
   async closeInjuryReport(reportId, userId) {
-    return this.updateInjuryReport(reportId, {
-      status: 'closed',
-      closed_at: new Date().toISOString(),
-      closed_by: userId
-    })
+    if (!isSupabaseConfigured) {
+      return this.updateInjuryReport(reportId, {
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        closed_by: userId
+      })
+    }
+
+    const { data, error } = await supabase
+      .from('injury_reports')
+      .update({
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        closed_by: userId
+      })
+      .eq('id', reportId)
+      .neq('status', 'closed')
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error closing injury report:', error)
+      throw error
+    }
+    return data
   },
 
   // Delete an injury report

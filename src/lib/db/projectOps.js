@@ -779,7 +779,10 @@ export const projectOps = {
     }
   },
 
-  // Update project - requires companyId for cross-tenant security
+  // Update project - requires companyId for cross-tenant security.
+  // Only user-editable fields are accepted; audit columns (company_id,
+  // created_by, created_at, archived_at, storage_cleaned) and lifecycle
+  // columns (status) stay off-limits and must go through dedicated helpers.
   async updateProject(id, updates, companyId = null) {
     if (isSupabaseConfigured) {
       // SECURITY: Require companyId to prevent cross-tenant data access
@@ -788,9 +791,28 @@ export const projectOps = {
         throw new Error('Company ID is required for security verification')
       }
 
+      const ALLOWED_FIELDS = [
+        'name', 'job_number', 'address',
+        'general_contractor', 'contractor_contact', 'contractor_position',
+        'contractor_phone', 'contractor_email',
+        'client_contact', 'client_position', 'client_phone', 'client_email',
+        'contract_value', 'work_type', 'job_type',
+        'start_date', 'end_date', 'target_end_date',
+        'description', 'notes',
+        'pin'
+      ]
+
+      const sanitized = sanitizeFormData(updates)
+      const filtered = {}
+      for (const key of ALLOWED_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(sanitized, key)) {
+          filtered[key] = sanitized[key]
+        }
+      }
+
       const { data, error } = await supabase
         .from('projects')
-        .update(sanitizeFormData(updates))
+        .update(filtered)
         .eq('id', id)
         .eq('company_id', companyId)  // Always enforce cross-tenant security
         .select()

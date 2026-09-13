@@ -137,7 +137,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const handleDeleteLoad = async (id) => {
     setSaving(true)
     try {
-      await db.deleteDisposalLoad(id)
+      await db.deleteDisposalLoad(id, project.id)
       await loadDisposalData()
       onShowToast?.('Load removed', 'success')
     } catch (err) {
@@ -171,7 +171,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
   const handleIncrementLoad = async (load) => {
     setSaving(true)
     try {
-      await db.updateDisposalLoad(load.id, load.load_type, load.load_count + 1)
+      await db.updateDisposalLoad(load.id, project.id, load.load_type, load.load_count + 1)
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)
@@ -192,7 +192,7 @@ export default function DisposalLoadInput({ project, user = null, date, onShowTo
 
     setSaving(true)
     try {
-      await db.updateDisposalLoad(load.id, load.load_type, load.load_count - 1)
+      await db.updateDisposalLoad(load.id, project.id, load.load_type, load.load_count - 1)
       await loadDisposalData()
     } catch (err) {
       console.error('Error updating load:', err)

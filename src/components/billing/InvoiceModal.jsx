@@ -189,7 +189,7 @@ export default function InvoiceModal({
       try {
         const corIds = selectedItems.cors.map(c => c.id)
         const tmIds = selectedItems.tickets.map(t => t.id)
-        await db.markItemsBilled(corIds, tmIds)
+        await db.markItemsBilled(corIds, tmIds, company.id)
       } catch (markError) {
         console.error('Error marking items billed:', markError)
         warning = `Invoice ${invoice.invoice_number} was created, but some items could not be marked as billed.`
