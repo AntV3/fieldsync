@@ -2436,27 +2436,37 @@ export const corOps = {
     return true
   },
 
-  // Mark CORs and T&M tickets as billed after creating invoice
-  async markItemsBilled(corIds = [], tmIds = []) {
+  // Mark CORs and T&M tickets as billed after creating invoice.
+  // Only rows currently in 'approved' status and belonging to companyId
+  // will transition. Anything else (draft, rejected, already billed,
+  // cross-tenant id) is left untouched so an invoice cannot flip a
+  // rejected COR to billed or reach into another company's records.
+  async markItemsBilled(corIds = [], tmIds = [], companyId = null) {
     if (isSupabaseConfigured) {
-      // Update CORs to 'billed' status
+      if (!companyId) {
+        throw new Error('markItemsBilled requires companyId for tenant safety')
+      }
+
       if (corIds.length > 0) {
         const { error: corsError } = await supabase
           .from('change_orders')
           .update({ status: 'billed' })
           .in('id', corIds)
+          .eq('company_id', companyId)
+          .eq('status', 'approved')
 
         if (corsError) {
           console.error('Error marking CORs as billed:', corsError)
         }
       }
 
-      // Update T&M tickets to 'billed' status
       if (tmIds.length > 0) {
         const { error: tmError } = await supabase
           .from('t_and_m_tickets')
           .update({ status: 'billed' })
           .in('id', tmIds)
+          .eq('company_id', companyId)
+          .eq('status', 'approved')
 
         if (tmError) {
           console.error('Error marking T&M tickets as billed:', tmError)
