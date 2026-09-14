@@ -714,7 +714,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       for (const project of projectsData) {
         if (shouldAutoArchive(project, 30)) {
           try {
-            await db.archiveProject(project.id)
+            await db.archiveProject(project.id, project.company_id)
             onShowToast(`Project "${project.name}" has been auto-archived after 30 days of completion`, 'info')
           } catch (error) {
             console.error('Failed to auto-archive project:', error)
