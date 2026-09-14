@@ -203,17 +203,12 @@ export const financialOps = {
     if (!isSupabaseConfigured) return null
 
     try {
-      // Mark previous snapshots as not current
-      const { error: markError } = await supabase
-        .from('cor_export_snapshots')
-        .update({ is_current: false })
-        .eq('cor_id', snapshot.corId)
-
-      if (markError) throw markError
-
       const user = await supabase.auth.getUser()
 
-      // Insert new snapshot
+      // Insert the new snapshot BEFORE demoting prior ones. If we demote
+      // first and the insert then fails (RLS, network, duplicate id), every
+      // prior snapshot is stuck at is_current=false and getCurrentCORSnapshot()
+      // returns null forever, hiding the COR's export history from the UI.
       const { data, error } = await supabase
         .from('cor_export_snapshots')
         .insert({
@@ -233,6 +228,23 @@ export const financialOps = {
         .single()
 
       if (error) throw error
+
+      // Demote every OTHER snapshot for this COR. If this fails we roll
+      // back the row we just inserted so getCurrentCORSnapshot()'s .single()
+      // lookup stays unambiguous.
+      const { error: markError } = await supabase
+        .from('cor_export_snapshots')
+        .update({ is_current: false })
+        .eq('cor_id', snapshot.corId)
+        .neq('id', snapshot.snapshotId)
+
+      if (markError) {
+        await supabase
+          .from('cor_export_snapshots')
+          .delete()
+          .eq('id', snapshot.snapshotId)
+        throw markError
+      }
 
       // Update COR's last snapshot version
       const { error: versionError } = await supabase

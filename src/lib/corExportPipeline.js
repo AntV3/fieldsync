@@ -415,12 +415,10 @@ export async function updateJobStatus(jobId, status, details = {}) {
  * @returns {Promise<Object>} Saved snapshot record
  */
 export async function saveSnapshot(snapshot, jobId) {
-  // Mark previous snapshots as not current
-  await supabase
-    .from('cor_export_snapshots')
-    .update({ is_current: false })
-    .eq('cor_id', snapshot.corId)
-
+  // Insert the new snapshot BEFORE demoting prior ones. If we demote first
+  // and the insert then fails (RLS, network, duplicate id), every prior
+  // snapshot is stuck at is_current=false and getCurrentSnapshot() returns
+  // null forever, hiding the COR's export history from the UI.
   const { data, error } = await supabase
     .from('cor_export_snapshots')
     .insert({
@@ -441,6 +439,23 @@ export async function saveSnapshot(snapshot, jobId) {
 
   if (error) {
     throw error
+  }
+
+  // Demote every OTHER snapshot for this COR. If this fails we roll back
+  // the row we just inserted so getCurrentSnapshot()'s .single() lookup
+  // stays unambiguous.
+  const { error: demoteError } = await supabase
+    .from('cor_export_snapshots')
+    .update({ is_current: false })
+    .eq('cor_id', snapshot.corId)
+    .neq('id', snapshot.snapshotId)
+
+  if (demoteError) {
+    await supabase
+      .from('cor_export_snapshots')
+      .delete()
+      .eq('id', snapshot.snapshotId)
+    throw demoteError
   }
 
   // Update COR's last snapshot version

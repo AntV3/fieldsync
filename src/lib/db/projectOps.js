@@ -360,8 +360,15 @@ export const projectOps = {
     }
   },
 
-  async archiveProject(id) {
+  // Archive project - requires companyId for cross-tenant security
+  async archiveProject(id, companyId = null) {
     if (isSupabaseConfigured) {
+      // SECURITY: Require companyId to prevent cross-tenant data access
+      if (!companyId) {
+        console.error('[Security] archiveProject called without companyId - this is a security risk')
+        throw new Error('Company ID is required for security verification')
+      }
+
       const { data, error } = await supabase
         .from('projects')
         .update({
@@ -369,6 +376,7 @@ export const projectOps = {
           archived_at: new Date().toISOString()
         })
         .eq('id', id)
+        .eq('company_id', companyId)  // Always enforce cross-tenant security
         .select()
         .single()
       if (error) throw error
@@ -415,13 +423,35 @@ export const projectOps = {
 
   // Deep archive: archive project AND delete photos to reclaim storage
   // Call this after user has exported their important documents
-  async archiveProjectDeep(projectId, _companyId) {
+  async archiveProjectDeep(projectId, companyId) {
     if (!isSupabaseConfigured) return null
 
-    // 1. Get all photo URLs for this project
+    // SECURITY: Require companyId. This flow deletes storage objects and
+    // clears photo arrays on tickets — an ID mixup without a tenant scope
+    // would destroy another tenant's evidence before RLS on the projects
+    // row aborted.
+    if (!companyId) {
+      console.error('[Security] archiveProjectDeep called without companyId - this is a security risk')
+      throw new Error('Company ID is required for security verification')
+    }
+
+    // 1. Verify the project belongs to this tenant before touching anything.
+    const { data: owningProject, error: ownershipError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('company_id', companyId)
+      .maybeSingle()
+
+    if (ownershipError) throw ownershipError
+    if (!owningProject) {
+      throw new Error('Project not found for this company')
+    }
+
+    // 2. Get all photo URLs for this project
     const { photoUrls } = await this.getProjectStorageStats(projectId)
 
-    // 2. Delete all photos from storage
+    // 3. Delete all photos from storage
     if (photoUrls.length > 0) {
       const filePaths = photoUrls
         .map(urlOrPath => {
@@ -446,13 +476,16 @@ export const projectOps = {
       }
     }
 
-    // 3. Clear photo arrays in tickets (keep ticket data for records)
+    // 4. Clear photo arrays in tickets (keep ticket data for records).
+    // t_and_m_tickets carries only project_id — tenant scope comes from
+    // the ownership check above, which already proved this project_id
+    // belongs to companyId, so the update is safe.
     await supabase
       .from('t_and_m_tickets')
       .update({ photos: [] })
       .eq('project_id', projectId)
 
-    // 4. Archive the project with cleanup flag
+    // 5. Archive the project with cleanup flag
     const { data, error } = await supabase
       .from('projects')
       .update({
@@ -462,6 +495,7 @@ export const projectOps = {
         storage_cleaned: true // Flag that photos were removed
       })
       .eq('id', projectId)
+      .eq('company_id', companyId)
       .select()
       .single()
 
@@ -469,8 +503,15 @@ export const projectOps = {
     return { ...data, photosDeleted: photoUrls.length }
   },
 
-  async restoreProject(id) {
+  // Restore project - requires companyId for cross-tenant security
+  async restoreProject(id, companyId = null) {
     if (isSupabaseConfigured) {
+      // SECURITY: Require companyId to prevent cross-tenant data access
+      if (!companyId) {
+        console.error('[Security] restoreProject called without companyId - this is a security risk')
+        throw new Error('Company ID is required for security verification')
+      }
+
       const { data, error } = await supabase
         .from('projects')
         .update({
@@ -478,6 +519,7 @@ export const projectOps = {
           archived_at: null
         })
         .eq('id', id)
+        .eq('company_id', companyId)  // Always enforce cross-tenant security
         .select()
         .single()
       if (error) throw error
