@@ -611,8 +611,8 @@ const fetchServerRecord = async (db, actionType, payload) => {
   }
 }
 
-// Process individual action
-const processAction = async (action, db) => {
+// Process individual action (exported for unit testing)
+export const processAction = async (action, db) => {
   const { type, payload } = action
 
   switch (type) {
@@ -620,8 +620,23 @@ const processAction = async (action, db) => {
       return db.updateAreaStatus(payload.areaId, payload.status)
 
     case ACTION_TYPES.CREATE_TM_TICKET: {
-      // Complex action - create ticket, upload photos, add workers/items
-      const ticket = await db.createTMTicket(payload.ticket)
+      // Multi-step create: ticket, then workers, then items. Persist the
+      // server-assigned ticket id back into the pending action after the
+      // ticket insert so a failure inside addTMWorkers/addTMItems retries
+      // just the failed step instead of inserting a duplicate ticket on
+      // the next sync cycle.
+      let ticket
+      if (payload.server_ticket_id) {
+        ticket = { id: payload.server_ticket_id }
+      } else {
+        ticket = await db.createTMTicket(payload.ticket)
+        if (ticket?.id && action.id != null) {
+          payload.server_ticket_id = ticket.id
+          await updatePendingAction(action.id, { payload }).catch(err =>
+            console.warn('[offlineSync] failed to persist server_ticket_id', action.id, err)
+          )
+        }
+      }
       if (payload.workers?.length > 0) {
         await db.addTMWorkers(ticket.id, payload.workers)
       }

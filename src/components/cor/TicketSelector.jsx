@@ -135,11 +135,19 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
             rateLookup[(rate.role || '').toLowerCase()] = rate
           })
         }
-        // Also try to get class-based rates
-        const classRates = await db.getLaborClassRates?.(companyId)
-        if (classRates) {
-          classRates.forEach(rate => {
-            classRateLookup[rate.labor_class_id] = rate
+        // Also try to get class-based rates for every class in the company.
+        // `getLaborClassRates(id)` expects a labor_class_id, not a company_id;
+        // calling it with companyId returned zero rows and classRateLookup
+        // was always empty. Use getAllLaborClassRates instead, then pick the
+        // 'standard' rate (imported workers default to wage_type='standard').
+        const classesWithRates = await db.getAllLaborClassRates?.(companyId)
+        if (classesWithRates) {
+          classesWithRates.forEach(cls => {
+            const rates = cls.labor_class_rates || []
+            const standardRate = rates.find(r => r.job_type === 'standard') || rates[0]
+            if (standardRate) {
+              classRateLookup[cls.id] = standardRate
+            }
           })
         }
       }
@@ -162,17 +170,25 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
         const roleRate = rateLookup[role] || {}
         const regRate = dollarsToCents(parseFloat(classRate?.regular_rate || roleRate.regular_rate) || 0)
         const otRate = dollarsToCents(parseFloat(classRate?.overtime_rate || roleRate.overtime_rate) || 0)
+        const regHours = parseFloat(worker.regular_hours) || parseFloat(worker.hours) || 0
+        const otHours = parseFloat(worker.overtime_hours) || 0
 
         laborItems.push({
           id: `import-${ticket.id}-${worker.id || Date.now()}-${generateRandomId()}`,
           worker_name: worker.name || worker.worker_name || '',
           labor_class: worker.labor_classes?.name || worker.role || worker.labor_class || 'Laborer',
           wage_type: 'standard',
-          regular_hours: parseFloat(worker.regular_hours) || parseFloat(worker.hours) || 0,
-          overtime_hours: parseFloat(worker.overtime_hours) || 0,
+          regular_hours: regHours,
+          overtime_hours: otHours,
           regular_rate: regRate,
           overtime_rate: otRate,
-          total: 0,
+          // Compute total to match addBulkLaborItems (hours in float * rate in
+          // cents, rounded). Hardcoding 0 caused calculateCORTotals to
+          // return $0 for the labor subtotal in the CORForm preview, so the
+          // user saw "Total: $0" after import and thought the feature was
+          // broken. The DB trigger later recomputes on line-item insert, but
+          // the preview is what the user reviews before saving.
+          total: Math.round(regHours * regRate + otHours * otRate),
           source_ticket_id: ticket.id,
           source_ticket_date: ticket.work_date || ticket.ticket_date
         })
