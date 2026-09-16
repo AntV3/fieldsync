@@ -1391,6 +1391,16 @@ export const corOps = {
         .select()
         .single()
       if (error) throw error
+
+      // GC signature is a status transition (pending_approval -> approved),
+      // so record it in cor_status_history alongside the manual approveCOR path.
+      await this._logCORStatusChange(
+        corId,
+        'approved',
+        null,
+        `Approved via signature by ${signerName || 'GC'}`
+      )
+
       return data
     }
     return null
@@ -1627,6 +1637,11 @@ export const corOps = {
         console.error('Error updating change order status:', error)
         throw error
       }
+
+      // Keep cor_status_history in lockstep with the peer status setters
+      // (submit/approve/reject/markCORAsBilled/closeCOR) so dispute-resolution
+      // history has no silent gaps.
+      await this._logCORStatusChange(changeOrderId, status, null, 'Status updated')
 
       return data
     }
@@ -2436,22 +2451,29 @@ export const corOps = {
     return true
   },
 
-  // Mark CORs and T&M tickets as billed after creating invoice
-  async markItemsBilled(corIds = [], tmIds = []) {
+  // Mark CORs and T&M tickets as billed after creating invoice.
+  // Sets billed_at (parity with markCORAsBilled) and writes a
+  // cor_status_history row per COR so dispute-resolution history stays intact.
+  async markItemsBilled(corIds = [], tmIds = [], userId = null) {
     if (isSupabaseConfigured) {
-      // Update CORs to 'billed' status
       if (corIds.length > 0) {
-        const { error: corsError } = await supabase
+        const { data: updatedCors, error: corsError } = await supabase
           .from('change_orders')
-          .update({ status: 'billed' })
+          .update({ status: 'billed', billed_at: new Date().toISOString() })
           .in('id', corIds)
+          .select('id')
 
         if (corsError) {
           console.error('Error marking CORs as billed:', corsError)
+        } else if (updatedCors?.length) {
+          await Promise.all(
+            updatedCors.map(row =>
+              this._logCORStatusChange(row.id, 'billed', userId, 'Marked as billed via invoice')
+            )
+          )
         }
       }
 
-      // Update T&M tickets to 'billed' status
       if (tmIds.length > 0) {
         const { error: tmError } = await supabase
           .from('t_and_m_tickets')

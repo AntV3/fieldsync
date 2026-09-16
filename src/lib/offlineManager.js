@@ -565,9 +565,23 @@ export const syncPendingActions = async (db, options = {}) => {
               await removePendingAction(action.id)
               return { status: 'skipped' }
             }
-            await processAction(action, db)
-            // Mark as synced BEFORE removing from queue to prevent orphaned actions on crash
-            await markAsSynced(action.idempotency_key)
+            // Mark as synced BEFORE processing so a crash between the server
+            // insert succeeding and this record being written cannot cause a
+            // duplicate on the next sync. If processAction fails, we clear the
+            // marker (mirrors the update path above).
+            if (action.idempotency_key) {
+              await markAsSynced(action.idempotency_key)
+            }
+            try {
+              await processAction(action, db)
+            } catch (err) {
+              if (action.idempotency_key) {
+                await clearSyncedMarker(action.idempotency_key).catch(markerErr =>
+                  console.warn('[offlineSync] failed to clear synced marker', action.id, markerErr)
+                )
+              }
+              throw err
+            }
             await removePendingAction(action.id)
             return { status: 'synced' }
           })
