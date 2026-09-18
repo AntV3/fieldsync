@@ -107,15 +107,18 @@ export async function exportJobCostTransactions(
 
   const start = performance.now()
   try {
-    // Fetch project for job number
+    // Fetch project for job number and rate lookup context
     const { data: project, error: projErr } = await supabase
       .from('projects')
-      .select('id, name, job_number')
+      .select('id, name, job_number, company_id, work_type, job_type')
       .eq('id', projectId)
       .single()
 
     if (projErr) throw projErr
-    const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
+    const typedProject = project as Pick<
+      ProjectRow,
+      'id' | 'name' | 'job_number' | 'company_id' | 'work_type' | 'job_type'
+    >
 
     // Fetch T&M tickets with workers and items, joined to cost codes
     let query = supabase
@@ -139,6 +142,35 @@ export async function exportJobCostTransactions(
 
     const { data: tickets, error: ticketErr } = await query
     if (ticketErr) throw ticketErr
+
+    // Build classification → overtime_rate lookup so prevailing-wage / PLA
+    // projects export at the configured OT rate instead of a hardcoded 1.5×.
+    // labor_class_rates.overtime_rate is stored in dollars.
+    const otRateByClass = new Map<string, number>()
+    if (typedProject.company_id && typedProject.work_type) {
+      const jobType = typedProject.job_type || 'standard'
+      const { data: classRates } = await supabase
+        .from('labor_classes')
+        .select('name, labor_class_rates (work_type, job_type, overtime_rate)')
+        .eq('company_id', typedProject.company_id)
+      type ClassRateJoin = {
+        name: string | null
+        labor_class_rates?: Array<{
+          work_type?: string | null
+          job_type?: string | null
+          overtime_rate?: number | string | null
+        }> | null
+      }
+      for (const lc of ((classRates || []) as unknown as ClassRateJoin[])) {
+        const match = lc.labor_class_rates?.find(
+          r => r.work_type === typedProject.work_type && r.job_type === jobType
+        )
+        const ot = match ? parseFloat(String(match.overtime_rate)) : 0
+        if (lc.name && ot > 0) {
+          otRateByClass.set(lc.name.trim().toLowerCase(), ot)
+        }
+      }
+    }
 
     const jobNumber = typedProject.job_number || typedProject.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
     const rows: SageRow[] = []
@@ -180,7 +212,9 @@ export async function exportJobCostTransactions(
         }
 
         if (otHours > 0) {
-          const otRate = rate * 1.5
+          const classKey = (worker.classification || '').trim().toLowerCase()
+          const configuredOtRate = classKey ? otRateByClass.get(classKey) : undefined
+          const otRate = configuredOtRate && configuredOtRate > 0 ? configuredOtRate : rate * 1.5
           const amount = otHours * otRate
           totalAmount += amount
           laborTotal += amount
