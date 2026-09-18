@@ -39,17 +39,25 @@ export const drawRequestOps = {
 
     const { data, error } = await supabase
       .from('draw_requests')
-      .select('current_billing, retention_held')
+      .select('current_billing, retention_held, draw_number')
       .eq('project_id', projectId)
       .in('status', ['submitted', 'approved', 'paid'])
+      .order('draw_number', { ascending: false })
 
     if (error) {
       console.error('Error getting previous billing totals:', error)
       return { totalBilled: 0, totalRetention: 0 }
     }
 
-    const totalBilled = (data || []).reduce((sum, dr) => sum + (dr.current_billing || 0), 0)
-    const totalRetention = data?.length > 0 ? Math.max(...data.map(dr => dr.retention_held || 0)) : 0
+    const rows = data || []
+    const totalBilled = rows.reduce((sum, dr) => sum + (dr.current_billing || 0), 0)
+    // retention_held is CUMULATIVE (billed_to_date × retention_percent). When
+    // the retention rate steps down mid-project (e.g. 10% → 5% at 50% complete)
+    // the newest draw's cumulative retention can be smaller than an older
+    // draw's, so Math.max would return a stale value and cause the next draw
+    // to release retention that was never actually held. The latest draw
+    // holds the current cumulative retention.
+    const totalRetention = rows.length > 0 ? (rows[0].retention_held || 0) : 0
 
     return { totalBilled, totalRetention }
   },

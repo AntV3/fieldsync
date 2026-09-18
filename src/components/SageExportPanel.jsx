@@ -299,7 +299,33 @@ export default function SageExportPanel({
 
   const loadTicketsAndExport = async () => {
     const tickets = await db.getTMTickets(project.id)
-    return exportSageJobCostCSV(project, tickets, costCodes)
+    // Fetch the project's configured OT rates so prevailing-wage / PLA rates
+    // export correctly instead of a blanket 1.5× regular.
+    const laborRates = {}
+    const overtimeRates = {}
+    try {
+      if (project?.company_id) {
+        const workType = project.work_type || 'demolition'
+        const jobType = project.job_type || 'standard'
+        const classRates = await db.getAllLaborClassRates?.(project.company_id)
+        if (classRates?.length > 0) {
+          for (const lc of classRates) {
+            const match = lc.labor_class_rates?.find(
+              r => r.work_type === workType && r.job_type === jobType
+            )
+            if (!match || !lc.name) continue
+            const key = lc.name.trim().toLowerCase()
+            const reg = parseFloat(match.regular_rate)
+            const ot = parseFloat(match.overtime_rate)
+            if (Number.isFinite(reg) && reg > 0) laborRates[key] = reg
+            if (Number.isFinite(ot) && ot > 0) overtimeRates[key] = ot
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[SageExportPanel] rate lookup failed; OT will fall back to 1.5×', err)
+    }
+    return exportSageJobCostCSV(project, tickets, costCodes, laborRates, overtimeRates)
   }
 
   const sections = [

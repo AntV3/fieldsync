@@ -57,7 +57,15 @@ function downloadFile(content, filename, mimeType = 'text/csv') {
  * Format matches Sage's CSV import template:
  * Job, Extra, Cost Type, Category, Transaction Date, Description, Units, Amount
  */
-export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRates = {}) {
+/**
+ * @param {Object} project
+ * @param {Array} tickets
+ * @param {Array} costCodes
+ * @param {Object} laborRates              classification (lowercase) → regular rate in dollars
+ * @param {Object} [overtimeRates]         classification (lowercase) → OT rate in dollars.
+ *                                         When a classification is missing, OT falls back to 1.5× regular.
+ */
+export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRates = {}, overtimeRates = {}) {
   const headers = [
     { key: 'job', label: 'Job' },
     { key: 'extra', label: 'Extra' },
@@ -110,7 +118,13 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
       }
 
       if (otHours > 0) {
-        const otRate = rate * 1.5
+        // Prefer the classification's configured OT rate (e.g. prevailing wage / PLA);
+        // fall back to 1.5× regular so demo/legacy projects still export.
+        const classKey = (worker.classification || '').trim().toLowerCase()
+        const configuredOtRate = classKey ? parseFloat(overtimeRates[classKey]) : NaN
+        const otRate = Number.isFinite(configuredOtRate) && configuredOtRate > 0
+          ? configuredOtRate
+          : rate * 1.5
         rows.push({
           job: jobNumber,
           extra: '',
