@@ -34,9 +34,8 @@ export interface AreaRow {
   name: string
   /** Relative weight used for % progress when no scheduled value is set */
   weight: number | null
-  is_complete: boolean
-  /** Field status driven from the field app */
-  status?: 'not_started' | 'working' | 'done' | string
+  /** Field status driven from the field app; 'done' is the completion state. */
+  status: 'not_started' | 'working' | 'done' | string
   /** SOV dollar value; when present, earned value is value-based */
   scheduled_value?: number | null
   group_name?: string | null
@@ -47,7 +46,8 @@ export interface AreaRow {
 export interface ChangeOrderRow {
   id: string
   project_id: string
-  total_value: number | null
+  /** Approved/proposed COR total in INTEGER cents (cor_total in schema). */
+  cor_total: number | null
   status: 'approved' | 'pending' | 'rejected' | string
   created_at?: string
   updated_at?: string | null
@@ -82,7 +82,8 @@ export interface TMTicketRow {
   work_date?: string | null // YYYY-MM-DD
   notes?: string | null
   status: 'pending' | 'approved' | 'rejected' | string
-  total_value?: number | null
+  // NOTE: t_and_m_tickets has no total column; totals are derived in the app
+  // layer from t_and_m_items (qty × unit_cost) plus labor rate joins.
   cost_code_id?: string | null
   created_at?: string
 }
@@ -112,8 +113,9 @@ export interface MaterialsEquipmentRow {
 
 export interface CrewCheckinRow {
   project_id: string
-  worker_count: number | null
-  checkin_date: string // YYYY-MM-DD
+  /** JSONB array of workers on site that day; crew size = workers.length. */
+  workers: Array<{ name?: string | null }> | null
+  check_in_date: string // YYYY-MM-DD (schema column: check_in_date)
   created_at?: string
 }
 

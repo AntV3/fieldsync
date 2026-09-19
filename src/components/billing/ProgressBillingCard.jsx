@@ -30,9 +30,15 @@ export default memo(function ProgressBillingCard({
   }, [areas, project?.contract_value])
 
   const approvedCOs = useMemo(() => {
-    // getCORStats returns dollars; convert to cents to match originalContract
-    return Math.round((corStats?.total_approved_value || 0) * 100)
-  }, [corStats?.total_approved_value])
+    // getCORStats returns dollars; convert to cents to match originalContract.
+    // Include billed/closed CORs — once approved, a CO is part of the
+    // revised contract even after invoicing flips its status to `billed`,
+    // otherwise the revised-contract line drops the CO the moment it's
+    // invoiced and the % complete bar swings back to the base contract.
+    return Math.round(
+      (((corStats?.total_approved_value || 0) + (corStats?.total_billed_value || 0))) * 100
+    )
+  }, [corStats?.total_approved_value, corStats?.total_billed_value])
 
   const revisedContract = originalContract + approvedCOs
 

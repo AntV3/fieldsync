@@ -267,11 +267,13 @@ export default function MaterialsStep({ companyId, items, setItems, t, lang, onS
                   key={idx}
                   className={`tm-search-result-item ${existingItem ? 'added' : ''}`}
                   onClick={() => {
-                    if (existingItem) {
-                      updateItemQuantity(items.indexOf(existingItem), existingItem.quantity + 1)
-                    } else {
-                      setItems([...items, { ...item, quantity: 1, isCustom: false }])
-                    }
+                    // Add via the same helper as the browse-categories path so
+                    // the row lands with material_equipment_id set (not the raw
+                    // materials PK). Otherwise TMForm.handleSubmit saves the
+                    // row as an orphan — material_equipment_id=null, no
+                    // custom_name — and downstream CoR/invoice pipelines
+                    // treat it as "Unknown Item" at $0.
+                    selectItem(item)
                     setMaterialSearch('')
                     setSearchResults([])
                   }}

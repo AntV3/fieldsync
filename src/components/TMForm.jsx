@@ -737,13 +737,20 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
       if (role.includes('foreman') || role.includes('supervisor') || role.includes('superintendent')) {
         const emptySupIndex = supervision.findIndex(s => !s || !s.name || !s.name.trim())
+        const nextRole = role.includes('superintendent') ? 'Superintendent' : 'Foreman'
         if (emptySupIndex >= 0) {
-          updateSupervision(emptySupIndex, 'name', worker.name)
-          updateSupervision(emptySupIndex, 'role', role.includes('superintendent') ? 'Superintendent' : 'Foreman')
+          // Apply both fields in a single functional update. Two back-to-back
+          // updateSupervision() calls each read the closed-over `supervision`
+          // array and clobber the field the previous call just wrote — the
+          // second call's map runs on the pre-update array, so name goes
+          // back to '' and the worker silently drops out of the ticket.
+          setSupervision(prev => prev.map((s, i) =>
+            i === emptySupIndex ? { ...s, name: worker.name, role: nextRole } : s
+          ))
         } else {
           setSupervision([...supervision, {
             name: worker.name, hours: '', overtimeHours: '', timeStarted: '', timeEnded: '',
-            role: role.includes('superintendent') ? 'Superintendent' : 'Foreman'
+            role: nextRole
           }])
         }
       } else if (role.includes('operator')) {

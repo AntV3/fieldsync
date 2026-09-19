@@ -213,12 +213,19 @@ export function createSnapshot(cor, tickets, _options = {}) {
         time_ended: w.time_ended
       })),
 
-      // Items (frozen)
+      // Items (frozen). Custom (user-entered) items have no materials_equipment
+      // row; their name and category live on custom_name / custom_category, so
+      // both must land in the snapshot or the printed PDF and every future
+      // re-export from cor_export_snapshots.tickets_data will show
+      // "Unnamed Item" for the line the client signed off on.
       t_and_m_items: (ticket.t_and_m_items || []).map(item => ({
         id: item.id,
         description: item.description,
         quantity: item.quantity,
         unit: item.unit,
+        unit_cost: item.unit_cost,
+        custom_name: item.custom_name,
+        custom_category: item.custom_category,
         materials_equipment: item.materials_equipment
       })),
 
