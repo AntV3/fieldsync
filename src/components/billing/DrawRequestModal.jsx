@@ -49,8 +49,14 @@ export default memo(function DrawRequestModal({
       sum + drawRequestOps.areaScheduledValueCents(area, project?.contract_value), 0)
   }, [areas, project?.contract_value])
 
-  // getCORStats returns dollars; convert to cents to match originalContract
-  const approvedCOs = Math.round((corStats?.total_approved_value || 0) * 100)
+  // getCORStats returns dollars; convert to cents to match originalContract.
+  // Include billed/closed CORs — once approved, a CO is part of the
+  // revised contract even after invoicing flips its status to `billed`,
+  // otherwise the moment an approved CO is invoiced it silently drops off
+  // the revised contract line on every future draw request.
+  const approvedCOs = Math.round(
+    (((corStats?.total_approved_value || 0) + (corStats?.total_billed_value || 0))) * 100
+  )
   const revisedContract = originalContract + approvedCOs
 
   // Initialize data

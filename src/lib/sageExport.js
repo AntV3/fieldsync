@@ -340,7 +340,12 @@ export function exportSageWIPScheduleCSV(projects, projectDataMap = {}) {
     const overUnder = totalBilled - earnedRevenue
     const totalCosts = data.allCostsTotal || data.totalCosts || 0
     const projectedProfit = progress > 0 ? revisedContract - (totalCosts / (progress / 100)) : revisedContract
-    const margin = revisedContract > 0 ? ((revisedContract - totalCosts) / revisedContract * 100) : 0
+    // Margin must agree with projectedProfit — i.e. project both to
+    // completion, not one to completion and the other to date. The prior
+    // form (revised - actual cost-to-date) drifted from projectedProfit by
+    // the exact ratio (1 - progress) and let a WIP row export $0 profit at
+    // 50% margin, which accounting cannot book.
+    const margin = revisedContract > 0 ? (projectedProfit / revisedContract * 100) : 0
 
     return {
       job: p.job_number || '',

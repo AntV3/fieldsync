@@ -3,7 +3,16 @@
  * Extracted from supabase.js for modularity.
  */
 
-import { supabase, isSupabaseConfigured, getClient, sanitizeFormData, sanitize } from './client'
+import { supabase, isSupabaseConfigured, getClient, isFieldMode, sanitizeFormData, sanitize } from './client'
+
+// SECURITY: cost_per_unit is the office's pricing basis and must never
+// reach a field (PIN-authenticated foreman) client. Narrow the SELECT
+// explicitly in field mode — RLS row policies allow the read but can't
+// column-filter.
+const MATERIALS_EQUIPMENT_FIELD_COLUMNS =
+  'id, company_id, name, unit, category, active, created_at, updated_at'
+const materialsEquipmentSelect = () =>
+  isFieldMode() ? MATERIALS_EQUIPMENT_FIELD_COLUMNS : '*'
 
 export const laborOps = {
   // ============================================
@@ -14,7 +23,7 @@ export const laborOps = {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase
         .from('materials_equipment')
-        .select('*')
+        .select(materialsEquipmentSelect())
         .eq('company_id', companyId)
         .eq('active', true)
         .order('category')
@@ -31,7 +40,7 @@ export const laborOps = {
       if (!client) return []
       const { data, error } = await client
         .from('materials_equipment')
-        .select('*')
+        .select(materialsEquipmentSelect())
         .eq('company_id', companyId)
         .eq('category', category)
         .eq('active', true)
@@ -48,7 +57,7 @@ export const laborOps = {
       if (!client) return []
       const { data, error } = await client
         .from('materials_equipment')
-        .select('*')
+        .select(materialsEquipmentSelect())
         .eq('company_id', companyId)
         .order('category')
         .order('name')

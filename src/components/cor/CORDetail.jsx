@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
 import { CollapsibleSection, StatusBadge } from '../ui'
-import { db } from '../../lib/supabase'
+import { db, supabase } from '../../lib/supabase'
 import {
   formatCurrency,
   formatPercent,
@@ -141,13 +141,21 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     if (!confirm('Approve this change order request?')) return
     setActionInProgress(true)
     try {
-      const updated = await db.approveCOR(corData.id)
+      // Thread the authenticated user id so corOps.approveCOR can enforce its
+      // separation-of-duties guard and populate approved_by; passing no user
+      // silently short-circuits both.
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.id) {
+        onShowToast?.('You must be signed in to approve a COR', 'error')
+        return
+      }
+      const updated = await db.approveCOR(corData.id, user.id)
       setCORData(prev => ({ ...prev, ...updated }))
       onShowToast?.('COR approved', 'success')
       onStatusChange?.()
     } catch (error) {
       console.error('Error approving COR:', error)
-      onShowToast?.('Error approving COR', 'error')
+      onShowToast?.(error?.message || 'Error approving COR', 'error')
     } finally {
       setActionInProgress(false)
     }

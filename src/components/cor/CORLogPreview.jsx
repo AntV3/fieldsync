@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Table, List, Eye, FileDown, Check, X } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { db } from '../../lib/supabase'
+import { db, supabase } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
 import StatusBadge from '../ui/StatusBadge'
 
@@ -148,12 +148,20 @@ export default function CORLogPreview({
 
     setActionInProgress(corId)
     try {
-      await db.approveCOR(corId)
+      // Thread the authenticated user id so corOps.approveCOR can enforce its
+      // separation-of-duties guard and populate approved_by; passing no user
+      // silently short-circuits both.
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.id) {
+        onShowToast?.('You must be signed in to approve a COR', 'error')
+        return
+      }
+      await db.approveCOR(corId, user.id)
       onShowToast?.('COR approved', 'success')
       await loadCORLog()
     } catch (error) {
       console.error('Error approving COR:', error)
-      onShowToast?.('Error approving COR', 'error')
+      onShowToast?.(error?.message || 'Error approving COR', 'error')
     } finally {
       setActionInProgress(null)
     }

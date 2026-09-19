@@ -387,16 +387,31 @@ export async function exportCostCodeStructure(companyId: string): Promise<SageEx
 export function toSageCSV(rows: SageRow[]): string {
   if (!rows.length) return ''
   const headers = Object.keys(rows[0])
-  const headerLine = headers.map(h => `"${h}"`).join(',')
+  const headerLine = headers.map(h => `"${escapeCsvValue(h)}"`).join(',')
   const dataLines = rows.map(row =>
     headers.map(key => {
       const val = row[key]
       if (val == null) return '""'
-      const str = String(val)
-      return `"${str.replace(/"/g, '""')}"`
+      return `"${escapeCsvValue(String(val))}"`
     }).join(',')
   )
   return [headerLine, ...dataLines].join('\n')
+}
+
+/**
+ * Escape a value for a CSV cell that Sage 300 / Excel will open. Doubles
+ * inner double-quotes for CSV correctness AND prefixes a leading formula
+ * character (`=`, `+`, `-`, `@`, tab, CR) with a single quote so the cell
+ * is treated as text, not executed as a formula. Without this, a project
+ * name like `=cmd|'/c calc'!A1` runs on the accountant's machine when
+ * they open the exported .csv.
+ */
+function escapeCsvValue(str: string): string {
+  let out = str
+  if (/^[=+\-@\t\r]/.test(out)) {
+    out = "'" + out
+  }
+  return out.replace(/"/g, '""')
 }
 
 /**
