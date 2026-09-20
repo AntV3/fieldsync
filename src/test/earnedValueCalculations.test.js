@@ -171,5 +171,30 @@ describe('Earned Value Calculations', () => {
       const lastPoint = data[data.length - 1]
       expect(lastPoint.plannedValue).toBe(1050000)
     })
+
+    // Regression: when the project starts today, (now - start) is 0 and the
+    // interpolation used to divide by zero, blanking earnedValue/actualCost
+    // as NaN across the whole S-curve.
+    it('does not emit NaN when the project starts today', () => {
+      const startToday = new Date('2026-09-20T00:00:00')
+      const data = generateSCurveData({
+        contractValue: 500000,
+        changeOrderValue: 0,
+        progressPercent: 0,
+        actualCosts: 0,
+        startDate: '2026-09-20',
+        endDate: '2027-03-20',
+        now: startToday
+      })
+      expect(data.length).toBeGreaterThan(0)
+      for (const point of data) {
+        if ('earnedValue' in point) {
+          expect(Number.isNaN(point.earnedValue)).toBe(false)
+        }
+        if ('actualCost' in point) {
+          expect(Number.isNaN(point.actualCost)).toBe(false)
+        }
+      }
+    })
   })
 })

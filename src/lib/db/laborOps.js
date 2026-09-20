@@ -3,7 +3,7 @@
  * Extracted from supabase.js for modularity.
  */
 
-import { supabase, isSupabaseConfigured, getClient, sanitizeFormData, sanitize } from './client'
+import { supabase, isSupabaseConfigured, getClient, isFieldMode, sanitizeFormData, sanitize } from './client'
 
 export const laborOps = {
   // ============================================
@@ -29,9 +29,12 @@ export const laborOps = {
     if (isSupabaseConfigured) {
       const client = getClient()
       if (!client) return []
+      // Field mode hides cost_per_unit — RLS row policies can't column-filter,
+      // and PIN-authenticated foremen must not see company wholesale costs.
+      const columns = isFieldMode() ? 'id, name, unit, category, active' : '*'
       const { data, error } = await client
         .from('materials_equipment')
-        .select('*')
+        .select(columns)
         .eq('company_id', companyId)
         .eq('category', category)
         .eq('active', true)
@@ -46,9 +49,10 @@ export const laborOps = {
     if (isSupabaseConfigured) {
       const client = getClient()
       if (!client) return []
+      const columns = isFieldMode() ? 'id, name, unit, category, active' : '*'
       const { data, error } = await client
         .from('materials_equipment')
-        .select('*')
+        .select(columns)
         .eq('company_id', companyId)
         .order('category')
         .order('name')
