@@ -98,9 +98,11 @@ export function buildFinancialTimeSeries(projectData, project, tmTickets = [], c
         // Handle both naming conventions: hours/regular_hours, overtime_hours
         const regHours = parseFloat(w.hours) || parseFloat(w.regular_hours) || 0
         const otHours = parseFloat(w.overtime_hours) || 0
-        // Use rates if available, otherwise default billing rates
-        const regRate = parseFloat(w.regular_rate) || parseFloat(w.rate) || 65
-        const otRate = parseFloat(w.overtime_rate) || regRate * 1.5
+        // Rates come from the ticket row. A missing rate contributes $0 rather
+        // than inventing revenue at a hardcoded $65/hr — silent fabrication
+        // hides real data-integrity problems and mis-states dashboard profit.
+        const regRate = parseFloat(w.regular_rate) || parseFloat(w.rate) || 0
+        const otRate = parseFloat(w.overtime_rate) || (regRate > 0 ? regRate * 1.5 : 0)
         ticketValue += (regHours * regRate) + (otHours * otRate)
       })
     }
