@@ -1,6 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import { getConnectionStatus, onConnectionChange, getPendingActionCount } from '../lib/supabase'
 
+const hasIndexedDB = typeof indexedDB !== 'undefined'
+
+const readPendingCount = async () => {
+  if (!hasIndexedDB) return 0
+  try {
+    return await getPendingActionCount()
+  } catch (err) {
+    if (err?.code !== 'IDB_UNAVAILABLE') {
+      console.warn('[OfflineIndicator] failed to read pending count', err)
+    }
+    return 0
+  }
+}
+
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(getConnectionStatus())
   const [pendingCount, setPendingCount] = useState(0)
@@ -27,23 +41,16 @@ export default function OfflineIndicator() {
         wasOfflineRef.current = true
       }
 
-      // Update pending count
-      const count = await getPendingActionCount()
-      setPendingCount(count)
+      setPendingCount(await readPendingCount())
     })
 
     // Initial pending count check
-    getPendingActionCount()
-      .then(setPendingCount)
-      .catch(err => console.warn('[OfflineIndicator] failed to read pending count', err))
+    readPendingCount().then(setPendingCount)
 
     // Periodically check pending count when offline
     const interval = setInterval(async () => {
       if (!getConnectionStatus()) {
-        try {
-          const count = await getPendingActionCount()
-          setPendingCount(count)
-        } catch (_e) { /* offline - ignore */ }
+        setPendingCount(await readPendingCount())
       }
     }, 5000)
 

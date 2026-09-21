@@ -27,11 +27,23 @@ const resetConnection = () => {
   db = null
 }
 
+// True when IndexedDB is available in the current runtime (browser). False in
+// SSR, Node, jsdom-based tests, or when the browser has disabled storage.
+export const isOfflineDBAvailable = () =>
+  typeof indexedDB !== 'undefined' && indexedDB !== null
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isOfflineDBAvailable()) {
+      const err = new Error('IndexedDB not available in this environment')
+      err.code = 'IDB_UNAVAILABLE'
+      reject(err)
       return
     }
 
