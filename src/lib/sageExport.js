@@ -75,8 +75,14 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
   const rows = []
   const jobNumber = project.job_number || project.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
 
+  // Only committed T&M tickets belong in Sage's Job Cost ledger. Draft, pending,
+  // foreman-signed, client-signed, and rejected tickets are not yet real costs.
+  const committedTickets = (tickets || []).filter(
+    t => t?.status === 'approved' || t?.status === 'billed'
+  )
+
   // Sort tickets by date for cleaner output
-  const sortedTickets = [...(tickets || [])].sort((a, b) =>
+  const sortedTickets = [...committedTickets].sort((a, b) =>
     (a.work_date || '').localeCompare(b.work_date || '')
   )
 
@@ -181,7 +187,13 @@ export function exportSageChangeOrdersCSV(project, changeOrders = []) {
 
   const jobNumber = project.job_number || project.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
 
-  const rows = changeOrders.map(co => {
+  // Only approved/billed/closed COs are real budget revisions in Sage. Drafts,
+  // pending, and rejected COs are not real cost commitments.
+  const committedCOs = (changeOrders || []).filter(
+    co => co?.status === 'approved' || co?.status === 'billed' || co?.status === 'closed'
+  )
+
+  const rows = committedCOs.map(co => {
     const labor = (co.change_order_labor || []).reduce((s, l) => s + (parseInt(l.total) || 0), 0) / 100
     const materials = (co.change_order_materials || []).reduce((s, m) => s + (parseInt(m.total) || 0), 0) / 100
     const equipment = (co.change_order_equipment || []).reduce((s, e) => s + (parseInt(e.total) || 0), 0) / 100
