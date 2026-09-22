@@ -1378,16 +1378,19 @@ export const corOps = {
 
   async saveCORSignature(corId, signatureData, signerName) {
     if (isSupabaseConfigured) {
+      // Allow signing either a pending CoR (sign-then-approve flow) or an
+      // already-approved CoR (approve-first flow used by the CORDetail UI).
+      // The status write below is a no-op for already-approved CoRs.
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           gc_signature_data: signatureData,
           gc_signature_name: signerName,
           gc_signature_date: new Date().toISOString(),
-          status: 'approved' // Auto-approve when signed
+          status: 'approved'
         })
         .eq('id', corId)
-        .in('status', ['pending_approval']) // Only allow signing CORs that are pending approval
+        .in('status', ['pending_approval', 'approved'])
         .select()
         .single()
       if (error) throw error
