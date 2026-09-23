@@ -27,11 +27,28 @@ const resetConnection = () => {
   db = null
 }
 
+// True when IndexedDB is usable in the current environment. Handles jsdom,
+// SSR, and Safari private-mode where the global is undefined or throws.
+export const isOfflineStorageAvailable = () => {
+  try {
+    return typeof indexedDB !== 'undefined' && indexedDB !== null
+  } catch {
+    return false
+  }
+}
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isOfflineStorageAvailable()) {
+      const err = new Error('IndexedDB is not available in this environment')
+      err.code = 'INDEXEDDB_UNAVAILABLE'
+      reject(err)
       return
     }
 
@@ -250,6 +267,7 @@ export const getPendingActions = async () => {
 
 // Get pending action count
 export const getPendingActionCount = async () => {
+  if (!isOfflineStorageAvailable()) return 0
   const actions = await getPendingActions()
   return actions.length
 }
