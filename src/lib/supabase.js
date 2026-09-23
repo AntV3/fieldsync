@@ -51,9 +51,11 @@ import { submittalOps } from './db/submittalOps'
 
 // Initialize offline database (guard for SSR/test environments)
 if (typeof window !== 'undefined') {
-  import('./offlineManager').then(m => m.initOfflineDB().catch(err =>
-    console.error('Failed to init offline DB:', err)
-  ))
+  import('./offlineManager').then(m => m.initOfflineDB().catch(err => {
+    if (err?.code !== 'INDEXEDDB_UNAVAILABLE') {
+      console.error('Failed to init offline DB:', err)
+    }
+  }))
 }
 
 // Re-export for other modules
