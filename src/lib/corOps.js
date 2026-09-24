@@ -1272,6 +1272,17 @@ export const corOps = {
 
   async approveCOR(corId, userId) {
     if (isSupabaseConfigured) {
+      // Resolve the approver identity from the session when the caller did
+      // not pass one. Without this the guard below is skippable by any UI
+      // that forgets the argument (see updateChangeOrderStatus).
+      if (!userId) {
+        const { data: authData } = await supabase.auth.getUser()
+        userId = authData?.user?.id || null
+      }
+      if (!userId) {
+        throw new Error('An authenticated user is required to approve a COR')
+      }
+
       // Separation of duties: prevent self-approval
       // The person who submitted should not be the same person who approves
       const { data: cor, error: fetchError } = await supabase
@@ -1281,7 +1292,7 @@ export const corOps = {
         .single()
       if (fetchError) throw fetchError
 
-      if (userId && (userId === cor.submitted_by || userId === cor.created_by)) {
+      if (userId === cor.submitted_by || userId === cor.created_by) {
         throw new Error('Separation of duties: COR cannot be approved by the person who created or submitted it. A different authorized user must approve.')
       }
 
@@ -1310,6 +1321,10 @@ export const corOps = {
 
   async rejectCOR(corId, reason = null, rejectedBy = null) {
     if (isSupabaseConfigured) {
+      if (!rejectedBy) {
+        const { data: authData } = await supabase.auth.getUser()
+        rejectedBy = authData?.user?.id || null
+      }
       const { data, error } = await supabase
         .from('change_orders')
         .update({
@@ -1336,6 +1351,10 @@ export const corOps = {
 
   async markCORAsBilled(corId, userId = null) {
     if (isSupabaseConfigured) {
+      if (!userId) {
+        const { data: authData } = await supabase.auth.getUser()
+        userId = authData?.user?.id || null
+      }
       const { data, error } = await supabase
         .from('change_orders')
         .update({
@@ -1357,6 +1376,10 @@ export const corOps = {
 
   async closeCOR(corId, userId = null) {
     if (isSupabaseConfigured) {
+      if (!userId) {
+        const { data: authData } = await supabase.auth.getUser()
+        userId = authData?.user?.id || null
+      }
       const { data, error } = await supabase
         .from('change_orders')
         .update({
@@ -1587,21 +1610,41 @@ export const corOps = {
     return null
   },
 
-  // Update change order status (with valid transition enforcement)
+  // Update change order status (with valid transition enforcement).
+  //
+  // Transitions that carry an approval/rejection/billing decision MUST go
+  // through `approveCOR`, `rejectCOR`, `markCORAsBilled`, or `closeCOR` so
+  // that the separation-of-duties check runs, the approver/rejecter/biller
+  // identity is stamped, and the status change is written to the audit log.
+  // Allowing them here let a submitter self-approve their own COR straight
+  // from the CORLog UI, leaving no `approved_by` and no _cor_status_log row.
   async updateChangeOrderStatus(changeOrderId, status) {
     if (isSupabaseConfigured) {
       // Enforce valid status values and transitions
       const VALID_TRANSITIONS = {
         draft: ['pending_approval'],
-        pending_approval: ['approved', 'rejected', 'draft'],
-        approved: ['billed', 'draft'],
+        pending_approval: ['draft'],
+        approved: ['draft'],
         rejected: ['draft', 'pending_approval'],
-        billed: ['closed'],
+        billed: [],
         closed: []
       }
       const VALID_STATUSES = Object.keys(VALID_TRANSITIONS)
       if (!VALID_STATUSES.includes(status)) {
         throw new Error(`Invalid status: ${status}`)
+      }
+
+      const DEDICATED_HELPERS = {
+        approved: 'approveCOR',
+        rejected: 'rejectCOR',
+        billed: 'markCORAsBilled',
+        closed: 'closeCOR'
+      }
+      if (DEDICATED_HELPERS[status]) {
+        throw new Error(
+          `Use ${DEDICATED_HELPERS[status]}() to transition to '${status}'; ` +
+          `updateChangeOrderStatus cannot stamp approver identity or write the audit log.`
+        )
       }
 
       // Determine which current statuses can transition to the target status

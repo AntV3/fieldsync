@@ -13,6 +13,37 @@ import 'jspdf-autotable'
 import { toCSV } from './financialExport'
 
 // ============================================
+// Schedule of Values helper
+// ============================================
+
+/**
+ * Compute an area's schedule-of-values dollar amount using the same priority
+ * chain as `drawRequestOps.areaScheduledValueCents`: explicit `scheduled_value`
+ * → `square_footage * price_per_sqft` → `weight% * contract_value`.
+ *
+ * The Sage and AIA exports historically referenced `area.sov_value`, a field
+ * that does not exist in the schema (the column is `scheduled_value`). That
+ * always resolved to `undefined`, so the exports fell back to `area.weight`
+ * as if it were dollars — but weight is a percentage (0-100). On a $1M contract
+ * with four equal areas at weight 25, the exports emitted $100 total instead
+ * of $1,000,000.
+ */
+export function computeAreaScheduledValue(area, contractValue = 0) {
+  const explicit = Number(area?.scheduled_value)
+  if (Number.isFinite(explicit) && explicit > 0) return explicit
+
+  const sqft = Number(area?.square_footage) || 0
+  const pricePerSqft = Number(area?.price_per_sqft) || 0
+  if (sqft > 0 && pricePerSqft > 0) return sqft * pricePerSqft
+
+  const weight = Number(area?.weight) || 0
+  const contract = Number(contractValue) || 0
+  if (weight > 0 && contract > 0) return contract * weight / 100
+
+  return 0
+}
+
+// ============================================
 // G703 Continuation Sheet Data Builder
 // ============================================
 
@@ -23,6 +54,7 @@ import { toCSV } from './financialExport'
 export function buildG703Lines(project, areas, changeOrders = [], previousApplications = []) {
   const lines = []
   let itemNumber = 1
+  const contractValue = Number(project?.contract_value) || 0
 
   // Calculate previous billing totals per area
   const previousByArea = {}
@@ -35,7 +67,7 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
 
   // Original contract line items from areas
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    const scheduledValue = computeAreaScheduledValue(area, contractValue)
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

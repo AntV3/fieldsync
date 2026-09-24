@@ -74,9 +74,27 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
       // Update log entry fields
       await db.updateCORLogEntry(entryId, updates)
 
-      // If status changed, update the change order status too
+      // If status changed, route through the dedicated helper so the
+      // approver/rejecter/biller identity is stamped and the separation-of-
+      // duties guard runs. `updateChangeOrderStatus` now refuses these
+      // transitions.
       if (updates.status) {
-        await db.updateChangeOrderStatus(changeOrderId, updates.status)
+        switch (updates.status) {
+          case 'approved':
+            await db.approveCOR(changeOrderId)
+            break
+          case 'rejected':
+            await db.rejectCOR(changeOrderId, updates.rejection_reason || null)
+            break
+          case 'billed':
+            await db.markCORAsBilled(changeOrderId)
+            break
+          case 'closed':
+            await db.closeCOR(changeOrderId)
+            break
+          default:
+            await db.updateChangeOrderStatus(changeOrderId, updates.status)
+        }
       }
 
       // Update local state
