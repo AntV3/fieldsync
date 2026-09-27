@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getConnectionStatus, onConnectionChange, getPendingActionCount } from '../lib/supabase'
+import { isOfflineStorageAvailable } from '../lib/offlineManager'
 
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(getConnectionStatus())
@@ -11,6 +12,17 @@ export default function OfflineIndicator() {
   const syncedTimeoutRef = useRef(null)
 
   useEffect(() => {
+    const storageAvailable = isOfflineStorageAvailable()
+
+    const readPendingCount = async () => {
+      if (!storageAvailable) return 0
+      try {
+        return await getPendingActionCount()
+      } catch (_e) {
+        return 0
+      }
+    }
+
     // Subscribe to connection changes
     const unsubscribe = onConnectionChange(async (online) => {
       setIsOnline(online)
@@ -28,22 +40,16 @@ export default function OfflineIndicator() {
       }
 
       // Update pending count
-      const count = await getPendingActionCount()
-      setPendingCount(count)
+      setPendingCount(await readPendingCount())
     })
 
     // Initial pending count check
-    getPendingActionCount()
-      .then(setPendingCount)
-      .catch(err => console.warn('[OfflineIndicator] failed to read pending count', err))
+    readPendingCount().then(setPendingCount)
 
     // Periodically check pending count when offline
     const interval = setInterval(async () => {
       if (!getConnectionStatus()) {
-        try {
-          const count = await getPendingActionCount()
-          setPendingCount(count)
-        } catch (_e) { /* offline - ignore */ }
+        setPendingCount(await readPendingCount())
       }
     }, 5000)
 

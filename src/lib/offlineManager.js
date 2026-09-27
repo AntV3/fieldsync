@@ -27,11 +27,24 @@ const resetConnection = () => {
   db = null
 }
 
+// Some environments (SSR, jsdom tests, a few private-browsing modes) do not
+// expose IndexedDB. Callers can pre-check to skip offline features without
+// generating noisy error logs.
+export const isOfflineStorageAvailable = () =>
+  typeof indexedDB !== 'undefined'
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isOfflineStorageAvailable()) {
+      const err = new Error('IndexedDB is not available in this environment')
+      err.code = 'INDEXEDDB_UNAVAILABLE'
+      reject(err)
       return
     }
 
