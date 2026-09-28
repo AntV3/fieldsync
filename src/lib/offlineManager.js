@@ -27,11 +27,27 @@ const resetConnection = () => {
   db = null
 }
 
+// Error code used when IndexedDB is not available (SSR, JSDOM tests, browsers
+// where private mode or storage policy disables it). Callers can inspect this
+// to decide between "offline storage broke" and "offline storage is simply
+// not available in this environment".
+export const OFFLINE_UNAVAILABLE_CODE = 'OFFLINE_UNAVAILABLE'
+
+export const isOfflineStorageSupported = () =>
+  typeof indexedDB !== 'undefined' && indexedDB !== null
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isOfflineStorageSupported()) {
+      const err = new Error('IndexedDB is not available in this environment')
+      err.code = OFFLINE_UNAVAILABLE_CODE
+      reject(err)
       return
     }
 
@@ -250,8 +266,13 @@ export const getPendingActions = async () => {
 
 // Get pending action count
 export const getPendingActionCount = async () => {
-  const actions = await getPendingActions()
-  return actions.length
+  try {
+    const actions = await getPendingActions()
+    return actions.length
+  } catch (err) {
+    if (err?.code === OFFLINE_UNAVAILABLE_CODE) return 0
+    throw err
+  }
 }
 
 // Remove completed action
