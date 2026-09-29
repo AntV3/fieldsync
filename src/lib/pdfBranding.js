@@ -264,15 +264,19 @@ export function applyDocumentFooters(doc, {
     doc.setTextColor(...BRAND.subtle)
     doc.text(left, margin, fy)
 
-    // Right: page indicator
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...BRAND.mid)
-    doc.text(`${i}`, pageWidth - margin, fy, { align: 'right' })
+    // Right: page indicator, laid out as "i of N" in reading order. The
+    // previous layout right-anchored BOTH "i" and " of N" independently,
+    // which placed " of N" to the LEFT of "i" — every footer read
+    // "of N i" instead of "i of N". We now anchor " of N" at the right
+    // edge and place "i" just to the left of it.
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(...BRAND.subtle)
     const totalLabel = ` of ${total}`
-    const numberWidth = doc.getTextWidth(`${i}`)
-    doc.text(totalLabel, pageWidth - margin - numberWidth, fy, { align: 'right' })
+    doc.text(totalLabel, pageWidth - margin, fy, { align: 'right' })
+    const totalLabelWidth = doc.getTextWidth(totalLabel)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...BRAND.mid)
+    doc.text(`${i}`, pageWidth - margin - totalLabelWidth, fy, { align: 'right' })
   }
 }
 

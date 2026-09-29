@@ -7,6 +7,23 @@ import { HeroMetricsSkeleton, MiniProgress, TrendIndicator, InfoTooltip } from '
  * Designed for instant comprehension of project financial health
  */
 
+/**
+ * Pure classifier for the profit card's alert variant. Extracted so the
+ * threshold ordering can be unit-tested independently of the React tree.
+ *
+ * Contract: a thinner margin must never render less alarming than a
+ * healthier one. Concretely, for any m1 < m2 we require severity(m1) >=
+ * severity(m2), where severity ranks danger > warning > default > success.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function getProfitVariant(profitMargin, awaitingCosts) {
+  if (awaitingCosts) return 'default'
+  if (profitMargin < 0) return 'danger'
+  if (profitMargin < 10) return 'warning'
+  if (profitMargin >= 20) return 'success'
+  return 'default'
+}
+
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -177,20 +194,15 @@ export default memo(function HeroMetrics({
   const profitMargin = earnedRevenue > 0 ? ((profit / earnedRevenue) * 100) : 0
   const costRatio = earnedRevenue > 0 ? ((totalCosts / earnedRevenue) * 100) : 0
   const revenueProgress = revisedContract > 0 ? ((earnedRevenue / revisedContract) * 100) : 0
-  const costProgress = revisedContract > 0 ? ((totalCosts / revisedContract) * 100) : 0
 
   // With $0 costs a "100% margin" is technically right but reads as a success
   // state — treat margins as unknown until cost data exists
   const awaitingCosts = totalCosts === 0
 
-  // Determine profit status
-  const profitVariant = useMemo(() => {
-    if (awaitingCosts) return 'default'
-    if (profitMargin >= 20) return 'success'
-    if (profitMargin >= 10) return 'warning'
-    if (profitMargin < 0) return 'danger'
-    return 'default'
-  }, [profitMargin, awaitingCosts])
+  const profitVariant = useMemo(
+    () => getProfitVariant(profitMargin, awaitingCosts),
+    [profitMargin, awaitingCosts]
+  )
 
   // Determine cost status
   const costVariant = useMemo(() => {
@@ -254,13 +266,16 @@ export default memo(function HeroMetrics({
         tooltip="Sum of completed area values based on weighted progress of each bid item"
       />
 
-      {/* Total Costs */}
+      {/* Total Costs. Bar fill and caption both read the same metric
+          (costs ÷ earned revenue) so the visual and the label agree — the
+          bar previously filled to costs/contract while the caption reported
+          costs/revenue, telling two different stories on the same card. */}
       <MetricCard
         icon={Receipt}
         label="Total Costs"
         value={totalCosts}
         formattedValue={formatCurrency(totalCosts)}
-        progress={awaitingCosts ? undefined : costProgress}
+        progress={awaitingCosts ? undefined : Math.min(100, costRatio)}
         progressLabel={awaitingCosts ? undefined : `${Math.round(costRatio)}% of revenue`}
         helperText={awaitingCosts ? 'Enter costs to track margins' : undefined}
         variant={costVariant}

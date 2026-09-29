@@ -153,7 +153,14 @@ export default function usePortfolioMetrics(projectsData) {
         const riskInput = {
           id: p.id,
           name: p.name,
-          totalCosts: p.totalCosts || 0,
+          // useDashboardData exposes total costs as `allCostsTotal` (line 494),
+          // never `totalCosts` — reading the wrong field silently zeroed every
+          // project's budget-factor ratio, so calculateBudgetFactor always
+          // returned status: 'healthy' and generateSmartAlerts never emitted
+          // a Budget Alert for over-budget projects. calculateProjections used
+          // the same zero to compute estimatedCompletionCost=0 and
+          // estimatedFinalMargin=100% for every project.
+          totalCosts: p.allCostsTotal || p.totalCosts || 0,
           earnedRevenue: p.billable || 0,
           actualProgress: p.progress || 0,
           expectedProgress: p.expectedProgress || p.progress,
