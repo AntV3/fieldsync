@@ -7,6 +7,23 @@ import { HeroMetricsSkeleton, MiniProgress, TrendIndicator, InfoTooltip } from '
  * Designed for instant comprehension of project financial health
  */
 
+/**
+ * Pure classifier for the profit card's alert variant. Extracted so the
+ * threshold ordering can be unit-tested independently of the React tree.
+ *
+ * Contract: a thinner margin must never render less alarming than a
+ * healthier one. Concretely, for any m1 < m2 we require severity(m1) >=
+ * severity(m2), where severity ranks danger > warning > default > success.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function getProfitVariant(profitMargin, awaitingCosts) {
+  if (awaitingCosts) return 'default'
+  if (profitMargin < 0) return 'danger'
+  if (profitMargin < 10) return 'warning'
+  if (profitMargin >= 20) return 'success'
+  return 'default'
+}
+
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -183,14 +200,10 @@ export default memo(function HeroMetrics({
   // state — treat margins as unknown until cost data exists
   const awaitingCosts = totalCosts === 0
 
-  // Determine profit status
-  const profitVariant = useMemo(() => {
-    if (awaitingCosts) return 'default'
-    if (profitMargin >= 20) return 'success'
-    if (profitMargin >= 10) return 'warning'
-    if (profitMargin < 0) return 'danger'
-    return 'default'
-  }, [profitMargin, awaitingCosts])
+  const profitVariant = useMemo(
+    () => getProfitVariant(profitMargin, awaitingCosts),
+    [profitMargin, awaitingCosts]
+  )
 
   // Determine cost status
   const costVariant = useMemo(() => {
