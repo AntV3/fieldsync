@@ -194,7 +194,6 @@ export default memo(function HeroMetrics({
   const profitMargin = earnedRevenue > 0 ? ((profit / earnedRevenue) * 100) : 0
   const costRatio = earnedRevenue > 0 ? ((totalCosts / earnedRevenue) * 100) : 0
   const revenueProgress = revisedContract > 0 ? ((earnedRevenue / revisedContract) * 100) : 0
-  const costProgress = revisedContract > 0 ? ((totalCosts / revisedContract) * 100) : 0
 
   // With $0 costs a "100% margin" is technically right but reads as a success
   // state — treat margins as unknown until cost data exists
@@ -267,13 +266,16 @@ export default memo(function HeroMetrics({
         tooltip="Sum of completed area values based on weighted progress of each bid item"
       />
 
-      {/* Total Costs */}
+      {/* Total Costs. Bar fill and caption both read the same metric
+          (costs ÷ earned revenue) so the visual and the label agree — the
+          bar previously filled to costs/contract while the caption reported
+          costs/revenue, telling two different stories on the same card. */}
       <MetricCard
         icon={Receipt}
         label="Total Costs"
         value={totalCosts}
         formattedValue={formatCurrency(totalCosts)}
-        progress={awaitingCosts ? undefined : costProgress}
+        progress={awaitingCosts ? undefined : Math.min(100, costRatio)}
         progressLabel={awaitingCosts ? undefined : `${Math.round(costRatio)}% of revenue`}
         helperText={awaitingCosts ? 'Enter costs to track margins' : undefined}
         variant={costVariant}

@@ -41,8 +41,12 @@ export const BUILT_IN_KPIS = {
     icon: 'DollarSign',
     calculate: (projectData) => {
       const contract = projectData?.project?.contract_value
-      const billed = projectData?.billedTotal
+      // useDashboardData exposes this as `totalBilled` (line 536); the older
+      // `billedTotal` name is never written anywhere, so the KPI was silently
+      // returning null for every project that had any invoicing.
+      const billed = projectData?.totalBilled ?? projectData?.billedTotal
       if (!contract || contract === 0) return null
+      if (billed == null) return null
       return Math.round((billed / contract) * 100)
     }
   },
