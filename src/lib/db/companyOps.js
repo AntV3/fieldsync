@@ -313,25 +313,29 @@ export const companyOps = {
   async getInvitationByToken(token) {
     if (!isSupabaseConfigured) return null
 
-    const { data, error } = await supabase
-      .from('company_invitations')
-      .select('*, companies(id, name)')
-      .eq('invite_token', token)
-      .eq('status', 'active')
-      .single()
+    // Anon SELECT on company_invitations was revoked in
+    // 20260930_daily_health_check_security_fixes.sql to close a token
+    // enumeration path. Look up through the SECURITY DEFINER RPC that
+    // only returns the row matching the supplied token.
+    const { data, error } = await supabase.rpc('get_invitation_by_token', {
+      p_token: token
+    })
 
-    if (error) return null
+    if (error || !data || data.length === 0) return null
 
-    // Validate expiration and usage client-side too
-    if (data.expires_at && new Date(data.expires_at) < new Date()) return null
-    if (data.max_uses && data.use_count >= data.max_uses) return null
-
-    return data
+    const row = data[0]
+    return {
+      ...row,
+      companies: { id: row.company_id, name: row.company_name }
+    }
   },
 
   async acceptInvitation(token, userId) {
     if (!isSupabaseConfigured) return { success: false, error: 'Not configured' }
 
+    // The RPC derives the caller from auth.uid(); passing p_user_id is
+    // still supported for backwards compatibility but the server refuses
+    // any value that does not match the caller.
     const { data, error } = await supabase.rpc('accept_invitation', {
       p_invite_token: token,
       p_user_id: userId

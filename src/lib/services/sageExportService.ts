@@ -117,7 +117,10 @@ export async function exportJobCostTransactions(
     if (projErr) throw projErr
     const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
 
-    // Fetch T&M tickets with workers and items, joined to cost codes
+    // Fetch T&M tickets with workers and items, joined to cost codes.
+    // Only export tickets that have been approved (or already billed) —
+    // draft / pending / rejected tickets are not job cost yet and must
+    // not leak into a Sage 300 posting.
     let query = supabase
       .from('t_and_m_tickets')
       .select(`
@@ -128,6 +131,7 @@ export async function exportJobCostTransactions(
         t_and_m_items (description, quantity, materials_equipment (name, cost_per_unit))
       `)
       .eq('project_id', projectId)
+      .in('status', ['approved', 'billed'])
       .order('work_date', { ascending: true })
 
     if (options.startDate) {
@@ -267,8 +271,12 @@ export async function exportChangeOrderSummary(projectId: string): Promise<SageE
     if (projErr) throw projErr
     const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
 
+    // The real table is `change_orders` — `change_order_requests`
+    // does not exist and every previous call to this export threw.
+    // We also restrict to approved/billed/closed so draft, pending
+    // and rejected CORs never post into the Sage revised budget.
     const { data: cors, error: corErr } = await supabase
-      .from('change_order_requests')
+      .from('change_orders')
       .select(`
         id, cor_number, title, status, cor_total, approved_at,
         cost_code_id,
@@ -279,6 +287,7 @@ export async function exportChangeOrderSummary(projectId: string): Promise<SageE
         change_order_subcontractors (description, total)
       `)
       .eq('project_id', projectId)
+      .in('status', ['approved', 'billed', 'closed'])
       .order('cor_number', { ascending: true })
 
     if (corErr) throw corErr
@@ -387,14 +396,21 @@ export async function exportCostCodeStructure(companyId: string): Promise<SageEx
 export function toSageCSV(rows: SageRow[]): string {
   if (!rows.length) return ''
   const headers = Object.keys(rows[0])
+  // Guard against CSV formula injection: a cell that starts with
+  // one of = + - @ TAB CR (or a leading whitespace that hides these)
+  // is interpreted as a formula by Excel and Google Sheets. Prefix a
+  // single-quote so the value renders as text.
+  const escapeCell = (val: unknown): string => {
+    if (val == null) return '""'
+    let str = String(val)
+    if (/^[\s]*[=+\-@\t\r]/.test(str)) {
+      str = `'${str}`
+    }
+    return `"${str.replace(/"/g, '""')}"`
+  }
   const headerLine = headers.map(h => `"${h}"`).join(',')
   const dataLines = rows.map(row =>
-    headers.map(key => {
-      const val = row[key]
-      if (val == null) return '""'
-      const str = String(val)
-      return `"${str.replace(/"/g, '""')}"`
-    }).join(',')
+    headers.map(key => escapeCell(row[key])).join(',')
   )
   return [headerLine, ...dataLines].join('\n')
 }

@@ -1272,8 +1272,19 @@ export const corOps = {
 
   async approveCOR(corId, userId) {
     if (isSupabaseConfigured) {
-      // Separation of duties: prevent self-approval
-      // The person who submitted should not be the same person who approves
+      // Separation of duties: the approver must be identified, and must
+      // not be the person who created or submitted the COR. When callers
+      // omit userId we derive it from the current session so an
+      // `undefined` value can never silently skip the SoD guard.
+      let approverId = userId
+      if (!approverId) {
+        const { data: userRes } = await supabase.auth.getUser()
+        approverId = userRes?.user?.id
+      }
+      if (!approverId) {
+        throw new Error('Separation of duties: could not determine the approving user. Please sign in and retry.')
+      }
+
       const { data: cor, error: fetchError } = await supabase
         .from('change_orders')
         .select('submitted_by, created_by')
@@ -1281,7 +1292,7 @@ export const corOps = {
         .single()
       if (fetchError) throw fetchError
 
-      if (userId && (userId === cor.submitted_by || userId === cor.created_by)) {
+      if (approverId === cor.submitted_by || approverId === cor.created_by) {
         throw new Error('Separation of duties: COR cannot be approved by the person who created or submitted it. A different authorized user must approve.')
       }
 
@@ -1289,7 +1300,7 @@ export const corOps = {
         .from('change_orders')
         .update({
           status: 'approved',
-          approved_by: userId,
+          approved_by: approverId,
           approved_at: new Date().toISOString(),
           // Clear any previous rejection
           rejection_reason: null
@@ -1301,7 +1312,7 @@ export const corOps = {
       if (error) throw error
 
       // Log the status change
-      await this._logCORStatusChange(corId, 'approved', userId, 'Approved')
+      await this._logCORStatusChange(corId, 'approved', approverId, 'Approved')
 
       return data
     }
@@ -1378,19 +1389,43 @@ export const corOps = {
 
   async saveCORSignature(corId, signatureData, signerName) {
     if (isSupabaseConfigured) {
+      // The GC-signature capture also flips the COR to `approved`, so
+      // it must satisfy the same separation-of-duties rule as
+      // approveCOR — otherwise the submitter can sign and self-approve
+      // and bypass the SoD guard on the direct approve path.
+      const { data: userRes } = await supabase.auth.getUser()
+      const signerId = userRes?.user?.id
+      if (!signerId) {
+        throw new Error('Separation of duties: could not identify the signing user. Please sign in and retry.')
+      }
+      const { data: cor, error: fetchError } = await supabase
+        .from('change_orders')
+        .select('submitted_by, created_by')
+        .eq('id', corId)
+        .single()
+      if (fetchError) throw fetchError
+      if (signerId === cor.submitted_by || signerId === cor.created_by) {
+        throw new Error('Separation of duties: the COR creator/submitter cannot capture the GC signature and self-approve. Ask an authorized approver to sign.')
+      }
+
       const { data, error } = await supabase
         .from('change_orders')
         .update({
           gc_signature_data: signatureData,
           gc_signature_name: signerName,
           gc_signature_date: new Date().toISOString(),
-          status: 'approved' // Auto-approve when signed
+          status: 'approved', // Auto-approve when signed
+          approved_by: signerId,
+          approved_at: new Date().toISOString()
         })
         .eq('id', corId)
         .in('status', ['pending_approval']) // Only allow signing CORs that are pending approval
         .select()
         .single()
       if (error) throw error
+
+      await this._logCORStatusChange(corId, 'approved', signerId, 'Approved (GC signature captured)')
+
       return data
     }
     return null
@@ -1590,6 +1625,13 @@ export const corOps = {
   // Update change order status (with valid transition enforcement)
   async updateChangeOrderStatus(changeOrderId, status) {
     if (isSupabaseConfigured) {
+      // The `approved` transition must go through approveCOR() so the
+      // separation-of-duties check runs. Otherwise a submitter could
+      // flip status to `approved` here and bypass the guard.
+      if (status === 'approved') {
+        throw new Error('Use approveCOR(corId) to approve a change order — the direct status update bypasses the separation-of-duties check.')
+      }
+
       // Enforce valid status values and transitions
       const VALID_TRANSITIONS = {
         draft: ['pending_approval'],
@@ -2439,24 +2481,28 @@ export const corOps = {
   // Mark CORs and T&M tickets as billed after creating invoice
   async markItemsBilled(corIds = [], tmIds = []) {
     if (isSupabaseConfigured) {
-      // Update CORs to 'billed' status
+      // Only `approved` CORs may transition to `billed`. Without this
+      // filter, a stale/malformed corIds array (draft, rejected, closed)
+      // was forced to `billed`, silently skipping the approval workflow.
       if (corIds.length > 0) {
         const { error: corsError } = await supabase
           .from('change_orders')
           .update({ status: 'billed' })
           .in('id', corIds)
+          .eq('status', 'approved')
 
         if (corsError) {
           console.error('Error marking CORs as billed:', corsError)
         }
       }
 
-      // Update T&M tickets to 'billed' status
+      // Only `approved` T&M tickets may transition to `billed`.
       if (tmIds.length > 0) {
         const { error: tmError } = await supabase
           .from('t_and_m_tickets')
           .update({ status: 'billed' })
           .in('id', tmIds)
+          .eq('status', 'approved')
 
         if (tmError) {
           console.error('Error marking T&M tickets as billed:', tmError)
