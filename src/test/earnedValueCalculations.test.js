@@ -171,5 +171,25 @@ describe('Earned Value Calculations', () => {
       const lastPoint = data[data.length - 1]
       expect(lastPoint.plannedValue).toBe(1050000)
     })
+
+    it('does not emit NaN earnedValue when the project starts today (0/0 guard)', () => {
+      const today = new Date('2026-06-01')
+      const data = generateSCurveData({
+        ...baseProject,
+        startDate: '2026-06-01',
+        endDate: '2027-06-01',
+        now: today
+      })
+      // Every past/current point must have a finite earnedValue and
+      // actualCost — the day-zero divide-by-zero used to poison both.
+      for (const point of data) {
+        if (point.earnedValue !== undefined) {
+          expect(Number.isFinite(point.earnedValue)).toBe(true)
+        }
+        if (point.actualCost !== undefined) {
+          expect(Number.isFinite(point.actualCost)).toBe(true)
+        }
+      }
+    })
   })
 })

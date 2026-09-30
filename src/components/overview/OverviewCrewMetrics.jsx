@@ -69,6 +69,12 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     }
   }
 
+  // Historical check-in and T&M rows can be missing `name` (partially
+  // filled forms, legacy import). Reading `w.name.toLowerCase()` blindly
+  // threw and crashed the whole Overview to the error boundary — normalize
+  // to a safe key here and reuse it everywhere below.
+  const workerKey = (w) => (w?.name || '').toLowerCase().trim()
+
   // Build a lookup: date -> Set of T&M worker names
   const tmWorkersByDate = useMemo(() => {
     const map = {}
@@ -77,7 +83,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       if (!date) return
       if (!map[date]) map[date] = new Set()
       ;(ticket.t_and_m_workers || []).forEach(w => {
-        map[date].add(w.name.toLowerCase().trim())
+        const key = workerKey(w)
+        if (key) map[date].add(key)
       })
     })
     return map
@@ -100,7 +107,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     const contract = []
     const tm = []
     selectedDayWorkers.forEach(w => {
-      if (selectedDayTmNames.has(w.name.toLowerCase().trim())) {
+      const key = workerKey(w)
+      if (key && selectedDayTmNames.has(key)) {
         tm.push(w)
       } else {
         contract.push(w)
@@ -126,7 +134,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       let contractCount = 0
       let tmCount = 0
       workers.forEach(w => {
-        if (tmNames.has(w.name.toLowerCase().trim())) {
+        const key = workerKey(w)
+        if (key && tmNames.has(key)) {
           tmCount++
         } else {
           contractCount++

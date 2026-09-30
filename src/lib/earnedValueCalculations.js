@@ -239,8 +239,13 @@ export function generateSCurveData({
     }
 
     if (isPast || isCurrent) {
-      // Interpolate EV and AC to current point
-      const timePercent = Math.min(1, (pointDate - start) / (now - start))
+      // Interpolate EV and AC to current point. Guard the day-zero
+      // case where `now` and `start` collapse to the same instant —
+      // the raw ratio is 0/0 (NaN), which then poisons the chart.
+      const elapsed = now - start
+      const timePercent = elapsed > 0
+        ? Math.min(1, (pointDate - start) / elapsed)
+        : 0
       point.earnedValue = Math.round(timePercent * (progressPercent / 100) * bac)
       point.actualCost = Math.round(timePercent * actualCosts)
     }

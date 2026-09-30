@@ -72,9 +72,12 @@ export function projectReceivables(projects, invoices, config) {
   const now = new Date()
   const entries = []
 
-  // Outstanding invoices (already billed, awaiting payment)
+  // Outstanding invoices (already billed, awaiting payment). The
+  // billing schema (20241201000050_billing.sql) uses
+  // draft / sent / partial / paid / void — `partial` is real cash
+  // still owed and had been dropped entirely from receivables.
   const outstanding = invoices.filter(inv =>
-    inv.status === 'sent' || inv.status === 'pending' || inv.status === 'overdue'
+    inv.status === 'sent' || inv.status === 'partial'
   )
 
   for (const inv of outstanding) {
