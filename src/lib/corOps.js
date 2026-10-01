@@ -9,6 +9,7 @@ import { observe } from './observability'
 import { generateTempId } from './offlineManager'
 import { getLocalData, setLocalData } from './localStorageHelpers'
 import { sanitize } from './sanitize'
+import { getLocalDateString } from './utils'
 
 export const corOps = {
   // Create a new COR (with retry on conflict)
@@ -2036,7 +2037,9 @@ export const corOps = {
       category: costData.category,
       description: costData.description,
       amount: parseFloat(costData.amount),
-      cost_date: costData.cost_date || new Date().toISOString().split('T')[0],
+      // getLocalDateString returns YYYY-MM-DD in the user's local timezone; using
+      // toISOString() here would roll US evenings into tomorrow's accounting bucket.
+      cost_date: costData.cost_date || getLocalDateString(),
       notes: costData.notes || null,
       created_by: costData.created_by || null
     }

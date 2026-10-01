@@ -78,15 +78,26 @@ export function projectReceivables(projects, invoices, config) {
   )
 
   for (const inv of outstanding) {
-    const invoiceDate = new Date(inv.date || inv.created_at)
+    // invoices.invoice_date is the real field; `date` is a legacy demo alias; `created_at` is a timestamp fallback.
+    const invoiceDate = new Date(inv.invoice_date || inv.date || inv.created_at)
     const dueDate = new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
     const isOverdue = dueDate < now
+
+    // `invoices.total` is stored in INTEGER cents (migration 20241201000050_billing.sql); the
+    // rest of this projection works in dollars. Legacy/demo rows that stored dollars under
+    // `amount` still work via the fallback. Subtract payments already received so the
+    // outstanding entry only reflects the open balance.
+    const totalDollars = (typeof inv.total === 'number')
+      ? inv.total / 100
+      : (parseFloat(inv.amount) || 0)
+    const paidDollars = (typeof inv.amount_paid === 'number') ? inv.amount_paid / 100 : 0
+    const outstandingAmount = Math.max(0, totalDollars - paidDollars)
 
     entries.push({
       type: 'outstanding',
       projectId: inv.project_id,
       projectName: inv.project_name || 'Unknown',
-      amount: inv.amount || 0,
+      amount: outstandingAmount,
       date: invoiceDate.toISOString().split('T')[0],
       expectedDate: dueDate.toISOString().split('T')[0],
       status: isOverdue ? 'overdue' : 'pending',

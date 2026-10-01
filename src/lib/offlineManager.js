@@ -4,6 +4,7 @@
  */
 
 import { detectConflict, stampForOffline, buildConflictSummary, RESOLUTION_STRATEGIES } from './conflictDetection'
+import { getLocalDateString } from './utils'
 
 const DB_NAME = 'fieldsync-offline'
 const DB_VERSION = 2  // Bumped to add T&M tickets, daily reports, messages stores
@@ -329,8 +330,10 @@ export const cacheCrewCheckin = async (checkin) => {
 // Get cached crew checkin
 export const getCachedCrewCheckin = async (projectId) => {
   const checkins = await getByIndex(STORES.CREW_CHECKINS, 'project_id', projectId)
-  // Return the most recent one for today
-  const today = new Date().toISOString().split('T')[0]
+  // Compare against the user's local calendar day — fieldOps writes check_in_date
+  // using the local date, so a UTC comparison here misses today's cached row for
+  // US-evening users and triggers a redundant check-in that duplicates on sync.
+  const today = getLocalDateString()
   return checkins.find(c => c.check_in_date === today) || null
 }
 
