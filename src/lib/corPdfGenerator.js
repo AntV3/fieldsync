@@ -822,8 +822,10 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
         yPos += photoHeight + 12
       }
 
-      // Foreman signature block
-      if (ticket.foreman_signature_data || ticket.foreman_signature_name) {
+      // Foreman signature block — require the signature image, not just a
+      // typed name. Rendering a "FOREMAN" block for a ticket whose foreman
+      // never signed produced PDFs that looked signed in disputes.
+      if (ticket.foreman_signature_data) {
         if (yPos > pageHeight - 50) {
           doc.addPage()
           yPos = margin

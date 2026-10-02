@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { db, equipmentOps } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
-import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
+import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive, parseLocalDate } from '../lib/utils'
 
 /**
  * useDashboardData - Data layer for the office Dashboard.
@@ -375,7 +375,9 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
-      // Project equipment rental costs (daily rate * days on site, stored in cents)
+      // Project equipment rental costs (daily rate * days on site).
+      // calculateProjectEquipmentCost returns DOLLARS (daily_rate is cents in DB,
+      // but the helper divides once at the sum so this matches the other dollar totals).
       const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
@@ -449,13 +451,20 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
         return sum + (w.concrete || 0) + (w.trash || 0) + (w.metals || 0) + (w.hazardous_waste || 0)
       }, 0)
 
-      // Days since last injury
-      const lastInjuryDate = injuryReports.length > 0
-        ? new Date(injuryReports[0]?.incident_date || injuryReports[0]?.created_at)
-        : null
-      const daysSinceLastInjury = lastInjuryDate
-        ? Math.floor((new Date() - lastInjuryDate) / (1000 * 60 * 60 * 24))
-        : null
+      // Days since last injury — anchor both endpoints to LOCAL midnight so
+      // the floor doesn't trip across the UTC-vs-local boundary (off by one
+      // for west-of-UTC users at any time of day).
+      let daysSinceLastInjury = null
+      if (injuryReports.length > 0) {
+        const raw = injuryReports[0]?.incident_date || injuryReports[0]?.created_at
+        const start = raw ? parseLocalDate(raw) : null
+        if (start) {
+          start.setHours(0, 0, 0, 0)
+          const nowLocal = new Date()
+          nowLocal.setHours(0, 0, 0, 0)
+          daysSinceLastInjury = Math.max(0, Math.round((nowLocal - start) / (1000 * 60 * 60 * 24)))
+        }
+      }
 
       // Task completion velocity: areas completed in last 14 days vs prior 14 days
       const completedAreas = projectAreas.filter(a => a.status === 'done')

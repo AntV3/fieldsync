@@ -90,14 +90,24 @@ export default function CORLogRow({
     }
   }
 
-  // Format date for input
+  // Format date for a <input type="date"> value. Preserve already-good
+  // YYYY-MM-DD strings as-is: round-tripping them through new Date()/
+  // toISOString() silently drifted the date back one day for west-of-UTC
+  // users (the input would pre-fill yesterday).
   const formatDateInput = (dateStr) => {
     if (!dateStr) return ''
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      return dateStr.slice(0, 10)
+    }
     try {
       const date = new Date(dateStr)
-      return date.toISOString().split('T')[0]
+      if (Number.isNaN(date.getTime())) return ''
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     } catch {
-      return dateStr
+      return ''
     }
   }
 

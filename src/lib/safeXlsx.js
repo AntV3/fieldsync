@@ -88,3 +88,40 @@ export const safeSheetToJson = (XLSX, sheet, options = {}) => {
   const rows = XLSX.utils.sheet_to_json(sheet, options)
   return rows.map(sanitizeObject)
 }
+
+// Formula-trigger characters per the OWASP CSV/formula-injection list.
+// When Excel opens a workbook, any cell beginning with one of these is
+// evaluated as a formula (DDE/HYPERLINK/+SUM, etc) — including =cmd|…!A1,
+// which has historically yielded RCE on legacy Excel installs.
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/
+
+/**
+ * Make an arbitrary user-supplied string safe to drop into a spreadsheet
+ * cell. Non-strings pass through unchanged (numbers/dates don't trip the
+ * formula interpreter). Strings that begin with a formula-trigger character
+ * are prefixed with a single quote so Excel renders them as literal text.
+ */
+export function escapeXlsxCell(value) {
+  if (value == null) return value
+  if (typeof value !== 'string') return value
+  return FORMULA_TRIGGERS.test(value) ? `'${value}` : value
+}
+
+/** Escape every string cell inside a 2-D array-of-arrays sheet. */
+export function escapeXlsxRows(rows) {
+  if (!Array.isArray(rows)) return rows
+  return rows.map(row => Array.isArray(row) ? row.map(escapeXlsxCell) : row)
+}
+
+/** Escape every value in each row of an array-of-objects sheet. */
+export function escapeXlsxObjectRows(rows) {
+  if (!Array.isArray(rows)) return rows
+  return rows.map(row => {
+    if (!row || typeof row !== 'object') return row
+    const out = {}
+    for (const [k, v] of Object.entries(row)) {
+      out[k] = escapeXlsxCell(v)
+    }
+    return out
+  })
+}

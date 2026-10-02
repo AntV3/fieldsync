@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { escapeXlsxRows } from '../../lib/safeXlsx'
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -174,7 +175,10 @@ export default function CORList({
         ['Potential Total:', (project.contract_value || 0) + approvedValue + pendingValue]
       ]
 
-      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+      // Escape any user-supplied strings (project name, job number, etc.)
+      // before handing them to the spreadsheet writer so a crafted field
+      // can't execute a formula when the file is opened in Excel.
+      const wsSummary = XLSX.utils.aoa_to_sheet(escapeXlsxRows(summaryData))
       wsSummary['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 18 }]
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
 
@@ -200,7 +204,7 @@ export default function CORList({
         cor.area?.name || ''
       ])
 
-      const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailData])
+      const wsDetail = XLSX.utils.aoa_to_sheet(escapeXlsxRows([detailHeaders, ...detailData]))
       wsDetail['!cols'] = [
         { wch: 10 }, { wch: 30 }, { wch: 40 }, { wch: 14 }, { wch: 16 },
         { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 18 },
@@ -234,7 +238,7 @@ export default function CORList({
             [],
             ['TOTAL', '', data.reduce((s, c) => s + (c.cor_total || 0), 0) / 100, '']
           ]
-          const ws = XLSX.utils.aoa_to_sheet(sheetData)
+          const ws = XLSX.utils.aoa_to_sheet(escapeXlsxRows(sheetData))
           ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 14 }, { wch: 12 }]
           XLSX.utils.book_append_sheet(wb, ws, name)
         }

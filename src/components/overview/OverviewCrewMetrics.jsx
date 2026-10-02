@@ -4,7 +4,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { db } from '../../lib/supabase'
+import { getLocalDateString } from '../../lib/utils'
 import { chartColors, tooltipStyle, formatChartDate } from '../charts/chartConfig'
+
+// Normalize a worker name for comparison; tolerant of null/undefined values
+// that legacy or offline-created rows may carry (crashed the whole card before).
+const normName = (w) => (w?.name == null ? '' : String(w.name).toLowerCase().trim())
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -77,7 +82,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       if (!date) return
       if (!map[date]) map[date] = new Set()
       ;(ticket.t_and_m_workers || []).forEach(w => {
-        map[date].add(w.name.toLowerCase().trim())
+        const n = normName(w)
+        if (n) map[date].add(n)
       })
     })
     return map
@@ -100,7 +106,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     const contract = []
     const tm = []
     selectedDayWorkers.forEach(w => {
-      if (selectedDayTmNames.has(w.name.toLowerCase().trim())) {
+      const n = normName(w)
+      if (n && selectedDayTmNames.has(n)) {
         tm.push(w)
       } else {
         contract.push(w)
@@ -118,7 +125,9 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     for (let i = rangeDays - 1; i >= 0; i--) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
+      // getLocalDateString keeps the key in local time; .toISOString() drifted
+      // by one day for off-UTC users and the "today" button never highlighted.
+      const dateStr = getLocalDateString(d)
 
       const workers = crewByDate[dateStr] || []
       const tmNames = tmWorkersByDate[dateStr] || new Set()
@@ -126,7 +135,8 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
       let contractCount = 0
       let tmCount = 0
       workers.forEach(w => {
-        if (tmNames.has(w.name.toLowerCase().trim())) {
+        const n = normName(w)
+        if (n && tmNames.has(n)) {
           tmCount++
         } else {
           contractCount++
@@ -149,10 +159,10 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   const changeDate = useCallback((direction) => {
     const d = new Date(selectedDate + 'T12:00:00')
     d.setDate(d.getDate() + direction)
-    setSelectedDate(d.toISOString().split('T')[0])
+    setSelectedDate(getLocalDateString(d))
   }, [selectedDate])
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0]
+  const isToday = selectedDate === getLocalDateString()
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00')

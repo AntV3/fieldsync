@@ -150,13 +150,27 @@ export default function usePortfolioMetrics(projectsData) {
     const projectRisks = projectsData
       .filter(p => p._detailsLoaded) // Skip projects without detailed data
       .map(p => {
+        // Compute expected progress from schedule so schedule-risk factor isn't
+        // silently 0. Mirrors the formula in calculateScheduleInsights (utils.js).
+        let expectedProgress = p.progress || 0
+        if (p.start_date && p.end_date) {
+          const start = new Date(p.start_date).getTime()
+          const end = new Date(p.end_date).getTime()
+          const now = Date.now()
+          const total = Math.max(1, end - start)
+          const elapsed = Math.max(0, now - start)
+          expectedProgress = Math.min(100, (elapsed / total) * 100)
+        }
+
         const riskInput = {
           id: p.id,
           name: p.name,
-          totalCosts: p.totalCosts || 0,
+          // Enhanced-project rows expose costs as `allCostsTotal`, not `totalCosts`.
+          // Reading `totalCosts` left the budget-risk factor silently at 0.
+          totalCosts: p.allCostsTotal || 0,
           earnedRevenue: p.billable || 0,
           actualProgress: p.progress || 0,
-          expectedProgress: p.expectedProgress || p.progress,
+          expectedProgress,
           pendingCORValue: p.corPendingValue || 0,
           contractValue: p.revisedContractValue || p.contract_value || 0,
           lastReportDate: p.lastDailyReport,

@@ -16,6 +16,7 @@ import {
   sanitizeFormData,
   sanitize
 } from './client'
+import { getLocalDateString, parseLocalDate } from '../utils'
 
 export const fieldOps = {
   // ============================================
@@ -76,8 +77,8 @@ export const fieldOps = {
         .from('disposal_loads')
         .select('*')
         .eq('project_id', projectId)
-        .gte('work_date', startDate.toISOString().split('T')[0])
-        .lte('work_date', endDate.toISOString().split('T')[0])
+        .gte('work_date', getLocalDateString(startDate))
+        .lte('work_date', getLocalDateString(endDate))
         .order('work_date', { ascending: false })
 
       const duration = Math.round(performance.now() - start)
@@ -247,19 +248,22 @@ export const fieldOps = {
       .from('disposal_loads')
       .select('load_type, load_count, work_date')
       .eq('project_id', projectId)
-      .gte('work_date', startDate.toISOString().split('T')[0])
-      .lte('work_date', endDate.toISOString().split('T')[0])
+      .gte('work_date', getLocalDateString(startDate))
+      .lte('work_date', getLocalDateString(endDate))
       .order('work_date', { ascending: true })
 
     if (error) throw error
 
-    // Group by week and load type
+    // Group by week and load type.
+    // Parse work_date as LOCAL midnight (parseLocalDate) so getDay()
+    // reports the right weekday and the Sunday-anchored key sits in the
+    // same local week the user actually recorded the load for.
     const weeklyData = {}
     data?.forEach(row => {
-      const date = new Date(row.work_date)
+      const date = parseLocalDate(row.work_date)
       const weekStart = new Date(date)
       weekStart.setDate(date.getDate() - date.getDay())
-      const weekKey = weekStart.toISOString().split('T')[0]
+      const weekKey = getLocalDateString(weekStart)
 
       if (!weeklyData[weekKey]) {
         weeklyData[weekKey] = { week: weekKey, concrete: 0, trash: 0, metals: 0, hazardous_waste: 0 }
@@ -339,8 +343,8 @@ export const fieldOps = {
       .from('disposal_truck_counts')
       .select('*')
       .eq('project_id', projectId)
-      .gte('work_date', startDate.toISOString().split('T')[0])
-      .lte('work_date', endDate.toISOString().split('T')[0])
+      .gte('work_date', getLocalDateString(startDate))
+      .lte('work_date', getLocalDateString(endDate))
       .order('work_date', { ascending: false })
 
     if (error) {
@@ -371,7 +375,7 @@ export const fieldOps = {
   async getCrewCheckin(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    const checkDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -391,7 +395,7 @@ export const fieldOps = {
   async saveCrewCheckin(projectId, workers, createdBy = null, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    const checkDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -713,7 +717,7 @@ export const fieldOps = {
   async getDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -733,7 +737,7 @@ export const fieldOps = {
   async compileDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     // Run all queries in parallel for faster loading
@@ -772,7 +776,7 @@ export const fieldOps = {
   async saveDailyReport(projectId, reportData, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -831,7 +835,7 @@ export const fieldOps = {
   async submitDailyReport(projectId, submittedBy, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
 
     // If offline, queue the submission
     if (!getConnectionStatus()) {

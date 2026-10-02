@@ -40,28 +40,47 @@ export const BUILT_IN_KPIS = {
     unit: '%',
     icon: 'DollarSign',
     calculate: (projectData) => {
-      const contract = projectData?.project?.contract_value
-      const billed = projectData?.billedTotal
+      // Enhanced-project rows flatten the project onto the root (see useDashboardData),
+      // so contract_value / totalBilled live at the top level — not under
+      // `project.contract_value` / `billedTotal`.
+      const contract = projectData?.revised_contract_value
+        ?? projectData?.contract_value
+        ?? projectData?.project?.contract_value
+      const billed = projectData?.totalBilled ?? projectData?.billedTotal
       if (!contract || contract === 0) return null
-      return Math.round((billed / contract) * 100)
+      return Math.round(((billed || 0) / contract) * 100)
     }
   },
   crew_utilization: {
     id: 'crew_utilization',
-    label: 'Crew Today',
+    label: 'Crew (Recent Avg)',
     unit: 'workers',
     icon: 'Users',
     calculate: (projectData) => {
-      return projectData?.todaysCrewCount ?? null
+      // Fall back through the fields useDashboardData actually sets.
+      const v = projectData?.todaysCrewCount
+        ?? projectData?.recentCrewAvg
+        ?? projectData?.avgCrewSize
+      if (v === null || v === undefined) return null
+      return Math.round(v * 10) / 10
     }
   },
   tm_ticket_volume: {
     id: 'tm_ticket_volume',
-    label: 'Time and Material Tickets (This Week)',
+    label: 'T&M Tickets (This Week)',
     unit: 'tickets',
     icon: 'FileText',
     calculate: (projectData) => {
-      return projectData?.weeklyTicketCount ?? null
+      if (projectData?.weeklyTicketCount !== undefined && projectData?.weeklyTicketCount !== null) {
+        return projectData.weeklyTicketCount
+      }
+      const tickets = projectData?.tmTickets
+      if (!Array.isArray(tickets)) return null
+      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+      return tickets.filter(t => {
+        const d = new Date(t.ticket_date || t.created_at || 0).getTime()
+        return Number.isFinite(d) && d >= cutoff
+      }).length
     }
   }
 }
