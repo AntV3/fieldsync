@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Receipt, Plus, Trash2, FileText, Loader2 } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency, dollarsToCents } from '../../lib/corCalculations'
+import { getLocalDateString } from '../../lib/utils'
 
 export default function InvoiceModal({
   project,
@@ -14,7 +15,7 @@ export default function InvoiceModal({
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [invoiceNumber, setInvoiceNumber] = useState('')
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0])
+  const [invoiceDate, setInvoiceDate] = useState(getLocalDateString())
   const [dueDate, setDueDate] = useState('')
   const [retentionPercent, setRetentionPercent] = useState(0)
   const [notes, setNotes] = useState('')

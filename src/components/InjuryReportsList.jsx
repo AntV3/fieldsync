@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Calendar, ShieldAlert } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import { hexToRgb } from '../lib/imageUtils'
+import { getLocalDateString } from '../lib/utils'
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -164,7 +165,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     if (viewMode === 'recent') {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+      const sevenDaysAgoStr = getLocalDateString(sevenDaysAgo)
       filtered = filtered.filter(r => {
         const reportDate = (r.incident_date || '').substring(0, 10)
         return reportDate >= sevenDaysAgoStr

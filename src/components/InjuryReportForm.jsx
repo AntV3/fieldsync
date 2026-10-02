@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { db, isSupabaseConfigured } from '../lib/supabase'
+import { getLocalDateString } from '../lib/utils'
 import Toast from './Toast'
 import CustomFieldSection from './ui/CustomFieldSection'
 
@@ -11,7 +12,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
   const [customFieldValues, setCustomFieldValues] = useState({})
 
   // Incident Details
-  const [incidentDate, setIncidentDate] = useState(new Date().toISOString().split('T')[0])
+  const [incidentDate, setIncidentDate] = useState(getLocalDateString())
   const [incidentTime, setIncidentTime] = useState(new Date().toTimeString().split(' ')[0].substring(0, 5))
   const [incidentLocation, setIncidentLocation] = useState('')
   const [incidentDescription, setIncidentDescription] = useState('')
@@ -239,7 +240,7 @@ export default function InjuryReportForm({ project, companyId, user, onClose, on
                       type="date"
                       value={incidentDate}
                       onChange={(e) => setIncidentDate(e.target.value)}
-                      max={new Date().toISOString().split('T')[0]}
+                      max={getLocalDateString()}
                     />
                   </div>
                   <div className="form-group">

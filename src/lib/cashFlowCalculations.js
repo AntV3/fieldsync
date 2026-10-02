@@ -222,26 +222,34 @@ export function buildMonthlyCashFlow(receivables, payables, config) {
   const months = []
   let runningBalance = 0
 
+  // First forecast month start; past-due entries get clamped here instead of
+  // being silently dropped from the bank-balance projection.
+  const firstMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  // Pre-clamp each entry's bucket date so an overdue invoice (expectedDate
+  // already in the past) still shows up in the current month's inflow.
+  const bucketDate = (raw) => {
+    const d = new Date(raw)
+    if (Number.isNaN(d.getTime())) return null
+    return d < firstMonthStart ? firstMonthStart : d
+  }
+
   for (let m = 0; m < config.forecastMonths; m++) {
     const monthStart = new Date(now.getFullYear(), now.getMonth() + m, 1)
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + m + 1, 0)
     const monthLabel = monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 
-    // Sum inflows for this month (by expected payment date)
-    const inflows = receivables.entries
-      .filter(e => {
-        const d = new Date(e.expectedDate)
-        return d >= monthStart && d <= monthEnd
-      })
-      .reduce((s, e) => s + e.amount, 0)
+    const inflowMatches = receivables.entries.filter(e => {
+      const d = bucketDate(e.expectedDate)
+      return d && d >= monthStart && d <= monthEnd
+    })
+    const outflowMatches = payables.entries.filter(e => {
+      const d = bucketDate(e.payDate || e.date)
+      return d && d >= monthStart && d <= monthEnd
+    })
 
-    // Sum outflows for this month
-    const outflows = payables.entries
-      .filter(e => {
-        const d = new Date(e.payDate || e.date)
-        return d >= monthStart && d <= monthEnd
-      })
-      .reduce((s, e) => s + e.amount, 0)
+    const inflows = inflowMatches.reduce((s, e) => s + e.amount, 0)
+    const outflows = outflowMatches.reduce((s, e) => s + e.amount, 0)
 
     const netCashFlow = inflows - outflows
     runningBalance += netCashFlow
@@ -253,14 +261,8 @@ export function buildMonthlyCashFlow(receivables, payables, config) {
       outflows: Math.round(outflows),
       net: Math.round(netCashFlow),
       cumulative: Math.round(runningBalance),
-      inflowCount: receivables.entries.filter(e => {
-        const d = new Date(e.expectedDate)
-        return d >= monthStart && d <= monthEnd
-      }).length,
-      outflowCount: payables.entries.filter(e => {
-        const d = new Date(e.payDate || e.date)
-        return d >= monthStart && d <= monthEnd
-      }).length,
+      inflowCount: inflowMatches.length,
+      outflowCount: outflowMatches.length,
     })
   }
 

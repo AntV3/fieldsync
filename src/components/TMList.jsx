@@ -14,7 +14,7 @@ import { TicketSkeleton, CountBadge, EmptyState } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
 import { exportTMTicketsCSV } from '../lib/financialExport'
-import { loadXLSXSafe } from '../lib/safeXlsx'
+import { loadXLSXSafe, escapeXlsxObjectRows } from '../lib/safeXlsx'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
 const loadXLSX = loadXLSXSafe
@@ -514,17 +514,19 @@ export default function TMList({
       // Create workbook
       const wb = XLSX.utils.book_new()
     
-      // Add sheets
-      const summarySheet = XLSX.utils.json_to_sheet(summaryData)
+      // Escape user-supplied strings (ticket notes, worker names, item names)
+      // before handing them to the spreadsheet writer so a crafted field
+      // can't execute a formula when the file is opened in Excel.
+      const summarySheet = XLSX.utils.json_to_sheet(escapeXlsxObjectRows(summaryData))
       XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
-    
+
       if (workersData.length > 0) {
-        const workersSheet = XLSX.utils.json_to_sheet(workersData)
+        const workersSheet = XLSX.utils.json_to_sheet(escapeXlsxObjectRows(workersData))
         XLSX.utils.book_append_sheet(wb, workersSheet, 'Workers')
       }
-    
+
       if (itemsData.length > 0) {
-        const itemsSheet = XLSX.utils.json_to_sheet(itemsData)
+        const itemsSheet = XLSX.utils.json_to_sheet(escapeXlsxObjectRows(itemsData))
         XLSX.utils.book_append_sheet(wb, itemsSheet, 'Materials & Equipment')
       }
     

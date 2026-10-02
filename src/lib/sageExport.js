@@ -75,10 +75,14 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
   const rows = []
   const jobNumber = project.job_number || project.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
 
+  // Only ship T&M tickets that have been approved or billed — draft, pending
+  // and rejected tickets must not flow into Sage Job Cost. The UI previously
+  // handed us every ticket for the project, so filter defensively here.
+  const postedTicketStatuses = new Set(['approved', 'billed', 'paid'])
   // Sort tickets by date for cleaner output
-  const sortedTickets = [...(tickets || [])].sort((a, b) =>
-    (a.work_date || '').localeCompare(b.work_date || '')
-  )
+  const sortedTickets = [...(tickets || [])]
+    .filter(t => !t.status || postedTicketStatuses.has(t.status))
+    .sort((a, b) => (a.work_date || '').localeCompare(b.work_date || ''))
 
   for (const ticket of sortedTickets) {
     const costCode = costCodes.find(c => c.id === ticket.cost_code_id)
@@ -181,7 +185,12 @@ export function exportSageChangeOrdersCSV(project, changeOrders = []) {
 
   const jobNumber = project.job_number || project.name.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')
 
-  const rows = changeOrders.map(co => {
+  // Only ship CORs that have actually been posted — draft and rejected rows
+  // must never arrive in Sage as budget revisions.
+  const postedStatuses = new Set(['approved', 'billed', 'closed'])
+  const rows = changeOrders
+    .filter(co => postedStatuses.has(co.status))
+    .map(co => {
     const labor = (co.change_order_labor || []).reduce((s, l) => s + (parseInt(l.total) || 0), 0) / 100
     const materials = (co.change_order_materials || []).reduce((s, m) => s + (parseInt(m.total) || 0), 0) / 100
     const equipment = (co.change_order_equipment || []).reduce((s, e) => s + (parseInt(e.total) || 0), 0) / 100

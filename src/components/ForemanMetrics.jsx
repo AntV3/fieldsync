@@ -8,6 +8,7 @@ import {
   TrendingUp, Users, FileText, Truck, Calendar,
   CheckCircle2, Clock, DollarSign, ArrowLeft
 } from 'lucide-react'
+import { getLocalDateString } from '../lib/utils'
 
 export default function ForemanMetrics({ project, companyId, onBack }) {
   const [loading, setLoading] = useState(true)
@@ -166,17 +167,22 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     }
   }, [metrics, timeRange])
 
-  // Calculate consecutive days with reports
+  // Calculate consecutive days with reports.
+  // Earlier versions double-round-tripped through toISOString() which
+  // serialized to UTC, so the daily key never matched locally-stored
+  // report_date values and the streak always read 0 for off-UTC users.
   function calculateReportStreak(reports) {
     if (!reports.length) return 0
-    const sortedDates = [...new Set(reports.filter(r => r.submitted).map(r => r.report_date))].sort().reverse()
+    const sortedDates = new Set(reports.filter(r => r.submitted).map(r => r.report_date))
     let streak = 0
-    const today = new Date().toISOString().split('T')[0]
-    const checkDate = new Date(today)
+    // Walk local calendar days using calendar arithmetic (not ms offsets)
+    // so DST transitions don't shift the key by an hour mid-walk.
+    const checkDate = new Date()
+    checkDate.setHours(12, 0, 0, 0)
 
     for (let i = 0; i < 30; i++) {
-      const dateStr = checkDate.toISOString().split('T')[0]
-      if (sortedDates.includes(dateStr)) {
+      const dateStr = getLocalDateString(checkDate)
+      if (sortedDates.has(dateStr)) {
         streak++
         checkDate.setDate(checkDate.getDate() - 1)
       } else {

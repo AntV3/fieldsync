@@ -285,13 +285,16 @@ export const equipmentOps = {
   },
 
   /**
-   * Calculate total equipment cost for a project
+   * Calculate total equipment cost for a project, in DOLLARS.
+   * daily_rate is stored in cents; divide once at the sum so every caller
+   * (dashboard totals, portfolio burn, cost cards) gets a dollar figure
+   * consistent with laborCost / materialsEquipmentCost.
    */
   calculateProjectEquipmentCost(projectEquipment) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    return projectEquipment.reduce((total, eq) => {
+    const totalCents = projectEquipment.reduce((total, eq) => {
       const startDate = parseLocalDate(eq.start_date)
       startDate.setHours(0, 0, 0, 0)
 
@@ -303,11 +306,13 @@ export const equipmentOps = {
         endDate = today
       }
 
-      // Calculate days (inclusive)
-      const days = Math.max(1, Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)
+      // Calculate days (inclusive); round to avoid DST drift (23/25h days)
+      const days = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)
 
-      return total + (eq.daily_rate * days)
+      return total + ((eq.daily_rate || 0) * days)
     }, 0)
+
+    return totalCents / 100
   },
 
   /**
@@ -325,7 +330,7 @@ export const equipmentOps = {
     }
     end.setHours(0, 0, 0, 0)
 
-    return Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1)
+    return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1)
   },
 
   // ----------------------------------------

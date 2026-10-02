@@ -267,8 +267,13 @@ export async function exportChangeOrderSummary(projectId: string): Promise<SageE
     if (projErr) throw projErr
     const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
 
+    // Table is `change_orders` (not `change_order_requests`); the previous name
+    // did not exist in the schema and this export silently 500'd for every
+    // user that opened Billing → Sage → Change Orders → Preview.
+    // Also filter to posted-to-budget statuses so draft/rejected rows don't
+    // ship to Sage as budget revisions.
     const { data: cors, error: corErr } = await supabase
-      .from('change_order_requests')
+      .from('change_orders')
       .select(`
         id, cor_number, title, status, cor_total, approved_at,
         cost_code_id,
@@ -279,6 +284,7 @@ export async function exportChangeOrderSummary(projectId: string): Promise<SageE
         change_order_subcontractors (description, total)
       `)
       .eq('project_id', projectId)
+      .in('status', ['approved', 'billed', 'closed'])
       .order('cor_number', { ascending: true })
 
     if (corErr) throw corErr

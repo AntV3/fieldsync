@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react'
 import CORCapabilitiesModal from './CORCapabilitiesModal'
 import { db } from '../../lib/supabase'
+import { getLocalDateString } from '../../lib/utils'
 import {
   formatCurrency,
   basisPointsToPercent,
@@ -408,8 +409,8 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     area_id: areaId || null,
     cor_number: corNumber,
     group_name: groupName || null,
-    period_start: periodStart || new Date().toISOString().split('T')[0],
-    period_end: periodEnd || new Date().toISOString().split('T')[0],
+    period_start: periodStart || getLocalDateString(),
+    period_end: periodEnd || getLocalDateString(),
     labor_markup_percent: laborMarkupPercent,
     materials_markup_percent: materialsMarkupPercent,
     equipment_markup_percent: equipmentMarkupPercent,
