@@ -2,6 +2,7 @@
 // Extracted from supabase.js for maintainability
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { areaScheduledValueDollars } from './utils'
 
 export const drawRequestOps = {
   /**
@@ -261,30 +262,17 @@ export const drawRequestOps = {
 
   /**
    * Scheduled value for a single area, in cents.
-   * Priority: explicit scheduled_value (dollars, from the SOV setup step)
-   * → square_footage × price_per_sqft → weight% of the project contract value.
-   * The setup wizard only writes weight/scheduled_value, so the fallbacks are
-   * what make draw requests usable for normally-created projects.
+   * Priority: explicit `scheduled_value` (dollars, from the SOV setup step)
+   * → `weight` percent of the project contract value.
+   *
+   * (`areas.square_footage` and `areas.price_per_sqft` were previously consulted
+   * here but no such columns exist on the `areas` table — see
+   * supabase/migrations/20241201000010_schema.sql and the ALTER in
+   * 20241201000040. Selecting them from PostgREST returns 42703 and empties the
+   * whole SOV, so that fallback has been removed.)
    */
   areaScheduledValueCents(area, contractValue = 0) {
-    const explicit = Number(area?.scheduled_value)
-    if (Number.isFinite(explicit) && explicit > 0) {
-      return Math.round(explicit * 100)
-    }
-    // Convert to cents first to avoid floating-point errors in multiplication
-    const sqft = Math.round((area?.square_footage || 0) * 100) // hundredths of a sqft
-    const pricePerSqft = Math.round((area?.price_per_sqft || 0) * 100) // cents
-    if (sqft > 0 && pricePerSqft > 0) {
-      // sqft (in hundredths) * price (in cents) / 100 = total in cents
-      return Math.round((sqft * pricePerSqft) / 100)
-    }
-    const weight = parseFloat(area?.weight) || 0
-    const contract = Number(contractValue) || 0
-    if (weight > 0 && contract > 0) {
-      // contract (dollars) × weight (%) → cents: contract × 100 × weight / 100
-      return Math.round(contract * weight)
-    }
-    return 0
+    return Math.round(areaScheduledValueDollars(area, contractValue) * 100)
   },
 
   /**
@@ -300,7 +288,7 @@ export const drawRequestOps = {
     const [{ data, error }, { data: project }] = await Promise.all([
       supabase
         .from('areas')
-        .select('id, name, weight, scheduled_value, square_footage, price_per_sqft')
+        .select('id, name, weight, scheduled_value')
         .eq('project_id', projectId)
         .order('created_at'),
       supabase

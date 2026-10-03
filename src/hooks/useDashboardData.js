@@ -375,14 +375,25 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
-      // Project equipment rental costs (daily rate * days on site, stored in cents)
-      const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
+      // Project equipment rental: calculateProjectEquipmentCost returns daily_rate (INTEGER
+      // cents, per supabase/migrations/20241201000170_equipment.sql) × days, so divide
+      // by 100 to normalize to dollars before summing with the dollar-denominated
+      // laborCost/materialsEquipmentCost/customCostTotal. Without this, equipment was
+      // 100× inflated in Burn Rate, Cost Contributors, profit, and margin.
+      const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || []) / 100
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
-      // Total billed from invoices (for cash flow analytics)
+      // Total billed from invoices (for cash flow analytics).
+      // `invoices.total` and `invoices.amount` are INTEGER cents
+      // (supabase/migrations/20241201000050_billing.sql), but every downstream
+      // consumer (cashFlowCalculations, portfolio metrics, Sage WIP export)
+      // treats totalBilled as dollars. Normalize at the source.
       const totalBilled = (projectInvoices || [])
         .filter(inv => inv.status !== 'draft')
-        .reduce((sum, inv) => sum + (parseFloat(inv.total) || parseFloat(inv.amount) || 0), 0)
+        .reduce((sum, inv) => {
+          const cents = parseFloat(inv.total) || parseFloat(inv.amount) || 0
+          return sum + cents / 100
+        }, 0)
 
       // Crew check-ins formatted for resource analytics (with worker_count for each entry)
       const crewCheckins = (crewHistory || []).map(checkin => ({

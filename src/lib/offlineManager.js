@@ -21,13 +21,27 @@ const STORES = {
 }
 
 let db = null
+let indexedDBUnavailable = false
 
 // Reset the cached connection so the next operation re-opens the database
 const resetConnection = () => {
   db = null
 }
 
-// Initialize IndexedDB
+// Guard: `indexedDB` is undefined in SSR, jsdom tests, cross-origin iframes,
+// some embedded WebViews, and private-mode in older Safari. Also catch access
+// failures that throw synchronously (SecurityError in some sandboxed contexts).
+const isIndexedDBAvailable = () => {
+  try {
+    return typeof indexedDB !== 'undefined' && indexedDB !== null
+  } catch {
+    return false
+  }
+}
+
+// Initialize IndexedDB. Resolves with the DB connection, or `null` when
+// IndexedDB is unavailable in this environment. Callers must treat a `null`
+// result as "offline cache disabled" and no-op accordingly — never throw.
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
@@ -35,7 +49,23 @@ export const initOfflineDB = () => {
       return
     }
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    if (indexedDBUnavailable || !isIndexedDBAvailable()) {
+      indexedDBUnavailable = true
+      resolve(null)
+      return
+    }
+
+    let request
+    try {
+      request = indexedDB.open(DB_NAME, DB_VERSION)
+    } catch (err) {
+      // SecurityError, QuotaExceededError, or an older-browser throw path.
+      // Degrade to no-op mode instead of surfacing a ReferenceError-like crash.
+      indexedDBUnavailable = true
+      console.warn('[offlineManager] IndexedDB unavailable, offline cache disabled:', err?.message || err)
+      resolve(null)
+      return
+    }
 
     request.onerror = () => {
       console.error('Failed to open offline database')
@@ -140,7 +170,8 @@ const withRetry = async (operation) => {
 
 // Save item to store
 export const saveToStore = async (storeName, data) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) return null
   return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName, 'readwrite')
     const request = store.put(data)
@@ -151,7 +182,8 @@ export const saveToStore = async (storeName, data) => {
 
 // Save multiple items to store
 export const saveAllToStore = async (storeName, items) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) return
   return withRetry(() => new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite')
     const store = tx.objectStore(storeName)
@@ -165,7 +197,8 @@ export const saveAllToStore = async (storeName, items) => {
 
 // Get item from store
 export const getFromStore = async (storeName, key) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) return undefined
   return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName)
     const request = store.get(key)
@@ -176,7 +209,8 @@ export const getFromStore = async (storeName, key) => {
 
 // Get all items from store
 export const getAllFromStore = async (storeName) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) return []
   return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName)
     const request = store.getAll()
@@ -187,7 +221,8 @@ export const getAllFromStore = async (storeName) => {
 
 // Get items by index
 export const getByIndex = async (storeName, indexName, value) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) return []
   return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName)
     const index = store.index(indexName)
@@ -199,7 +234,8 @@ export const getByIndex = async (storeName, indexName, value) => {
 
 // Delete item from store
 export const deleteFromStore = async (storeName, key) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) return
   return withRetry(() => new Promise((resolve, reject) => {
     const store = getStore(storeName, 'readwrite')
     const request = store.delete(key)
@@ -222,7 +258,12 @@ export const ACTION_TYPES = {
 
 // Add action to pending queue with idempotency key to prevent double-replay
 export const addPendingAction = async (type, payload, metadata = {}) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) {
+    // IndexedDB unavailable: can't queue for later replay. Caller should still
+    // attempt the live network call; this just means we lose the retry safety net.
+    return null
+  }
   const action = {
     type,
     payload,
@@ -261,7 +302,8 @@ export const removePendingAction = async (id) => {
 
 // Update action after failed attempt
 export const updatePendingAction = async (id, updates) => {
-  await initOfflineDB()
+  const database = await initOfflineDB()
+  if (!database) return null
   return new Promise((resolve, reject) => {
     const store = getStore(STORES.PENDING_ACTIONS, 'readwrite')
     const getRequest = store.get(id)

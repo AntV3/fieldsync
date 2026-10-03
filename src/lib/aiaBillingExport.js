@@ -11,6 +11,7 @@
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { toCSV } from './financialExport'
+import { areaScheduledValueDollars } from './utils'
 
 // ============================================
 // G703 Continuation Sheet Data Builder
@@ -33,9 +34,15 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
     }
   }
 
-  // Original contract line items from areas
+  // Original contract line items from areas.
+  // Use the shared SOV helper: `scheduled_value` (dollars) first, else
+  // `project.contract_value × area.weight / 100`. The old `area.sov_value || area.weight`
+  // read a column that doesn't exist and then silently treated a 0-100 percent
+  // as a dollar amount, so a $100M job with weights 25/25/50 emitted a G702/G703
+  // scheduled-value total of $100 — the whole pay-app was off by six orders of magnitude.
+  const contractValue = Number(project?.contract_value) || 0
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    const scheduledValue = areaScheduledValueDollars(area, contractValue)
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

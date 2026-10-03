@@ -24,6 +24,32 @@ export function getLocalDateString(date = new Date()) {
   return `${year}-${month}-${day}`
 }
 
+/**
+ * Dollar scheduled value for a single project area.
+ *
+ * Priority:
+ *   1. `area.scheduled_value` when it is a finite positive dollar amount
+ *      (populated by the SOV setup wizard — migration 20241201000040).
+ *   2. `(contractValue × weight) / 100` — area.weight is stored as a 0–100
+ *      percent, and area weights are expected to sum to 100.
+ *
+ * `area.sov_value`, `area.square_footage`, and `area.price_per_sqft` are
+ * NOT columns on the `areas` table (confirmed against supabase/migrations/).
+ * Historically some callers read `sov_value` with a `|| area.weight` fallback,
+ * which silently treated a 0-100 percent as a dollar amount — so a $100M job
+ * with weights 25/25/50 emitted a G702/G703 whose scheduled values summed to
+ * $100 instead of $100M. Centralize the lookup here so every billing export
+ * matches the draw-request `areaScheduledValueCents` calculation.
+ */
+export function areaScheduledValueDollars(area, contractValue = 0) {
+  const explicit = Number(area?.scheduled_value)
+  if (Number.isFinite(explicit) && explicit > 0) return explicit
+  const weight = Number(area?.weight) || 0
+  const contract = Number(contractValue) || 0
+  if (weight > 0 && contract > 0) return (contract * weight) / 100
+  return 0
+}
+
 export function formatCurrency(amount) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

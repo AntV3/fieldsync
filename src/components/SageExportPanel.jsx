@@ -5,6 +5,7 @@
  */
 import { useState } from 'react'
 import { db } from '../lib/supabase'
+import { areaScheduledValueDollars } from '../lib/utils'
 import {
   exportSageJobCostCSV,
   exportSageChangeOrdersCSV,
@@ -177,7 +178,11 @@ function ExportPreview({ project, areas, financialData }) {
         <>
           <div style={sectionHead}>Schedule of Values ({areas.length} items)</div>
           {areas.map((area, i) => {
-            const sovVal = area.sov_value || area.weight || 0
+            // Match sageExport/aiaBillingExport: use the shared SOV helper so the
+            // preview reflects the exported numbers. The old `area.sov_value`
+            // lookup read a nonexistent column and fell through to `area.weight`
+            // (0-100 percent) displayed as a dollar amount.
+            const sovVal = areaScheduledValueDollars(area, project?.contract_value)
             return (
               <div key={area.id || i} style={row}>
                 <span style={{ color: 'var(--text-secondary, #5F5F5F)' }}>{area.name}</span>
