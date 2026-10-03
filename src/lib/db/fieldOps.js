@@ -16,6 +16,7 @@ import {
   sanitizeFormData,
   sanitize
 } from './client'
+import { parseLocalDate, getLocalDateString } from '../utils'
 
 export const fieldOps = {
   // ============================================
@@ -253,13 +254,17 @@ export const fieldOps = {
 
     if (error) throw error
 
-    // Group by week and load type
+    // Group by week and load type.
+    // Parse work_date as LOCAL midnight (not UTC) so getDay()/getDate() reflect
+    // the operator's calendar — otherwise a Sunday load west of UTC gets bucketed
+    // into the prior week — and format the key with the local components too.
     const weeklyData = {}
     data?.forEach(row => {
-      const date = new Date(row.work_date)
+      const date = parseLocalDate(row.work_date)
+      if (!date) return
       const weekStart = new Date(date)
       weekStart.setDate(date.getDate() - date.getDay())
-      const weekKey = weekStart.toISOString().split('T')[0]
+      const weekKey = getLocalDateString(weekStart)
 
       if (!weeklyData[weekKey]) {
         weeklyData[weekKey] = { week: weekKey, concrete: 0, trash: 0, metals: 0, hazardous_waste: 0 }

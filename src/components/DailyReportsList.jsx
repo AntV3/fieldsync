@@ -89,21 +89,24 @@ export default function DailyReportsList({ project, company, onShowToast }) {
   const filteredReports = useMemo(() => {
     let filtered = [...reports]
 
-    // Apply date filter if set
+    // Apply date filter if set. parseLocalDate handles YYYY-MM-DD (date-only
+    // report_date) as LOCAL midnight so the filter boundaries match what the
+    // user picked in the date input, rather than UTC-shifting day-boundary
+    // reports off either end of the range.
     if (dateFilter.start) {
       const startDate = parseLocalDate(dateFilter.start)
       startDate.setHours(0, 0, 0, 0)
       filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate >= startDate
+        const reportDate = parseLocalDate(r.report_date || r.created_at)
+        return reportDate && reportDate >= startDate
       })
     }
     if (dateFilter.end) {
       const endDate = parseLocalDate(dateFilter.end)
       endDate.setHours(23, 59, 59, 999)
       filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate <= endDate
+        const reportDate = parseLocalDate(r.report_date || r.created_at)
+        return reportDate && reportDate <= endDate
       })
     }
 
@@ -113,8 +116,8 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       sevenDaysAgo.setHours(0, 0, 0, 0)
       filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate >= sevenDaysAgo
+        const reportDate = parseLocalDate(r.report_date || r.created_at)
+        return reportDate && reportDate >= sevenDaysAgo
       })
     }
 
@@ -127,7 +130,10 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     const groups = {}
     filteredReports.forEach(report => {
-      const date = new Date(report.report_date || report.created_at)
+      // Same reason as the filter above: parse report_date as local, otherwise
+      // an Oct 1 report in a negative-UTC timezone is grouped under September.
+      const date = parseLocalDate(report.report_date || report.created_at)
+      if (!date) return
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 

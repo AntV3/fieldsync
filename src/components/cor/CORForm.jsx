@@ -130,26 +130,34 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
   }, [companyMaterials, equipmentSearch])
 
   const addMaterialFromLibrary = (libraryItem) => {
+    // Library `cost_per_unit` is DECIMAL dollars, but the COR line-item fields
+    // `unit_cost` and `total` are stored in cents (change_order_materials.unit_cost
+    // is INTEGER cents — see migration 20241201000060_change_orders.sql and the
+    // ×100 conversion the manual input at line ~865 performs). Scaling by 100
+    // here keeps parity so a $150 catalog item saves as $150, not $1.50.
+    const unitCostCents = Math.round((Number(libraryItem.cost_per_unit) || 0) * 100)
     setMaterialsItems([...materialsItems, {
       description: libraryItem.name,
       source_type: 'field_ticket',
       source_reference: '',
       quantity: 1,
       unit: libraryItem.unit || 'each',
-      unit_cost: libraryItem.cost_per_unit || 0,
-      total: libraryItem.cost_per_unit || 0
+      unit_cost: unitCostCents,
+      total: unitCostCents
     }])
   }
 
   const addEquipmentFromLibrary = (libraryItem) => {
+    // Same cents normalization as addMaterialFromLibrary — see comment there.
+    const unitCostCents = Math.round((Number(libraryItem.cost_per_unit) || 0) * 100)
     setEquipmentItems([...equipmentItems, {
       description: libraryItem.name,
       source_type: 'rental',
       source_reference: '',
       quantity: 1,
       unit: libraryItem.unit || 'day',
-      unit_cost: libraryItem.cost_per_unit || 0,
-      total: libraryItem.cost_per_unit || 0
+      unit_cost: unitCostCents,
+      total: unitCostCents
     }])
   }
 

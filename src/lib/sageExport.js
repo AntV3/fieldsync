@@ -16,6 +16,7 @@
  */
 
 import { toCSV } from './financialExport'
+import { areaScheduledValueDollars } from './utils'
 
 // Sage 300 CRE cost type codes: 1=Material, 2=Labor, 3=Equipment, 4=Subcontract, 5=Other
 const SAGE_COST_TYPES = {
@@ -273,11 +274,14 @@ export function exportSageProjectSetupCSV(project, areas, financialData = {}) {
     { field: 'SCHEDULE OF VALUES', value: '' }
   ]
 
-  // Add areas as SOV lines
+  // Add areas as SOV lines.
+  // `area.sov_value` is not a real column; the previous `|| area.weight` fallback
+  // emitted the 0-100 percent as a dollar amount into Sage's SOV import.
+  const contractValue = Number(project?.contract_value) || 0
   for (const area of (areas || [])) {
     rows.push({
       field: `SOV - ${area.name}`,
-      value: (area.sov_value || area.weight || 0).toFixed(2)
+      value: areaScheduledValueDollars(area, contractValue).toFixed(2)
     })
   }
 
