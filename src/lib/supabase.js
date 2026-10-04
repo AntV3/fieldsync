@@ -50,10 +50,11 @@ import { rfiOps } from './db/rfiOps'
 import { submittalOps } from './db/submittalOps'
 
 // Initialize offline database (guard for SSR/test environments)
-if (typeof window !== 'undefined') {
-  import('./offlineManager').then(m => m.initOfflineDB().catch(err =>
+if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
+  import('./offlineManager').then(m => m.initOfflineDB().catch(err => {
+    if (err?.name === 'IndexedDBUnavailable') return
     console.error('Failed to init offline DB:', err)
-  ))
+  }))
 }
 
 // Re-export for other modules
