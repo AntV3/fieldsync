@@ -452,14 +452,16 @@ export const projectOps = {
       .update({ photos: [] })
       .eq('project_id', projectId)
 
-    // 4. Archive the project with cleanup flag
+    // 4. Archive the project
+    // (storage_cleaned column was dropped from the schema; writing it caused
+    // PostgREST PGRST204 after photos were already deleted, leaving the project
+    // row un-archived with its photos gone.)
     const { data, error } = await supabase
       .from('projects')
       .update({
         status: 'archived',
         archived_at: new Date().toISOString(),
-        photos: [], // Clear project photos too
-        storage_cleaned: true // Flag that photos were removed
+        photos: [] // Clear project photos too
       })
       .eq('id', projectId)
       .select()

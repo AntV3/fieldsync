@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Plus, HardHat, Wrench, Package, Users, MoreHorizontal, Trash2 } from 'lucide-react'
 import { CostDonut } from './charts'
+import { parseLocalDate } from '../lib/utils'
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -211,7 +212,7 @@ export default function CostContributorsCard({
                         <div className="cost-item-info">
                           <span className="cost-item-desc">{item.description}</span>
                           <span className="cost-item-date">
-                            {new Date(item.cost_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {parseLocalDate(item.cost_date)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) || ''}
                           </span>
                         </div>
                         <div className="cost-item-actions">
