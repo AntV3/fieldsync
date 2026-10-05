@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
+import { getLocalDateString } from '../lib/utils'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -37,7 +38,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       } else {
         startDate.setDate(now.getDate() - 30)
       }
-      const startStr = startDate.toISOString().split('T')[0]
+      const startStr = getLocalDateString(startDate)
 
       // Load all data in parallel
       const days = timeRange === 'week' ? 7 : 30
@@ -54,7 +55,7 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       const currentDate = new Date(startDate)
       while (currentDate <= now) {
         crewDates.push({
-          dateStr: currentDate.toISOString().split('T')[0],
+          dateStr: getLocalDateString(currentDate),
           dayName: currentDate.toLocaleDateString('en-US', { weekday: 'short' })
         })
         currentDate.setDate(currentDate.getDate() + 1)
@@ -171,11 +172,10 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     if (!reports.length) return 0
     const sortedDates = [...new Set(reports.filter(r => r.submitted).map(r => r.report_date))].sort().reverse()
     let streak = 0
-    const today = new Date().toISOString().split('T')[0]
-    const checkDate = new Date(today)
+    const checkDate = new Date()
 
     for (let i = 0; i < 30; i++) {
-      const dateStr = checkDate.toISOString().split('T')[0]
+      const dateStr = getLocalDateString(checkDate)
       if (sortedDates.includes(dateStr)) {
         streak++
         checkDate.setDate(checkDate.getDate() - 1)

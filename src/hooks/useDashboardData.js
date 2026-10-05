@@ -373,10 +373,13 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       const materialsEquipmentByDateArray = Object.values(materialsEquipmentByDate)
         .sort((a, b) => new Date(b.date) - new Date(a.date))
 
-      // Total costs
+      // Total costs. laborCost, materialsEquipmentCost and customCostTotal are
+      // dollars; equipment daily_rate is stored in cents, so convert to dollars
+      // before summing — otherwise equipment is inflated 100× in profit,
+      // burn, cost donut, Sage export, and portfolio totals.
       const laborCost = laborCosts?.totalCost || 0
-      // Project equipment rental costs (daily rate * days on site, stored in cents)
-      const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
+      const projectEquipmentCost =
+        equipmentOps.calculateProjectEquipmentCost(projectEquipment || []) / 100
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
       // Total billed from invoices (for cash flow analytics)

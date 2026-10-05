@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { db } from '../../lib/supabase'
+import { getLocalDateString } from '../../lib/utils'
 import { chartColors, tooltipStyle, formatChartDate } from '../charts/chartConfig'
 import {
   resolvePrimaryColor,
@@ -41,7 +42,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
 }) {
   const [crewHistory, setCrewHistory] = useState([])
   const [tmTickets, setTmTickets] = useState([])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString())
   const [timeRange, setTimeRange] = useState('14d')
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -118,7 +119,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     for (let i = rangeDays - 1; i >= 0; i--) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
+      const dateStr = getLocalDateString(d)
 
       const workers = crewByDate[dateStr] || []
       const tmNames = tmWorkersByDate[dateStr] || new Set()
@@ -149,10 +150,10 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
   const changeDate = useCallback((direction) => {
     const d = new Date(selectedDate + 'T12:00:00')
     d.setDate(d.getDate() + direction)
-    setSelectedDate(d.toISOString().split('T')[0])
+    setSelectedDate(getLocalDateString(d))
   }, [selectedDate])
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0]
+  const isToday = selectedDate === getLocalDateString()
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00')

@@ -27,11 +27,23 @@ const resetConnection = () => {
   db = null
 }
 
+// True when the environment exposes a usable IndexedDB (browser with the
+// feature enabled). False in SSR, jsdom test runs, and private-browsing
+// modes that strip the API. Callers can short-circuit on this so a missing
+// IDBFactory becomes a clean "no offline queue" instead of a ReferenceError.
+export const isOfflineStorageAvailable = () =>
+  typeof indexedDB !== 'undefined' && indexedDB !== null
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isOfflineStorageAvailable()) {
+      reject(new Error('IndexedDB is not available in this environment'))
       return
     }
 
@@ -245,6 +257,7 @@ export const addPendingAction = async (type, payload, metadata = {}) => {
 
 // Get all pending actions
 export const getPendingActions = async () => {
+  if (!isOfflineStorageAvailable()) return []
   return getAllFromStore(STORES.PENDING_ACTIONS)
 }
 
