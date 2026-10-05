@@ -49,6 +49,8 @@ import {
   RESOLUTION_STRATEGIES
 } from '../lib/conflictDetection'
 
+import { equipmentOps } from '../lib/equipmentOps'
+
 // ============================================================
 // 1. Currency Conversion Round-Trip Accuracy
 // ============================================================
@@ -751,6 +753,48 @@ describe('Date parsing preserves local timezone', () => {
     expect(parseLocalDate(null)).toBeNull()
     expect(parseLocalDate(undefined)).toBeNull()
     expect(parseLocalDate('')).toBeNull()
+  })
+})
+
+// ============================================================
+// 10b. Project Equipment Cost Unit Contract
+// ============================================================
+// equipment.daily_rate is stored in cents (EquipmentModal writes
+// Math.round(rate * 100)), so calculateProjectEquipmentCost sums cents.
+// The dashboard then has to convert to dollars before mixing with labor,
+// materials, and custom-cost totals — those are dollars. Mixing without
+// the /100 conversion inflates equipment 100× in profit, burn, cost
+// donut, Sage export, and portfolio totals, so lock the unit in.
+describe('calculateProjectEquipmentCost unit contract', () => {
+  it('returns cents when daily_rate is stored in cents', () => {
+    // $150/day for 10 inclusive days = $1,500 = 150,000 cents
+    const today = new Date(2025, 5, 15)
+    const start = new Date(today)
+    start.setDate(start.getDate() - 9)
+    const result = equipmentOps.calculateProjectEquipmentCost([
+      {
+        daily_rate: 15000, // $150.00 in cents
+        start_date: getLocalDateString(start),
+        end_date: getLocalDateString(today),
+      },
+    ])
+    expect(result).toBe(150000)
+  })
+
+  it('sums multiple pieces of equipment in cents', () => {
+    const today = new Date(2025, 5, 15)
+    const start = new Date(today)
+    start.setDate(start.getDate() - 4) // 5 inclusive days
+    const result = equipmentOps.calculateProjectEquipmentCost([
+      { daily_rate: 10000, start_date: getLocalDateString(start), end_date: getLocalDateString(today) },
+      { daily_rate: 2500,  start_date: getLocalDateString(start), end_date: getLocalDateString(today) },
+    ])
+    // (10000 + 2500) * 5 = 62,500 cents = $625
+    expect(result).toBe(62500)
+  })
+
+  it('returns 0 for an empty project', () => {
+    expect(equipmentOps.calculateProjectEquipmentCost([])).toBe(0)
   })
 })
 

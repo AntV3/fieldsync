@@ -49,11 +49,17 @@ import { costCodeOps } from './db/costCodeOps'
 import { rfiOps } from './db/rfiOps'
 import { submittalOps } from './db/submittalOps'
 
-// Initialize offline database (guard for SSR/test environments)
+// Initialize offline database (guard for SSR/test environments). A missing
+// IndexedDB is a supported case — SSR, jsdom test runs, and some private
+// browsing modes — so skip init silently in those; only an actual open
+// failure in a real browser is worth logging.
 if (typeof window !== 'undefined') {
-  import('./offlineManager').then(m => m.initOfflineDB().catch(err =>
-    console.error('Failed to init offline DB:', err)
-  ))
+  import('./offlineManager').then(m => {
+    if (!m.isOfflineStorageAvailable()) return
+    return m.initOfflineDB().catch(err =>
+      console.error('Failed to init offline DB:', err)
+    )
+  })
 }
 
 // Re-export for other modules
