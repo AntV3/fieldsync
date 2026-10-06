@@ -27,11 +27,22 @@ const resetConnection = () => {
   db = null
 }
 
+// True when the current runtime exposes an IndexedDB implementation.
+// Lets callers short-circuit cleanly in SSR, non-browser or jsdom test envs
+// instead of crashing with a ReferenceError on `indexedDB`.
+export const isIndexedDBAvailable = () =>
+  typeof indexedDB !== 'undefined' && indexedDB !== null
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isIndexedDBAvailable()) {
+      reject(new Error('IndexedDB is not available in this environment'))
       return
     }
 
@@ -250,6 +261,7 @@ export const getPendingActions = async () => {
 
 // Get pending action count
 export const getPendingActionCount = async () => {
+  if (!isIndexedDBAvailable()) return 0
   const actions = await getPendingActions()
   return actions.length
 }
