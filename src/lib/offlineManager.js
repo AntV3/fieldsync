@@ -27,11 +27,27 @@ const resetConnection = () => {
   db = null
 }
 
+// Sentinel error used to signal that IndexedDB isn't available in this
+// environment (SSR, private-browsing modes that block it, test runners).
+// Read helpers can catch this and return a sensible empty default instead
+// of propagating a ReferenceError to the UI.
+export const INDEXEDDB_UNAVAILABLE = 'INDEXEDDB_UNAVAILABLE'
+
+const isIndexedDBAvailable = () =>
+  typeof indexedDB !== 'undefined' && indexedDB !== null
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isIndexedDBAvailable()) {
+      const err = new Error('IndexedDB is not available in this environment')
+      err.code = INDEXEDDB_UNAVAILABLE
+      reject(err)
       return
     }
 
@@ -243,9 +259,16 @@ export const addPendingAction = async (type, payload, metadata = {}) => {
   }))
 }
 
-// Get all pending actions
+// Get all pending actions. When IndexedDB isn't available (SSR, private
+// browsing, test env) treat it as an empty queue instead of surfacing a
+// ReferenceError — the UI should show "0 pending" in that case.
 export const getPendingActions = async () => {
-  return getAllFromStore(STORES.PENDING_ACTIONS)
+  try {
+    return await getAllFromStore(STORES.PENDING_ACTIONS)
+  } catch (err) {
+    if (err?.code === INDEXEDDB_UNAVAILABLE) return []
+    throw err
+  }
 }
 
 // Get pending action count
