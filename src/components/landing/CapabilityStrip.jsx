@@ -7,7 +7,7 @@ const CAPABILITIES = [
   'Instant Daily Reports',
   'Dispute-Proof Documentation',
   'Offline-First Architecture',
-  'Install as Native App',
+  'Works on Any Phone — No App Store',
   'MFA + Role-Based Security',
   'Automated Crew Check-in',
   'Timestamped Photo Logs',

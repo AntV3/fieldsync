@@ -106,6 +106,15 @@ The built files will be in the `dist` folder.
 
 ### Field (Mobile)
 
+FieldSync runs on any phone as an installable web app (PWA). No app store
+download is required. On Android, Chrome shows an **Install** banner. On
+iPhone, open the site in Safari, tap **Share**, then **Add to Home Screen**.
+
+> The `ios/` and `android/` Capacitor shells are **parked and not
+> published**. They are kept for a future store release but are not the
+> supported mobile path today. See `docs/PWA_PHONE_TEST_CHECKLIST.md` for
+> how to verify the installed web app on a real device.
+
 1. Open the Field tab on your phone
 2. Select your project
 3. Tap "Working" when you start an area
