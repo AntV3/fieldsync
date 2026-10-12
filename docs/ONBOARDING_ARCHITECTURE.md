@@ -351,7 +351,7 @@ This document defines the architecture for FieldSync's company onboarding and su
 │  FUTURE: Mobile Apps (iOS / Android)                                         │
 │  ─────────────────────────────────────────────────────────────────────────── │
 │                                                                              │
-│  Download from: App Store / Play Store                                       │
+│  Status: PARKED — not published. Mobile path today is the installed PWA.    │
 │                                                                              │
 │  Key Difference: Mobile has TWO distinct user types                         │
 │                                                                              │

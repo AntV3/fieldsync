@@ -7,3 +7,5 @@
 .install-prompt-dismiss { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: var(--radius-sm); }
 .install-prompt-dismiss:hover { background: var(--bg-secondary); }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.install-prompt-inline-icon { display: inline-block; vertical-align: -2px; margin: 0 2px; }
+.install-prompt-ios .install-prompt-text span { line-height: 1.4; }
