@@ -150,10 +150,15 @@ export default function usePortfolioMetrics(projectsData) {
     const projectRisks = projectsData
       .filter(p => p._detailsLoaded) // Skip projects without detailed data
       .map(p => {
+        // Enhanced project objects from useDashboardData emit the combined
+        // cost roll-up as `allCostsTotal`; `totalCosts` is not populated.
+        // Reading the wrong key here made calculateBudgetFactor see a cost
+        // ratio of 0 for every project, so budget alerts never fired and
+        // calculateProjections reported a 100% final margin on everything.
         const riskInput = {
           id: p.id,
           name: p.name,
-          totalCosts: p.totalCosts || 0,
+          totalCosts: p.allCostsTotal || p.totalCosts || 0,
           earnedRevenue: p.billable || 0,
           actualProgress: p.progress || 0,
           expectedProgress: p.expectedProgress || p.progress,
