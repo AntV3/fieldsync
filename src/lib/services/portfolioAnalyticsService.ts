@@ -170,7 +170,7 @@ export async function getPortfolioFinancialSummary(companyId: string): Promise<P
     supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
     supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
     supabase.from('t_and_m_tickets').select('project_id, total_value, status').in('project_id', projectIds),
-    supabase.from('crew_checkins').select('project_id, worker_count, checkin_date').in('project_id', projectIds),
+    supabase.from('crew_checkins').select('project_id, worker_count, check_in_date').in('project_id', projectIds),
   ])
 
   let totalContractValue = 0
@@ -406,9 +406,9 @@ export async function getPortfolioLaborSummary(companyId: string): Promise<Portf
 
   const { data: checkins } = await supabase
     .from('crew_checkins')
-    .select('project_id, worker_count, checkin_date, created_at')
+    .select('project_id, worker_count, check_in_date, created_at')
     .in('project_id', projectIds)
-    .gte('checkin_date', thirtyDaysAgo.toISOString().split('T')[0])
+    .gte('check_in_date', thirtyDaysAgo.toISOString().split('T')[0])
 
   const allCheckins = (checkins || []) as CrewCheckinRow[]
   const today = new Date().toISOString().split('T')[0]
@@ -416,18 +416,18 @@ export async function getPortfolioLaborSummary(companyId: string): Promise<Portf
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
   const sevenStr = sevenDaysAgo.toISOString().split('T')[0]
 
-  const todayCheckins = allCheckins.filter(c => c.checkin_date === today)
-  const weekCheckins = allCheckins.filter(c => c.checkin_date >= sevenStr)
+  const todayCheckins = allCheckins.filter(c => c.check_in_date === today)
+  const weekCheckins = allCheckins.filter(c => c.check_in_date >= sevenStr)
 
   const totalCrewToday = todayCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
   const totalManDays = allCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
 
   const weekTotal = weekCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
-  const weekDays = new Set(weekCheckins.map(c => c.checkin_date)).size
+  const weekDays = new Set(weekCheckins.map(c => c.check_in_date)).size
   const avgCrewWeek = weekDays > 0 ? Math.round(weekTotal / weekDays) : 0
 
   const monthTotal = allCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
-  const monthDays = new Set(allCheckins.map(c => c.checkin_date)).size
+  const monthDays = new Set(allCheckins.map(c => c.check_in_date)).size
   const avgCrew30 = monthDays > 0 ? Math.round(monthTotal / monthDays) : 0
 
   return {
@@ -443,6 +443,7 @@ export async function getPortfolioLaborSummary(companyId: string): Promise<Portf
 export async function getCrewDistribution(companyId: string): Promise<CrewDistributionEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
 
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id, name')
@@ -457,9 +458,9 @@ export async function getCrewDistribution(companyId: string): Promise<CrewDistri
 
   const { data: checkins } = await supabase
     .from('crew_checkins')
-    .select('project_id, worker_count, checkin_date')
+    .select('project_id, worker_count, check_in_date')
     .in('project_id', projectIds)
-    .gte('checkin_date', thirtyDaysAgo.toISOString().split('T')[0])
+    .gte('check_in_date', thirtyDaysAgo.toISOString().split('T')[0])
 
   const checkinsByProject = groupBy((checkins || []) as CrewCheckinRow[], 'project_id')
   const today = new Date().toISOString().split('T')[0]
@@ -469,10 +470,10 @@ export async function getCrewDistribution(companyId: string): Promise<CrewDistri
 
   return (projects as ProjectRow[]).map(p => {
     const pc = checkinsByProject[p.id] || []
-    const todayCount = pc.filter(c => c.checkin_date === today).reduce((s, c) => s + (c.worker_count || 1), 0)
-    const weekCheckins = pc.filter(c => c.checkin_date >= sevenStr)
-    const weekDays = new Set(weekCheckins.map(c => c.checkin_date)).size
-    const monthDays = new Set(pc.map(c => c.checkin_date)).size
+    const todayCount = pc.filter(c => c.check_in_date === today).reduce((s, c) => s + (c.worker_count || 1), 0)
+    const weekCheckins = pc.filter(c => c.check_in_date >= sevenStr)
+    const weekDays = new Set(weekCheckins.map(c => c.check_in_date)).size
+    const monthDays = new Set(pc.map(c => c.check_in_date)).size
 
     return {
       name: truncateName(p.name),
@@ -482,6 +483,7 @@ export async function getCrewDistribution(companyId: string): Promise<CrewDistri
       avg30Days: monthDays > 0 ? Math.round(pc.reduce((s, c) => s + (c.worker_count || 1), 0) / monthDays) : 0,
     }
   }).sort((a, b) => b.avg30Days - a.avg30Days)
+  } catch (err) { logError('getCrewDistribution', companyId, err as Error); return [] }
 }
 
 export async function getLaborCostByProject(companyId: string): Promise<LaborCostByProjectEntry[]> {
