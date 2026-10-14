@@ -27,11 +27,22 @@ const resetConnection = () => {
   db = null
 }
 
+// Check whether IndexedDB is available in the current environment.
+// Returns false in SSR, jsdom-based tests, and locked-down WebViews.
+const isIndexedDBAvailable = () => typeof indexedDB !== 'undefined' && indexedDB !== null
+
 // Initialize IndexedDB
 export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isIndexedDBAvailable()) {
+      const err = new Error('IndexedDB is not available in this environment')
+      err.name = 'IndexedDBUnavailable'
+      reject(err)
       return
     }
 
@@ -250,6 +261,9 @@ export const getPendingActions = async () => {
 
 // Get pending action count
 export const getPendingActionCount = async () => {
+  // When IndexedDB is unavailable (SSR, jsdom tests, locked-down WebViews)
+  // there can be no persisted pending actions; report zero without logging.
+  if (!isIndexedDBAvailable()) return 0
   const actions = await getPendingActions()
   return actions.length
 }
