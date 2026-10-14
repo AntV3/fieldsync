@@ -8,6 +8,11 @@ import { detectConflict, stampForOffline, buildConflictSummary, RESOLUTION_STRAT
 const DB_NAME = 'fieldsync-offline'
 const DB_VERSION = 2  // Bumped to add T&M tickets, daily reports, messages stores
 
+// Sentinel error for environments without IndexedDB (jsdom, SSR, locked-down
+// browsers). Callers can detect it to silently fall back instead of logging.
+export const INDEXEDDB_UNAVAILABLE = 'IndexedDBUnavailable'
+const isIndexedDBAvailable = () => typeof indexedDB !== 'undefined'
+
 // Store names
 const STORES = {
   PROJECTS: 'projects',
@@ -32,6 +37,13 @@ export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (!isIndexedDBAvailable()) {
+      const err = new Error('IndexedDB is not available in this environment')
+      err.name = INDEXEDDB_UNAVAILABLE
+      reject(err)
       return
     }
 

@@ -15,6 +15,7 @@ import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
 import { exportTMTicketsCSV } from '../lib/financialExport'
 import { loadXLSXSafe } from '../lib/safeXlsx'
+import { parseLocalDate } from '../lib/utils'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
 const loadXLSX = loadXLSXSafe
@@ -1114,7 +1115,9 @@ export default function TMList({
 
     const groups = {}
     filteredTickets.forEach(ticket => {
-      const date = new Date(ticket.work_date)
+      // Parse as local date so a 2026-11-01 ticket groups into November for PT users
+      const date = parseLocalDate(ticket.work_date)
+      if (!date) return
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 

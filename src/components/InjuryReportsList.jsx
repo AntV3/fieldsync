@@ -13,6 +13,7 @@ import {
 import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import InjuryReportCard from './InjuryReportCard'
+import { parseLocalDate } from '../lib/utils'
 import Toast from './Toast'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
@@ -180,7 +181,9 @@ export default function InjuryReportsList({ project, companyId, company, user, o
 
     const groups = {}
     filteredReports.forEach(report => {
-      const date = new Date(report.incident_date)
+      // Parse as local date so a 2026-07-01 incident groups into July for PT users
+      const date = parseLocalDate(report.incident_date)
+      if (!date) return
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
