@@ -16,6 +16,7 @@ import {
   sanitizeFormData,
   sanitize
 } from './client'
+import { getLocalDateString } from '../utils'
 
 export const fieldOps = {
   // ============================================
@@ -371,7 +372,9 @@ export const fieldOps = {
   async getCrewCheckin(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    // Use local-timezone YYYY-MM-DD so an evening check-in in US timezones
+    // files under today, not UTC's tomorrow.
+    const checkDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -391,7 +394,9 @@ export const fieldOps = {
   async saveCrewCheckin(projectId, workers, createdBy = null, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    // Use local-timezone YYYY-MM-DD so an evening check-in in US timezones
+    // files under today, not UTC's tomorrow.
+    const checkDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -713,7 +718,9 @@ export const fieldOps = {
   async getDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    // Use local-timezone YYYY-MM-DD so late-evening submissions in US timezones
+    // land on the right calendar day instead of UTC's tomorrow.
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -733,7 +740,9 @@ export const fieldOps = {
   async compileDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    // Use local-timezone YYYY-MM-DD so late-evening submissions in US timezones
+    // land on the right calendar day instead of UTC's tomorrow.
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     // Run all queries in parallel for faster loading
@@ -747,10 +756,16 @@ export const fieldOps = {
     const areas = areasResult?.data || []
     const tickets = ticketsResult?.data || []
 
-    const completedToday = areas.filter(a =>
-      a.status === 'done' &&
-      a.completed_at?.startsWith(reportDate)
-    )
+    // The `areas` table has no `completed_at` column — the old check compared it with
+    // `.startsWith()` and silently returned 0 for every daily report. Fall back to
+    // `updated_at` (the last-modified TIMESTAMPTZ), compared in the user's local
+    // timezone so an area marked done at 9 PM local doesn't fall into tomorrow.
+    const completedToday = areas.filter(a => {
+      if (a.status !== 'done') return false
+      const ts = a.updated_at || a.created_at
+      if (!ts) return false
+      return getLocalDateString(new Date(ts)) === reportDate
+    })
 
     // Count photos from T&M tickets AND report-level photos
     const tmPhotosCount = tickets.reduce((sum, t) => sum + (t.photos?.length || 0), 0)
@@ -772,7 +787,9 @@ export const fieldOps = {
   async saveDailyReport(projectId, reportData, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    // Use local-timezone YYYY-MM-DD so late-evening submissions in US timezones
+    // land on the right calendar day instead of UTC's tomorrow.
+    const reportDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -831,7 +848,9 @@ export const fieldOps = {
   async submitDailyReport(projectId, submittedBy, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    // Use local-timezone YYYY-MM-DD so late-evening submissions in US timezones
+    // land on the right calendar day instead of UTC's tomorrow.
+    const reportDate = date || getLocalDateString()
 
     // If offline, queue the submission
     if (!getConnectionStatus()) {

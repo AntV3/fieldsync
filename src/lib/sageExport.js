@@ -274,10 +274,12 @@ export function exportSageProjectSetupCSV(project, areas, financialData = {}) {
   ]
 
   // Add areas as SOV lines
+  // SOV dollar value lives in `scheduled_value` (migration 20241201000040);
+  // `weight` is a 0–100 percentage, never a dollar amount — do NOT fall back to it.
   for (const area of (areas || [])) {
     rows.push({
       field: `SOV - ${area.name}`,
-      value: (area.sov_value || area.weight || 0).toFixed(2)
+      value: (Number(area.scheduled_value) || 0).toFixed(2)
     })
   }
 
