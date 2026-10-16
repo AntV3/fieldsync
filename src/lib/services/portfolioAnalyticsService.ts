@@ -167,10 +167,10 @@ export async function getPortfolioFinancialSummary(companyId: string): Promise<P
 
   // Fetch areas, change orders, T&M tickets, and crew checkins in parallel
   const [areasRes, corsRes, ticketsRes, checkinsRes] = await Promise.all([
-    supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
-    supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
-    supabase.from('t_and_m_tickets').select('project_id, total_value, status').in('project_id', projectIds),
-    supabase.from('crew_checkins').select('project_id, worker_count, checkin_date').in('project_id', projectIds),
+    supabase.from('areas').select('project_id, weight, status').in('project_id', projectIds),
+    supabase.from('change_orders').select('project_id, cor_total, status').in('project_id', projectIds),
+    supabase.from('t_and_m_tickets').select('project_id, total_amount, status').in('project_id', projectIds),
+    supabase.from('crew_checkins').select('project_id, workers, check_in_date').in('project_id', projectIds),
   ])
 
   let totalContractValue = 0
@@ -194,22 +194,22 @@ export async function getPortfolioFinancialSummary(companyId: string): Promise<P
     const progress = calculateWeightedProgress(areas)
     totalEarned += cv * (progress / 100)
 
-    // COR approved values
+    // COR approved values (cor_total stored in cents → dollars for consumers)
     const cors = corsByProject[project.id] || []
     for (const cor of cors) {
-      if (cor.status === 'approved') totalCORApproved += cor.total_value || 0
+      if (cor.status === 'approved') totalCORApproved += centsToDollars(cor.cor_total)
     }
 
-    // T&M ticket values
+    // T&M ticket values (dollars)
     const tickets = ticketsByProject[project.id] || []
     for (const t of tickets) {
-      totalTMValue += t.total_value || 0
+      totalTMValue += t.total_amount || 0
     }
 
-    // Crew man-days (each checkin worker_count = workers on site that day)
+    // Crew man-days (checkin.workers is a JSONB array; length = workers on site that day)
     const checkins = checkinsByProject[project.id] || []
     for (const c of checkins) {
-      totalCrewManDays += c.worker_count || 1
+      totalCrewManDays += workerCount(c)
     }
   }
 
@@ -247,8 +247,8 @@ export async function getProjectFinancialComparison(companyId: string): Promise<
 
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes] = await Promise.all([
-    supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
-    supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
+    supabase.from('areas').select('project_id, weight, status').in('project_id', projectIds),
+    supabase.from('change_orders').select('project_id, cor_total, status').in('project_id', projectIds),
   ])
 
   const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
@@ -260,7 +260,7 @@ export async function getProjectFinancialComparison(companyId: string): Promise<
     const earned = (p.contract_value || 0) * (progress / 100)
     const cors = (corsByProject[p.id] || [])
       .filter(c => c.status === 'approved')
-      .reduce((sum, c) => sum + (c.total_value || 0), 0)
+      .reduce((sum, c) => sum + centsToDollars(c.cor_total), 0)
 
     return {
       name: truncateName(p.name),
@@ -292,16 +292,16 @@ export async function getMonthlyRevenueTimeline(companyId: string, months = 12):
   // Fetch actual financial data: approved CORs and T&M tickets with timestamps
   const [corsRes, ticketsRes, areasRes] = await Promise.all([
     supabase.from('change_orders')
-      .select('project_id, total_value, status, updated_at')
+      .select('project_id, cor_total, status, updated_at')
       .in('project_id', projectIds)
       .eq('status', 'approved'),
     supabase.from('t_and_m_tickets')
-      .select('project_id, total_value, created_at')
+      .select('project_id, total_amount, created_at')
       .in('project_id', projectIds),
     supabase.from('areas')
-      .select('project_id, weight, is_complete, updated_at')
+      .select('project_id, weight, status, updated_at')
       .in('project_id', projectIds)
-      .eq('is_complete', true),
+      .eq('status', 'done'),
   ])
 
   // Build monthly buckets
@@ -352,13 +352,13 @@ export async function getMonthlyRevenueTimeline(companyId: string, months = 12):
     }
   }
 
-  // Attribute approved COR values to the month they were approved
+  // Attribute approved COR values to the month they were approved (cor_total → dollars)
   for (const cor of ((corsRes.data || []) as ChangeOrderRow[])) {
     if (!cor.updated_at) continue
     const d = new Date(cor.updated_at)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (monthlyMap[key]) {
-      monthlyMap[key].corValue += cor.total_value || 0
+      monthlyMap[key].corValue += centsToDollars(cor.cor_total)
     }
   }
 
@@ -368,7 +368,7 @@ export async function getMonthlyRevenueTimeline(companyId: string, months = 12):
     const d = new Date(ticket.created_at)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (monthlyMap[key]) {
-      monthlyMap[key].costs += ticket.total_value || 0
+      monthlyMap[key].costs += ticket.total_amount || 0
     }
   }
 
@@ -406,28 +406,28 @@ export async function getPortfolioLaborSummary(companyId: string): Promise<Portf
 
   const { data: checkins } = await supabase
     .from('crew_checkins')
-    .select('project_id, worker_count, checkin_date, created_at')
+    .select('project_id, workers, check_in_date, created_at')
     .in('project_id', projectIds)
-    .gte('checkin_date', thirtyDaysAgo.toISOString().split('T')[0])
+    .gte('check_in_date', localDateString(thirtyDaysAgo))
 
   const allCheckins = (checkins || []) as CrewCheckinRow[]
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateString(new Date())
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  const sevenStr = sevenDaysAgo.toISOString().split('T')[0]
+  const sevenStr = localDateString(sevenDaysAgo)
 
-  const todayCheckins = allCheckins.filter(c => c.checkin_date === today)
-  const weekCheckins = allCheckins.filter(c => c.checkin_date >= sevenStr)
+  const todayCheckins = allCheckins.filter(c => c.check_in_date === today)
+  const weekCheckins = allCheckins.filter(c => c.check_in_date >= sevenStr)
 
-  const totalCrewToday = todayCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
-  const totalManDays = allCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
+  const totalCrewToday = todayCheckins.reduce((s, c) => s + workerCount(c), 0)
+  const totalManDays = allCheckins.reduce((s, c) => s + workerCount(c), 0)
 
-  const weekTotal = weekCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
-  const weekDays = new Set(weekCheckins.map(c => c.checkin_date)).size
+  const weekTotal = weekCheckins.reduce((s, c) => s + workerCount(c), 0)
+  const weekDays = new Set(weekCheckins.map(c => c.check_in_date)).size
   const avgCrewWeek = weekDays > 0 ? Math.round(weekTotal / weekDays) : 0
 
-  const monthTotal = allCheckins.reduce((s, c) => s + (c.worker_count || 1), 0)
-  const monthDays = new Set(allCheckins.map(c => c.checkin_date)).size
+  const monthTotal = allCheckins.reduce((s, c) => s + workerCount(c), 0)
+  const monthDays = new Set(allCheckins.map(c => c.check_in_date)).size
   const avgCrew30 = monthDays > 0 ? Math.round(monthTotal / monthDays) : 0
 
   return {
@@ -442,7 +442,7 @@ export async function getPortfolioLaborSummary(companyId: string): Promise<Portf
 
 export async function getCrewDistribution(companyId: string): Promise<CrewDistributionEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id, name')
@@ -457,36 +457,37 @@ export async function getCrewDistribution(companyId: string): Promise<CrewDistri
 
   const { data: checkins } = await supabase
     .from('crew_checkins')
-    .select('project_id, worker_count, checkin_date')
+    .select('project_id, workers, check_in_date')
     .in('project_id', projectIds)
-    .gte('checkin_date', thirtyDaysAgo.toISOString().split('T')[0])
+    .gte('check_in_date', localDateString(thirtyDaysAgo))
 
   const checkinsByProject = groupBy((checkins || []) as CrewCheckinRow[], 'project_id')
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateString(new Date())
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  const sevenStr = sevenDaysAgo.toISOString().split('T')[0]
+  const sevenStr = localDateString(sevenDaysAgo)
 
   return (projects as ProjectRow[]).map(p => {
     const pc = checkinsByProject[p.id] || []
-    const todayCount = pc.filter(c => c.checkin_date === today).reduce((s, c) => s + (c.worker_count || 1), 0)
-    const weekCheckins = pc.filter(c => c.checkin_date >= sevenStr)
-    const weekDays = new Set(weekCheckins.map(c => c.checkin_date)).size
-    const monthDays = new Set(pc.map(c => c.checkin_date)).size
+    const todayCount = pc.filter(c => c.check_in_date === today).reduce((s, c) => s + workerCount(c), 0)
+    const weekCheckins = pc.filter(c => c.check_in_date >= sevenStr)
+    const weekDays = new Set(weekCheckins.map(c => c.check_in_date)).size
+    const monthDays = new Set(pc.map(c => c.check_in_date)).size
 
     return {
       name: truncateName(p.name),
       fullName: p.name,
       today: todayCount,
-      avg7Days: weekDays > 0 ? Math.round(weekCheckins.reduce((s, c) => s + (c.worker_count || 1), 0) / weekDays) : 0,
-      avg30Days: monthDays > 0 ? Math.round(pc.reduce((s, c) => s + (c.worker_count || 1), 0) / monthDays) : 0,
+      avg7Days: weekDays > 0 ? Math.round(weekCheckins.reduce((s, c) => s + workerCount(c), 0) / weekDays) : 0,
+      avg30Days: monthDays > 0 ? Math.round(pc.reduce((s, c) => s + workerCount(c), 0) / monthDays) : 0,
     }
   }).sort((a, b) => b.avg30Days - a.avg30Days)
+  } catch (err) { logError('getCrewDistribution', companyId, err as Error); return [] }
 }
 
 export async function getLaborCostByProject(companyId: string): Promise<LaborCostByProjectEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id, name')
@@ -498,19 +499,20 @@ export async function getLaborCostByProject(companyId: string): Promise<LaborCos
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: tickets } = await supabase
     .from('t_and_m_tickets')
-    .select('project_id, total_value')
+    .select('project_id, total_amount')
     .in('project_id', projectIds)
 
   const ticketsByProject = groupBy((tickets || []) as TMTicketRow[], 'project_id')
 
   return (projects as ProjectRow[]).map(p => {
-    const laborCost = (ticketsByProject[p.id] || []).reduce((s, t) => s + (t.total_value || 0), 0)
+    const laborCost = (ticketsByProject[p.id] || []).reduce((s, t) => s + (t.total_amount || 0), 0)
     return {
       name: truncateName(p.name),
       fullName: p.name,
       laborCost,
     }
   }).sort((a, b) => b.laborCost - a.laborCost)
+  } catch (err) { logError('getLaborCostByProject', companyId, err as Error); return [] }
 }
 
 // ============================================
@@ -531,7 +533,7 @@ export async function getPortfolioProgressSummary(companyId: string): Promise<Po
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
-    .select('project_id, weight, is_complete')
+    .select('project_id, weight, status')
     .in('project_id', projectIds)
 
   const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
@@ -575,7 +577,7 @@ export async function getPortfolioProgressSummary(companyId: string): Promise<Po
 
 export async function getScheduleVarianceByProject(companyId: string): Promise<ScheduleVarianceEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id, name, start_date, end_date')
@@ -587,7 +589,7 @@ export async function getScheduleVarianceByProject(companyId: string): Promise<S
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
-    .select('project_id, weight, is_complete')
+    .select('project_id, weight, status')
     .in('project_id', projectIds)
 
   const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
@@ -606,11 +608,12 @@ export async function getScheduleVarianceByProject(companyId: string): Promise<S
       hasScheduleData,
     }
   })
+  } catch (err) { logError('getScheduleVarianceByProject', companyId, err as Error); return [] }
 }
 
 export async function getAreaCompletionRates(companyId: string): Promise<AreaCompletionRateEntry[]> {
   if (!isSupabaseConfigured || !companyId) return []
-
+  try {
   const { data: projects } = await supabase
     .from('projects')
     .select('id, name, created_at')
@@ -622,7 +625,7 @@ export async function getAreaCompletionRates(companyId: string): Promise<AreaCom
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: areas } = await supabase
     .from('areas')
-    .select('project_id, weight, is_complete, created_at, updated_at')
+    .select('project_id, weight, status, created_at, updated_at')
     .in('project_id', projectIds)
 
   const areasByProject = groupBy((areas || []) as AreaRow[], 'project_id')
@@ -630,7 +633,7 @@ export async function getAreaCompletionRates(companyId: string): Promise<AreaCom
   return (projects as ProjectRow[]).map(p => {
     const pAreas = areasByProject[p.id] || []
     const totalAreas = pAreas.length
-    const completedAreas = pAreas.filter(a => a.is_complete).length
+    const completedAreas = pAreas.filter(areaIsDone).length
     const projectAge = Math.max(1, Math.ceil((Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24 * 7))) // weeks
     const velocity = totalAreas > 0 ? Math.round((completedAreas / projectAge) * 10) / 10 : 0
 
@@ -643,6 +646,7 @@ export async function getAreaCompletionRates(companyId: string): Promise<AreaCom
       completionRate: totalAreas > 0 ? Math.round((completedAreas / totalAreas) * 100) : 0,
     }
   }).sort((a, b) => b.velocity - a.velocity)
+  } catch (err) { logError('getAreaCompletionRates', companyId, err as Error); return [] }
 }
 
 // ============================================
@@ -663,7 +667,7 @@ export async function getCORSummaryAcrossProjects(companyId: string): Promise<CO
   const projectIds = (projects as Pick<ProjectRow, 'id'>[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
-    .select('project_id, total_value, status, created_at, updated_at')
+    .select('project_id, cor_total, status, created_at, updated_at')
     .in('project_id', projectIds)
 
   const allCors = (cors || []) as ChangeOrderRow[]
@@ -671,7 +675,7 @@ export async function getCORSummaryAcrossProjects(companyId: string): Promise<CO
   let approvedValue = 0, pendingValue = 0, rejectedValue = 0
 
   for (const cor of allCors) {
-    const val = cor.total_value || 0
+    const val = centsToDollars(cor.cor_total)
     if (cor.status === 'approved') { approved++; approvedValue += val }
     else if (cor.status === 'pending') { pending++; pendingValue += val }
     else if (cor.status === 'rejected') { rejected++; rejectedValue += val }
@@ -709,7 +713,7 @@ export async function getCORByProject(companyId: string): Promise<CORByProjectEn
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
-    .select('project_id, total_value, status')
+    .select('project_id, cor_total, status')
     .in('project_id', projectIds)
 
   const corsByProject = groupBy((cors || []) as ChangeOrderRow[], 'project_id')
@@ -744,7 +748,7 @@ export async function getCORTrendByMonth(companyId: string, months = 12): Promis
   const projectIds = (projects as Pick<ProjectRow, 'id'>[]).map(p => p.id)
   const { data: cors } = await supabase
     .from('change_orders')
-    .select('created_at, total_value, status')
+    .select('created_at, cor_total, status')
     .in('project_id', projectIds)
     .gte('created_at', startDate.toISOString())
 
@@ -766,7 +770,7 @@ export async function getCORTrendByMonth(companyId: string, months = 12): Promis
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (monthlyMap[key]) {
       monthlyMap[key].count++
-      monthlyMap[key].value += cor.total_value || 0
+      monthlyMap[key].value += centsToDollars(cor.cor_total)
     }
   }
 
@@ -790,9 +794,9 @@ export async function getPortfolioRiskMatrix(companyId: string): Promise<RiskMat
 
   const projectIds = (projects as ProjectRow[]).map(p => p.id)
   const [areasRes, corsRes, ticketsRes] = await Promise.all([
-    supabase.from('areas').select('project_id, weight, is_complete').in('project_id', projectIds),
-    supabase.from('change_orders').select('project_id, total_value, status').in('project_id', projectIds),
-    supabase.from('t_and_m_tickets').select('project_id, total_value').in('project_id', projectIds),
+    supabase.from('areas').select('project_id, weight, status').in('project_id', projectIds),
+    supabase.from('change_orders').select('project_id, cor_total, status').in('project_id', projectIds),
+    supabase.from('t_and_m_tickets').select('project_id, total_amount').in('project_id', projectIds),
   ])
 
   const areasByProject = groupBy((areasRes.data || []) as AreaRow[], 'project_id')
@@ -807,8 +811,8 @@ export async function getPortfolioRiskMatrix(companyId: string): Promise<RiskMat
 
     const approvedCORValue = (corsByProject[p.id] || [])
       .filter(c => c.status === 'approved')
-      .reduce((s, c) => s + (c.total_value || 0), 0)
-    const tmCost = (ticketsByProject[p.id] || []).reduce((s, t) => s + (t.total_value || 0), 0)
+      .reduce((s, c) => s + centsToDollars(c.cor_total), 0)
+    const tmCost = (ticketsByProject[p.id] || []).reduce((s, t) => s + (t.total_amount || 0), 0)
 
     const totalBudget = cv + approvedCORValue
     const costRatio = totalBudget > 0 ? tmCost / totalBudget : 0
@@ -863,6 +867,29 @@ function groupBy<T>(arr: T[], key: keyof T): Record<string, T[]> {
   return map
 }
 
+/** True when an area is finished — the `areas` table uses `status` text, never `is_complete`. */
+function areaIsDone(area: AreaRow): boolean {
+  return area.status === 'done'
+}
+
+/** Convert integer cents → dollars, tolerant of null/undefined/NaN. */
+function centsToDollars(cents: number | null | undefined): number {
+  return (cents || 0) / 100
+}
+
+/** Local-timezone YYYY-MM-DD; avoids the UTC drift of `toISOString().split('T')[0]`. */
+function localDateString(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** Crew count from a check-in row — `workers` is a JSONB array; no `worker_count` scalar exists. */
+function workerCount(c: CrewCheckinRow): number {
+  return Array.isArray(c.workers) ? c.workers.length : 0
+}
+
 function calculateWeightedProgress(areas: AreaRow[]): number {
   if (!areas?.length) return 0
   let totalWeight = 0
@@ -870,7 +897,7 @@ function calculateWeightedProgress(areas: AreaRow[]): number {
   for (const area of areas) {
     const w = area.weight || 1
     totalWeight += w
-    if (area.is_complete) completedWeight += w
+    if (areaIsDone(area)) completedWeight += w
   }
   return totalWeight > 0 ? (completedWeight / totalWeight) * 100 : 0
 }
