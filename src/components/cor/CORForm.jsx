@@ -16,6 +16,7 @@ import {
   COMMON_UNITS,
   groupLaborByClassAndType
 } from '../../lib/corCalculations'
+import { getLocalDateString } from '../../lib/utils'
 import TicketSelector from './TicketSelector'
 
 export default function CORForm({ project, company, areas, existingCOR, onClose, onSaved, onShowToast }) {
@@ -408,8 +409,8 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     area_id: areaId || null,
     cor_number: corNumber,
     group_name: groupName || null,
-    period_start: periodStart || new Date().toISOString().split('T')[0],
-    period_end: periodEnd || new Date().toISOString().split('T')[0],
+    period_start: periodStart || getLocalDateString(),
+    period_end: periodEnd || getLocalDateString(),
     labor_markup_percent: laborMarkupPercent,
     materials_markup_percent: materialsMarkupPercent,
     equipment_markup_percent: equipmentMarkupPercent,

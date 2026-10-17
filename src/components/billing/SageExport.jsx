@@ -12,6 +12,7 @@ import {
   toSageCSV,
   downloadSageCSV
 } from '../../lib/services/sageExportService'
+import { getLocalDateString } from '../../lib/utils'
 
 const EXPORT_TYPES = [
   {
@@ -73,7 +74,7 @@ export default function SageExport({ project, company, onShowToast }) {
     setExporting(true)
     try {
       const csv = toSageCSV(preview.rows)
-      const today = new Date().toISOString().split('T')[0]
+      const today = getLocalDateString()
       const jobNum = preview.summary?.jobNumber || 'export'
       const typeLabel = {
         jobcost: 'JobCost',

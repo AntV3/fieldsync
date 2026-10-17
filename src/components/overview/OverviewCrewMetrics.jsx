@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { db } from '../../lib/supabase'
+import { getLocalDateString } from '../../lib/utils'
 import { chartColors, tooltipStyle, formatChartDate } from '../charts/chartConfig'
 import {
   resolvePrimaryColor,
@@ -41,7 +42,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
 }) {
   const [crewHistory, setCrewHistory] = useState([])
   const [tmTickets, setTmTickets] = useState([])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString())
   const [timeRange, setTimeRange] = useState('14d')
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -152,7 +153,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
     setSelectedDate(d.toISOString().split('T')[0])
   }, [selectedDate])
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0]
+  const isToday = selectedDate === getLocalDateString()
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T12:00:00')
