@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { X, Truck, DollarSign, Calendar, Save } from 'lucide-react'
 import { equipmentOps } from '../../lib/supabase'
+import { getLocalDateString } from '../../lib/utils'
 
 /**
  * EquipmentModal - Add or edit equipment on a project
@@ -27,7 +28,7 @@ export default memo(function EquipmentModal({
   const [selectedEquipmentId, setSelectedEquipmentId] = useState('')
   const [customName, setCustomName] = useState('')
   const [dailyRate, setDailyRate] = useState('')
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(getLocalDateString())
   const [endDate, setEndDate] = useState('')
   const [notes, setNotes] = useState('')
   const [useCustom, setUseCustom] = useState(false)
@@ -61,7 +62,7 @@ export default memo(function EquipmentModal({
     if (editItem) {
       setCustomName(editItem.equipment_name || '')
       setDailyRate(((editItem.daily_rate || 0) / 100).toFixed(2))
-      setStartDate(editItem.start_date || new Date().toISOString().split('T')[0])
+      setStartDate(editItem.start_date || getLocalDateString())
       setEndDate(editItem.end_date || '')
       setNotes(editItem.notes || '')
       setSelectedEquipmentId(editItem.equipment_id || '')

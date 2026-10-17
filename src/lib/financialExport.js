@@ -4,6 +4,7 @@
  */
 
 import { groupLaborByClassAndType as groupLaborItems } from './corCalculations'
+import { getLocalDateString } from './utils'
 
 // Helper to trigger file download
 function downloadFile(content, filename, mimeType = 'text/csv') {
@@ -64,7 +65,7 @@ export function exportProjectFinancials(project, financialData) {
 
   // Earned revenue
   if (financialData?.earnedRevenue) {
-    rows.push({ category: 'Revenue', description: 'Earned Revenue (Progress)', amount: financialData.earnedRevenue, date: new Date().toISOString().split('T')[0], type: 'Earned' })
+    rows.push({ category: 'Revenue', description: 'Earned Revenue (Progress)', amount: financialData.earnedRevenue, date: getLocalDateString(), type: 'Earned' })
   }
 
   // Approved CORs

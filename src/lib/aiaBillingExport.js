@@ -11,6 +11,7 @@
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { toCSV } from './financialExport'
+import { getLocalDateString } from './utils'
 
 // ============================================
 // G703 Continuation Sheet Data Builder
@@ -105,7 +106,7 @@ export function buildG702Summary(project, g703Lines, applicationNumber = 1, peri
 
   return {
     application_number: applicationNumber,
-    period_to: periodTo || new Date().toISOString().split('T')[0],
+    period_to: periodTo || getLocalDateString(),
     project_name: project.name,
     project_number: project.job_number || '',
     // Line 1: Original contract sum
@@ -147,7 +148,7 @@ function formatCurrency(amount) {
 export function exportAIABillingPDF(project, areas, changeOrders = [], options = {}) {
   const {
     applicationNumber = 1,
-    periodTo = new Date().toISOString().split('T')[0],
+    periodTo = getLocalDateString(),
     previousApplications = [],
     architect = '',
     owner = '',

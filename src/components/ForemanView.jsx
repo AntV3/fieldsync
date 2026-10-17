@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
-import { calculateProgress } from '../lib/utils'
+import { calculateProgress, getLocalDateString } from '../lib/utils'
 import {
   Info, CheckSquare,
   ArrowLeft, ChevronDown, ChevronRight,
@@ -68,7 +68,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   // Load today's activity status
   const loadTodayStatus = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getLocalDateString()
 
       // Parallelize all independent queries instead of running sequentially
       const [crew, todayTicketCount, disposal, truckData, todayReport] = await Promise.all([
@@ -394,7 +394,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         </div>
         <DisposalLoadInput
           project={project}
-          date={new Date().toISOString().split('T')[0]}
+          date={getLocalDateString()}
           onShowToast={onShowToast}
         />
       </div>

@@ -9,6 +9,7 @@ import {
   Calendar, RotateCcw
 } from 'lucide-react'
 import { EmptyState, ListItemSkeleton, StatusBadge } from './ui'
+import { getLocalDateString } from '../lib/utils'
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft' },
@@ -142,7 +143,7 @@ export default function SubmittalList({ project, company, costCodes = [], onShow
     return true
   })
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
 
   return (
     <div className="submittal-list">

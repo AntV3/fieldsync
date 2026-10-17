@@ -2,7 +2,7 @@
 // Extracted from supabase.js for maintainability
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { parseLocalDate } from './utils'
+import { parseLocalDate, getLocalDateString } from './utils'
 
 export const equipmentOps = {
   // ----------------------------------------
@@ -258,7 +258,7 @@ export const equipmentOps = {
    */
   async markEquipmentReturned(projectEquipmentId, endDate = null) {
     return this.updateProjectEquipment(projectEquipmentId, {
-      end_date: endDate || new Date().toISOString().split('T')[0]
+      end_date: endDate || getLocalDateString()
     })
   },
 
