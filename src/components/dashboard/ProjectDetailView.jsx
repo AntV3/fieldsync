@@ -144,7 +144,7 @@ export default function ProjectDetailView({
                 areasWorking={areasWorking}
                 areasNotStarted={areasNotStarted}
                 company={company}
-                allProjects={projects}
+                allProjects={projectsData}
                 onShowToast={onShowToast}
                 onSetActiveTab={view.setProjectTab}
                 onExportFieldDocuments={onExportFieldDocuments}
@@ -197,7 +197,7 @@ export default function ProjectDetailView({
                 onAddCost={view.handleAddCost}
                 onDeleteCost={onDeleteCost}
                 costCodes={costCodes}
-                allProjects={projects}
+                allProjects={projectsData}
                 onShowToast={onShowToast}
               />
             </Suspense>
@@ -253,7 +253,7 @@ export default function ProjectDetailView({
                 billable={billable}
                 revisedContractValue={revisedContractValue}
                 changeOrderValue={changeOrderValue}
-                allProjects={projects}
+                allProjects={projectsData}
                 onAreasChanged={onAreasChanged}
                 onShowToast={onShowToast}
                 onEditClick={edit.handleEditClick}
