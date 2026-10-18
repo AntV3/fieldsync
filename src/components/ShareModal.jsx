@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { db } from '../lib/supabase'
+import { getLocalDateString } from '../lib/utils'
 import Toast from './Toast'
 
 function ShareModal({ project, user, onClose, onShareCreated }) {
@@ -311,7 +312,7 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
                       type="date"
                       value={customExpiration}
                       onChange={(e) => setCustomExpiration(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={getLocalDateString()}
                       className="date-input"
                     />
                   )}

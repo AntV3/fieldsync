@@ -10,6 +10,7 @@ import {
   drawContinuationAccent,
   applyDocumentFooters,
 } from '../lib/pdfBranding'
+import { getLocalDateString } from '../lib/utils'
 import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import InjuryReportCard from './InjuryReportCard'
@@ -164,7 +165,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     if (viewMode === 'recent') {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+      const sevenDaysAgoStr = getLocalDateString(sevenDaysAgo)
       filtered = filtered.filter(r => {
         const reportDate = (r.incident_date || '').substring(0, 10)
         return reportDate >= sevenDaysAgoStr
