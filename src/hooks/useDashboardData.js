@@ -375,8 +375,10 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Total costs
       const laborCost = laborCosts?.totalCost || 0
-      // Project equipment rental costs (daily rate * days on site, stored in cents)
-      const projectEquipmentCost = equipmentOps.calculateProjectEquipmentCost(projectEquipment || [])
+      // Project equipment rental cost is daily_rate * days with daily_rate stored in cents;
+      // the other cost terms are dollars, so convert to dollars before summing.
+      const projectEquipmentCost =
+        equipmentOps.calculateProjectEquipmentCost(projectEquipment || []) / 100
       const allCostsTotal = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
 
       // Total billed from invoices (for cash flow analytics)
@@ -406,7 +408,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       const laborDays = laborCosts?.byDate?.length || 0
       const materialsDays = materialsEquipmentByDateArray.length
       const totalBurnDays = Math.max(laborDays, materialsDays)
-      const totalBurn = laborCost + materialsEquipmentCost + customCostTotal + projectEquipmentCost
+      const totalBurn = allCostsTotal
       const dailyBurn = totalBurnDays > 0 ? totalBurn / totalBurnDays : 0
 
       // Schedule insights

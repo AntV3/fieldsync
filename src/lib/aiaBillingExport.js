@@ -68,6 +68,11 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
   for (const co of approvedCOs) {
     const coValue = (co.cor_total || 0) / 100  // cents to dollars
     const billed = co.status === 'billed' || co.status === 'closed'
+    // Once a CO is billed/closed the retention on it has already been
+    // handled by the earlier certificate. Applying 10% again here would
+    // make (total_completed - retention) - previous_certificates go
+    // negative on Line 8 of the G702 for every billed CO.
+    const retentionPct = billed ? 0 : 10
 
     lines.push({
       item_number: `CO-${co.cor_number || itemNumber}`,
@@ -79,8 +84,8 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
       materials_stored: 0,
       total_completed: coValue,
       percent_complete: 100,
-      retention_pct: 10,
-      retention: coValue * 0.10,
+      retention_pct: retentionPct,
+      retention: coValue * (retentionPct / 100),
       balance_to_finish: 0
     })
   }

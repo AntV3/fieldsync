@@ -389,7 +389,11 @@ function estimateMonthlyEarningRate(project) {
 }
 
 function estimateMonthlyCostRate(project, _costHistory) {
-  const totalCosts = project.totalCosts || project.billable || 0
+  // Enhanced project rows from useDashboardData expose costs as `allCostsTotal`;
+  // falling straight through to `billable` would use earned revenue as the
+  // burn-rate numerator and swing cash-flow negative on healthy jobs.
+  const totalCosts =
+    project.totalCosts ?? project.allCostsTotal ?? project.billable ?? 0
   const startDate = project.startDate || project.start_date
 
   // Use actual burn rate if available

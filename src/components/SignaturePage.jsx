@@ -1158,8 +1158,12 @@ export default function SignaturePage({ signatureToken }) {
                       <span className="slot-label">GC Authorization</span>
                     </div>
                     <div className="slot-signed-info">
-                      {slot1.signature_data && (
-                        <img src={slot1.signature_data} alt="Signature" className="signature-image" />
+                      {/* signatures table stores the PNG in `signature_image`
+                          (see 20241201000320_signatures.sql). The prior
+                          `signature_data` reference was always undefined, so
+                          the client saw only the signer name and no signature. */}
+                      {slot1.signature_image && (
+                        <img src={slot1.signature_image} alt="Signature" className="signature-image" />
                       )}
                       <div className="signer-details">
                         <span className="signer-name">{slot1.signer_name}</span>
@@ -1180,8 +1184,8 @@ export default function SignaturePage({ signatureToken }) {
                       <span className="slot-label">Client Authorization</span>
                     </div>
                     <div className="slot-signed-info">
-                      {slot2.signature_data && (
-                        <img src={slot2.signature_data} alt="Signature" className="signature-image" />
+                      {slot2.signature_image && (
+                        <img src={slot2.signature_image} alt="Signature" className="signature-image" />
                       )}
                       <div className="signer-details">
                         <span className="signer-name">{slot2.signer_name}</span>

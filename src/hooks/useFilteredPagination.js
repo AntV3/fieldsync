@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { usePagination } from './usePagination'
 
 /**
@@ -32,14 +32,16 @@ export function useFilteredPagination(items = [], options = {}) {
     totalItems: filteredItems.length
   })
 
-  // Keep totalItems in sync with filtered results
-  useMemo(() => {
+  // Keep totalItems in sync with filtered results. Must be a side effect —
+  // running setState inside useMemo triggers a setState-in-render warning
+  // and queues an update that the next render reads before it settles.
+  useEffect(() => {
     pagination.setTotalItems(filteredItems.length)
-  }, [filteredItems.length])
+  }, [filteredItems.length, pagination.setTotalItems])
 
   const paginatedItems = useMemo(() => {
     return pagination.paginate(filteredItems)
-  }, [filteredItems, pagination.paginate])
+  }, [filteredItems, pagination.paginate, pagination.offset, pagination.itemsPerPage])
 
   const setSearchTerm = useCallback((term) => {
     setSearchTermRaw(term)

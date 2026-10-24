@@ -294,6 +294,7 @@ export default function TMList({
         await db.assignTicketToCOR(pendingCorAssignTicket.id, selectedCorForAssign)
 
         // Auto-import ticket cost data (labor, materials, equipment) into COR line items
+        let importFailed = false
         try {
           await db.importTicketDataToCOR(
             pendingCorAssignTicket.id,
@@ -303,19 +304,41 @@ export default function TMList({
             project.job_type || 'standard'
           )
         } catch (importError) {
+          importFailed = true
           console.warn('Auto-import of ticket costs failed, can retry later:', importError)
+          // Persist the failure so the retry-import UI can offer a retry
+          // and surface a toast — otherwise the user only sees the success
+          // banner and never learns the cost data never landed.
+          try {
+            await db.markImportFailed?.(
+              pendingCorAssignTicket.id,
+              selectedCorForAssign,
+              importError?.message || 'Import failed'
+            )
+          } catch (_markErr) {
+            /* non-critical */
+          }
         }
 
         const cor = availableCors.find(c => c.id === selectedCorForAssign)
-        onShowToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
+        if (importFailed) {
+          onShowToast(
+            `Ticket linked to ${cor?.cor_number || 'COR'}, but cost import failed — retry from the ticket`,
+            'error'
+          )
+        } else {
+          onShowToast(`Ticket linked to ${cor?.cor_number || 'COR'}`, 'success')
+        }
       } else if (pendingCorAssignTicket.assigned_cor_id) {
         // Remove association using atomic function (ticketId, corId)
         await db.unassignTicketFromCOR(pendingCorAssignTicket.id, pendingCorAssignTicket.assigned_cor_id)
         onShowToast('Ticket unlinked from COR', 'success')
       }
 
-      // Refresh tickets
-      loadTickets()
+      // Refresh tickets from page 0. Calling loadTickets() with defaults
+      // appends page-0 results to the existing state and duplicates every
+      // on-screen ticket until the next full reload.
+      loadTickets(0, true)
       setShowCorAssignModal(false)
       setPendingCorAssignTicket(null)
       setSelectedCorForAssign('')
@@ -346,7 +369,7 @@ export default function TMList({
         delete next[ticket.id]
         return next
       })
-      loadTickets()
+      loadTickets(0, true)
     } catch (error) {
       console.error('Error retrying import:', error)
       onShowToast('Import retry failed. Please try again.', 'error')
