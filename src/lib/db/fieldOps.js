@@ -408,6 +408,7 @@ export const fieldOps = {
       await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
         projectId,
         workers,
+        createdBy,
         checkInDate: checkDate
       })
       return checkin
@@ -429,6 +430,7 @@ export const fieldOps = {
       await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
         projectId,
         workers,
+        createdBy,
         checkInDate: checkDate
       })
       return checkin
@@ -469,6 +471,7 @@ export const fieldOps = {
         await addPendingAction(ACTION_TYPES.SAVE_CREW_CHECKIN, {
           projectId,
           workers,
+          createdBy,
           checkInDate: checkDate
         })
         return checkin
@@ -851,7 +854,8 @@ export const fieldOps = {
       await addPendingAction(ACTION_TYPES.SUBMIT_DAILY_REPORT, {
         projectId,
         reportData: cachedReport || {},
-        submittedBy
+        submittedBy,
+        reportDate
       })
       return report
     }
@@ -914,7 +918,8 @@ export const fieldOps = {
         await addPendingAction(ACTION_TYPES.SUBMIT_DAILY_REPORT, {
           projectId,
           reportData: compiled,
-          submittedBy
+          submittedBy,
+          reportDate
         })
         return report
       }
@@ -978,7 +983,11 @@ export const fieldOps = {
         projectId,
         senderType,
         senderName,
-        content: message
+        content: message,
+        senderUserId,
+        photoUrl,
+        messageType,
+        parentId
       })
       return msg
     }
@@ -1015,7 +1024,11 @@ export const fieldOps = {
           projectId,
           senderType,
           senderName,
-          content: message
+          content: message,
+          senderUserId,
+          photoUrl,
+          messageType,
+          parentId
         })
         return msg
       }
