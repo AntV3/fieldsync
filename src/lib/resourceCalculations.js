@@ -8,6 +8,29 @@
  * - Capacity forecasting
  */
 
+import { parseLocalDate } from './utils'
+
+/**
+ * Resolve a crew_checkin row's effective local-midnight Date for bucketing.
+ *
+ * `crew_checkins.check_in_date` is a bare DATE column (local calendar day of
+ * work), while `created_at` is a TIMESTAMPTZ. The naive `new Date(c.check_in_date)`
+ * path parsed a YYYY-MM-DD string as UTC midnight, which is the PRIOR local day
+ * for any user west of UTC — causing allocations and the heatmap to misbucket
+ * check-ins by a day and silently drop everything on the window boundary.
+ */
+function checkinLocalDate(checkin) {
+  if (checkin?.check_in_date) return parseLocalDate(checkin.check_in_date)
+  if (checkin?.created_at) return new Date(checkin.created_at)
+  return null
+}
+
+/** Local midnight today (strips the time portion while keeping the TZ offset). */
+function localMidnightToday() {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
 /**
  * Analyze resource capacity across all projects
  *
@@ -56,8 +79,12 @@ export function analyzeResourceCapacity({
  * Calculate current resource allocation per project
  */
 export function calculateCurrentAllocation(projects, crewCheckins) {
-  const now = new Date()
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  // Anchor the 7-day window at LOCAL midnight so a check-in whose
+  // check_in_date is exactly 7 days ago is still included. Comparing a
+  // local-midnight check-in Date against an instant-in-time weekAgo
+  // (which carries the wall-clock time) silently dropped boundary days
+  // whenever the function was called later in the user's day.
+  const weekAgo = new Date(localMidnightToday().getTime() - 7 * 24 * 60 * 60 * 1000)
 
   const projectAllocation = projects
     .filter(p => {
@@ -66,10 +93,11 @@ export function calculateCurrentAllocation(projects, crewCheckins) {
     })
     .map(project => {
       // Get recent crew check-ins for this project
-      const projectCheckins = crewCheckins.filter(c =>
-        c.project_id === project.id &&
-        new Date(c.check_in_date || c.created_at) >= weekAgo
-      )
+      const projectCheckins = crewCheckins.filter(c => {
+        if (c.project_id !== project.id) return false
+        const d = checkinLocalDate(c)
+        return d && d >= weekAgo
+      })
 
       // Average daily crew size
       const dailyCounts = {}
@@ -263,17 +291,24 @@ export function identifyResourceConflicts(allocation, demandForecast, totalCrewA
  * Build weekly allocation heatmap
  */
 export function buildAllocationHeatmap(projects, crewCheckins) {
-  const now = new Date()
+  // Anchor the week buckets at local midnight today so each slot covers
+  // one calendar week in the user's timezone. The previous code anchored
+  // at `now` (wall-clock instant), which lined a check-in up with a
+  // boundary at the time of day the function ran — misbucketing any
+  // check-in on the exact start-of-week date into the prior slot for
+  // every user west of UTC.
+  const today = localMidnightToday()
   const weeks = []
 
   for (let w = -3; w <= 0; w++) {
-    const weekStart = new Date(now.getTime() + w * 7 * 24 * 60 * 60 * 1000)
+    const weekStart = new Date(today.getTime() + w * 7 * 24 * 60 * 60 * 1000)
     const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
     const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
     const projectCrews = {}
     for (const checkin of crewCheckins) {
-      const checkinDate = new Date(checkin.check_in_date || checkin.created_at)
+      const checkinDate = checkinLocalDate(checkin)
+      if (!checkinDate) continue
       if (checkinDate >= weekStart && checkinDate < weekEnd) {
         if (!projectCrews[checkin.project_id]) {
           projectCrews[checkin.project_id] = { totalWorkers: 0, days: 0 }
