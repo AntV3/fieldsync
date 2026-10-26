@@ -20,6 +20,7 @@
 import { supabase } from './supabase'
 import { observe } from './observability'
 import { calculateCORTotals } from './corCalculations'
+import { resolveClassRate } from './laborRateResolver'
 
 // ============================================
 // CONSTANTS
@@ -563,9 +564,10 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
 
         if (classRates?.length > 0) {
           classRates.forEach(lc => {
-            const matchingRate = lc.labor_class_rates?.find(r =>
-              r.work_type === workType
-            )
+            const matchingRate = resolveClassRate(lc.labor_class_rates, {
+              workType,
+              jobType: project?.job_type
+            })
             if (matchingRate) {
               rateLookup[lc.name.toLowerCase()] = {
                 regular_rate: matchingRate.regular_rate,

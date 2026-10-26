@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
+import { TM_AWAITING_APPROVAL_STATUSES } from '../lib/tmStatus'
+import { buildClassRateLookup, calculateTicketValue } from '../lib/laborRateResolver'
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -23,6 +25,7 @@ const loadJsPDF = () => Promise.all([import('jspdf'), import('jspdf-autotable')]
 export default function TMList({
   project,
   company,
+  user = null,
   onShowToast,
   compact = false,
   // Preview mode props
@@ -74,6 +77,24 @@ export default function TMList({
   // Track which tickets are locked (linked to approved COR)
   const [lockedTickets, setLockedTickets] = useState({})
 
+  // Company labor rates resolved for this project's work/job type. Used to
+  // price tickets for approval and for dashboard totals.
+  const [rateLookup, setRateLookup] = useState({ byId: {}, byName: {} })
+  useEffect(() => {
+    let cancelled = false
+    if (!company?.id) return undefined
+    Promise.resolve(db.getAllLaborClassRates?.(company.id))
+      .then(classes => {
+        if (cancelled) return
+        setRateLookup(buildClassRateLookup(classes, {
+          workType: project?.work_type,
+          jobType: project?.job_type
+        }))
+      })
+      .catch(err => console.warn('Could not load labor rates for T&M pricing:', err))
+    return () => { cancelled = true }
+  }, [company?.id, project?.work_type, project?.job_type])
+
   // Track failed COR imports for retry UI
   const [failedImports, setFailedImports] = useState({})
   const [retryingImport, setRetryingImport] = useState(null)
@@ -92,7 +113,9 @@ export default function TMList({
       const result = await db.getTMTicketsPaginated(project.id, {
         page: pageNum,
         limit: TICKETS_PER_PAGE,
-        status: filter !== 'all' ? filter : null
+        // "Pending" means everything the office still has to act on. Field
+        // tickets arrive foreman-signed, so a bare 'pending' filter hid them.
+        status: filter === 'all' ? null : (filter === 'pending' ? TM_AWAITING_APPROVAL_STATUSES : filter)
       })
 
       if (reset) {
@@ -214,7 +237,11 @@ export default function TMList({
     }
   }, [lockedTickets]) // onShowToast is stable (memoized in App.jsx)
 
-  // Handle approval - approve directly (CE/PCO is informational only)
+  const approverName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || null
+
+  // Handle approval: open the confirmation modal prefilled with the ticket's
+  // priced value (labor at company rates + materials). The value is stored on
+  // the ticket as change_order_value, which is what the invoice reads.
   const handleApprove = useCallback((ticket) => {
     // Check if ticket is locked due to approved COR
     if (lockedTickets[ticket.id]) {
@@ -222,8 +249,13 @@ export default function TMList({
       return
     }
 
-    updateStatus(ticket.id, 'approved')
-  }, [lockedTickets, updateStatus]) // onShowToast is stable
+    const existing = parseFloat(ticket.change_order_value)
+    const computed = calculateTicketValue(ticket, rateLookup).total
+    const value = existing > 0 ? existing : computed
+    setPendingApprovalTicket(ticket)
+    setChangeOrderValue(value > 0 ? value.toFixed(2) : '')
+    setShowChangeOrderModal(true)
+  }, [lockedTickets, rateLookup]) // onShowToast is stable
 
   // Confirm approval with change order value
   const confirmChangeOrderApproval = async () => {
@@ -231,13 +263,13 @@ export default function TMList({
 
     try {
       const value = parseFloat(changeOrderValue) || 0
-      await db.approveTMTicket(pendingApprovalTicket.id, null, null, value)
-      setTickets(tickets.map(t =>
+      const updated = await db.approveTMTicket(pendingApprovalTicket.id, user?.id || null, approverName, value)
+      setTickets(prev => prev.map(t =>
         t.id === pendingApprovalTicket.id
-          ? { ...t, status: 'approved', change_order_value: value }
+          ? { ...t, ...(updated || {}), status: 'approved', change_order_value: value }
           : t
       ))
-      onShowToast(`Ticket approved with $${value.toLocaleString()} change order`, 'success')
+      onShowToast(`Ticket approved at $${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'success')
       setShowChangeOrderModal(false)
       setPendingApprovalTicket(null)
       setChangeOrderValue('')
@@ -246,6 +278,26 @@ export default function TMList({
       onShowToast('Error approving ticket', 'error')
     }
   }
+
+  // Reject with a reason so the field knows what to fix.
+  const handleReject = useCallback(async (ticket) => {
+    if (lockedTickets[ticket.id]) {
+      onShowToast(lockedTickets[ticket.id].reason || 'This ticket is locked (COR approved)', 'error')
+      return
+    }
+    const reason = window.prompt('Why is this ticket being rejected? (shown to the field)')
+    if (reason === null) return
+    try {
+      const updated = await db.rejectTMTicket(ticket.id, user?.id || null, approverName, reason.trim())
+      setTickets(prev => prev.map(t =>
+        t.id === ticket.id ? { ...t, ...(updated || {}), status: 'rejected', rejection_reason: reason.trim() } : t
+      ))
+      onShowToast('Ticket rejected', 'success')
+    } catch (error) {
+      console.error('Error rejecting ticket:', error)
+      onShowToast('Error rejecting ticket', 'error')
+    }
+  }, [lockedTickets, user?.id, approverName]) // onShowToast is stable
 
   const deleteTicket = useCallback(async (ticketId) => {
     // Check if ticket is locked due to approved COR
@@ -1182,6 +1234,7 @@ export default function TMList({
       onToggleExpand={handleToggleExpand}
       onToggleSelect={toggleTicketSelection}
       onApprove={handleApprove}
+      onReject={handleReject}
       onUpdateStatus={updateStatus}
       onDelete={deleteTicket}
       onOpenCorAssign={openCorAssignModal}
@@ -1324,7 +1377,7 @@ export default function TMList({
 
       {/* Dashboard View */}
       {!compact && displayMode === 'dashboard' && (
-        <TMDashboard tickets={tickets} />
+        <TMDashboard tickets={tickets} rateLookup={rateLookup} />
       )}
 
       {/* List View Content */}
@@ -1437,22 +1490,26 @@ export default function TMList({
       {showChangeOrderModal && pendingApprovalTicket && (
         <div className="modal-overlay" onClick={() => setShowChangeOrderModal(false)}>
           <div className="modal change-order-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Approve Change Order Work</h3>
+            <h3>Approve T&M Ticket</h3>
             <p className="modal-subtitle">
-              This Time & Material ticket is associated with <strong>{pendingApprovalTicket.ce_pco_number}</strong>
+              {formatDate(pendingApprovalTicket.work_date)}
+              {pendingApprovalTicket.ce_pco_number && <> &middot; <strong>{pendingApprovalTicket.ce_pco_number}</strong></>}
+              {' '}&middot; {calculateTotalHours(pendingApprovalTicket)} hrs
             </p>
 
             <div className="form-group">
-              <label>Change Order Value ($)</label>
+              <label>Billable Value ($)</label>
               <input
                 type="number"
+                min="0"
+                step="0.01"
                 value={changeOrderValue}
                 onChange={(e) => setChangeOrderValue(e.target.value)}
-                placeholder="Enter the change order amount"
+                placeholder="0.00"
                 autoFocus
               />
               <p className="form-help">
-                This amount will be added to the project's total contract value.
+                Prefilled from crew hours at your labor rates plus materials. This is the amount that appears on the invoice.
               </p>
             </div>
 
@@ -1467,7 +1524,7 @@ export default function TMList({
                 className="btn btn-success"
                 onClick={confirmChangeOrderApproval}
               >
-                Approve with ${parseFloat(changeOrderValue || 0).toLocaleString()}
+                Approve at ${parseFloat(changeOrderValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </button>
             </div>
           </div>

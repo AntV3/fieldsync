@@ -316,6 +316,7 @@ export default function FinancialsTab({
                   <TMList
                     project={selectedProject}
                     company={company}
+                    user={user}
                     onShowToast={onShowToast}
                     compact={tmViewMode === 'preview'}
                     previewMode={tmViewMode === 'preview'}

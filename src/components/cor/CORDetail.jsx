@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
 import { CollapsibleSection, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
+import { resolveClassRate } from '../../lib/laborRateResolver'
 import {
   formatCurrency,
   formatPercent,
@@ -201,12 +202,14 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     if (actionInProgress) return
     setActionInProgress(true)
     try {
-      await db.saveCORSignature?.(corData.id, signatureData.signature, signatureData.signerName)
+      const saved = await db.saveCORSignature?.(corData.id, signatureData.signature, signatureData.signerName)
       setCORData(prev => ({
         ...prev,
+        ...(saved || {}),
+        status: saved?.status || 'approved',
         gc_signature_data: signatureData.signature,
         gc_signature_name: signatureData.signerName,
-        gc_signature_date: new Date().toISOString()
+        gc_signature_date: saved?.gc_signature_date || new Date().toISOString()
       }))
       setShowSignature(false)
       onShowToast?.('Signature saved', 'success')
@@ -219,7 +222,9 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     }
   }
 
-  const canSign = corData.status === 'approved' && !corData.gc_signature_data
+  // In-person GC signature is the approval, so offer it while the COR is
+  // waiting on the GC as well as after an internal approval.
+  const canSign = ['pending_approval', 'approved'].includes(corData.status) && !corData.gc_signature_data
 
   const handleUpdateCorNumber = async () => {
     if (!newCorNumber.trim()) {
@@ -317,7 +322,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             const rateLookup = {}
             if (classRates?.length > 0) {
               classRates.forEach(lc => {
-                const match = lc.labor_class_rates?.find(r => r.work_type === workType)
+                const match = resolveClassRate(lc.labor_class_rates, { workType, jobType: project?.job_type })
                 if (match) {
                   rateLookup[lc.name.toLowerCase()] = { regular_rate: match.regular_rate, overtime_rate: match.overtime_rate }
                 }

@@ -1,4 +1,5 @@
 import { memo, useState, useEffect } from 'react'
+import { isAwaitingApproval } from '../../lib/tmStatus'
 import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react'
 import { CountBadge, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
@@ -41,6 +42,7 @@ const TMTicketCard = memo(function TMTicketCard({
   onToggleExpand,
   onToggleSelect,
   onApprove,
+  onReject,
   onUpdateStatus,
   onDelete,
   onOpenCorAssign,
@@ -126,6 +128,11 @@ const TMTicketCard = memo(function TMTicketCard({
           {ticket.client_signature_data && (
             <span className="tm-verified-badge" title={`Verified by ${ticket.client_signature_name || 'client'}${ticket.client_signature_date ? ` on ${formatDate(ticket.client_signature_date)}` : ''}`}>
               <CheckCircle size={12} /> Client
+            </span>
+          )}
+          {ticket.gc_signature_data && (
+            <span className="tm-verified-badge" title={`Authorized by ${ticket.gc_signature_name || 'GC'}${ticket.gc_signature_date ? ` on ${formatDate(ticket.gc_signature_date)}` : ''}`}>
+              <CheckCircle size={12} /> GC
             </span>
           )}
           <StatusBadge status={ticket.status} />
@@ -258,7 +265,7 @@ const TMTicketCard = memo(function TMTicketCard({
           )}
 
           <div className="tm-ticket-actions" role="group" aria-label="Ticket actions">
-            {(ticket.status === 'pending' || ticket.status === 'foreman_signed') && !isLocked && (
+            {isAwaitingApproval(ticket.status) && !isLocked && (
               <>
                 <button
                   className="btn btn-success btn-small"
@@ -269,11 +276,20 @@ const TMTicketCard = memo(function TMTicketCard({
                 </button>
                 <button
                   className="btn btn-warning btn-small"
-                  onClick={(e) => { e.stopPropagation(); onUpdateStatus(ticket.id, 'rejected'); }}
+                  onClick={(e) => { e.stopPropagation(); (onReject || (() => onUpdateStatus(ticket.id, 'rejected')))(ticket); }}
                   aria-label="Reject this ticket"
                 >
                   Reject
                 </button>
+                {!ticket.client_signature_data && !ticket.gc_signature_data && (
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={(e) => { e.stopPropagation(); onShowSignatureLink(ticket); }}
+                    aria-label="Get signature link for this ticket"
+                  >
+                    <Link size={14} aria-hidden="true" /> Signature Link
+                  </button>
+                )}
               </>
             )}
             {ticket.status === 'approved' && !isLocked && (

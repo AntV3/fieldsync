@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { isAwaitingApproval } from '../lib/tmStatus'
 import { db, equipmentOps } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
 import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
@@ -337,7 +338,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
       const billable = progressData.isValueBased
         ? progressData.earnedValue
         : (progress / 100) * revisedContractValue
-      const pendingTickets = tickets.filter(t => t.status === 'pending').length
+      const pendingTickets = tickets.filter(t => isAwaitingApproval(t.status)).length
 
       // Recent activity
       const oneWeekAgo = new Date()

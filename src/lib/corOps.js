@@ -6,6 +6,7 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { getClient } from './fieldSession'
 import { observe } from './observability'
+import { resolveClassRate, normalizeJobType } from './laborRateResolver'
 import { generateTempId } from './offlineManager'
 import { getLocalData, setLocalData } from './localStorageHelpers'
 import { sanitize } from './sanitize'
@@ -966,16 +967,27 @@ export const corOps = {
         })
 
         const classIds = Object.keys(laborByClass)
+        // Fetch every rate row for these classes and resolve the best match in
+        // JS. The Pricing screen stores rates under work_type 'labor' and
+        // job_type 'standard' | 'prevailing', which never equals a project's
+        // 'demolition' / 'prevailing_wage' keys, so an exact SQL match returned
+        // nothing and every imported hour was priced at $0.
         const { data: classRates, error: classRatesError } = await client
           .from('labor_class_rates')
-          .select('labor_class_id, regular_rate, overtime_rate')
+          .select('labor_class_id, work_type, job_type, regular_rate, overtime_rate')
           .in('labor_class_id', classIds)
-          .eq('work_type', effectiveWorkType)
-          .eq('job_type', effectiveJobType)
         if (classRatesError) throw classRatesError
 
+        const rowsByClass = {}
+        classRates?.forEach(r => {
+          if (!rowsByClass[r.labor_class_id]) rowsByClass[r.labor_class_id] = []
+          rowsByClass[r.labor_class_id].push(r)
+        })
         const classRateLookup = {}
-        classRates?.forEach(r => { classRateLookup[r.labor_class_id] = r })
+        Object.entries(rowsByClass).forEach(([classId, rows]) => {
+          const resolved = resolveClassRate(rows, { workType: effectiveWorkType, jobType: effectiveJobType })
+          if (resolved) classRateLookup[classId] = resolved
+        })
 
         laborItems = Object.entries(laborByClass).map(([classId, data]) => {
           const rate = classRateLookup[classId] || { regular_rate: 0, overtime_rate: 0 }
@@ -983,7 +995,7 @@ export const corOps = {
           const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
           return {
             labor_class: data.name,
-            wage_type: effectiveJobType,
+            wage_type: normalizeJobType(effectiveJobType),
             regular_hours: data.regular_hours,
             overtime_hours: data.overtime_hours,
             regular_rate: regRate,
@@ -1000,7 +1012,7 @@ export const corOps = {
           .select('*')
           .eq('company_id', companyId)
           .eq('work_type', effectiveWorkType)
-          .eq('job_type', effectiveJobType)
+          .in('job_type', [...new Set([effectiveJobType, normalizeJobType(effectiveJobType)])])
         if (ratesError) throw ratesError
 
         const rateLookup = {}
@@ -1024,7 +1036,7 @@ export const corOps = {
           const otRate = Math.round((parseFloat(rate.overtime_rate) || 0) * 100)
           return {
             labor_class: role.charAt(0).toUpperCase() + role.slice(1),
-            wage_type: effectiveJobType,
+            wage_type: normalizeJobType(effectiveJobType),
             regular_hours: hours.regular_hours,
             overtime_hours: hours.overtime_hours,
             regular_rate: regRate,
@@ -1378,19 +1390,38 @@ export const corOps = {
 
   async saveCORSignature(corId, signatureData, signerName) {
     if (isSupabaseConfigured) {
+      // The "Get GC Signature" button is offered on pending and approved
+      // CORs, so both must be signable. A GC signature on a pending COR is
+      // the approval; stamp approved_at so aging reports stay honest.
+      const { data: current, error: currentError } = await supabase
+        .from('change_orders')
+        .select('id, status, approved_at')
+        .eq('id', corId)
+        .single()
+      if (currentError) throw currentError
+      if (!['pending_approval', 'approved'].includes(current?.status)) {
+        throw new Error(`COR cannot be signed while ${current?.status || 'unknown'}`)
+      }
+
+      const updates = {
+        gc_signature_data: signatureData,
+        gc_signature_name: signerName,
+        gc_signature_date: new Date().toISOString(),
+        status: 'approved' // Auto-approve when signed
+      }
+      if (!current.approved_at) updates.approved_at = updates.gc_signature_date
+
       const { data, error } = await supabase
         .from('change_orders')
-        .update({
-          gc_signature_data: signatureData,
-          gc_signature_name: signerName,
-          gc_signature_date: new Date().toISOString(),
-          status: 'approved' // Auto-approve when signed
-        })
+        .update(updates)
         .eq('id', corId)
-        .in('status', ['pending_approval']) // Only allow signing CORs that are pending approval
+        .in('status', ['pending_approval', 'approved'])
         .select()
         .single()
       if (error) throw error
+      if (current.status !== 'approved') {
+        await this._logCORStatusChange(corId, 'approved', null, 'GC signature captured in person')
+      }
       return data
     }
     return null
@@ -1912,7 +1943,36 @@ export const corOps = {
       .select()
       .single()
     if (error) throw error
-    return data
+
+    // A signature from the paying party is the approval. Advance the status so
+    // the office does not have to notice a badge and re-approve by hand.
+    // `.in()` on the current status makes this a no-op for anything already
+    // past that point; we deliberately avoid `.single()` so zero rows is fine.
+    let advanced = null
+    if (document_type === 'cor' && slot === 1) {
+      const signedAt = signature.signed_at || new Date().toISOString()
+      const { data: rows, error: advanceError } = await client
+        .from('change_orders')
+        .update({ status: 'approved', approved_at: signedAt })
+        .eq('id', document_id)
+        .eq('status', 'pending_approval')
+        .select()
+      if (advanceError) throw advanceError
+      advanced = rows?.[0] || null
+      if (advanced) {
+        await this._logCORStatusChange(document_id, 'approved', null, 'GC signed via signature link')
+      }
+    } else if (document_type !== 'cor') {
+      const { data: rows, error: advanceError } = await client
+        .from('t_and_m_tickets')
+        .update({ status: 'client_signed' })
+        .eq('id', document_id)
+        .in('status', ['pending', 'foreman_signed'])
+        .select()
+      if (advanceError) throw advanceError
+      advanced = rows?.[0] || null
+    }
+    return advanced || data
   },
 
   // Revoke a signature request
@@ -2209,10 +2269,10 @@ export const corOps = {
       // Get approved T&M tickets with client signature that haven't been billed
       const { data: tickets, error: ticketsError } = await supabase
         .from('t_and_m_tickets')
-        .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date')
+        .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date, gc_signature_date')
         .eq('project_id', projectId)
         .eq('status', 'approved')
-        .not('client_signature_data', 'is', null)
+        .or('client_signature_data.not.is.null,gc_signature_data.not.is.null')
         .order('work_date', { ascending: true })
 
       if (ticketsError) {
