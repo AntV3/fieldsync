@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react'
 import CORCapabilitiesModal from './CORCapabilitiesModal'
 import { db } from '../../lib/supabase'
+import { resolveClassRate } from '../../lib/laborRateResolver'
 import {
   formatCurrency,
   basisPointsToPercent,
@@ -161,10 +162,10 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         // Flatten class rates into a lookup-friendly format
         const flatRates = []
         classRates.forEach(lc => {
-          const matchingRate = lc.labor_class_rates?.find(r =>
-            r.work_type === (project?.work_type || 'demolition') &&
-            r.job_type === (project?.job_type || 'standard')
-          )
+          const matchingRate = resolveClassRate(lc.labor_class_rates, {
+            workType: project?.work_type,
+            jobType: project?.job_type
+          })
           if (matchingRate) {
             flatRates.push({
               role: lc.name,
@@ -1182,6 +1183,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
         <TicketSelector
           projectId={project.id}
           companyId={company?.id}
+          project={project}
           corId={existingCOR?.id}
           onImport={handleTicketImport}
           onClose={() => setShowTicketSelector(false)}

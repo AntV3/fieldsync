@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Check, Search, FileText, Users, Package, Truck, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { dollarsToCents } from '../../lib/corCalculations'
+import { buildClassRateLookup, rateForWorker, normalizeJobType } from '../../lib/laborRateResolver'
 import StatusBadge from '../ui/StatusBadge'
 
 // Generate secure random ID suffix
@@ -11,7 +12,7 @@ const generateRandomId = () => {
   return Array.from(array, b => b.toString(36)).join('')
 }
 
-export default function TicketSelector({ projectId, companyId, corId, onImport, onClose, onShowToast }) {
+export default function TicketSelector({ projectId, companyId, corId, project = null, onImport, onClose, onShowToast }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
@@ -124,22 +125,21 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
 
     const ticketsToImport = tickets.filter(t => selectedTickets.has(t.id))
 
-    // Look up labor rates for the company so imported items have correct costs
+    // Look up labor rates for the company so imported items have correct costs.
+    // Class rates are resolved for this project's work/job type; legacy
+    // role-based rates are the fallback.
+    const rateContext = { workType: project?.work_type, jobType: project?.job_type }
+    const wageType = normalizeJobType(project?.job_type)
     const rateLookup = {}
-    const classRateLookup = {}
+    let classLookup = { byId: {}, byName: {} }
     try {
       if (companyId) {
-        const rates = await db.getLaborRates?.(companyId)
+        const classes = await db.getAllLaborClassRates?.(companyId)
+        classLookup = buildClassRateLookup(classes, rateContext)
+        const rates = await db.getLaborRates?.(companyId, project?.work_type || null, project?.job_type || null)
         if (rates) {
           rates.forEach(rate => {
             rateLookup[(rate.role || '').toLowerCase()] = rate
-          })
-        }
-        // Also try to get class-based rates
-        const classRates = await db.getLaborClassRates?.(companyId)
-        if (classRates) {
-          classRates.forEach(rate => {
-            classRateLookup[rate.labor_class_id] = rate
           })
         }
       }
@@ -158,21 +158,23 @@ export default function TicketSelector({ projectId, companyId, corId, onImport, 
       workers.forEach(worker => {
         const role = (worker.role || worker.labor_class || 'laborer').toLowerCase()
         // Look up rates: first try class-based, then role-based
-        const classRate = worker.labor_class_id ? classRateLookup[worker.labor_class_id] : null
+        const classRate = rateForWorker(worker, classLookup)
         const roleRate = rateLookup[role] || {}
         const regRate = dollarsToCents(parseFloat(classRate?.regular_rate || roleRate.regular_rate) || 0)
         const otRate = dollarsToCents(parseFloat(classRate?.overtime_rate || roleRate.overtime_rate) || 0)
+        const regularHours = parseFloat(worker.regular_hours) || parseFloat(worker.hours) || 0
+        const overtimeHours = parseFloat(worker.overtime_hours) || 0
 
         laborItems.push({
           id: `import-${ticket.id}-${worker.id || Date.now()}-${generateRandomId()}`,
           worker_name: worker.name || worker.worker_name || '',
           labor_class: worker.labor_classes?.name || worker.role || worker.labor_class || 'Laborer',
-          wage_type: 'standard',
-          regular_hours: parseFloat(worker.regular_hours) || parseFloat(worker.hours) || 0,
-          overtime_hours: parseFloat(worker.overtime_hours) || 0,
+          wage_type: wageType,
+          regular_hours: regularHours,
+          overtime_hours: overtimeHours,
           regular_rate: regRate,
           overtime_rate: otRate,
-          total: 0,
+          total: Math.round(regularHours * regRate + overtimeHours * otRate),
           source_ticket_id: ticket.id,
           source_ticket_date: ticket.work_date || ticket.ticket_date
         })

@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { isAwaitingApproval } from '../../lib/tmStatus'
+import { rateForWorker } from '../../lib/laborRateResolver'
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -55,7 +57,7 @@ function WeeklySparkline({ counts = [] }) {
     </svg>
   )
 }
-export default function TMDashboard({ tickets = [], laborRates = {} }) {
+export default function TMDashboard({ tickets = [], laborRates = {}, rateLookup = null }) {
   // Calculate comprehensive metrics
   const metrics = useMemo(() => {
     if (!tickets.length) {
@@ -84,7 +86,7 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
     }
 
     // Status counts
-    const pending = tickets.filter(t => t.status === 'pending').length
+    const pending = tickets.filter(t => isAwaitingApproval(t.status)).length
     const approved = tickets.filter(t => t.status === 'approved').length
     const billed = tickets.filter(t => t.status === 'billed').length
     const rejected = tickets.filter(t => t.status === 'rejected').length
@@ -177,10 +179,16 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
 
       if (ticket.t_and_m_workers) {
         ticket.t_and_m_workers.forEach(worker => {
-          const role = worker.role || 'Laborer'
-          const rate = rates[role] || rates.Laborer
           const regHrs = parseFloat(worker.hours) || 0
           const otHrs = parseFloat(worker.overtime_hours) || 0
+          const resolved = rateForWorker(worker, rateLookup)
+          if (resolved) {
+            const otRate = resolved.overtime_rate > 0 ? resolved.overtime_rate : resolved.regular_rate * 1.5
+            laborCost += regHrs * resolved.regular_rate + otHrs * otRate
+            return
+          }
+          const role = worker.role || 'Laborer'
+          const rate = rates[role] || rates.Laborer
           laborCost += regHrs * rate + otHrs * rate * 1.5
         })
       }
@@ -196,7 +204,7 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
     }
 
     const pendingValue = tickets
-      .filter(t => t.status === 'pending')
+      .filter(t => isAwaitingApproval(t.status))
       .reduce((sum, t) => sum + calculateTicketValue(t), 0)
     const approvedValue = tickets
       .filter(t => t.status === 'approved')
@@ -276,7 +284,7 @@ export default function TMDashboard({ tickets = [], laborRates = {} }) {
       byStatus,
       weeklyCounts
     }
-  }, [tickets, laborRates])
+  }, [tickets, laborRates, rateLookup])
 
   // Format currency
   const formatCurrency = (value) => {

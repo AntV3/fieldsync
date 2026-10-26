@@ -169,3 +169,4 @@ timestamped copies already existed:
 | `20260519_fix_areas_update_grant.sql` | 2026-05-19 | Field foremen can update area status | ✅ |
 | `20260630_drop_blanket_anon_rls.sql` | 2026-06-30 | **Security**: remove blanket anon `USING(true)` policies | ✅ |
 | `20260720_enable_rls_remaining_tables.sql` | 2026-07-20 | **Security**: enable RLS + policies on the 26 remaining unprotected tables; adds `is_platform_admin()`, `user_company_ids()`, `user_admin_company_ids()` helpers | ⬜ **NOT YET APPLIED — run in Supabase SQL Editor** |
+| `20261026_dashboard_pending_counts_include_signed.sql` | 2026-10-26 | Dashboard pending counts include `foreman_signed` / `client_signed` tickets and `pending_approval` CORs | ⬜ **NOT YET APPLIED — run in Supabase SQL Editor** |
