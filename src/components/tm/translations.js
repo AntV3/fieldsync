@@ -136,6 +136,12 @@ export const TRANSLATIONS = {
     switchToEnglish: 'Switch to English',
     reviewAndSubmit: 'Review & Submit',
     enterNameToSubmit: 'Enter name to submit',
+
+    // Draft recovery banner
+    draftFound: 'Draft found',
+    resumeDraftQuestion: 'Resume where you left off?',
+    startFresh: 'Start Fresh',
+    resumeDraft: 'Resume Draft',
     done: 'Done',
     skipSignature: 'Skip signature for now',
     skipClientSignature: 'Skip client signature for now',
@@ -315,6 +321,12 @@ export const TRANSLATIONS = {
     switchToEnglish: 'Switch to English',
     reviewAndSubmit: 'Revisar y Enviar',
     enterNameToSubmit: 'Ingrese nombre',
+
+    // Draft recovery banner
+    draftFound: 'Borrador encontrado',
+    resumeDraftQuestion: '¿Continuar donde lo dejó?',
+    startFresh: 'Empezar de nuevo',
+    resumeDraft: 'Continuar borrador',
     done: 'Listo',
     skipSignature: 'Saltar firma por ahora',
     skipClientSignature: 'Saltar firma del cliente por ahora',

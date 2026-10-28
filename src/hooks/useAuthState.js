@@ -110,8 +110,14 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
 
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
       if (authError || !authUser?.id) {
-        // If there's an auth error (e.g., invalid refresh token), clean up the stale session
-        if (authError) {
+        // If there's an auth error (e.g., invalid refresh token), clean up the
+        // stale session. A missing session is not a stale one: supabase-js
+        // returns AuthSessionMissingError locally whenever nobody is signed in
+        // (every guest page load, every foreman on a phone). Calling signOut()
+        // there emits SIGNED_OUT, and the listener below would bounce the
+        // visitor from /login/field, /invite/:token, /register, /field etc.
+        // to /login.
+        if (authError && authError.name !== 'AuthSessionMissingError') {
           console.warn('[auth] Session invalid, clearing:', authError.message)
           await supabase.auth.signOut({ scope: 'local' })
         }
@@ -135,7 +141,10 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
 
       // Navigate to dashboard if on login/root (preserve existing office routes)
       const isPublicRoute = locationPathname.startsWith('/view/') || locationPathname.startsWith('/sign/')
-      const isOfficeRoute = ['/dashboard', '/projects/new', '/pricing', '/branding', '/team', '/account'].includes(locationPathname)
+      const isOfficeRoute = [
+        '/dashboard', '/projects/new', '/pricing', '/branding', '/team', '/account',
+        '/trade-settings', '/portfolio-analytics'
+      ].includes(locationPathname)
       if (!isPublicRoute && !isOfficeRoute && locationPathname !== '/field') {
         navigate('/dashboard', { replace: true })
       }
@@ -224,6 +233,10 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           const path = locationPathname
           if (path.startsWith('/sign/') || path.startsWith('/view/')) return
+          // Only an office user who was actually signed in gets sent to
+          // /login. A guest (foreman, invitee, someone resetting a password)
+          // can see this event from local session cleanup and must stay put.
+          if (!user) return
           setUser(null)
           setCompany(null)
           setUserCompanies([])

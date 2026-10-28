@@ -135,6 +135,17 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const saveDraft = useCallback(() => {
     if (!project?.id || step >= 5) return
     try {
+      // Only persist a draft once the foreman has actually entered something.
+      // The step-change effect fires on mount, so without this guard simply
+      // opening and closing the form left an empty draft behind and the next
+      // open greeted the foreman with "Draft found — resume?" for nothing.
+      const hasContent = notes.trim() || cePcoNumber.trim() || submittedByName.trim() ||
+        items.length > 0 || selectedCorId ||
+        [...supervision, ...operators, ...laborers].some(w => w?.name?.trim())
+      if (!hasContent) {
+        localStorage.removeItem(getDraftKey(project.id))
+        return
+      }
       const draftData = {
         step,
         workDate,

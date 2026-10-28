@@ -295,6 +295,28 @@
     font-size: 0.7rem;
   }
 
+  /* Four circle+label pairs don't fit a 390px phone and pushed the page
+     into a sideways scroll. Keep every circle, show only the active step's
+     label, and let the steps shrink. */
+  .setup-stepper-step {
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+
+  .setup-stepper-step.active {
+    flex: 1 1 auto;
+  }
+
+  .setup-stepper-step:not(.active) .setup-stepper-label {
+    display: none;
+  }
+
+  .setup-stepper-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .wizard-review-grid {
     grid-template-columns: 1fr;
   }
