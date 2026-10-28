@@ -323,6 +323,16 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     setActiveView(viewId)
   }, [])
 
+  // Returning to the home screen re-reads today's status so the quick-action
+  // cards (crew checked in, daily log submitted, T&M count) reflect what the
+  // foreman just did even when the realtime channel is down on a weak
+  // jobsite connection.
+  const returnHome = useCallback(() => {
+    setActiveView('home')
+    loadTodayStatus()
+    loadPunchListCount()
+  }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // T&M Form View
   if (activeView === 'tm') {
     return (
@@ -330,8 +340,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         <TMForm
           project={project}
           companyId={companyId}
-          onSubmit={() => setActiveView('home')}
-          onCancel={() => setActiveView('home')}
+          onSubmit={returnHome}
+          onCancel={returnHome}
           onShowToast={onShowToast}
         />
       </div>
@@ -344,7 +354,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       <DailyReport
         project={project}
         onShowToast={onShowToast}
-        onClose={() => setActiveView('home')}
+        onClose={returnHome}
       />
     )
   }
@@ -357,9 +367,9 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           project={project}
           companyId={companyId}
           user={foremanName ? { name: foremanName } : undefined}
-          onClose={() => setActiveView('home')}
+          onClose={returnHome}
           onReportCreated={() => {
-            setActiveView('home')
+            returnHome()
             onShowToast?.('Injury report submitted', 'success')
           }}
         />
@@ -372,7 +382,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return (
       <div className="fm-view">
         <div className="fm-subheader">
-          <button className="fm-back" onClick={() => setActiveView('home')}>
+          <button className="fm-back" onClick={returnHome}>
             <ArrowLeft size={20} />
           </button>
           <h2>Crew Check-in</h2>
@@ -387,7 +397,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return (
       <div className="fm-view">
         <div className="fm-subheader">
-          <button className="fm-back" onClick={() => setActiveView('home')}>
+          <button className="fm-back" onClick={returnHome}>
             <ArrowLeft size={20} />
           </button>
           <h2>Disposal Loads</h2>
@@ -452,7 +462,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return (
       <div className="fm-view">
         <div className="fm-subheader">
-          <button className="fm-back" onClick={() => { setActiveView('home'); loadPunchListCount() }}>
+          <button className="fm-back" onClick={returnHome}>
             <ArrowLeft size={20} />
           </button>
           <h2>Punch List</h2>

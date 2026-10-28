@@ -1026,14 +1026,18 @@ button.sdx-pill:active { transform: scale(0.97); }
 /* Quick action cards */
 .sdx-fld-qa-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0, 1fr): a plain 1fr track refuses to shrink below the label's
+     min-content width, so "Update Progress" pushed the grid past the
+     viewport on 320–390px phones and the whole field home scrolled sideways. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.sdx-fld-qa-wrapper { position: relative; }
+.sdx-fld-qa-wrapper { position: relative; min-width: 0; }
 
 .sdx-fld-qa {
   width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 11px;
