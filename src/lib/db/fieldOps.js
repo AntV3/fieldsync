@@ -16,6 +16,7 @@ import {
   sanitizeFormData,
   sanitize
 } from './client'
+import { resolveClassRate } from '../laborRateResolver'
 
 export const fieldOps = {
   // ============================================
@@ -597,31 +598,56 @@ export const fieldOps = {
 
     const client = getClient()
 
-    // Run independent reads in parallel
-    const [crewHistory, laborRates, classRatesResult, tmTicketsResult] = await Promise.all([
+    // Run independent reads in parallel. The Pricing screen stores labor-class
+    // rates under work_type 'labor' and normalized job_type 'standard' /
+    // 'prevailing', which never equals the project's 'demolition' /
+    // 'prevailing_wage' keys. A direct `.eq('work_type', workType)` filter
+    // returned nothing, so every check-in was priced at $0 and the dashboard
+    // reported no labor cost. Fetch all rate rows for the company's active
+    // classes and let resolveClassRate pick the best match in JS — the same
+    // fix PR #356 applied to the COR pipeline.
+    const [crewHistory, laborRatesResult, classesResult, tmTicketsResult] = await Promise.all([
       this.getCrewCheckinHistory(projectId, 365),
-      this.getLaborRates(companyId, workType, jobType),
       client
-        .from('labor_class_rates')
-        .select('labor_class_id, regular_rate')
-        .eq('work_type', workType)
-        .eq('job_type', jobType),
+        .from('labor_rates')
+        .select('role, work_type, job_type, regular_rate')
+        .eq('company_id', companyId),
+      client
+        .from('labor_classes')
+        .select(`
+          id,
+          labor_class_rates (work_type, job_type, regular_rate, overtime_rate)
+        `)
+        .eq('company_id', companyId)
+        .eq('active', true),
       client
         .from('t_and_m_tickets')
         .select('work_date, t_and_m_workers (name)')
         .eq('project_id', projectId),
     ])
 
-    // Build hourly-rate lookup by legacy role name
+    // Build hourly-rate lookup by legacy role name using the same fallback
+    // order as class rates, so rows stored under one spelling still resolve.
+    const legacyRows = laborRatesResult?.data || []
+    const legacyByRole = {}
+    legacyRows.forEach(r => {
+      const role = (r.role || '').toLowerCase()
+      if (!role) return
+      if (!legacyByRole[role]) legacyByRole[role] = []
+      legacyByRole[role].push(r)
+    })
     const ratesLookup = {}
-    laborRates.forEach(rate => {
-      ratesLookup[rate.role.toLowerCase()] = parseFloat(rate.regular_rate) || 0
+    Object.entries(legacyByRole).forEach(([role, rows]) => {
+      const resolved = resolveClassRate(rows, { workType, jobType })
+      if (resolved) ratesLookup[role] = resolved.regular_rate
     })
 
-    // Build hourly-rate lookup by labor_class_id (current schema)
+    // Build hourly-rate lookup by labor_class_id (current schema), resolving
+    // the best stored row per class for this project's work/job type.
     const classRatesLookup = {}
-    ;(classRatesResult?.data || []).forEach(r => {
-      classRatesLookup[r.labor_class_id] = parseFloat(r.regular_rate) || 0
+    ;(classesResult?.data || []).forEach(lc => {
+      const resolved = resolveClassRate(lc.labor_class_rates, { workType, jobType })
+      if (resolved && lc.id) classRatesLookup[lc.id] = resolved.regular_rate
     })
 
     // Build date -> Set(lowercased worker names on a T&M ticket that day).
