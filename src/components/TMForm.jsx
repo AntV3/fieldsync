@@ -135,17 +135,34 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const saveDraft = useCallback(() => {
     if (!project?.id || step >= 5) return
     try {
-      // Only persist a draft once the foreman has actually entered something.
-      // The step-change effect fires on mount, so without this guard simply
-      // opening and closing the form left an empty draft behind and the next
-      // open greeted the foreman with "Draft found — resume?" for nothing.
+      // Companies with configured labor classes use the dynamicWorkers map
+      // instead of the legacy supervision/operators/laborers arrays. Both
+      // paths count as content so a draft is saved either way, and the
+      // check runs against the stored shape so a worker row without hours
+      // (name typed but hours still to come) still counts.
+      const legacyWorkersNamed = [...supervision, ...operators, ...laborers]
+        .some(w => w?.name?.trim())
+      const dynamicWorkersNamed = Object.values(dynamicWorkers || {})
+        .some(classWorkers => Array.isArray(classWorkers) &&
+          classWorkers.some(w => w?.name?.trim()))
       const hasContent = notes.trim() || cePcoNumber.trim() || submittedByName.trim() ||
         items.length > 0 || selectedCorId ||
-        [...supervision, ...operators, ...laborers].some(w => w?.name?.trim())
+        legacyWorkersNamed || dynamicWorkersNamed
       if (!hasContent) {
         localStorage.removeItem(getDraftKey(project.id))
         return
       }
+      // Serialize dynamicWorkers without the timeStarted/timeEnded pickers —
+      // those are relative to today's clock and would mislead on resume.
+      const dynamicWorkersForDraft = {}
+      Object.entries(dynamicWorkers || {}).forEach(([classId, workers]) => {
+        if (!Array.isArray(workers)) return
+        dynamicWorkersForDraft[classId] = workers.map(w => ({
+          name: w?.name || '',
+          hours: w?.hours || '',
+          overtimeHours: w?.overtimeHours || ''
+        }))
+      })
       const draftData = {
         step,
         workDate,
@@ -154,6 +171,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         supervision: supervision.map(s => ({ name: s.name, hours: s.hours, overtimeHours: s.overtimeHours, role: s.role })),
         operators: operators.map(o => ({ name: o.name, hours: o.hours, overtimeHours: o.overtimeHours })),
         laborers: laborers.map(l => ({ name: l.name, hours: l.hours, overtimeHours: l.overtimeHours })),
+        dynamicWorkers: dynamicWorkersForDraft,
+        activeLaborClassIds: Array.from(activeLaborClassIds),
         items,
         submittedByName,
         selectedCorId,
@@ -161,7 +180,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       }
       localStorage.setItem(getDraftKey(project.id), JSON.stringify(draftData))
     } catch { /* localStorage unavailable */ }
-  }, [project?.id, step, workDate, cePcoNumber, notes, supervision, operators, laborers, items, submittedByName, selectedCorId])
+  }, [project?.id, step, workDate, cePcoNumber, notes, supervision, operators, laborers, dynamicWorkers, activeLaborClassIds, items, submittedByName, selectedCorId])
 
   // Save draft when step changes
   useEffect(() => {
@@ -192,6 +211,23 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         if (saved.supervision?.length) setSupervision(saved.supervision.map(s => ({ ...s, timeStarted: '', timeEnded: '' })))
         if (saved.operators?.length) setOperators(saved.operators.map(o => ({ ...o, timeStarted: '', timeEnded: '' })))
         if (saved.laborers?.length) setLaborers(saved.laborers.map(l => ({ ...l, timeStarted: '', timeEnded: '' })))
+        if (saved.dynamicWorkers && typeof saved.dynamicWorkers === 'object') {
+          const restored = {}
+          Object.entries(saved.dynamicWorkers).forEach(([classId, workers]) => {
+            if (!Array.isArray(workers)) return
+            restored[classId] = workers.map(w => ({
+              name: w?.name || '',
+              hours: w?.hours || '',
+              overtimeHours: w?.overtimeHours || '',
+              timeStarted: '',
+              timeEnded: ''
+            }))
+          })
+          if (Object.keys(restored).length > 0) setDynamicWorkers(restored)
+        }
+        if (Array.isArray(saved.activeLaborClassIds) && saved.activeLaborClassIds.length > 0) {
+          setActiveLaborClassIds(new Set(saved.activeLaborClassIds))
+        }
         if (saved.step && saved.step < 5) setStep(saved.step)
         onShowToast('Draft restored', 'success')
       }
