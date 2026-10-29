@@ -127,25 +127,36 @@ export function exportSageJobCostCSV(project, tickets, costCodes = [], laborRate
       }
     }
 
-    // Material entries from T&M items
+    // Material entries from T&M items.
+    // Items with `material_equipment_id` join to `materials_equipment` for name/unit cost.
+    // Custom items (added via MaterialsStep's "custom" flow) have `custom_name` and
+    // `custom_category` set and `material_equipment_id = null`, so the join returns
+    // nothing — we must still emit the row so accounting sees the consumable that
+    // was actually used, even if it needs a price added downstream.
     for (const item of (ticket.t_and_m_items || [])) {
       const qty = parseFloat(item.quantity) || 0
-      const unitCost = item.materials_equipment?.cost_per_unit || 0
-      if (qty > 0 && unitCost > 0) {
-        rows.push({
-          job: jobNumber,
-          extra: '',
-          costType: SAGE_COST_TYPES.material.code,
-          category: materialCategory,
-          transDate: workDate,
-          description: `Material - ${item.materials_equipment?.name || item.description || 'Material'}`,
-          units: qty.toFixed(2),
-          unitCost: unitCost.toFixed(2),
-          amount: (qty * unitCost).toFixed(2),
-          vendor: '',
-          reference: `TM-${ticket.id?.substring(0, 8) || ''}`
-        })
-      }
+      if (qty <= 0) continue
+      const unitCost = parseFloat(item.materials_equipment?.cost_per_unit) || 0
+      const catalogName = item.materials_equipment?.name
+      const customName = item.custom_name
+      const description = catalogName
+        ? `Material - ${catalogName}`
+        : customName
+          ? `Material (custom) - ${customName}`
+          : `Material - ${item.description || 'Unnamed item'}`
+      rows.push({
+        job: jobNumber,
+        extra: '',
+        costType: SAGE_COST_TYPES.material.code,
+        category: materialCategory,
+        transDate: workDate,
+        description,
+        units: qty.toFixed(2),
+        unitCost: unitCost.toFixed(2),
+        amount: (qty * unitCost).toFixed(2),
+        vendor: '',
+        reference: `TM-${ticket.id?.substring(0, 8) || ''}`
+      })
     }
   }
 
