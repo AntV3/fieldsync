@@ -2266,12 +2266,17 @@ export const corOps = {
         console.error('Error fetching billable CORs:', corsError)
       }
 
-      // Get approved T&M tickets with client signature that haven't been billed
+      // Get approved T&M tickets with client signature that haven't been billed.
+      // Tickets linked to a COR are billed through that COR's line items (see
+      // importTicketDataToCOR, which copies workers → change_order_labor and
+      // items → change_order_materials/_equipment, feeding cor_total). Billing
+      // the ticket on its own would double-bill the same work.
       const { data: tickets, error: ticketsError } = await supabase
         .from('t_and_m_tickets')
-        .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date, gc_signature_date')
+        .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date, gc_signature_date, assigned_cor_id')
         .eq('project_id', projectId)
         .eq('status', 'approved')
+        .is('assigned_cor_id', null)
         .or('client_signature_data.not.is.null,gc_signature_data.not.is.null')
         .order('work_date', { ascending: true })
 
