@@ -13,6 +13,7 @@ import {
   exportSageWIPScheduleCSV
 } from '../lib/sageExport'
 import { exportToQuickBooksIIF } from '../lib/financialExport'
+import { getLocalDateString } from '../lib/utils'
 import { exportAIABillingPDF, exportAIABillingCSV } from '../lib/aiaBillingExport'
 import {
   Download, FileSpreadsheet, Building2, Receipt,
@@ -278,7 +279,7 @@ export default function SageExportPanel({
   const [showPreview, setShowPreview] = useState(false)
   const [aiaOptions, setAiaOptions] = useState({
     applicationNumber: 1,
-    periodTo: new Date().toISOString().split('T')[0],
+    periodTo: getLocalDateString(),
     architect: '',
     owner: '',
     contractDate: ''

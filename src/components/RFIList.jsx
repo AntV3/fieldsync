@@ -10,6 +10,7 @@ import {
   Calendar, User
 } from 'lucide-react'
 import { EmptyState, ListItemSkeleton, StatusBadge } from './ui'
+import { getLocalDateString } from '../lib/utils'
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft' },
@@ -130,7 +131,7 @@ export default function RFIList({ project, company, onShowToast }) {
     return true
   })
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
 
   return (
     <div className="rfi-list">

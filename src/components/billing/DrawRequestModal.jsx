@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { X, FileSpreadsheet, Calendar, Percent, Save, Download } from 'lucide-react'
 import { drawRequestOps } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { getLocalDateString } from '../../lib/utils'
 
 /**
  * DrawRequestModal - Create or edit a draw request / pay application
@@ -30,7 +31,7 @@ export default memo(function DrawRequestModal({
   // Draw request header fields
   const [drawNumber, setDrawNumber] = useState(1)
   const [periodStart, setPeriodStart] = useState('')
-  const [periodEnd, setPeriodEnd] = useState(new Date().toISOString().split('T')[0])
+  const [periodEnd, setPeriodEnd] = useState(getLocalDateString())
   const [retentionPercent, setRetentionPercent] = useState(10) // Display as whole number
   const [notes, setNotes] = useState('')
 

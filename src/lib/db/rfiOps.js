@@ -9,6 +9,7 @@ import {
   getClient,
   sanitize
 } from './client'
+import { getLocalDateString } from '../utils'
 
 export const rfiOps = {
   // ============================================
@@ -160,7 +161,7 @@ export const rfiOps = {
 
     if (error) throw error
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = getLocalDateString()
     const rfis = data || []
 
     return {

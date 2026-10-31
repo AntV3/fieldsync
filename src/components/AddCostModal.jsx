@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, DollarSign, HardHat, Package, Wrench, Users, MoreHorizontal } from 'lucide-react'
+import { getLocalDateString } from '../lib/utils'
 
 // Category options with icons
 const categories = [
@@ -15,7 +16,7 @@ export default function AddCostModal({ onClose, onSave, saving = false }) {
     category: 'materials',
     description: '',
     amount: '',
-    cost_date: new Date().toISOString().split('T')[0],
+    cost_date: getLocalDateString(),
     notes: ''
   })
   const [errors, setErrors] = useState({})

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
+import { getLocalDateString } from '../lib/utils'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -171,11 +172,11 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
     if (!reports.length) return 0
     const sortedDates = [...new Set(reports.filter(r => r.submitted).map(r => r.report_date))].sort().reverse()
     let streak = 0
-    const today = new Date().toISOString().split('T')[0]
-    const checkDate = new Date(today)
+    const today = getLocalDateString()
+    const checkDate = new Date()
 
     for (let i = 0; i < 30; i++) {
-      const dateStr = checkDate.toISOString().split('T')[0]
+      const dateStr = getLocalDateString(checkDate)
       if (sortedDates.includes(dateStr)) {
         streak++
         checkDate.setDate(checkDate.getDate() - 1)

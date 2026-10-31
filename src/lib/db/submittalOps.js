@@ -9,6 +9,7 @@ import {
   getClient,
   sanitize
 } from './client'
+import { getLocalDateString } from '../utils'
 
 export const submittalOps = {
   // ============================================
@@ -200,7 +201,7 @@ export const submittalOps = {
 
     if (error) throw error
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = getLocalDateString()
     const items = data || []
 
     return {
