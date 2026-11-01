@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { db } from '../lib/supabase'
+import { isAwaitingApproval } from '../lib/tmStatus'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, Legend,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -143,10 +144,15 @@ export default function ForemanMetrics({ project, companyId, onBack }) {
       : 0
     const daysWithCrew = crewHistory.filter(d => d.count > 0).length
 
-    // T&M stats
-    const pendingTickets = tickets.filter(t => t.status === 'pending' || t.status === 'draft').length
-    const signedTickets = tickets.filter(t => t.status === 'signed' || t.status === 'approved').length
-    const totalTicketValue = tickets.reduce((sum, t) => sum + (t.total_amount || 0), 0)
+    // T&M stats. Field-submitted tickets land in 'foreman_signed' and advance
+    // through 'client_signed' → 'approved' → 'billed'. There is no 'draft' or
+    // 'signed' status in the enum (see src/lib/tmStatus.js). The billable
+    // amount lives on `change_order_value` (dollars) — `total_amount` is a
+    // phantom column on t_and_m_tickets.
+    const pendingTickets = tickets.filter(t => isAwaitingApproval(t.status)).length
+    const SIGNED_STATUSES = new Set(['foreman_signed', 'client_signed', 'approved', 'billed'])
+    const signedTickets = tickets.filter(t => SIGNED_STATUSES.has(t.status)).length
+    const totalTicketValue = tickets.reduce((sum, t) => sum + (parseFloat(t.change_order_value) || 0), 0)
 
     // Disposal stats
     const totalLoads = disposalLoads.reduce((sum, d) => sum + (d.load_count || 0), 0)

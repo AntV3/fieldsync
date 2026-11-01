@@ -14,6 +14,7 @@ import {
   generateTempId,
   sanitize
 } from './client'
+import { isAwaitingApproval } from '../tmStatus'
 
 export const tmOps = {
   // ============================================
@@ -149,7 +150,10 @@ export const tmOps = {
           const value = parseFloat(ticket.change_order_value) || 0
           changeOrders[ceNumber].approved += value
           totalApproved += value
-        } else if (ticket.status === 'pending') {
+        } else if (isAwaitingApproval(ticket.status)) {
+          // Field-submitted tickets arrive as 'foreman_signed' and may advance
+          // to 'client_signed' before the office approves — all three count
+          // as "office still has to act on this" (see src/lib/tmStatus.js).
           totalPending++
         }
       })
