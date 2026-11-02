@@ -47,8 +47,9 @@ export interface AreaRow {
 export interface ChangeOrderRow {
   id: string
   project_id: string
-  total_value: number | null
-  status: 'approved' | 'pending' | 'rejected' | string
+  /** Total in cents — divide by 100 before display */
+  cor_total: number | null
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'billed' | 'closed' | string
   created_at?: string
   updated_at?: string | null
 }
@@ -81,23 +82,31 @@ export interface TMTicketRow {
   project_id: string
   work_date?: string | null // YYYY-MM-DD
   notes?: string | null
-  status: 'pending' | 'approved' | 'rejected' | string
-  total_value?: number | null
+  status: 'pending' | 'foreman_signed' | 'approved' | 'rejected' | string
   cost_code_id?: string | null
   created_at?: string
+  /** Populated when the select joins workers (needed to compute ticket value) */
+  t_and_m_workers?: TMWorkerRow[] | null
+  /** Populated when the select joins line items (needed to compute ticket value) */
+  t_and_m_items?: TMItemRow[] | null
 }
 
 export interface TMWorkerRow {
-  name: string | null
-  classification: string | null
+  name?: string | null
+  classification?: string | null
+  labor_class?: string | null
+  role?: string | null
+  labor_class_id?: string | null
   hours: number | string | null
   overtime_hours: number | string | null
-  rate: number | string | null
+  rate?: number | string | null
+  labor_classes?: { id: string; name: string } | null
 }
 
 export interface TMItemRow {
-  description: string | null
+  description?: string | null
   quantity: number | string | null
+  unit_cost?: number | string | null
   materials_equipment?: MaterialsEquipmentRow | null
 }
 
