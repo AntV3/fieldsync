@@ -78,5 +78,9 @@
     "typescript": "^7.0.2",
     "vite": "^7.2.6",
     "vitest": "^4.0.16"
+  },
+  "overrides": {
+    "dompurify": "^3.4.17",
+    "fflate": "^0.8.3"
   }
 }
