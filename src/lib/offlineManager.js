@@ -633,22 +633,51 @@ const processAction = async (action, db) => {
     }
 
     case ACTION_TYPES.SAVE_CREW_CHECKIN:
+      // saveCrewCheckin signature: (projectId, workers, createdBy, date). The 3rd
+      // arg is the auth user id (nullable), the 4th is the check-in date. Passing
+      // the date in slot 3 stores the date string in `created_by` and defaults
+      // `check_in_date` to the sync day, so an offline check-in made Monday that
+      // synced Thursday landed as Thursday with a garbage created_by.
       return db.saveCrewCheckin(
         payload.projectId,
         payload.workers,
+        payload.createdBy ?? null,
         payload.checkInDate
       )
 
     case ACTION_TYPES.SUBMIT_DAILY_REPORT:
-      await db.saveDailyReport(payload.projectId, payload.reportData)
-      return db.submitDailyReport(payload.projectId, payload.submittedBy)
+      // saveDailyReport / submitDailyReport both take `date` as their last arg;
+      // the queued payload carries `reportDate` (or `reportData.report_date`),
+      // so hand it through explicitly rather than letting both calls default
+      // to the sync day.
+      await db.saveDailyReport(
+        payload.projectId,
+        payload.reportData,
+        payload.reportDate ?? payload.reportData?.report_date ?? null
+      )
+      return db.submitDailyReport(
+        payload.projectId,
+        payload.submittedBy,
+        payload.reportDate ?? payload.reportData?.report_date ?? null
+      )
 
     case ACTION_TYPES.SEND_MESSAGE:
+      // sendMessage signature: (projectId, message, senderType, senderName,
+      // senderUserId, photoUrl, messageType, parentId). The old call put
+      // `payload.senderType` into `message`, `payload.senderName` into
+      // `senderType`, and `payload.content` into `senderName`, so every
+      // offline-sent message landed with the user's text in the sender_name
+      // column and the sender_type overwritten by that same body. Fallbacks
+      // tolerate older payloads already sitting in users' IndexedDB queues.
       return db.sendMessage(
         payload.projectId,
+        payload.content ?? payload.message,
         payload.senderType,
         payload.senderName,
-        payload.content
+        payload.senderUserId ?? null,
+        payload.photoUrl ?? null,
+        payload.messageType ?? 'general',
+        payload.parentId ?? null
       )
 
     default:
