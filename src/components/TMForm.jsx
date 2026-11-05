@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Globe, Check, Loader2, PenLine, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react'
 import TMCapabilitiesModal from './tm/TMCapabilitiesModal'
-import { db } from '../lib/supabase'
+import {
+  db,
+  getConnectionStatus,
+  isFieldMode,
+  classifySyncError,
+  savePendingTMTicket,
+  onSyncStateChange
+} from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
 import { TRANSLATIONS } from './tm/translations'
 import { getLocalDateString, parseLocalDate } from '../lib/utils'
@@ -10,6 +17,7 @@ import CrewHoursStep from './tm/CrewHoursStep'
 import MaterialsStep from './tm/MaterialsStep'
 import ReviewStep from './tm/ReviewStep'
 import CustomFieldSection from './ui/CustomFieldSection'
+import ConfirmDialog from './ui/ConfirmDialog'
 
 // Step configuration for the enhanced stepper
 const STEPS = [
@@ -21,6 +29,27 @@ const STEPS = [
 
 // Draft auto-save key
 const getDraftKey = (projectId) => `tm_draft_${projectId}`
+
+// The create RPC is aborted by the data layer after SUBMIT_TIMEOUT_MS. The form
+// keeps its own, slightly longer guard so a dead radio can never leave the
+// foreman staring at a spinner even if that abort does not fire.
+const SUBMIT_TIMEOUT_MS = 12000
+const SUBMIT_GUARD_MS = 15000
+
+// Idempotency key for one ticket. Kept in the draft so a retry after a failed
+// or timed-out submit reuses it and the server returns the existing row.
+const generateSubmissionId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  // crypto.randomUUID is missing outside secure contexts; build a v4 UUID.
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
 
 // Generate secure random ID
 const generateRandomId = () => {
@@ -64,6 +93,14 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   const [cePcoNumber, setCePcoNumber] = useState('')
   const [submittedByName, setSubmittedByName] = useState('')
 
+  // Offline submit state
+  const [clientSubmissionId, setClientSubmissionId] = useState(generateSubmissionId)
+  const [pendingSync, setPendingSync] = useState(false) // step 5 for a ticket saved on this phone
+  const [pendingPhotoDialog, setPendingPhotoDialog] = useState(null) // record awaiting "save without photos?"
+  // Set once the ticket is committed (server or phone) so no late autosave
+  // re-creates the draft that was just cleared.
+  const submitCommittedRef = useRef(false)
+
   // COR assignment state
   const [selectedCorId, setSelectedCorId] = useState('')
   const [assignableCORs, setAssignableCORs] = useState([])
@@ -106,7 +143,15 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   photosRef.current = photos
 
   // Draft resume state
-  const [showDraftPrompt, setShowDraftPrompt] = useState(false)
+  // Read synchronously so the first autosave pass (which removes an empty
+  // draft) cannot wipe a saved draft before the foreman is asked to resume it.
+  const [showDraftPrompt, setShowDraftPrompt] = useState(() => {
+    try {
+      return Boolean(project?.id && localStorage.getItem(getDraftKey(project.id)))
+    } catch {
+      return false
+    }
+  })
   const [, setHasDraft] = useState(false)
   const draftSaveTimerRef = useRef(null)
 
@@ -133,7 +178,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
 
   // Auto-save draft on step changes and input changes (debounced)
   const saveDraft = useCallback(() => {
-    if (!project?.id || step >= 5) return
+    if (!project?.id || step >= 5 || submitCommittedRef.current) return
     try {
       // Only persist a draft once the foreman has actually entered something.
       // The step-change effect fires on mount, so without this guard simply
@@ -141,7 +186,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       // open greeted the foreman with "Draft found — resume?" for nothing.
       const hasContent = notes.trim() || cePcoNumber.trim() || submittedByName.trim() ||
         items.length > 0 || selectedCorId ||
-        [...supervision, ...operators, ...laborers].some(w => w?.name?.trim())
+        [...supervision, ...operators, ...laborers].some(w => w?.name?.trim()) ||
+        Object.values(dynamicWorkers || {}).flat().some(w => w?.name?.trim())
       if (!hasContent) {
         localStorage.removeItem(getDraftKey(project.id))
         return
@@ -154,14 +200,18 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         supervision: supervision.map(s => ({ name: s.name, hours: s.hours, overtimeHours: s.overtimeHours, role: s.role })),
         operators: operators.map(o => ({ name: o.name, hours: o.hours, overtimeHours: o.overtimeHours })),
         laborers: laborers.map(l => ({ name: l.name, hours: l.hours, overtimeHours: l.overtimeHours })),
+        dynamicWorkers,
+        activeLaborClassIds: [...activeLaborClassIds],
+        customFieldValues,
         items,
         submittedByName,
         selectedCorId,
+        clientSubmissionId,
         savedAt: Date.now()
       }
       localStorage.setItem(getDraftKey(project.id), JSON.stringify(draftData))
     } catch { /* localStorage unavailable */ }
-  }, [project?.id, step, workDate, cePcoNumber, notes, supervision, operators, laborers, items, submittedByName, selectedCorId])
+  }, [project?.id, step, workDate, cePcoNumber, notes, supervision, operators, laborers, dynamicWorkers, activeLaborClassIds, customFieldValues, items, submittedByName, selectedCorId, clientSubmissionId])
 
   // Save draft when step changes
   useEffect(() => {
@@ -192,6 +242,16 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         if (saved.supervision?.length) setSupervision(saved.supervision.map(s => ({ ...s, timeStarted: '', timeEnded: '' })))
         if (saved.operators?.length) setOperators(saved.operators.map(o => ({ ...o, timeStarted: '', timeEnded: '' })))
         if (saved.laborers?.length) setLaborers(saved.laborers.map(l => ({ ...l, timeStarted: '', timeEnded: '' })))
+        if (saved.dynamicWorkers && typeof saved.dynamicWorkers === 'object' && Object.keys(saved.dynamicWorkers).length > 0) {
+          setDynamicWorkers(saved.dynamicWorkers)
+        }
+        if (Array.isArray(saved.activeLaborClassIds) && saved.activeLaborClassIds.length > 0) {
+          setActiveLaborClassIds(new Set(saved.activeLaborClassIds))
+        }
+        if (saved.customFieldValues && typeof saved.customFieldValues === 'object') {
+          setCustomFieldValues(saved.customFieldValues)
+        }
+        if (saved.clientSubmissionId) setClientSubmissionId(saved.clientSubmissionId)
         if (saved.step && saved.step < 5) setStep(saved.step)
         onShowToast('Draft restored', 'success')
       }
@@ -223,6 +283,22 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       if (corSub) db.unsubscribe?.(corSub)
     }
   }, [project.id])
+
+  // A ticket saved on this phone synced while step 5 is still open: switch to
+  // the real server row (enables client signature options).
+  useEffect(() => {
+    if (!pendingSync || typeof onSyncStateChange !== 'function') return
+    const unsubscribe = onSyncStateChange((event) => {
+      if (event?.type !== 'ticket_synced' || event.client_submission_id !== clientSubmissionId) return
+      const ticket = event.ticket || (event.server_ticket_id ? { id: event.server_ticket_id } : null)
+      if (!ticket?.id) return
+      setSubmittedTicket(ticket)
+      setPendingSync(false)
+    })
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe()
+    }
+  }, [pendingSync, clientSubmissionId])
 
   // Load custom labor classes for the company
   useEffect(() => {
@@ -956,10 +1032,231 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     }
   }
 
+  // Build the full ticket record (ticket + crew + materials + extras) that is
+  // either sent to the create RPC in one request or saved on the phone.
+  const buildSubmissionRecord = (workers) => {
+    const now = new Date().toISOString()
+    return {
+      client_submission_id: clientSubmissionId,
+      project_id: project.id,
+      company_id: companyId || project.company_id || null,
+      created_at: now,
+      state: 'queued',
+      attempts: 0,
+      last_error: null,
+      server_ticket_id: null,
+      payload: {
+        project_id: project.id,
+        client_submission_id: clientSubmissionId,
+        work_date: workDate,
+        ce_pco_number: cePcoNumber.trim() || null,
+        assigned_cor_id: selectedCorId || null,
+        notes: notes.trim() || null,
+        created_by_name: submittedByName.trim(),
+        workers: workers.map(w => ({
+          name: w.name,
+          hours: w.hours,
+          overtime_hours: w.overtime_hours,
+          time_started: w.time_started || null,
+          time_ended: w.time_ended || null,
+          role: w.role || null,
+          labor_class_id: w.labor_class_id || null
+        })),
+        items: items.map(item => ({
+          material_equipment_id: item.material_equipment_id || null,
+          custom_name: item.custom_name || null,
+          custom_category: item.custom_category || null,
+          quantity: item.quantity
+        }))
+      },
+      signature: null,
+      custom_field_data: { ...customFieldValues },
+      cor_import: selectedCorId
+        ? {
+            cor_id: selectedCorId,
+            company_id: companyId || project.company_id || null,
+            work_type: project.work_type || 'demolition',
+            job_type: project.job_type || 'standard'
+          }
+        : null,
+      photos: []
+    }
+  }
+
+  // Create RPC with a form-side guard (see SUBMIT_GUARD_MS).
+  const submitTicketWithGuard = (record) => {
+    let timer
+    const guard = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const err = new Error('Submitting the ticket timed out')
+        err.name = 'TimeoutError'
+        reject(err)
+      }, SUBMIT_GUARD_MS)
+    })
+    return Promise.race([
+      db.submitTMTicketFull(record, { timeoutMs: SUBMIT_TIMEOUT_MS }),
+      guard
+    ]).finally(() => clearTimeout(timer))
+  }
+
+  // Save the ticket on this phone and show step 5 in "saved on this phone"
+  // mode. Photos are not kept offline: the caller has already asked.
+  const saveTicketOnPhone = async (record) => {
+    setSubmitting(true)
+    try {
+      await savePendingTMTicket(record)
+    } catch (err) {
+      console.error('Error saving T&M ticket on this phone:', err)
+      onShowToast(t('couldNotSaveLocally'), 'error')
+      setSubmitting(false)
+      return
+    }
+    submitCommittedRef.current = true
+    clearDraft()
+    photosRef.current.forEach(p => {
+      if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
+    })
+    setPhotos([])
+    setSubmittedTicket(null)
+    setPendingSync(true)
+    setSubmitting(false)
+    setStep(5)
+  }
+
+  // Offline (or no route to the server) in field mode: never lose photos
+  // silently — ask first when there are any.
+  const saveOnPhoneOrAskAboutPhotos = async (record) => {
+    if (photosRef.current.length > 0) {
+      setPendingPhotoDialog(record)
+      return
+    }
+    await saveTicketOnPhone(record)
+  }
+
+  const handleSaveWithoutPhotos = async () => {
+    const record = pendingPhotoDialog
+    setPendingPhotoDialog(null)
+    if (record) await saveTicketOnPhone(record)
+  }
+
+  // Compress, upload and attach the pending photos to a created ticket.
+  // Failures are reported but never undo the ticket.
+  const uploadTicketPhotos = async (ticketId) => {
+    const pendingPhotos = photosRef.current.filter(p => p.status === 'pending')
+    if (pendingPhotos.length === 0) return
+
+    setSubmitProgress(`Compressing ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
+    pendingPhotos.forEach(p => updatePhotoStatus(p.id, { status: 'compressing' }))
+
+    const compressedPhotos = await Promise.all(
+      pendingPhotos.map(async (photo) => {
+        try {
+          const compressed = await compressImage(photo.file)
+          return { ...photo, file: compressed }
+        } catch (err) {
+          console.warn(`Failed to compress photo ${photo.name}, using original:`, err)
+          return photo
+        }
+      })
+    )
+
+    setSubmitProgress(`Uploading ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
+
+    let uploadedCount = 0
+    let failedCount = 0
+    const results = []
+
+    // Upload photos sequentially to avoid overwhelming the connection
+    for (const photo of compressedPhotos) {
+      updatePhotoStatus(photo.id, { status: 'uploading' })
+      try {
+        const url = await db.uploadPhoto(companyId, project.id, ticketId, photo.file)
+        uploadedCount++
+        setSubmitProgress(`Uploading ${uploadedCount}/${pendingPhotos.length} photos...`)
+        updatePhotoStatus(photo.id, { status: 'confirmed', uploadedUrl: url, attempts: (photo.attempts || 0) + 1 })
+        results.push({ id: photo.id, url })
+      } catch (err) {
+        console.error(`Photo ${photo.name} upload failed:`, err)
+        failedCount++
+        updatePhotoStatus(photo.id, { status: 'failed', error: err?.message || 'Upload failed', attempts: (photo.attempts || 0) + 1 })
+        results.push({ id: photo.id, url: null, error: err?.message })
+      }
+    }
+    const photoUrls = results.filter(r => r.url !== null).map(r => r.url)
+
+    // Build GPS metadata: map photo URL → {lat, lng, accuracy}
+    const photoLocations = {}
+    for (const result of results) {
+      if (result.url) {
+        const photo = pendingPhotos.find(p => p.id === result.id)
+        if (photo?.latitude && photo?.longitude) {
+          photoLocations[result.url] = {
+            lat: photo.latitude,
+            lng: photo.longitude,
+            accuracy: photo.gpsAccuracy
+          }
+        }
+      }
+    }
+
+    if (failedCount > 0 && photoUrls.length > 0) {
+      onShowToast(`${photoUrls.length}/${pendingPhotos.length} photos uploaded. ${failedCount} failed - can retry later.`, 'warning')
+    } else if (failedCount > 0 && photoUrls.length === 0) {
+      onShowToast(`All ${failedCount} photos failed to upload - can retry after submission.`, 'error')
+    }
+
+    if (photoUrls.length > 0) {
+      setSubmitProgress('Saving photos...')
+      try {
+        await db.updateTMTicketPhotos(ticketId, photoUrls,
+          Object.keys(photoLocations).length > 0 ? photoLocations : null)
+      } catch (err) {
+        console.error('Error attaching photos to ticket:', err)
+        // Offer the retry on step 5 (it re-uploads and re-attaches).
+        results.filter(r => r.url).forEach(r => updatePhotoStatus(r.id, { status: 'failed', error: 'Not attached to ticket' }))
+        onShowToast('Ticket saved, but photos could not be attached - retry below.', 'warning')
+      }
+    }
+  }
+
+  // Everything after the ticket exists on the server. Best-effort: none of
+  // this may undo the ticket or keep the foreman off step 5.
+  const finishSubmittedTicket = async (ticket) => {
+    if (Object.keys(customFieldValues).length > 0) {
+      try {
+        await db.saveCustomFieldData(project.id, 'tm_ticket', ticket.id, customFieldValues)
+      } catch (err) {
+        console.error('Error saving T&M custom fields:', err)
+      }
+    }
+
+    try {
+      await uploadTicketPhotos(ticket.id)
+    } catch (err) {
+      console.error('Error uploading T&M photos:', err)
+      onShowToast('Ticket saved. Some photos did not upload - retry below.', 'warning')
+    }
+
+    if (selectedCorId) {
+      setSubmitProgress('Importing to COR...')
+      try {
+        await db.importTicketDataToCOR(ticket.id, selectedCorId, companyId, project.work_type || 'demolition', project.job_type || 'standard')
+      } catch (importError) {
+        console.error('Error importing to COR:', importError)
+        try {
+          await db.markImportFailed(ticket.id, selectedCorId, importError?.message || 'Import failed')
+        } catch (markError) {
+          console.error('Error marking import failed:', markError)
+        }
+        onShowToast('Ticket saved. COR data sync failed - retry from ticket list.', 'warning')
+      }
+    }
+  }
+
   // Submit
   const handleSubmit = async () => {
     // Guard against double-submit
-    if (submitting) return
+    if (submitting || pendingPhotoDialog) return
 
     if (!submittedByName.trim()) {
       onShowToast('Enter your name to submit', 'error')
@@ -991,160 +1288,80 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       ]
     }
 
+    const record = buildSubmissionRecord(allWorkersForSubmit)
+    // Only the field app may keep a ticket on the device; the office sees
+    // the error and resubmits (same client_submission_id → one ticket).
+    const fieldMode = isFieldMode()
+
+    if (fieldMode && !getConnectionStatus()) {
+      await saveOnPhoneOrAskAboutPhotos(record)
+      return
+    }
+
     setSubmitting(true)
     setSubmitProgress('Creating ticket...')
-    try {
-      const ticket = await db.createTMTicket({
-        project_id: project.id,
-        work_date: workDate,
-        ce_pco_number: cePcoNumber.trim() || null,
-        assigned_cor_id: selectedCorId || null,
-        notes: notes.trim() || null,
-        photos: [],
-        created_by_name: submittedByName.trim()
-      })
 
+    let ticket
+    try {
+      ticket = await submitTicketWithGuard(record)
       if (!ticket || !ticket.id) {
         throw new Error('Failed to create ticket - no ticket ID returned')
       }
-
-      // Save trade-specific custom fields
-      if (Object.keys(customFieldValues).length > 0) {
-        await db.saveCustomFieldData(project.id, 'tm_ticket', ticket.id, customFieldValues)
-      }
-
-      // Compress and upload photos
-      let photoUrls = []
-      const pendingPhotos = photos.filter(p => p.status === 'pending')
-      if (pendingPhotos.length > 0) {
-        setSubmitProgress(`Compressing ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
-        pendingPhotos.forEach(p => updatePhotoStatus(p.id, { status: 'compressing' }))
-
-        const compressedPhotos = await Promise.all(
-          pendingPhotos.map(async (photo) => {
-            try {
-              const compressed = await compressImage(photo.file)
-              return { ...photo, file: compressed }
-            } catch (err) {
-              console.warn(`Failed to compress photo ${photo.name}, using original:`, err)
-              return photo
-            }
-          })
-        )
-
-        setSubmitProgress(`Uploading ${pendingPhotos.length} photo${pendingPhotos.length > 1 ? 's' : ''}...`)
-
-        let uploadedCount = 0
-        let failedCount = 0
-        const results = []
-
-        // Upload photos sequentially to avoid overwhelming the connection
-        for (const photo of compressedPhotos) {
-          updatePhotoStatus(photo.id, { status: 'uploading' })
-          try {
-            const url = await db.uploadPhoto(companyId, project.id, ticket.id, photo.file)
-            uploadedCount++
-            setSubmitProgress(`Uploading ${uploadedCount}/${pendingPhotos.length} photos...`)
-            updatePhotoStatus(photo.id, { status: 'confirmed', uploadedUrl: url, attempts: (photo.attempts || 0) + 1 })
-            results.push({ id: photo.id, url })
-          } catch (err) {
-            console.error(`Photo ${photo.name} upload failed:`, err)
-            failedCount++
-            updatePhotoStatus(photo.id, { status: 'failed', error: err.message || 'Upload failed', attempts: (photo.attempts || 0) + 1 })
-            results.push({ id: photo.id, url: null, error: err.message })
-          }
-        }
-        photoUrls = results.filter(r => r.url !== null).map(r => r.url)
-
-        // Build GPS metadata: map photo URL → {lat, lng, accuracy}
-        const photoLocations = {}
-        for (const result of results) {
-          if (result.url) {
-            const photo = pendingPhotos.find(p => p.id === result.id)
-            if (photo?.latitude && photo?.longitude) {
-              photoLocations[result.url] = {
-                lat: photo.latitude,
-                lng: photo.longitude,
-                accuracy: photo.gpsAccuracy
-              }
-            }
-          }
-        }
-
-        if (failedCount > 0 && photoUrls.length > 0) {
-          onShowToast(`${photoUrls.length}/${pendingPhotos.length} photos uploaded. ${failedCount} failed - can retry later.`, 'warning')
-        } else if (failedCount > 0 && photoUrls.length === 0) {
-          onShowToast(`All ${failedCount} photos failed to upload - can retry after submission.`, 'error')
-        }
-
-        if (photoUrls.length > 0) {
-          setSubmitProgress('Saving photos...')
-          await db.updateTMTicketPhotos(ticket.id, photoUrls,
-            Object.keys(photoLocations).length > 0 ? photoLocations : null)
-        }
-      }
-
-      try {
-        setSubmitProgress('Saving workers...')
-        await db.addTMWorkers(ticket.id, allWorkersForSubmit)
-
-        if (items.length > 0) {
-          setSubmitProgress('Saving materials...')
-          await db.addTMItems(ticket.id, items.map(item => ({
-            material_equipment_id: item.material_equipment_id,
-            custom_name: item.custom_name || null,
-            custom_category: item.custom_category || null,
-            quantity: item.quantity
-          })))
-        }
-      } catch (workerItemsError) {
-        // Tag the error with ticketId so the outer catch can clean up the orphan
-        workerItemsError._ticketId = ticket.id
-        throw workerItemsError
-      }
-
-      if (selectedCorId) {
-        setSubmitProgress('Importing to COR...')
-        try {
-          await db.importTicketDataToCOR(ticket.id, selectedCorId, companyId, project.work_type || 'demolition', project.job_type || 'standard')
-        } catch (importError) {
-          console.error('Error importing to COR:', importError)
-          try {
-            await db.markImportFailed(ticket.id, selectedCorId, importError?.message || 'Import failed')
-          } catch (markError) {
-            console.error('Error marking import failed:', markError)
-          }
-          onShowToast('Ticket saved. COR data sync failed - retry from ticket list.', 'warning')
-        }
-      }
-
-      // Don't revoke blob URLs here — they're needed for the retry UI on step 5.
-      // They will be cleaned up on component unmount via the photosRef effect.
-
-      setSubmittedTicket(ticket)
-      clearDraft()
-      onShowToast('Time & Material ticket submitted!', 'success')
-      setStep(5)
     } catch (error) {
       console.error('Error submitting T&M:', error)
-      // If ticket was created but workers/items failed, clean up the orphaned ticket
-      if (error._ticketId) {
-        try {
-          await db.deleteTMTicket(error._ticketId)
-        } catch (cleanupErr) {
-          console.error('Failed to clean up orphaned ticket:', cleanupErr)
-        }
-      }
-      onShowToast('Error submitting Time and Material ticket', 'error')
-    } finally {
       setSubmitting(false)
       setSubmitProgress('')
+      if (fieldMode && classifySyncError(error) === 'network') {
+        await saveOnPhoneOrAskAboutPhotos(record)
+      } else {
+        // Draft and client_submission_id are kept for the retry.
+        onShowToast('Error submitting Time and Material ticket', 'error')
+      }
+      return
     }
+
+    // The RPC response is the commit point: the ticket, crew and materials
+    // exist. Clear the draft before anything else can fail.
+    submitCommittedRef.current = true
+    clearDraft()
+
+    if (!ticket.replayed) {
+      try {
+        await finishSubmittedTicket(ticket)
+      } catch (err) {
+        console.error('Error finishing T&M submit:', err)
+      }
+    }
+
+    // Don't revoke blob URLs here — they're needed for the retry UI on step 5.
+    // They will be cleaned up on component unmount via the photosRef effect.
+
+    setSubmittedTicket(ticket)
+    setPendingSync(false)
+    if (ticket.replayed) {
+      onShowToast(t('alreadySubmitted'), 'info')
+    } else {
+      onShowToast('Time & Material ticket submitted!', 'success')
+    }
+    setSubmitting(false)
+    setSubmitProgress('')
+    setStep(5)
   }
 
   return (
     <div className="tm-wizard">
       <TMCapabilitiesModal isOpen={showCapabilities} onClose={() => setShowCapabilities(false)} />
+      {/* No signal + photos attached: photos cannot be kept on the phone */}
+      <ConfirmDialog
+        isOpen={Boolean(pendingPhotoDialog)}
+        onClose={() => setPendingPhotoDialog(null)}
+        onConfirm={handleSaveWithoutPhotos}
+        title={t('noSignalPhotosTitle')}
+        message={t('noSignalPhotosBody').replace('{count}', photos.length)}
+        variant="warning"
+        confirmLabel={t('saveWithoutPhotos')}
+        cancelLabel={t('keepEditing')}
+      />
       {/* Draft Resume Prompt */}
       {showDraftPrompt && (
         <div className="tm-draft-prompt animate-fade-in-down">
@@ -1178,7 +1395,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           {step === 2 && t('crewHours')}
           {step === 3 && t('materialsEquipment')}
           {step === 4 && t('review')}
-          {step === 5 && (t('submitted'))}
+          {step === 5 && (pendingSync ? t('savedOnPhone') : t('submitted'))}
         </h2>
         <div className="tm-header-right">
           {step < 5 && (
@@ -1351,6 +1568,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
           t={t}
           lang={lang}
           onShowToast={onShowToast}
+          pendingSync={pendingSync}
+          clientSubmissionId={clientSubmissionId}
         />
       )}
 
@@ -1431,7 +1650,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
               <span>{t('foremanSignatureRequired')}</span>
             </button>
           )}
-          {foremanSigned && !clientSigned && (
+          {foremanSigned && !clientSigned && !pendingSync && (
             <button className="tm-skip-btn" onClick={onSubmit}>
               {t('skipClientSignature')}
             </button>

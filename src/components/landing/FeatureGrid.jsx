@@ -23,8 +23,8 @@ const FEATURES = [
   },
   {
     icon: WifiOff,
-    title: 'Offline-First',
-    desc: 'No cell service on site? Time and Material tickets are captured locally and sync automatically the moment connectivity returns. Your crews never miss documenting extra work because of jobsite conditions.',
+    title: 'Offline Ticket Capture',
+    desc: 'No cell service on site? Time and Material tickets — crew hours, materials and the foreman signature — save on the phone and sync automatically when signal returns. Photos upload once you\'re connected.',
   },
   {
     icon: BarChart3,

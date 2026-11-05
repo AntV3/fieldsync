@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { isSupabaseConfigured, auth, supabase, db, clearFieldSession } from '../lib/supabase'
+import {
+  isSupabaseConfigured,
+  auth,
+  supabase,
+  db,
+  clearFieldSession,
+  requeueNeedsAuthTickets,
+  drainPendingActions,
+  onSyncStateChange
+} from '../lib/supabase'
 
 /**
  * useAuthState - Centralized auth state management.
@@ -303,7 +312,41 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
     setForemanProject(project)
     setForemanName(name)
     navigate('/field')
+
+    // The field session is established now: tickets parked as needs_auth for
+    // this project (session expired while offline) can sync again.
+    if (project?.id) {
+      Promise.resolve()
+        .then(() => requeueNeedsAuthTickets(project.id))
+        .catch(err => console.warn('[auth] Could not requeue saved tickets:', err))
+        .then(() => drainPendingActions())
+        .catch(err => console.warn('[auth] Could not sync saved tickets:', err))
+    }
   }, [navigate])
+
+  // A saved ticket for the signed-in field project was rejected for auth
+  // (session expired server-side): end the field session and send the
+  // foreman to the PIN screen. FieldLogin's auto-resume finds no session and
+  // stays on the PIN step; handleForemanAccess requeues + drains after login.
+  useEffect(() => {
+    const unsubscribe = onSyncStateChange(async (event) => {
+      if (event?.type !== 'session_expired') return
+      try {
+        await clearFieldSession()
+      } catch (err) {
+        console.warn('[auth] Could not clear field session:', err)
+      }
+      setForemanProject(null)
+      setForemanName('')
+      const count = Number(event.count) || 0
+      showToast(
+        `Your field session expired. Enter your PIN to sync ${count} saved ticket${count === 1 ? '' : 's'}.`,
+        'warning'
+      )
+      navigate('/login/field', { replace: true })
+    })
+    return unsubscribe
+  }, [navigate, showToast])
 
   const handleExitForeman = useCallback(async () => {
     await clearFieldSession()

@@ -6,7 +6,6 @@ import {
   MessageSquareText, NotebookPen, RefreshCw, Home, Plus, MoreHorizontal
 } from 'lucide-react'
 import { useTradeConfig } from '../lib/TradeConfigContext'
-import { getPendingActionCount } from '../lib/offlineManager'
 import { formatCurrencyCompact } from '../lib/utils'
 
 /**
@@ -112,6 +111,66 @@ function greetingForNow() {
   return 'Good evening'
 }
 
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+const EMPTY_PENDING_TICKETS = { queued: 0, syncing: 0, needs_auth: 0, failed: 0, total: 0 }
+
+/**
+ * Pick the home sync banner for the current pending state, or null when there
+ * is nothing to say. Ticket states (IndexedDB pending_tm_tickets) come first;
+ * the legacy pending_actions queue and plain "offline" follow.
+ */
+function syncBannerFor({ isOnline, tickets, syncInProgress, pendingActionCount }) {
+  const total = tickets.total || 0
+  const waiting = (tickets.queued || 0) + (tickets.syncing || 0)
+  if (!isOnline && total > 0) {
+    return {
+      tone: 'offline',
+      title: `${plural(total, 'ticket')} saved on phone`,
+      sub: 'Will sync automatically when you have signal'
+    }
+  }
+  if (tickets.needs_auth > 0) {
+    return {
+      tone: 'warn',
+      title: `Sign in to sync ${plural(tickets.needs_auth, 'ticket')}`,
+      sub: 'Enter your foreman PIN to send them to the office'
+    }
+  }
+  if (tickets.failed > 0) {
+    return {
+      tone: 'error',
+      title: `${plural(tickets.failed, 'ticket')} could not sync — tell the office`,
+      sub: 'They are still saved on this phone'
+    }
+  }
+  if (waiting > 0 && (syncInProgress || tickets.syncing > 0)) {
+    return {
+      tone: 'syncing',
+      title: `Syncing ${plural(waiting, 'ticket')}…`,
+      sub: 'Sending to the office'
+    }
+  }
+  if (waiting > 0) {
+    return {
+      tone: 'offline',
+      title: `${plural(waiting, 'ticket')} saved on phone`,
+      sub: 'Will sync automatically when you have signal'
+    }
+  }
+  if (pendingActionCount > 0) {
+    return {
+      tone: 'offline',
+      title: `${pendingActionCount} update${pendingActionCount !== 1 ? 's' : ''} saved offline`,
+      sub: isOnline ? 'Syncing to office…' : 'Will sync to office when connected'
+    }
+  }
+  if (!isOnline) {
+    return { tone: 'offline', title: 'Working offline', sub: 'Will sync to office when connected' }
+  }
+  return null
+}
+
 function initialsOf(name) {
   return String(name || 'FS')
     .split(/\s+/)
@@ -133,6 +192,12 @@ export default function ForemanLanding({
   areasWorking,
   areasRemaining,
   punchListOpenCount,
+  // Pending-sync state is owned by ForemanView (one source of truth) and
+  // passed in: { queued, syncing, needs_auth, failed, total } for this project.
+  pendingTmTickets = EMPTY_PENDING_TICKETS,
+  ticketSyncInProgress = false,
+  pendingActionCount = 0,
+  isOnline = true,
   onNavigate,
   onShowToast
 }) {
@@ -141,31 +206,15 @@ export default function ForemanLanding({
   const configuredActions = tradeConfig?.resolvedConfig?.field_actions
   const truckLoadTrackingEnabled = tradeConfig?.resolvedConfig?.enable_truck_load_tracking ?? false
 
-  // Offline sync banner state
-  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true))
-  const [pendingSyncCount, setPendingSyncCount] = useState(0)
   const [showAllAreas, setShowAllAreas] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
-    const refreshPending = () => {
-      getPendingActionCount()
-        .then(count => { if (mounted) setPendingSyncCount(count || 0) })
-        .catch(() => {})
-    }
-    const handleOnline = () => { setIsOnline(true); refreshPending() }
-    const handleOffline = () => { setIsOnline(false); refreshPending() }
-    refreshPending()
-    const interval = setInterval(refreshPending, 30000)
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    return () => {
-      mounted = false
-      clearInterval(interval)
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
+  const ticketsWaiting = pendingTmTickets?.total || 0
+  const syncBanner = syncBannerFor({
+    isOnline,
+    tickets: { ...EMPTY_PENDING_TICKETS, ...pendingTmTickets },
+    syncInProgress: ticketSyncInProgress,
+    pendingActionCount
+  })
 
   // Resolve available actions: base actions filtered by trade config
   const ALL_ACTIONS = useMemo(() => {
@@ -276,6 +325,9 @@ export default function ForemanLanding({
           status: todayStatus.crewCheckedIn ? 'Done today' : 'Not started'
         }
       case 'tm':
+        if (ticketsWaiting > 0) {
+          return { done: false, badge: `${ticketsWaiting} waiting to sync`, status: null }
+        }
         return {
           done: false,
           badge: todayStatus.tmTicketsToday > 0 ? `${todayStatus.tmTicketsToday} today` : null,
@@ -317,7 +369,7 @@ export default function ForemanLanding({
       default:
         return { done: false, badge: null, status: null }
     }
-  }, [todayStatus, progress, areasRemaining, punchListOpenCount, hasAreas])
+  }, [todayStatus, progress, areasRemaining, punchListOpenCount, hasAreas, ticketsWaiting])
 
   const visibleAreas = showAllAreas ? areas : areas.slice(0, AREAS_PREVIEW_COUNT)
 
@@ -408,18 +460,16 @@ export default function ForemanLanding({
       </div>
 
       {/* Offline sync banner */}
-      {(!isOnline || pendingSyncCount > 0) && (
-        <div className="sdx-fld-sync" role="status">
-          <span className="sdx-fld-sync-icon" aria-hidden="true"><RefreshCw size={17} /></span>
+      {syncBanner && (
+        <div className={`sdx-fld-sync ${syncBanner.tone}`} role="status">
+          <span className="sdx-fld-sync-icon" aria-hidden="true">
+            {syncBanner.tone === 'warn' || syncBanner.tone === 'error'
+              ? <AlertTriangle size={17} />
+              : <RefreshCw size={17} />}
+          </span>
           <span className="sdx-fld-sync-text">
-            <span className="sdx-fld-sync-title">
-              {pendingSyncCount > 0
-                ? `${pendingSyncCount} update${pendingSyncCount !== 1 ? 's' : ''} saved offline`
-                : 'Working offline'}
-            </span>
-            <span className="sdx-fld-sync-sub">
-              {isOnline ? 'Syncing to office…' : 'Will sync to office when connected'}
-            </span>
+            <span className="sdx-fld-sync-title">{syncBanner.title}</span>
+            <span className="sdx-fld-sync-sub">{syncBanner.sub}</span>
           </span>
         </div>
       )}

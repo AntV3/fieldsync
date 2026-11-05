@@ -6,7 +6,9 @@
 import { detectConflict, stampForOffline, buildConflictSummary, RESOLUTION_STRATEGIES } from './conflictDetection'
 
 const DB_NAME = 'fieldsync-offline'
-const DB_VERSION = 2  // Bumped to add T&M tickets, daily reports, messages stores
+// v2: T&M tickets, daily reports, messages stores
+// v3: pending_tm_tickets (offline T&M submit); clears the never-read tm_tickets store
+const DB_VERSION = 3
 
 // Store names
 const STORES = {
@@ -17,6 +19,7 @@ const STORES = {
   DAILY_REPORTS: 'daily_reports',
   MESSAGES: 'messages',
   PENDING_ACTIONS: 'pending_actions',
+  PENDING_TM_TICKETS: 'pending_tm_tickets',
   CACHED_DATA: 'cached_data'
 }
 
@@ -32,6 +35,11 @@ export const initOfflineDB = () => {
   return new Promise((resolve, reject) => {
     if (db) {
       resolve(db)
+      return
+    }
+
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('IndexedDB is not available'))
       return
     }
 
@@ -111,6 +119,22 @@ export const initOfflineDB = () => {
       // Generic cached data store
       if (!database.objectStoreNames.contains(STORES.CACHED_DATA)) {
         database.createObjectStore(STORES.CACHED_DATA, { keyPath: 'key' })
+      }
+
+      // Offline T&M submissions, one record per ticket (v3)
+      if (!database.objectStoreNames.contains(STORES.PENDING_TM_TICKETS)) {
+        const pendingTicketStore = database.createObjectStore(STORES.PENDING_TM_TICKETS, {
+          keyPath: 'client_submission_id'
+        })
+        pendingTicketStore.createIndex('project_id', 'project_id', { unique: false })
+        pendingTicketStore.createIndex('state', 'state', { unique: false })
+      }
+
+      // The v1/v2 tm_tickets store only ever held hollow temp tickets that
+      // nothing read back; drop its contents on the way to v3.
+      if (event.oldVersion > 0 && event.oldVersion < 3 &&
+          database.objectStoreNames.contains(STORES.TM_TICKETS)) {
+        event.target.transaction.objectStore(STORES.TM_TICKETS).clear()
       }
     }
   })
@@ -386,6 +410,294 @@ export const getCachedMessages = async (projectId) => {
 }
 
 // ============================================
+// Generic cached data (key/value in the cached_data store)
+// ============================================
+
+// Cache any JSON-serializable value under `key` (e.g. labor classes for an
+// offline resume of a T&M draft).
+export const cacheData = async (key, data) => {
+  return saveToStore(STORES.CACHED_DATA, {
+    key,
+    data,
+    cached_at: new Date().toISOString()
+  })
+}
+
+// Read a value written by cacheData; null when absent.
+export const getCachedData = async (key) => {
+  const record = await getFromStore(STORES.CACHED_DATA, key)
+  return record ? record.data : null
+}
+
+// ============================================
+// Pending T&M tickets (offline submit)
+// ============================================
+//
+// One record per ticket, keyed by client_submission_id. State machine:
+//   queued -> syncing -> synced -> (deleted)
+//                   \-> needs_auth (session expired / no access; requeued on PIN login)
+//                   \-> failed (server rejected; retried until MAX_TICKET_ATTEMPTS)
+// The server RPC dedupes on client_submission_id, so a retried submit can
+// never create a second ticket.
+
+export const PENDING_TICKET_STATES = {
+  QUEUED: 'queued',
+  SYNCING: 'syncing',
+  SYNCED: 'synced',
+  NEEDS_AUTH: 'needs_auth',
+  FAILED: 'failed'
+}
+
+export const MAX_TICKET_ATTEMPTS = 10
+const TICKET_SYNC_TIMEOUT_MS = 30000
+const RETRY_DELAYS_MS = [5000, 15000, 45000]
+
+// client_submission_id -> server ticket id for tickets synced (and deleted
+// locally) during this page session, so a signature captured on the pending
+// screen after the record is gone still reaches the right server row.
+const recentlySyncedTickets = new Map()
+
+// --- Sync event bus ---
+const syncListeners = new Set()
+
+/**
+ * Subscribe to offline ticket sync events:
+ *   { type: 'summary_changed' }
+ *   { type: 'sync_start', count }
+ *   { type: 'ticket_synced', client_submission_id, ticket }
+ *   { type: 'session_expired', projectId, count }
+ *   { type: 'sync_complete', synced, failed, remaining }
+ * @returns {() => void} unsubscribe
+ */
+export const onSyncStateChange = (callback) => {
+  syncListeners.add(callback)
+  return () => { syncListeners.delete(callback) }
+}
+
+const emitSyncEvent = (event) => {
+  syncListeners.forEach(callback => {
+    try {
+      callback(event)
+    } catch (err) {
+      console.error('[offlineSync] sync listener failed', err)
+    }
+  })
+}
+
+const emitSummaryChanged = () => emitSyncEvent({ type: 'summary_changed' })
+
+// Read-modify-write one pending ticket inside a single readwrite transaction.
+// `mutate(current)` returns { write?: record, result }.
+const mutatePendingTicket = async (id, mutate) => {
+  await initOfflineDB()
+  return withRetry(() => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORES.PENDING_TM_TICKETS, 'readwrite')
+    const store = tx.objectStore(STORES.PENDING_TM_TICKETS)
+    let result
+    let failure = null
+    const getRequest = store.get(id)
+    getRequest.onsuccess = () => {
+      try {
+        const outcome = mutate(getRequest.result)
+        result = outcome.result
+        if (outcome.write) store.put(outcome.write)
+      } catch (err) {
+        failure = err
+        tx.abort()
+      }
+    }
+    tx.oncomplete = () => resolve(result)
+    tx.onerror = () => reject(failure || tx.error)
+    tx.onabort = () => reject(failure || tx.error || new Error('Transaction aborted'))
+  }))
+}
+
+/**
+ * Save a ticket locally for later sync. Fills state 'queued', attempts 0 and
+ * created_at when missing.
+ * @returns {Promise<Object>} the stored record
+ */
+export const savePendingTMTicket = async (record) => {
+  if (!record?.client_submission_id) {
+    throw new Error('savePendingTMTicket: client_submission_id is required')
+  }
+  const stored = {
+    project_id: record.payload?.project_id ?? null,
+    company_id: null,
+    last_error: null,
+    server_ticket_id: null,
+    signature: null,
+    custom_field_data: {},
+    cor_import: null,
+    ...record,
+    created_at: record.created_at || new Date().toISOString(),
+    state: record.state || PENDING_TICKET_STATES.QUEUED,
+    attempts: record.attempts ?? 0,
+    photos: record.photos || []
+  }
+  await saveToStore(STORES.PENDING_TM_TICKETS, stored)
+  emitSummaryChanged()
+  return stored
+}
+
+export const getPendingTMTicket = async (id) => {
+  const record = await getFromStore(STORES.PENDING_TM_TICKETS, id)
+  return record || null
+}
+
+/** All pending tickets (optionally for one project), oldest first. */
+export const getPendingTMTickets = async ({ projectId } = {}) => {
+  const records = projectId
+    ? await getByIndex(STORES.PENDING_TM_TICKETS, 'project_id', projectId)
+    : await getAllFromStore(STORES.PENDING_TM_TICKETS)
+  return records.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')))
+}
+
+/** Merge `patch` into a pending ticket in one transaction; null when absent. */
+export const updatePendingTMTicket = async (id, patch) => {
+  const updated = await mutatePendingTicket(id, (current) => {
+    if (!current) return { result: null }
+    const next = { ...current, ...patch }
+    return { write: next, result: next }
+  })
+  if (updated) emitSummaryChanged()
+  return updated
+}
+
+export const deletePendingTMTicket = async (id) => {
+  await deleteFromStore(STORES.PENDING_TM_TICKETS, id)
+  emitSummaryChanged()
+}
+
+/**
+ * Attach the foreman signature to a pending ticket.
+ * - Not yet synced: written into the record (one readwrite transaction);
+ *   the sync applies it to the server row. Returns { saved: true }.
+ * - Already synced: nothing is written; returns { synced: true, server_ticket_id }
+ *   and the caller saves the signature to the server itself.
+ */
+export const attachSignatureToPendingTicket = async (id, signature) => {
+  const outcome = await mutatePendingTicket(id, (current) => {
+    if (!current) {
+      if (recentlySyncedTickets.has(id)) {
+        return { result: { synced: true, server_ticket_id: recentlySyncedTickets.get(id) } }
+      }
+      throw new Error('Pending ticket not found')
+    }
+    if (current.state === PENDING_TICKET_STATES.SYNCED) {
+      return { result: { synced: true, server_ticket_id: current.server_ticket_id } }
+    }
+    return { write: { ...current, signature }, result: { saved: true } }
+  })
+  if (outcome?.saved) emitSummaryChanged()
+  return outcome
+}
+
+/**
+ * Counts for the field UI. Never throws: zeros when IndexedDB is unavailable.
+ * 'syncing' includes records already synced but not yet cleaned up.
+ */
+export const getPendingSyncSummary = async ({ projectId } = {}) => {
+  const summary = { queued: 0, syncing: 0, needs_auth: 0, failed: 0, total: 0 }
+  try {
+    const records = await getPendingTMTickets({ projectId })
+    for (const record of records) {
+      summary.total++
+      switch (record.state) {
+        case PENDING_TICKET_STATES.SYNCING:
+        case PENDING_TICKET_STATES.SYNCED:
+          summary.syncing++
+          break
+        case PENDING_TICKET_STATES.NEEDS_AUTH:
+          summary.needs_auth++
+          break
+        case PENDING_TICKET_STATES.FAILED:
+          summary.failed++
+          break
+        default:
+          summary.queued++
+      }
+    }
+  } catch {
+    return { queued: 0, syncing: 0, needs_auth: 0, failed: 0, total: 0 }
+  }
+  return summary
+}
+
+/** After a PIN login: needs_auth -> queued for that project only. */
+export const requeueNeedsAuthTickets = async (projectId) => {
+  if (!projectId) return 0
+  const records = await getPendingTMTickets({ projectId })
+  let count = 0
+  for (const record of records) {
+    if (record.state === PENDING_TICKET_STATES.NEEDS_AUTH) {
+      await updatePendingTMTicket(record.client_submission_id, {
+        state: PENDING_TICKET_STATES.QUEUED,
+        last_error: null
+      })
+      count++
+    }
+  }
+  return count
+}
+
+/**
+ * Classify a sync failure.
+ * - 'auth': the session is gone or cannot access the project (retry after PIN login)
+ * - 'network': the request never got an answer (retry later, no attempt counted)
+ * - 'server': the server answered with a rejection (count an attempt)
+ * @returns {'auth'|'network'|'server'}
+ */
+export const classifySyncError = (err) => {
+  const code = err?.code == null ? '' : String(err.code)
+  const message = String(err?.message || '')
+  const name = String(err?.name || '')
+
+  if (code === '42501' || code === 'PGRST301') return 'auth'
+  if (/jwt/i.test(message) && /expired/i.test(message)) return 'auth'
+
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'network'
+  if (name === 'AbortError' || name === 'TimeoutError') return 'network'
+  if (!code && /failed to fetch|load failed|networkerror|network|abort|timeout|timed out/i.test(message)) {
+    return 'network'
+  }
+  return 'server'
+}
+
+// --- Bounded retry for "online" events that fire before the radio routes ---
+let ticketDrain = null
+let retryIndex = 0
+let retryTimer = null
+
+/** Register the function scheduleRetry() calls (supabase.js drainPendingActions). */
+export const registerTicketDrain = (fn) => {
+  ticketDrain = typeof fn === 'function' ? fn : null
+}
+
+/**
+ * Schedule one more drain with bounded backoff: 5 s, 15 s, 45 s, then stop
+ * until a successful sync or a new online transition resets it.
+ * @returns {boolean} whether a retry was scheduled
+ */
+export const scheduleRetry = () => {
+  if (retryTimer || retryIndex >= RETRY_DELAYS_MS.length) return false
+  const delay = RETRY_DELAYS_MS[retryIndex++]
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    const drain = ticketDrain
+    if (!drain) return
+    Promise.resolve()
+      .then(() => drain())
+      .catch(err => console.error('[offlineSync] retry drain failed', err))
+  }, delay)
+  return true
+}
+
+const resetRetryBackoff = () => {
+  retryIndex = 0
+}
+
+// ============================================
 // Connection Status
 // ============================================
 
@@ -411,6 +723,8 @@ const notifyConnectionChange = (online) => {
 // Set up connection listeners
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
+    // A fresh online transition earns a fresh set of ticket-sync retries.
+    retryIndex = 0
     notifyConnectionChange(true)
   })
 
@@ -654,6 +968,196 @@ const processAction = async (action, db) => {
     default:
       throw new Error(`Unknown action type: ${type}`)
   }
+}
+
+// ============================================
+// Pending T&M ticket sync
+// ============================================
+
+let ticketSyncInFlight = null
+
+const isSyncEligible = (record) => {
+  switch (record.state) {
+    case PENDING_TICKET_STATES.QUEUED:
+    case PENDING_TICKET_STATES.SYNCING: // left behind by a crash or app kill mid-sync
+    case PENDING_TICKET_STATES.SYNCED: // synced but not yet cleaned up; the RPC replays
+      return true
+    case PENDING_TICKET_STATES.FAILED:
+      return (record.attempts || 0) < MAX_TICKET_ATTEMPTS
+    default:
+      return false
+  }
+}
+
+const errorMessage = (err) => err?.message || String(err)
+
+// Best-effort follow-ups that the online submit path also treats as optional.
+const applyTicketExtras = async (api, record, ticket) => {
+  const customFields = record.custom_field_data
+  if (customFields && typeof customFields === 'object' && Object.keys(customFields).length > 0) {
+    try {
+      await api.saveCustomFieldData(record.project_id, 'tm_ticket', ticket.id, customFields)
+    } catch (err) {
+      console.warn('[offlineSync] custom fields not saved for ticket', ticket.id, err)
+    }
+  }
+
+  const corImport = record.cor_import
+  if (corImport?.cor_id) {
+    try {
+      await api.importTicketDataToCOR(
+        ticket.id,
+        corImport.cor_id,
+        corImport.company_id,
+        corImport.work_type,
+        corImport.job_type
+      )
+    } catch (err) {
+      console.warn('[offlineSync] COR import failed for ticket', ticket.id, err)
+      try {
+        await api.markImportFailed(ticket.id, corImport.cor_id, errorMessage(err) || 'Import failed')
+      } catch {
+        // Non-critical: the office can re-import from the COR
+      }
+    }
+  }
+}
+
+// Sync one record. Returns 'synced' | 'network' | 'auth' | 'server'.
+const syncOneTicket = async (api, record) => {
+  const id = record.client_submission_id
+  try {
+    await updatePendingTMTicket(id, { state: PENDING_TICKET_STATES.SYNCING })
+
+    const ticket = await api.submitTMTicketFull(record, { timeoutMs: TICKET_SYNC_TIMEOUT_MS })
+    if (!ticket?.id) throw new Error('Ticket sync returned no ticket')
+
+    await updatePendingTMTicket(id, {
+      state: PENDING_TICKET_STATES.SYNCED,
+      server_ticket_id: ticket.id,
+      last_error: null
+    })
+    recentlySyncedTickets.set(id, ticket.id)
+    emitSyncEvent({ type: 'ticket_synced', client_submission_id: id, ticket })
+
+    // A signature may have been attached while the RPC was in flight.
+    const fresh = (await getPendingTMTicket(id)) || record
+    if (fresh.signature && !ticket.foreman_signature_data) {
+      await api.saveTMForemanSignature(ticket.id, fresh.signature)
+    }
+
+    // A replay means the first submit already ran these.
+    if (!ticket.replayed) {
+      await applyTicketExtras(api, fresh, ticket)
+    }
+
+    await deletePendingTMTicket(id)
+    return 'synced'
+  } catch (err) {
+    const kind = classifySyncError(err)
+    const patch = kind === 'network'
+      ? { state: PENDING_TICKET_STATES.QUEUED, last_error: errorMessage(err) }
+      : kind === 'auth'
+        ? { state: PENDING_TICKET_STATES.NEEDS_AUTH, last_error: errorMessage(err) }
+        : {
+            state: PENDING_TICKET_STATES.FAILED,
+            attempts: (record.attempts || 0) + 1,
+            last_error: errorMessage(err)
+          }
+    try {
+      await updatePendingTMTicket(id, patch)
+    } catch (updateErr) {
+      console.warn('[offlineSync] failed to record ticket sync outcome', id, updateErr)
+    }
+    return kind
+  }
+}
+
+const runTicketSync = async (api, projectId) => {
+  const results = { synced: 0, failed: 0, remaining: 0 }
+
+  let records
+  try {
+    records = await getPendingTMTickets()
+  } catch {
+    return results // IndexedDB unavailable
+  }
+
+  const exhausted = records.filter(r =>
+    r.state === PENDING_TICKET_STATES.FAILED && (r.attempts || 0) >= MAX_TICKET_ATTEMPTS
+  ).length
+  const eligible = records.filter(isSyncEligible)
+  if (eligible.length === 0) {
+    return { ...results, failed: exhausted, remaining: records.length }
+  }
+
+  emitSyncEvent({ type: 'sync_start', count: eligible.length })
+
+  const processed = new Set()
+  let authForProject = false
+  let networkStop = false
+
+  for (;;) {
+    // Re-read each time so tickets saved mid-run are picked up.
+    const current = await getPendingTMTickets()
+    const record = current.find(r => isSyncEligible(r) && !processed.has(r.client_submission_id))
+    if (!record) break
+    processed.add(record.client_submission_id)
+
+    const outcome = await syncOneTicket(api, record)
+    if (outcome === 'synced') {
+      results.synced++
+      resetRetryBackoff()
+    } else if (outcome === 'network') {
+      networkStop = true
+      break
+    } else if (outcome === 'auth') {
+      if (projectId && record.project_id === projectId) authForProject = true
+    } else {
+      results.failed++
+    }
+  }
+
+  if (networkStop) scheduleRetry()
+
+  let remaining = []
+  try {
+    remaining = await getPendingTMTickets()
+  } catch {
+    // ignore
+  }
+
+  if (authForProject) {
+    const count = remaining.filter(r =>
+      r.project_id === projectId && r.state === PENDING_TICKET_STATES.NEEDS_AUTH
+    ).length
+    emitSyncEvent({ type: 'session_expired', projectId, count })
+  }
+
+  results.failed += exhausted
+  results.remaining = remaining.length
+  emitSyncEvent({ type: 'sync_complete', ...results })
+  return results
+}
+
+/**
+ * Push locally saved T&M tickets to the server, one at a time, through
+ * api.submitTMTicketFull (idempotent on client_submission_id).
+ * Concurrent calls share the in-flight run.
+ *
+ * @param {Object} api - the db facade (submitTMTicketFull, saveTMForemanSignature,
+ *   saveCustomFieldData, importTicketDataToCOR, markImportFailed)
+ * @param {Object} [options]
+ * @param {string|null} [options.projectId] - the signed-in field project; an auth
+ *   failure on one of its tickets emits 'session_expired'
+ * @returns {Promise<{synced: number, failed: number, remaining: number}>}
+ */
+export const syncPendingTMTickets = (api, { projectId = null } = {}) => {
+  if (ticketSyncInFlight) return ticketSyncInFlight
+  ticketSyncInFlight = runTicketSync(api, projectId).finally(() => {
+    ticketSyncInFlight = null
+  })
+  return ticketSyncInFlight
 }
 
 // Export store names for external use

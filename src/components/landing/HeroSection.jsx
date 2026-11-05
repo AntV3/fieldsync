@@ -47,7 +47,7 @@ export default function HeroSection({ onGetStarted, onScrollToFeatures, onQuickA
       </div>
 
       <div className="lp-trust-badges">
-        <span className="lp-trust-badge">Works Offline</span>
+        <span className="lp-trust-badge">Saves Offline</span>
         <span className="lp-trust-dot" />
         <span className="lp-trust-badge">Zero Training Required</span>
         <span className="lp-trust-dot" />

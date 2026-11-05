@@ -50,15 +50,30 @@ Record the device, OS version, and date at the top of each run.
 
 ## 5. Offline
 
+Offline covers T&M tickets only: description, crew hours (including custom
+labor classes), materials, COR link and the foreman signature. Photos are not
+saved offline; they need a connection.
+
+Before this section: after every deploy, launch the installed app **online**
+once (the service worker only caches the new build's files when they are
+fetched), log in as foreman and open a T&M ticket on the test project so its
+labor classes are cached.
+
 | Step | Pass? |
 |---|---|
-| Turn on Airplane Mode | |
-| Offline indicator appears | |
-| Create a T&M ticket with a photo while offline: it saves locally | |
-| Pending count shows 1 | |
-| Turn Airplane Mode off | |
-| Ticket syncs automatically; pending count returns to 0 | |
-| Ticket and photo visible on the office dashboard | |
+| Turn on Airplane Mode, reopen the app: no login screen; offline indicator appears | |
+| Start a T&M ticket: labor-class sections still render | |
+| Fill description, 2 workers (8h + 2h OT), 1 material (qty 3), optional COR, your name — **no photo** | |
+| Submit: within about 1 second step 5 shows "Saved on this phone" / "Will sync automatically when you have signal", no error toast | |
+| Sign as foreman: "Signature saved"; client-signature options hidden with "Client signature is available after the ticket syncs" | |
+| Done: home T&M card shows "1 waiting to sync"; home banner "1 ticket saved on phone"; bottom indicator "Offline · 1 ticket saved on phone" | |
+| Force-quit and reopen (still offline): all three still show 1 | |
+| Second ticket with 2 photos → Submit asks "No signal. Save the ticket without the 2 photo(s)? …"; Keep editing keeps the photos; Save without photos saves it; card shows 2 | |
+| Turn Airplane Mode off, keep the app in the foreground: within about 15 seconds "Syncing 2 tickets…" then "Synced 2 tickets"; card returns to 0 | |
+| Office dashboard shows exactly 2 new tickets, each once, status signed by the foreman, with crew hours, material, notes, signature; the second has no photos | |
+| Dead radio (Wi-Fi with no internet): Submit reaches "Saved on this phone" within about 15 seconds, not a minute-long spinner | |
+| If the indicator shows "Sign in to sync N ticket(s)", enter the foreman PIN: the tickets sync once | |
+| If it shows "N ticket(s) could not sync — tell the office", report it with the device and time | |
 
 ## 6. Updates
 

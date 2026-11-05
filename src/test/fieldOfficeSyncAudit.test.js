@@ -402,6 +402,27 @@ describe('Offline sync: pending actions are queued and synced', () => {
     // Unsubscribe should not throw
     unsub()
   })
+
+  it('offline T&M tickets sync through their own store, not the legacy action queue', async () => {
+    const offlineManager = await import('../lib/offlineManager')
+    for (const name of [
+      'savePendingTMTicket', 'getPendingTMTicket', 'getPendingTMTickets',
+      'updatePendingTMTicket', 'deletePendingTMTicket', 'attachSignatureToPendingTicket',
+      'getPendingSyncSummary', 'classifySyncError', 'syncPendingTMTickets',
+      'scheduleRetry', 'registerTicketDrain', 'requeueNeedsAuthTickets', 'onSyncStateChange',
+      'cacheData', 'getCachedData'
+    ]) {
+      expect(typeof offlineManager[name]).toBe('function')
+    }
+    expect(offlineManager.STORES.PENDING_TM_TICKETS).toBe('pending_tm_tickets')
+  })
+
+  it('pending-ticket summary is all zeros (no throw) without IndexedDB', async () => {
+    const { getPendingSyncSummary } = await import('../lib/offlineManager')
+    await expect(getPendingSyncSummary()).resolves.toEqual({
+      queued: 0, syncing: 0, needs_auth: 0, failed: 0, total: 0
+    })
+  })
 })
 
 // ============================================================

@@ -315,9 +315,10 @@ const debouncedRefresh = useMemo(
                               ▼ (offline fallback)
 ┌─────────────────────────────────────────────────────────────────┐
 │ Layer 2: IndexedDB (Offline Cache)                              │
-│ • Managed by offlineManager.js                                  │
+│ • Database 'fieldsync-offline', managed by offlineManager.js    │
 │ • Used when: Supabase configured but network unavailable        │
-│ • Pending actions queued for sync                               │
+│ • pending_tm_tickets: whole T&M tickets saved on the phone      │
+│ • pending_actions: legacy per-mutation queue                    │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼ (dev/demo fallback)
@@ -328,20 +329,87 @@ const debouncedRefresh = useMemo(
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### Offline T&M tickets (the supported offline path)
+
+Only T&M tickets are guaranteed to save offline, and only in field mode
+(foreman PIN session). Photos are **not** saved offline: when there is no
+signal the form asks to save the ticket without them.
+
+**Submit.** `TMForm` builds one record per ticket, keyed by a
+`client_submission_id` (UUID generated when the form opens and kept in the
+draft), and calls `db.submitTMTicketFull(record)` (`src/lib/db/tmOps.js`),
+which sends it to the `create_tm_ticket_full(p_payload jsonb)` RPC with a 12 s
+`AbortController`. The RPC (`supabase/migrations/20261104_offline_tm_submit.sql`,
+SECURITY INVOKER) inserts the ticket, workers, items and optional foreman
+signature in one transaction and is idempotent: a repeated
+`client_submission_id` (partial unique index on `t_and_m_tickets`) returns the
+existing row tagged `replayed: true`. It raises `42501` when
+`can_access_project` fails (expired field session) and `22023` on bad input.
+If the call fails with a network-class error and the user is in field mode,
+the record is written to IndexedDB and step 5 shows "Saved on this phone".
+Office users get an error toast instead.
+
+**Local store.** Database `fieldsync-offline` (version 3), object store
+`pending_tm_tickets`, keyPath `client_submission_id`, indexes `project_id` and
+`state`. Each record moves through
+`queued → syncing → synced → deleted`, or to `needs_auth` (session expired) or
+`failed` (server rejected it 10 times). A foreman signature captured on a
+pending ticket is written into the record in the same IndexedDB transaction.
+
+**Sync.** `syncPendingTMTickets(db, { projectId })` runs from
+`drainPendingActions` in `src/lib/supabase.js` on startup, on the `online`
+event, when the app returns to the foreground and after PIN login, with
+5 s / 15 s / 45 s retries when the radio is not yet routable. It sends one
+record at a time to the same RPC (30 s timeout); server-side dedupe makes the
+at-least-once client retry exactly-once. After the server row exists it
+applies any locally captured signature the row lacks, then deletes the record.
+On `42501` for the current project it emits `session_expired` and the app
+returns to the PIN screen; `requeueNeedsAuthTickets` re-queues them after login.
+
+**UI.** `getPendingSyncSummary({ projectId })` returns
+`{ queued, syncing, needs_auth, failed, total }` (zeros when IndexedDB is
+unavailable) and `onSyncStateChange(cb)` emits `summary_changed`,
+`sync_start`, `ticket_synced`, `sync_complete` and `session_expired`.
+`ForemanView` owns the per-project count and passes it to `ForemanLanding`
+(T&M card "N waiting to sync", home banner); `OfflineIndicator` shows the
+device-wide state in field mode ("Offline · N ticket(s) saved on phone",
+"Sign in to sync N ticket(s)", "N ticket(s) could not sync — tell the office",
+"Syncing N ticket(s)…", "Synced N ticket(s)").
+
+Labor classes are cached (`labor_classes_<companyId>`) so a custom-class ticket
+renders offline. Assignable CORs and "same as yesterday" crew are not cached.
+A cold offline start needs the current build's files cached by an earlier
+online launch (`public/sw.js` caches on fetch; there is no precache manifest).
+
 ### Offline Manager (offlineManager.js)
 
 ```javascript
-// Core operations
-offlineManager.cacheData(table, data)      // Store for offline use
-offlineManager.getCachedData(table)        // Retrieve cached data
-offlineManager.queueAction(action)         // Queue mutation for sync
-offlineManager.processPendingActions()     // Sync when online
-offlineManager.getConnectionStatus()       // Check network state
+// T&M tickets (pending_tm_tickets store)
+savePendingTMTicket                         // Save a ticket on the phone
+getPendingTMTicket / getPendingTMTickets    // Read saved tickets
+updatePendingTMTicket / deletePendingTMTicket
+attachSignatureToPendingTicket              // One readwrite transaction; no-op + server id when already synced
+syncPendingTMTickets(db, { projectId })     // Drain to create_tm_ticket_full
+requeueNeedsAuthTickets(projectId)          // After PIN login
+getPendingSyncSummary({ projectId })        // Counts for the field UI
+onSyncStateChange(callback)                 // Sync event bus
+
+// Legacy per-mutation queue (pending_actions store)
+addPendingAction(type, payload, metadata)   // Queue mutation for sync
+syncPendingActions(db)                      // Replay when online
+getPendingActionCount()
+
+// Connection
+getConnectionStatus() / onConnectionChange(callback)   // navigator.onLine based
 ```
+
+`getConnectionStatus()` follows `navigator.onLine`, which reports "online" on a
+dead radio; the T&M path relies on the request timeout instead.
 
 ### Conflict Resolution
 
-Currently: **Last-write-wins**. No versioning or merge logic.
+Currently: **Last-write-wins** for the legacy queue. T&M tickets are
+insert-only and deduplicated server-side by `client_submission_id`.
 
 ---
 

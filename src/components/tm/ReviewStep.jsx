@@ -1,7 +1,12 @@
 import { lazy, Suspense } from 'react'
 import { FileText, HardHat, UserCheck, Wrench, Zap, PenLine, CheckCircle2, Check, AlertCircle, Loader2, RotateCcw, Clock, ShieldCheck } from 'lucide-react'
 import { parseLocalDate } from '../../lib/utils'
+import { db, attachSignatureToPendingTicket } from '../../lib/supabase'
 import EvidenceStep from './EvidenceStep'
+// Static import: a lazy chunk is only cached by the service worker if it was
+// fetched online before, and the foreman must be able to sign a ticket that
+// was saved on the phone with no signal.
+import TMForemanSignature from '../TMForemanSignature'
 
 const formatTime12 = (timeStr) => {
   if (!timeStr) return ''
@@ -14,7 +19,6 @@ const formatTime12 = (timeStr) => {
 
 const SignatureLinkGenerator = lazy(() => import('../SignatureLinkGenerator'))
 const TMClientSignature = lazy(() => import('../TMClientSignature'))
-const TMForemanSignature = lazy(() => import('../TMForemanSignature'))
 
 /**
  * ReviewStep - Step 4 (review+evidence+submit) and Step 5 (success/signature).
@@ -42,6 +46,8 @@ const TMForemanSignature = lazy(() => import('../TMForemanSignature'))
  *  - onRetryPhotoUpload
  *  - t, lang
  *  - onShowToast
+ *  - pendingSync: step 5 for a ticket saved on this phone (not yet on the server)
+ *  - clientSubmissionId: id of that saved ticket, used to attach the foreman signature
  */
 export default function ReviewStep({
   step, setStep,
@@ -64,8 +70,19 @@ export default function ReviewStep({
   showOnSiteSignature, setShowOnSiteSignature,
   onRetryPhotoUpload,
   t, lang,
-  onShowToast
+  onShowToast,
+  pendingSync = false,
+  clientSubmissionId = null
 }) {
+  // Foreman signature on a ticket saved on the phone: write it into the local
+  // record; if the record synced in the meantime, send it to the server row.
+  const savePendingSignature = async (sig) => {
+    const result = await attachSignatureToPendingTicket(clientSubmissionId, sig)
+    if (result?.synced && result.server_ticket_id) {
+      await db.saveTMForemanSignature(result.server_ticket_id, sig)
+    }
+  }
+
   // Build ticket details for signature modals (shared between foreman and client)
   const buildTicketDetails = () => ({
     projectName: project?.name,
@@ -121,16 +138,16 @@ export default function ReviewStep({
   }
 
   // Step 5: Success & Foreman Signature → Client Signature
-  if (step === 5 && submittedTicket) {
+  if (step === 5 && (submittedTicket || pendingSync)) {
     return (
       <div className="tm-step-content tm-success-step">
         <div className="tm-success-header">
           <div className="tm-success-icon">
             <CheckCircle2 size={48} />
           </div>
-          <h2>{t('tmSubmitted')}</h2>
+          <h2>{pendingSync ? t('savedOnPhone') : t('tmSubmitted')}</h2>
           <p className="tm-success-subtitle">
-            {t('ticketSavedReady')}
+            {pendingSync ? t('willSyncWhenSignal') : t('ticketSavedReady')}
           </p>
           {!foremanSigned && (
             <div className="tm-foreman-required-notice">
@@ -156,7 +173,7 @@ export default function ReviewStep({
         </div>
 
         {/* Failed Photos Retry Section */}
-        {photos.some(p => p.status === 'failed') && (
+        {submittedTicket && photos.some(p => p.status === 'failed') && (
           <div className="tm-failed-photos-section">
             <div className="tm-failed-photos-header">
               <AlertCircle size={18} />
@@ -258,85 +275,94 @@ export default function ReviewStep({
           )}
         </div>
 
-        {/* Step 2: Client Signature (only available after foreman signs) */}
-        <div className={`tm-signature-options ${!foremanSigned ? 'tm-signature-locked' : ''}`}>
-          <h3>{t('getClientSignature')}</h3>
-          {!foremanSigned && (
+        {/* Step 2: Client Signature (only available after foreman signs, and
+            only once the ticket exists on the server) */}
+        {pendingSync ? (
+          <div className="tm-signature-options tm-signature-locked">
+            <h3>{t('getClientSignature')}</h3>
             <p className="tm-signature-locked-msg">
-              {t('foremanMustSignFirst')}
+              {t('clientSignatureAfterSync')}
             </p>
-          )}
-          {foremanSigned && (
-            <p className="tm-signature-description">
-              {t('signatureDescription')}
-            </p>
-          )}
+          </div>
+        ) : (
+          <div className={`tm-signature-options ${!foremanSigned ? 'tm-signature-locked' : ''}`}>
+            <h3>{t('getClientSignature')}</h3>
+            {!foremanSigned && (
+              <p className="tm-signature-locked-msg">
+                {t('foremanMustSignFirst')}
+              </p>
+            )}
+            {foremanSigned && (
+              <p className="tm-signature-description">
+                {t('signatureDescription')}
+              </p>
+            )}
 
-          {foremanSigned && clientSigned ? (
-            <div className="tm-signed-confirmation">
-              <CheckCircle2 size={32} className="tm-signed-icon" />
-              <span>{t('clientSignatureCollected')}</span>
-            </div>
-          ) : foremanSigned ? (
-            <div className="tm-signature-buttons">
-              <button
-                className="tm-signature-option-btn primary"
-                onClick={() => setShowOnSiteSignature(true)}
-              >
-                <div className="tm-signature-option-icon">
-                  <PenLine size={24} />
-                </div>
-                <div className="tm-signature-option-text">
-                  <span className="tm-signature-option-title">
-                    {t('signNowOnSite')}
-                  </span>
-                  <span className="tm-signature-option-desc">
-                    {t('clientSignsDevice')}
-                  </span>
-                </div>
-              </button>
+            {foremanSigned && clientSigned ? (
+              <div className="tm-signed-confirmation">
+                <CheckCircle2 size={32} className="tm-signed-icon" />
+                <span>{t('clientSignatureCollected')}</span>
+              </div>
+            ) : foremanSigned ? (
+              <div className="tm-signature-buttons">
+                <button
+                  className="tm-signature-option-btn primary"
+                  onClick={() => setShowOnSiteSignature(true)}
+                >
+                  <div className="tm-signature-option-icon">
+                    <PenLine size={24} />
+                  </div>
+                  <div className="tm-signature-option-text">
+                    <span className="tm-signature-option-title">
+                      {t('signNowOnSite')}
+                    </span>
+                    <span className="tm-signature-option-desc">
+                      {t('clientSignsDevice')}
+                    </span>
+                  </div>
+                </button>
 
-              <button
-                className="tm-signature-option-btn"
-                onClick={() => setShowSignatureLinkModal(true)}
-              >
-                <div className="tm-signature-option-icon">
-                  <PenLine size={24} />
-                </div>
-                <div className="tm-signature-option-text">
-                  <span className="tm-signature-option-title">
-                    {t('sendSignatureLink')}
-                  </span>
-                  <span className="tm-signature-option-desc">
-                    {t('clientSignsLater')}
-                  </span>
-                </div>
-              </button>
-            </div>
-          ) : null}
-        </div>
+                <button
+                  className="tm-signature-option-btn"
+                  onClick={() => setShowSignatureLinkModal(true)}
+                >
+                  <div className="tm-signature-option-icon">
+                    <PenLine size={24} />
+                  </div>
+                  <div className="tm-signature-option-text">
+                    <span className="tm-signature-option-title">
+                      {t('sendSignatureLink')}
+                    </span>
+                    <span className="tm-signature-option-desc">
+                      {t('clientSignsLater')}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {/* Foreman Signature Modal */}
         {showForemanSignature && (
-          <Suspense fallback={<div className="loading">Loading...</div>}>
-            <TMForemanSignature
-              ticketId={submittedTicket.id}
-              ticketSummary={ticketSummaryData}
-              ticketDetails={buildTicketDetails()}
-              foremanName={foremanName}
-              lang={lang}
-              onSave={() => {
-                setShowForemanSignature(false)
-                setForemanSigned(true)
-              }}
-              onClose={() => setShowForemanSignature(false)}
-              onShowToast={onShowToast}
-            />
-          </Suspense>
+          <TMForemanSignature
+            ticketId={submittedTicket?.id}
+            ticketSummary={ticketSummaryData}
+            ticketDetails={buildTicketDetails()}
+            foremanName={foremanName}
+            lang={lang}
+            saveSignature={pendingSync ? savePendingSignature : undefined}
+            onSave={() => {
+              setShowForemanSignature(false)
+              setForemanSigned(true)
+            }}
+            onClose={() => setShowForemanSignature(false)}
+            onShowToast={onShowToast}
+          />
         )}
 
         {/* Signature Link Generator Modal */}
-        {showSignatureLinkModal && (
+        {!pendingSync && showSignatureLinkModal && (
           <Suspense fallback={<div className="loading">Loading...</div>}>
             <SignatureLinkGenerator
               documentType="tm_ticket"
@@ -352,7 +378,7 @@ export default function ReviewStep({
         )}
 
         {/* On-Site Client Signature Modal */}
-        {showOnSiteSignature && (
+        {!pendingSync && showOnSiteSignature && (
           <Suspense fallback={<div className="loading">Loading...</div>}>
             <TMClientSignature
               ticketId={submittedTicket.id}

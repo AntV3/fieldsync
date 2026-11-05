@@ -8,12 +8,89 @@ import {
   observe,
   getClient, getSupabaseClient,
   isFieldMode,
-  getConnectionStatus,
-  cacheTMTicket,
-  addPendingAction, ACTION_TYPES,
-  generateTempId,
   sanitize
 } from './client'
+
+const PNG_DATA_URL_PREFIX = 'data:image/png;base64,'
+const MAX_SIGNATURE_CHARS = 2000000
+
+const invalidPayloadError = (message) => {
+  const err = new Error(message)
+  err.code = '22023'
+  return err
+}
+
+const timeoutError = (timeoutMs) => {
+  const err = new Error(`Ticket submit timed out after ${Math.round(timeoutMs / 1000)}s`)
+  err.name = 'AbortError'
+  err.code = ''
+  return err
+}
+
+const optionalText = (value) => {
+  const text = sanitize.text(value)
+  return text ? text : null
+}
+
+/**
+ * Build the create_tm_ticket_full p_payload from a pending-ticket record
+ * (see offlineManager savePendingTMTicket for the record shape). Throws an
+ * Error with code '22023' for an invalid record before any request is made.
+ * @param {Object} record
+ * @returns {Object} p_payload
+ */
+export function buildTMTicketFullPayload(record) {
+  const payload = record?.payload || {}
+  const projectId = payload.project_id || record?.project_id
+  const clientSubmissionId = payload.client_submission_id || record?.client_submission_id
+  if (!projectId || !clientSubmissionId) {
+    throw invalidPayloadError('project_id and client_submission_id are required')
+  }
+
+  const pPayload = {
+    project_id: projectId,
+    client_submission_id: clientSubmissionId,
+    work_date: payload.work_date,
+    ce_pco_number: optionalText(payload.ce_pco_number),
+    assigned_cor_id: payload.assigned_cor_id || null,
+    notes: optionalText(payload.notes),
+    created_by_name: optionalText(payload.created_by_name) || 'Field User',
+    workers: (payload.workers || []).map(w => ({
+      name: sanitize.text(w.name),
+      hours: w.hours,
+      overtime_hours: w.overtime_hours || 0,
+      time_started: w.time_started || null,
+      time_ended: w.time_ended || null,
+      role: sanitize.text(w.role || 'Laborer'),
+      labor_class_id: w.labor_class_id || null
+    })),
+    items: (payload.items || []).map(item => ({
+      material_equipment_id: item.material_equipment_id || null,
+      custom_name: item.custom_name ? sanitize.text(item.custom_name) : null,
+      custom_category: item.custom_category ? sanitize.text(item.custom_category) : null,
+      quantity: item.quantity
+    }))
+  }
+
+  const signature = record?.signature
+  if (signature) {
+    const data = signature.signature
+    if (typeof data !== 'string' || !data.startsWith(PNG_DATA_URL_PREFIX)) {
+      throw invalidPayloadError('Signature must be a PNG image')
+    }
+    if (data.length > MAX_SIGNATURE_CHARS) {
+      throw invalidPayloadError('Signature image is too large')
+    }
+    pPayload.foreman_signature = {
+      data,
+      name: optionalText(signature.signerName),
+      title: optionalText(signature.signerTitle),
+      date: signature.signedAt || new Date().toISOString()
+    }
+  }
+
+  return pPayload
+}
 
 /**
  * Is `url` a Supabase signed URL whose token is still valid for at least
@@ -257,32 +334,56 @@ export const tmOps = {
     return []
   },
 
+  /**
+   * Create a T&M ticket, its workers, items and (optionally) the foreman
+   * signature in one idempotent server call. Replaying the same
+   * client_submission_id returns the existing row with `replayed: true`.
+   *
+   * @param {Object} record - pending-ticket record (offlineManager shape)
+   * @param {Object} [options]
+   * @param {number} [options.timeoutMs=12000] - abort after this long; the
+   *   rejection is an AbortError (classifySyncError → 'network')
+   * @returns {Promise<Object|null>} the ticket row plus `replayed`
+   * @throws the Supabase error object as-is (code preserved)
+   */
+  async submitTMTicketFull(record, { timeoutMs = 12000 } = {}) {
+    if (!isSupabaseConfigured) return null
+    const pPayload = buildTMTicketFullPayload(record)
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const controller = new AbortController()
+    let timer = null
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort()
+        reject(timeoutError(timeoutMs))
+      }, timeoutMs)
+    })
+
+    try {
+      const request = client
+        .rpc('create_tm_ticket_full', { p_payload: pPayload })
+        .abortSignal(controller.signal)
+      const { data, error } = await Promise.race([request, timeout])
+      if (error) {
+        if (controller.signal.aborted) throw timeoutError(timeoutMs)
+        throw error
+      }
+      return data
+    } finally {
+      clearTimeout(timer)
+    }
+  },
+
+  // Plain insert of the ticket row only (workers/items are added separately).
+  // Used by the legacy CREATE_TM_TICKET pending action; new T&M submits use
+  // submitTMTicketFull.
   async createTMTicket(ticket) {
     if (isSupabaseConfigured) {
-      // If offline, cache ticket and queue action
-      if (!getConnectionStatus()) {
-        const tempTicket = {
-          id: generateTempId(),
-          project_id: ticket.project_id,
-          work_date: ticket.work_date,
-          ce_pco_number: ticket.ce_pco_number || null,
-          assigned_cor_id: ticket.assigned_cor_id || null,
-          notes: ticket.notes,
-          photos: ticket.photos || [],
-          status: 'pending_sync',
-          created_by_name: ticket.created_by_name || 'Field User',
-          created_at: new Date().toISOString(),
-          _offline: true
-        }
-        await cacheTMTicket(tempTicket)
-        await addPendingAction(ACTION_TYPES.CREATE_TM_TICKET, {
-          ticket: tempTicket,
-          workers: ticket._workers || [],
-          items: ticket._items || []
-        })
-        return tempTicket
-      }
-
       const client = getClient()
       if (!client) {
         throw new Error('Database client not available')
@@ -302,25 +403,7 @@ export const tmOps = {
         .select()
         .single()
 
-      if (error) {
-        // If network error, queue for later
-        if (error.message?.includes('fetch') || error.message?.includes('network')) {
-          const tempTicket = {
-            id: generateTempId(),
-            ...ticket,
-            status: 'pending_sync',
-            _offline: true
-          }
-          await cacheTMTicket(tempTicket)
-          await addPendingAction(ACTION_TYPES.CREATE_TM_TICKET, {
-            ticket: tempTicket,
-            workers: ticket._workers || [],
-            items: ticket._items || []
-          })
-          return tempTicket
-        }
-        throw error
-      }
+      if (error) throw error
       return data
     }
     return null

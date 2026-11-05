@@ -482,14 +482,28 @@ If data isn't loading:
 
 ### Check Offline Mode
 
+Only T&M tickets are saved offline, only in field mode, and without photos
+(see ARCHITECTURE.md §7). Tickets saved on the phone live in IndexedDB
+database `fieldsync-offline`, store `pending_tm_tickets` (keyed by
+`client_submission_id`); they are sent through the idempotent
+`create_tm_ticket_full` RPC and deleted once synced.
+
 ```javascript
-// In browser console
-localStorage.getItem('fieldsync_connection_status')
-// or
-indexedDB.open('fieldsync').onsuccess = (e) => {
-  console.log(e.target.result.objectStoreNames)
+// In browser console: list tickets still waiting on this device
+indexedDB.open('fieldsync-offline').onsuccess = (e) => {
+  const idb = e.target.result
+  console.log(idb.version, [...idb.objectStoreNames])
+  idb.transaction('pending_tm_tickets').objectStore('pending_tm_tickets')
+    .getAll().onsuccess = (r) => console.table(r.target.result.map(t =>
+      ({ id: t.client_submission_id, project: t.project_id, state: t.state, attempts: t.attempts })))
 }
 ```
+
+DevTools → Application → IndexedDB shows the same. The legacy per-mutation
+queue is the `pending_actions` store in the same database. Connection state is
+`navigator.onLine` (`getConnectionStatus()` in `src/lib/offlineManager.js`),
+which stays "online" on a dead radio; block `*.supabase.co` in DevTools to
+test that case.
 
 ### Common Console Errors
 

@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { db, isSupabaseConfigured, getSupabaseClient } from '../lib/supabase'
+import {
+  db,
+  isSupabaseConfigured,
+  getSupabaseClient,
+  getConnectionStatus,
+  onConnectionChange,
+  getPendingActionCount,
+  getPendingSyncSummary,
+  onSyncStateChange
+} from '../lib/supabase'
 import { calculateProgress } from '../lib/utils'
 import {
   Info, CheckSquare,
@@ -18,6 +27,16 @@ import ForemanLanding from './ForemanLanding'
 import PunchList from './PunchList'
 import RFIList from './RFIList'
 import { useTradeConfig } from '../lib/TradeConfigContext'
+
+const EMPTY_PENDING_SUMMARY = { queued: 0, syncing: 0, needs_auth: 0, failed: 0, total: 0 }
+
+function safeConnectionStatus() {
+  try {
+    return getConnectionStatus()
+  } catch {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true
+  }
+}
 
 export default function ForemanView({ project, companyId, foremanName, onShowToast, onExit }) {
   const { resolvedConfig } = useTradeConfig()
@@ -46,6 +65,15 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     trucksUsedToday: 0
   })
 
+  // T&M tickets saved on this phone and not yet on the server (IndexedDB
+  // pending_tm_tickets, scoped to this project). ForemanView is the single
+  // owner of this count; ForemanLanding only renders what it is given.
+  const [pendingTmTickets, setPendingTmTickets] = useState(EMPTY_PENDING_SUMMARY)
+  // Legacy offline queue (pending_actions: crew check-ins, area updates…)
+  const [pendingActionCount, setPendingActionCount] = useState(0)
+  const [ticketSyncInProgress, setTicketSyncInProgress] = useState(false)
+  const [isOnline, setIsOnline] = useState(() => safeConnectionStatus())
+
   // Theme
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -60,10 +88,34 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       Promise.all([
         loadAreas(),
         loadTodayStatus(),
-        loadPunchListCount()
+        loadPunchListCount(),
+        loadPendingTMTickets()
       ])
     }
   }, [project?.id])
+
+  // Read the local (IndexedDB) pending-ticket summary. Kept separate from
+  // loadTodayStatus: that is one Promise.all over network reads and never sets
+  // state offline, while this read works with no signal at all.
+  const loadPendingTMTickets = async () => {
+    if (!project?.id) return
+    let summary = EMPTY_PENDING_SUMMARY
+    try {
+      const result = await getPendingSyncSummary({ projectId: project.id })
+      if (result) summary = { ...EMPTY_PENDING_SUMMARY, ...result }
+    } catch (error) {
+      console.warn('[ForemanView] failed to read pending T&M tickets', error)
+    }
+    let legacyCount = 0
+    try {
+      legacyCount = (await getPendingActionCount()) || 0
+    } catch {
+      // IndexedDB unavailable - nothing queued we can see
+    }
+    if (!mountedRef.current) return
+    setPendingTmTickets(summary)
+    setPendingActionCount(legacyCount)
+  }
 
   // Load today's activity status
   const loadTodayStatus = async () => {
@@ -93,7 +145,10 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       })
     } catch (error) {
       console.error('Error loading today status:', error)
-      onShowToast?.('Unable to refresh today’s status', 'error')
+      // Offline the failure is expected; the offline banner already says so.
+      if (safeConnectionStatus()) {
+        onShowToast?.('Unable to refresh today’s status', 'error')
+      }
     }
   }
 
@@ -196,6 +251,42 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       subs.forEach(sub => db.unsubscribe?.(sub))
     }
   }, [project?.id, debouncedRefresh])
+
+  // Keep the pending-ticket count and connection state live: the sync routine
+  // (lib/offlineManager) emits events as tickets queue, sync or fail.
+  useEffect(() => {
+    if (!project?.id) return
+    let unsubscribeSync = null
+    let unsubscribeConnection = null
+    try {
+      unsubscribeSync = onSyncStateChange((event) => {
+        if (!mountedRef.current) return
+        if (event?.type === 'sync_start') setTicketSyncInProgress(true)
+        if (event?.type === 'sync_complete') {
+          setTicketSyncInProgress(false)
+          // Synced tickets now count toward today's server-side total.
+          if (event.synced > 0) loadTodayStatus()
+        }
+        if (event?.type === 'session_expired') setTicketSyncInProgress(false)
+        loadPendingTMTickets()
+      })
+    } catch (error) {
+      console.warn('[ForemanView] sync events unavailable', error)
+    }
+    try {
+      unsubscribeConnection = onConnectionChange((online) => {
+        if (!mountedRef.current) return
+        setIsOnline(online)
+        loadPendingTMTickets()
+      })
+    } catch (error) {
+      console.warn('[ForemanView] connection events unavailable', error)
+    }
+    return () => {
+      if (typeof unsubscribeSync === 'function') unsubscribeSync()
+      if (typeof unsubscribeConnection === 'function') unsubscribeConnection()
+    }
+  }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAreas = async () => {
     try {
@@ -331,6 +422,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     setActiveView('home')
     loadTodayStatus()
     loadPunchListCount()
+    loadPendingTMTickets()
   }, [project?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // T&M Form View
@@ -662,6 +754,10 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         areasDone={areasDone}
         areasRemaining={areasRemaining}
         punchListOpenCount={punchListOpenCount}
+        pendingTmTickets={pendingTmTickets}
+        ticketSyncInProgress={ticketSyncInProgress}
+        pendingActionCount={pendingActionCount}
+        isOnline={isOnline}
         onNavigate={handleNavigate}
         onShowToast={onShowToast}
       />
