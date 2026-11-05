@@ -53,6 +53,7 @@
 |------|-------|---------|--------|-------|
 | `TMForm.jsx` | 2,353 | T&M ticket creation/edit | Active | **LARGEST - needs split** |
 | `TMList.jsx` | 1,543 | T&M ticket list/table | Active | |
+| `tm/TMTicketEditModal.jsx` | ~600 | Office correction of a submitted T&M ticket (date, CE/PCO, description, crew, materials, billable value) | Active | Opened from the card's Edit button in `TMList`; saves through `db.updateTMTicketContents` (RPC `update_tm_ticket_contents`), editability from `getTicketEditability` in `lib/tmStatus.js` |
 | `TMClientSignature.jsx` | ~300 | On-site signature capture | Active | |
 
 #### TMForm.jsx Structure (Should Split Into)
@@ -481,6 +482,7 @@ db.createInjuryReport(data)
 | Feature | Component |
 |---------|-----------|
 | T&M ticket creation | `TMForm.jsx` |
+| T&M ticket correction (office) | `tm/TMTicketEditModal.jsx` (orchestrated by `TMList.jsx`) |
 | COR creation | `cor/CORForm.jsx` |
 | COR viewing | `cor/CORDetail.jsx` |
 | PDF export | `cor/CORDetail.jsx` → `corExportPipeline.js` |

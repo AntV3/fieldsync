@@ -33,3 +33,72 @@ export function isAwaitingApproval(status) {
 export function hasClientAuthorization(ticket) {
   return Boolean(ticket?.client_signature_data || ticket?.gc_signature_data)
 }
+
+/** Any of the three signature slots (foreman, client, GC) is filled. */
+export function hasAnySignature(ticket) {
+  return Boolean(
+    ticket?.foreman_signature_data ||
+    ticket?.client_signature_data ||
+    ticket?.gc_signature_data
+  )
+}
+
+/** COR statuses under which a linked T&M ticket may still be edited. */
+export const TM_COR_STATUSES_ALLOWING_TICKET_EDIT = Object.freeze(['draft', 'pending_approval'])
+
+export const TM_BILLED_EDIT_REASON = 'This ticket has been billed and can no longer be edited.'
+
+const linkedCorLabel = (ticket, lockInfo) =>
+  lockInfo?.lockedBy?.cor_number ||
+  ticket?.cor_number ||
+  ticket?.assigned_cor?.cor_number ||
+  ticket?.change_orders?.cor_number ||
+  'the linked COR'
+
+/**
+ * Can the office edit this ticket's contents, and what should it be told first?
+ * The server (update_tm_ticket_contents) enforces the same rules; this only
+ * drives the UI.
+ *
+ * @param {Object} ticket - t_and_m_tickets row
+ * @param {Object} [lockInfo] - result of db.isTicketEditable(ticket):
+ *   { editable, lockedBy: { id, status, cor_number } | null, reason }
+ * @returns {{ editable: boolean, locked: boolean, reason: string|null,
+ *   warnings: string[], flagsAfterSignature: boolean }}
+ */
+export function getTicketEditability(ticket, lockInfo) {
+  const flagsAfterSignature = hasAnySignature(ticket)
+
+  if (lockInfo?.editable === false) {
+    return {
+      editable: false,
+      locked: true,
+      reason: lockInfo.reason ?? null,
+      warnings: [],
+      flagsAfterSignature
+    }
+  }
+
+  if (ticket?.status === TM_STATUS.BILLED) {
+    return {
+      editable: false,
+      locked: false,
+      reason: TM_BILLED_EDIT_REASON,
+      warnings: [],
+      flagsAfterSignature
+    }
+  }
+
+  const warnings = []
+  if (flagsAfterSignature) {
+    warnings.push('Saving will mark this ticket "Edited after signature".')
+  }
+  if (ticket?.assigned_cor_id) {
+    warnings.push(`Crew and material changes re-sync this ticket's lines on ${linkedCorLabel(ticket, lockInfo)} at current rates.`)
+  }
+  if (ticket?.status === TM_STATUS.APPROVED) {
+    warnings.push('This ticket is approved. Changing crew or materials can change its billable value.')
+  }
+
+  return { editable: true, locked: false, reason: null, warnings, flagsAfterSignature }
+}

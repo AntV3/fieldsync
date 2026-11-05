@@ -1,6 +1,6 @@
 import { memo, useState, useEffect } from 'react'
-import { isAwaitingApproval } from '../../lib/tmStatus'
-import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react'
+import { isAwaitingApproval, getTicketEditability } from '../../lib/tmStatus'
+import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
 import { CountBadge, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
 
@@ -48,12 +48,24 @@ const TMTicketCard = memo(function TMTicketCard({
   onOpenCorAssign,
   onRetryImport,
   onShowSignatureLink,
+  onEdit,
   formatDate,
   calculateTotalHours,
   calculateTicketTotal
 }) {
   const totalHours = calculateTotalHours(ticket)
   const totalCost = calculateTicketTotal(ticket)
+
+  // Office edit state (columns stamped by update_tm_ticket_contents)
+  const editability = getTicketEditability(ticket, lockInfo)
+  const editCount = Number(ticket.edit_count) || 0
+  const isEdited = editCount > 0 || Boolean(ticket.edited_at)
+  const editedAfterSignature = Boolean(ticket.edited_after_signature)
+  const editedLabel = editedAfterSignature ? 'Edited after signature' : 'Edited'
+  const editedBy = ticket.edited_by_name || 'the office'
+  const editedOn = ticket.edited_at ? formatDate(ticket.edited_at) : null
+  const editedByLine = `Edited by ${editedBy}${editedOn ? ` on ${editedOn}` : ''}`
+  const editBlockedReason = editability.reason || 'This ticket cannot be edited'
 
   // Resolve stored photo paths/public URLs to signed URLs (bucket is private)
   const [signedPhotoUrls, setSignedPhotoUrls] = useState([])
@@ -77,7 +89,7 @@ const TMTicketCard = memo(function TMTicketCard({
     <div
       className={`tm-ticket-card hover-lift animate-fade-in-up ${ticket.status} ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}
       role="article"
-      aria-label={`Time & Material Ticket for ${formatDate(ticket.work_date)}, ${totalHours} hours, $${totalCost.toFixed(2)}, status: ${ticket.status}`}
+      aria-label={`Time & Material Ticket for ${formatDate(ticket.work_date)}, ${totalHours} hours, $${totalCost.toFixed(2)}, status: ${ticket.status}${isEdited ? `, ${editedLabel.toLowerCase()}` : ''}`}
     >
       <div
         className="tm-ticket-header"
@@ -135,6 +147,14 @@ const TMTicketCard = memo(function TMTicketCard({
               <CheckCircle size={12} /> GC
             </span>
           )}
+          {isEdited && (
+            <span
+              className={`tm-edited-badge${editedAfterSignature ? ' after-signature' : ''}`}
+              title={editedByLine}
+            >
+              <Pencil size={11} aria-hidden="true" /> {editedLabel}
+            </span>
+          )}
           <StatusBadge status={ticket.status} />
         </div>
         <div className="tm-ticket-summary">
@@ -157,6 +177,19 @@ const TMTicketCard = memo(function TMTicketCard({
 
       {isExpanded && (
         <div className="tm-ticket-details">
+          {isEdited && (
+            <div className={`tm-edit-notice${editedAfterSignature ? ' after-signature' : ''}`} role="note">
+              <Pencil size={14} aria-hidden="true" />
+              <span>
+                {editedByLine}
+                {ticket.last_edit_note ? ` — ${ticket.last_edit_note}` : ''}
+                {editCount > 1 ? ` (${editCount} edits)` : ''}
+                {'.'}
+                {editedAfterSignature ? ' Signatures were captured before this edit.' : ''}
+              </span>
+            </div>
+          )}
+
           {ticket.t_and_m_workers?.length > 0 && (
             <div className="tm-detail-section">
               <h4><HardHat size={16} className="inline-icon" /> Labor</h4>
@@ -265,6 +298,19 @@ const TMTicketCard = memo(function TMTicketCard({
           )}
 
           <div className="tm-ticket-actions" role="group" aria-label="Ticket actions">
+            {onEdit && !isLocked && !editability.locked && (
+              <span className="tm-edit-btn-wrap" title={editability.editable ? undefined : editBlockedReason}>
+                <button
+                  className="btn btn-secondary btn-small"
+                  onClick={(e) => { e.stopPropagation(); onEdit(ticket); }}
+                  disabled={!editability.editable}
+                  title={editability.editable ? 'Correct crew, materials or details' : editBlockedReason}
+                  aria-label={editability.editable ? 'Edit this ticket' : `Edit unavailable: ${editBlockedReason}`}
+                >
+                  <Pencil size={14} aria-hidden="true" /> Edit
+                </button>
+              </span>
+            )}
             {isAwaitingApproval(ticket.status) && !isLocked && (
               <>
                 <button

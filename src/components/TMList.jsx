@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { TM_AWAITING_APPROVAL_STATUSES } from '../lib/tmStatus'
+import { TM_AWAITING_APPROVAL_STATUSES, getTicketEditability } from '../lib/tmStatus'
 import { buildClassRateLookup, calculateTicketValue } from '../lib/laborRateResolver'
 import {
   resolvePrimaryColor,
@@ -15,6 +15,7 @@ import SignatureLinkGenerator from './SignatureLinkGenerator'
 import { TicketSkeleton, CountBadge, EmptyState } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
+import TMTicketEditModal from './tm/TMTicketEditModal'
 import { exportTMTicketsCSV } from '../lib/financialExport'
 import { loadXLSXSafe } from '../lib/safeXlsx'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
@@ -99,12 +100,20 @@ export default function TMList({
   const [failedImports, setFailedImports] = useState({})
   const [retryingImport, setRetryingImport] = useState(null)
 
+  // Office edit modal state. While a save is in flight, realtime reloads are
+  // deferred (the save's own writes fire events) and run once afterwards.
+  const [editingTicket, setEditingTicket] = useState(null)
+  const [savingEdit, setSavingEdit] = useState(false)
+  const savingEditRef = useRef(false)
+  const pendingReloadRef = useRef(false)
+
   // Load tickets with pagination - wrapped in useCallback so the subscription
-  // callback always references the same function and doesn't cause leak/resubscribe cycles
-  const loadTickets = useCallback(async (pageNum = 0, reset = false) => {
+  // callback always references the same function and doesn't cause leak/resubscribe cycles.
+  // `silent` refreshes in place (no skeletons, so open modals stay mounted).
+  const loadTickets = useCallback(async (pageNum = 0, reset = false, { silent = false } = {}) => {
     try {
       if (reset) {
-        setLoading(true)
+        if (!silent) setLoading(true)
       } else {
         setLoadingMore(true)
       }
@@ -176,8 +185,13 @@ export default function TMList({
 
     // Subscribe to real-time updates for T&M tickets
     const subscription = db.subscribeToTMTickets?.(project.id, () => {
-      // On real-time update, refresh the first page
-      loadTickets(0, true)
+      // On real-time update, refresh the first page in place. During an edit
+      // save, defer until the save finishes (handleSaveEdit runs it).
+      if (savingEditRef.current) {
+        pendingReloadRef.current = true
+        return
+      }
+      loadTickets(0, true, { silent: true })
     })
 
     return () => {
@@ -406,6 +420,101 @@ export default function TMList({
       setRetryingImport(null)
     }
   }, [company.id, project.work_type, project.job_type]) // onShowToast and loadTickets are stable
+
+  // Open the office edit modal (the server re-checks every rule on save)
+  const handleOpenEdit = useCallback((ticket) => {
+    const editability = getTicketEditability(ticket, lockedTickets[ticket.id])
+    if (!editability.editable) {
+      onShowToast(editability.reason || 'This ticket cannot be edited', 'error')
+      return
+    }
+    setEditingTicket(ticket)
+  }, [lockedTickets, onShowToast])
+
+  const handleCloseEdit = useCallback(() => {
+    if (!savingEditRef.current) setEditingTicket(null)
+  }, [])
+
+  // Save an office edit: RPC → COR re-sync when the server cleared the
+  // ticket's COR lines → refresh the row and its import status.
+  const handleSaveEdit = useCallback(async (edit) => {
+    const ticket = editingTicket
+    if (!ticket || savingEditRef.current) return
+
+    savingEditRef.current = true
+    setSavingEdit(true)
+    try {
+      const result = await db.updateTMTicketContents(ticket.id, edit)
+
+      let resyncFailed = false
+      const corId = result?.ticket?.assigned_cor_id || ticket.assigned_cor_id
+      if (result?.cor_resync_required && corId) {
+        try {
+          await db.importTicketDataToCOR(
+            ticket.id,
+            corId,
+            company.id,
+            project.work_type || 'demolition',
+            project.job_type || 'standard'
+          )
+        } catch (importError) {
+          resyncFailed = true
+          console.warn('COR re-sync after ticket edit failed, can retry later:', importError)
+          try {
+            await db.markImportFailed(ticket.id, corId, importError?.message || 'Re-sync after ticket edit failed')
+          } catch (markError) {
+            // The RPC already left the association marked failed; nothing more to do.
+            console.warn('Could not mark COR import failed:', markError)
+          }
+        }
+      }
+
+      let refreshed = null
+      try {
+        refreshed = await db.getTMTicketById(ticket.id)
+      } catch (refreshError) {
+        console.warn('Could not reload edited ticket:', refreshError)
+      }
+      const nextTicket = refreshed || { ...ticket, ...(result?.ticket || {}) }
+      setTickets(prev => prev.map(t => (t.id === ticket.id ? nextTicket : t)))
+
+      if (corId) {
+        let importStatus = null
+        try {
+          importStatus = await db.getTicketImportStatus(ticket.id, corId)
+        } catch (_e) {
+          importStatus = resyncFailed ? { import_status: 'failed' } : null
+        }
+        setFailedImports(prev => {
+          const next = { ...prev }
+          if (importStatus?.import_status === 'failed') {
+            next[ticket.id] = importStatus
+          } else {
+            delete next[ticket.id]
+          }
+          return next
+        })
+      }
+
+      setEditingTicket(null)
+      if (resyncFailed) {
+        onShowToast('Ticket updated, but the COR re-sync failed. Use Retry Sync.', 'warning')
+      } else {
+        onShowToast('Ticket updated', 'success')
+      }
+    } catch (error) {
+      console.error('Error updating ticket:', error)
+      // Server refusals (P0001 / 42501) carry a human-readable message.
+      onShowToast(error?.message || 'Error updating ticket', 'error')
+    } finally {
+      savingEditRef.current = false
+      setSavingEdit(false)
+      if (pendingReloadRef.current) {
+        pendingReloadRef.current = false
+        loadTickets(0, true, { silent: true })
+      }
+    }
+  }, [editingTicket, company.id, project.work_type, project.job_type, loadTickets, onShowToast])
 
   const calculateTicketTotal = (ticket) => {
     let total = 0
@@ -1240,6 +1349,7 @@ export default function TMList({
       onOpenCorAssign={openCorAssignModal}
       onRetryImport={handleRetryImport}
       onShowSignatureLink={handleShowSignatureLink}
+      onEdit={handleOpenEdit}
       formatDate={formatDate}
       calculateTotalHours={calculateTotalHours}
       calculateTicketTotal={calculateTicketTotal}
@@ -1610,6 +1720,20 @@ export default function TMList({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Office Ticket Edit Modal */}
+      {editingTicket && (
+        <TMTicketEditModal
+          key={editingTicket.id}
+          ticket={editingTicket}
+          lockInfo={lockedTickets[editingTicket.id]}
+          companyId={company?.id}
+          rateLookup={rateLookup}
+          saving={savingEdit}
+          onSave={handleSaveEdit}
+          onClose={handleCloseEdit}
+        />
       )}
     </div>
   )

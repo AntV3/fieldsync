@@ -10,6 +10,7 @@ import {
   isFieldMode,
   sanitize
 } from './client'
+import { TM_COR_STATUSES_ALLOWING_TICKET_EDIT } from '../tmStatus'
 
 const PNG_DATA_URL_PREFIX = 'data:image/png;base64,'
 const MAX_SIGNATURE_CHARS = 2000000
@@ -122,6 +123,66 @@ export function isFreshSignedPhotoUrl(url, minTtlMs = 60000) {
   }
 }
 
+// Nested ticket select shared by the list and single-ticket reads.
+// SECURITY: field users never receive cost_per_unit.
+const tmTicketNestedSelect = (inFieldMode) => {
+  const materialsSelect = inFieldMode
+    ? 'materials_equipment (name, unit, category)'
+    : 'materials_equipment (name, unit, cost_per_unit, category)'
+  return `
+            *,
+            t_and_m_workers (*),
+            t_and_m_items (
+              *,
+              ${materialsSelect}
+            )
+          `
+}
+
+const numberOrZero = (value) => Number(value) || 0
+
+/**
+ * Build the update_tm_ticket_contents arguments from the edit form state.
+ * Only content fields are sent: the server derives every audit column
+ * (edited_by_name included) itself.
+ * @returns {{ p_fields: Object, p_workers: Object[], p_items: Object[], p_edit_note: string|null }}
+ */
+export function buildTMTicketEditPayload({ fields = {}, workers = [], items = [], editNote = null } = {}) {
+  const f = fields || {}
+  const pFields = {
+    work_date: f.work_date,
+    ce_pco_number: optionalText(f.ce_pco_number),
+    notes: sanitize.text(f.notes)
+  }
+  if (Object.prototype.hasOwnProperty.call(f, 'change_order_value') && f.change_order_value !== undefined) {
+    const raw = f.change_order_value
+    // null or '' clears the value; anything else is sent as a number.
+    pFields.change_order_value = raw === null || raw === '' ? null : Number(raw)
+  }
+
+  return {
+    p_fields: pFields,
+    p_workers: (workers || []).map(w => ({
+      name: sanitize.text(w.name),
+      // Sent as stored (blank -> null). Defaulting here would make a
+      // notes-only save on a legacy row read as a crew change server-side.
+      role: optionalText(w.role),
+      hours: numberOrZero(w.hours),
+      overtime_hours: numberOrZero(w.overtime_hours),
+      time_started: w.time_started || null,
+      time_ended: w.time_ended || null,
+      labor_class_id: w.labor_class_id || null
+    })),
+    p_items: (items || []).map(item => ({
+      material_equipment_id: item.material_equipment_id || null,
+      custom_name: optionalText(item.custom_name),
+      custom_category: optionalText(item.custom_category),
+      quantity: Number(item.quantity)
+    })),
+    p_edit_note: optionalText(editNote)
+  }
+}
+
 export const tmOps = {
   // ============================================
   // T&M Tickets
@@ -174,24 +235,11 @@ export const tmOps = {
     if (isSupabaseConfigured) {
       const start = performance.now()
       const client = getClient()
-      const inFieldMode = isFieldMode()
-
-      // SECURITY: Exclude cost_per_unit for field users to protect pricing data
-      const materialsSelect = inFieldMode
-        ? 'materials_equipment (name, unit, category)'
-        : 'materials_equipment (name, unit, cost_per_unit, category)'
 
       try {
         let query = client
           .from('t_and_m_tickets')
-          .select(`
-            *,
-            t_and_m_workers (*),
-            t_and_m_items (
-              *,
-              ${materialsSelect}
-            )
-          `, { count: 'exact' })
+          .select(tmTicketNestedSelect(isFieldMode()), { count: 'exact' })
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
           .range(page * limit, (page + 1) * limit - 1)
@@ -226,6 +274,36 @@ export const tmOps = {
       }
     }
     return { tickets: [], totalCount: 0, hasMore: false, page: 0, limit: 25 }
+  },
+
+  /**
+   * One ticket with workers and items, using the same nested select as
+   * getTMTicketsPaginated (so a refreshed row drops straight into the list).
+   * @param {string} id
+   * @returns {Promise<Object|null>}
+   * @throws the Supabase error object as-is
+   */
+  async getTMTicketById(id) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+    const { data, error } = await client
+      .from('t_and_m_tickets')
+      .select(tmTicketNestedSelect(isFieldMode()))
+      .eq('id', id)
+      .single()
+    if (error) {
+      observe.error('database', {
+        message: error.message,
+        code: error.code,
+        operation: 'getTMTicketById',
+        extra: { ticket_id: id }
+      })
+      throw error
+    }
+    return data
   },
 
   // Get change order totals for a project
@@ -450,6 +528,50 @@ export const tmOps = {
         .insert(itemsData)
       if (error) throw error
     }
+  },
+
+  /**
+   * Office correction of a ticket's date, CE/PCO, description, crew and
+   * items in one server transaction (update_tm_ticket_contents). The server
+   * checks access, billed/invoiced/COR locks, stamps the audit columns and,
+   * when crew/items changed on a COR-linked ticket, clears its COR lines and
+   * marks the association for re-sync.
+   *
+   * @param {string} ticketId
+   * @param {Object} edit - { fields, workers, items, editNote }
+   * @returns {Promise<{ ticket: Object, contents_changed: boolean, cor_resync_required: boolean }|null>}
+   * @throws the Supabase error object as-is (code and message preserved)
+   */
+  async updateTMTicketContents(ticketId, edit = {}) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+    const { p_fields, p_workers, p_items, p_edit_note } = buildTMTicketEditPayload(edit)
+
+    const { data, error } = await client.rpc('update_tm_ticket_contents', {
+      p_ticket_id: ticketId,
+      p_fields,
+      p_workers,
+      p_items,
+      p_edit_note
+    })
+    if (error) {
+      observe.error('database', {
+        message: error.message,
+        code: error.code,
+        operation: 'updateTMTicketContents',
+        extra: { ticket_id: ticketId }
+      })
+      throw error
+    }
+    observe.activity('tm_ticket_edited', {
+      ticket_id: ticketId,
+      contents_changed: Boolean(data?.contents_changed),
+      cor_resync_required: Boolean(data?.cor_resync_required)
+    })
+    return data
   },
 
   // Get the most recent ticket's crew for "Same as Yesterday" feature
@@ -740,8 +862,7 @@ export const tmOps = {
         }
 
         // Only draft and pending_approval CORs allow ticket editing
-        const editableStatuses = ['draft', 'pending_approval']
-        const isEditable = editableStatuses.includes(cor.status)
+        const isEditable = TM_COR_STATUSES_ALLOWING_TICKET_EDIT.includes(cor.status)
 
         return {
           editable: isEditable,

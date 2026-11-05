@@ -178,17 +178,22 @@ export const laborOps = {
     }
   },
 
-  // Get all labor classes for a company (with category info)
-  async getLaborClasses(companyId) {
+  // Get labor classes for a company (with category info). Active only by
+  // default; includeInactive also returns deactivated classes so an edit form
+  // can label a worker's existing (now inactive) class.
+  async getLaborClasses(companyId, { includeInactive = false } = {}) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('labor_classes')
         .select(`
           *,
           labor_categories (id, name)
         `)
         .eq('company_id', companyId)
-        .eq('active', true)
+      if (!includeInactive) {
+        query = query.eq('active', true)
+      }
+      const { data, error } = await query
         .order('sort_order')
         .order('name')
       if (error) throw error

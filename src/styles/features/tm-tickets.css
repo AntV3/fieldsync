@@ -4948,3 +4948,296 @@ END MIGRATED */
   background: rgba(245, 158, 11, 0.08);
 }
 
+
+/* ============================================
+   Office ticket edit (TMTicketEditModal + card badges)
+   ============================================ */
+
+/* Header badge: "Edited" (neutral) / "Edited after signature" (amber) */
+.tm-edited-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-secondary);
+  border-radius: var(--radius-lg);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
+.tm-edited-badge.after-signature {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber-text);
+}
+
+[data-theme="dark"] .tm-edited-badge.after-signature {
+  color: #fbbf24;
+}
+
+/* Expanded-card notice */
+.tm-edit-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.tm-edit-notice.after-signature {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--accent-amber-text);
+}
+
+[data-theme="dark"] .tm-edit-notice.after-signature {
+  color: #fbbf24;
+}
+
+.tm-edit-notice svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Disabled Edit button keeps its tooltip via the wrapper */
+.tm-edit-btn-wrap {
+  display: inline-flex;
+}
+
+.tm-edit-btn-wrap .btn:disabled {
+  pointer-events: none;
+}
+
+/* Modal */
+.tm-edit-modal {
+  max-width: 760px;
+}
+
+.tm-edit-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--accent-amber-text);
+  font-size: 0.85rem;
+}
+
+[data-theme="dark"] .tm-edit-banner {
+  color: #fbbf24;
+}
+
+.tm-edit-banner svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.tm-edit-banner ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.tm-edit-banner li + li {
+  margin-top: 0.25rem;
+}
+
+.tm-edit-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.tm-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.tm-edit-field > span {
+  font-weight: 500;
+}
+
+.tm-edit-modal input[type="text"],
+.tm-edit-modal input[type="date"],
+.tm-edit-modal input[type="number"],
+.tm-edit-modal select,
+.tm-edit-modal textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.tm-edit-modal textarea {
+  resize: vertical;
+}
+
+.tm-edit-section {
+  margin: 0.5rem 0 1rem;
+}
+
+.tm-edit-section h4,
+.tm-edit-billable h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.tm-edit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.tm-edit-grid-head,
+.tm-edit-grid-row {
+  display: grid;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tm-edit-workers .tm-edit-grid-head,
+.tm-edit-workers .tm-edit-grid-row {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 5rem 5rem 2.25rem;
+}
+
+.tm-edit-items .tm-edit-grid-head,
+.tm-edit-items .tm-edit-grid-row {
+  grid-template-columns: minmax(0, 1fr) 6rem 2.25rem;
+}
+
+.tm-edit-grid-head {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.tm-edit-item-name {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.tm-edit-item-unit {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.tm-edit-remove {
+  padding: 0.35rem;
+  justify-content: center;
+}
+
+.tm-edit-add-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.tm-edit-add-item select,
+.tm-edit-add-item input[type="text"] {
+  flex: 1 1 12rem;
+  width: auto;
+}
+
+.tm-edit-empty {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.tm-edit-billable {
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.tm-edit-billable p {
+  margin: 0 0 0.5rem;
+}
+
+.tm-edit-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tm-edit-billable-note {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tm-edit-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--accent-red);
+}
+
+/* Phone: stack fields, two-line worker rows */
+@media (max-width: 640px) {
+  .tm-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .tm-edit-workers .tm-edit-grid-head {
+    display: none;
+  }
+
+  .tm-edit-workers .tm-edit-grid-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 2.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .tm-edit-workers .tm-edit-grid-row > input[type="text"] {
+    grid-column: 1 / 3;
+  }
+
+  .tm-edit-workers .tm-edit-grid-row > select {
+    grid-column: 1 / 4;
+    grid-row: 2;
+  }
+
+  .tm-edit-workers .tm-edit-grid-row > .tm-edit-remove {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .tm-edit-items .tm-edit-grid-row {
+    grid-template-columns: minmax(0, 1fr) 4.5rem 2.25rem;
+  }
+}

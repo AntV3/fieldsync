@@ -83,7 +83,8 @@ DECLARE
     'messages',
     'labor_rates',
     'materials_equipment',
-    'company_branding'
+    'company_branding',
+    't_and_m_ticket_edits'
   ];
   tbl TEXT;
   rls_enabled BOOLEAN;
@@ -541,6 +542,68 @@ BEGIN
       PERFORM _run_rls_test('Anon cannot execute helper ' || r.name, 'Public Signing', 'false', 'FUNCTION NOT FOUND', NULL);
     END;
   END LOOP;
+END $$;
+
+-- ============================================================
+-- TEST 9: OFFICE T&M TICKET EDIT
+-- Verifies 20261105_tm_ticket_office_edit.sql: the edit RPC is
+-- callable by office logins only (no anon / field session), is
+-- SECURITY DEFINER with a pinned search_path, the audit-column guard
+-- trigger is on t_and_m_tickets, and the snapshot table has no
+-- client write policy.
+-- ============================================================
+
+DO $$
+DECLARE
+  c_fn CONSTANT TEXT := 'public.update_tm_ticket_contents(uuid,jsonb,jsonb,jsonb,text)';
+  v_oid OID;
+  v_bool BOOLEAN;
+  v_count INT;
+  v_names TEXT;
+BEGIN
+  v_oid := to_regprocedure(c_fn);
+
+  -- 9a/9b. EXECUTE: anon no, authenticated yes
+  IF v_oid IS NULL THEN
+    PERFORM _run_rls_test('Anon cannot execute update_tm_ticket_contents', 'Office Ticket Edit', 'false', 'FUNCTION NOT FOUND', 'Apply 20261105_tm_ticket_office_edit.sql');
+    PERFORM _run_rls_test('Authenticated can execute update_tm_ticket_contents', 'Office Ticket Edit', 'true', 'FUNCTION NOT FOUND', 'Apply 20261105_tm_ticket_office_edit.sql');
+    PERFORM _run_rls_test('SECURITY DEFINER + search_path: update_tm_ticket_contents', 'Office Ticket Edit', 'true', 'FUNCTION NOT FOUND', NULL);
+  ELSE
+    SELECT has_function_privilege('anon', c_fn, 'EXECUTE') INTO v_bool;
+    PERFORM _run_rls_test('Anon cannot execute update_tm_ticket_contents', 'Office Ticket Edit', 'false', v_bool::TEXT, 'Field PIN sessions must not reach the office edit RPC');
+    SELECT has_function_privilege('authenticated', c_fn, 'EXECUTE') INTO v_bool;
+    PERFORM _run_rls_test('Authenticated can execute update_tm_ticket_contents', 'Office Ticket Edit', 'true', v_bool::TEXT, NULL);
+    SELECT p.prosecdef
+           AND EXISTS (SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::TEXT[])) cfg WHERE cfg LIKE 'search_path=%')
+    INTO v_bool
+    FROM pg_proc p WHERE p.oid = v_oid;
+    PERFORM _run_rls_test('SECURITY DEFINER + search_path: update_tm_ticket_contents', 'Office Ticket Edit', 'true', v_bool::TEXT, 'proconfig must contain search_path=');
+  END IF;
+
+  -- 9c. Audit-column guard trigger
+  IF to_regclass('public.t_and_m_tickets') IS NULL THEN
+    PERFORM _run_rls_test('trg_protect_tm_edit_audit on t_and_m_tickets', 'Office Ticket Edit', 'true', 'TABLE NOT FOUND', NULL);
+  ELSE
+    SELECT EXISTS (
+      SELECT 1 FROM pg_trigger
+      WHERE tgrelid = 'public.t_and_m_tickets'::regclass
+        AND tgname = 'trg_protect_tm_edit_audit'
+        AND NOT tgisinternal
+        AND tgenabled <> 'D'
+    ) INTO v_bool;
+    PERFORM _run_rls_test('trg_protect_tm_edit_audit on t_and_m_tickets', 'Office Ticket Edit', 'true', v_bool::TEXT, 'Blocks anon/authenticated writes to the six edit audit columns');
+  END IF;
+
+  -- 9d. No client write policy on the snapshot table
+  IF to_regclass('public.t_and_m_ticket_edits') IS NULL THEN
+    PERFORM _run_rls_test('No non-SELECT policy on t_and_m_ticket_edits', 'Office Ticket Edit', '0', 'TABLE NOT FOUND', 'Apply 20261105_tm_ticket_office_edit.sql');
+  ELSE
+    SELECT COUNT(*), string_agg(policyname || ' (' || cmd || ')', ', ')
+    INTO v_count, v_names
+    FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 't_and_m_ticket_edits' AND cmd <> 'SELECT';
+    PERFORM _run_rls_test('No non-SELECT policy on t_and_m_ticket_edits', 'Office Ticket Edit', '0', v_count::TEXT, COALESCE(v_names, 'Written only by update_tm_ticket_contents()'));
+  END IF;
 END $$;
 
 -- ============================================================
