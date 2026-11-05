@@ -27,7 +27,9 @@ const newTempId = () =>
     ? crypto.randomUUID()
     : `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
-export default function AreasTasksStep({ data, onChange, onShowToast }) {
+const EMBEDDED_HINT = 'Add tasks only if you want weighted progress. Weights must total 100% if used.'
+
+export default function AreasTasksStep({ data, onChange, onShowToast, embedded = false }) {
   const { areas, phases = [] } = data
   const [importing, setImporting] = useState(false)
   const [showImportReview, setShowImportReview] = useState(false)
@@ -437,10 +439,17 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
 
     return (
       <div className="wizard-step-content">
-        <div className="wizard-step-header">
-          <h2>Review Imported Tasks</h2>
-          <p>Select the tasks to include in your project</p>
-        </div>
+        {embedded ? (
+          <>
+            <h3 className="wizard-section-title">Review Imported Tasks</h3>
+            <p className="wizard-section-hint" style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>{EMBEDDED_HINT}</p>
+          </>
+        ) : (
+          <div className="wizard-step-header">
+            <h2>Review Imported Tasks</h2>
+            <p>Select the tasks to include in your project</p>
+          </div>
+        )}
 
         <div className="import-summary">
           <span>{selectedCount} of {importedTasks.length} tasks selected</span>
@@ -533,10 +542,17 @@ export default function AreasTasksStep({ data, onChange, onShowToast }) {
 
   return (
     <div className="wizard-step-content">
-      <div className="wizard-step-header">
-        <h2>Phases & Tasks</h2>
-        <p>Break this project into phases and add tasks under each. Weights must total 100% across all tasks.</p>
-      </div>
+      {embedded ? (
+        <>
+          <h3 className="wizard-section-title">Phases &amp; Tasks</h3>
+          <p className="wizard-section-hint" style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>{EMBEDDED_HINT}</p>
+        </>
+      ) : (
+        <div className="wizard-step-header">
+          <h2>Phases & Tasks</h2>
+          <p>Break this project into phases and add tasks under each. Weights must total 100% across all tasks.</p>
+        </div>
+      )}
 
       <div className="card">
         <div className="areas-header">

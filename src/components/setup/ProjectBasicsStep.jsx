@@ -8,11 +8,23 @@ export default function ProjectBasicsStep({ data, onChange }) {
   const hasTradeConfig = !!companyConfig
   const tradeName = resolvedConfig?.trade_name || companyConfig?.trade_template_id
 
+  const handlePinChange = (value) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 4)
+    update('pin', cleaned)
+  }
+
+  const generateRandomPin = () => {
+    const array = new Uint32Array(1)
+    crypto.getRandomValues(array)
+    const randomPin = (1000 + (array[0] % 9000)).toString()
+    update('pin', randomPin)
+  }
+
   return (
     <div className="wizard-step-content">
       <div className="wizard-step-header">
         <h2>Project Basics</h2>
-        <p>Enter the core details for your new project.</p>
+        <p>Name the project and set the foreman PIN. Everything else is optional.</p>
       </div>
 
       <div className="card">
@@ -27,31 +39,14 @@ export default function ProjectBasicsStep({ data, onChange }) {
           />
         </div>
 
-        <div className="form-row-2">
-          <div className="form-group">
-            <label>Job Number</label>
-            <input
-              type="text"
-              placeholder="e.g., 4032"
-              value={data.jobNumber}
-              onChange={(e) => update('jobNumber', e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Contract Value ($) <span className="required">*</span></label>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="e.g., 365000"
-              value={data.contractValue}
-              onChange={(e) => {
-                const cleaned = e.target.value.replace(/[^0-9.]/g, '')
-                update('contractValue', cleaned)
-              }}
-              className="currency-input"
-            />
-          </div>
+        <div className="form-group">
+          <label>Job Number</label>
+          <input
+            type="text"
+            placeholder="e.g., 4032"
+            value={data.jobNumber}
+            onChange={(e) => update('jobNumber', e.target.value)}
+          />
         </div>
 
         <div className="form-group">
@@ -120,6 +115,37 @@ export default function ProjectBasicsStep({ data, onChange }) {
                 PLA
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3 className="wizard-section-title">Foreman Access</h3>
+
+        <div className="form-group">
+          <label>Foreman PIN (4 digits) <span className="required">*</span></label>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+            Foremen will enter this PIN to access this project in the field
+          </p>
+          <div className="pin-input-row">
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="e.g., 2847"
+              value={data.pin}
+              onChange={(e) => handlePinChange(e.target.value)}
+              maxLength={4}
+              className="pin-input"
+              aria-label="Foreman PIN"
+            />
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={generateRandomPin}
+            >
+              Generate
+            </button>
           </div>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import { validateOptionalAreas, isProgressTrackingEmpty } from '../../lib/projectSetupValidation'
+
 const formatCurrency = (value) => {
   if (!value) return '-'
   const num = parseFloat(value)
@@ -17,9 +19,13 @@ const formatDateRange = (start, end) => {
 }
 
 export default function ReviewStep({ data, onEdit }) {
-  const validAreas = data.areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
+  // Same rows that handleSubmit will save (untouched rows ignored). When the
+  // step has a validation error this is empty, but the wizard never lets the
+  // user reach Review in that state.
+  const validAreas = validateOptionalAreas(data.areas).areas
   const totalWeight = validAreas.reduce((sum, a) => sum + (parseFloat(a.weight) || 0), 0)
   const totalSOV = validAreas.reduce((sum, a) => sum + (parseFloat(a.scheduledValue) || 0), 0)
+  const progressEmpty = isProgressTrackingEmpty(data)
 
   // Order: defined phases (by sort_order) first, then an "Unphased" bucket
   // for areas with no tempPhaseId. Phases that are still empty are shown
@@ -37,6 +43,8 @@ export default function ReviewStep({ data, onEdit }) {
       unphasedAreas.push(a)
     }
   })
+
+  const hasAreasOrPhases = validAreas.length > 0 || orderedPhases.length > 0
 
   return (
     <div className="wizard-step-content">
@@ -61,8 +69,10 @@ export default function ReviewStep({ data, onEdit }) {
             <span className="wizard-review-value">{data.jobNumber || '-'}</span>
           </div>
           <div className="wizard-review-item">
-            <span className="wizard-review-label">Contract Value</span>
-            <span className="wizard-review-value">{formatCurrency(data.contractValue)}</span>
+            <span className="wizard-review-label">Foreman PIN</span>
+            <span className="wizard-review-value" style={{ fontFamily: 'monospace', letterSpacing: '0.15em' }}>
+              {data.pin || '-'}
+            </span>
           </div>
           <div className="wizard-review-item">
             <span className="wizard-review-label">Address</span>
@@ -120,59 +130,85 @@ export default function ReviewStep({ data, onEdit }) {
         </div>
       </div>
 
-      {/* Schedule & Access */}
+      {/* Progress tracking */}
       <div className="card wizard-review-card">
         <div className="wizard-review-header">
-          <h3>Schedule & Access</h3>
+          <h3>Progress tracking</h3>
           <button className="btn btn-secondary btn-small" onClick={() => onEdit(3)}>Edit</button>
         </div>
-        <div className="wizard-review-grid">
-          <div className="wizard-review-item">
-            <span className="wizard-review-label">Start Date</span>
-            <span className="wizard-review-value">{data.startDate || '-'}</span>
-          </div>
-          <div className="wizard-review-item">
-            <span className="wizard-review-label">End Date</span>
-            <span className="wizard-review-value">{data.endDate || '-'}</span>
-          </div>
-          <div className="wizard-review-item">
-            <span className="wizard-review-label">Planned Man-Days</span>
-            <span className="wizard-review-value">{data.plannedManDays || '-'}</span>
-          </div>
-          <div className="wizard-review-item">
-            <span className="wizard-review-label">Foreman PIN</span>
-            <span className="wizard-review-value" style={{ fontFamily: 'monospace', letterSpacing: '0.15em' }}>
-              {data.pin || '-'}
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* Phases & Tasks */}
-      <div className="card wizard-review-card">
-        <div className="wizard-review-header">
-          <h3>Phases & Tasks ({validAreas.length} task{validAreas.length === 1 ? '' : 's'})</h3>
-          <button className="btn btn-secondary btn-small" onClick={() => onEdit(4)}>Edit</button>
-        </div>
+        {progressEmpty ? (
+          <div className="wizard-review-grid">
+            <div className="wizard-review-item wizard-review-item-wide">
+              <span className="wizard-review-value" style={{ color: 'var(--text-muted)' }}>
+                Not set up — contract value, schedule and work areas can be added any time from Project Info → Edit Project.
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="wizard-review-grid">
+              <div className="wizard-review-item">
+                <span className="wizard-review-label">Contract Value</span>
+                <span className="wizard-review-value">{formatCurrency(data.contractValue)}</span>
+              </div>
+              <div className="wizard-review-item">
+                <span className="wizard-review-label">Start Date</span>
+                <span className="wizard-review-value">{data.startDate || '-'}</span>
+              </div>
+              <div className="wizard-review-item">
+                <span className="wizard-review-label">End Date</span>
+                <span className="wizard-review-value">{data.endDate || '-'}</span>
+              </div>
+              <div className="wizard-review-item">
+                <span className="wizard-review-label">Planned Man-Days</span>
+                <span className="wizard-review-value">{data.plannedManDays || '-'}</span>
+              </div>
+            </div>
 
-        {orderedPhases.map(phase => {
-          const phaseAreas = tasksByPhase.get(phase.tempId) || []
-          const dateRange = formatDateRange(phase.planned_start_date, phase.planned_end_date)
-          return (
-            <div key={phase.tempId} className="wizard-review-task-group">
-              <div className="wizard-review-task-group-name">{phase.name}</div>
-              {(dateRange || phase.description) && (
-                <div className="fm-phase-meta">
-                  {dateRange && <span>{dateRange}</span>}
-                  {phase.description && <span>{phase.description}</span>}
+            {hasAreasOrPhases && (
+              <div className="wizard-review-task-group-name" style={{ marginTop: '1rem' }}>
+                Phases &amp; Tasks ({validAreas.length} task{validAreas.length === 1 ? '' : 's'})
+              </div>
+            )}
+
+            {orderedPhases.map(phase => {
+              const phaseAreas = tasksByPhase.get(phase.tempId) || []
+              const dateRange = formatDateRange(phase.planned_start_date, phase.planned_end_date)
+              return (
+                <div key={phase.tempId} className="wizard-review-task-group">
+                  <div className="wizard-review-task-group-name">{phase.name}</div>
+                  {(dateRange || phase.description) && (
+                    <div className="fm-phase-meta">
+                      {dateRange && <span>{dateRange}</span>}
+                      {phase.description && <span>{phase.description}</span>}
+                    </div>
+                  )}
+                  {phaseAreas.length === 0 ? (
+                    <div className="wizard-review-task-row" style={{ color: 'var(--text-muted)' }}>
+                      <span>No tasks yet</span>
+                    </div>
+                  ) : (
+                    phaseAreas.map((area, i) => (
+                      <div key={i} className="wizard-review-task-row">
+                        <span className="wizard-review-task-name">{area.name}</span>
+                        <span className="wizard-review-task-meta">
+                          {area.scheduledValue > 0 && <span>{formatCurrency(area.scheduledValue)}</span>}
+                          <span className="wizard-review-task-weight">{area.weight}%</span>
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
-              )}
-              {phaseAreas.length === 0 ? (
-                <div className="wizard-review-task-row" style={{ color: 'var(--text-muted)' }}>
-                  <span>No tasks yet</span>
+              )
+            })}
+
+            {unphasedAreas.length > 0 && (
+              <div className="wizard-review-task-group">
+                <div className="wizard-review-task-group-name">
+                  {orderedPhases.length === 0 ? 'Tasks' : 'Unphased'}
                 </div>
-              ) : (
-                phaseAreas.map((area, i) => (
+                {unphasedAreas.map((area, i) => (
                   <div key={i} className="wizard-review-task-row">
                     <span className="wizard-review-task-name">{area.name}</span>
                     <span className="wizard-review-task-meta">
@@ -180,33 +216,18 @@ export default function ReviewStep({ data, onEdit }) {
                       <span className="wizard-review-task-weight">{area.weight}%</span>
                     </span>
                   </div>
-                ))
-              )}
-            </div>
-          )
-        })}
-
-        {unphasedAreas.length > 0 && (
-          <div className="wizard-review-task-group">
-            <div className="wizard-review-task-group-name">
-              {orderedPhases.length === 0 ? 'Tasks' : 'Unphased'}
-            </div>
-            {unphasedAreas.map((area, i) => (
-              <div key={i} className="wizard-review-task-row">
-                <span className="wizard-review-task-name">{area.name}</span>
-                <span className="wizard-review-task-meta">
-                  {area.scheduledValue > 0 && <span>{formatCurrency(area.scheduledValue)}</span>}
-                  <span className="wizard-review-task-weight">{area.weight}%</span>
-                </span>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        <div className="wizard-review-task-totals">
-          <span>Total: {totalWeight.toFixed(1)}%</span>
-          {totalSOV > 0 && <span>SOV: {formatCurrency(totalSOV)}</span>}
-        </div>
+            {validAreas.length > 0 && (
+              <div className="wizard-review-task-totals">
+                <span>Total: {totalWeight.toFixed(1)}%</span>
+                {totalSOV > 0 && <span>SOV: {formatCurrency(totalSOV)}</span>}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

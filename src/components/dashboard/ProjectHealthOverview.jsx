@@ -331,7 +331,10 @@ function getBudgetHealth(forecast, revisedContractValue, projectData) {
 }
 
 function getScheduleHealth(forecast, selectedProject, progress) {
-  if (!forecast?.schedule) {
+  // forecastSchedule() returns a stub ({ projectedEnd: null, slippage: 0 }) when
+  // the project has no dates; treat it the same as having no forecast so a
+  // T&M-only project reads "No end date set" instead of "On track"
+  if (!forecast?.schedule || !forecast.schedule.projectedEnd) {
     if (!selectedProject) return { status: 'no_data', score: 0, value: 'N/A', detail: 'No schedule data', alert: null }
 
     const endDate = selectedProject.end_date || selectedProject.endDate

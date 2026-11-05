@@ -255,6 +255,17 @@ export default function ForemanLanding({
     return Object.keys(ALL_ACTIONS).filter(id => !pinnedIds.includes(id))
   }, [ALL_ACTIONS, pinnedIds])
 
+  // A project with no work areas (T&M-only) has nothing to mark Working/Done.
+  const hasAreas = areas.length > 0
+
+  // Display-only ordering of the pinned cards: with no areas, T&M ticketing is
+  // the foreman's main job, so it leads. The stored order (fm_pinned_<id>) is
+  // untouched so the user's own arrangement returns once areas exist.
+  const displayedPinnedIds = useMemo(() => {
+    if (hasAreas || !pinnedIds.includes('tm')) return pinnedIds
+    return ['tm', ...pinnedIds.filter(id => id !== 'tm')]
+  }, [hasAreas, pinnedIds])
+
   // Get status info for an action
   const getActionStatus = useCallback((actionId) => {
     switch (actionId) {
@@ -277,6 +288,9 @@ export default function ForemanLanding({
           status: todayStatus.dailyReportDone ? 'Submitted' : 'Due today'
         }
       case 'progress':
+        if (!hasAreas) {
+          return { done: false, badge: null, status: 'No areas yet' }
+        }
         return {
           done: areasRemaining === 0,
           badge: areasRemaining > 0 ? `${areasRemaining} left` : null,
@@ -303,7 +317,7 @@ export default function ForemanLanding({
       default:
         return { done: false, badge: null, status: null }
     }
-  }, [todayStatus, progress, areasRemaining, punchListOpenCount])
+  }, [todayStatus, progress, areasRemaining, punchListOpenCount, hasAreas])
 
   const visibleAreas = showAllAreas ? areas : areas.slice(0, AREAS_PREVIEW_COUNT)
 
@@ -418,8 +432,8 @@ export default function ForemanLanding({
         </div>
         <div className="sdx-fld-today-stats">
           <div className="sdx-fld-today-stat">
-            <span className="sdx-fld-today-value">{progress}%</span>
-            <span className="sdx-fld-today-sub">complete</span>
+            <span className="sdx-fld-today-value">{hasAreas ? `${progress}%` : '—'}</span>
+            <span className="sdx-fld-today-sub">{hasAreas ? 'complete' : 'no areas'}</span>
           </div>
           <div className="sdx-fld-today-stat">
             <span className="sdx-fld-today-value">{todayStatus.crewCount || 0}</span>
@@ -436,53 +450,53 @@ export default function ForemanLanding({
         </div>
       </button>
 
-      {/* Update your areas — one-tap status cycle */}
-      <div className="sdx-fld-section">
-        <div className="sdx-fld-section-head">
-          <span className="sdx-fld-section-title">Update your areas</span>
-          <span className="sdx-fld-section-hint">tap to advance</span>
-        </div>
-        {areasLoading ? (
-          <div className="sdx-fld-areas-empty">Loading areas…</div>
-        ) : areas.length === 0 ? (
-          <div className="sdx-fld-areas-empty">Office will add work areas to this project</div>
-        ) : (
-          <div className="sdx-fld-areas">
-            {visibleAreas.map(area => {
-              const meta = AREA_STATUS_META[area.status] || AREA_STATUS_META.not_started
-              return (
-                <button
-                  key={area.id}
-                  className={`sdx-fld-area ${updatingAreaId === area.id ? 'updating' : ''}`}
-                  onClick={() => onAreaCycle?.(area)}
-                  disabled={updatingAreaId === area.id}
-                  aria-label={`${area.name}: ${meta.label}. Tap to advance status.`}
-                >
-                  <span className={`sdx-dot ${meta.className}`} aria-hidden="true" />
-                  <span className="sdx-fld-area-text">
-                    <span className="sdx-fld-area-name">{area.name}</span>
-                    <span className="sdx-fld-area-sub">
-                      {[
-                        area.scheduled_value ? formatCurrencyCompact(area.scheduled_value) : (area.weight ? `${area.weight}%` : null),
-                        area.group_name
-                      ].filter(Boolean).join(' · ')}
-                    </span>
-                  </span>
-                  <span className={`sdx-pill ${meta.className}`}>{meta.label}</span>
-                </button>
-              )
-            })}
-            {areas.length > AREAS_PREVIEW_COUNT && (
-              <button className="sdx-fld-areas-more" onClick={() => setShowAllAreas(v => !v)}>
-                {showAllAreas ? 'Show fewer' : `Show all ${areas.length} areas`}
-              </button>
-            )}
-            <button className="sdx-fld-areas-phases" onClick={() => onNavigate('progress')}>
-              View by phase →
-            </button>
+      {/* Update your areas — one-tap status cycle (hidden for projects with no areas) */}
+      {(areasLoading || hasAreas) && (
+        <div className="sdx-fld-section">
+          <div className="sdx-fld-section-head">
+            <span className="sdx-fld-section-title">Update your areas</span>
+            <span className="sdx-fld-section-hint">tap to advance</span>
           </div>
-        )}
-      </div>
+          {areasLoading ? (
+            <div className="sdx-fld-areas-empty">Loading areas…</div>
+          ) : (
+            <div className="sdx-fld-areas">
+              {visibleAreas.map(area => {
+                const meta = AREA_STATUS_META[area.status] || AREA_STATUS_META.not_started
+                return (
+                  <button
+                    key={area.id}
+                    className={`sdx-fld-area ${updatingAreaId === area.id ? 'updating' : ''}`}
+                    onClick={() => onAreaCycle?.(area)}
+                    disabled={updatingAreaId === area.id}
+                    aria-label={`${area.name}: ${meta.label}. Tap to advance status.`}
+                  >
+                    <span className={`sdx-dot ${meta.className}`} aria-hidden="true" />
+                    <span className="sdx-fld-area-text">
+                      <span className="sdx-fld-area-name">{area.name}</span>
+                      <span className="sdx-fld-area-sub">
+                        {[
+                          area.scheduled_value ? formatCurrencyCompact(area.scheduled_value) : (area.weight ? `${area.weight}%` : null),
+                          area.group_name
+                        ].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <span className={`sdx-pill ${meta.className}`}>{meta.label}</span>
+                  </button>
+                )
+              })}
+              {areas.length > AREAS_PREVIEW_COUNT && (
+                <button className="sdx-fld-areas-more" onClick={() => setShowAllAreas(v => !v)}>
+                  {showAllAreas ? 'Show fewer' : `Show all ${areas.length} areas`}
+                </button>
+              )}
+              <button className="sdx-fld-areas-phases" onClick={() => onNavigate('progress')}>
+                View by phase →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quick actions (pinned, customizable) */}
       <div className="sdx-fld-section">
@@ -502,7 +516,7 @@ export default function ForemanLanding({
         )}
 
         <div className="sdx-fld-qa-grid stagger-children">
-          {pinnedIds.map(renderPinnedAction)}
+          {displayedPinnedIds.map(renderPinnedAction)}
         </div>
       </div>
 

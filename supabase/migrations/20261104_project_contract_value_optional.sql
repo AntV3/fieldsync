@@ -1,0 +1,22 @@
+-- ============================================================
+-- PROJECT SETUP: contract value becomes optional
+--
+-- PROBLEM:
+--   projects.contract_value is NOT NULL (20241201000010_schema.sql),
+--   so a T&M-only job that has no contract value cannot be created
+--   at all — even with the wizard's contract step bypassed, the
+--   insert fails.
+--
+-- FIX:
+--   Drop the NOT NULL constraint. "Not set" is stored as NULL; the
+--   UI never writes 0 (blank → NULL, "0" is rejected client-side).
+--   No backfill, no CHECK, no RLS/RPC change: the dashboard summary
+--   RPC already COALESCEs contract_value to 0 and check_project_dates
+--   is already NULL-tolerant, so this is backward-compatible with the
+--   deployed front-end and can be applied before the client ships.
+--
+-- Idempotent: re-running is a no-op once the column is nullable.
+-- See docs/LAUNCH_READINESS.md §2.
+-- ============================================================
+
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid='public.projects'::regclass AND attname='contract_value' AND attnotnull) THEN ALTER TABLE public.projects ALTER COLUMN contract_value DROP NOT NULL; END IF; END $$;

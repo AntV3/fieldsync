@@ -332,7 +332,9 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Calculate revised contract value
       const changeOrderValue = changeOrderData?.totalApprovedValue || 0
-      const revisedContractValue = project.contract_value + changeOrderValue
+      // contract_value is NULL for T&M-only projects (raw rows) and 0 from the
+      // summary RPC; both must read as "no contract", never NaN
+      const revisedContractValue = (Number(project.contract_value) || 0) + changeOrderValue
 
       // Billable calculation
       const billable = progressData.isValueBased
@@ -748,7 +750,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
     // Get change order data from enhanced project data
     const changeOrderValue = projectData?.changeOrderValue || 0
-    const revisedContractValue = selectedProject.contract_value + changeOrderValue
+    const revisedContractValue = (Number(selectedProject.contract_value) || 0) + changeOrderValue
 
     // Billable: use actual earned value from SOV if available
     const billable = progressData.isValueBased

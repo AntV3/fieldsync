@@ -3,8 +3,13 @@ import { formatCurrency, getOverallStatus, getOverallStatusLabel } from '../../l
 export default function EnhancedProjectCard({ project, riskScore, riskStatus, newActivityCount = 0, onClick }) {
   const status = getOverallStatus(project.areas || [])
   const statusLabel = getOverallStatusLabel(project.areas || [])
-  const profit = project.contract_value - project.billable
-  const isAtRisk = project.billable > project.contract_value * 0.9 && project.progress < 90
+  // NULL (raw row) and 0 (summary RPC) both mean "no contract value"
+  const contractValue = Number(project.contract_value) || 0
+  const hasContract = contractValue > 0
+  const billable = Number(project.billable) || 0
+  const progress = Number(project.progress) || 0
+  const profit = hasContract ? contractValue - billable : 0
+  const isAtRisk = hasContract && billable > contractValue * 0.9 && progress < 90
 
   // Risk badge colors
   const riskColors = {
@@ -25,7 +30,7 @@ export default function EnhancedProjectCard({ project, riskScore, riskStatus, ne
           )}
           <div>
             <div className="project-card-name">{project.name}</div>
-            <div className="project-card-value">{formatCurrency(project.contract_value)}</div>
+            <div className="project-card-value">{hasContract ? formatCurrency(contractValue) : 'No contract value'}</div>
           </div>
         </div>
         <div className="project-card-header-right">
@@ -44,20 +49,29 @@ export default function EnhancedProjectCard({ project, riskScore, riskStatus, ne
       </div>
       <div className="project-stats-row">
         <div className="project-stat">
-          <span className="stat-value">{project.progress}%</span>
+          <span className="stat-value">{progress}%</span>
           <span className="stat-label">Complete</span>
         </div>
         <div className="project-stat">
-          <span className="stat-value">{formatCurrency(project.billable)}</span>
+          <span className="stat-value">{formatCurrency(billable)}</span>
           <span className="stat-label">Billable</span>
         </div>
         <div className="project-stat">
-          <span className={`stat-value ${profit < 0 ? 'negative' : ''}`}>{formatCurrency(Math.abs(profit))}</span>
-          <span className="stat-label">{profit >= 0 ? 'Remaining' : 'Over Budget'}</span>
+          {hasContract ? (
+            <>
+              <span className={`stat-value ${profit < 0 ? 'negative' : ''}`}>{formatCurrency(Math.abs(profit))}</span>
+              <span className="stat-label">{profit >= 0 ? 'Remaining' : 'Over Budget'}</span>
+            </>
+          ) : (
+            <>
+              <span className="stat-value" aria-label="Remaining not available: no contract value">—</span>
+              <span className="stat-label">Remaining</span>
+            </>
+          )}
         </div>
       </div>
       <div className="mini-progress-bar">
-        <div className="mini-progress-fill" style={{ width: `${project.progress}%` }}></div>
+        <div className="mini-progress-fill" style={{ width: `${progress}%` }}></div>
       </div>
       {(project.pendingTickets > 0 || project.totalTickets > 0) && (
         <div className="project-badges">

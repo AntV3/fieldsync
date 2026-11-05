@@ -118,7 +118,12 @@ TMForm.jsx (orchestrator)
 
 | File | Lines | Purpose | Status | Notes |
 |------|-------|---------|--------|-------|
-| `Setup.jsx` | ~300 | Initial company setup | Active | |
+| `Setup.jsx` | ~330 | New project wizard: Basics (name + PIN) → Contacts → Progress tracking (optional) → Review | Active | 4 steps; contract value, schedule and areas are optional |
+| `setup/ProjectBasicsStep.jsx` | ~150 | Step 1: name, trade/job type, foreman PIN | Active | |
+| `setup/ContactsStep.jsx` | ~100 | Step 2: client/GC contacts | Active | All optional |
+| `setup/ProgressTrackingStep.jsx` | ~90 | Step 3: contract value, schedule, man-days, then areas/tasks (`AreasTasksStep` embedded) | Active | Optional; "Skip for now" when empty |
+| `setup/AreasTasksStep.jsx` | ~760 | Phases/areas editor + Excel import | Active | `embedded` prop drops the step header |
+| `setup/ReviewStep.jsx` | ~230 | Step 4: summary before create | Active | "Not set up" card when progress tracking is empty |
 | `JoinCompany.jsx` | ~200 | Join existing company | Active | |
 | `AreaEditor.jsx` | ~400 | Edit project areas | Active | |
 
@@ -132,6 +137,7 @@ TMForm.jsx (orchestrator)
 |------|-------|---------|--------|-------|
 | `supabase.js` | 5,926 | Database facade | Active | **VERY LARGE - needs split** |
 | `utils.js` | 198 | General utilities | Active | Formatting, calculations |
+| `projectSetupValidation.js` | ~190 | Project setup/edit validation (PIN, optional contract value, both-or-neither dates, optional areas totaling 100%, phase names, `isProgressTrackingEmpty`) | Active | Pure; shared by `Setup.jsx` and `useProjectEdit.js` |
 
 #### supabase.js Exports
 

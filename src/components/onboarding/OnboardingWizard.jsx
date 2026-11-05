@@ -80,7 +80,7 @@ export default function OnboardingWizard({ company, user, onShowToast, onCreateP
                 <Smartphone size={28} />
               </div>
               <h3>Field Crews</h3>
-              <p>Foremen open FieldSync on their phone, enter the company code + project PIN, and start marking areas complete with one tap. No login required.</p>
+              <p>Foremen open FieldSync on their phone, enter the company code + project PIN, and start logging T&amp;M tickets, crew and daily reports. Add work areas later for one-tap progress. No login required.</p>
             </div>
             <div className="ob-flow-arrow">
               <ArrowRight size={24} />
@@ -151,8 +151,9 @@ export default function OnboardingWizard({ company, user, onShowToast, onCreateP
           </div>
           <h2>Create Your First Project</h2>
           <p className="ob-subtitle">
-            Projects are the heart of FieldSync. You&apos;ll define the work areas,
-            set a contract value, and generate a PIN for field crews to access it.
+            Projects are the heart of FieldSync. All you need is a name and a
+            foreman PIN. Contract value, schedule and work areas are optional and
+            can be added any time from Project Info.
           </p>
           <div className="ob-checklist">
             <div className="ob-checklist-item">

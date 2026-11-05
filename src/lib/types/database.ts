@@ -16,7 +16,7 @@ export interface ProjectRow {
   company_id: string
   name: string
   status: 'active' | 'archived' | 'complete' | string
-  contract_value: number
+  contract_value: number | null
   job_number?: string | null
   work_type?: string | null
   job_type?: string | null

@@ -100,8 +100,8 @@ The built files will be in the `dist` folder.
 
 ### Office (Dashboard)
 
-1. Create a new project with name and contract value
-2. Define areas (e.g., Level 1, Level 2, Exterior) with percentage weights
+1. Create a new project with a name and a foreman PIN — that is all T&M ticketing needs
+2. Optionally add a contract value, schedule and areas (e.g., Level 1, Level 2, Exterior) with percentage weights, at setup or later from Project Info → Edit Project
 3. View real-time progress as field crews update status
 
 ### Field (Mobile)
@@ -117,8 +117,8 @@ iPhone, open the site in Safari, tap **Share**, then **Add to Home Screen**.
 
 1. Open the Field tab on your phone
 2. Select your project
-3. Tap "Working" when you start an area
-4. Tap "Done" when it's complete
+3. Log a T&M ticket, crew check-in or daily report
+4. If the project has areas, tap "Working" when you start one and "Done" when it's complete
 
 That's it. Under 15 seconds to update.
 
@@ -141,7 +141,7 @@ fieldsync/
 │   │   ├── AppEntry.jsx           # Login / join / register flows
 │   │   ├── Dashboard.jsx          # Office dashboard
 │   │   ├── ForemanView.jsx        # Field crew view
-│   │   ├── Setup.jsx              # New project form
+│   │   ├── Setup.jsx              # New project wizard (4 steps; only name + PIN required)
 │   │   ├── TMList.jsx             # T&M ticket list
 │   │   ├── TMForm.jsx             # T&M ticket creation
 │   │   ├── billing/               # Invoices, draw requests

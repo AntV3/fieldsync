@@ -8,7 +8,8 @@ import {
   calculateProgress,
   calculateValueProgress,
   getOverallStatus,
-  formatStatus
+  formatStatus,
+  calculateScheduleInsights
 } from '../lib/utils'
 
 // ============================================
@@ -128,5 +129,71 @@ describe('formatStatus', () => {
 
   it('returns unknown status as-is', () => {
     expect(formatStatus('unknown')).toBe('unknown')
+  })
+})
+
+// ============================================
+// calculateScheduleInsights tests
+// ============================================
+describe('calculateScheduleInsights', () => {
+  // Fail on any non-finite number anywhere in the result
+  const expectFinite = (result) => {
+    for (const [key, value] of Object.entries(result)) {
+      if (typeof value === 'number') {
+        expect(Number.isFinite(value), `${key} is ${value}`).toBe(true)
+      }
+    }
+  }
+
+  it('reports no schedule or labor data for a T&M-only project (NULL dates, NULL man-days)', () => {
+    const result = calculateScheduleInsights(
+      { start_date: null, end_date: null, planned_man_days: null, progress: 0 },
+      0
+    )
+    expect(result.hasScheduleData).toBe(false)
+    expect(result.hasLaborData).toBe(false)
+    expect(result.scheduleStatus).toBe('on_track')
+    expect(result.scheduleLabel).toBe('On Track')
+    expect(result.scheduleVariance).toBe(0)
+    expect(result.laborVariance).toBe(0)
+    expect(result.laborLabel).toBeNull()
+    expectFinite(result)
+  })
+
+  it('treats undefined dates the same as null', () => {
+    const result = calculateScheduleInsights({ progress: 0 }, 0)
+    expect(result.hasScheduleData).toBe(false)
+    expect(result.hasLaborData).toBe(false)
+    expectFinite(result)
+  })
+
+  it('needs both dates before it reports schedule data', () => {
+    const startOnly = calculateScheduleInsights({ start_date: '2026-01-01', end_date: null, progress: 50 }, 0)
+    expect(startOnly.hasScheduleData).toBe(false)
+    expectFinite(startOnly)
+
+    const endOnly = calculateScheduleInsights({ start_date: null, end_date: '2026-12-31', progress: 50 }, 0)
+    expect(endOnly.hasScheduleData).toBe(false)
+    expectFinite(endOnly)
+  })
+
+  it('keeps labor empty when man-days were logged but none were planned', () => {
+    const result = calculateScheduleInsights(
+      { start_date: null, end_date: null, planned_man_days: null, progress: 0 },
+      12
+    )
+    expect(result.hasLaborData).toBe(false)
+    expect(result.laborLabel).toBeNull()
+    expectFinite(result)
+  })
+
+  it('reports schedule data once both dates are set', () => {
+    const result = calculateScheduleInsights(
+      { start_date: '2000-01-01', end_date: '2000-12-31', progress: 100 },
+      0
+    )
+    expect(result.hasScheduleData).toBe(true)
+    expect(result.scheduleStatus).toBe('on_track')
+    expectFinite(result)
   })
 })
