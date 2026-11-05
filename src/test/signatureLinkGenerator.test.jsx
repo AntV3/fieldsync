@@ -38,7 +38,7 @@ const requestRow = (overrides = {}) => ({
   id: 'req1',
   document_type: 'cor',
   document_id: 'cor1',
-  signature_token: 'sig_aaaaaaaa11111111',
+  signature_token: 'sig_test_a1',
   status: 'pending',
   view_count: 0,
   expires_at: inFuture(7 * 24 * 60 * MIN),
@@ -131,7 +131,7 @@ describe('SignatureLinkGenerator', () => {
       expect(window.location.href).toBe(originalHref)
       expect(window.location.href.startsWith('mailto:')).toBe(false)
       expect(screen.queryByText(/Outlook opened/)).not.toBeInTheDocument()
-      expect(screen.getByLabelText('New signature link')).toHaveValue(`${window.location.origin}/sign/sig_aaaaaaaa11111111`)
+      expect(screen.getByLabelText('New signature link')).toHaveValue(`${window.location.origin}/sign/sig_test_a1`)
       // the new link shows its queued status
       expect(within(screen.getByTestId('new-link-email-status')).getByText(/Queued/)).toBeInTheDocument()
     })
@@ -176,7 +176,7 @@ describe('SignatureLinkGenerator', () => {
       const link = await screen.findByRole('link', { name: /Open in email app/ })
       const href = link.getAttribute('href')
       expect(href.startsWith('mailto:gina@biggc.com?subject=')).toBe(true)
-      expect(decodeURIComponent(href)).toContain('/sign/sig_aaaaaaaa11111111')
+      expect(decodeURIComponent(href)).toContain('/sign/sig_test_a1')
       expect(screen.getByRole('button', { name: /Copy/ })).toBeInTheDocument()
     })
   })
@@ -206,7 +206,7 @@ describe('SignatureLinkGenerator', () => {
     it('renders "Email failed — <last_error>" for failed and dead rows', async () => {
       mockDb.getSignatureRequestsForDocument.mockResolvedValue([
         requestRow({ id: 'r1', email_outbox: [{ id: 'o1', status: 'failed', attempts: 1, sent_at: null, last_error: 'API key is invalid', created_at: ago(30 * MIN) }] }),
-        requestRow({ id: 'r2', signature_token: 'sig_bbbbbbbb22222222', email_outbox: [{ id: 'o2', status: 'dead', attempts: 5, sent_at: null, last_error: 'Mailbox does not exist', created_at: ago(30 * MIN) }] })
+        requestRow({ id: 'r2', signature_token: 'sig_test_b2', email_outbox: [{ id: 'o2', status: 'dead', attempts: 5, sent_at: null, last_error: 'Mailbox does not exist', created_at: ago(30 * MIN) }] })
       ])
       renderGenerator()
 
@@ -328,7 +328,7 @@ describe('SignatureLinkGenerator', () => {
     })
 
     it('shows status and Resend only for the just-created request', async () => {
-      const created = requestRow({ id: 'new1', created_at: ago(10 * MIN), signature_token: 'sig_cccccccc33333333' })
+      const created = requestRow({ id: 'new1', created_at: ago(10 * MIN), signature_token: 'sig_test_c3' })
       // Even if the field client could list other requests, they get no status/resend.
       mockDb.getSignatureRequestsForDocument.mockResolvedValue([
         requestRow({ id: 'old1', last_sent_at: ago(60 * MIN), email_outbox: [{ id: 'o1', status: 'sent', attempts: 1, sent_at: ago(60 * MIN), last_error: null, created_at: ago(60 * MIN) }] })
