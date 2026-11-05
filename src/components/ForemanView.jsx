@@ -73,6 +73,9 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   const [pendingActionCount, setPendingActionCount] = useState(0)
   const [ticketSyncInProgress, setTicketSyncInProgress] = useState(false)
   const [isOnline, setIsOnline] = useState(() => safeConnectionStatus())
+  // Tickets the office rejected (with reason). Refreshed with today's status:
+  // on mount, on return to Home and on T&M realtime events when they arrive.
+  const [rejectedTickets, setRejectedTickets] = useState([])
 
   // Theme
   const [isDark, setIsDark] = useState(() => {
@@ -117,8 +120,28 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     setPendingActionCount(legacyCount)
   }
 
+  // Rejected tickets for the "needs attention" card. Offline the read cannot
+  // succeed, so the previous list stays (getRejectedTMTickets returns [] on
+  // any error, which must not wipe a card the foreman has not acted on yet).
+  const loadRejectedTickets = async () => {
+    if (!project?.id || typeof db.getRejectedTMTickets !== 'function') return
+    if (!safeConnectionStatus()) return
+    try {
+      const list = await db.getRejectedTMTickets(project.id)
+      if (!mountedRef.current || !Array.isArray(list)) return
+      // Dropped connection mid-request: treat as a failure and keep the old list.
+      if (list.length === 0 && !safeConnectionStatus()) return
+      setRejectedTickets(list)
+    } catch (error) {
+      console.warn('[ForemanView] failed to load rejected T&M tickets', error)
+    }
+  }
+
   // Load today's activity status
   const loadTodayStatus = async () => {
+    // Independent of the Promise.all below: a failed status read must not
+    // block the rejection card, and vice versa.
+    const rejectedLoad = loadRejectedTickets()
     try {
       const today = new Date().toISOString().split('T')[0]
 
@@ -150,6 +173,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         onShowToast?.('Unable to refresh today’s status', 'error')
       }
     }
+    await rejectedLoad
   }
 
   // Load open punch list item count for badge
@@ -758,6 +782,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         ticketSyncInProgress={ticketSyncInProgress}
         pendingActionCount={pendingActionCount}
         isOnline={isOnline}
+        rejectedTickets={rejectedTickets}
         onNavigate={handleNavigate}
         onShowToast={onShowToast}
       />

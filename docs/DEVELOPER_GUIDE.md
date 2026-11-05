@@ -463,6 +463,66 @@ doc.setDrawColor(200, 200, 200)
 doc.line(x1, y1, x2, y2)
 ```
 
+### Transactional email (send-email Edge Function)
+
+Database triggers insert rows into `email_outbox` and POST the row id to the `send-email` Edge Function (`pg_net`); a `pg_cron` job (`email_outbox_sweep`) retries failed and stuck rows every minute. The function (`supabase/functions/send-email/`) claims each row, asks the database for its context (`email_context`), renders it (`templates.ts`) and sends it through Resend with `Idempotency-Key: outbox/<id>`, so a retried row never sends twice. The browser never calls it and never sees a key.
+
+Deploy (repeat after every change under `supabase/functions/send-email/`):
+
+```bash
+npx supabase login                         # once
+npx supabase link --project-ref <ref>      # once; also set project_id in supabase/config.toml
+npx supabase functions deploy send-email --no-verify-jwt
+```
+
+Function secrets (Dashboard → Edge Functions → Secrets, or the CLI). `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided by the platform:
+
+```bash
+npx supabase secrets set RESEND_API_KEY=re_... \
+  EMAIL_FROM="FieldSync <noreply@mail.yourdomain.com>" \
+  APP_BASE_URL=https://app.yourdomain.com \
+  EMAIL_WORKER_SECRET=<random 32+ characters>
+```
+
+Vault (SQL Editor) — the database's copy of the URL and the same shared secret. Without them rows wait as `pending`:
+
+```sql
+select vault.create_secret('https://<ref>.supabase.co/functions/v1/send-email', 'email_worker_url');
+select vault.create_secret('<same value as EMAIL_WORKER_SECRET>', 'email_worker_secret');
+-- rotate: update both together
+select vault.update_secret((select id from vault.secrets where name = 'email_worker_secret'), '<new value>');
+```
+
+Smoke test (sends the test template, touches no rows; without the header you get 401):
+
+```bash
+curl -i -X POST "https://<ref>.supabase.co/functions/v1/send-email" \
+  -H "x-email-worker-secret: $EMAIL_WORKER_SECRET" -H "content-type: application/json" \
+  -d '{"test_to":"you@example.com"}'
+# drain the queue by hand: -d '{"drain":true}'   one row: -d '{"outbox_id":"<uuid>"}'
+```
+
+The response is `{ processed, sent, failed, deferred, cancelled, dead, skipped }`. Function logs: Dashboard → Edge Functions → send-email → Logs.
+
+Reading the outbox:
+
+```sql
+select status, count(*) from email_outbox group by 1;
+select id, event_type, to_email, status, attempts, scheduled_for, sent_at, provider_message_id, last_error
+  from email_outbox order by created_at desc limit 50;
+select * from cron.job where jobname = 'email_outbox_sweep';
+```
+
+Statuses: `pending` (queued, or Vault not configured), `sending` (claimed; reclaimed after 10 minutes if stuck), `sent` (`last_error = 'idempotent_replay'` means Resend had already accepted it), `failed` (will retry with backoff; `awaiting_workers` means a T&M ticket had no workers yet), `dead` (gave up after 5 attempts or Resend rejected it permanently, e.g. a bad address — investigate), `cancelled` (the request/ticket was no longer pending).
+
+Tests (pure templates plus the handler with `fetch` and the database stubbed):
+
+```bash
+cd supabase/functions/send-email && deno fmt --check . && deno lint . && deno test --allow-env .
+# or from the repo root:
+deno test --allow-env --config supabase/functions/send-email/deno.json supabase/functions/send-email
+```
+
 ---
 
 ## 7. Debugging Tips

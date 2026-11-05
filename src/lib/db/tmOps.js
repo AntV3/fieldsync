@@ -388,6 +388,41 @@ export const tmOps = {
     return []
   },
 
+  /**
+   * Rejected tickets for the foreman's home screen, newest rejection first.
+   * Readable with the field session (getClient) and limited to the columns
+   * the "needs attention" card shows, so no pricing leaves the server.
+   * Never throws: any error is logged and yields [].
+   * @param {string} projectId
+   * @param {number} [limit=20]
+   * @returns {Promise<Array<{ id, work_date, ce_pco_number, rejection_reason,
+   *   rejected_at, rejected_by_name, created_by_name, status }>>}
+   */
+  async getRejectedTMTickets(projectId, limit = 20) {
+    if (!isSupabaseConfigured || !projectId) return []
+    try {
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
+        .from('t_and_m_tickets')
+        .select('id, work_date, ce_pco_number, rejection_reason, rejected_at, rejected_by_name, created_by_name, status')
+        .eq('project_id', projectId)
+        .eq('status', 'rejected')
+        .order('rejected_at', { ascending: false, nullsFirst: false })
+        .limit(limit)
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      observe.error('database', {
+        message: error?.message,
+        code: error?.code,
+        operation: 'getRejectedTMTickets',
+        project_id: projectId
+      })
+      return []
+    }
+  },
+
   // Get T&M tickets associated with a COR (for backup documentation)
   async getCORTickets(corId) {
     if (isSupabaseConfigured) {

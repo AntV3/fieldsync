@@ -1,0 +1,11 @@
+# Supabase CLI configuration (trimmed; only what FieldSync deploys from the repo).
+#
+# FOUNDER: replace project_id with your project ref (Dashboard -> Project Settings -> General,
+# the "Reference ID", also the <ref> in https://<ref>.supabase.co) before running
+# `npx supabase link` / `npx supabase functions deploy send-email`.
+project_id = "your-project-ref"
+
+# Called by the database (pg_net trigger + pg_cron sweep), not by browsers.
+# The function checks the x-email-worker-secret header itself, so the platform JWT check is off.
+[functions.send-email]
+verify_jwt = false

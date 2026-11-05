@@ -1799,31 +1799,54 @@ export const corOps = {
   // Signature Workflow Functions
   // ============================================
 
-  // Create a signature request for a document (COR or T&M)
-  async createSignatureRequest(documentType, documentId, companyId, projectId, createdBy = null, expiresAt = null) {
+  // Create a signature request for a document (COR or T&M) through the
+  // create_signature_request RPC (20261104_signature_public_rpcs.sql).
+  // The server authorizes office membership or the field session
+  // (x-field-session header on the field client), derives company_id from
+  // the project, checks the document belongs to it, mints the token and
+  // stamps created_by = auth.uid(). companyId/createdBy stay in the JS
+  // signature for existing callers but are no longer sent. When
+  // recipient = { email, name } is given, a DB trigger queues the
+  // signing email (email_outbox). Returns the new signature_requests row.
+  async createSignatureRequest(documentType, documentId, _companyId, projectId, _createdBy = null, expiresAt = null, recipient = null) {
     if (isSupabaseConfigured) {
       const client = getClient()
       if (!client) {
         throw new Error('Database client not available')
       }
 
-      // Generate a unique token using the database function
-      const { data: tokenResult, error: tokenError } = await client.rpc('generate_signature_token')
-      if (tokenError) throw tokenError
+      const recipientEmail = typeof recipient?.email === 'string' ? recipient.email.trim() : ''
+      const recipientName = typeof recipient?.name === 'string' ? recipient.name.trim() : ''
 
-      const { data, error } = await client
-        .from('signature_requests')
-        .insert({
-          document_type: documentType,
-          document_id: documentId,
-          company_id: companyId,
-          project_id: projectId,
-          signature_token: tokenResult,
-          expires_at: expiresAt,
-          created_by: createdBy
-        })
-        .select()
-        .single()
+      const { data, error } = await client.rpc('create_signature_request', {
+        p_document_type: documentType,
+        p_document_id: documentId,
+        p_project_id: projectId,
+        p_expires_at: expiresAt || null,
+        p_recipient_email: recipientEmail || null,
+        p_recipient_name: recipientEmail ? (recipientName || null) : null
+      })
+      if (error) throw error
+      return data
+    }
+    return null
+  },
+
+  // Ask the server to email the signing link again. The BEFORE UPDATE
+  // guard throttles to one send/resend per 5 minutes and raises
+  // 'Please wait a few minutes before resending'; the error is thrown
+  // unchanged so the UI can show error.message verbatim.
+  // Returns the updated signature_requests row.
+  async resendSignatureRequest(requestId) {
+    if (isSupabaseConfigured) {
+      const client = getClient()
+      if (!client) {
+        throw new Error('Database client not available')
+      }
+
+      const { data, error } = await client.rpc('resend_signature_request', {
+        p_request_id: requestId
+      })
       if (error) throw error
       return data
     }
@@ -1854,7 +1877,11 @@ export const corOps = {
     return null
   },
 
-  // Get all signature requests for a document
+  // Get all signature requests for a document, with their signatures and
+  // email_outbox rows (delivery status for the modal). Until
+  // 20261104_transactional_email.sql is applied the email_outbox embed
+  // fails with PGRST200 (no relationship); fall back to the plain select.
+  // TODO(next release): drop the fallback once the migration is everywhere.
   async getSignatureRequestsForDocument(documentType, documentId) {
     if (isSupabaseConfigured) {
       const client = getClient()
@@ -1862,15 +1889,19 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
-      const { data, error } = await client
+      const runSelect = (columns) => client
         .from('signature_requests')
-        .select(`
-          *,
-          signatures (*)
-        `)
+        .select(columns)
         .eq('document_type', documentType)
         .eq('document_id', documentId)
         .order('created_at', { ascending: false })
+
+      let { data, error } = await runSelect(
+        '*, signatures (*), email_outbox (id, status, attempts, sent_at, last_error, created_at)'
+      )
+      if (error?.code === 'PGRST200') {
+        ({ data, error } = await runSelect('*, signatures (*)'))
+      }
       if (error) throw error
       return data || []
     }

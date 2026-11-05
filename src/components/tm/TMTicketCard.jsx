@@ -67,6 +67,15 @@ const TMTicketCard = memo(function TMTicketCard({
   const editedByLine = `Edited by ${editedBy}${editedOn ? ` on ${editedOn}` : ''}`
   const editBlockedReason = editability.reason || 'This ticket cannot be edited'
 
+  // Why the office rejected it (the foreman sees the same reason in the field)
+  const rejectionNote = (() => {
+    if (ticket.status !== 'rejected') return null
+    const by = String(ticket.rejected_by_name ?? '').trim()
+    const reason = String(ticket.rejection_reason ?? '').trim()
+    if (!by && !reason) return null
+    return `Rejected${by ? ` by ${by}` : ''}${reason ? `: ${reason}` : ''}`
+  })()
+
   // Resolve stored photo paths/public URLs to signed URLs (bucket is private)
   const [signedPhotoUrls, setSignedPhotoUrls] = useState([])
   useEffect(() => {
@@ -294,6 +303,13 @@ const TMTicketCard = memo(function TMTicketCard({
             <div className="tm-lock-notice">
               <Lock size={14} />
               <span>{lockInfo?.reason || 'This ticket is locked (COR approved)'}</span>
+            </div>
+          )}
+
+          {rejectionNote && (
+            <div className="tm-edit-notice tm-reject-notice" role="note">
+              <AlertTriangle size={14} aria-hidden="true" />
+              <span>{rejectionNote}</span>
             </div>
           )}
 

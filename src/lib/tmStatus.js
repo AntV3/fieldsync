@@ -102,3 +102,30 @@ export function getTicketEditability(ticket, lockInfo) {
 
   return { editable: true, locked: false, reason: null, warnings, flagsAfterSignature }
 }
+
+export const TM_REJECTION_REASON_MAX = 500
+export const TM_REJECTION_REASON_REQUIRED = 'Enter a reason so the foreman knows what to fix.'
+export const TM_REJECTION_REASON_TOO_LONG = 'Keep the reason under 500 characters.'
+
+/**
+ * Check the reason the office typed when rejecting a ticket. The foreman sees
+ * it on the field home screen, so an empty reason is not allowed.
+ *
+ * @param {string|null|undefined} input - window.prompt result (null = cancelled)
+ * @returns {{ ok: true, reason: string }
+ *   | { ok: false, error: string }
+ *   | { ok: false, cancelled: true }}
+ */
+export function validateRejectionReason(input) {
+  if (input === null || input === undefined) {
+    return { ok: false, cancelled: true }
+  }
+  const reason = String(input).trim()
+  if (!reason) {
+    return { ok: false, error: TM_REJECTION_REASON_REQUIRED }
+  }
+  if (reason.length > TM_REJECTION_REASON_MAX) {
+    return { ok: false, error: TM_REJECTION_REASON_TOO_LONG }
+  }
+  return { ok: true, reason }
+}

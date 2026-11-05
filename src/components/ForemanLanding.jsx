@@ -13,6 +13,7 @@ import { formatCurrencyCompact } from '../lib/utils'
  *
  * Redesigned around the one-tap Working/Done loop:
  * - Greeting header + offline sync banner
+ * - Red "needs attention" card for tickets the office rejected
  * - Dark "today" progress card
  * - "Update your areas" tap-to-cycle list (the core field action)
  * - Pinnable quick action cards + collapsible "More Actions"
@@ -171,6 +172,45 @@ function syncBannerFor({ isOnline, tickets, syncInProgress, pendingActionCount }
   return null
 }
 
+// Rejections the foreman dismissed on this device: a list of
+// `${ticket.id}:${rejected_at}` so a newer rejection of the same ticket shows again.
+const getDismissedRejectionsKey = (projectId) => `fm_dismissed_rejections_${projectId}`
+const MAX_DISMISSED_REJECTIONS = 100
+
+const rejectionToken = (ticket) => `${ticket?.id}:${ticket?.rejected_at || ''}`
+
+function readDismissedRejections(storageKey) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function formatWorkDate(workDate) {
+  if (!workDate) return null
+  // work_date is a plain YYYY-MM-DD; parse it as a local date (no UTC shift).
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(workDate) ? new Date(`${workDate}T00:00:00`) : new Date(workDate)
+  if (Number.isNaN(d.getTime())) return String(workDate)
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function relativeTimeFrom(timestamp, now = Date.now()) {
+  if (!timestamp) return null
+  const then = new Date(timestamp).getTime()
+  if (Number.isNaN(then)) return null
+  const mins = Math.max(0, Math.floor((now - then) / 60000))
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hr ago`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days} days ago`
+  return `on ${new Date(then).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+}
+
 function initialsOf(name) {
   return String(name || 'FS')
     .split(/\s+/)
@@ -198,6 +238,8 @@ export default function ForemanLanding({
   ticketSyncInProgress = false,
   pendingActionCount = 0,
   isOnline = true,
+  // T&M tickets the office rejected (db.getRejectedTMTickets), loaded by ForemanView
+  rejectedTickets = [],
   onNavigate,
   onShowToast
 }) {
@@ -215,6 +257,36 @@ export default function ForemanLanding({
     syncInProgress: ticketSyncInProgress,
     pendingActionCount
   })
+
+  // Rejected tickets minus the ones dismissed on this device. The stored list
+  // is per project; when the project changes the state is re-read from storage.
+  const dismissedStorageKey = getDismissedRejectionsKey(project?.id)
+  const [dismissedState, setDismissedState] = useState(() => ({
+    key: dismissedStorageKey,
+    tokens: readDismissedRejections(dismissedStorageKey)
+  }))
+  const dismissedTokens = dismissedState.key === dismissedStorageKey
+    ? dismissedState.tokens
+    : readDismissedRejections(dismissedStorageKey)
+  const visibleRejections = useMemo(() => {
+    const dismissed = new Set(dismissedTokens)
+    return (Array.isArray(rejectedTickets) ? rejectedTickets : [])
+      .filter(t => t?.id && !dismissed.has(rejectionToken(t)))
+  }, [rejectedTickets, dismissedTokens])
+
+  const dismissRejection = (ticket) => {
+    const token = rejectionToken(ticket)
+    // Keep only tokens for tickets still rejected (bounded storage) plus this one.
+    const current = new Set((rejectedTickets || []).map(rejectionToken))
+    const next = [...dismissedTokens.filter(t => current.has(t) && t !== token), token]
+      .slice(-MAX_DISMISSED_REJECTIONS)
+    setDismissedState({ key: dismissedStorageKey, tokens: next })
+    try {
+      localStorage.setItem(dismissedStorageKey, JSON.stringify(next))
+    } catch {
+      // Storage unavailable: dismissed for this visit only
+    }
+  }
 
   // Resolve available actions: base actions filtered by trade config
   const ALL_ACTIONS = useMemo(() => {
@@ -472,6 +544,58 @@ export default function ForemanLanding({
             <span className="sdx-fld-sync-sub">{syncBanner.sub}</span>
           </span>
         </div>
+      )}
+
+      {/* Needs attention: tickets the office rejected */}
+      {visibleRejections.length > 0 && (
+        <section className="sdx-fld-alert" aria-labelledby="sdx-fld-alert-title">
+          <div className="sdx-fld-alert-head">
+            <span className="sdx-fld-alert-icon" aria-hidden="true">
+              <AlertTriangle size={17} />
+            </span>
+            <span className="sdx-fld-alert-text">
+              <span className="sdx-fld-alert-title" id="sdx-fld-alert-title">
+                {visibleRejections.length === 1
+                  ? '1 ticket needs attention'
+                  : `${visibleRejections.length} tickets need attention`}
+              </span>
+              <span className="sdx-fld-alert-sub">Rejected by the office — fix and resubmit</span>
+            </span>
+          </div>
+          <ul className="sdx-fld-alert-list">
+            {visibleRejections.map(ticket => {
+              const date = formatWorkDate(ticket.work_date)
+              const when = relativeTimeFrom(ticket.rejected_at)
+              const reason = String(ticket.rejection_reason ?? '').trim()
+              const by = String(ticket.rejected_by_name ?? '').trim()
+              const label = ['T&M', date, ticket.ce_pco_number ? `PCO ${ticket.ce_pco_number}` : null]
+                .filter(Boolean).join(' · ')
+              return (
+                <li key={rejectionToken(ticket)} className="sdx-fld-alert-item">
+                  <div className="sdx-fld-alert-item-body">
+                    <span className="sdx-fld-alert-item-label">{label}</span>
+                    <span className="sdx-fld-alert-reason">{reason || 'No reason given'}</span>
+                    <span className="sdx-fld-alert-meta">
+                      {[by ? `Rejected by ${by}` : 'Rejected', when].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="sdx-fld-alert-dismiss"
+                    onClick={() => dismissRejection(ticket)}
+                    aria-label={`Dismiss rejection of ${label}`}
+                  >
+                    Dismiss
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <button type="button" className="sdx-fld-alert-cta" onClick={() => onNavigate('tm')}>
+            <FileText size={16} aria-hidden="true" />
+            Submit corrected ticket
+          </button>
+        </section>
       )}
 
       {/* Today dark card */}

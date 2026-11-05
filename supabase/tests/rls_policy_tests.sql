@@ -395,6 +395,9 @@ END $$;
 -- SELECT on the tables the RPCs read, no blanket anon policy was
 -- added, unknown tokens return NULL, and the tm-photos bucket is
 -- still private behind the signing-token policy.
+-- 8g verifies 20261104_signature_public_rpcs.sql: no anon write
+-- path on signature_requests / signatures; links are created through
+-- create_signature_request / resend_signature_request.
 -- ============================================================
 
 DO $$
@@ -508,25 +511,110 @@ BEGIN
     END IF;
   END IF;
 
-  -- 8g. The anon policies on signature_requests are pinned to a field
-  --     session (a request row is the signing credential)
+  -- 8g. Client write paths on signature_requests / signatures are
+  --     closed (20261104_signature_public_rpcs.sql): no anon policy or
+  --     write privilege; authenticated has no INSERT/DELETE on
+  --     signature_requests and no INSERT/UPDATE/DELETE on signatures;
+  --     the only policies are the company-scoped (user_company_ids(),
+  --     active members) SELECT / UPDATE ones; no blanket
+  --     "Authenticated can view / add signatures". Links are created
+  --     through create_signature_request / resend_signature_request
+  --     (SECURITY DEFINER, pinned search_path, EXECUTE for anon +
+  --     authenticated), which refuse a caller without a session.
+  SELECT COUNT(*), string_agg(tablename || '.' || policyname || ' (' || cmd || ')', ', ')
+  INTO v_count, v_names
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND ((tablename = 'signature_requests' AND cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL'))
+         OR (tablename = 'signatures' AND cmd IN ('INSERT', 'ALL')))
+    AND (roles @> ARRAY['anon'::name]
+         OR policyname IN ('Anon can create signature requests', 'Anon can update signature requests', 'Anon can add signatures'));
+  PERFORM _run_rls_test('No anon write policy on signature_requests / signatures', 'Public Signing', '0', v_count::TEXT,
+    COALESCE(v_names, 'Writes go through create_signature_request / resend_signature_request / public_add_signature'));
+
   FOR r IN
     SELECT * FROM (VALUES
-      ('Anon can create signature requests', 'INSERT'),
-      ('Anon can update signature requests', 'UPDATE')
-    ) AS pol(name, cmd)
+      ('anon', 'signature_requests', 'INSERT'),
+      ('anon', 'signature_requests', 'UPDATE'),
+      ('anon', 'signature_requests', 'DELETE'),
+      ('anon', 'signatures', 'INSERT'),
+      ('authenticated', 'signature_requests', 'INSERT'),
+      ('authenticated', 'signature_requests', 'DELETE'),
+      ('authenticated', 'signatures', 'INSERT'),
+      ('authenticated', 'signatures', 'UPDATE'),
+      ('authenticated', 'signatures', 'DELETE')
+    ) AS g(grantee, tbl, priv)
   LOOP
-    SELECT COUNT(*) INTO v_count
-    FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'signature_requests'
-      AND policyname = r.name AND cmd = r.cmd
-      AND roles = ARRAY['anon'::name]
-      AND COALESCE(with_check, '') ILIKE '%can_access_project(project_id)%'
-      AND COALESCE(with_check, '') ILIKE '%t_and_m_tickets%'
-      AND COALESCE(with_check, '') ILIKE '%change_orders%';
-    PERFORM _run_rls_test('Pinned anon policy: ' || r.name, 'Public Signing', '1', v_count::TEXT,
-      'TO anon, WITH CHECK must require can_access_project(project_id) and a document inside the project');
+    IF to_regclass('public.' || r.tbl) IS NULL THEN
+      PERFORM _run_rls_test(initcap(r.grantee) || ' has no ' || r.priv || ' on ' || r.tbl, 'Public Signing', 'false', 'TABLE NOT FOUND', NULL);
+    ELSE
+      SELECT has_table_privilege(r.grantee, 'public.' || r.tbl, r.priv) INTO v_has_priv;
+      PERFORM _run_rls_test(initcap(r.grantee) || ' has no ' || r.priv || ' on ' || r.tbl, 'Public Signing', 'false', v_has_priv::TEXT,
+        'Revoked by 20261104_signature_public_rpcs.sql');
+    END IF;
   END LOOP;
+
+  -- Only the company-scoped policies remain on the two tables
+  SELECT COUNT(*), string_agg(tablename || '.' || policyname || ' (' || cmd || ')', ', ')
+  INTO v_count, v_names
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND tablename IN ('signature_requests', 'signatures')
+    AND NOT (
+      (tablename = 'signature_requests' AND cmd IN ('SELECT', 'UPDATE'))
+      OR (tablename = 'signatures' AND cmd = 'SELECT')
+    );
+  PERFORM _run_rls_test('No INSERT/DELETE/ALL policy on signature_requests, only SELECT on signatures', 'Public Signing', '0', v_count::TEXT,
+    COALESCE(v_names, 'Creates go through create_signature_request; signatures through public_add_signature'));
+
+  SELECT COUNT(*), string_agg(tablename || '.' || policyname, ', ')
+  INTO v_count, v_names
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND tablename IN ('signature_requests', 'signatures')
+    AND (COALESCE(qual, '') NOT ILIKE '%user_company_ids()%'
+         OR (cmd IN ('UPDATE', 'ALL', 'INSERT') AND COALESCE(with_check, '') NOT ILIKE '%user_company_ids()%'));
+  PERFORM _run_rls_test('Signature policies scoped by user_company_ids() (active members)', 'Public Signing', '0', v_count::TEXT,
+    COALESCE(v_names, 'all scoped'));
+
+  FOR r IN
+    SELECT * FROM (VALUES
+      ('create_signature_request', 'public.create_signature_request(text, uuid, uuid, timestamp with time zone, text, text)'),
+      ('resend_signature_request', 'public.resend_signature_request(uuid)')
+    ) AS f(name, signature)
+  LOOP
+    IF to_regprocedure(r.signature) IS NULL THEN
+      PERFORM _run_rls_test('Function exists: ' || r.name, 'Public Signing', 'true', 'FUNCTION NOT FOUND', 'Apply 20261104_signature_public_rpcs.sql');
+    ELSE
+      SELECT p.prosecdef
+             AND EXISTS (SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::TEXT[])) cfg WHERE cfg LIKE 'search_path=%')
+      INTO v_secdef
+      FROM pg_proc p WHERE p.oid = to_regprocedure(r.signature);
+      PERFORM _run_rls_test('SECURITY DEFINER + search_path: ' || r.name, 'Public Signing', 'true', v_secdef::TEXT, NULL);
+      PERFORM _run_rls_test('Anon can execute ' || r.name, 'Public Signing', 'true',
+        has_function_privilege('anon', r.signature, 'EXECUTE')::TEXT, 'The field app (PIN session) calls it as anon');
+    END IF;
+  END LOOP;
+
+  -- Behaviour: as anon with no field session the RPC answers 42501
+  IF to_regprocedure('public.create_signature_request(text, uuid, uuid, timestamp with time zone, text, text)') IS NOT NULL THEN
+    BEGIN
+      PERFORM set_config('request.headers', '{}', true);
+      PERFORM set_config('request.jwt.claims', '{"role":"anon"}', true);
+      EXECUTE 'SET LOCAL ROLE anon';
+      BEGIN
+        PERFORM create_signature_request('tm_ticket', gen_random_uuid(), gen_random_uuid(), NULL, NULL, NULL);
+        v_names := 'accepted';
+      EXCEPTION WHEN insufficient_privilege THEN
+        v_names := '42501';
+      END;
+      EXECUTE 'RESET ROLE';
+    EXCEPTION WHEN OTHERS THEN
+      EXECUTE 'RESET ROLE';
+      v_names := SQLSTATE || ' ' || SQLERRM;
+    END;
+    PERFORM _run_rls_test('create_signature_request refuses anon without a session', 'Public Signing', '42501', v_names, NULL);
+  END IF;
 
   -- 8f. anon lacks EXECUTE on the two helpers
   FOR r IN

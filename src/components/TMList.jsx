@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { TM_AWAITING_APPROVAL_STATUSES, getTicketEditability } from '../lib/tmStatus'
+import { TM_AWAITING_APPROVAL_STATUSES, getTicketEditability, validateRejectionReason } from '../lib/tmStatus'
 import { buildClassRateLookup, calculateTicketValue } from '../lib/laborRateResolver'
 import {
   resolvePrimaryColor,
@@ -299,12 +299,21 @@ export default function TMList({
       onShowToast(lockedTickets[ticket.id].reason || 'This ticket is locked (COR approved)', 'error')
       return
     }
-    const reason = window.prompt('Why is this ticket being rejected? (shown to the field)')
-    if (reason === null) return
+    const check = validateRejectionReason(
+      window.prompt('Why is this ticket being rejected? (shown to the foreman)')
+    )
+    if (check.cancelled) return
+    if (!check.ok) {
+      onShowToast(check.error, 'error')
+      return
+    }
+    const { reason } = check
     try {
-      const updated = await db.rejectTMTicket(ticket.id, user?.id || null, approverName, reason.trim())
+      const updated = await db.rejectTMTicket(ticket.id, user?.id || null, approverName, reason)
       setTickets(prev => prev.map(t =>
-        t.id === ticket.id ? { ...t, ...(updated || {}), status: 'rejected', rejection_reason: reason.trim() } : t
+        t.id === ticket.id
+          ? { ...t, ...(updated || {}), status: 'rejected', rejection_reason: reason, rejected_by_name: updated?.rejected_by_name ?? approverName }
+          : t
       ))
       onShowToast('Ticket rejected', 'success')
     } catch (error) {

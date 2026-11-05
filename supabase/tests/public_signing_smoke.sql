@@ -4,6 +4,9 @@
 -- Exercises supabase/migrations/20261105_public_signing_rpcs.sql
 -- end to end as the Postgres anon role, with no field session and
 -- no auth.users row: the signature token is the only credential.
+-- The FIELD APP section also covers
+-- 20261104_signature_public_rpcs.sql (apply it first): the field app
+-- creates links only through create_signature_request.
 --
 -- HOW TO USE:
 --   Paste the whole file into the Supabase SQL Editor (or run it
@@ -677,70 +680,152 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------
--- FIELD APP (anon WITH a valid x-field-session for the project):
--- the pinned policies must still let it create a link for its own
--- project and nothing else.
+-- FIELD APP (anon WITH a valid x-field-session for the project).
+-- 20261104_signature_public_rpcs.sql closed the direct anon write
+-- path: even with a session, INSERT / UPDATE on signature_requests
+-- and INSERT on signatures are denied. The field app creates its
+-- link through create_signature_request, which accepts a document
+-- of its own project and refuses a foreign document or project.
 -- ------------------------------------------------------------
 RESET ROLE;
 INSERT INTO field_sessions (project_id, company_id, session_token, device_id, expires_at)
 VALUES (current_setting('signing_smoke.project_id', true)::uuid,
         current_setting('signing_smoke.company_id', true)::uuid,
         'fs_smoke_session_0001', 'smoke-device', NOW() + INTERVAL '1 hour');
+
+-- Another tenant's project and ticket (the session must not reach them)
+DO $$
+DECLARE
+  v_fc UUID := gen_random_uuid();
+  v_fp UUID := gen_random_uuid();
+  v_ft UUID := gen_random_uuid();
+BEGIN
+  INSERT INTO companies (id, name, code, office_code)
+  VALUES (v_fc, 'Smoke Foreign Co',
+          'SMF' || upper(substr(md5(random()::text), 1, 8)),
+          'OFF' || upper(substr(md5(random()::text), 1, 8)));
+  INSERT INTO projects (id, company_id, name, job_number, contract_value, status)
+  VALUES (v_fp, v_fc, 'Smoke Foreign Project', 'SMF-001', 1000, 'active');
+  INSERT INTO t_and_m_tickets (id, project_id, work_date, notes, status, created_by_name)
+  VALUES (v_ft, v_fp, CURRENT_DATE, 'Foreign ticket', 'pending', 'Foreign Foreman');
+  PERFORM set_config('signing_smoke.foreign_project_id', v_fp::text, true);
+  PERFORM set_config('signing_smoke.foreign_ticket_id', v_ft::text, true);
+END $$;
+
 SET LOCAL ROLE anon;
 SELECT set_config('request.headers', '{"x-field-session":"fs_smoke_session_0001"}', true);
 -- Positive case first, unguarded: the field app must still be able to
--- create a link for a document in its own project.
+-- create a link for a document in its own project (through the RPC).
 DO $$
+DECLARE
+  v_row JSONB;
 BEGIN
-  EXECUTE 'INSERT INTO signature_requests (document_type, document_id, company_id, project_id, signature_token, status) VALUES ($1, $2, $3, $4, $5, $6)'
-    USING 'tm_ticket', current_setting('signing_smoke.ticket2_id', true)::uuid,
-          current_setting('signing_smoke.company_id', true)::uuid,
-          current_setting('signing_smoke.project_id', true)::uuid,
-          'sig_smoketest_fld1', 'pending';
+  v_row := create_signature_request(
+    'tm_ticket',
+    current_setting('signing_smoke.ticket2_id', true)::uuid,
+    current_setting('signing_smoke.project_id', true)::uuid,
+    NULL, NULL, NULL);
+  IF v_row IS NULL
+     OR v_row->>'company_id' IS DISTINCT FROM current_setting('signing_smoke.company_id', true)
+     OR v_row->>'status' IS DISTINCT FROM 'pending'
+     OR left(v_row->>'signature_token', 4) IS DISTINCT FROM 'sig_'
+     OR v_row->>'created_by' IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL: create_signature_request returned an unexpected row: %', v_row;
+  END IF;
+  PERFORM set_config('signing_smoke.field_request_id', v_row->>'id', true);
 END $$;
 
 DO $$
 DECLARE
-  v_other_project UUID := gen_random_uuid();
   v_ok INTEGER := 0;
+  v_count BIGINT;
 BEGIN
-  -- Same session, but the request names a document that is not in its project
+  -- Direct INSERT is denied even for the session's own project
   BEGIN
     EXECUTE 'INSERT INTO signature_requests (document_type, document_id, company_id, project_id, signature_token, status) VALUES ($1, $2, $3, $4, $5, $6)'
-      USING 'cor', gen_random_uuid(),
+      USING 'tm_ticket', current_setting('signing_smoke.ticket2_id', true)::uuid,
             current_setting('signing_smoke.company_id', true)::uuid,
             current_setting('signing_smoke.project_id', true)::uuid,
             'sig_smoketest_fld2', 'pending';
-    RAISE EXCEPTION 'FAIL: field session created a request for a document outside its project';
+    RAISE EXCEPTION 'FAIL: field session can INSERT signature_requests directly';
   EXCEPTION WHEN insufficient_privilege THEN
     v_ok := v_ok + 1;
   END;
 
-  -- ... or a company that is not the project's
+  -- Direct UPDATE is denied, even one the old pinned policy allowed
+  -- (an open request of the session's own project, no column read)
   BEGIN
-    EXECUTE 'INSERT INTO signature_requests (document_type, document_id, company_id, project_id, signature_token, status) VALUES ($1, $2, $3, $4, $5, $6)'
-      USING 'tm_ticket', current_setting('signing_smoke.ticket2_id', true)::uuid,
-            gen_random_uuid(),
-            current_setting('signing_smoke.project_id', true)::uuid,
-            'sig_smoketest_fld3', 'pending';
-    RAISE EXCEPTION 'FAIL: field session created a request with a foreign company_id';
-  EXCEPTION WHEN insufficient_privilege OR foreign_key_violation THEN
+    EXECUTE 'UPDATE signature_requests SET expires_at = $1'
+      USING NOW() + INTERVAL '2 days';
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+    RAISE EXCEPTION 'FAIL: field session can UPDATE signature_requests directly (% row(s))', v_count;
+  EXCEPTION WHEN insufficient_privilege THEN
     v_ok := v_ok + 1;
   END;
 
-  -- A session may not move its open request to another project either
+  -- Direct INSERT on signatures is denied (public_add_signature is the only path)
   BEGIN
-    EXECUTE 'UPDATE signature_requests SET project_id = $1 WHERE signature_token = $2'
-      USING v_other_project, 'sig_smoketest_fld1';
-    RAISE EXCEPTION 'FAIL: field session re-pointed its request at another project';
-  EXCEPTION WHEN insufficient_privilege OR foreign_key_violation THEN
+    EXECUTE 'INSERT INTO signatures (signature_request_id, signature_slot, signature_image, signer_name) VALUES ($1, $2, $3, $4)'
+      USING current_setting('signing_smoke.field_request_id', true)::uuid, 1,
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+            'Forged Signer';
+    RAISE EXCEPTION 'FAIL: field session can INSERT signatures directly';
+  EXCEPTION WHEN insufficient_privilege THEN
     v_ok := v_ok + 1;
   END;
 
-  IF v_ok <> 3 THEN
-    RAISE EXCEPTION 'FAIL: expected 3 refusals, got %', v_ok;
+  -- RPC: a document that is not in the session's project
+  BEGIN
+    PERFORM create_signature_request('cor', gen_random_uuid(),
+      current_setting('signing_smoke.project_id', true)::uuid, NULL, NULL, NULL);
+    RAISE EXCEPTION 'FAIL: create_signature_request accepted a document outside the project';
+  EXCEPTION WHEN invalid_parameter_value THEN
+    v_ok := v_ok + 1;
+  END;
+
+  -- RPC: another tenant's ticket named under the session's own project
+  BEGIN
+    PERFORM create_signature_request('tm_ticket',
+      current_setting('signing_smoke.foreign_ticket_id', true)::uuid,
+      current_setting('signing_smoke.project_id', true)::uuid, NULL, NULL, NULL);
+    RAISE EXCEPTION 'FAIL: create_signature_request accepted a foreign ticket under its own project';
+  EXCEPTION WHEN invalid_parameter_value THEN
+    v_ok := v_ok + 1;
+  END;
+
+  -- RPC: another tenant's project
+  BEGIN
+    PERFORM create_signature_request('tm_ticket',
+      current_setting('signing_smoke.foreign_ticket_id', true)::uuid,
+      current_setting('signing_smoke.foreign_project_id', true)::uuid, NULL, NULL, NULL);
+    RAISE EXCEPTION 'FAIL: create_signature_request accepted a project the session does not belong to';
+  EXCEPTION WHEN insufficient_privilege THEN
+    v_ok := v_ok + 1;
+  END;
+
+  -- RPC without any session
+  PERFORM set_config('request.headers', '{}', true);
+  BEGIN
+    PERFORM create_signature_request('tm_ticket',
+      current_setting('signing_smoke.ticket2_id', true)::uuid,
+      current_setting('signing_smoke.project_id', true)::uuid, NULL, NULL, NULL);
+    RAISE EXCEPTION 'FAIL: create_signature_request accepted a caller without a session';
+  EXCEPTION WHEN insufficient_privilege THEN
+    v_ok := v_ok + 1;
+  END;
+  PERFORM set_config('request.headers', '{"x-field-session":"fs_smoke_session_0001"}', true);
+
+  IF v_ok <> 7 THEN
+    RAISE EXCEPTION 'FAIL: expected 7 refusals, got %', v_ok;
   END IF;
-  RAISE NOTICE 'PASS: field session can create a link for its own project only (foreign document / company / project refused)';
+
+  -- ... and not merely by RLS: the table privileges are gone
+  IF has_table_privilege('anon', 'public.signature_requests', 'INSERT')
+     OR has_table_privilege('anon', 'public.signature_requests', 'UPDATE')
+     OR has_table_privilege('anon', 'public.signatures', 'INSERT') THEN
+    RAISE EXCEPTION 'FAIL: anon still holds INSERT/UPDATE on signature_requests or INSERT on signatures';
+  END IF;
+  RAISE NOTICE 'PASS: field session creates its own project''s link via create_signature_request; direct INSERT/UPDATE on signature_requests and INSERT on signatures denied; foreign document / project / no session refused';
   PERFORM set_config('signing_smoke.passes', (current_setting('signing_smoke.passes', true)::int + 1)::text, true);
 END $$;
 
@@ -809,16 +894,28 @@ BEGIN
     RAISE EXCEPTION 'FAIL: rejected second link changed status to %', v_co.status;
   END IF;
 
-  -- Field-session link landed with the project's company; the refused ones did not
+  -- Field-session link (create_signature_request) landed with the
+  -- project's company and no creator; the refused ones did not
   SELECT count(*) INTO v_n FROM signature_requests sr
-  WHERE sr.signature_token = 'sig_smoketest_fld1' AND sr.company_id = v_company_id AND sr.status = 'pending';
+  WHERE sr.id = current_setting('signing_smoke.field_request_id', true)::uuid
+    AND sr.company_id = v_company_id
+    AND sr.project_id = current_setting('signing_smoke.project_id', true)::uuid
+    AND sr.document_id = current_setting('signing_smoke.ticket2_id', true)::uuid
+    AND sr.status = 'pending'
+    AND sr.created_by IS NULL;
   IF v_n <> 1 THEN
-    RAISE EXCEPTION 'FAIL: field-session link sig_smoketest_fld1 missing (found %)', v_n;
+    RAISE EXCEPTION 'FAIL: field-session link from create_signature_request missing (found %)', v_n;
   END IF;
   SELECT count(*) INTO v_n FROM signature_requests sr
-  WHERE sr.signature_token IN ('sig_smoketest_fld2', 'sig_smoketest_fld3', 'sig_attackermint1');
+  WHERE sr.signature_token IN ('sig_smoketest_fld2', 'sig_smoketest_fld3', 'sig_attackermint1')
+     OR sr.document_id = current_setting('signing_smoke.foreign_ticket_id', true)::uuid;
   IF v_n <> 0 THEN
     RAISE EXCEPTION 'FAIL: % refused signature_requests row(s) were written', v_n;
+  END IF;
+  SELECT count(*) INTO v_n FROM signatures s
+  WHERE s.signature_request_id = current_setting('signing_smoke.field_request_id', true)::uuid;
+  IF v_n <> 0 THEN
+    RAISE EXCEPTION 'FAIL: a directly inserted signatures row was written (% row(s))', v_n;
   END IF;
 
   -- COR: approved, approved_at, mirror, one history row, request completed
