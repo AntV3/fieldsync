@@ -15,6 +15,36 @@ import {
   sanitize
 } from './client'
 
+/**
+ * Is `url` a Supabase signed URL whose token is still valid for at least
+ * `minTtlMs`? Used so an already-signed URL (for example one the public
+ * signing page minted with the signing client) passes through
+ * resolvePhotoUrl(s) untouched instead of being re-signed with a client
+ * that may not be allowed to read the object. Any parse failure → false.
+ * @param {string} url
+ * @param {number} [minTtlMs=60000]
+ * @returns {boolean}
+ */
+export function isFreshSignedPhotoUrl(url, minTtlMs = 60000) {
+  if (typeof url !== 'string' || !url.startsWith('http')) return false
+  try {
+    const urlObj = new URL(url)
+    if (!/\/storage\/v1\/object\/sign\//.test(urlObj.pathname)) return false
+    const token = urlObj.searchParams.get('token')
+    if (!token) return false
+    const parts = token.split('.')
+    if (parts.length !== 3) return false
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    const payload = JSON.parse(atob(padded))
+    const exp = Number(payload?.exp)
+    if (!Number.isFinite(exp)) return false
+    return exp * 1000 > Date.now() + minTtlMs
+  } catch {
+    return false
+  }
+}
+
 export const tmOps = {
   // ============================================
   // T&M Tickets
@@ -741,11 +771,20 @@ export const tmOps = {
     return filePath
   },
 
+  // Exposed on db for callers that already hold the facade.
+  isFreshSignedPhotoUrl(url, minTtlMs = 60000) {
+    return isFreshSignedPhotoUrl(url, minTtlMs)
+  },
+
   // Convert a stored photo URL or storage path to a signed URL (1-hour expiry).
   // Handles both old public URLs ("https://…/public/tm-photos/…") and
   // new storage paths ("companyId/projectId/ticketId/file.jpg") transparently.
-  async resolvePhotoUrl(urlOrPath) {
+  // A still-fresh signed URL is returned as-is. `client` lets a caller sign
+  // with a specific supabase-js client (e.g. the x-signing-token client of the
+  // public signing page); otherwise the current session client is used.
+  async resolvePhotoUrl(urlOrPath, client = null) {
     if (!urlOrPath || !isSupabaseConfigured) return urlOrPath
+    if (isFreshSignedPhotoUrl(urlOrPath)) return urlOrPath
     let filePath
     if (urlOrPath.startsWith('http')) {
       try {
@@ -758,21 +797,24 @@ export const tmOps = {
       filePath = urlOrPath
     }
     try {
-      const client = getSupabaseClient()
-      const { data, error } = await client.storage.from('tm-photos').createSignedUrl(filePath, 3600)
+      const storageClient = client || getSupabaseClient()
+      const { data, error } = await storageClient.storage.from('tm-photos').createSignedUrl(filePath, 3600)
       if (error || !data?.signedUrl) return null
       return data.signedUrl
     } catch { return null }
   },
 
   // Batch-convert an array of stored photo URLs/paths to signed URLs (1-hour expiry).
-  async resolvePhotoUrls(urlsOrPaths) {
+  // Fresh signed URLs pass through untouched; stale ones are re-signed.
+  // `client` is optional (see resolvePhotoUrl).
+  async resolvePhotoUrls(urlsOrPaths, client = null) {
     if (!isSupabaseConfigured || !urlsOrPaths?.length) return urlsOrPaths || []
     const paths = []
     const indices = []
     for (let i = 0; i < urlsOrPaths.length; i++) {
       const v = urlsOrPaths[i]
-      if (!v) continue
+      if (!v || typeof v !== 'string') continue
+      if (isFreshSignedPhotoUrl(v)) continue
       let fp
       if (v.startsWith('http')) {
         try {
@@ -787,8 +829,8 @@ export const tmOps = {
     }
     if (!paths.length) return urlsOrPaths
     try {
-      const client = getSupabaseClient()
-      const { data, error } = await client.storage.from('tm-photos').createSignedUrls(paths, 3600)
+      const storageClient = client || getSupabaseClient()
+      const { data, error } = await storageClient.storage.from('tm-photos').createSignedUrls(paths, 3600)
       if (error || !data) return urlsOrPaths
       const result = [...urlsOrPaths]
       data.forEach((item, j) => {

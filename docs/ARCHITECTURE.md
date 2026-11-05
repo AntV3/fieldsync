@@ -130,7 +130,7 @@ The app uses a **view state machine** in `App.jsx`:
 | **entry** | `AppEntry.jsx` | None | Company code + mode selection |
 | **foreman** | `ForemanView.jsx` | PIN (4-digit) | Field crew operations |
 | **office** | `Dashboard.jsx` | Email/password | Project management |
-| **public** | `SignaturePage.jsx` | Share token | External signature collection |
+| **public** | `SignaturePage.jsx` | Share token (token-gated RPCs, anon role) | External signature collection |
 | **pending** | `PendingApproval.jsx` | After signup | Wait for admin approval |
 
 ---

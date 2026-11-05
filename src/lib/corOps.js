@@ -5,6 +5,7 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { getClient } from './fieldSession'
+import { getSigningClient } from './signingClient'
 import { observe } from './observability'
 import { resolveClassRate, normalizeJobType } from './laborRateResolver'
 import { generateTempId } from './offlineManager'
@@ -1833,15 +1834,17 @@ export const corOps = {
   // Routed through the public_get_signature_request_by_token RPC
   // so the DB enforces the token rather than relying on the caller
   // to filter. Anon no longer has direct SELECT on these tables —
-  // see supabase/migrations/20260423_signature_tenant_isolation.sql.
+  // see supabase/migrations/20260423_signature_tenant_isolation.sql
+  // and 20261105_public_signing_rpcs.sql. A time-expired row comes
+  // back as { status: 'expired', document_type } with no id; an
+  // unknown token is null. View counting now happens inside
+  // public_get_document_for_signing.
   async getSignatureRequestByToken(token) {
     if (isSupabaseConfigured) {
-      const client = getClient()
+      const client = getSigningClient(token) || getClient()
       if (!client) {
         throw new Error('Database client not available')
       }
-
-      await client.rpc('increment_signature_view_count', { token })
 
       const { data, error } = await client
         .rpc('public_get_signature_request_by_token', { p_token: token })
@@ -1874,105 +1877,38 @@ export const corOps = {
     return []
   },
 
-  // Add a signature to a request
-  async addSignature(requestId, slot, signatureData) {
+  // Add a signature via the public signing link.
+  // One token-gated RPC (public_add_signature) does the signatures
+  // insert, mirrors the gc_*/client_* columns onto the document,
+  // advances its status, writes the COR audit row and completes the
+  // request in a single transaction. signed_at and ip_address are set
+  // server-side. Errors carry a stable token in error.message:
+  // signing_link_invalid, signing_link_revoked, signing_already_signed,
+  // signing_link_expired, signing_invalid_payload.
+  // Returns { signature, document_status, request_status }.
+  async addSignature(token, slot, signatureData) {
     if (isSupabaseConfigured) {
-      const client = getClient()
+      const client = getSigningClient(token) || getClient()
       if (!client) {
         throw new Error('Database client not available')
       }
 
-      const { data, error } = await client
-        .from('signatures')
-        .insert({
-          signature_request_id: requestId,
-          signature_slot: slot,
-          signature_image: signatureData.signature,
-          signer_name: signatureData.signerName,
-          signer_title: signatureData.signerTitle || null,
-          signer_company: signatureData.signerCompany || null,
-          signed_at: signatureData.signedAt || new Date().toISOString(),
-          ip_address: signatureData.ipAddress || null,
-          user_agent: signatureData.userAgent || null
-        })
-        .select()
-        .single()
+      const { data, error } = await client.rpc('public_add_signature', {
+        p_token: token,
+        p_slot: slot,
+        p_signature: {
+          signature: signatureData?.signature,
+          signerName: signatureData?.signerName,
+          signerTitle: signatureData?.signerTitle || null,
+          signerCompany: signatureData?.signerCompany || null,
+          signedAt: signatureData?.signedAt || new Date().toISOString(),
+          userAgent: signatureData?.userAgent || null
+        }
+      })
       if (error) throw error
       return data
     }
     return null
-  },
-
-  // Sync signature to the main document table (COR or T&M)
-  async syncSignatureToDocument(signature, signatureRequest) {
-    if (!isSupabaseConfigured) return null
-
-    const client = getClient()
-    if (!client) {
-      throw new Error('Database client not available')
-    }
-
-    const { document_type, document_id } = signatureRequest
-    const slot = signature.signature_slot
-
-    // Build update object based on slot
-    const updates = {}
-    if (slot === 1) {
-      // GC signature
-      updates.gc_signature_data = signature.signature_image
-      updates.gc_signature_name = signature.signer_name
-      updates.gc_signature_title = signature.signer_title
-      updates.gc_signature_company = signature.signer_company
-      updates.gc_signature_date = signature.signed_at
-      updates.gc_signature_ip = signature.ip_address
-    } else if (slot === 2) {
-      // Client signature
-      updates.client_signature_data = signature.signature_image
-      updates.client_signature_name = signature.signer_name
-      updates.client_signature_title = signature.signer_title
-      updates.client_signature_company = signature.signer_company
-      updates.client_signature_date = signature.signed_at
-      updates.client_signature_ip = signature.ip_address
-    }
-
-    const tableName = document_type === 'cor' ? 'change_orders' : 't_and_m_tickets'
-    const { data, error } = await client
-      .from(tableName)
-      .update(updates)
-      .eq('id', document_id)
-      .select()
-      .single()
-    if (error) throw error
-
-    // A signature from the paying party is the approval. Advance the status so
-    // the office does not have to notice a badge and re-approve by hand.
-    // `.in()` on the current status makes this a no-op for anything already
-    // past that point; we deliberately avoid `.single()` so zero rows is fine.
-    let advanced = null
-    if (document_type === 'cor' && slot === 1) {
-      const signedAt = signature.signed_at || new Date().toISOString()
-      const { data: rows, error: advanceError } = await client
-        .from('change_orders')
-        .update({ status: 'approved', approved_at: signedAt })
-        .eq('id', document_id)
-        .eq('status', 'pending_approval')
-        .select()
-      if (advanceError) throw advanceError
-      advanced = rows?.[0] || null
-      if (advanced) {
-        await this._logCORStatusChange(document_id, 'approved', null, 'GC signed via signature link')
-      }
-    } else if (document_type !== 'cor') {
-      const { data: rows, error: advanceError } = await client
-        .from('t_and_m_tickets')
-        .update({ status: 'client_signed' })
-        .eq('id', document_id)
-        .in('status', ['pending', 'foreman_signed'])
-        .select()
-      if (advanceError) throw advanceError
-      advanced = rows?.[0] || null
-    }
-    return advanced || data
   },
 
   // Revoke a signature request
@@ -1995,72 +1931,29 @@ export const corOps = {
     return null
   },
 
-  // Get document data for signature page (COR or T&M with project info)
-  async getDocumentForSigning(documentType, documentId) {
+  // Get document data for the signature page (COR or T&M with project
+  // info) through the token-gated public_get_document_for_signing RPC.
+  // The server resolves document_type/document_id from the token and
+  // returns an explicit key allowlist: a T&M ticket carries
+  // t_and_m_workers / t_and_m_items / projects.companies; a COR carries
+  // its line-item tables, projects.companies and backup_tickets (every
+  // T&M ticket assigned to it, same shape as the ticket projection).
+  // `photos` entries are raw storage paths — resolve them with the
+  // signing client (db.resolvePhotoUrls(paths, getSigningClient(token))).
+  // Returns null for an unknown, revoked or expired token, or when the
+  // document row is gone.
+  async getDocumentForSigning(token) {
     if (!isSupabaseConfigured) return null
 
-    const client = getClient()
+    const client = getSigningClient(token) || getClient()
     if (!client) {
       throw new Error('Database client not available')
     }
 
-    if (documentType === 'cor') {
-      const { data, error } = await client
-        .from('change_orders')
-        .select(`
-          *,
-          projects (
-            id,
-            name,
-            job_number,
-            companies (
-              id,
-              name,
-              logo_url
-            )
-          ),
-          change_order_labor (*),
-          change_order_materials (*),
-          change_order_equipment (*),
-          change_order_subcontractors (*)
-        `)
-        .eq('id', documentId)
-        .single()
-      if (error) throw error
-      return data
-    } else if (documentType === 'tm_ticket') {
-      const { data, error } = await client
-        .from('t_and_m_tickets')
-        .select(`
-          *,
-          projects (
-            id,
-            name,
-            job_number,
-            companies (
-              id,
-              name,
-              logo_url
-            )
-          ),
-          t_and_m_workers (*),
-          t_and_m_items (
-            *,
-            materials_equipment (
-              id,
-              name,
-              unit,
-              cost_per_unit,
-              category
-            )
-          )
-        `)
-        .eq('id', documentId)
-        .single()
-      if (error) throw error
-      return data
-    }
-    return null
+    const { data, error } = await client
+      .rpc('public_get_document_for_signing', { p_token: token })
+    if (error) throw error
+    return data || null
   },
 
   // ============================================

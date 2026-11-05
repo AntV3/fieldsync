@@ -98,7 +98,7 @@ TMForm.jsx (orchestrator)
 
 | File | Lines | Purpose | Status | Notes |
 |------|-------|---------|--------|-------|
-| `EnhancedSignatureCapture.jsx` | ~200 | Advanced signature canvas | Active | Preferred for modals |
+| `ui/SignatureCanvas.jsx` | ~300 | Unified signature canvas (simple + enhanced modal) | Active | Replaced `EnhancedSignatureCapture.jsx`, which no longer exists |
 | `SignatureLinkGenerator.jsx` | ~200 | Generate share links | Active | |
 | `ManDayCosts.jsx` | ~200 | Man-day cost tracking | Active | |
 | `BurnRateCard.jsx` | ~150 | Budget burn rate | Active | |
@@ -338,10 +338,20 @@ CORDetail.jsx
 
 ```
 SignaturePage.jsx
-├── imports { exportCORToPDF } from corPdfExport.js (LEGACY)
-├── imports EnhancedSignatureCapture.jsx
+├── imports { exportCORToPDF, exportTMTicketToPDF } from corPdfExport.js (LEGACY)
+├── imports SignatureCanvas.jsx (ui/)
+├── imports { getSigningClient } from signingClient.js (anon client that sends x-signing-token)
 └── uses db from supabase.js
+    ├── getSignatureRequestByToken(token)      → RPC public_get_signature_request_by_token
+    ├── getDocumentForSigning(token)           → RPC public_get_document_for_signing
+    └── addSignature(token, slot, data)        → RPC public_add_signature
 ```
+
+The public flow never touches base tables: the token is the credential and
+every read/write goes through a token-gated SECURITY DEFINER RPC as the anon
+role. `syncSignatureToDocument` is gone; `public_add_signature` writes the
+signature, mirrors it onto the document, advances status, and logs the COR
+history in one transaction.
 
 ---
 

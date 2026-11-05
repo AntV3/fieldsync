@@ -313,9 +313,10 @@ DO $$
 DECLARE
   tbl TEXT;
   has_select BOOLEAN;
+  -- 'companies' is intentionally absent: its anon SELECT grant was revoked
+  -- by 20260423_tighten_company_and_trade_rls.sql (reads go through RPCs).
   tables_needing_anon_select TEXT[] := ARRAY[
     'projects',
-    'companies',
     'areas',
     'change_orders',
     'crew_checkins',
@@ -382,6 +383,164 @@ BEGIN
       'All policies have proper restrictions'
     );
   END IF;
+END $$;
+
+-- ============================================================
+-- TEST 8: PUBLIC SIGNING
+-- The /sign/:token flow runs as anon with only the token.
+-- Verifies 20261105_public_signing_rpcs.sql: the four public
+-- functions are SECURITY DEFINER with a pinned search_path, the
+-- helpers are not executable by anon, anon has no table-level
+-- SELECT on the tables the RPCs read, no blanket anon policy was
+-- added, unknown tokens return NULL, and the tm-photos bucket is
+-- still private behind the signing-token policy.
+-- ============================================================
+
+DO $$
+DECLARE
+  fn TEXT;
+  r RECORD;
+  v_found BOOLEAN;
+  v_secdef BOOLEAN;
+  v_has_path BOOLEAN;
+  v_has_priv BOOLEAN;
+  tbl TEXT;
+  v_count INT;
+  v_names TEXT;
+  v_public BOOLEAN;
+  v_req JSONB;
+  v_doc JSONB;
+  public_functions TEXT[] := ARRAY[
+    'public_get_signature_request_by_token',
+    'public_get_document_for_signing',
+    'public_add_signature',
+    'signing_token_can_read_photo'
+  ];
+BEGIN
+  -- 8a. Public entry points exist, SECURITY DEFINER, search_path pinned
+  FOREACH fn IN ARRAY public_functions
+  LOOP
+    SELECT TRUE,
+           p.prosecdef,
+           EXISTS (SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::TEXT[])) cfg WHERE cfg LIKE 'search_path=%')
+    INTO v_found, v_secdef, v_has_path
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = fn
+    LIMIT 1;
+
+    IF v_found IS NULL THEN
+      PERFORM _run_rls_test('Function exists: ' || fn, 'Public Signing', 'true', 'FUNCTION NOT FOUND', 'Apply 20261105_public_signing_rpcs.sql');
+    ELSE
+      PERFORM _run_rls_test('Function exists: ' || fn, 'Public Signing', 'true', 'true', NULL);
+      PERFORM _run_rls_test('SECURITY DEFINER: ' || fn, 'Public Signing', 'true', v_secdef::TEXT, NULL);
+      PERFORM _run_rls_test('search_path pinned: ' || fn, 'Public Signing', 'true', v_has_path::TEXT, 'proconfig must contain search_path=');
+    END IF;
+    v_found := NULL;
+  END LOOP;
+
+  -- 8b. anon has no table-level SELECT on what the RPCs read
+  FOREACH tbl IN ARRAY ARRAY['signature_requests', 'signatures', 'companies']
+  LOOP
+    IF to_regclass('public.' || tbl) IS NULL THEN
+      PERFORM _run_rls_test('Anon has no SELECT on ' || tbl, 'Public Signing', 'false', 'TABLE NOT FOUND', NULL);
+    ELSE
+      SELECT has_table_privilege('anon', 'public.' || tbl, 'SELECT') INTO v_has_priv;
+      PERFORM _run_rls_test('Anon has no SELECT on ' || tbl, 'Public Signing', 'false', v_has_priv::TEXT, 'Public reads must go through the token RPCs');
+    END IF;
+  END LOOP;
+
+  -- 8c. No anon (or public) policy with USING (true) / WITH CHECK (true)
+  SELECT COUNT(*), string_agg(schemaname || '.' || tablename || '.' || policyname, ', ')
+  INTO v_count, v_names
+  FROM pg_policies
+  WHERE (
+      (schemaname = 'public' AND tablename IN ('t_and_m_tickets', 'change_orders', 'signatures'))
+      OR (schemaname = 'storage' AND tablename = 'objects')
+    )
+    AND (roles @> ARRAY['anon'::name] OR roles @> ARRAY['public'::name])
+    AND (qual = 'true' OR with_check = 'true');
+
+  PERFORM _run_rls_test(
+    'No blanket anon policy on tickets/CORs/signatures/storage.objects',
+    'Public Signing',
+    '0',
+    v_count::TEXT,
+    COALESCE(v_names, 'none')
+  );
+
+  -- 8d. Unknown token -> NULL from both token RPCs
+  BEGIN
+    SELECT public_get_signature_request_by_token('sig_doesnotexist') INTO v_req;
+    PERFORM _run_rls_test('Token RPC returns NULL for unknown token', 'Public Signing', 'true', (v_req IS NULL)::TEXT, NULL);
+  EXCEPTION WHEN undefined_function THEN
+    PERFORM _run_rls_test('Token RPC returns NULL for unknown token', 'Public Signing', 'true', 'FUNCTION NOT FOUND', NULL);
+  END;
+
+  BEGIN
+    SELECT public_get_document_for_signing('sig_doesnotexist') INTO v_doc;
+    PERFORM _run_rls_test('Document RPC returns NULL for unknown token', 'Public Signing', 'true', (v_doc IS NULL)::TEXT, NULL);
+  EXCEPTION WHEN undefined_function THEN
+    PERFORM _run_rls_test('Document RPC returns NULL for unknown token', 'Public Signing', 'true', 'FUNCTION NOT FOUND', NULL);
+  END;
+
+  -- 8e. Storage: signing policy exists, tm-photos bucket still private
+  IF to_regclass('storage.objects') IS NULL OR to_regclass('storage.buckets') IS NULL THEN
+    -- Not evaluated: report it like every other missing object in this file
+    PERFORM _run_rls_test('Storage signing policy exists', 'Public Signing', 'true', 'SCHEMA NOT FOUND', 'storage schema not present (non-Supabase database)');
+    PERFORM _run_rls_test('tm-photos bucket is private', 'Public Signing', 'false', 'SCHEMA NOT FOUND', 'storage schema not present (non-Supabase database)');
+  ELSE
+    SELECT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'storage' AND tablename = 'objects'
+        AND policyname = 'Signing link can read document photos'
+        AND cmd = 'SELECT'
+        AND roles = ARRAY['anon'::name]
+    ) INTO v_found;
+    PERFORM _run_rls_test('Storage signing policy exists', 'Public Signing', 'true', v_found::TEXT, 'Policy "Signing link can read document photos" FOR SELECT TO anon');
+
+    EXECUTE 'SELECT b.public FROM storage.buckets b WHERE b.id = $1' INTO v_public USING 'tm-photos';
+    IF v_public IS NULL THEN
+      PERFORM _run_rls_test('tm-photos bucket is private', 'Public Signing', 'false', 'BUCKET NOT FOUND', NULL);
+    ELSE
+      PERFORM _run_rls_test('tm-photos bucket is private', 'Public Signing', 'false', v_public::TEXT, 'storage.buckets.public must stay false');
+    END IF;
+  END IF;
+
+  -- 8g. The anon policies on signature_requests are pinned to a field
+  --     session (a request row is the signing credential)
+  FOR r IN
+    SELECT * FROM (VALUES
+      ('Anon can create signature requests', 'INSERT'),
+      ('Anon can update signature requests', 'UPDATE')
+    ) AS pol(name, cmd)
+  LOOP
+    SELECT COUNT(*) INTO v_count
+    FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'signature_requests'
+      AND policyname = r.name AND cmd = r.cmd
+      AND roles = ARRAY['anon'::name]
+      AND COALESCE(with_check, '') ILIKE '%can_access_project(project_id)%'
+      AND COALESCE(with_check, '') ILIKE '%t_and_m_tickets%'
+      AND COALESCE(with_check, '') ILIKE '%change_orders%';
+    PERFORM _run_rls_test('Pinned anon policy: ' || r.name, 'Public Signing', '1', v_count::TEXT,
+      'TO anon, WITH CHECK must require can_access_project(project_id) and a document inside the project');
+  END LOOP;
+
+  -- 8f. anon lacks EXECUTE on the two helpers
+  FOR r IN
+    SELECT * FROM (VALUES
+      ('public_signing_pick', 'public.public_signing_pick(jsonb, text[])'),
+      ('public_signing_ticket_json', 'public.public_signing_ticket_json(uuid)')
+    ) AS h(name, signature)
+  LOOP
+    BEGIN
+      SELECT has_function_privilege('anon', r.signature, 'EXECUTE') INTO v_has_priv;
+      PERFORM _run_rls_test('Anon cannot execute helper ' || r.name, 'Public Signing', 'false', v_has_priv::TEXT, 'Helpers are called only from the SECURITY DEFINER entry points');
+    EXCEPTION WHEN undefined_function THEN
+      PERFORM _run_rls_test('Anon cannot execute helper ' || r.name, 'Public Signing', 'false', 'FUNCTION NOT FOUND', NULL);
+    END;
+  END LOOP;
 END $$;
 
 -- ============================================================
