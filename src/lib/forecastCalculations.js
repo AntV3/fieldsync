@@ -8,6 +8,8 @@
  * - What-if scenario modeling
  */
 
+import { getLocalDateString } from './utils'
+
 // ---- Configuration ----
 
 export const FORECAST_CONFIG = {
@@ -235,7 +237,7 @@ export function forecastSchedule({
   const progressTrend = analyzeProgressTrend(progressHistory)
 
   return {
-    projectedEnd: projectedEnd.toISOString().split('T')[0],
+    projectedEnd: getLocalDateString(projectedEnd),
     plannedEnd: endDate,
     daysRemaining: Math.ceil(daysRemaining),
     slippage: Math.round(slippage),
@@ -464,7 +466,7 @@ export function calculateScenarios(current, scenarios = []) {
 
     return {
       label: scenario.label,
-      projectedEnd: projectedEnd.toISOString().split('T')[0],
+      projectedEnd: getLocalDateString(projectedEnd),
       projectedCost,
       slippage,
       margin,

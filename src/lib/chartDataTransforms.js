@@ -6,6 +6,7 @@
 // ============================================
 
 import { chartColors, costCategories } from '../components/charts/chartConfig'
+import { getLocalDateString } from './utils'
 
 /**
  * Build cumulative time-series for the Financial Trend Chart
@@ -241,7 +242,7 @@ export function filterByTimeRange(data, days) {
   const now = new Date()
   const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   cutoff.setDate(cutoff.getDate() - days)
-  const cutoffStr = cutoff.toISOString().split('T')[0]
+  const cutoffStr = getLocalDateString(cutoff)
 
   return data.filter(d => d.date >= cutoffStr)
 }

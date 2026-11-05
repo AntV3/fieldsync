@@ -8,6 +8,8 @@
  * - Progress-based revenue recognition
  */
 
+import { getLocalDateString } from './utils'
+
 // ---- Configuration ----
 
 export const CASH_FLOW_CONFIG = {
@@ -87,8 +89,8 @@ export function projectReceivables(projects, invoices, config) {
       projectId: inv.project_id,
       projectName: inv.project_name || 'Unknown',
       amount: inv.amount || 0,
-      date: invoiceDate.toISOString().split('T')[0],
-      expectedDate: dueDate.toISOString().split('T')[0],
+      date: getLocalDateString(invoiceDate),
+      expectedDate: getLocalDateString(dueDate),
       status: isOverdue ? 'overdue' : 'pending',
       source: 'invoice',
     })
@@ -114,8 +116,8 @@ export function projectReceivables(projects, invoices, config) {
         projectId: project.id,
         projectName: project.name,
         amount: Math.round(unbilled),
-        date: nextBillDate.toISOString().split('T')[0],
-        expectedDate: expectedPayDate.toISOString().split('T')[0],
+        date: getLocalDateString(nextBillDate),
+        expectedDate: getLocalDateString(expectedPayDate),
         status: 'projected',
         source: 'progress',
       })
@@ -142,8 +144,8 @@ export function projectReceivables(projects, invoices, config) {
           amount: netAmount,
           grossAmount: Math.round(monthEarned),
           retentionAmount: Math.round(monthEarned * config.retentionPercent / 100),
-          date: billDate.toISOString().split('T')[0],
-          expectedDate: payDate.toISOString().split('T')[0],
+          date: getLocalDateString(billDate),
+          expectedDate: getLocalDateString(payDate),
           status: 'forecast',
           source: 'projection',
         })
@@ -197,8 +199,8 @@ export function projectPayables(projects, costHistory, config) {
         projectId: project.id,
         projectName: project.name,
         amount: Math.round(adjustedCost),
-        date: costDate.toISOString().split('T')[0],
-        payDate: payDate.toISOString().split('T')[0],
+        date: getLocalDateString(costDate),
+        payDate: getLocalDateString(payDate),
         status: m === 0 ? 'committed' : 'forecast',
         breakdown,
       })
@@ -248,7 +250,7 @@ export function buildMonthlyCashFlow(receivables, payables, config) {
 
     months.push({
       month: monthLabel,
-      date: monthStart.toISOString().split('T')[0],
+      date: getLocalDateString(monthStart),
       inflows: Math.round(inflows),
       outflows: Math.round(outflows),
       net: Math.round(netCashFlow),
@@ -389,7 +391,13 @@ function estimateMonthlyEarningRate(project) {
 }
 
 function estimateMonthlyCostRate(project, _costHistory) {
-  const totalCosts = project.totalCosts || project.billable || 0
+  // Accept the three field names dashboard code uses: `totalCosts` (what
+  // useProjectAnalytics' single-project fallback hands us), `allCostsTotal`
+  // (what useDashboardData emits per project), and `billable` (last-ditch
+  // progress × contract). Without this fallback, every multi-project caller
+  // falls through to the 75%×contract heuristic below and the Project Health
+  // card's cash flow forecast ignores actual burn.
+  const totalCosts = project.totalCosts ?? project.allCostsTotal ?? project.billable ?? 0
   const startDate = project.startDate || project.start_date
 
   // Use actual burn rate if available
