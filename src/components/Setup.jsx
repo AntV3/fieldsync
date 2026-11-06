@@ -1,19 +1,25 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Check } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { isProjectTourComplete, setPendingProjectTour } from './onboarding/onboardingState'
+import {
+  validatePin,
+  validateContractValue,
+  validateScheduleDates,
+  validateOptionalAreas,
+  validatePhaseNames,
+  isProgressTrackingEmpty
+} from '../lib/projectSetupValidation'
 import ProjectBasicsStep from './setup/ProjectBasicsStep'
 import ContactsStep from './setup/ContactsStep'
-import ScheduleAccessStep from './setup/ScheduleAccessStep'
-import AreasTasksStep from './setup/AreasTasksStep'
+import ProgressTrackingStep from './setup/ProgressTrackingStep'
 import ReviewStep from './setup/ReviewStep'
 
 const STEPS = [
   { num: 1, label: 'Basics', shortLabel: 'Basics' },
   { num: 2, label: 'Contacts', shortLabel: 'People' },
-  { num: 3, label: 'Schedule', shortLabel: 'Sched.' },
-  { num: 4, label: 'Phases', shortLabel: 'Phases' },
-  { num: 5, label: 'Review', shortLabel: 'Review' }
+  { num: 3, label: 'Progress tracking', shortLabel: 'Progress' },
+  { num: 4, label: 'Review', shortLabel: 'Review' }
 ]
 
 const INITIAL_DATA = {
@@ -39,9 +45,9 @@ const INITIAL_DATA = {
   // Phases are sibling to areas; areas link via tempPhaseId during the wizard
   // and via areas.group_name (== phase.name) once persisted.
   phases: [],
+  // Areas are optional: one blank row so the step is not empty, and an
+  // untouched row is ignored by validateOptionalAreas.
   areas: [
-    { name: '', weight: '', group: '', scheduledValue: null, tempPhaseId: null },
-    { name: '', weight: '', group: '', scheduledValue: null, tempPhaseId: null },
     { name: '', weight: '', group: '', scheduledValue: null, tempPhaseId: null }
   ]
 }
@@ -50,6 +56,14 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   const [step, setStep] = useState(1)
   const [data, setData] = useState(INITIAL_DATA)
   const [creating, setCreating] = useState(false)
+  // `creating` is render state, so two clicks dispatched in the same tick
+  // would both read it as false. The ref is set synchronously and is what
+  // actually rejects a second tap; `disabled={creating}` handles the rest.
+  // It stays set after a successful create: the wizard is unmounted by the
+  // navigation that follows, and until then the form must not reset and
+  // re-enable Create (a late second tap would otherwise land on a blank
+  // step 1 and toast "Please enter a project name").
+  const submittingRef = useRef(false)
 
   const validateStep = (stepNum) => {
     switch (stepNum) {
@@ -58,9 +72,9 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
           onShowToast('Please enter a project name', 'error')
           return false
         }
-        const contractVal = parseFloat(data.contractValue)
-        if (!contractVal || contractVal <= 0) {
-          onShowToast('Please enter a valid contract value', 'error')
+        const pinCheck = validatePin(data.pin)
+        if (!pinCheck.ok) {
+          onShowToast(pinCheck.error, 'error')
           return false
         }
         return true
@@ -68,48 +82,27 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       case 2:
         // Contacts are optional
         return true
-      case 3:
-        if (!data.startDate || !data.endDate) {
-          onShowToast('Start date and end date are required', 'error')
+      case 3: {
+        // Everything on this step is optional, but what is entered must be valid.
+        const contract = validateContractValue(data.contractValue)
+        if (contract.error) {
+          onShowToast(contract.error, 'error')
           return false
         }
-        if (new Date(data.endDate) < new Date(data.startDate)) {
-          onShowToast('End date must be after start date', 'error')
+        const dates = validateScheduleDates({ start_date: data.startDate, end_date: data.endDate })
+        if (!dates.ok) {
+          onShowToast(dates.error, 'error')
           return false
         }
-        if (data.pin.length !== 4) {
-          onShowToast('Please enter a 4-digit PIN', 'error')
+        const areas = validateOptionalAreas(data.areas)
+        if (!areas.ok) {
+          onShowToast(areas.error, 'error')
           return false
         }
-        return true
-      case 4: {
-        const validAreas = data.areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
-        if (validAreas.length === 0) {
-          onShowToast('Please add at least one area with a name and weight', 'error')
+        const phases = validatePhaseNames(data.phases)
+        if (!phases.ok) {
+          onShowToast(phases.error, 'error')
           return false
-        }
-        // A weight on an unnamed row would pass a raw total check but be
-        // dropped on save, silently skewing all progress math afterward.
-        const unnamedWeighted = data.areas.some(a => !a.name.trim() && parseFloat(a.weight) > 0)
-        if (unnamedWeighted) {
-          onShowToast('Every area with a weight needs a name (or remove its weight)', 'error')
-          return false
-        }
-        // Validate against the areas that will actually be saved
-        const savedWeight = validAreas.reduce((sum, a) => sum + parseFloat(a.weight), 0)
-        if (Math.abs(savedWeight - 100) > 0.1) {
-          onShowToast('Area weights must total 100%', 'error')
-          return false
-        }
-        const namedPhases = (data.phases || []).filter(p => p.name && p.name.trim())
-        const seen = new Set()
-        for (const p of namedPhases) {
-          const key = p.name.trim().toLowerCase()
-          if (seen.has(key)) {
-            onShowToast(`Duplicate phase name: "${p.name.trim()}"`, 'error')
-            return false
-          }
-          seen.add(key)
         }
         return true
       }
@@ -142,30 +135,36 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
   }
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return
+
     if (!company?.id) {
       onShowToast('No company selected. Please log in again.', 'error')
       return
     }
 
     // Run all validations
-    for (let s = 1; s <= 4; s++) {
+    for (let s = 1; s <= 3; s++) {
       if (!validateStep(s)) {
         setStep(s)
         return
       }
     }
 
-    const pinAvailable = await db.isPinAvailable(data.pin, company.id)
-    if (!pinAvailable) {
-      onShowToast('This PIN is already in use. Try another.', 'error')
-      setStep(3)
-      return
-    }
-
+    // Lock Create for the whole async path so a double-tap cannot create
+    // two projects while the PIN check is in flight.
+    submittingRef.current = true
     setCreating(true)
 
     try {
-      const contractVal = parseFloat(data.contractValue)
+      const pinAvailable = await db.isPinAvailable(data.pin, company.id)
+      if (!pinAvailable) {
+        onShowToast('This PIN is already in use. Try another.', 'error')
+        submittingRef.current = false
+        setCreating(false)
+        setStep(1)
+        return
+      }
+
       const project = await db.createProject({
         name: data.projectName.trim(),
         job_number: data.jobNumber.trim() || null,
@@ -179,14 +178,14 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         client_position: data.clientPosition.trim() || null,
         client_phone: data.clientPhone.trim() || null,
         client_email: data.clientEmail.trim() || null,
-        contract_value: contractVal,
+        contract_value: validateContractValue(data.contractValue).value,
         pin: data.pin,
         work_type: data.workType,
         job_type: data.jobType,
         company_id: company?.id,
         created_by: user?.id,
-        start_date: data.startDate,
-        end_date: data.endDate,
+        start_date: data.startDate || null,
+        end_date: data.endDate || null,
         planned_man_days: data.plannedManDays ? parseInt(data.plannedManDays) : null
       })
 
@@ -215,7 +214,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         }
       }
 
-      const validAreas = data.areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
+      const validAreas = validateOptionalAreas(data.areas).areas
       for (let i = 0; i < validAreas.length; i++) {
         const area = validAreas[i]
         const matchedPhase = area.tempPhaseId
@@ -241,13 +240,13 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       if (!isProjectTourComplete()) {
         setPendingProjectTour({ projectId: project.id, pin: data.pin })
       }
-      setData(INITIAL_DATA)
-      setStep(1)
+      // No reset here: the parent navigates away and unmounts the wizard.
+      // Create stays disabled ("Creating...") until then.
       onProjectCreated(project)
     } catch (error) {
       console.error('Error creating project:', error)
       onShowToast('Error creating project', 'error')
-    } finally {
+      submittingRef.current = false
       setCreating(false)
     }
   }
@@ -259,15 +258,17 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
       case 2:
         return <ContactsStep data={data} onChange={setData} />
       case 3:
-        return <ScheduleAccessStep data={data} onChange={setData} />
+        return <ProgressTrackingStep data={data} onChange={setData} onShowToast={onShowToast} />
       case 4:
-        return <AreasTasksStep data={data} onChange={setData} onShowToast={onShowToast} />
-      case 5:
         return <ReviewStep data={data} onEdit={goToStep} />
       default:
         return null
     }
   }
+
+  const nextLabel = step === STEPS.length - 1
+    ? (isProgressTrackingEmpty(data) ? 'Skip for now' : 'Review')
+    : 'Continue'
 
   return (
     <div className="setup-wizard">
@@ -308,7 +309,7 @@ export default function Setup({ company, user, onProjectCreated, onShowToast }) 
         <div className="setup-wizard-nav-spacer" />
         {step < STEPS.length ? (
           <button className="btn btn-primary" onClick={goNext}>
-            {step === STEPS.length - 1 ? 'Review' : 'Continue'}
+            {nextLabel}
           </button>
         ) : (
           <button

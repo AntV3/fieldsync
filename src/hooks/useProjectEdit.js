@@ -1,33 +1,88 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { db } from '../lib/supabase'
+import {
+  validatePin,
+  validateContractValue,
+  contractValueToInput,
+  validateScheduleDates,
+  validateOptionalAreas
+} from '../lib/projectSetupValidation'
 
 /**
  * Manages project edit mode state and handlers.
  * Extracted from Dashboard.jsx for maintainability.
+ *
+ * Validation rules are shared with the New Project wizard via
+ * src/lib/projectSetupValidation.js (docs/LAUNCH_READINESS.md §2):
+ * contract value, schedule dates, planned man-days and areas are all
+ * optional; "not set" is stored as NULL.
  */
 export default function useProjectEdit({ selectedProject, areas, company, onShowToast, loadAreas, setSelectedProject }) {
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
+  // The dashboard summary RPC row (the shape the office opens from the
+  // project list, src/lib/db/projectOps.js getProjectDashboardSummary) carries
+  // only name / job number / address / pin / dates / contract value / work
+  // and job type / general contractor plus metrics. These columns are
+  // missing from it, so the form is seeded from the full projects row. When
+  // that fetch fails, a blank one of these fields means "untouched", not
+  // "clear it", and the key is left out of the update payload.
+  const SUMMARY_MISSING_TEXT_FIELDS = [
+    'contractor_contact',
+    'contractor_position',
+    'contractor_phone',
+    'contractor_email',
+    'client_contact',
+    'client_position',
+    'client_phone',
+    'client_email'
+  ]
+  const fullRowKnownRef = useRef(true)
 
-  const handleEditClick = () => {
+  const handleEditClick = async () => {
+    let source = selectedProject
+    let fullRowKnown = true
+
+    // planned_man_days is never on the summary row, so its absence tells a
+    // summary-shaped row from a raw projects row.
+    if (selectedProject.planned_man_days === undefined) {
+      try {
+        const fullRow = await db.getProject(selectedProject.id)
+        if (fullRow) {
+          source = { ...selectedProject, ...fullRow }
+        } else {
+          fullRowKnown = false
+        }
+      } catch (error) {
+        console.error('Error loading project details:', error?.message || error)
+        fullRowKnown = false
+      }
+    }
+    fullRowKnownRef.current = fullRowKnown
+
+    const plannedManDays = source.planned_man_days
     setEditData({
-      name: selectedProject.name,
-      job_number: selectedProject.job_number || '',
-      address: selectedProject.address || '',
-      general_contractor: selectedProject.general_contractor || '',
-      contractor_contact: selectedProject.contractor_contact || '',
-      contractor_position: selectedProject.contractor_position || '',
-      contractor_phone: selectedProject.contractor_phone || '',
-      contractor_email: selectedProject.contractor_email || '',
-      client_contact: selectedProject.client_contact || '',
-      client_position: selectedProject.client_position || '',
-      client_phone: selectedProject.client_phone || '',
-      client_email: selectedProject.client_email || '',
-      contract_value: selectedProject.contract_value,
-      work_type: selectedProject.work_type || 'demolition',
-      job_type: selectedProject.job_type || 'standard',
-      pin: selectedProject.pin || '',
+      name: source.name,
+      job_number: source.job_number || '',
+      address: source.address || '',
+      general_contractor: source.general_contractor || '',
+      contractor_contact: source.contractor_contact || '',
+      contractor_position: source.contractor_position || '',
+      contractor_phone: source.contractor_phone || '',
+      contractor_email: source.contractor_email || '',
+      client_contact: source.client_contact || '',
+      client_position: source.client_position || '',
+      client_phone: source.client_phone || '',
+      client_email: source.client_email || '',
+      // NULL (raw row) and 0 (summary RPC / legacy) both seed an empty field.
+      contract_value: contractValueToInput(source.contract_value),
+      start_date: source.start_date || '',
+      end_date: source.end_date || '',
+      planned_man_days: plannedManDays === null || plannedManDays === undefined ? '' : String(plannedManDays),
+      work_type: source.work_type || 'demolition',
+      job_type: source.job_type || 'standard',
+      pin: source.pin || '',
       areas: areas.map(a => ({
         id: a.id,
         name: a.name,
@@ -63,13 +118,12 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
     }))
   }
 
+  // Every area is removable — a T&M-only job may have none.
   const handleRemoveArea = (index) => {
-    if (editData.areas.length > 1) {
-      setEditData(prev => ({
-        ...prev,
-        areas: prev.areas.filter((_, i) => i !== index)
-      }))
-    }
+    setEditData(prev => ({
+      ...prev,
+      areas: prev.areas.filter((_, i) => i !== index)
+    }))
   }
 
   const handleSaveEdit = async () => {
@@ -78,15 +132,26 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
       return
     }
 
-    const contractVal = parseFloat(editData.contract_value)
-    if (!contractVal || contractVal <= 0) {
-      onShowToast('Please enter a valid contract value', 'error')
+    const contract = validateContractValue(editData.contract_value)
+    if (contract.error) {
+      onShowToast(contract.error, 'error')
       return
     }
 
-    if (editData.pin && editData.pin.length !== 4) {
-      onShowToast('PIN must be 4 digits', 'error')
+    const dates = validateScheduleDates({ start_date: editData.start_date, end_date: editData.end_date })
+    if (!dates.ok) {
+      onShowToast(dates.error, 'error')
       return
+    }
+
+    // PIN handling is unchanged: blank is allowed (sent as null), a typed
+    // PIN must be 4 digits and unused by another project in the company.
+    if (editData.pin) {
+      const pinCheck = validatePin(editData.pin)
+      if (!pinCheck.ok) {
+        onShowToast(pinCheck.error, 'error')
+        return
+      }
     }
 
     if (editData.pin && editData.pin !== selectedProject.pin) {
@@ -97,47 +162,61 @@ export default function useProjectEdit({ selectedProject, areas, company, onShow
       }
     }
 
-    const validAreas = editData.areas.filter(a => a.name.trim() && parseFloat(a.weight) > 0)
-    if (validAreas.length === 0) {
-      onShowToast('Please add at least one area', 'error')
+    const areaCheck = validateOptionalAreas(editData.areas)
+    if (!areaCheck.ok) {
+      onShowToast(areaCheck.error, 'error')
       return
     }
+    const validAreas = areaCheck.areas
 
-    const totalWeight = validAreas.reduce((sum, a) => sum + parseFloat(a.weight), 0)
-    if (Math.abs(totalWeight - 100) > 0.01) {
-      onShowToast('Area weights must total 100%', 'error')
-      return
+    // Areas in the DB that are no longer in the form (removed, or blanked
+    // out) will be deleted. activity_log rows cascade with the area and
+    // punch items / change orders / draw lines lose their area link.
+    const keptAreaIds = validAreas.filter(a => a.id).map(a => a.id)
+    const removedIds = areas.map(a => a.id).filter(id => !keptAreaIds.includes(id))
+    if (removedIds.length > 0) {
+      const noun = removedIds.length === 1 ? 'this area' : `these ${removedIds.length} areas`
+      if (!window.confirm(`Removing ${noun} will also delete its activity history and unlink any punch-list items, change orders and draw lines that reference it. This cannot be undone. Continue?`)) {
+        return
+      }
     }
 
     setSaving(true)
 
     try {
-      await db.updateProject(selectedProject.id, {
+      const updates = {
         name: editData.name.trim(),
         job_number: editData.job_number?.trim() || null,
         address: editData.address?.trim() || null,
         general_contractor: editData.general_contractor?.trim() || null,
-        contractor_contact: editData.contractor_contact?.trim() || null,
-        contractor_position: editData.contractor_position?.trim() || null,
-        contractor_phone: editData.contractor_phone?.trim() || null,
-        contractor_email: editData.contractor_email?.trim() || null,
-        client_contact: editData.client_contact?.trim() || null,
-        client_position: editData.client_position?.trim() || null,
-        client_phone: editData.client_phone?.trim() || null,
-        client_email: editData.client_email?.trim() || null,
-        contract_value: contractVal,
+        contract_value: contract.value,
+        start_date: editData.start_date || null,
+        end_date: editData.end_date || null,
         work_type: editData.work_type || 'demolition',
         job_type: editData.job_type || 'standard',
         pin: editData.pin || null
-      }, company?.id)
+      }
 
-      const existingAreaIds = areas.map(a => a.id)
-      const editAreaIds = editData.areas.filter(a => a.id).map(a => a.id)
-
-      for (const areaId of existingAreaIds) {
-        if (!editAreaIds.includes(areaId)) {
-          await db.deleteArea(areaId)
+      // Contacts and planned man-days: a typed value is always sent; a blank
+      // one clears the column only when the stored value was known (see
+      // fullRowKnownRef), so a failed detail fetch cannot wipe them.
+      for (const field of SUMMARY_MISSING_TEXT_FIELDS) {
+        const value = editData[field]?.trim() || null
+        if (value !== null || fullRowKnownRef.current) {
+          updates[field] = value
         }
+      }
+      const manDaysRaw = String(editData.planned_man_days ?? '').trim()
+      if (manDaysRaw !== '') {
+        updates.planned_man_days = parseInt(manDaysRaw, 10)
+      } else if (fullRowKnownRef.current) {
+        updates.planned_man_days = null
+      }
+
+      await db.updateProject(selectedProject.id, updates, company?.id)
+
+      for (const areaId of removedIds) {
+        await db.deleteArea(areaId)
       }
 
       for (let i = 0; i < validAreas.length; i++) {

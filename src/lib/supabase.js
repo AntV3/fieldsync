@@ -18,7 +18,22 @@ import {
   getConnectionStatus,
   onConnectionChange,
   getPendingActionCount,
-  syncPendingActions
+  syncPendingActions,
+  cacheData,
+  getCachedData,
+  savePendingTMTicket,
+  getPendingTMTicket,
+  getPendingTMTickets,
+  updatePendingTMTicket,
+  deletePendingTMTicket,
+  attachSignatureToPendingTicket,
+  getPendingSyncSummary,
+  classifySyncError,
+  syncPendingTMTickets,
+  scheduleRetry,
+  registerTicketDrain,
+  requeueNeedsAuthTickets,
+  onSyncStateChange
 } from './offlineManager'
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import {
@@ -216,10 +231,30 @@ export {
   getConnectionStatus,
   onConnectionChange,
   getPendingActionCount,
-  syncPendingActions
+  syncPendingActions,
+  cacheData,
+  getCachedData,
+  savePendingTMTicket,
+  getPendingTMTicket,
+  getPendingTMTickets,
+  updatePendingTMTicket,
+  deletePendingTMTicket,
+  attachSignatureToPendingTicket,
+  getPendingSyncSummary,
+  classifySyncError,
+  syncPendingTMTickets,
+  scheduleRetry,
+  registerTicketDrain,
+  requeueNeedsAuthTickets,
+  onSyncStateChange
 }
 
-const drainPendingActions = async () => {
+/**
+ * Drain everything saved offline: the legacy pending_actions queue, then the
+ * pending T&M tickets (an auth failure on the signed-in field project emits
+ * 'session_expired'). Safe to call any time; never throws.
+ */
+export const drainPendingActions = async () => {
   if (!isSupabaseConfigured || !getConnectionStatus()) return
   try {
     if ((await getPendingActionCount()) > 0) {
@@ -228,7 +263,15 @@ const drainPendingActions = async () => {
   } catch (err) {
     console.error('Error syncing pending actions:', err)
   }
+  try {
+    await syncPendingTMTickets(db, { projectId: getFieldProjectId() })
+  } catch (err) {
+    console.error('Error syncing pending T&M tickets:', err)
+  }
 }
+
+// Bounded 5 s / 15 s / 45 s retries after a network failure mid-sync.
+registerTicketDrain(drainPendingActions)
 
 // Sync pending actions when coming back online
 onConnectionChange(async (online) => {

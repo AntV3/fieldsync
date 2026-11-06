@@ -6,7 +6,6 @@ import {
   MessageSquareText, NotebookPen, RefreshCw, Home, Plus, MoreHorizontal
 } from 'lucide-react'
 import { useTradeConfig } from '../lib/TradeConfigContext'
-import { getPendingActionCount } from '../lib/offlineManager'
 import { formatCurrencyCompact } from '../lib/utils'
 
 /**
@@ -14,6 +13,7 @@ import { formatCurrencyCompact } from '../lib/utils'
  *
  * Redesigned around the one-tap Working/Done loop:
  * - Greeting header + offline sync banner
+ * - Red "needs attention" card for tickets the office rejected
  * - Dark "today" progress card
  * - "Update your areas" tap-to-cycle list (the core field action)
  * - Pinnable quick action cards + collapsible "More Actions"
@@ -112,6 +112,105 @@ function greetingForNow() {
   return 'Good evening'
 }
 
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+const EMPTY_PENDING_TICKETS = { queued: 0, syncing: 0, needs_auth: 0, failed: 0, total: 0 }
+
+/**
+ * Pick the home sync banner for the current pending state, or null when there
+ * is nothing to say. Ticket states (IndexedDB pending_tm_tickets) come first;
+ * the legacy pending_actions queue and plain "offline" follow.
+ */
+function syncBannerFor({ isOnline, tickets, syncInProgress, pendingActionCount }) {
+  const total = tickets.total || 0
+  const waiting = (tickets.queued || 0) + (tickets.syncing || 0)
+  if (!isOnline && total > 0) {
+    return {
+      tone: 'offline',
+      title: `${plural(total, 'ticket')} saved on phone`,
+      sub: 'Will sync automatically when you have signal'
+    }
+  }
+  if (tickets.needs_auth > 0) {
+    return {
+      tone: 'warn',
+      title: `Sign in to sync ${plural(tickets.needs_auth, 'ticket')}`,
+      sub: 'Enter your foreman PIN to send them to the office'
+    }
+  }
+  if (tickets.failed > 0) {
+    return {
+      tone: 'error',
+      title: `${plural(tickets.failed, 'ticket')} could not sync — tell the office`,
+      sub: 'They are still saved on this phone'
+    }
+  }
+  if (waiting > 0 && (syncInProgress || tickets.syncing > 0)) {
+    return {
+      tone: 'syncing',
+      title: `Syncing ${plural(waiting, 'ticket')}…`,
+      sub: 'Sending to the office'
+    }
+  }
+  if (waiting > 0) {
+    return {
+      tone: 'offline',
+      title: `${plural(waiting, 'ticket')} saved on phone`,
+      sub: 'Will sync automatically when you have signal'
+    }
+  }
+  if (pendingActionCount > 0) {
+    return {
+      tone: 'offline',
+      title: `${pendingActionCount} update${pendingActionCount !== 1 ? 's' : ''} saved offline`,
+      sub: isOnline ? 'Syncing to office…' : 'Will sync to office when connected'
+    }
+  }
+  if (!isOnline) {
+    return { tone: 'offline', title: 'Working offline', sub: 'Will sync to office when connected' }
+  }
+  return null
+}
+
+// Rejections the foreman dismissed on this device: a list of
+// `${ticket.id}:${rejected_at}` so a newer rejection of the same ticket shows again.
+const getDismissedRejectionsKey = (projectId) => `fm_dismissed_rejections_${projectId}`
+const MAX_DISMISSED_REJECTIONS = 100
+
+const rejectionToken = (ticket) => `${ticket?.id}:${ticket?.rejected_at || ''}`
+
+function readDismissedRejections(storageKey) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function formatWorkDate(workDate) {
+  if (!workDate) return null
+  // work_date is a plain YYYY-MM-DD; parse it as a local date (no UTC shift).
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(workDate) ? new Date(`${workDate}T00:00:00`) : new Date(workDate)
+  if (Number.isNaN(d.getTime())) return String(workDate)
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function relativeTimeFrom(timestamp, now = Date.now()) {
+  if (!timestamp) return null
+  const then = new Date(timestamp).getTime()
+  if (Number.isNaN(then)) return null
+  const mins = Math.max(0, Math.floor((now - then) / 60000))
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hr ago`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days} days ago`
+  return `on ${new Date(then).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+}
+
 function initialsOf(name) {
   return String(name || 'FS')
     .split(/\s+/)
@@ -133,6 +232,14 @@ export default function ForemanLanding({
   areasWorking,
   areasRemaining,
   punchListOpenCount,
+  // Pending-sync state is owned by ForemanView (one source of truth) and
+  // passed in: { queued, syncing, needs_auth, failed, total } for this project.
+  pendingTmTickets = EMPTY_PENDING_TICKETS,
+  ticketSyncInProgress = false,
+  pendingActionCount = 0,
+  isOnline = true,
+  // T&M tickets the office rejected (db.getRejectedTMTickets), loaded by ForemanView
+  rejectedTickets = [],
   onNavigate,
   onShowToast
 }) {
@@ -141,31 +248,45 @@ export default function ForemanLanding({
   const configuredActions = tradeConfig?.resolvedConfig?.field_actions
   const truckLoadTrackingEnabled = tradeConfig?.resolvedConfig?.enable_truck_load_tracking ?? false
 
-  // Offline sync banner state
-  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true))
-  const [pendingSyncCount, setPendingSyncCount] = useState(0)
   const [showAllAreas, setShowAllAreas] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
-    const refreshPending = () => {
-      getPendingActionCount()
-        .then(count => { if (mounted) setPendingSyncCount(count || 0) })
-        .catch(() => {})
+  const ticketsWaiting = pendingTmTickets?.total || 0
+  const syncBanner = syncBannerFor({
+    isOnline,
+    tickets: { ...EMPTY_PENDING_TICKETS, ...pendingTmTickets },
+    syncInProgress: ticketSyncInProgress,
+    pendingActionCount
+  })
+
+  // Rejected tickets minus the ones dismissed on this device. The stored list
+  // is per project; when the project changes the state is re-read from storage.
+  const dismissedStorageKey = getDismissedRejectionsKey(project?.id)
+  const [dismissedState, setDismissedState] = useState(() => ({
+    key: dismissedStorageKey,
+    tokens: readDismissedRejections(dismissedStorageKey)
+  }))
+  const dismissedTokens = dismissedState.key === dismissedStorageKey
+    ? dismissedState.tokens
+    : readDismissedRejections(dismissedStorageKey)
+  const visibleRejections = useMemo(() => {
+    const dismissed = new Set(dismissedTokens)
+    return (Array.isArray(rejectedTickets) ? rejectedTickets : [])
+      .filter(t => t?.id && !dismissed.has(rejectionToken(t)))
+  }, [rejectedTickets, dismissedTokens])
+
+  const dismissRejection = (ticket) => {
+    const token = rejectionToken(ticket)
+    // Keep only tokens for tickets still rejected (bounded storage) plus this one.
+    const current = new Set((rejectedTickets || []).map(rejectionToken))
+    const next = [...dismissedTokens.filter(t => current.has(t) && t !== token), token]
+      .slice(-MAX_DISMISSED_REJECTIONS)
+    setDismissedState({ key: dismissedStorageKey, tokens: next })
+    try {
+      localStorage.setItem(dismissedStorageKey, JSON.stringify(next))
+    } catch {
+      // Storage unavailable: dismissed for this visit only
     }
-    const handleOnline = () => { setIsOnline(true); refreshPending() }
-    const handleOffline = () => { setIsOnline(false); refreshPending() }
-    refreshPending()
-    const interval = setInterval(refreshPending, 30000)
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    return () => {
-      mounted = false
-      clearInterval(interval)
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
+  }
 
   // Resolve available actions: base actions filtered by trade config
   const ALL_ACTIONS = useMemo(() => {
@@ -255,6 +376,17 @@ export default function ForemanLanding({
     return Object.keys(ALL_ACTIONS).filter(id => !pinnedIds.includes(id))
   }, [ALL_ACTIONS, pinnedIds])
 
+  // A project with no work areas (T&M-only) has nothing to mark Working/Done.
+  const hasAreas = areas.length > 0
+
+  // Display-only ordering of the pinned cards: with no areas, T&M ticketing is
+  // the foreman's main job, so it leads. The stored order (fm_pinned_<id>) is
+  // untouched so the user's own arrangement returns once areas exist.
+  const displayedPinnedIds = useMemo(() => {
+    if (hasAreas || !pinnedIds.includes('tm')) return pinnedIds
+    return ['tm', ...pinnedIds.filter(id => id !== 'tm')]
+  }, [hasAreas, pinnedIds])
+
   // Get status info for an action
   const getActionStatus = useCallback((actionId) => {
     switch (actionId) {
@@ -265,6 +397,9 @@ export default function ForemanLanding({
           status: todayStatus.crewCheckedIn ? 'Done today' : 'Not started'
         }
       case 'tm':
+        if (ticketsWaiting > 0) {
+          return { done: false, badge: `${ticketsWaiting} waiting to sync`, status: null }
+        }
         return {
           done: false,
           badge: todayStatus.tmTicketsToday > 0 ? `${todayStatus.tmTicketsToday} today` : null,
@@ -277,6 +412,9 @@ export default function ForemanLanding({
           status: todayStatus.dailyReportDone ? 'Submitted' : 'Due today'
         }
       case 'progress':
+        if (!hasAreas) {
+          return { done: false, badge: null, status: 'No areas yet' }
+        }
         return {
           done: areasRemaining === 0,
           badge: areasRemaining > 0 ? `${areasRemaining} left` : null,
@@ -303,7 +441,7 @@ export default function ForemanLanding({
       default:
         return { done: false, badge: null, status: null }
     }
-  }, [todayStatus, progress, areasRemaining, punchListOpenCount])
+  }, [todayStatus, progress, areasRemaining, punchListOpenCount, hasAreas, ticketsWaiting])
 
   const visibleAreas = showAllAreas ? areas : areas.slice(0, AREAS_PREVIEW_COUNT)
 
@@ -394,20 +532,70 @@ export default function ForemanLanding({
       </div>
 
       {/* Offline sync banner */}
-      {(!isOnline || pendingSyncCount > 0) && (
-        <div className="sdx-fld-sync" role="status">
-          <span className="sdx-fld-sync-icon" aria-hidden="true"><RefreshCw size={17} /></span>
+      {syncBanner && (
+        <div className={`sdx-fld-sync ${syncBanner.tone}`} role="status">
+          <span className="sdx-fld-sync-icon" aria-hidden="true">
+            {syncBanner.tone === 'warn' || syncBanner.tone === 'error'
+              ? <AlertTriangle size={17} />
+              : <RefreshCw size={17} />}
+          </span>
           <span className="sdx-fld-sync-text">
-            <span className="sdx-fld-sync-title">
-              {pendingSyncCount > 0
-                ? `${pendingSyncCount} update${pendingSyncCount !== 1 ? 's' : ''} saved offline`
-                : 'Working offline'}
-            </span>
-            <span className="sdx-fld-sync-sub">
-              {isOnline ? 'Syncing to office…' : 'Will sync to office when connected'}
-            </span>
+            <span className="sdx-fld-sync-title">{syncBanner.title}</span>
+            <span className="sdx-fld-sync-sub">{syncBanner.sub}</span>
           </span>
         </div>
+      )}
+
+      {/* Needs attention: tickets the office rejected */}
+      {visibleRejections.length > 0 && (
+        <section className="sdx-fld-alert" aria-labelledby="sdx-fld-alert-title">
+          <div className="sdx-fld-alert-head">
+            <span className="sdx-fld-alert-icon" aria-hidden="true">
+              <AlertTriangle size={17} />
+            </span>
+            <span className="sdx-fld-alert-text">
+              <span className="sdx-fld-alert-title" id="sdx-fld-alert-title">
+                {visibleRejections.length === 1
+                  ? '1 ticket needs attention'
+                  : `${visibleRejections.length} tickets need attention`}
+              </span>
+              <span className="sdx-fld-alert-sub">Rejected by the office — fix and resubmit</span>
+            </span>
+          </div>
+          <ul className="sdx-fld-alert-list">
+            {visibleRejections.map(ticket => {
+              const date = formatWorkDate(ticket.work_date)
+              const when = relativeTimeFrom(ticket.rejected_at)
+              const reason = String(ticket.rejection_reason ?? '').trim()
+              const by = String(ticket.rejected_by_name ?? '').trim()
+              const label = ['T&M', date, ticket.ce_pco_number ? `PCO ${ticket.ce_pco_number}` : null]
+                .filter(Boolean).join(' · ')
+              return (
+                <li key={rejectionToken(ticket)} className="sdx-fld-alert-item">
+                  <div className="sdx-fld-alert-item-body">
+                    <span className="sdx-fld-alert-item-label">{label}</span>
+                    <span className="sdx-fld-alert-reason">{reason || 'No reason given'}</span>
+                    <span className="sdx-fld-alert-meta">
+                      {[by ? `Rejected by ${by}` : 'Rejected', when].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="sdx-fld-alert-dismiss"
+                    onClick={() => dismissRejection(ticket)}
+                    aria-label={`Dismiss rejection of ${label}`}
+                  >
+                    Dismiss
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <button type="button" className="sdx-fld-alert-cta" onClick={() => onNavigate('tm')}>
+            <FileText size={16} aria-hidden="true" />
+            Submit corrected ticket
+          </button>
+        </section>
       )}
 
       {/* Today dark card */}
@@ -418,8 +606,8 @@ export default function ForemanLanding({
         </div>
         <div className="sdx-fld-today-stats">
           <div className="sdx-fld-today-stat">
-            <span className="sdx-fld-today-value">{progress}%</span>
-            <span className="sdx-fld-today-sub">complete</span>
+            <span className="sdx-fld-today-value">{hasAreas ? `${progress}%` : '—'}</span>
+            <span className="sdx-fld-today-sub">{hasAreas ? 'complete' : 'no areas'}</span>
           </div>
           <div className="sdx-fld-today-stat">
             <span className="sdx-fld-today-value">{todayStatus.crewCount || 0}</span>
@@ -436,53 +624,53 @@ export default function ForemanLanding({
         </div>
       </button>
 
-      {/* Update your areas — one-tap status cycle */}
-      <div className="sdx-fld-section">
-        <div className="sdx-fld-section-head">
-          <span className="sdx-fld-section-title">Update your areas</span>
-          <span className="sdx-fld-section-hint">tap to advance</span>
-        </div>
-        {areasLoading ? (
-          <div className="sdx-fld-areas-empty">Loading areas…</div>
-        ) : areas.length === 0 ? (
-          <div className="sdx-fld-areas-empty">Office will add work areas to this project</div>
-        ) : (
-          <div className="sdx-fld-areas">
-            {visibleAreas.map(area => {
-              const meta = AREA_STATUS_META[area.status] || AREA_STATUS_META.not_started
-              return (
-                <button
-                  key={area.id}
-                  className={`sdx-fld-area ${updatingAreaId === area.id ? 'updating' : ''}`}
-                  onClick={() => onAreaCycle?.(area)}
-                  disabled={updatingAreaId === area.id}
-                  aria-label={`${area.name}: ${meta.label}. Tap to advance status.`}
-                >
-                  <span className={`sdx-dot ${meta.className}`} aria-hidden="true" />
-                  <span className="sdx-fld-area-text">
-                    <span className="sdx-fld-area-name">{area.name}</span>
-                    <span className="sdx-fld-area-sub">
-                      {[
-                        area.scheduled_value ? formatCurrencyCompact(area.scheduled_value) : (area.weight ? `${area.weight}%` : null),
-                        area.group_name
-                      ].filter(Boolean).join(' · ')}
-                    </span>
-                  </span>
-                  <span className={`sdx-pill ${meta.className}`}>{meta.label}</span>
-                </button>
-              )
-            })}
-            {areas.length > AREAS_PREVIEW_COUNT && (
-              <button className="sdx-fld-areas-more" onClick={() => setShowAllAreas(v => !v)}>
-                {showAllAreas ? 'Show fewer' : `Show all ${areas.length} areas`}
-              </button>
-            )}
-            <button className="sdx-fld-areas-phases" onClick={() => onNavigate('progress')}>
-              View by phase →
-            </button>
+      {/* Update your areas — one-tap status cycle (hidden for projects with no areas) */}
+      {(areasLoading || hasAreas) && (
+        <div className="sdx-fld-section">
+          <div className="sdx-fld-section-head">
+            <span className="sdx-fld-section-title">Update your areas</span>
+            <span className="sdx-fld-section-hint">tap to advance</span>
           </div>
-        )}
-      </div>
+          {areasLoading ? (
+            <div className="sdx-fld-areas-empty">Loading areas…</div>
+          ) : (
+            <div className="sdx-fld-areas">
+              {visibleAreas.map(area => {
+                const meta = AREA_STATUS_META[area.status] || AREA_STATUS_META.not_started
+                return (
+                  <button
+                    key={area.id}
+                    className={`sdx-fld-area ${updatingAreaId === area.id ? 'updating' : ''}`}
+                    onClick={() => onAreaCycle?.(area)}
+                    disabled={updatingAreaId === area.id}
+                    aria-label={`${area.name}: ${meta.label}. Tap to advance status.`}
+                  >
+                    <span className={`sdx-dot ${meta.className}`} aria-hidden="true" />
+                    <span className="sdx-fld-area-text">
+                      <span className="sdx-fld-area-name">{area.name}</span>
+                      <span className="sdx-fld-area-sub">
+                        {[
+                          area.scheduled_value ? formatCurrencyCompact(area.scheduled_value) : (area.weight ? `${area.weight}%` : null),
+                          area.group_name
+                        ].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <span className={`sdx-pill ${meta.className}`}>{meta.label}</span>
+                  </button>
+                )
+              })}
+              {areas.length > AREAS_PREVIEW_COUNT && (
+                <button className="sdx-fld-areas-more" onClick={() => setShowAllAreas(v => !v)}>
+                  {showAllAreas ? 'Show fewer' : `Show all ${areas.length} areas`}
+                </button>
+              )}
+              <button className="sdx-fld-areas-phases" onClick={() => onNavigate('progress')}>
+                View by phase →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quick actions (pinned, customizable) */}
       <div className="sdx-fld-section">
@@ -502,7 +690,7 @@ export default function ForemanLanding({
         )}
 
         <div className="sdx-fld-qa-grid stagger-children">
-          {pinnedIds.map(renderPinnedAction)}
+          {displayedPinnedIds.map(renderPinnedAction)}
         </div>
       </div>
 

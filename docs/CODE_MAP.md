@@ -53,6 +53,7 @@
 |------|-------|---------|--------|-------|
 | `TMForm.jsx` | 2,353 | T&M ticket creation/edit | Active | **LARGEST - needs split** |
 | `TMList.jsx` | 1,543 | T&M ticket list/table | Active | |
+| `tm/TMTicketEditModal.jsx` | ~600 | Office correction of a submitted T&M ticket (date, CE/PCO, description, crew, materials, billable value) | Active | Opened from the card's Edit button in `TMList`; saves through `db.updateTMTicketContents` (RPC `update_tm_ticket_contents`), editability from `getTicketEditability` in `lib/tmStatus.js` |
 | `TMClientSignature.jsx` | ~300 | On-site signature capture | Active | |
 
 #### TMForm.jsx Structure (Should Split Into)
@@ -98,7 +99,7 @@ TMForm.jsx (orchestrator)
 
 | File | Lines | Purpose | Status | Notes |
 |------|-------|---------|--------|-------|
-| `EnhancedSignatureCapture.jsx` | ~200 | Advanced signature canvas | Active | Preferred for modals |
+| `ui/SignatureCanvas.jsx` | ~300 | Unified signature canvas (simple + enhanced modal) | Active | Replaced `EnhancedSignatureCapture.jsx`, which no longer exists |
 | `SignatureLinkGenerator.jsx` | ~200 | Generate share links | Active | |
 | `ManDayCosts.jsx` | ~200 | Man-day cost tracking | Active | |
 | `BurnRateCard.jsx` | ~150 | Budget burn rate | Active | |
@@ -118,7 +119,12 @@ TMForm.jsx (orchestrator)
 
 | File | Lines | Purpose | Status | Notes |
 |------|-------|---------|--------|-------|
-| `Setup.jsx` | ~300 | Initial company setup | Active | |
+| `Setup.jsx` | ~330 | New project wizard: Basics (name + PIN) → Contacts → Progress tracking (optional) → Review | Active | 4 steps; contract value, schedule and areas are optional |
+| `setup/ProjectBasicsStep.jsx` | ~150 | Step 1: name, trade/job type, foreman PIN | Active | |
+| `setup/ContactsStep.jsx` | ~100 | Step 2: client/GC contacts | Active | All optional |
+| `setup/ProgressTrackingStep.jsx` | ~90 | Step 3: contract value, schedule, man-days, then areas/tasks (`AreasTasksStep` embedded) | Active | Optional; "Skip for now" when empty |
+| `setup/AreasTasksStep.jsx` | ~760 | Phases/areas editor + Excel import | Active | `embedded` prop drops the step header |
+| `setup/ReviewStep.jsx` | ~230 | Step 4: summary before create | Active | "Not set up" card when progress tracking is empty |
 | `JoinCompany.jsx` | ~200 | Join existing company | Active | |
 | `AreaEditor.jsx` | ~400 | Edit project areas | Active | |
 
@@ -132,6 +138,7 @@ TMForm.jsx (orchestrator)
 |------|-------|---------|--------|-------|
 | `supabase.js` | 5,926 | Database facade | Active | **VERY LARGE - needs split** |
 | `utils.js` | 198 | General utilities | Active | Formatting, calculations |
+| `projectSetupValidation.js` | ~190 | Project setup/edit validation (PIN, optional contract value, both-or-neither dates, optional areas totaling 100%, phase names, `isProgressTrackingEmpty`) | Active | Pure; shared by `Setup.jsx` and `useProjectEdit.js` |
 
 #### supabase.js Exports
 
@@ -338,10 +345,20 @@ CORDetail.jsx
 
 ```
 SignaturePage.jsx
-├── imports { exportCORToPDF } from corPdfExport.js (LEGACY)
-├── imports EnhancedSignatureCapture.jsx
+├── imports { exportCORToPDF, exportTMTicketToPDF } from corPdfExport.js (LEGACY)
+├── imports SignatureCanvas.jsx (ui/)
+├── imports { getSigningClient } from signingClient.js (anon client that sends x-signing-token)
 └── uses db from supabase.js
+    ├── getSignatureRequestByToken(token)      → RPC public_get_signature_request_by_token
+    ├── getDocumentForSigning(token)           → RPC public_get_document_for_signing
+    └── addSignature(token, slot, data)        → RPC public_add_signature
 ```
+
+The public flow never touches base tables: the token is the credential and
+every read/write goes through a token-gated SECURITY DEFINER RPC as the anon
+role. `syncSignatureToDocument` is gone; `public_add_signature` writes the
+signature, mirrors it onto the document, advances status, and logs the COR
+history in one transaction.
 
 ---
 
@@ -465,6 +482,7 @@ db.createInjuryReport(data)
 | Feature | Component |
 |---------|-----------|
 | T&M ticket creation | `TMForm.jsx` |
+| T&M ticket correction (office) | `tm/TMTicketEditModal.jsx` (orchestrated by `TMList.jsx`) |
 | COR creation | `cor/CORForm.jsx` |
 | COR viewing | `cor/CORDetail.jsx` |
 | PDF export | `cor/CORDetail.jsx` → `corExportPipeline.js` |

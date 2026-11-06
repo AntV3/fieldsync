@@ -456,6 +456,24 @@
   max-width: 400px;
 }
 
+/* Inline notice (e.g. "already signed") — shown under the header and
+   never replaces the document the way .signature-page-error does */
+.signature-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-warning-bg, #fef3c7);
+  color: var(--color-warning, #b45309);
+  font-weight: 500;
+  text-align: center;
+}
+
+.signature-notice svg {
+  flex-shrink: 0;
+}
+
 /* Success Banner */
 .signature-success-banner {
   background: var(--color-success-bg, #d1fae5);

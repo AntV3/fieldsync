@@ -6,7 +6,7 @@ const CAPABILITIES = [
   'Change Order Management',
   'Instant Daily Reports',
   'Dispute-Proof Documentation',
-  'Offline-First Architecture',
+  'Offline Ticket Capture',
   'Works on Any Phone — No App Store',
   'MFA + Role-Based Security',
   'Automated Crew Check-in',

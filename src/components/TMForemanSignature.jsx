@@ -20,7 +20,11 @@ export default function TMForemanSignature({
   lang = 'en',
   onSave,
   onClose,
-  onShowToast
+  onShowToast,
+  // Optional override for where the signature is written. ReviewStep passes
+  // one for a ticket saved on the phone (no server id yet); without it the
+  // signature goes straight to the server ticket as before.
+  saveSignature
 }) {
   const canvasRef = useRef(null)
   const [signerName, setSignerName] = useState(foremanName)
@@ -203,13 +207,19 @@ export default function TMForemanSignature({
       // Get signature as base64 PNG
       const signatureData = canvas.toDataURL('image/png')
 
-      // Save foreman signature to T&M ticket
-      await db.saveTMForemanSignature(ticketId, {
+      const sig = {
         signature: signatureData,
         signerName: signerName.trim(),
         signerTitle: signerTitle.trim() || null,
         signedAt: new Date().toISOString()
-      })
+      }
+
+      // Save foreman signature to T&M ticket (or to the ticket saved on the phone)
+      if (saveSignature) {
+        await saveSignature(sig)
+      } else {
+        await db.saveTMForemanSignature(ticketId, sig)
+      }
 
       onShowToast?.(text.signatureSaved, 'success')
       onSave?.({

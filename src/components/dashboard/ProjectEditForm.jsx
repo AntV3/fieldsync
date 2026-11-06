@@ -1,10 +1,14 @@
 import { useMemo } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { sumAreaWeights, areaTotalWithinTolerance } from '../../lib/projectSetupValidation'
 
 function ProjectEditForm({ editData, saving, onCancel, onEditChange, onAreaEditChange, onAddArea, onRemoveArea, onSave, onDelete }) {
-  const totalWeight = useMemo(
-    () => editData.areas.reduce((sum, a) => sum + (parseFloat(a.weight) || 0), 0),
-    [editData.areas]
+  // Same rounding as validateOptionalAreas so the row never reads "invalid"
+  // for a total the save accepts (33.3 / 33.3 / 33.3).
+  const totalWeight = useMemo(() => sumAreaWeights(editData.areas), [editData.areas])
+  const hasAreas = editData.areas.length > 0
+  const endBeforeStart = Boolean(
+    editData.start_date && editData.end_date && new Date(editData.end_date) < new Date(editData.start_date)
   )
 
   return (
@@ -93,8 +97,15 @@ function ProjectEditForm({ editData, saving, onCancel, onEditChange, onAreaEditC
         <h3>Financials & Settings</h3>
         <div className="form-row">
           <div className="form-group">
-            <label>Contract Value ($) *</label>
-            <input type="number" value={editData.contract_value} onChange={(e) => onEditChange('contract_value', e.target.value)} placeholder="0" />
+            <label>Contract Value ($) <span className="optional">(optional)</span></label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={editData.contract_value}
+              onChange={(e) => onEditChange('contract_value', e.target.value.replace(/[^0-9.]/g, ''))}
+              placeholder="e.g., 250000"
+            />
+            <span className="form-hint">Leave blank for T&amp;M-only work</span>
           </div>
           <div className="form-group">
             <label>Foreman PIN</label>
@@ -121,24 +132,68 @@ function ProjectEditForm({ editData, saving, onCancel, onEditChange, onAreaEditC
         </div>
       </div>
 
+      {/* Schedule */}
+      <div className="card">
+        <h3>Schedule <span className="optional">(optional)</span></h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+          Enter both dates to track schedule variance, or leave both blank.
+        </p>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Start Date</label>
+            <input
+              type="date"
+              value={editData.start_date}
+              onChange={(e) => onEditChange('start_date', e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>End Date</label>
+            <input
+              type="date"
+              value={editData.end_date}
+              onChange={(e) => onEditChange('end_date', e.target.value)}
+              min={editData.start_date || undefined}
+            />
+            {endBeforeStart && (
+              <span className="error-text">End date must be after start date</span>
+            )}
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Planned Man-Days</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="e.g., 120"
+            value={editData.planned_man_days}
+            onChange={(e) => onEditChange('planned_man_days', e.target.value.replace(/\D/g, ''))}
+            min="1"
+          />
+          <span className="form-hint">Total estimated man-days to complete the project</span>
+        </div>
+      </div>
+
       <div className="card">
         <h3>Areas</h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-          Weights must total 100%.
+          Optional — used for % complete and earned value. If you add areas, weights must total 100%.
         </p>
         {editData.areas.map((area, index) => (
           <div key={index} className="area-row">
             <input type="text" placeholder="Area name" value={area.name} onChange={(e) => onAreaEditChange(index, 'name', e.target.value)} />
             <input type="number" placeholder="%" value={area.weight} onChange={(e) => onAreaEditChange(index, 'weight', e.target.value)} />
-            <button className="remove-btn" onClick={() => onRemoveArea(index)}>×</button>
+            <button className="remove-btn" onClick={() => onRemoveArea(index)} aria-label="Remove area">×</button>
           </div>
         ))}
-        <div className="weight-total">
-          <span className="weight-total-label">Total Weight:</span>
-          <span className={`weight-total-value ${Math.abs(totalWeight - 100) <= 0.01 ? 'valid' : 'invalid'}`}>
-            {totalWeight}%
-          </span>
-        </div>
+        {hasAreas && (
+          <div className="weight-total">
+            <span className="weight-total-label">Total Weight:</span>
+            <span className={`weight-total-value ${areaTotalWithinTolerance(totalWeight) ? 'valid' : 'invalid'}`}>
+              {totalWeight}%
+            </span>
+          </div>
+        )}
         <button className="btn btn-secondary" onClick={onAddArea}>+ Add Area</button>
       </div>
 

@@ -861,6 +861,145 @@ button.sdx-pill:active { transform: scale(0.97); }
   color: var(--accent-amber);
 }
 
+/* Needs attention: T&M tickets the office rejected */
+.sdx-fld-alert {
+  --sdx-fld-alert-text: #b91c1c;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0.8rem;
+  background: var(--bg-card);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-left: 3px solid var(--accent-red);
+  border-radius: var(--radius-lg, 12px);
+}
+
+[data-theme="dark"] .sdx-fld-alert {
+  --sdx-fld-alert-text: #fca5a5;
+}
+
+.sdx-fld-alert-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sdx-fld-alert-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--accent-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sdx-fld-alert-text { display: flex; flex-direction: column; min-width: 0; }
+
+.sdx-fld-alert-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sdx-fld-alert-sub {
+  font-size: 0.72rem;
+  color: var(--sdx-fld-alert-text);
+}
+
+.sdx-fld-alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sdx-fld-alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0.65rem 0.75rem;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-md, 10px);
+}
+
+[data-theme="dark"] .sdx-fld-alert-item {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.sdx-fld-alert-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sdx-fld-alert-item-label {
+  font-family: var(--font-data);
+  font-size: 0.66rem;
+  letter-spacing: var(--letter-spacing-display, 0.08em);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.sdx-fld-alert-reason {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.sdx-fld-alert-meta {
+  font-size: 0.72rem;
+  color: var(--sdx-fld-alert-text);
+}
+
+.sdx-fld-alert-dismiss {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sdx-fld-alert-dismiss:active { transform: scale(0.97); }
+
+.sdx-fld-alert-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--duration-fast, 150ms) ease;
+}
+
+.sdx-fld-alert-cta:active { transform: scale(0.98); }
+
+.sdx-fld-alert-dismiss:focus-visible,
+.sdx-fld-alert-cta:focus-visible {
+  outline: 2px solid var(--accent-red);
+  outline-offset: 2px;
+}
+
 /* Today dark card */
 .sdx-fld-today {
   width: 100%;

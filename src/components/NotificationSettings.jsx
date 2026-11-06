@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { MessageSquare, AlertCircle, ClipboardList } from 'lucide-react'
+import { MessageSquare, AlertCircle, ClipboardList, PenLine } from 'lucide-react'
 import { db } from '../lib/supabase'
 
 const NOTIFICATION_TYPES = [
   { id: 'message', label: 'Messages', Icon: MessageSquare, description: 'Chat messages from field' },
   { id: 'injury_report', label: 'Safety Reports', Icon: AlertCircle, description: 'Injury and safety incident reports' },
-  { id: 'tm_ticket', label: 'Time & Material', Icon: ClipboardList, description: 'Time & Material tickets' }
+  { id: 'tm_ticket', label: 'Time & Material', Icon: ClipboardList, description: 'Time & Material tickets submitted from the field (email)' },
+  { id: 'signature', label: 'Signatures', Icon: PenLine, description: 'A client signs a COR or T&M ticket through a signature link (email)' }
 ]
 
 export default function NotificationSettings({ project, company, onShowToast, onClose }) {
@@ -132,7 +133,14 @@ export default function NotificationSettings({ project, company, onShowToast, on
 
       <p className="settings-description">
         Choose who receives notifications when field workers send messages,
-        submit safety reports, or create Time & Material tickets for this project.
+        submit safety reports, or create Time & Material tickets, and when a
+        client signs a document through a signature link for this project.
+      </p>
+      <p className="settings-description settings-fallback-note">
+        Each type falls back to everyone: if nobody on this project has a type
+        ticked, every active company member receives that notification. Whoever
+        created a signature link (the company owner for links sent from the
+        field) is always emailed when it is signed.
       </p>
 
       {users.length === 0 ? (

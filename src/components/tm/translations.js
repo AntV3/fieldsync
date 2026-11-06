@@ -184,7 +184,18 @@ export const TRANSLATIONS = {
     edit: 'Edit',
     submittedBy: 'Submitted By',
     enterYourName: 'Enter your name',
-    certifyAccurate: 'By submitting, you certify this Time & Material ticket is accurate.'
+    certifyAccurate: 'By submitting, you certify this Time & Material ticket is accurate.',
+
+    // Offline submit
+    savedOnPhone: 'Saved on this phone',
+    willSyncWhenSignal: 'Will sync automatically when you have signal',
+    clientSignatureAfterSync: 'Client signature is available after the ticket syncs',
+    noSignalPhotosTitle: 'No signal',
+    noSignalPhotosBody: "Save the ticket without the {count} photo(s)? Photos can't be saved on the phone. To include them, keep editing and submit again when you have signal.",
+    saveWithoutPhotos: 'Save without photos',
+    keepEditing: 'Keep editing',
+    couldNotSaveLocally: 'Could not save the ticket on this phone. Keep this screen open and try again.',
+    alreadySubmitted: 'This ticket was already submitted'
   },
   es: {
     // Steps
@@ -369,7 +380,18 @@ export const TRANSLATIONS = {
     edit: 'Editar',
     submittedBy: 'Enviado Por',
     enterYourName: 'Ingrese su nombre',
-    certifyAccurate: 'Al enviar, certifica que este ticket de Tiempo y Material es preciso.'
+    certifyAccurate: 'Al enviar, certifica que este ticket de Tiempo y Material es preciso.',
+
+    // Offline submit
+    savedOnPhone: 'Guardado en este tel\u00e9fono',
+    willSyncWhenSignal: 'Se sincronizar\u00e1 autom\u00e1ticamente cuando tenga se\u00f1al',
+    clientSignatureAfterSync: 'La firma del cliente estar\u00e1 disponible cuando el ticket se sincronice',
+    noSignalPhotosTitle: 'Sin se\u00f1al',
+    noSignalPhotosBody: '\u00bfGuardar el ticket sin las {count} foto(s)? Las fotos no se pueden guardar en el tel\u00e9fono. Para incluirlas, siga editando y env\u00ede de nuevo cuando tenga se\u00f1al.',
+    saveWithoutPhotos: 'Guardar sin fotos',
+    keepEditing: 'Seguir editando',
+    couldNotSaveLocally: 'No se pudo guardar el ticket en este tel\u00e9fono. Mantenga esta pantalla abierta e intente de nuevo.',
+    alreadySubmitted: 'Este ticket ya fue enviado'
   }
 }
 

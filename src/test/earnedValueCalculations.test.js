@@ -172,4 +172,67 @@ describe('Earned Value Calculations', () => {
       expect(lastPoint.plannedValue).toBe(1050000)
     })
   })
+
+  describe('T&M-only project (no contract value, no dates)', () => {
+    const emptyProject = {
+      contractValue: 0,
+      changeOrderValue: 0,
+      progressPercent: 0,
+      actualCosts: 0,
+      startDate: null,
+      endDate: null,
+      now: new Date('2026-06-01')
+    }
+
+    // Fail on any non-finite number anywhere in the result
+    const expectFinite = (result) => {
+      for (const [key, value] of Object.entries(result)) {
+        if (typeof value === 'number') {
+          expect(Number.isFinite(value), `${key} is ${value}`).toBe(true)
+        }
+      }
+    }
+
+    it('returns finite zeros and no projected end date', () => {
+      const result = calculateEarnedValue(emptyProject)
+      expect(result.bac).toBe(0)
+      expect(result.earnedValue).toBe(0)
+      expect(result.plannedValue).toBe(0)
+      expect(result.cpi).toBe(1)
+      expect(result.spi).toBe(1)
+      expect(result.eac).toBe(0)
+      expect(result.etc).toBe(0)
+      expect(result.vac).toBe(0)
+      expect(result.projectedEndDate).toBeNull()
+      expect(result.percentScheduled).toBe(0)
+      expect(result.budgetUtilization).toBe(0)
+      expect(result.earnedPercent).toBe(0)
+      expectFinite(result)
+    })
+
+    it('stays finite when costs are logged against a zero budget', () => {
+      const result = calculateEarnedValue({ ...emptyProject, actualCosts: 4200, progressPercent: 30 })
+      expect(result.projectedEndDate).toBeNull()
+      expectFinite(result)
+    })
+
+    it('accepts null as the contract value the way a raw project row carries it', () => {
+      const result = calculateEarnedValue({ ...emptyProject, contractValue: null })
+      expect(result.bac).toBe(0)
+      expect(result.projectedEndDate).toBeNull()
+      expectFinite(result)
+    })
+
+    it('a contract value with no dates has no planned value and no projected end', () => {
+      const result = calculateEarnedValue({ ...emptyProject, contractValue: 100000, progressPercent: 40, actualCosts: 30000 })
+      expect(result.plannedValue).toBe(0)
+      expect(result.spi).toBe(1)
+      expect(result.projectedEndDate).toBeNull()
+      expectFinite(result)
+    })
+
+    it('generateSCurveData returns no points without dates', () => {
+      expect(generateSCurveData(emptyProject)).toEqual([])
+    })
+  })
 })

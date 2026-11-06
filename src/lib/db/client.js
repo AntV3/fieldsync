@@ -24,7 +24,22 @@ import {
   addPendingAction,
   getPendingActionCount,
   syncPendingActions,
-  ACTION_TYPES
+  ACTION_TYPES,
+  cacheData,
+  getCachedData,
+  savePendingTMTicket,
+  getPendingTMTicket,
+  getPendingTMTickets,
+  updatePendingTMTicket,
+  deletePendingTMTicket,
+  attachSignatureToPendingTicket,
+  getPendingSyncSummary,
+  classifySyncError,
+  syncPendingTMTickets,
+  scheduleRetry,
+  registerTicketDrain,
+  requeueNeedsAuthTickets,
+  onSyncStateChange
 } from '../offlineManager'
 import { supabase, isSupabaseConfigured } from '../supabaseClient'
 import { observe } from '../observability'
@@ -58,7 +73,14 @@ export {
   cacheMessage, getCachedMessages,
   addPendingAction, getPendingActionCount, syncPendingActions,
   ACTION_TYPES,
-  initOfflineDB
+  initOfflineDB,
+  cacheData, getCachedData,
+  savePendingTMTicket, getPendingTMTicket, getPendingTMTickets,
+  updatePendingTMTicket, deletePendingTMTicket,
+  attachSignatureToPendingTicket, getPendingSyncSummary,
+  classifySyncError, syncPendingTMTickets,
+  scheduleRetry, registerTicketDrain,
+  requeueNeedsAuthTickets, onSyncStateChange
 }
 
 // ============================================

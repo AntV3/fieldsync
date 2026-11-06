@@ -24,8 +24,8 @@ const sections = [
   },
   {
     icon: WifiOff,
-    title: 'Offline Ready',
-    desc: 'Create tickets without cell service or Wi-Fi. Everything auto-syncs the moment connectivity returns.'
+    title: 'Saves Offline',
+    desc: 'No signal? The ticket saves on this phone and syncs when signal returns. Photos need a connection.'
   },
   {
     icon: Globe,

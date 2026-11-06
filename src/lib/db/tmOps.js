@@ -8,12 +8,180 @@ import {
   observe,
   getClient, getSupabaseClient,
   isFieldMode,
-  getConnectionStatus,
-  cacheTMTicket,
-  addPendingAction, ACTION_TYPES,
-  generateTempId,
   sanitize
 } from './client'
+import { TM_COR_STATUSES_ALLOWING_TICKET_EDIT } from '../tmStatus'
+
+const PNG_DATA_URL_PREFIX = 'data:image/png;base64,'
+const MAX_SIGNATURE_CHARS = 2000000
+
+const invalidPayloadError = (message) => {
+  const err = new Error(message)
+  err.code = '22023'
+  return err
+}
+
+const timeoutError = (timeoutMs) => {
+  const err = new Error(`Ticket submit timed out after ${Math.round(timeoutMs / 1000)}s`)
+  err.name = 'AbortError'
+  err.code = ''
+  return err
+}
+
+const optionalText = (value) => {
+  const text = sanitize.text(value)
+  return text ? text : null
+}
+
+/**
+ * Build the create_tm_ticket_full p_payload from a pending-ticket record
+ * (see offlineManager savePendingTMTicket for the record shape). Throws an
+ * Error with code '22023' for an invalid record before any request is made.
+ * @param {Object} record
+ * @returns {Object} p_payload
+ */
+export function buildTMTicketFullPayload(record) {
+  const payload = record?.payload || {}
+  const projectId = payload.project_id || record?.project_id
+  const clientSubmissionId = payload.client_submission_id || record?.client_submission_id
+  if (!projectId || !clientSubmissionId) {
+    throw invalidPayloadError('project_id and client_submission_id are required')
+  }
+
+  const pPayload = {
+    project_id: projectId,
+    client_submission_id: clientSubmissionId,
+    work_date: payload.work_date,
+    ce_pco_number: optionalText(payload.ce_pco_number),
+    assigned_cor_id: payload.assigned_cor_id || null,
+    notes: optionalText(payload.notes),
+    created_by_name: optionalText(payload.created_by_name) || 'Field User',
+    workers: (payload.workers || []).map(w => ({
+      name: sanitize.text(w.name),
+      hours: w.hours,
+      overtime_hours: w.overtime_hours || 0,
+      time_started: w.time_started || null,
+      time_ended: w.time_ended || null,
+      role: sanitize.text(w.role || 'Laborer'),
+      labor_class_id: w.labor_class_id || null
+    })),
+    items: (payload.items || []).map(item => ({
+      material_equipment_id: item.material_equipment_id || null,
+      custom_name: item.custom_name ? sanitize.text(item.custom_name) : null,
+      custom_category: item.custom_category ? sanitize.text(item.custom_category) : null,
+      quantity: item.quantity
+    }))
+  }
+
+  const signature = record?.signature
+  if (signature) {
+    const data = signature.signature
+    if (typeof data !== 'string' || !data.startsWith(PNG_DATA_URL_PREFIX)) {
+      throw invalidPayloadError('Signature must be a PNG image')
+    }
+    if (data.length > MAX_SIGNATURE_CHARS) {
+      throw invalidPayloadError('Signature image is too large')
+    }
+    pPayload.foreman_signature = {
+      data,
+      name: optionalText(signature.signerName),
+      title: optionalText(signature.signerTitle),
+      date: signature.signedAt || new Date().toISOString()
+    }
+  }
+
+  return pPayload
+}
+
+/**
+ * Is `url` a Supabase signed URL whose token is still valid for at least
+ * `minTtlMs`? Used so an already-signed URL (for example one the public
+ * signing page minted with the signing client) passes through
+ * resolvePhotoUrl(s) untouched instead of being re-signed with a client
+ * that may not be allowed to read the object. Any parse failure → false.
+ * @param {string} url
+ * @param {number} [minTtlMs=60000]
+ * @returns {boolean}
+ */
+export function isFreshSignedPhotoUrl(url, minTtlMs = 60000) {
+  if (typeof url !== 'string' || !url.startsWith('http')) return false
+  try {
+    const urlObj = new URL(url)
+    if (!/\/storage\/v1\/object\/sign\//.test(urlObj.pathname)) return false
+    const token = urlObj.searchParams.get('token')
+    if (!token) return false
+    const parts = token.split('.')
+    if (parts.length !== 3) return false
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    const payload = JSON.parse(atob(padded))
+    const exp = Number(payload?.exp)
+    if (!Number.isFinite(exp)) return false
+    return exp * 1000 > Date.now() + minTtlMs
+  } catch {
+    return false
+  }
+}
+
+// Nested ticket select shared by the list and single-ticket reads.
+// SECURITY: field users never receive cost_per_unit.
+const tmTicketNestedSelect = (inFieldMode) => {
+  const materialsSelect = inFieldMode
+    ? 'materials_equipment (name, unit, category)'
+    : 'materials_equipment (name, unit, cost_per_unit, category)'
+  return `
+            *,
+            t_and_m_workers (*),
+            t_and_m_items (
+              *,
+              ${materialsSelect}
+            )
+          `
+}
+
+const numberOrZero = (value) => Number(value) || 0
+
+/**
+ * Build the update_tm_ticket_contents arguments from the edit form state.
+ * Only content fields are sent: the server derives every audit column
+ * (edited_by_name included) itself.
+ * @returns {{ p_fields: Object, p_workers: Object[], p_items: Object[], p_edit_note: string|null }}
+ */
+export function buildTMTicketEditPayload({ fields = {}, workers = [], items = [], editNote = null } = {}) {
+  const f = fields || {}
+  const pFields = {
+    work_date: f.work_date,
+    ce_pco_number: optionalText(f.ce_pco_number),
+    notes: sanitize.text(f.notes)
+  }
+  if (Object.prototype.hasOwnProperty.call(f, 'change_order_value') && f.change_order_value !== undefined) {
+    const raw = f.change_order_value
+    // null or '' clears the value; anything else is sent as a number.
+    pFields.change_order_value = raw === null || raw === '' ? null : Number(raw)
+  }
+
+  return {
+    p_fields: pFields,
+    p_workers: (workers || []).map(w => ({
+      name: sanitize.text(w.name),
+      // Sent as stored (blank -> null). Defaulting here would make a
+      // notes-only save on a legacy row read as a crew change server-side.
+      role: optionalText(w.role),
+      hours: numberOrZero(w.hours),
+      overtime_hours: numberOrZero(w.overtime_hours),
+      time_started: w.time_started || null,
+      time_ended: w.time_ended || null,
+      labor_class_id: w.labor_class_id || null
+    })),
+    p_items: (items || []).map(item => ({
+      material_equipment_id: item.material_equipment_id || null,
+      custom_name: optionalText(item.custom_name),
+      custom_category: optionalText(item.custom_category),
+      quantity: Number(item.quantity)
+    })),
+    p_edit_note: optionalText(editNote)
+  }
+}
 
 export const tmOps = {
   // ============================================
@@ -67,24 +235,11 @@ export const tmOps = {
     if (isSupabaseConfigured) {
       const start = performance.now()
       const client = getClient()
-      const inFieldMode = isFieldMode()
-
-      // SECURITY: Exclude cost_per_unit for field users to protect pricing data
-      const materialsSelect = inFieldMode
-        ? 'materials_equipment (name, unit, category)'
-        : 'materials_equipment (name, unit, cost_per_unit, category)'
 
       try {
         let query = client
           .from('t_and_m_tickets')
-          .select(`
-            *,
-            t_and_m_workers (*),
-            t_and_m_items (
-              *,
-              ${materialsSelect}
-            )
-          `, { count: 'exact' })
+          .select(tmTicketNestedSelect(isFieldMode()), { count: 'exact' })
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
           .range(page * limit, (page + 1) * limit - 1)
@@ -119,6 +274,36 @@ export const tmOps = {
       }
     }
     return { tickets: [], totalCount: 0, hasMore: false, page: 0, limit: 25 }
+  },
+
+  /**
+   * One ticket with workers and items, using the same nested select as
+   * getTMTicketsPaginated (so a refreshed row drops straight into the list).
+   * @param {string} id
+   * @returns {Promise<Object|null>}
+   * @throws the Supabase error object as-is
+   */
+  async getTMTicketById(id) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+    const { data, error } = await client
+      .from('t_and_m_tickets')
+      .select(tmTicketNestedSelect(isFieldMode()))
+      .eq('id', id)
+      .single()
+    if (error) {
+      observe.error('database', {
+        message: error.message,
+        code: error.code,
+        operation: 'getTMTicketById',
+        extra: { ticket_id: id }
+      })
+      throw error
+    }
+    return data
   },
 
   // Get change order totals for a project
@@ -203,6 +388,41 @@ export const tmOps = {
     return []
   },
 
+  /**
+   * Rejected tickets for the foreman's home screen, newest rejection first.
+   * Readable with the field session (getClient) and limited to the columns
+   * the "needs attention" card shows, so no pricing leaves the server.
+   * Never throws: any error is logged and yields [].
+   * @param {string} projectId
+   * @param {number} [limit=20]
+   * @returns {Promise<Array<{ id, work_date, ce_pco_number, rejection_reason,
+   *   rejected_at, rejected_by_name, created_by_name, status }>>}
+   */
+  async getRejectedTMTickets(projectId, limit = 20) {
+    if (!isSupabaseConfigured || !projectId) return []
+    try {
+      const client = getClient()
+      if (!client) return []
+      const { data, error } = await client
+        .from('t_and_m_tickets')
+        .select('id, work_date, ce_pco_number, rejection_reason, rejected_at, rejected_by_name, created_by_name, status')
+        .eq('project_id', projectId)
+        .eq('status', 'rejected')
+        .order('rejected_at', { ascending: false, nullsFirst: false })
+        .limit(limit)
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      observe.error('database', {
+        message: error?.message,
+        code: error?.code,
+        operation: 'getRejectedTMTickets',
+        project_id: projectId
+      })
+      return []
+    }
+  },
+
   // Get T&M tickets associated with a COR (for backup documentation)
   async getCORTickets(corId) {
     if (isSupabaseConfigured) {
@@ -227,32 +447,56 @@ export const tmOps = {
     return []
   },
 
+  /**
+   * Create a T&M ticket, its workers, items and (optionally) the foreman
+   * signature in one idempotent server call. Replaying the same
+   * client_submission_id returns the existing row with `replayed: true`.
+   *
+   * @param {Object} record - pending-ticket record (offlineManager shape)
+   * @param {Object} [options]
+   * @param {number} [options.timeoutMs=12000] - abort after this long; the
+   *   rejection is an AbortError (classifySyncError → 'network')
+   * @returns {Promise<Object|null>} the ticket row plus `replayed`
+   * @throws the Supabase error object as-is (code preserved)
+   */
+  async submitTMTicketFull(record, { timeoutMs = 12000 } = {}) {
+    if (!isSupabaseConfigured) return null
+    const pPayload = buildTMTicketFullPayload(record)
+
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+
+    const controller = new AbortController()
+    let timer = null
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort()
+        reject(timeoutError(timeoutMs))
+      }, timeoutMs)
+    })
+
+    try {
+      const request = client
+        .rpc('create_tm_ticket_full', { p_payload: pPayload })
+        .abortSignal(controller.signal)
+      const { data, error } = await Promise.race([request, timeout])
+      if (error) {
+        if (controller.signal.aborted) throw timeoutError(timeoutMs)
+        throw error
+      }
+      return data
+    } finally {
+      clearTimeout(timer)
+    }
+  },
+
+  // Plain insert of the ticket row only (workers/items are added separately).
+  // Used by the legacy CREATE_TM_TICKET pending action; new T&M submits use
+  // submitTMTicketFull.
   async createTMTicket(ticket) {
     if (isSupabaseConfigured) {
-      // If offline, cache ticket and queue action
-      if (!getConnectionStatus()) {
-        const tempTicket = {
-          id: generateTempId(),
-          project_id: ticket.project_id,
-          work_date: ticket.work_date,
-          ce_pco_number: ticket.ce_pco_number || null,
-          assigned_cor_id: ticket.assigned_cor_id || null,
-          notes: ticket.notes,
-          photos: ticket.photos || [],
-          status: 'pending_sync',
-          created_by_name: ticket.created_by_name || 'Field User',
-          created_at: new Date().toISOString(),
-          _offline: true
-        }
-        await cacheTMTicket(tempTicket)
-        await addPendingAction(ACTION_TYPES.CREATE_TM_TICKET, {
-          ticket: tempTicket,
-          workers: ticket._workers || [],
-          items: ticket._items || []
-        })
-        return tempTicket
-      }
-
       const client = getClient()
       if (!client) {
         throw new Error('Database client not available')
@@ -272,25 +516,7 @@ export const tmOps = {
         .select()
         .single()
 
-      if (error) {
-        // If network error, queue for later
-        if (error.message?.includes('fetch') || error.message?.includes('network')) {
-          const tempTicket = {
-            id: generateTempId(),
-            ...ticket,
-            status: 'pending_sync',
-            _offline: true
-          }
-          await cacheTMTicket(tempTicket)
-          await addPendingAction(ACTION_TYPES.CREATE_TM_TICKET, {
-            ticket: tempTicket,
-            workers: ticket._workers || [],
-            items: ticket._items || []
-          })
-          return tempTicket
-        }
-        throw error
-      }
+      if (error) throw error
       return data
     }
     return null
@@ -337,6 +563,50 @@ export const tmOps = {
         .insert(itemsData)
       if (error) throw error
     }
+  },
+
+  /**
+   * Office correction of a ticket's date, CE/PCO, description, crew and
+   * items in one server transaction (update_tm_ticket_contents). The server
+   * checks access, billed/invoiced/COR locks, stamps the audit columns and,
+   * when crew/items changed on a COR-linked ticket, clears its COR lines and
+   * marks the association for re-sync.
+   *
+   * @param {string} ticketId
+   * @param {Object} edit - { fields, workers, items, editNote }
+   * @returns {Promise<{ ticket: Object, contents_changed: boolean, cor_resync_required: boolean }|null>}
+   * @throws the Supabase error object as-is (code and message preserved)
+   */
+  async updateTMTicketContents(ticketId, edit = {}) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    if (!client) {
+      throw new Error('Database client not available')
+    }
+    const { p_fields, p_workers, p_items, p_edit_note } = buildTMTicketEditPayload(edit)
+
+    const { data, error } = await client.rpc('update_tm_ticket_contents', {
+      p_ticket_id: ticketId,
+      p_fields,
+      p_workers,
+      p_items,
+      p_edit_note
+    })
+    if (error) {
+      observe.error('database', {
+        message: error.message,
+        code: error.code,
+        operation: 'updateTMTicketContents',
+        extra: { ticket_id: ticketId }
+      })
+      throw error
+    }
+    observe.activity('tm_ticket_edited', {
+      ticket_id: ticketId,
+      contents_changed: Boolean(data?.contents_changed),
+      cor_resync_required: Boolean(data?.cor_resync_required)
+    })
+    return data
   },
 
   // Get the most recent ticket's crew for "Same as Yesterday" feature
@@ -627,8 +897,7 @@ export const tmOps = {
         }
 
         // Only draft and pending_approval CORs allow ticket editing
-        const editableStatuses = ['draft', 'pending_approval']
-        const isEditable = editableStatuses.includes(cor.status)
+        const isEditable = TM_COR_STATUSES_ALLOWING_TICKET_EDIT.includes(cor.status)
 
         return {
           editable: isEditable,
@@ -741,11 +1010,20 @@ export const tmOps = {
     return filePath
   },
 
+  // Exposed on db for callers that already hold the facade.
+  isFreshSignedPhotoUrl(url, minTtlMs = 60000) {
+    return isFreshSignedPhotoUrl(url, minTtlMs)
+  },
+
   // Convert a stored photo URL or storage path to a signed URL (1-hour expiry).
   // Handles both old public URLs ("https://…/public/tm-photos/…") and
   // new storage paths ("companyId/projectId/ticketId/file.jpg") transparently.
-  async resolvePhotoUrl(urlOrPath) {
+  // A still-fresh signed URL is returned as-is. `client` lets a caller sign
+  // with a specific supabase-js client (e.g. the x-signing-token client of the
+  // public signing page); otherwise the current session client is used.
+  async resolvePhotoUrl(urlOrPath, client = null) {
     if (!urlOrPath || !isSupabaseConfigured) return urlOrPath
+    if (isFreshSignedPhotoUrl(urlOrPath)) return urlOrPath
     let filePath
     if (urlOrPath.startsWith('http')) {
       try {
@@ -758,21 +1036,24 @@ export const tmOps = {
       filePath = urlOrPath
     }
     try {
-      const client = getSupabaseClient()
-      const { data, error } = await client.storage.from('tm-photos').createSignedUrl(filePath, 3600)
+      const storageClient = client || getSupabaseClient()
+      const { data, error } = await storageClient.storage.from('tm-photos').createSignedUrl(filePath, 3600)
       if (error || !data?.signedUrl) return null
       return data.signedUrl
     } catch { return null }
   },
 
   // Batch-convert an array of stored photo URLs/paths to signed URLs (1-hour expiry).
-  async resolvePhotoUrls(urlsOrPaths) {
+  // Fresh signed URLs pass through untouched; stale ones are re-signed.
+  // `client` is optional (see resolvePhotoUrl).
+  async resolvePhotoUrls(urlsOrPaths, client = null) {
     if (!isSupabaseConfigured || !urlsOrPaths?.length) return urlsOrPaths || []
     const paths = []
     const indices = []
     for (let i = 0; i < urlsOrPaths.length; i++) {
       const v = urlsOrPaths[i]
-      if (!v) continue
+      if (!v || typeof v !== 'string') continue
+      if (isFreshSignedPhotoUrl(v)) continue
       let fp
       if (v.startsWith('http')) {
         try {
@@ -787,8 +1068,8 @@ export const tmOps = {
     }
     if (!paths.length) return urlsOrPaths
     try {
-      const client = getSupabaseClient()
-      const { data, error } = await client.storage.from('tm-photos').createSignedUrls(paths, 3600)
+      const storageClient = client || getSupabaseClient()
+      const { data, error } = await storageClient.storage.from('tm-photos').createSignedUrls(paths, 3600)
       if (error || !data) return urlsOrPaths
       const result = [...urlsOrPaths]
       data.forEach((item, j) => {

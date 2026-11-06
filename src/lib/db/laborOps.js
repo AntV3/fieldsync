@@ -3,7 +3,25 @@
  * Extracted from supabase.js for modularity.
  */
 
-import { supabase, isSupabaseConfigured, getClient, sanitizeFormData, sanitize } from './client'
+import { supabase, isSupabaseConfigured, getClient, sanitizeFormData, sanitize, cacheData, getCachedData } from './client'
+
+const laborClassesCacheKey = (companyId) => `labor_classes_${companyId}`
+
+// Cache reads/writes must never break the online path (no IndexedDB in tests,
+// private mode, storage pressure).
+const cacheLaborClasses = (companyId, value) => {
+  Promise.resolve()
+    .then(() => cacheData(laborClassesCacheKey(companyId), value))
+    .catch(() => {})
+}
+
+const readCachedLaborClasses = async (companyId) => {
+  try {
+    return await getCachedData(laborClassesCacheKey(companyId))
+  } catch {
+    return null
+  }
+}
 
 export const laborOps = {
   // ============================================
@@ -160,17 +178,22 @@ export const laborOps = {
     }
   },
 
-  // Get all labor classes for a company (with category info)
-  async getLaborClasses(companyId) {
+  // Get labor classes for a company (with category info). Active only by
+  // default; includeInactive also returns deactivated classes so an edit form
+  // can label a worker's existing (now inactive) class.
+  async getLaborClasses(companyId, { includeInactive = false } = {}) {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('labor_classes')
         .select(`
           *,
           labor_categories (id, name)
         `)
         .eq('company_id', companyId)
-        .eq('active', true)
+      if (!includeInactive) {
+        query = query.eq('active', true)
+      }
+      const { data, error } = await query
         .order('sort_order')
         .order('name')
       if (error) throw error
@@ -218,31 +241,56 @@ export const laborOps = {
       if (!client) return { categories: [], classes: [] }
 
       // Use the secure RPC function that only returns non-sensitive fields
-      const { data, error } = await client
-        .rpc('get_labor_classes_for_field', { p_company_id: companyId })
+      let data = null
+      let error = null
+      try {
+        ({ data, error } = await client
+          .rpc('get_labor_classes_for_field', { p_company_id: companyId }))
+      } catch (err) {
+        error = err
+      }
 
       if (error) {
         console.error('Error loading field labor classes:', error)
         // Fallback to direct query if RPC not available (pre-migration)
-        const [categoriesResult, classesResult] = await Promise.all([
-          client
-            .from('labor_categories')
-            .select('id, name')
-            .eq('company_id', companyId)
-            .eq('active', true)
-            .order('name'),
-          client
-            .from('labor_classes')
-            .select('id, name, category_id')
-            .eq('company_id', companyId)
-            .eq('active', true)
-            .order('name')
-        ])
-
-        return {
-          categories: categoriesResult.data || [],
-          classes: classesResult.data || []
+        let categoriesResult = { data: null, error: null }
+        let classesResult = { data: null, error: null }
+        try {
+          [categoriesResult, classesResult] = await Promise.all([
+            client
+              .from('labor_categories')
+              .select('id, name')
+              .eq('company_id', companyId)
+              .eq('active', true)
+              .order('name'),
+            client
+              .from('labor_classes')
+              .select('id, name, category_id')
+              .eq('company_id', companyId)
+              .eq('active', true)
+              .order('name')
+          ])
+        } catch (fallbackErr) {
+          categoriesResult = { data: null, error: fallbackErr }
         }
+
+        if (categoriesResult?.error || classesResult?.error) {
+          // Both paths failed (typically offline): serve the last good copy
+          // so an offline T&M draft with custom labor classes still renders.
+          const cached = await readCachedLaborClasses(companyId)
+          if (cached) return cached
+          return {
+            categories: categoriesResult?.data || [],
+            classes: classesResult?.data || []
+          }
+        }
+
+        const fallback = {
+          categories: categoriesResult?.data || [],
+          classes: classesResult?.data || []
+        }
+        cacheLaborClasses(companyId, fallback)
+        return fallback
       }
 
       // Transform RPC result into categories + classes format
@@ -260,10 +308,12 @@ export const laborOps = {
         })
       }
 
-      return {
+      const result = {
         categories: Array.from(categoriesMap.values()),
         classes
       }
+      cacheLaborClasses(companyId, result)
+      return result
     }
     return { categories: [], classes: [] }
   },

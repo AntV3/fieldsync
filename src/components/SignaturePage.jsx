@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, Truck, Briefcase, Download, Camera, HardHat, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { getSigningClient } from '../lib/signingClient'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
 import SignatureCanvas from './ui/SignatureCanvas'
@@ -26,10 +27,54 @@ const formatTime = (timeStr) => {
   return `${h12}:${minutes}${ampm}`
 }
 
+// Raw storage paths of a ticket's photos. The server projection returns
+// paths (or legacy public URLs); entries may be strings or { path | url }
+// objects. Once a ticket has been resolved we keep the originals on
+// `_photoPaths` so they can be re-signed later (PDF export), and the
+// signed URLs aligned with them on `_photoUrls` (null where signing
+// failed) so a later re-sign can fall back to a URL that still works.
+const photoPathsOf = (ticket) => {
+  if (Array.isArray(ticket?._photoPaths)) return ticket._photoPaths
+  const raw = Array.isArray(ticket?.photos) ? ticket.photos : []
+  return raw
+    .map(p => (typeof p === 'string' ? p : (p?.path || p?.url || null)))
+    .filter(Boolean)
+}
+
+// A signed URL that is still valid right now (no TTL margin: this is
+// the fallback when re-signing failed, so "usable for this export"
+// is the bar, not "fresh for an hour").
+const isUsableSignedUrl = (url) => db.isFreshSignedPhotoUrl(url, 0)
+
+// Signature slot shape (as returned in signature_requests.signatures)
+// built from the document's own gc_* / client_* columns, so a slot
+// filled on-site or through another link renders as signed.
+const documentSlot = (doc, prefix) => {
+  if (!doc) return null
+  const image = doc[`${prefix}_signature_data`]
+  const name = doc[`${prefix}_signature_name`]
+  if (!image && !name) return null
+  return {
+    signature_image: image || null,
+    signer_name: name || '',
+    signer_title: doc[`${prefix}_signature_title`] || null,
+    signer_company: doc[`${prefix}_signature_company`] || null,
+    signed_at: doc[`${prefix}_signature_date`] || null,
+    _from_document: true
+  }
+}
+
+// Copy for the stable error tokens public_add_signature raises.
+const SIGNING_ERROR_COPY = {
+  signing_link_expired: 'This signature link has expired.',
+  signing_link_revoked: 'This signature link has been revoked.',
+  signing_link_invalid: 'This signature link is invalid or has expired.'
+}
 
 export default function SignaturePage({ signatureToken }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
   const [signatureRequest, setSignatureRequest] = useState(null)
   const [document, setDocument] = useState(null)
   const [showSignatureModal, setShowSignatureModal] = useState(false)
@@ -48,6 +93,50 @@ export default function SignaturePage({ signatureToken }) {
     loadData()
   }, [signatureToken])
 
+  // Resolve every ticket's photos to signed URLs in one batch using the
+  // signing client (the bucket is private; the storage policy reads the
+  // x-signing-token header). Keeps the raw paths on `_photoPaths` and
+  // the aligned signed URLs on `_photoUrls`. An entry that did not come
+  // back as a signed URL (resolvePhotoUrls returns the raw path when the
+  // storage call fails) falls back to the URL already on screen when
+  // that one is still valid; otherwise the photo is dropped.
+  const resolveTicketPhotos = async (tickets) => {
+    const list = Array.isArray(tickets) ? tickets.filter(Boolean) : []
+    if (!list.length) return []
+
+    const photoGroups = list.map(photoPathsOf)
+    const allPhotos = photoGroups.flat()
+    let signed = []
+    if (allPhotos.length) {
+      try {
+        signed = await db.resolvePhotoUrls(allPhotos, getSigningClient(signatureToken))
+      } catch (err) {
+        console.warn('Failed to resolve ticket photos:', err)
+        signed = []
+      }
+    }
+    if (!Array.isArray(signed)) signed = []
+
+    let offset = 0
+    return list.map((t, i) => {
+      const paths = photoGroups[i]
+      const previous = Array.isArray(t._photoUrls) ? t._photoUrls : []
+      const urls = paths.map((_path, j) => {
+        const candidate = signed[offset + j]
+        if (isUsableSignedUrl(candidate)) return candidate
+        if (isUsableSignedUrl(previous[j])) return previous[j]
+        return null
+      })
+      offset += paths.length
+      return {
+        ...t,
+        _photoPaths: paths,
+        _photoUrls: urls,
+        photos: urls.filter(Boolean)
+      }
+    })
+  }
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -60,11 +149,7 @@ export default function SignaturePage({ signatureToken }) {
         return
       }
 
-      if (request.status === 'completed') {
-        setError('This document has already been fully signed.')
-        return
-      }
-
+      // A completed request renders the signed state below.
       if (request.status === 'revoked') {
         setError('This signature link has been revoked.')
         return
@@ -77,42 +162,19 @@ export default function SignaturePage({ signatureToken }) {
 
       setSignatureRequest(request)
 
-      // Get the document data
-      const docData = await db.getDocumentForSigning(request.document_type, request.document_id)
+      // Get the document projection (token-gated RPC)
+      const docData = await db.getDocumentForSigning(signatureToken)
       if (!docData) {
         setError('The document associated with this link could not be found.')
         return
       }
 
-      setDocument(docData)
-
-      // Load T&M backup tickets if this is a COR
-      if (request.document_type === 'cor' && docData?.id) {
-        try {
-          const tickets = await db.getCORTickets(docData.id)
-          // Resolve ticket photos to signed URLs in one batch (bucket is private)
-          if (tickets?.length) {
-            const photoGroups = tickets.map(t => t.photos || [])
-            const allPhotos = photoGroups.flat()
-            if (allPhotos.length) {
-              const signed = await db.resolvePhotoUrls(allPhotos)
-              let offset = 0
-              const resolved = tickets.map((t, i) => {
-                const len = photoGroups[i].length
-                const photos = signed.slice(offset, offset + len)
-                offset += len
-                return { ...t, photos }
-              })
-              setBackupTickets(resolved)
-            } else {
-              setBackupTickets(tickets)
-            }
-          } else {
-            setBackupTickets(tickets || [])
-          }
-        } catch (err) {
-          console.warn('Failed to load backup tickets:', err)
-        }
+      if (request.document_type === 'cor') {
+        setDocument(docData)
+        setBackupTickets(await resolveTicketPhotos(docData.backup_tickets))
+      } else {
+        const [resolvedDoc] = await resolveTicketPhotos([docData])
+        setDocument(resolvedDoc || docData)
       }
     } catch (err) {
       console.error('Error loading signature data:', err)
@@ -128,13 +190,16 @@ export default function SignaturePage({ signatureToken }) {
     return calculateCORTotals(document)
   }, [document, signatureRequest])
 
-  // Get available signature slots
+  // Get available signature slots. A slot counts as signed when this
+  // request holds its signature OR the document already carries one
+  // (signed on-site or through another link): public_add_signature
+  // rejects such a slot with signing_already_signed, so never offer it.
   const getSignatureStatus = () => {
     if (!signatureRequest) return { slot1: null, slot2: null, availableSlots: [] }
 
     const signatures = signatureRequest.signatures || []
-    const slot1 = signatures.find(s => s.signature_slot === 1)
-    const slot2 = signatures.find(s => s.signature_slot === 2)
+    const slot1 = signatures.find(s => s.signature_slot === 1) || documentSlot(document, 'gc')
+    const slot2 = signatures.find(s => s.signature_slot === 2) || documentSlot(document, 'client')
     const availableSlots = []
     if (!slot1) availableSlots.push(1)
     if (!slot2) availableSlots.push(2)
@@ -142,36 +207,21 @@ export default function SignaturePage({ signatureToken }) {
     return { slot1, slot2, availableSlots }
   }
 
-  // Get client IP address
-  const getClientIP = async () => {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json')
-      const data = await response.json()
-      return data.ip
-    } catch {
-      return null
-    }
-  }
-
-  // Handle signature submission
+  // Handle signature submission. public_add_signature inserts the
+  // signature, mirrors it onto the document, advances the status and
+  // completes the request in one transaction; the server records
+  // signed_at and the IP from the request headers.
   const handleSignatureSubmit = async (signatureData) => {
-    if (!signatureRequest || !activeSlot) return
+    if (!signatureRequest || !activeSlot || submitting) return
 
     try {
       setSubmitting(true)
+      setNotice(null)
 
-      // Get IP address
-      const ipAddress = await getClientIP()
-
-      // Add signature
-      const signature = await db.addSignature(signatureRequest.id, activeSlot, {
+      await db.addSignature(signatureToken, activeSlot, {
         ...signatureData,
-        ipAddress,
         userAgent: navigator.userAgent
       })
-
-      // Sync signature to main document table
-      await db.syncSignatureToDocument(signature, signatureRequest)
 
       // Reload data to get updated status
       await loadData()
@@ -182,7 +232,25 @@ export default function SignaturePage({ signatureToken }) {
       setSuccessMessage('signed')
     } catch (err) {
       console.error('Error submitting signature:', err)
-      setError('Failed to submit signature. Please try again.')
+      const message = String(err?.message || '')
+
+      if (message.includes('signing_already_signed')) {
+        // A stale tab or a second link for the same document: reload into
+        // the signed state and say so inline (never the full-page error).
+        setShowSignatureModal(false)
+        setActiveSlot(null)
+        setNotice('This document has already been signed.')
+        await loadData()
+      } else if (message.includes('signing_invalid_payload')) {
+        // The notice renders under the page header; close the full-screen
+        // modal so the signer can actually see it.
+        setShowSignatureModal(false)
+        setActiveSlot(null)
+        setNotice('The signature could not be accepted. Please check your name and signature and try again.')
+      } else {
+        const token = Object.keys(SIGNING_ERROR_COPY).find(t => message.includes(t))
+        setError(token ? SIGNING_ERROR_COPY[token] : 'Failed to submit signature. Please try again.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -201,14 +269,16 @@ export default function SignaturePage({ signatureToken }) {
     try {
       setDownloading(true)
 
-      // Fetch associated T&M tickets if this is a COR
+      // Re-sign the backup ticket photos right before export so the URLs
+      // the PDF generator fetches are fresh even if the page sat open for
+      // longer than the signed-URL TTL.
       let tmTickets = null
-      if (isCOR) {
+      if (isCOR && backupTickets.length) {
         try {
-          tmTickets = await db.getCORTickets(document.id)
+          tmTickets = await resolveTicketPhotos(backupTickets)
         } catch (err) {
-          console.warn('Failed to fetch T&M tickets for backup:', err)
-          // Continue without T&M backup
+          console.warn('Failed to refresh T&M ticket photos for backup:', err)
+          tmTickets = backupTickets
         }
       }
 
@@ -247,8 +317,17 @@ export default function SignaturePage({ signatureToken }) {
         primaryColor: company?.branding_color
       }
 
+      // Re-sign the photos right before export (see handleDownload)
+      let ticketForExport = document
+      try {
+        const [fresh] = await resolveTicketPhotos([document])
+        if (fresh) ticketForExport = fresh
+      } catch (err) {
+        console.warn('Failed to refresh ticket photos for export:', err)
+      }
+
       // Export T&M Ticket PDF
-      await exportTMTicketToPDF(document, project, company, branding)
+      await exportTMTicketToPDF(ticketForExport, project, company, branding)
 
       setSuccessMessage('PDF downloaded successfully!')
       setTimeout(() => setSuccessMessage(null), 3000)
@@ -312,6 +391,13 @@ export default function SignaturePage({ signatureToken }) {
             <span className="doc-type-label">Time & Material Ticket</span>
           </div>
         </header>
+
+        {notice && (
+          <div className="signature-notice" role="status">
+            <AlertCircle size={18} />
+            <span>{notice}</span>
+          </div>
+        )}
 
         {successMessage === 'signed' && (
           <div className="signature-signed-overlay">
@@ -437,15 +523,19 @@ export default function SignaturePage({ signatureToken }) {
               <div className="signature-detail-section">
                 <h4><Camera size={16} /> Photos ({document.photos.length})</h4>
                 <div className="signature-photo-grid">
-                  {document.photos.map((photo, idx) => (
-                    <div key={idx} className="signature-photo-thumb">
-                      <img
-                        src={typeof photo === 'string' ? photo : photo.url}
-                        alt={`Photo ${idx + 1}`}
-                        onError={(e) => { e.target.style.display = 'none' }}
-                      />
-                    </div>
-                  ))}
+                  {document.photos.map((photo, idx) => {
+                    const src = typeof photo === 'string' ? photo : photo?.url
+                    if (!src) return null
+                    return (
+                      <div key={idx} className="signature-photo-thumb">
+                        <img
+                          src={src}
+                          alt={`Photo ${idx + 1}`}
+                          onError={(e) => { e.target.style.display = 'none' }}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -544,6 +634,13 @@ export default function SignaturePage({ signatureToken }) {
           <span className="doc-type-label">Change Order Request</span>
         </div>
       </header>
+
+      {notice && (
+        <div className="signature-notice" role="status">
+          <AlertCircle size={18} />
+          <span>{notice}</span>
+        </div>
+      )}
 
       {/* Success message - persistent signed confirmation */}
       {successMessage === 'signed' && (
@@ -1158,8 +1255,8 @@ export default function SignaturePage({ signatureToken }) {
                       <span className="slot-label">GC Authorization</span>
                     </div>
                     <div className="slot-signed-info">
-                      {slot1.signature_data && (
-                        <img src={slot1.signature_data} alt="Signature" className="signature-image" />
+                      {slot1.signature_image && (
+                        <img src={slot1.signature_image} alt="Signature" className="signature-image" />
                       )}
                       <div className="signer-details">
                         <span className="signer-name">{slot1.signer_name}</span>
@@ -1180,8 +1277,8 @@ export default function SignaturePage({ signatureToken }) {
                       <span className="slot-label">Client Authorization</span>
                     </div>
                     <div className="slot-signed-info">
-                      {slot2.signature_data && (
-                        <img src={slot2.signature_data} alt="Signature" className="signature-image" />
+                      {slot2.signature_image && (
+                        <img src={slot2.signature_image} alt="Signature" className="signature-image" />
                       )}
                       <div className="signer-details">
                         <span className="signer-name">{slot2.signer_name}</span>
