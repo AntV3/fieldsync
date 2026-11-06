@@ -124,8 +124,48 @@ BEGIN
   IF to_regprocedure('public.public_add_signature(text, integer, jsonb)') IS NULL THEN
     RAISE EXCEPTION 'Apply 20261105_public_signing_rpcs.sql (launch item 1) before 20261104_signature_public_rpcs.sql: public_add_signature(text, integer, jsonb) does not exist. Nothing was changed.';
   END IF;
+  IF to_regclass('public.user_companies') IS NULL THEN
+    RAISE EXCEPTION 'public.user_companies is missing: company membership cannot be checked. Nothing was changed.';
+  END IF;
+END $$;
+
+-- ------------------------------------------------------------
+-- Helper: user_company_ids() (companies the caller is an active
+-- member of). Normally created by 20260720_enable_rls_remaining_tables
+-- .sql; created here only when missing, with the same body. When
+-- user_companies has no status column, every membership row counts.
+-- ------------------------------------------------------------
+DO $$
+BEGIN
   IF to_regprocedure('public.user_company_ids()') IS NULL THEN
-    RAISE EXCEPTION 'user_company_ids() is missing: apply 20260720_enable_rls_remaining_tables.sql first. Nothing was changed.';
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = 'user_companies' AND column_name = 'status') THEN
+      EXECUTE $F$
+        CREATE FUNCTION public.user_company_ids()
+        RETURNS SETOF UUID
+        LANGUAGE sql SECURITY DEFINER STABLE
+        SET search_path = public, pg_temp
+        AS $B$
+          SELECT uc.company_id
+          FROM user_companies uc
+          WHERE uc.user_id = auth.uid()
+            AND (uc.status = 'active' OR uc.status IS NULL);
+        $B$
+      $F$;
+    ELSE
+      EXECUTE $F$
+        CREATE FUNCTION public.user_company_ids()
+        RETURNS SETOF UUID
+        LANGUAGE sql SECURITY DEFINER STABLE
+        SET search_path = public, pg_temp
+        AS $B$
+          SELECT uc.company_id
+          FROM user_companies uc
+          WHERE uc.user_id = auth.uid();
+        $B$
+      $F$;
+    END IF;
+    RAISE NOTICE 'Created user_company_ids() (20260720_enable_rls_remaining_tables.sql had not been applied)';
   END IF;
 END $$;
 
