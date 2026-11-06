@@ -220,9 +220,9 @@ export default function PublicView({ shareToken }) {
                     {ticket.notes && (
                       <div className="tm-description">{ticket.notes}</div>
                     )}
-                    {ticket.total_amount && (
+                    {ticket.change_order_value > 0 && (
                       <div className="tm-amount">
-                        Total: {formatCurrency(ticket.total_amount)}
+                        Total: {formatCurrency(ticket.change_order_value)}
                       </div>
                     )}
                   </div>
