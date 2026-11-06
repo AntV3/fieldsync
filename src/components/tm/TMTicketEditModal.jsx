@@ -4,6 +4,7 @@ import { Modal } from '../ui'
 import { db } from '../../lib/supabase'
 import { getTicketEditability } from '../../lib/tmStatus'
 import { calculateTicketValue } from '../../lib/laborRateResolver'
+import { getLocalDateString } from '../../lib/utils'
 import { CATEGORIES } from './translations'
 
 /**
@@ -32,7 +33,7 @@ const nextKey = () => `row-${++rowSeq}`
 const isValidDate = (value) => {
   if (!DATE_RE.test(value || '')) return false
   const d = new Date(`${value}T00:00:00`)
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value
+  return !Number.isNaN(d.getTime()) && getLocalDateString(d) === value
 }
 
 const workerFromRow = (w) => ({
