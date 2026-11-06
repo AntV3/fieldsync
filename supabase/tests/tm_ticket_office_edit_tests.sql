@@ -125,14 +125,14 @@ BEGIN
   INSERT INTO field_sessions (project_id, company_id, session_token, device_id, expires_at)
   VALUES (v_project_id, v_company_id, 'fs_tmedit_test_0001', 'tmedit-test', NOW() + INTERVAL '1 hour');
 
-  -- Office user A (has a profile), office user B (no profile: name
+  -- Office user A (has a name in users), office user B (no name: it
   -- falls back to the auth email), and a user of another company
   INSERT INTO auth.users (id, email) VALUES
     (v_office_a,     'tmedit-office-a@example.invalid'),
     (v_office_b,     'tmedit-office-b@example.invalid'),
     (v_foreign_user, 'tmedit-foreign@example.invalid');
   INSERT INTO users (id, email, name, company_id, role)
-  VALUES (v_office_a,     'tmedit-office-a@example.invalid', 'TM Edit Office A', v_company_id, 'admin'),
+  VALUES (v_office_a,     'tmedit-office-a@example.invalid', 'Edit Office A',    v_company_id, 'admin'),
          (v_office_b,     'tmedit-office-b@example.invalid', NULL,               v_company_id, 'member'),
          (v_foreign_user, 'tmedit-foreign@example.invalid',  'TM Edit Foreign',  v_foreign_co, 'admin')
   ON CONFLICT (id) DO UPDATE SET company_id = EXCLUDED.company_id;
@@ -141,9 +141,6 @@ BEGIN
          (v_office_b,     v_company_id, 'member', 'active'),
          (v_foreign_user, v_foreign_co, 'admin',  'active')
   ON CONFLICT (user_id, company_id) DO UPDATE SET status = 'active';
-  DELETE FROM profiles WHERE id IN (v_office_a, v_office_b, v_foreign_user);
-  INSERT INTO profiles (id, email, full_name, role, company_id)
-  VALUES (v_office_a, 'tmedit-office-a@example.invalid', 'Edit Office A', 'office', v_company_id);
 
   INSERT INTO labor_classes (id, company_id, name, active)
   VALUES (v_class_a, v_company_id, 'TM Edit Journeyman', true),
@@ -332,7 +329,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL: (a) edit row unexpected (% rows): %', v_n, to_jsonb(e);
   END IF;
 
-  RAISE NOTICE 'PASS: (a) signed ticket: workers/items replaced, audit columns (edit_count 1, edited_after_signature, editor from profiles), edit row (contents_changed, 2 workers before / 3 after)';
+  RAISE NOTICE 'PASS: (a) signed ticket: workers/items replaced, audit columns (edit_count 1, edited_after_signature, editor from users), edit row (contents_changed, 2 workers before / 3 after)';
   PERFORM set_config('tm_edit.passes', (current_setting('tm_edit.passes', true)::int + 1)::text, true);
 END $$;
 

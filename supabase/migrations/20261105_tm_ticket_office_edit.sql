@@ -113,7 +113,7 @@ BEGIN
       'projects', 'labor_classes', 'materials_equipment',
       'change_orders', 'change_order_labor', 'change_order_materials', 'change_order_equipment',
       'change_order_ticket_associations', 'cor_status_history',
-      'invoices', 'invoice_items', 'profiles'
+      'invoices', 'invoice_items', 'users'
     ]) AS u(t)
   LOOP
     IF to_regclass('public.' || r.t) IS NULL THEN
@@ -187,7 +187,7 @@ BEGIN
       ('invoice_items', 'invoice_id', 'uuid'),
       ('invoice_items', 'item_type', 'text'),
       ('invoice_items', 'reference_id', 'uuid'),
-      ('profiles', 'id', 'uuid')
+      ('users', 'id', 'uuid')
     ) AS c(tbl, col, family)
   LOOP
     SELECT data_type INTO v_type
@@ -291,7 +291,7 @@ ALTER TABLE t_and_m_tickets
 
 COMMENT ON COLUMN t_and_m_tickets.edited_at IS 'Last office edit (update_tm_ticket_contents). Server-set.';
 COMMENT ON COLUMN t_and_m_tickets.edited_by_user_id IS 'auth.users id of the last editor. Server-set.';
-COMMENT ON COLUMN t_and_m_tickets.edited_by_name IS 'Display name of the last editor (profiles / auth.users). Server-set.';
+COMMENT ON COLUMN t_and_m_tickets.edited_by_name IS 'Display name of the last editor (users / auth.users). Server-set.';
 COMMENT ON COLUMN t_and_m_tickets.edit_count IS 'Number of office edits. Server-set.';
 COMMENT ON COLUMN t_and_m_tickets.edited_after_signature IS 'Sticky: true once any edit happened while a foreman / client / GC signature was present. Server-set.';
 COMMENT ON COLUMN t_and_m_tickets.last_edit_note IS 'Reason given with the last edit (may be NULL). Server-set.';
@@ -704,10 +704,10 @@ BEGIN
       AND NULLIF(btrim(s.v), '') IS NOT NULL
   );
 
-  SELECT COALESCE(NULLIF(btrim(to_jsonb(p)->>'full_name'), ''),
-                  NULLIF(btrim(to_jsonb(p)->>'name'), ''))
+  SELECT COALESCE(NULLIF(btrim(to_jsonb(p)->>'name'), ''),
+                  NULLIF(btrim(to_jsonb(p)->>'full_name'), ''))
   INTO v_editor
-  FROM profiles p WHERE p.id = v_uid;
+  FROM users p WHERE p.id = v_uid;
 
   IF v_editor IS NULL THEN
     SELECT COALESCE(NULLIF(btrim(to_jsonb(u)->'raw_user_meta_data'->>'full_name'), ''),
