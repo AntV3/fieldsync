@@ -67,8 +67,10 @@ export default function LandingPage() {
   const handleQuickAccess = useCallback((mode) => {
     localStorage.setItem('fieldsync-has-visited', 'true')
     if (mode === 'foreman') {
+      localStorage.setItem('fieldsync-login-type', 'field')
       navigate('/login/field')
     } else {
+      localStorage.setItem('fieldsync-login-type', 'office')
       navigate('/login/office')
     }
   }, [navigate])
