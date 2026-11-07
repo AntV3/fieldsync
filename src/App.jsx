@@ -394,8 +394,15 @@ export default function App() {
             <ErrorBoundary><Suspense fallback={<PageLoader />}><TermsOfService /></Suspense></ErrorBoundary>
           } />
 
-          {/* Login / Entry — split into separate routes */}
-          <Route path="/login" element={guestOnly(<LoginChooser />)} />
+          {/* Login / Entry — smart-route returning users to their last login type */}
+          <Route path="/login" element={guestOnly(
+            (() => {
+              const pref = localStorage.getItem('fieldsync-login-type')
+              if (pref === 'field') return <Navigate to="/login/field" replace />
+              if (pref === 'office') return <Navigate to="/login/office" replace />
+              return <LoginChooser />
+            })()
+          )} />
           <Route path="/login/field" element={guestOnly(
             <FieldLogin onForemanAccess={handleForemanAccess} onShowToast={showToast} />
           )} />

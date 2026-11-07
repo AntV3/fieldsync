@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, ArrowLeft } from 'lucide-react'
+import { ChevronRight, ArrowLeft, Briefcase } from 'lucide-react'
 import { db, getFieldSession, clearFieldSession } from '../../lib/supabase'
 import Logo from '../Logo'
 
@@ -151,7 +151,10 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
       onShowToast('Enter your name to continue', 'error')
       return
     }
-    try { localStorage.setItem('fieldsync_foreman_name', foremanName.trim()) } catch { /* ignore */ }
+    try {
+      localStorage.setItem('fieldsync_foreman_name', foremanName.trim())
+      localStorage.setItem('fieldsync-login-type', 'field')
+    } catch { /* ignore */ }
     onForemanAccess(foundProject, foremanName.trim())
   }
 
@@ -265,6 +268,18 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
               {loading ? <div className="spinner-small" /> : <ChevronRight size={20} />}
             </button>
           </div>
+
+          <button
+            className="entry-join-link"
+            style={{ marginTop: '1rem', display: 'flex', alignSelf: 'center' }}
+            onClick={() => {
+              try { localStorage.setItem('fieldsync-login-type', 'office') } catch { /* ignore */ }
+              navigate('/login/office')
+            }}
+          >
+            <Briefcase size={16} />
+            <span>Office / Management? Sign in here</span>
+          </button>
         </div>
       </div>
     )

@@ -21,7 +21,10 @@ export default function LoginChooser() {
         <div className="entry-buttons stagger-children">
           <button
             className="entry-mode-btn foreman"
-            onClick={() => navigate('/login/field')}
+            onClick={() => {
+              try { localStorage.setItem('fieldsync-login-type', 'field') } catch { /* ignore */ }
+              navigate('/login/field')
+            }}
           >
             <span className="entry-mode-icon"><HardHat size={32} /></span>
             <span className="entry-mode-title">Field Site</span>
@@ -30,7 +33,10 @@ export default function LoginChooser() {
 
           <button
             className="entry-mode-btn office"
-            onClick={() => navigate('/login/office')}
+            onClick={() => {
+              try { localStorage.setItem('fieldsync-login-type', 'office') } catch { /* ignore */ }
+              navigate('/login/office')
+            }}
           >
             <span className="entry-mode-icon"><Briefcase size={32} /></span>
             <span className="entry-mode-title">Office</span>
