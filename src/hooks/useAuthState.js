@@ -148,13 +148,18 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
         return
       }
 
-      // Navigate to dashboard if on login/root (preserve existing office routes)
-      const isPublicRoute = locationPathname.startsWith('/view/') || locationPathname.startsWith('/sign/')
-      const isOfficeRoute = [
-        '/dashboard', '/projects/new', '/pricing', '/branding', '/team', '/account',
-        '/trade-settings', '/portfolio-analytics'
-      ].includes(locationPathname)
-      if (!isPublicRoute && !isOfficeRoute && locationPathname !== '/field') {
+      // Fast-track the signed-in user to /dashboard ONLY from the landing
+      // routes. Other routes decide for themselves — /invite/:token and
+      // /reset-password are explicitly meant to render with an active
+      // session, /view/* and /sign/* are public share links, /pending shows
+      // the pending screen, and the office routes carry their own guard.
+      const isLandingRoute =
+        locationPathname === '/' ||
+        locationPathname === '/login' ||
+        locationPathname.startsWith('/login/') ||
+        locationPathname === '/register' ||
+        locationPathname === '/forgot-password'
+      if (isLandingRoute) {
         navigate('/dashboard', { replace: true })
       }
     } catch (error) {

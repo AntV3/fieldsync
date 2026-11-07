@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 
-const { authListeners, mockAuth, syncListeners, offline } = vi.hoisted(() => {
+const { authListeners, mockAuth, syncListeners, offline, fromMock } = vi.hoisted(() => {
   const authListeners = []
   const mockAuth = {
     getUser: vi.fn(),
@@ -21,14 +21,19 @@ const { authListeners, mockAuth, syncListeners, offline } = vi.hoisted(() => {
       return () => syncListeners.delete(cb)
     }),
   }
-  return { authListeners, mockAuth, syncListeners, offline }
+  const fromMock = vi.fn()
+  return { authListeners, mockAuth, syncListeners, offline, fromMock }
 })
 
 vi.mock('../lib/supabase', () => ({
   isSupabaseConfigured: true,
-  supabase: { auth: mockAuth, from: vi.fn() },
+  supabase: { auth: mockAuth, from: fromMock },
   auth: { signOut: vi.fn().mockResolvedValue(undefined) },
-  db: { getUserCompanies: vi.fn().mockResolvedValue([]) },
+  db: {
+    getUserCompanies: vi.fn().mockResolvedValue([]),
+    getUserPendingMemberships: vi.fn().mockResolvedValue(0),
+    repairLegacyUser: vi.fn().mockResolvedValue(false),
+  },
   clearFieldSession: offline.clearFieldSession,
   requeueNeedsAuthTickets: offline.requeueNeedsAuthTickets,
   drainPendingActions: offline.drainPendingActions,
@@ -180,5 +185,73 @@ describe('useAuthState offline T&M ticket recovery', () => {
     expect(navigate).not.toHaveBeenCalled()
     unmount()
     expect(syncListeners.size).toBe(0)
+  })
+})
+
+describe('useAuthState fast-track redirect on page load', () => {
+  let navigate, showToast, dbMock
+  const authUser = { id: 'user-1' }
+  const userRow = { id: 'user-1', name: 'Taylor', role: 'admin', company_id: 'co-1' }
+  const company = { id: 'co-1', name: 'Acme Co' }
+
+  beforeEach(async () => {
+    authListeners.length = 0
+    navigate = vi.fn()
+    showToast = vi.fn()
+    mockAuth.getUser.mockReset().mockResolvedValue({ data: { user: authUser }, error: null })
+    const supabaseModule = await import('../lib/supabase')
+    dbMock = supabaseModule.db
+    dbMock.getUserCompanies.mockReset().mockResolvedValue([company])
+    localStorage.clear()
+
+    // Stub supabase.from('users').select('*').eq('id', id).single() to return
+    // the user row. Other callers (e.g. pending-membership lookups) never run
+    // when getUserCompanies already returned a company.
+    fromMock.mockReset().mockImplementation(() => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: userRow, error: null }),
+        }),
+      }),
+    }))
+  })
+
+  const renderAt = (path) =>
+    renderHook(() => useAuthState({ navigate, locationPathname: path, showToast }))
+
+  it('sends an authenticated user from /login to /dashboard', async () => {
+    const { result } = renderAt('/login')
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(navigate).toHaveBeenCalledWith('/dashboard', { replace: true })
+  })
+
+  it('sends an authenticated user from / to /dashboard', async () => {
+    const { result } = renderAt('/')
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(navigate).toHaveBeenCalledWith('/dashboard', { replace: true })
+  })
+
+  it('leaves an authenticated user on /invite/:token so they can accept a new company invite', async () => {
+    const { result } = renderAt('/invite/abc123')
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('leaves an authenticated user on /reset-password so the recovery session can finish', async () => {
+    const { result } = renderAt('/reset-password')
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('leaves an authenticated user alone on office routes', async () => {
+    const { result } = renderAt('/dashboard')
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('leaves an authenticated user alone on static pages like /privacy', async () => {
+    const { result } = renderAt('/privacy')
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(navigate).not.toHaveBeenCalled()
   })
 })
