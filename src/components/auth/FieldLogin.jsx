@@ -58,6 +58,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
       try { return localStorage.getItem('fieldsync_foreman_name') || '' } catch { return '' }
     })()
     if (savedName.trim()) {
+      try { localStorage.setItem('fieldsync-login-type', 'field') } catch { /* ignore */ }
       onForemanAccess(remembered, savedName.trim())
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
