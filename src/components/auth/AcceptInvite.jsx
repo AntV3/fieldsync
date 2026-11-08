@@ -55,6 +55,7 @@ export default function AcceptInvite({ onShowToast }) {
     try {
       const result = await db.acceptInvitation(token, currentUser.id)
       if (result.success) {
+        localStorage.setItem('selectedCompanyId', invitation.company_id)
         onShowToast('You have joined the company!', 'success')
         window.location.href = '/dashboard'
       } else {
@@ -163,6 +164,7 @@ export default function AcceptInvite({ onShowToast }) {
       const result = await db.acceptInvitation(token, signInData.user.id)
 
       if (result.success) {
+        localStorage.setItem('selectedCompanyId', invitation.company_id)
         onShowToast('You have joined the company!', 'success')
         window.location.href = '/dashboard'
       } else {

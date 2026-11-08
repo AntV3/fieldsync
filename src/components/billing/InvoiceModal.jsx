@@ -67,7 +67,7 @@ export default function InvoiceModal({
         reference_id: ticket.id,
         reference_number: ticket.ce_pco_number || null,
         description: `Time & Material - ${new Date(ticket.work_date).toLocaleDateString()}`,
-        amount: (parseFloat(ticket.change_order_value) || 0) * 100 // Convert to cents
+        amount: dollarsToCents(parseFloat(ticket.change_order_value) || 0)
       })
     })
 

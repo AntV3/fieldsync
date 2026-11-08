@@ -1,5 +1,8 @@
 // Test setup file - runs before each test
 import '@testing-library/jest-dom'
+// jsdom has no IndexedDB; fake-indexeddb/auto installs one globally so
+// components that read from IDB (e.g. OfflineIndicator) don't throw.
+import 'fake-indexeddb/auto'
 
 // Mock matchMedia (needed for components that use media queries)
 Object.defineProperty(window, 'matchMedia', {
