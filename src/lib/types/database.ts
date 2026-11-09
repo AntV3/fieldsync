@@ -34,9 +34,8 @@ export interface AreaRow {
   name: string
   /** Relative weight used for % progress when no scheduled value is set */
   weight: number | null
-  is_complete: boolean
-  /** Field status driven from the field app */
-  status?: 'not_started' | 'working' | 'done' | string
+  /** Field status driven from the field app — the authoritative completion signal */
+  status: 'not_started' | 'working' | 'done' | string
   /** SOV dollar value; when present, earned value is value-based */
   scheduled_value?: number | null
   group_name?: string | null
@@ -47,7 +46,8 @@ export interface AreaRow {
 export interface ChangeOrderRow {
   id: string
   project_id: string
-  total_value: number | null
+  /** Change-order total in integer cents (migration 20241201000060_change_orders.sql) */
+  cor_total: number | null
   status: 'approved' | 'pending' | 'rejected' | string
   created_at?: string
   updated_at?: string | null
@@ -82,7 +82,8 @@ export interface TMTicketRow {
   work_date?: string | null // YYYY-MM-DD
   notes?: string | null
   status: 'pending' | 'approved' | 'rejected' | string
-  total_value?: number | null
+  /** Ticket total in dollars (sum of labor + materials/equipment lines). */
+  total_amount?: number | null
   cost_code_id?: string | null
   created_at?: string
 }
@@ -110,10 +111,20 @@ export interface MaterialsEquipmentRow {
 // Field data
 // ============================================
 
+/** Shape of a single worker inside a crew_checkin's `workers` JSONB array */
+export interface CrewCheckinWorker {
+  name?: string | null
+  classification?: string | null
+  signature_data?: string | null
+  [key: string]: unknown
+}
+
 export interface CrewCheckinRow {
   project_id: string
-  worker_count: number | null
-  checkin_date: string // YYYY-MM-DD
+  /** Workers on site that day — count is `workers.length`; migration 20241201000010 + perf indexes */
+  workers: CrewCheckinWorker[] | null
+  /** Local-date YYYY-MM-DD (column is `check_in_date` — see 20250118_performance_indexes.sql:16) */
+  check_in_date: string
   created_at?: string
 }
 

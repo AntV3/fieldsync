@@ -35,7 +35,9 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
 
   // Original contract line items from areas
   for (const area of areas) {
-    const scheduledValue = area.sov_value || area.weight || 0
+    // The SOV dollar value lives in `scheduled_value` (migration 20241201000040).
+    // `weight` is a 0–100 percentage, never a dollar amount — do NOT fall back to it.
+    const scheduledValue = Number(area.scheduled_value) || 0
     const previousWork = previousByArea[area.id] || 0
     const progressPct = area.status === 'done' ? 100 : area.status === 'working' ? 50 : 0
     const totalCompleted = scheduledValue * (progressPct / 100)

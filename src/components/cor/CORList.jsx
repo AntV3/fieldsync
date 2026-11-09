@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
+import { formatCurrency as formatDollarsCurrency } from '../../lib/utils'
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -675,7 +676,10 @@ export default function CORList({
               <span className="cor-stat-item pending">{counts.pending_approval} pending</span>
             )}
             {stats?.total_approved_value > 0 && (
-              <span className="cor-stat-item approved">{formatCurrency(stats.total_approved_value)}</span>
+              // `getCORStats` returns `total_approved_value` already converted to dollars,
+              // so use the dollars-based formatter (NOT corCalculations.formatCurrency,
+              // which divides by 100 again and would under-report by 100×).
+              <span className="cor-stat-item approved">{formatDollarsCurrency(stats.total_approved_value)}</span>
             )}
           </div>
         </div>
