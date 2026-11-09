@@ -72,13 +72,22 @@ export function projectReceivables(projects, invoices, config) {
   const now = new Date()
   const entries = []
 
-  // Outstanding invoices (already billed, awaiting payment)
+  // Outstanding invoices (already billed, awaiting payment).
+  // The invoices.status CHECK constraint allows ('draft','sent','partial','paid','void')
+  // (supabase/migrations/20241201000050_billing.sql), so prior 'pending'/'overdue' never
+  // matched any row. 'sent' = billed-unpaid; 'partial' = partially paid, residual outstanding.
   const outstanding = invoices.filter(inv =>
-    inv.status === 'sent' || inv.status === 'pending' || inv.status === 'overdue'
+    inv.status === 'sent' || inv.status === 'partial'
   )
 
   for (const inv of outstanding) {
-    const invoiceDate = new Date(inv.date || inv.created_at)
+    // invoices.total and amount_paid are stored in cents; convert the outstanding
+    // balance (total minus amount already paid) to dollars for the forecast.
+    const outstandingCents = (parseFloat(inv.total) || 0) - (parseFloat(inv.amount_paid) || 0)
+    const amount = outstandingCents > 0 ? outstandingCents / 100 : 0
+    if (amount <= 0) continue
+
+    const invoiceDate = new Date(inv.invoice_date || inv.created_at)
     const dueDate = new Date(invoiceDate.getTime() + config.receivableDays * 24 * 60 * 60 * 1000)
     const isOverdue = dueDate < now
 
@@ -86,7 +95,7 @@ export function projectReceivables(projects, invoices, config) {
       type: 'outstanding',
       projectId: inv.project_id,
       projectName: inv.project_name || 'Unknown',
-      amount: inv.amount || 0,
+      amount,
       date: invoiceDate.toISOString().split('T')[0],
       expectedDate: dueDate.toISOString().split('T')[0],
       status: isOverdue ? 'overdue' : 'pending',
