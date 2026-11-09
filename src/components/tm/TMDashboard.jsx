@@ -173,7 +173,7 @@ export default function TMDashboard({ tickets = [], laborRates = {}, rateLookup 
     }
     const rates = { ...defaultRates, ...laborRates }
 
-    const calculateTicketValue = (ticket) => {
+    const calculateTicketBreakdown = (ticket) => {
       let laborCost = 0
       let materialsCost = 0
 
@@ -200,8 +200,10 @@ export default function TMDashboard({ tickets = [], laborRates = {}, rateLookup 
         })
       }
 
-      return laborCost + materialsCost
+      return { laborCost, materialsCost, total: laborCost + materialsCost }
     }
+
+    const calculateTicketValue = (ticket) => calculateTicketBreakdown(ticket).total
 
     const pendingValue = tickets
       .filter(t => isAwaitingApproval(t.status))
@@ -232,20 +234,16 @@ export default function TMDashboard({ tickets = [], laborRates = {}, rateLookup 
       }
 
       monthlyData[monthKey].tickets += 1
-      monthlyData[monthKey].cost += calculateTicketValue(ticket) - materialsCost
+
+      const breakdown = calculateTicketBreakdown(ticket)
+      monthlyData[monthKey].cost += breakdown.laborCost
+      monthlyData[monthKey].value += breakdown.total
 
       if (ticket.t_and_m_workers) {
         ticket.t_and_m_workers.forEach(worker => {
           const regHrs = parseFloat(worker.hours) || 0
           const otHrs = parseFloat(worker.overtime_hours) || 0
           monthlyData[monthKey].hours += regHrs + otHrs
-        })
-      }
-
-      if (ticket.t_and_m_items) {
-        ticket.t_and_m_items.forEach(item => {
-          const costPer = item.materials_equipment?.cost_per_unit || 0
-          monthlyData[monthKey].value += item.quantity * costPer
         })
       }
     })
