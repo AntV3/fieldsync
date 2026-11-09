@@ -12,6 +12,8 @@
  * - VAC (Variance at Completion) = BAC - EAC
  */
 
+import { getLocalDateString } from './utils'
+
 /**
  * Calculate earned value metrics for a project
  * @param {Object} params
@@ -169,7 +171,7 @@ function calculateProjectedEndDate(startDate, endDate, spi) {
   const adjustedDays = totalDays / spi
   const projected = new Date(start.getTime() + adjustedDays * 24 * 60 * 60 * 1000)
 
-  return projected.toISOString().split('T')[0]
+  return getLocalDateString(projected)
 }
 
 function getHealthStatus(cpi, spi) {
