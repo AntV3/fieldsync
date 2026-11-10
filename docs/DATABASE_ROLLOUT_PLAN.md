@@ -1,6 +1,6 @@
 # Database Rollout Plan and SQL Hand-off
 
-**Status:** not started. Nothing in this plan has been run against production.
+**Status:** all three files were applied to production on 2026-11-10 and confirmed present by query. The branch test (step 3) and the SQL test files were not reported as run; the checks in step 6 and the hand test in step 3.6 are still worth doing.
 **Written:** 2026-11-10
 
 This is the complete list of database changes for Phases 2 and 3, in the order to run them. Every block marked **COPY** is meant to be pasted into the Supabase SQL editor as it is.
