@@ -79,7 +79,7 @@ const calculateHoursFromTimeRange = (startTime, endTime) => {
   }
 }
 
-export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, onCancel, onShowToast }) {
+export default function TMForm({ project, companyId, maxPhotos = 10, prefill = null, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1)
   const [workDate, setWorkDate] = useState(getLocalDateString())
   const [showCapabilities, setShowCapabilities] = useState(false)
@@ -506,6 +506,83 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     }
   }
 
+  // Put a crew (shape of db.getPreviousTicketCrew) into the form
+  const applyCrew = (previousCrew) => {
+    if (hasCustomLaborClasses) {
+      if (previousCrew.dynamicWorkers) {
+        // Load dynamic workers and activate their labor class sections
+        setDynamicWorkers(previousCrew.dynamicWorkers)
+        setActiveLaborClassIds(prev => {
+          const newIds = new Set(prev)
+          Object.keys(previousCrew.dynamicWorkers).forEach(id => newIds.add(id))
+          return newIds
+        })
+      } else {
+        // Previous ticket used legacy roles — map workers into dynamic labor classes
+        const allLegacyWorkers = [
+          ...(previousCrew.supervision || []).map(w => ({ ...w, legacyRole: w.role || 'Foreman' })),
+          ...(previousCrew.operators || []).map(w => ({ ...w, legacyRole: 'Operator' })),
+          ...(previousCrew.laborers || []).map(w => ({ ...w, legacyRole: 'Laborer' }))
+        ]
+        if (allLegacyWorkers.length > 0) {
+          const newActiveIds = new Set()
+          const mappedWorkers = {}
+          allLegacyWorkers.forEach(worker => {
+            // Try to match legacy role to a labor class by name
+            const matchingClass = laborClasses.find(lc =>
+              lc.name.toLowerCase().includes(worker.legacyRole.toLowerCase()) ||
+              worker.legacyRole.toLowerCase().includes(lc.name.toLowerCase())
+            )
+            const targetClassId = matchingClass?.id || laborClasses[0]?.id
+            if (targetClassId) {
+              if (!mappedWorkers[targetClassId]) mappedWorkers[targetClassId] = []
+              mappedWorkers[targetClassId].push({
+                name: worker.name,
+                hours: worker.hours || '',
+                overtimeHours: worker.overtimeHours || '',
+                timeStarted: worker.timeStarted || '',
+                timeEnded: worker.timeEnded || ''
+              })
+              newActiveIds.add(targetClassId)
+            }
+          })
+          setDynamicWorkers(prev => ({ ...prev, ...mappedWorkers }))
+          setActiveLaborClassIds(prev => {
+            const merged = new Set(prev)
+            newActiveIds.forEach(id => merged.add(id))
+            return merged
+          })
+        }
+      }
+    } else {
+      if (previousCrew.supervision) {
+        setSupervision(previousCrew.supervision)
+      }
+      if (previousCrew.operators) {
+        setOperators(previousCrew.operators)
+      }
+      if (previousCrew.laborers) {
+        setLaborers(previousCrew.laborers)
+      }
+    }
+  }
+
+  // Correcting a rejected ticket: start from its details (lib/ticketPrefill).
+  // Waits for the labor classes so the crew lands in the right sections.
+  const prefillAppliedRef = useRef(false)
+  useEffect(() => {
+    if (!prefill || prefillAppliedRef.current || loadingLaborClasses) return
+    prefillAppliedRef.current = true
+    try { localStorage.removeItem(getDraftKey(project?.id)) } catch { /* storage unavailable */ }
+    setShowDraftPrompt(false)
+    if (prefill.workDate) setWorkDate(prefill.workDate)
+    setCePcoNumber(prefill.cePcoNumber || '')
+    setNotes(prefill.notes || '')
+    setItems(prefill.items || [])
+    if (prefill.crew) applyCrew(prefill.crew)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill, loadingLaborClasses])
+
   // Load previous ticket's crew ("Same as Yesterday")
   const loadPreviousCrew = async () => {
     setLoadingPreviousCrew(true)
@@ -517,63 +594,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         return
       }
 
-      if (hasCustomLaborClasses) {
-        if (previousCrew.dynamicWorkers) {
-          // Load dynamic workers and activate their labor class sections
-          setDynamicWorkers(previousCrew.dynamicWorkers)
-          setActiveLaborClassIds(prev => {
-            const newIds = new Set(prev)
-            Object.keys(previousCrew.dynamicWorkers).forEach(id => newIds.add(id))
-            return newIds
-          })
-        } else {
-          // Previous ticket used legacy roles — map workers into dynamic labor classes
-          const allLegacyWorkers = [
-            ...(previousCrew.supervision || []).map(w => ({ ...w, legacyRole: w.role || 'Foreman' })),
-            ...(previousCrew.operators || []).map(w => ({ ...w, legacyRole: 'Operator' })),
-            ...(previousCrew.laborers || []).map(w => ({ ...w, legacyRole: 'Laborer' }))
-          ]
-          if (allLegacyWorkers.length > 0) {
-            const newActiveIds = new Set()
-            const mappedWorkers = {}
-            allLegacyWorkers.forEach(worker => {
-              // Try to match legacy role to a labor class by name
-              const matchingClass = laborClasses.find(lc =>
-                lc.name.toLowerCase().includes(worker.legacyRole.toLowerCase()) ||
-                worker.legacyRole.toLowerCase().includes(lc.name.toLowerCase())
-              )
-              const targetClassId = matchingClass?.id || laborClasses[0]?.id
-              if (targetClassId) {
-                if (!mappedWorkers[targetClassId]) mappedWorkers[targetClassId] = []
-                mappedWorkers[targetClassId].push({
-                  name: worker.name,
-                  hours: worker.hours || '',
-                  overtimeHours: worker.overtimeHours || '',
-                  timeStarted: worker.timeStarted || '',
-                  timeEnded: worker.timeEnded || ''
-                })
-                newActiveIds.add(targetClassId)
-              }
-            })
-            setDynamicWorkers(prev => ({ ...prev, ...mappedWorkers }))
-            setActiveLaborClassIds(prev => {
-              const merged = new Set(prev)
-              newActiveIds.forEach(id => merged.add(id))
-              return merged
-            })
-          }
-        }
-      } else {
-        if (previousCrew.supervision) {
-          setSupervision(previousCrew.supervision)
-        }
-        if (previousCrew.operators) {
-          setOperators(previousCrew.operators)
-        }
-        if (previousCrew.laborers) {
-          setLaborers(previousCrew.laborers)
-        }
-      }
+      applyCrew(previousCrew)
 
       const dateStr = parseLocalDate(previousCrew.workDate).toLocaleDateString()
       onShowToast(t('loadedWorkers').replace('{count}', previousCrew.totalWorkers).replace('{date}', dateStr), 'success')
@@ -1397,6 +1418,17 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
         confirmLabel={t('saveWithoutPhotos')}
         cancelLabel={t('keepEditing')}
       />
+      {/* Correcting a rejected ticket */}
+      {prefill && step < 5 && (
+        <div className="tm-correction-note" role="note">
+          <AlertCircle size={18} aria-hidden="true" />
+          <span>
+            <strong>Correcting a rejected ticket.</strong>
+            {prefill.rejectionReason ? ` Office note: ${prefill.rejectionReason}` : ''}
+            {' '}Crew, hours and materials are filled in. Add the photos again and submit.
+          </span>
+        </div>
+      )}
       {/* Draft Resume Prompt */}
       {showDraftPrompt && (
         <div className="tm-draft-prompt animate-fade-in-down">

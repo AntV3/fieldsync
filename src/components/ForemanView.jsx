@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import TMForm from './TMForm'
 import FieldTicketList from './FieldTicketList'
+import { prefillFromTicket } from '../lib/ticketPrefill'
 import { startPhotoQueueSync } from '../lib/photoQueueSync'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
@@ -53,6 +54,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   // View states
   const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress, punchlist
   const [showProjectInfo, setShowProjectInfo] = useState(false)
+  // Rejected ticket being corrected: its details prefill the T&M form
+  const [ticketPrefill, setTicketPrefill] = useState(null)
 
   // Punch list open count for badge (null = not loaded yet)
   const [punchListOpenCount, setPunchListOpenCount] = useState(null)
@@ -451,6 +454,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
   // Navigation handler for ForemanLanding (must be before early returns)
   const handleNavigate = useCallback((viewId) => {
+    if (viewId === 'tm') setTicketPrefill(null)
     setActiveView(viewId)
   }, [])
 
@@ -470,10 +474,12 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return (
       <div className="fm-view">
         <TMForm
+          key={ticketPrefill?.sourceTicketId || 'new'}
           project={project}
           companyId={companyId}
-          onSubmit={returnHome}
-          onCancel={returnHome}
+          prefill={ticketPrefill}
+          onSubmit={() => { setTicketPrefill(null); returnHome() }}
+          onCancel={() => { setTicketPrefill(null); returnHome() }}
           onShowToast={onShowToast}
         />
       </div>
@@ -487,7 +493,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
         project={project}
         companyId={companyId}
         onBack={returnHome}
-        onNewTicket={() => setActiveView('tm')}
+        onNewTicket={() => { setTicketPrefill(null); setActiveView('tm') }}
+        onResubmit={(ticket) => { setTicketPrefill(prefillFromTicket(ticket)); setActiveView('tm') }}
         onShowToast={onShowToast}
       />
     )

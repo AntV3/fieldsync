@@ -118,11 +118,12 @@ function seedDraft(overrides = {}) {
 let onShowToast
 let onSubmit
 
-function renderForm() {
+function renderForm(extraProps = {}) {
   onShowToast = vi.fn()
   onSubmit = vi.fn()
   return render(
     <TMForm
+      {...extraProps}
       project={project}
       companyId="company-1"
       onSubmit={onSubmit}
@@ -665,5 +666,28 @@ describe('TMForm step 5 for a ticket saved on the phone', () => {
     expect(mocks.db.saveTMForemanSignature).toHaveBeenCalledWith('server-9', expect.any(Object))
     expect(mocks.attachSignatureToPendingTicket).not.toHaveBeenCalled()
     expect(screen.getByText('Skip client signature for now')).toBeInTheDocument()
+  })
+})
+
+describe('TMForm correcting a rejected ticket', () => {
+  it('opens filled from the rejected ticket, shows the office note, and ignores an old draft', async () => {
+    seedDraft({ notes: 'stale draft' })
+    renderForm({
+      prefill: {
+        sourceTicketId: 't-old',
+        workDate: '2026-11-03',
+        cePcoNumber: 'PCO-12',
+        notes: 'Extra trenching at grid B',
+        items: [],
+        crew: { supervision: null, operators: null, laborers: [{ name: 'J. Smith', hours: '6', overtimeHours: '', timeStarted: '', timeEnded: '' }], dynamicWorkers: null, totalWorkers: 1 },
+        rejectionReason: 'Missing hours for J. Smith'
+      }
+    })
+
+    expect(await screen.findByDisplayValue('Extra trenching at grid B')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('PCO-12')).toBeInTheDocument()
+    expect(screen.getByRole('note')).toHaveTextContent('Correcting a rejected ticket. Office note: Missing hours for J. Smith')
+    expect(screen.queryByText('Resume Draft')).not.toBeInTheDocument()
+    expect(screen.queryByDisplayValue('stale draft')).not.toBeInTheDocument()
   })
 })

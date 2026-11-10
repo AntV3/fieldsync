@@ -55,7 +55,7 @@ const STATE_ICONS = {
  * the one thing each still needs. A ticket whose client was not on site at
  * submit time can be signed here later, on this device or through a link.
  */
-export default function FieldTicketList({ project, companyId, onBack, onNewTicket, onShowToast }) {
+export default function FieldTicketList({ project, companyId, onBack, onNewTicket, onResubmit, onShowToast }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -72,7 +72,7 @@ export default function FieldTicketList({ project, companyId, onBack, onNewTicke
       const recent = (all || []).filter(t => {
         const date = parseLocalDate(t.work_date || t.created_at)
         // Anything still open stays on the list however old it is
-        return fieldTicketState(t).state === 'needs_signature' || !(date < cutoff)
+        return ['needs_signature', 'rejected'].includes(fieldTicketState(t).state) || !(date < cutoff)
       })
       recent.sort((a, b) => parseLocalDate(b.work_date || b.created_at) - parseLocalDate(a.work_date || a.created_at))
       setTickets(recent)
@@ -169,6 +169,13 @@ export default function FieldTicketList({ project, companyId, onBack, onNewTicke
                       {detail && <span className="fld-ticket-detail"> {detail}</span>}
                     </span>
                   </div>
+                  {state === 'rejected' && onResubmit && (
+                    <div className="fld-ticket-actions">
+                      <button className="btn btn-primary" onClick={() => onResubmit(ticket)}>
+                        <RefreshCw size={15} aria-hidden="true" /> Fix and resubmit
+                      </button>
+                    </div>
+                  )}
                   {state === 'needs_signature' && (
                     <div className="fld-ticket-actions">
                       <button className="btn btn-primary" onClick={() => setSigningTicket(ticket)}>

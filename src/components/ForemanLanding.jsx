@@ -591,9 +591,9 @@ export default function ForemanLanding({
               )
             })}
           </ul>
-          <button type="button" className="sdx-fld-alert-cta" onClick={() => onNavigate('tm')}>
+          <button type="button" className="sdx-fld-alert-cta" onClick={() => onNavigate('tickets')}>
             <FileText size={16} aria-hidden="true" />
-            Submit corrected ticket
+            Fix and resubmit
           </button>
         </section>
       )}
