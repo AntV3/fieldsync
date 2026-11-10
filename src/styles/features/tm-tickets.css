@@ -5436,3 +5436,104 @@ END MIGRATED */
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
+
+/* ---------- One-by-one review ---------- */
+
+.tm-review-start {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin: 0 0 0.75rem;
+  padding: 0 0.9rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary-color);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .tm-review-start { color: #1a1a1f; }
+
+.tm-review-screen {
+  position: fixed;
+  inset: 0;
+  /* Above the page chrome, below the modals that open from a ticket */
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary, var(--bg-card));
+}
+
+.tm-review-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: calc(0.4rem + env(safe-area-inset-top, 0px)) 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.tm-review-count { font-weight: 600; color: var(--text-primary); }
+.tm-review-steps { display: inline-flex; gap: 4px; }
+
+.tm-review-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.tm-review-nav:disabled { opacity: 0.35; cursor: default; }
+
+.tm-review-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 0.75rem 0;
+}
+
+/* The ticket's own action row stays in reach at the bottom of the screen */
+.tm-review-body .tm-ticket-actions {
+  position: sticky;
+  bottom: 0;
+  margin: 0.75rem -0.75rem 0;
+  padding: 0.6rem 0.75rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+}
+
+.tm-review-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.tm-review-done h3 { margin: 0; color: var(--text-primary); }
+
+@media (min-width: 769px) {
+  .tm-review-screen {
+    inset: 5vh auto 5vh 50%;
+    width: min(760px, 92vw);
+    transform: translateX(-50%);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+  }
+}

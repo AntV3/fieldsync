@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search, Plus, ArrowRight } from 'lucide-react'
+import { FileText, ChevronDown, ChevronRight, ChevronLeft, Calendar, X, FileSpreadsheet, BarChart3, List, Search, Plus, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
 import {
@@ -32,6 +32,8 @@ import { loadXLSXSafe } from '../lib/safeXlsx'
 const loadXLSX = loadXLSXSafe
 const loadJsPDF = () => Promise.all([import('jspdf'), import('jspdf-autotable')])
 
+const noop = () => {}
+
 export default function TMList({
   project,
   company,
@@ -53,6 +55,7 @@ export default function TMList({
   // are visible and the user can change it back.
   const initialReview = reviewRequest && !previewMode ? reviewRequest : null
   const { canApproveTickets } = usePermissions()
+  const [reviewIndex, setReviewIndex] = useState(null) // null = closed
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -132,6 +135,23 @@ export default function TMList({
   const [savingEdit, setSavingEdit] = useState(false)
   const savingEditRef = useRef(false)
   const pendingReloadRef = useRef(false)
+
+  // While the review screen is open the page behind does not scroll, and
+  // Escape closes it (unless a modal on top of it is handling the key)
+  const reviewScreenOpen = reviewIndex !== null && filter === 'pending'
+  const modalOverReview = showChangeOrderModal || showSignatureLink || showCorAssignModal || Boolean(editingTicket)
+  useEffect(() => {
+    if (!reviewScreenOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e) => { if (e.key === 'Escape' && !modalOverReview) setReviewIndex(null) }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = previous
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [reviewScreenOpen, modalOverReview])
+
 
   // Load tickets with pagination - wrapped in useCallback so the subscription
   // callback always references the same function and doesn't cause leak/resubscribe cycles.
@@ -1441,19 +1461,26 @@ export default function TMList({
   const allFilteredSelected = filteredTickets.length > 0 && filteredTickets.every(t => selectedTickets.has(t.id))
   const someSelected = selectedTickets.size > 0
 
+  // One-by-one review: the ticket at reviewIndex in the review queue, shown
+  // full screen. An approved or rejected ticket leaves the queue, so the same
+  // index then points at the next one.
+  const reviewOpen = reviewIndex !== null && isReviewQueue
+  const reviewPosition = reviewOpen ? Math.min(reviewIndex, Math.max(filteredTickets.length - 1, 0)) : 0
+  const reviewTicket = reviewOpen ? filteredTickets[reviewPosition] : null
+
   // Helper function to render a single ticket card using memoized component
-  const renderTicketCard = (ticket) => (
+  const renderTicketCard = (ticket, { inReview = false } = {}) => (
     <TMTicketCard
       key={ticket.id}
       ticket={ticket}
       canApprove={canApproveTickets}
-      isExpanded={expandedTicket === ticket.id}
+      isExpanded={inReview || expandedTicket === ticket.id}
       isSelected={selectedTickets.has(ticket.id)}
       isLocked={!!lockedTickets[ticket.id]}
       lockInfo={lockedTickets[ticket.id]}
       hasFailedImport={!!failedImports[ticket.id]}
       isRetrying={retryingImport === ticket.id}
-      onToggleExpand={handleToggleExpand}
+      onToggleExpand={inReview ? noop : handleToggleExpand}
       onToggleSelect={toggleTicketSelection}
       onApprove={handleApprove}
       onReject={handleReject}
@@ -1604,6 +1631,14 @@ export default function TMList({
             )}
           </div>
         </div>
+      )}
+
+      {/* Review queue: go through the tickets one at a time, full screen */}
+      {isReviewQueue && !compact && filteredTickets.length > 0 && (
+        <button type="button" className="tm-review-start" onClick={() => setReviewIndex(0)}>
+          <span>Review one by one ({filteredTickets.length})</span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </button>
       )}
 
       {/* Next step once tickets are approved: put them on a COR */}
@@ -1851,6 +1886,55 @@ export default function TMList({
                   : 'Link to COR'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* One-by-one review */}
+      {reviewOpen && (
+        <div className="tm-review-screen" role="dialog" aria-modal="true" aria-label="Review tickets">
+          <div className="tm-review-bar">
+            <button className="tm-review-nav" onClick={() => setReviewIndex(null)} aria-label="Close review">
+              <X size={20} />
+            </button>
+            <span className="tm-review-count" aria-live="polite">
+              {reviewTicket ? `${reviewPosition + 1} of ${filteredTickets.length}` : 'Done'}
+            </span>
+            <span className="tm-review-steps">
+              <button
+                className="tm-review-nav"
+                onClick={() => setReviewIndex(Math.max(reviewPosition - 1, 0))}
+                disabled={!reviewTicket || reviewPosition === 0}
+                aria-label="Previous ticket"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                className="tm-review-nav"
+                onClick={() => setReviewIndex(Math.min(reviewPosition + 1, filteredTickets.length - 1))}
+                disabled={!reviewTicket || reviewPosition >= filteredTickets.length - 1}
+                aria-label="Next ticket"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </span>
+          </div>
+          <div className="tm-review-body">
+            {reviewTicket ? (
+              renderTicketCard(reviewTicket, { inReview: true })
+            ) : (
+              <div className="tm-review-done">
+                <CheckCircle2 size={36} aria-hidden="true" />
+                <h3>Nothing left to review</h3>
+                {onBuildCOR && readyForCORCount > 0 ? (
+                  <button className="btn btn-primary" onClick={() => { setReviewIndex(null); onBuildCOR() }}>
+                    Build COR from {readyForCORCount} approved {readyForCORCount === 1 ? 'ticket' : 'tickets'}
+                  </button>
+                ) : (
+                  <button className="btn btn-secondary" onClick={() => setReviewIndex(null)}>Back to tickets</button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
