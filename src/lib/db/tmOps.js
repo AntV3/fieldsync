@@ -894,6 +894,22 @@ export const tmOps = {
       if (!client) {
         throw new Error('Database client not available')
       }
+      // Preferred: the server records the signature (server time, audit row,
+      // office email). When that function does not exist yet (PGRST202 /
+      // 42883: migration not applied), fall back to writing the ticket row.
+      const recorded = await client.rpc('record_tm_client_signature', {
+        p_ticket_id: ticketId,
+        p_signature: {
+          signature: signatureData.signature,
+          signerName: signatureData.signerName,
+          signerTitle: signatureData.signerTitle || null,
+          signerCompany: signatureData.signerCompany || null,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null
+        }
+      })
+      if (!recorded.error) return recorded.data
+      if (!['PGRST202', '42883'].includes(recorded.error.code)) throw recorded.error
+
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
