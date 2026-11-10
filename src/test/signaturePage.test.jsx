@@ -462,7 +462,7 @@ describe('<SignaturePage />', () => {
       const evidence = screen.getAllByAltText(/^Evidence \d+$/)
       expect(evidence).toHaveLength(2)
       expect(evidence[0]).toHaveAttribute('src', SIGNED_A)
-      expect(screen.getByRole('button', { name: 'Sign as GC' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Sign to approve' })).toBeInTheDocument()
     })
 
     it('renders a completed COR with the signature_image and no Sign buttons', async () => {
@@ -478,8 +478,7 @@ describe('<SignaturePage />', () => {
       expect(sigImg).toHaveAttribute('src', completedSignature.signature_image)
       expect(screen.getByText('QA GC')).toBeInTheDocument()
       expect(screen.getByText(/PM.*GC Co/)).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as GC' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as Client' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Sign to approve' })).not.toBeInTheDocument()
     })
 
     it('passes re-resolved backup tickets to exportCORToPDF on download', async () => {
