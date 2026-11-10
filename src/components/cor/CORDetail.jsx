@@ -5,6 +5,7 @@ import { db } from '../../lib/supabase'
 import { usePermissions } from '../../lib/PermissionsContext'
 import { guardMessage } from '../../lib/permissions'
 import { corStage } from '../../lib/corStage'
+import { archiveCORPackage } from '../../lib/corPackageArchive'
 import CORComments from './CORComments'
 import { resolveClassRate } from '../../lib/laborRateResolver'
 import {
@@ -235,6 +236,19 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       setCORData(prev => ({ ...prev, ...updated }))
       onStatusChange?.()
       setShowSignatureLink(true)
+
+      // Keep a copy of what is being sent. Never holds up or undoes the send.
+      archiveCORPackage({ cor: { ...corData, ...updated }, tickets: associatedTickets, project, company, db })
+        .then(() => onShowToast?.('A copy of the package was saved to Documents', 'success'))
+        .catch((archiveError) => {
+          console.error('Error saving the COR package:', archiveError)
+          onShowToast?.(
+            archiveError?.code === 'PACKAGE_TOO_LARGE'
+              ? archiveError.message
+              : 'The package was not saved to Documents. Use Export PDF to keep a copy.',
+            'warning'
+          )
+        })
     } catch (error) {
       console.error('Error submitting COR:', error)
       onShowToast?.(guardMessage(error, 'Could not submit COR. Nothing was sent.'), 'error')

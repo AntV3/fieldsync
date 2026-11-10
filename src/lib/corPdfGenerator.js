@@ -988,6 +988,14 @@ export async function generatePDFFromSnapshot(snapshot, context = {}) {
   // ============================================
 
   const fileName = `${cor.cor_number || 'COR'}_${project?.job_number || 'export'}${tickets.length ? '_with_backup' : ''}.pdf`
+
+  // context.output === 'blob': hand the PDF back instead of downloading it
+  // (used to keep a copy of the package that was sent)
+  if (context.output === 'blob') {
+    const blob = doc.output('blob')
+    return { success: true, fileName, pageCount: totalPages, sizeBytes: blob.size, blob }
+  }
+
   doc.save(fileName)
 
   return {
