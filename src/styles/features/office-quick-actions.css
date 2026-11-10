@@ -552,3 +552,58 @@
   }
   :root:has(.oqa-overlay) .offline-indicator { display: none; }
 }
+
+/* ---------- In-app ticket notice ---------- */
+
+.office-notice {
+  position: sticky;
+  top: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.office-notice-icon { color: var(--primary-color); flex-shrink: 0; }
+.office-notice-text { flex: 1; min-width: 0; }
+
+.office-notice-action {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 0.9rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .office-notice-action { color: #1a1a1f; }
+
+.office-notice-dismiss {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .office-notice-action,
+  .office-notice-dismiss { min-height: 44px; min-width: 44px; }
+}

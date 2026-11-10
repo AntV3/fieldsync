@@ -7,6 +7,7 @@ import { ThemeProvider } from './lib/ThemeContext'
 import { useToast } from './lib/ToastContext'
 import { PermissionsProvider } from './lib/PermissionsContext'
 import { resolvePermissions } from './lib/permissions'
+import { rememberOfficeLink } from './lib/officeLinks'
 import useAuthState from './hooks/useAuthState'
 import LoginChooser from './components/auth/LoginChooser'
 import FieldLogin from './components/auth/FieldLogin'
@@ -175,6 +176,12 @@ export default function App() {
       loadPendingRequestCount()
     }
   }, [company?.id, authReady]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A link to a specific project / ticket queue / COR must survive the login
+  // redirect, which drops the query string
+  useEffect(() => {
+    if (location.pathname === '/dashboard' && location.search) rememberOfficeLink(location.search)
+  }, [location.pathname, location.search])
 
   // The signed-in member's permission row (null until loaded, or when the
   // database does not have the permission columns yet)

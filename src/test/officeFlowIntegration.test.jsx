@@ -22,7 +22,7 @@ const h = vi.hoisted(() => ({
   db: {}
 }))
 
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
+vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn(), useLocation: () => ({ pathname: '/dashboard', search: '' }) }))
 vi.mock('../lib/supabase', () => ({ db: h.db, supabase: {}, isSupabaseConfigured: true }))
 vi.mock('../lib/BrandingContext', () => ({ useBranding: () => ({ branding: {} }) }))
 vi.mock('../lib/TradeConfigContext', () => ({ useTradeConfig: () => ({ resolvedConfig: {} }) }))

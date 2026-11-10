@@ -6,7 +6,7 @@
  * OfficeQuickActions and officeActions are real.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, act } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -18,7 +18,10 @@ const h = vi.hoisted(() => ({
   editMode: false
 }))
 
-vi.mock('react-router-dom', () => ({ useNavigate: () => h.navigate }))
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => h.navigate,
+  useLocation: () => ({ pathname: '/dashboard', search: h.search || '' })
+}))
 vi.mock('../lib/supabase', () => ({ db: {} }))
 vi.mock('../lib/fieldDocumentExport', () => ({
   exportAllFieldDocumentsPDF: vi.fn(),
@@ -47,7 +50,8 @@ vi.mock('../components/UniversalSearch', async () => {
 vi.mock('../hooks/useDashboardData', async () => {
   const { useState } = await import('react')
   return {
-    default: function useDashboardDataStub() {
+    default: function useDashboardDataStub({ onTicketEvent } = {}) {
+      h.onTicketEvent = onTicketEvent
       const [selectedProject, setSelected] = useState(h.initialSelected)
       h.handleSelectProject.mockImplementation((project) => setSelected(project))
       h.setSelectedProject.mockImplementation((project) => setSelected(project))
@@ -147,6 +151,8 @@ beforeEach(() => {
   h.initialSelected = null
   h.editMode = false
   h.searchOpen = false
+  h.search = ''
+  sessionStorage.clear()
   h.queue = makeQueue({
     p1: counts({ readyToApprove: 2, readyForCOR: 1, draftCORs: 1 }),
     p2: counts({ readyToApprove: 3, withClient: 1 })
@@ -341,5 +347,56 @@ describe('Dashboard quick actions on the portfolio', () => {
     fireEvent.click(screen.getByRole('button', { name: 'alert cors' }))
     expect(h.handleSelectProject).toHaveBeenCalledTimes(1)
     expect(projectView()).toHaveAttribute('data-section', 'cors')
+  })
+})
+
+describe('Dashboard deep links', () => {
+  it('opens the project on its review queue and clears the query', () => {
+    h.search = '?project=p2&view=review'
+    renderDashboard()
+    expect(h.handleSelectProject).toHaveBeenCalledWith(expect.objectContaining({ id: 'p2' }))
+    expect(projectView()).toHaveAttribute('data-tab', 'financials')
+    expect(projectView()).toHaveAttribute('data-section', 'tickets')
+    expect(h.navigate).toHaveBeenCalledWith('/dashboard', { replace: true })
+  })
+
+  it('applies a link remembered across the login redirect', () => {
+    sessionStorage.setItem('fieldsync-pending-office-link', '?project=p1&view=cors&filter=draft')
+    renderDashboard()
+    expect(h.handleSelectProject).toHaveBeenCalledWith(expect.objectContaining({ id: 'p1' }))
+    expect(projectView()).toHaveAttribute('data-section', 'cors')
+    expect(sessionStorage.getItem('fieldsync-pending-office-link')).toBeNull()
+  })
+
+  it('stays on the portfolio and says so when the project is not in this company', () => {
+    h.search = '?project=nope&view=review'
+    renderDashboard()
+    expect(h.handleSelectProject).not.toHaveBeenCalled()
+    expect(screen.getByTestId('portfolio-view')).toBeInTheDocument()
+  })
+})
+
+describe('Dashboard ticket notice', () => {
+  const signed = { eventType: 'UPDATE', new: { id: 't9', project_id: 'p2', status: 'client_signed' } }
+
+  it('announces a client signature once and takes the user to the review queue', () => {
+    renderDashboard()
+    act(() => h.onTicketEvent(signed))
+    const notice = screen.getByRole('status')
+    expect(notice).toHaveTextContent(/Client signed a ticket on .+\. It is ready to approve\./)
+    fireEvent.click(within(notice).getByRole('button', { name: 'Review' }))
+    expect(h.handleSelectProject).toHaveBeenCalledWith(expect.objectContaining({ id: 'p2' }))
+    expect(projectView()).toHaveAttribute('data-section', 'tickets')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    act(() => h.onTicketEvent(signed))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('can be dismissed', () => {
+    renderDashboard()
+    act(() => h.onTicketEvent({ eventType: 'INSERT', new: { id: 't1', project_id: 'p1', status: 'foreman_signed' } }))
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notice' }))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

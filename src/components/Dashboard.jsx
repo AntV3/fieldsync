@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { db } from '../lib/supabase'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
-import { ClipboardList, Info, Plus } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { ClipboardList, Info, Plus, BellRing, X } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { ErrorBoundary } from './ui'
 import OnboardingWizard from './onboarding/OnboardingWizard'
@@ -14,6 +14,8 @@ import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
 import useOfficeQueue from '../hooks/useOfficeQueue'
 import { getOfficeQuickActions, pickProjectForRow, EMPTY_QUEUE_COUNTS } from '../lib/officeActions'
+import { parseOfficeLink, takeRememberedOfficeLink } from '../lib/officeLinks'
+import { ticketNoticeFromEvent, ticketNoticeText } from '../lib/ticketNotices'
 import ProjectDetailView from './dashboard/ProjectDetailView'
 import PortfolioView from './dashboard/PortfolioView'
 import OfficeQuickActions from './dashboard/OfficeQuickActions'
@@ -33,6 +35,17 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Guided setup tour queued by the project creation wizard (shows once)
   const [projectTour, setProjectTour] = useState(() => consumePendingProjectTour())
 
+  // In-app notice: a ticket arrived from the field, or the client signed one
+  const [ticketNotice, setTicketNotice] = useState(null)
+  const seenNoticesRef = useRef(new Set())
+  const officeEntryOpenRef = useRef(false)
+  const handleTicketEvent = useCallback((payload) => {
+    const notice = ticketNoticeFromEvent(payload, seenNoticesRef.current)
+    // A ticket the office is entering itself is not news
+    if (!notice || (notice.kind === 'new' && officeEntryOpenRef.current)) return
+    setTicketNotice(notice)
+  }, [])
+
   // Data layer: projects, selected project details, areas, subscriptions, cache
   const {
     projects, projectsData, selectedProject, setSelectedProject,
@@ -41,7 +54,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     loadProjects, loadAreas, handleSelectProject, invalidateProjectCache,
     projectData, progressCalculations,
     fieldActivity, activityPulse
-  } = useDashboardData({ company, onShowToast, navigateToProjectId, onProjectNavigated })
+  } = useDashboardData({ company, onShowToast, navigateToProjectId, onProjectNavigated, onTicketEvent: handleTicketEvent })
 
   // Detail-view UI state: tabs, sections, sidebars, and modal visibility
   const view = useProjectViewState()
@@ -103,6 +116,48 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       view.setShowCORDetail(true)
     }
   }
+
+  // Deep links: /dashboard?project=...&view=review (see lib/officeLinks).
+  // Applied once the projects are loaded, then removed from the address bar.
+  const location = useLocation()
+  const appliedSearchRef = useRef(null)
+  useEffect(() => {
+    if (loading || projects.length === 0) return
+    let link = null
+    if (location.search && location.search !== appliedSearchRef.current) {
+      appliedSearchRef.current = location.search
+      link = parseOfficeLink(location.search)
+      if (link) takeRememberedOfficeLink()
+    } else if (appliedSearchRef.current === null) {
+      appliedSearchRef.current = ''
+      link = takeRememberedOfficeLink()
+    }
+    if (!link) return
+
+    const project = projects.find(p => p.id === link.projectId)
+    if (location.search) navigate('/dashboard', { replace: true })
+    if (!project) {
+      onShowToast?.('That project is not available in this company', 'error')
+      return
+    }
+    if (link.corId) {
+      Promise.resolve(db.getCORById?.(link.corId))
+        .then(cor => {
+          if (cor && cor.project_id === project.id) handleSelectCOR(cor)
+          else { openProject(project); view.openCORs(link.filter || undefined) }
+        })
+        .catch(() => { openProject(project); onShowToast?.('Could not open that change order', 'error') })
+      return
+    }
+    openProject(project)
+    if (link.view === 'review') view.openTicketReview()
+    else if (link.view === 'tickets') { view.setActiveProjectTab('financials'); view.setFinancialsSection('tickets') }
+    else if (link.view === 'cors') {
+      if (link.filter) view.openCORs(link.filter)
+      else { view.setActiveProjectTab('financials'); view.setFinancialsSection('cors') }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, projects.length, location.search])
 
   // Quick actions: every row and footer link of the sheet lands here. From the
   // portfolio the action carries the project to open first.
@@ -289,12 +344,32 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
     />
   ) : null
 
+  // Ticket notice: one line with a way straight to the review queue
+  officeEntryOpenRef.current = view.showTMTicketModal
+  const noticeProject = ticketNotice ? projects.find(p => p.id === ticketNotice.projectId) : null
+  const ticketNoticeBanner = ticketNotice && noticeProject && !view.isModalOpen && !edit.editMode ? (
+    <div className="office-notice" role="status" aria-live="polite">
+      <BellRing size={16} className="office-notice-icon" aria-hidden="true" />
+      <span className="office-notice-text">{ticketNoticeText(ticketNotice, noticeProject.name)}</span>
+      <button
+        className="office-notice-action"
+        onClick={() => { setTicketNotice(null); openProject(noticeProject); view.openTicketReview() }}
+      >
+        Review
+      </button>
+      <button className="office-notice-dismiss" onClick={() => setTicketNotice(null)} aria-label="Dismiss notice">
+        <X size={15} />
+      </button>
+    </div>
+  ) : null
+
   // Project Detail View
   if (selectedProject) {
     const projectCounts = queue.ready ? queue.forProject(selectedProject.id) : null
     return (
       <>
       {projectTourOverlay}
+      {ticketNoticeBanner}
       <ProjectDetailView
         selectedProject={selectedProject}
         projectData={projectData}
@@ -385,6 +460,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   return (
     <>
       {projectTourOverlay}
+      {ticketNoticeBanner}
       {showOnboarding && (
         <OnboardingWizard
           company={company}
