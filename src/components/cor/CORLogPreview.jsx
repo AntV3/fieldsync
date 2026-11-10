@@ -433,8 +433,9 @@ export default function CORLogPreview({
         </div>
       )}
 
-      {/* Show/Hide Full List Toggle - only for larger logs; small logs are fully visible above */}
-      {sortedEntries.length >= FULL_LIST_THRESHOLD && (
+      {/* Show/Hide Full List Toggle - only for larger logs; small logs are fully visible above.
+          Also shown whenever the list is open (e.g. opened on a status filter) so it can be hidden. */}
+      {(sortedEntries.length >= FULL_LIST_THRESHOLD || showingList) && (
         <button className="cor-log-preview-view-all" onClick={onToggleList}>
           <List size={14} />
           <span>{showingList ? 'Hide' : 'Show'} Full COR List</span>

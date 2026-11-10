@@ -26,7 +26,8 @@ export default function FieldActivityTab({
   user,
   onShowToast,
   fieldSection,
-  setFieldSection
+  setFieldSection,
+  onCreateDailyReport
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false)
@@ -127,11 +128,13 @@ export default function FieldActivityTab({
           <div className="field-onboarding-body">
             <h3>No field data yet</h3>
             <p>
-              Field data like reports, RFIs, and submittals will appear here once your crew
-              starts working. Create your first daily report to get started.
+              Reports, RFIs, and submittals show up here as your crew sends them in from the field.
             </p>
           </div>
-          <button className="btn btn-primary" onClick={() => handleSectionChange('reports')}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => (onCreateDailyReport ? onCreateDailyReport() : handleSectionChange('reports'))}
+          >
             <Plus size={15} />
             New Report
           </button>
@@ -184,6 +187,7 @@ export default function FieldActivityTab({
               company={company}
               user={user}
               onShowToast={onShowToast}
+              onCreateDailyReport={onCreateDailyReport}
             />
           )}
 

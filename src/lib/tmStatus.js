@@ -34,6 +34,38 @@ export function hasClientAuthorization(ticket) {
   return Boolean(ticket?.client_signature_data || ticket?.gc_signature_data)
 }
 
+/**
+ * Does a ticket belong under a status filter tab? 'pending' is the office's
+ * "To review" queue, so it covers every status still awaiting approval.
+ */
+export function matchesStatusFilter(ticket, filter) {
+  if (filter === 'all') return true
+  if (filter === TM_STATUS.PENDING) return isAwaitingApproval(ticket?.status)
+  return ticket?.status === filter
+}
+
+/** The office may only approve a ticket the client has signed. */
+export function canApproveTicket(ticket) {
+  if (!isAwaitingApproval(ticket?.status)) return false
+  return ticket.status === TM_STATUS.CLIENT_SIGNED || hasClientAuthorization(ticket)
+}
+
+const reviewTime = (ticket) => {
+  const time = new Date(ticket?.work_date || ticket?.created_at || 0).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+/** "To review" order: tickets the office can approve now first, then oldest first. */
+export function sortTicketsForReview(tickets) {
+  return [...(tickets || [])].sort((a, b) => {
+    const ready = Number(canApproveTicket(b)) - Number(canApproveTicket(a))
+    if (ready !== 0) return ready
+    const byDate = reviewTime(a) - reviewTime(b)
+    if (byDate !== 0) return byDate
+    return String(a?.created_at || '').localeCompare(String(b?.created_at || ''))
+  })
+}
+
 /** Any of the three signature slots (foreman, client, GC) is filled. */
 export function hasAnySignature(ticket) {
   return Boolean(

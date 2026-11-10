@@ -496,6 +496,10 @@ export async function getCurrentSnapshot(corId) {
  * 3. Generate PDF from snapshot
  * 4. Update job with result
  *
+ * The PDF is downloaded by the browser and is not stored, so a repeat request
+ * for a job that already exists still generates the file again. Only the job
+ * and snapshot records are reused (result.cached === true).
+ *
  * @param {string} corId - COR to export
  * @param {Object} cor - Full COR data (optional, will fetch if not provided)
  * @param {Object[]} tickets - Associated tickets (optional, will fetch if not provided)
@@ -507,37 +511,27 @@ export async function getCurrentSnapshot(corId) {
  */
 export async function executeExport(corId, { cor, tickets, project, company, branding, options = {} } = {}) {
   let job = null
+  // True when the idempotency key matched a job that is already completed or
+  // generating. Its records are left untouched; only the file is produced again.
+  let reuseJob = false
 
   try {
     // Step 1: Request export (idempotent)
     job = await requestExport(corId, options)
 
-    // If job already completed, return existing result
-    if (job.status === ExportStatus.COMPLETED && job.pdfUrl) {
+    reuseJob = (job.status === ExportStatus.COMPLETED && Boolean(job.pdfUrl)) ||
+      job.status === ExportStatus.GENERATING
+
+    if (reuseJob) {
       observe.activity('cor_export_cache_hit', {
         cor_id: corId,
-        job_id: job.jobId
+        job_id: job.jobId,
+        status: job.status
       })
-      return {
-        success: true,
-        jobId: job.jobId,
-        cached: true,
-        pdfUrl: job.pdfUrl
-      }
+    } else {
+      // Step 2: Mark job as generating
+      await updateJobStatus(job.jobId, ExportStatus.GENERATING)
     }
-
-    // If job is already generating, return job for polling
-    if (job.status === ExportStatus.GENERATING) {
-      return {
-        success: true,
-        jobId: job.jobId,
-        status: ExportStatus.GENERATING,
-        message: 'Export already in progress'
-      }
-    }
-
-    // Step 2: Mark job as generating
-    await updateJobStatus(job.jobId, ExportStatus.GENERATING)
 
     // Step 3: Fetch data if not provided
     if (!cor) {
@@ -625,7 +619,7 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
 
     // Step 4: Create snapshot
     const snapshot = createSnapshot(cor, tickets, options)
-    const savedSnapshot = await saveSnapshot(snapshot, job.jobId)
+    const savedSnapshot = reuseJob ? null : await saveSnapshot(snapshot, job.jobId)
 
     // Step 4b: Resolve photo storage paths to signed URLs for PDF embedding.
     // This happens after saving (so raw paths are persisted) but before PDF
@@ -650,6 +644,17 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
       snapshot,
       { project, company, branding }
     )
+
+    if (reuseJob) {
+      return {
+        success: true,
+        jobId: job.jobId,
+        cached: true,
+        snapshotId: job.snapshotId,
+        fileName: pdfResult.fileName,
+        snapshot: snapshot.totals
+      }
+    }
 
     // Step 6: Update job as completed
     await updateJobStatus(job.jobId, ExportStatus.COMPLETED, {
@@ -679,8 +684,8 @@ export async function executeExport(corId, { cor, tickets, project, company, bra
     }
 
   } catch (err) {
-    // Update job as failed
-    if (job?.jobId) {
+    // Update job as failed (never a reused job: its own run decides its status)
+    if (job?.jobId && !reuseJob) {
       await updateJobStatus(job.jobId, ExportStatus.FAILED, {
         error: err.message,
         errorDetails: { stack: err.stack }

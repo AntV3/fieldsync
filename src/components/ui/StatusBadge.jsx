@@ -47,6 +47,7 @@ const STATUS_VARIANTS = {
 
   // Signatures
   foreman_signed: 'info',
+  client_signed: 'success',
   signed: 'success',
 
   // Schedule health

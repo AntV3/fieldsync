@@ -16,7 +16,9 @@ const CORCard = memo(function CORCard({
   onView,
   onEdit,
   onDelete,
-  onSubmitForApproval
+  onSubmitForApproval,
+  onSubmitAndSend,
+  submitting = false
 }) {
   const statusInfo = getStatusInfo(cor.status)
   const canEdit = ['draft', 'pending_approval', 'approved'].includes(cor.status)
@@ -92,6 +94,15 @@ const CORCard = memo(function CORCard({
       <div className="cor-card-footer">
         <span className="cor-created">{formatDate(cor.created_at)}</span>
         <div className="cor-actions" onClick={e => e.stopPropagation()}>
+          {canSubmit && onSubmitAndSend && !selectMode && (
+            <button
+              className="btn btn-primary btn-small cor-card-send"
+              onClick={(e) => onSubmitAndSend(cor, e)}
+              disabled={submitting}
+            >
+              <Send size={14} aria-hidden="true" /> {submitting ? 'Submitting...' : 'Submit & send for signature'}
+            </button>
+          )}
           {canSubmit && (
             <button
               className="cor-action-btn submit"

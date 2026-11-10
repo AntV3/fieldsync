@@ -276,6 +276,30 @@ export const formatDate = (dateStr) => {
   })
 }
 
+// Suggest a COR title from the tickets it was built from:
+// "T&M - <CE/PCO number>" when they share one number, otherwise their date range.
+export const buildCORTitleFromTickets = (tickets) => {
+  const list = (tickets || []).filter(Boolean)
+  if (list.length === 0) return ''
+
+  const numbers = list.map(t => String(t.ce_pco_number || '').trim())
+  const shared = numbers[0]
+  if (shared && numbers.every(n => n.toUpperCase() === shared.toUpperCase())) {
+    return `T&M - ${shared}`
+  }
+
+  const dates = list
+    .map(t => t.work_date || t.ticket_date)
+    .filter(Boolean)
+    .map(d => String(d).slice(0, 10))
+    .sort()
+  if (dates.length === 0) return 'T&M tickets'
+
+  const earliest = formatDate(dates[0])
+  const latest = formatDate(dates[dates.length - 1])
+  return earliest === latest ? `T&M tickets ${earliest}` : `T&M tickets ${earliest} - ${latest}`
+}
+
 // Format date range
 export const formatDateRange = (startStr, endStr) => {
   const start = formatDate(startStr)

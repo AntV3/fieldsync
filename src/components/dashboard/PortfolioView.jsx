@@ -1,9 +1,18 @@
-import { Search, AlertTriangle, BarChart3 } from 'lucide-react'
+import { Search, AlertTriangle, BarChart3, CheckCircle2, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { formatCurrency } from '../../lib/utils'
+import { getOfficeQuickActions, isCaughtUp, COUNTED_ROWS } from '../../lib/officeActions'
 import UniversalSearch from '../UniversalSearch'
 import { SmartAlerts } from './SmartAlerts'
 import EnhancedProjectCard from './EnhancedProjectCard'
+
+// Short tile labels for the "Needs action" strip (same order as the quick-action rows)
+const NEEDS_ACTION_LABELS = {
+  review: 'To review',
+  buildCor: 'Ready for COR',
+  sendCor: 'To send',
+  waiting: 'Waiting on client'
+}
 
 export default function PortfolioView({
   projects,
@@ -22,6 +31,9 @@ export default function PortfolioView({
   onShowToast,
   onSelectTicket,
   onSelectCOR,
+  queueTotals = null, // Company-wide office queue totals (useOfficeQueue); null until loaded
+  onQuickAction,
+  onOpenQuickActions,
 }) {
   const navigate = useNavigate()
 
@@ -65,6 +77,14 @@ export default function PortfolioView({
     behindScheduleExposure,
   } = scheduleMetrics
 
+  // "Needs action" tiles mirror the counted quick-action rows
+  const needsActionTiles = queueTotals
+    ? getOfficeQuickActions({ scope: 'portfolio', counts: queueTotals }).rows.filter(row => COUNTED_ROWS[row.id])
+    : []
+
+  // The office queue is the live count of CORs out with clients
+  const pendingCORCount = queueTotals ? queueTotals.withClient : totalPendingCORCount
+
   return (
     <div>
       {/* Business Overview - High Level Portfolio Health */}
@@ -80,8 +100,40 @@ export default function PortfolioView({
             <span>Search</span>
             <span className="shortcut">⌘K</span>
           </button>
+          {onOpenQuickActions && (
+            <button className="search-trigger-btn oqa-desktop-only" onClick={onOpenQuickActions} aria-haspopup="dialog">
+              <Zap size={16} />
+              <span>Quick actions</span>
+            </button>
+          )}
           <div className="bo-project-count">{projects.length} Active Project{projects.length !== 1 ? 's' : ''}</div>
         </div>
+
+        {/* Needs action - what is waiting on the office across every project */}
+        {queueTotals && (isCaughtUp(queueTotals) ? (
+          <p className="needs-action-clear" role="status">
+            <CheckCircle2 size={16} aria-hidden="true" />
+            You&apos;re caught up
+          </p>
+        ) : (
+          <section className="needs-action" aria-label="Needs action">
+            <h3 className="needs-action-title">Needs action</h3>
+            <div className="needs-action-grid">
+              {needsActionTiles.map(tile => (
+                <button
+                  key={tile.id}
+                  type="button"
+                  className={`needs-action-tile ${tile.count === 0 ? 'needs-action-tile--zero' : ''} ${tile.tone === 'warn' ? 'needs-action-tile--warn' : ''}`}
+                  onClick={() => onQuickAction?.(tile.id)}
+                  title={tile.subtitle}
+                >
+                  <span className="needs-action-count">{tile.count}</span>
+                  <span className="needs-action-label">{NEEDS_ACTION_LABELS[tile.id]}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
 
         {/* Hero Financial Metrics */}
         <div className="bo-financial">
@@ -139,7 +191,7 @@ export default function PortfolioView({
               <div className="bo-kpi pending">
                 <span className="bo-kpi-value">{formatCurrency(totalPendingCORValue)}</span>
                 <span className="bo-kpi-label">Pending CORs</span>
-                <span className="bo-kpi-context">{totalPendingCORCount} awaiting approval</span>
+                <span className="bo-kpi-context">{pendingCORCount} awaiting approval</span>
               </div>
             )}
           </div>

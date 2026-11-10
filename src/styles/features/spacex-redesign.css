@@ -1651,7 +1651,7 @@ button.sdx-pill:active { transform: scale(0.97); }
   font-weight: 700;
 }
 
-/* ---------- Header quick actions + mobile FAB ---------- */
+/* ---------- Header quick actions ---------- */
 
 .sdx-action-secondary {
   display: inline-flex;
@@ -1667,85 +1667,9 @@ button.sdx-pill:active { transform: scale(0.97); }
   background: rgba(30, 64, 175, 0.08) !important;
 }
 
-.pv-fab-wrap {
-  display: none;
-  position: fixed;
-  right: 1.1rem;
-  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-  z-index: 90;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.pv-fab {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  border: none;
-  background: var(--primary-color);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
-  transition: transform var(--duration-fast, 150ms) ease;
-}
-
-.pv-fab.open { transform: rotate(90deg); }
-
-.pv-fab-dial {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  animation: pv-fab-dial-in 160ms ease;
-}
-
-@keyframes pv-fab-dial-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
-}
-
-.pv-fab-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-.pv-fab-option-label {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 7px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-  white-space: nowrap;
-}
-
-.pv-fab-option-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
-}
-
+/* On phones these live in the floating quick-actions sheet (office-quick-actions.css) */
 @media (max-width: 768px) {
   .pv-actions .pv-action-quick { display: none; }
-  .pv-fab-wrap { display: flex; }
 }
 
 /* ---------- Pending approvals banner ---------- */

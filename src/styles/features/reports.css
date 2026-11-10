@@ -1111,6 +1111,13 @@
   color: var(--text-secondary);
 }
 
+.reports-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .reports-section-badge {
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);

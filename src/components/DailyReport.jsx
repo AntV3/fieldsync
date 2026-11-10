@@ -5,7 +5,14 @@ import { compressImage } from '../lib/imageUtils'
 import { CardSkeleton } from './ui/Skeleton'
 import CustomFieldSection from './ui/CustomFieldSection'
 
-export default function DailyReport({ project, onShowToast, onClose }) {
+// companyId, submittedBy and enteredByOffice are only passed when the office
+// enters a report for the field; the foreman view passes none of them.
+export default function DailyReport({ project, companyId, submittedBy, enteredByOffice = false, onShowToast, onClose }) {
+  const uploadCompanyId = companyId || project?.company_id
+  const submitterName = submittedBy || (enteredByOffice ? 'Office' : 'Field')
+  // The office shows this inside a modal, so drop the full-screen min-height
+  const rootStyle = enteredByOffice ? { minHeight: 0 } : undefined
+
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [report, setReport] = useState(null)
@@ -100,7 +107,12 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const handleSubmit = async () => {
     // Demo mode warning
     if (!isSupabaseConfigured) {
-      onShowToast('Demo Mode: Report saved locally only - won\'t reach office', 'info')
+      onShowToast(
+        enteredByOffice
+          ? 'Demo Mode: Report is not saved'
+          : 'Demo Mode: Report saved locally only - won\'t reach office',
+        'info'
+      )
       onClose()
       return
     }
@@ -114,23 +126,29 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       const uploadedPaths = []
       let firstUploadError = null
       let failedUploadCount = 0
-      if (photos.length > 0 && project.company_id) {
+      const photosWithFiles = photos.filter(p => p.file)
+      // No company to file the photos under: nothing can be uploaded, so
+      // count them as failed rather than dropping them without a word.
+      if (photosWithFiles.length > 0 && !uploadCompanyId) {
+        failedUploadCount = photosWithFiles.length
+      }
+      if (photosWithFiles.length > 0 && uploadCompanyId) {
         setSubmitProgress('Uploading photos...')
-        const photosWithFiles = photos.filter(p => p.file)
         const BATCH_SIZE = 3
         for (let i = 0; i < photosWithFiles.length; i += BATCH_SIZE) {
           const batch = photosWithFiles.slice(i, i + BATCH_SIZE)
           const results = await Promise.allSettled(
             batch.map(photo =>
-              db.uploadPhoto(project.company_id, project.id, `dr-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, photo.file)
+              db.uploadPhoto(uploadCompanyId, project.id, `dr-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, photo.file)
             )
           )
           results.forEach(r => {
             if (r.status === 'fulfilled' && r.value) {
               uploadedPaths.push(r.value)
-            } else if (r.status === 'rejected') {
+            } else {
+              // Rejected, or resolved without a storage path
               failedUploadCount++
-              if (!firstUploadError) firstUploadError = r.reason
+              if (!firstUploadError && r.status === 'rejected') firstUploadError = r.reason
               console.error('Photo upload failed:', r.reason)
             }
           })
@@ -140,7 +158,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
       // If every photo failed to upload, abort before submitting so the
       // user can retry instead of submitting a photoless report.
-      if (failedUploadCount > 0 && uploadedPaths.length === 0) {
+      if (failedUploadCount > 0 && uploadedPaths.length === 0 && uploadCompanyId) {
         const reason = firstUploadError?.message || 'check your connection and try again'
         onShowToast(`Photo upload failed: ${reason}`, 'error')
         return
@@ -162,7 +180,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
       }
 
       // Then submit
-      const result = await db.submitDailyReport(project.id, 'Field')
+      const result = await db.submitDailyReport(project.id, submitterName)
 
       if (result) {
         if (failedUploadCount > 0) {
@@ -172,7 +190,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
         }
         onClose()
       } else {
-        onShowToast('Report not sent - check connection', 'error')
+        onShowToast(enteredByOffice ? 'Report not saved - check connection' : 'Report not sent - check connection', 'error')
       }
     } catch (err) {
       console.error('Error submitting report:', err)
@@ -193,7 +211,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
 
   if (loading) {
     return (
-      <div className="daily-report">
+      <div className="daily-report" style={rootStyle}>
         <div className="daily-report-header">
           <button className="back-btn-simple" onClick={onClose}><ArrowLeft size={16} /></button>
           <h2>Daily Report</h2>
@@ -209,7 +227,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   // Handle case where report failed to load
   if (!report) {
     return (
-      <div className="daily-report">
+      <div className="daily-report" style={rootStyle}>
         <div className="daily-report-header">
           <button className="back-btn-simple" onClick={onClose}><ArrowLeft size={16} /></button>
           <h2>Daily Report</h2>
@@ -225,7 +243,7 @@ export default function DailyReport({ project, onShowToast, onClose }) {
   const isSubmitted = report.status === 'submitted'
 
   return (
-    <div className="daily-report">
+    <div className="daily-report" style={rootStyle}>
       <div className="daily-report-header">
         <button className="back-btn-simple" onClick={onClose}><ArrowLeft size={16} /></button>
         <div>
@@ -406,7 +424,12 @@ export default function DailyReport({ project, onShowToast, onClose }) {
           >
             {submitting ? (submitProgress || 'Submitting...') : <><Upload size={16} className="inline-icon" /> Submit Report</>}
           </button>
-          <p className="daily-report-hint">This will be sent to the office</p>
+          <p className="daily-report-hint">
+            {enteredByOffice ? 'This will be saved to the project' : 'This will be sent to the office'}
+          </p>
+          {enteredByOffice && (
+            <p className="daily-report-hint">Entered by office{submittedBy ? ` as ${submittedBy}` : ''}</p>
+          )}
         </div>
       )}
     </div>

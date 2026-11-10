@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { db } from '../lib/supabase'
 import { exportAllFieldDocumentsPDF, exportDailyReportsPDF, exportIncidentReportsPDF, exportCrewCheckinsPDF } from '../lib/fieldDocumentExport'
 import { ClipboardList, Info, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useUniversalSearch } from './UniversalSearch'
+import UniversalSearch, { useUniversalSearch } from './UniversalSearch'
 import { ErrorBoundary } from './ui'
 import OnboardingWizard from './onboarding/OnboardingWizard'
 import ProjectOnboardingTour from './onboarding/ProjectOnboardingTour'
@@ -12,8 +12,11 @@ import useDashboardData from '../hooks/useDashboardData'
 import useProjectViewState from '../hooks/useProjectViewState'
 import usePortfolioMetrics from '../hooks/usePortfolioMetrics'
 import useProjectEdit from '../hooks/useProjectEdit'
+import useOfficeQueue from '../hooks/useOfficeQueue'
+import { getOfficeQuickActions, pickProjectForRow, EMPTY_QUEUE_COUNTS } from '../lib/officeActions'
 import ProjectDetailView from './dashboard/ProjectDetailView'
 import PortfolioView from './dashboard/PortfolioView'
+import OfficeQuickActions from './dashboard/OfficeQuickActions'
 
 /**
  * Dashboard - Thin orchestrator for the office dashboard.
@@ -21,6 +24,8 @@ import PortfolioView from './dashboard/PortfolioView'
  * Data loading/caching/subscriptions live in useDashboardData, detail-view
  * UI state in useProjectViewState, and rendering is composed from
  * ProjectDetailView (selected project) and PortfolioView (project list).
+ * Both views share the office quick actions (OfficeQuickActions), fed by
+ * useOfficeQueue, and the universal search.
  */
 export default function Dashboard({ company, user, isAdmin, onShowToast, navigateToProjectId, onProjectNavigated }) {
   const navigate = useNavigate()
@@ -50,6 +55,107 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   // Project edit mode (extracted hook)
   const edit = useProjectEdit({ selectedProject, areas, company, onShowToast, loadAreas, setSelectedProject })
 
+  // Office work queue: what is waiting on the office, per project and in total.
+  // Every realtime ticket/COR event ends in a project list reload (a new
+  // `projects` array), so that is the refresh signal; a COR saved here bumps
+  // corRefreshKey first.
+  const queue = useOfficeQueue({ company, projects, refreshKey: projects })
+  const { refresh: refreshQueue } = queue
+  useEffect(() => {
+    if (corRefreshKey > 0) refreshQueue()
+  }, [corRefreshKey, refreshQueue])
+
+  // Quick-actions sheet: open state, plus the row whose project picker it opens on
+  const [quickActions, setQuickActions] = useState({ open: false, pickerRowId: null })
+  const openQuickActions = useCallback(() => setQuickActions({ open: true, pickerRowId: null }), [])
+  const handleQuickActionsOpenChange = useCallback((open) => setQuickActions({ open, pickerRowId: null }), [])
+
+  const queueProjects = useMemo(() => projects.map(p => ({
+    id: p.id,
+    name: p.name,
+    job_number: p.job_number,
+    counts: queue.byProject[p.id] || EMPTY_QUEUE_COUNTS
+  })), [projects, queue.byProject])
+
+  // Open a project by id with its details loaded (search results and queue
+  // entries are partial rows, so resolve the full one first)
+  const openProject = (project) => {
+    if (!project?.id) return
+    handleSelectProject(projectsData.find(p => p.id === project.id) || projects.find(p => p.id === project.id) || project)
+  }
+
+  const handleSelectTicket = (ticket) => {
+    const project = projects.find(p => p.id === ticket.project_id)
+    if (project) {
+      openProject(project)
+      view.setActiveProjectTab('financials')
+      view.setFinancialsSection('tickets')
+    }
+  }
+
+  const handleSelectCOR = (cor) => {
+    const project = projects.find(p => p.id === cor.project_id)
+    if (project) {
+      openProject(project)
+      view.setActiveProjectTab('financials')
+      view.setFinancialsSection('cors')
+      view.setViewingCOR(cor)
+      view.setShowCORDetail(true)
+    }
+  }
+
+  // Quick actions: every row and footer link of the sheet lands here. From the
+  // portfolio the action carries the project to open first.
+  const handleQuickAction = (actionId, project) => {
+    if (project) openProject(project)
+    switch (actionId) {
+      case 'review':
+        view.openTicketReview()
+        break
+      case 'buildCor':
+        view.setActiveProjectTab('financials')
+        view.setFinancialsSection('cors')
+        view.handleBuildCORFromTickets()
+        break
+      case 'sendCor':
+        view.openCORs('draft')
+        break
+      case 'waiting':
+        view.openCORs('pending_approval')
+        break
+      case 'newCor':
+        view.handleCreateCOR()
+        break
+      case 'search':
+        setSearchOpen(true)
+        break
+      case 'tmTicket':
+        view.handleCreateTMTicket()
+        break
+      case 'dailyReport':
+        view.handleCreateDailyReport()
+        break
+      case 'corLog':
+        view.setActiveProjectTab('financials')
+        view.setFinancialsSection('cors')
+        view.setCORDisplayMode('log')
+        break
+      case 'newProject':
+        navigate('/projects/new')
+        break
+      default:
+        break
+    }
+  }
+
+  // Portfolio "Needs action" tile: same as the matching row, with the project
+  // picker when more than one project could be meant
+  const handlePortfolioQuickAction = (rowId) => {
+    const project = pickProjectForRow(rowId, queueProjects)
+    if (project) handleQuickAction(rowId, project)
+    else setQuickActions({ open: true, pickerRowId: rowId })
+  }
+
   const handleBack = () => {
     setSelectedProject(null)
     setAreas([])
@@ -59,12 +165,14 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
   }
 
   // Handler for alert actions
-  const handleAlertAction = useCallback(({ target, projectId }) => {
+  const handleAlertAction = ({ target, projectId }) => {
     const project = projects.find(p => p.id === projectId)
     if (project) {
-      setSelectedProject(project)
+      openProject(project)
       // Navigate to appropriate tab based on action target
-      if (target === 'financials') {
+      if (target === 'tickets' || target === 'approvals') {
+        view.openTicketReview()
+      } else if (target === 'financials') {
         view.setActiveProjectTab('financials')
       } else if (target === 'reports') {
         view.setActiveProjectTab('field')
@@ -76,8 +184,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         view.setActiveProjectTab('overview')
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects])
+  }
 
   // Field document export handler
   const handleExportFieldDocuments = useCallback(async (type = 'all') => {
@@ -184,6 +291,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
 
   // Project Detail View
   if (selectedProject) {
+    const projectCounts = queue.ready ? queue.forProject(selectedProject.id) : null
     return (
       <>
       {projectTourOverlay}
@@ -212,6 +320,28 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         onDeleteCost={handleDeleteCost}
         onSaveCost={handleSaveCost}
         onDeleteProject={() => edit.handleDeleteProject(loadProjects)}
+        onOpenQuickActions={openQuickActions}
+        quickActionsBadge={getOfficeQuickActions({ scope: 'project', counts: projectCounts }).badge}
+        readyForCORCount={projectCounts?.readyForCOR}
+      />
+      <OfficeQuickActions
+        scope="project"
+        counts={projectCounts}
+        isAdmin={isAdmin}
+        open={quickActions.open}
+        onOpenChange={handleQuickActionsOpenChange}
+        onAction={handleQuickAction}
+        hidden={view.isModalOpen || edit.editMode || Boolean(projectTour) || isSearchOpen}
+      />
+      {/* Universal Search (the portfolio renders its own) */}
+      <UniversalSearch
+        isOpen={isSearchOpen}
+        onClose={closeSearch}
+        companyId={company?.id}
+        onSelectProject={openProject}
+        onSelectTicket={handleSelectTicket}
+        onSelectCOR={handleSelectCOR}
+        onShowToast={onShowToast}
       />
       </>
     )
@@ -273,29 +403,27 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           setSearchOpen={setSearchOpen}
           closeSearch={closeSearch}
           company={company}
-          onSelectProject={handleSelectProject}
+          onSelectProject={openProject}
           onAlertAction={handleAlertAction}
           onShowToast={onShowToast}
-          onSelectTicket={(ticket) => {
-            const project = projects.find(p => p.id === ticket.project_id)
-            if (project) {
-              handleSelectProject(project)
-              view.setActiveProjectTab('financials')
-              view.setFinancialsSection('tickets')
-            }
-          }}
-          onSelectCOR={(cor) => {
-            const project = projects.find(p => p.id === cor.project_id)
-            if (project) {
-              handleSelectProject(project)
-              view.setActiveProjectTab('financials')
-              view.setFinancialsSection('cors')
-              view.setViewingCOR(cor)
-              view.setShowCORDetail(true)
-            }
-          }}
+          onSelectTicket={handleSelectTicket}
+          onSelectCOR={handleSelectCOR}
+          queueTotals={queue.ready ? queue.totals : null}
+          onQuickAction={handlePortfolioQuickAction}
+          onOpenQuickActions={openQuickActions}
         />
       </ErrorBoundary>
+      <OfficeQuickActions
+        scope="portfolio"
+        counts={queue.ready ? queue.totals : null}
+        projects={queueProjects}
+        isAdmin={isAdmin}
+        open={quickActions.open}
+        pickerRowId={quickActions.pickerRowId}
+        onOpenChange={handleQuickActionsOpenChange}
+        onAction={handleQuickAction}
+        hidden={showOnboarding || Boolean(projectTour) || isSearchOpen}
+      />
     </>
   )
 }

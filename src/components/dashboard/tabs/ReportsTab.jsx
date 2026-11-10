@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { ClipboardList, Camera, Calendar, Truck, NotebookPen } from 'lucide-react'
+import { ClipboardList, Camera, Calendar, Truck, NotebookPen, Plus } from 'lucide-react'
 import { formatCurrency } from '../../../lib/utils'
 import { TicketSkeleton } from '../../ui'
 import { useTradeConfig } from '../../../lib/TradeConfigContext'
@@ -15,7 +15,8 @@ export default function ReportsTab({
   user,
   projectData,
   areas,
-  onShowToast
+  onShowToast,
+  onCreateDailyReport
 }) {
   const { resolvedConfig } = useTradeConfig()
   const truckLoadTrackingEnabled = resolvedConfig?.enable_truck_load_tracking ?? false
@@ -76,7 +77,21 @@ export default function ReportsTab({
             <ClipboardList size={18} />
             <h3>Daily Reports</h3>
           </div>
-          <span className="reports-section-count">{projectData?.dailyReportsCount || 0} total</span>
+          <div className="reports-section-actions">
+            <span className="reports-section-count">{projectData?.dailyReportsCount || 0} total</span>
+            {/* Reports normally come from the field; the office can still add one */}
+            {onCreateDailyReport && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                onClick={onCreateDailyReport}
+                title="Daily reports normally come from the field"
+              >
+                <Plus size={14} />
+                New daily report
+              </button>
+            )}
+          </div>
         </div>
         <div className="reports-section-content">
           <Suspense fallback={<TicketSkeleton />}>

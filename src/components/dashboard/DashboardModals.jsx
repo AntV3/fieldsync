@@ -17,7 +17,7 @@ export default function DashboardModals(props) {
     selectedProject, company, user, areas,
     showShareModal, onCloseShareModal, onShareCreated, onShowToast,
     showNotificationSettings, onCloseNotificationSettings,
-    showCORForm, editingCOR, onCloseCORForm, onCORSaved,
+    showCORForm, editingCOR, corFormStartWithTickets, onCloseCORForm, onCORSaved,
     showCORDetail, viewingCOR, onCloseCORDetail, onEditCORFromDetail, onCORStatusChange,
     corDisplayMode, onCloseCORLog,
     showTMTicketModal, onCloseTMTicketModal, onTMTicketSaved,
@@ -26,6 +26,9 @@ export default function DashboardModals(props) {
     showEquipmentModal, editingEquipment, onEquipmentSaved, onCloseEquipmentModal,
     showDrawRequestModal, editingDrawRequest, projectsData, onDrawRequestSaved, onCloseDrawRequestModal,
   } = props
+
+  // Name recorded on a daily report the office enters for the field
+  const officeUserName = user?.name || user?.full_name || user?.email || ''
 
   return (
     <>
@@ -63,6 +66,7 @@ export default function DashboardModals(props) {
             company={company}
             areas={areas}
             existingCOR={editingCOR}
+            startWithTickets={Boolean(corFormStartWithTickets)}
             onClose={onCloseCORForm}
             onSaved={onCORSaved}
             onShowToast={onShowToast}
@@ -103,12 +107,12 @@ export default function DashboardModals(props) {
         </div>
       )}
 
-      {/* Quick action: New T&M Ticket (same form the field uses) */}
+      {/* Field entry by the office: T&M ticket (same form the field uses) */}
       {showTMTicketModal && (
         <div className="quick-form-modal-overlay" onClick={onCloseTMTicketModal}>
           <div className="quick-form-modal" onClick={(e) => e.stopPropagation()}>
             <div className="quick-form-modal-header">
-              <h2>New T&amp;M Ticket</h2>
+              <h2>New T&amp;M ticket (entered by office)</h2>
               <button className="quick-form-modal-close" onClick={onCloseTMTicketModal} title="Close" aria-label="Close"><X size={16} /></button>
             </div>
             <div className="quick-form-modal-content">
@@ -126,18 +130,21 @@ export default function DashboardModals(props) {
         </div>
       )}
 
-      {/* Quick action: Daily Report (same compiler the field uses) */}
+      {/* Field entry by the office: daily report (same compiler the field uses) */}
       {showDailyReportModal && (
         <div className="quick-form-modal-overlay" onClick={onCloseDailyReportModal}>
           <div className="quick-form-modal" onClick={(e) => e.stopPropagation()}>
             <div className="quick-form-modal-header">
-              <h2>Daily Report</h2>
+              <h2>Daily report (entered by office)</h2>
               <button className="quick-form-modal-close" onClick={onCloseDailyReportModal} title="Close" aria-label="Close"><X size={16} /></button>
             </div>
             <div className="quick-form-modal-content">
               <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
                 <DailyReport
                   project={selectedProject}
+                  companyId={company?.id || selectedProject?.company_id}
+                  submittedBy={officeUserName}
+                  enteredByOffice
                   onShowToast={onShowToast}
                   onClose={onCloseDailyReportModal}
                 />

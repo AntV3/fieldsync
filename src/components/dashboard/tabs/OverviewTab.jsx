@@ -34,6 +34,7 @@ export default function OverviewTab({
   allProjects = [],
   onShowToast,
   onSetActiveTab,
+  onOpenTicketReview,
   onExportFieldDocuments,
   onAreaStatusCycle,
   activityPulse = 0
@@ -60,6 +61,9 @@ export default function OverviewTab({
   const pendingApprovalCount = (projectData?.pendingTickets || 0) + (projectData?.corPendingCount || 0)
   const pendingApprovalValue = projectData?.corPendingValue || 0
 
+  // Approvals land on the ticket review queue, not just the Financials tab
+  const openApprovals = () => (onOpenTicketReview ? onOpenTicketReview() : onSetActiveTab('financials'))
+
   // Daily burn composition for the stacked bar
   const burnTotal = projectData?.allCostsTotal || 0
   const burnShares = burnTotal > 0
@@ -76,8 +80,9 @@ export default function OverviewTab({
       id: 'pending-tm',
       type: 'warning',
       icon: ClipboardList,
-      label: `${projectData.pendingTickets} Time and Material ticket${projectData.pendingTickets !== 1 ? 's' : ''} need approval`,
-      tab: 'financials'
+      label: `${projectData.pendingTickets} Time and Material ticket${projectData.pendingTickets !== 1 ? 's need' : ' needs'} approval`,
+      tab: 'financials',
+      onClick: openApprovals
     })
   }
   if (projectData?.changeOrderPending > 0) {
@@ -114,7 +119,7 @@ export default function OverviewTab({
           </div>
         </div>
 
-        <button className="sdx-card sdx-kpi sdx-kpi-clickable" onClick={() => onSetActiveTab('financials')}>
+        <button className="sdx-card sdx-kpi sdx-kpi-clickable" onClick={openApprovals}>
           <div className="sdx-kpi-head">
             <span className="sdx-label">Open approvals</span>
             {pendingApprovalCount > 0 && <span className="sdx-alert-dot" aria-hidden="true" />}
@@ -259,7 +264,7 @@ export default function OverviewTab({
                 <button
                   key={item.id}
                   className={`overview-needs-attention__item overview-needs-attention__item--${item.type}`}
-                  onClick={() => onSetActiveTab(item.tab)}
+                  onClick={item.onClick || (() => onSetActiveTab(item.tab))}
                 >
                   <Icon size={14} className="overview-needs-attention__item-icon" />
                   <span className="overview-needs-attention__item-label">{item.label}</span>

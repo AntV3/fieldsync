@@ -1,0 +1,480 @@
+/* ============================================================
+   Office quick actions
+   Floating button + bottom sheet (phones), header button +
+   centered dialog (above 768px), and the portfolio
+   "Needs action" strip.
+   ============================================================ */
+
+/* ---------- Floating button (phones only) ---------- */
+
+.oqa-fab {
+  display: none;
+  position: fixed;
+  right: 1.1rem;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-color);
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  transition: transform var(--duration-fast, 150ms) ease, bottom var(--duration-fast, 150ms) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oqa-fab:active { transform: scale(0.94); }
+
+.oqa-fab:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 3px;
+}
+
+/* Sit above whatever else owns the bottom edge instead of under it (later
+   rules win when several are on screen):
+   - the offline/sync pill floats 20px up from the bottom, centered;
+   - the Financials / Field Activity "Menu" pill (sidebar.css) uses this same
+     corner on phones, about 72px tall including its offset;
+   - the install prompt is a full-width bar, about 64px + safe area. */
+:root:has(.offline-indicator) .oqa-fab {
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+:root:has(.financials-mobile-menu-toggle) .oqa-fab {
+  right: 1.5rem;
+  bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+:root:has(.install-prompt) .oqa-fab {
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.oqa-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-red);
+  color: #fff;
+  border: 2px solid var(--bg-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.oqa-badge--dot {
+  top: 1px;
+  right: 1px;
+  min-width: 14px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  background: var(--accent-amber);
+}
+
+/* ---------- Sheet ---------- */
+
+.oqa-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  animation: oqa-fade-in 160ms ease;
+}
+
+.oqa-sheet {
+  width: 100%;
+  max-height: min(88vh, 100%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  padding: 0.4rem 0.75rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35);
+  animation: oqa-sheet-up 200ms ease;
+}
+
+.oqa-sheet:focus { outline: none; }
+
+.oqa-grabber {
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-color);
+  margin: 0.25rem auto 0.4rem;
+}
+
+.oqa-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.25rem 0.25rem 0.6rem;
+}
+
+.oqa-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.oqa-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.oqa-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.oqa-subtitle--ok { color: var(--accent-green); font-weight: 600; }
+
+.oqa-icon-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.oqa-icon-btn:hover {
+  color: var(--text-primary);
+  background: var(--hover-bg);
+}
+
+.oqa-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.oqa-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.5rem 0.5rem;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oqa-row:hover,
+.oqa-row:active { background: var(--hover-bg); }
+
+.oqa-row:focus-visible,
+.oqa-icon-btn:focus-visible,
+.oqa-footer-link:focus-visible,
+.oqa-footer-child:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.oqa-row-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--primary-color);
+}
+
+.oqa-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.oqa-row-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.oqa-row-sub {
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+.oqa-count {
+  flex-shrink: 0;
+  min-width: 28px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.oqa-row-chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Nothing waiting: still tappable, just quieter */
+.oqa-row--dim .oqa-row-icon,
+.oqa-row--dim .oqa-row-label { opacity: 0.55; }
+
+.oqa-row--dim .oqa-count {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.oqa-row--warn .oqa-row-sub { color: var(--accent-amber-text, var(--accent-amber)); font-weight: 600; }
+.oqa-row--warn .oqa-count { background: var(--accent-amber); color: #1a1a1f; }
+
+[data-theme="dark"] .oqa-row--warn .oqa-row-sub,
+[data-theme="dark"] .needs-action-tile--warn .needs-action-count { color: var(--accent-amber); }
+
+.oqa-empty {
+  padding: 1rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.oqa-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.oqa-footer-link,
+.oqa-footer-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.oqa-footer-link:hover,
+.oqa-footer-child:hover {
+  color: var(--text-primary);
+  background: var(--hover-bg);
+}
+
+.oqa-footer-caret { transition: transform var(--duration-fast, 150ms) ease; }
+.oqa-footer-caret.open { transform: rotate(180deg); }
+
+.oqa-footer-children {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 0 0 0 0.6rem;
+}
+
+.oqa-footer-note {
+  flex-basis: 100%;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.oqa-footer-child {
+  padding: 0 0.75rem;
+  border: 1px solid var(--border-color);
+  min-height: 40px;
+}
+
+@keyframes oqa-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes oqa-sheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oqa-overlay,
+  .oqa-sheet { animation: none; }
+  .oqa-fab { transition: none; }
+}
+
+/* ---------- Header button (project header, above 768px) ---------- */
+
+.oqa-header-btn { position: relative; }
+
+.oqa-header-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.oqa-header-badge--dot {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  background: var(--accent-amber);
+}
+
+@media (max-width: 768px) {
+  .oqa-fab { display: flex; }
+  .oqa-desktop-only { display: none !important; }
+}
+
+/* Above 768px the same sheet is a centered dialog */
+@media (min-width: 769px) {
+  .oqa-overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .oqa-sheet {
+    width: min(460px, 100%);
+    max-height: min(84vh, 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 0.75rem 0.75rem 0.9rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  }
+
+  .oqa-grabber { display: none; }
+}
+
+/* ---------- Portfolio "Needs action" strip ---------- */
+
+.needs-action {
+  margin-bottom: 1.1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.needs-action-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.needs-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.needs-action-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 64px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--duration-fast, 150ms) ease;
+}
+
+.needs-action-tile:hover { border-color: var(--primary-color); }
+
+.needs-action-tile:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.needs-action-count {
+  font-family: var(--font-data, inherit);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--primary-color);
+}
+
+.needs-action-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.needs-action-tile--zero .needs-action-count {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.needs-action-tile--warn { border-color: var(--accent-amber); }
+.needs-action-tile--warn .needs-action-count { color: var(--accent-amber-text, var(--accent-amber)); }
+
+.needs-action-clear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-green);
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .needs-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

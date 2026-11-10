@@ -5,6 +5,7 @@ import { db } from '../../lib/supabase'
 import { resolveClassRate } from '../../lib/laborRateResolver'
 import {
   formatCurrency,
+  buildCORTitleFromTickets,
   basisPointsToPercent,
   percentToBasisPoints,
   calculateLaborItemTotal,
@@ -19,10 +20,12 @@ import {
 } from '../../lib/corCalculations'
 import TicketSelector from './TicketSelector'
 
-export default function CORForm({ project, company, areas, existingCOR, onClose, onSaved, onShowToast }) {
+export default function CORForm({ project, company, areas, existingCOR, startWithTickets = false, onClose, onSaved, onShowToast }) {
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
-  const [showTicketSelector, setShowTicketSelector] = useState(false)
+  // A new COR built from tickets opens straight on the approved-ticket picker
+  const buildFromTickets = Boolean(startWithTickets) && !existingCOR
+  const [showTicketSelector, setShowTicketSelector] = useState(buildFromTickets)
   const [showCapabilities, setShowCapabilities] = useState(false)
   const [importedTicketIds, setImportedTicketIds] = useState([]) // Track tickets imported for backup docs
 
@@ -389,6 +392,12 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       setExpandedSections(prev => ({ ...prev, equipment: true }))
     }
 
+    // Suggest a title, but never replace one the user typed
+    const suggestedTitle = buildCORTitleFromTickets(importData.tickets)
+    if (suggestedTitle) {
+      setTitle(prev => (prev.trim() ? prev : suggestedTitle))
+    }
+
     const itemCount = (importData.laborItems?.length || 0) +
                       (importData.materialsItems?.length || 0) +
                       (importData.equipmentItems?.length || 0)
@@ -420,6 +429,22 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
     license_fee_percent: licenseFeePercent,
     ...totals
   })
+
+  // Link imported tickets to the saved COR. Returns the ticket IDs that failed.
+  const linkImportedTickets = async (corId) => {
+    const failedLinks = []
+    for (const ticketId of importedTicketIds) {
+      try {
+        await db.assignTicketToCOR(ticketId, corId)
+        // Mark association as imported since line items were saved above
+        await db.markTicketAssociationImported?.(ticketId, corId)
+      } catch (linkError) {
+        console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
+        failedLinks.push(ticketId)
+      }
+    }
+    return failedLinks
+  }
 
   // Save as draft
   const handleSave = async () => {
@@ -454,27 +479,15 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       })
 
       // Link imported tickets to this COR as backup documentation
-      if (importedTicketIds.length > 0) {
-        const failedLinks = []
-        for (const ticketId of importedTicketIds) {
-          try {
-            await db.assignTicketToCOR(ticketId, savedCOR.id)
-            // Mark association as imported since line items were saved above
-            await db.markTicketAssociationImported?.(ticketId, savedCOR.id)
-          } catch (linkError) {
-            console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
-            failedLinks.push(ticketId)
-          }
-        }
-        if (failedLinks.length > 0) {
-          onShowToast?.(
-            `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
-            'warning'
-          )
-          onSaved?.(savedCOR)
-          onClose?.()
-          return
-        }
+      const failedLinks = await linkImportedTickets(savedCOR.id)
+      if (failedLinks.length > 0) {
+        onShowToast?.(
+          `COR saved, but ${failedLinks.length} ticket(s) could not be linked. Re-open to retry.`,
+          'warning'
+        )
+        onSaved?.(savedCOR)
+        onClose?.()
+        return
       }
 
       onShowToast?.('COR saved as draft', 'success')
@@ -504,47 +517,41 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
       }
 
       let savedCOR
-      let corIdToUse
       if (existingCOR?.id) {
         savedCOR = await db.updateCOR(existingCOR.id, corPayload)
-        corIdToUse = existingCOR.id
-        await db.saveCORLineItems(existingCOR.id, {
-          laborItems,
-          materialItems: materialsItems,
-          equipmentItems,
-          subcontractorItems: subcontractorsItems
-        })
-        await db.submitCORForApproval(existingCOR.id)
       } else {
         savedCOR = await db.createCOR(corPayload)
         if (!savedCOR?.id) {
           throw new Error('Failed to create COR - no ID returned')
         }
-        corIdToUse = savedCOR.id
-        await db.saveCORLineItems(savedCOR.id, {
-          laborItems,
-          materialItems: materialsItems,
-          equipmentItems,
-          subcontractorItems: subcontractorsItems
-        })
-        await db.submitCORForApproval(savedCOR.id)
+      }
+      const corIdToUse = existingCOR?.id || savedCOR.id
+
+      await db.saveCORLineItems(corIdToUse, {
+        laborItems,
+        materialItems: materialsItems,
+        equipmentItems,
+        subcontractorItems: subcontractorsItems
+      })
+
+      // Link the backup tickets before the COR leaves draft. If any fail,
+      // keep it a draft so it is not sent out without its backup.
+      const failedLinks = await linkImportedTickets(corIdToUse)
+      if (failedLinks.length > 0) {
+        const isDraft = !existingCOR || existingCOR.status === 'draft'
+        onShowToast?.(
+          `COR saved${isDraft ? ' as draft' : ''}, not submitted. ${failedLinks.length} ticket${failedLinks.length !== 1 ? 's' : ''} could not be linked.`,
+          'warning'
+        )
+        onSaved?.(savedCOR)
+        onClose?.()
+        return
       }
 
-      // Link imported tickets to this COR as backup documentation
-      if (corIdToUse && importedTicketIds.length > 0) {
-        for (const ticketId of importedTicketIds) {
-          try {
-            await db.assignTicketToCOR(ticketId, corIdToUse)
-            // Mark association as imported since line items were saved above
-            await db.markTicketAssociationImported?.(ticketId, corIdToUse)
-          } catch (linkError) {
-            console.warn(`Could not link ticket ${ticketId} to COR:`, linkError)
-          }
-        }
-      }
+      const submitted = await db.submitCORForApproval(corIdToUse)
 
       onShowToast?.('COR submitted for approval', 'success')
-      onSaved?.(savedCOR)
+      onSaved?.(submitted || savedCOR)
       onClose?.()
     } catch (error) {
       console.error('Error submitting COR:', error)
@@ -1185,6 +1192,7 @@ export default function CORForm({ project, company, areas, existingCOR, onClose,
           companyId={company?.id}
           project={project}
           corId={existingCOR?.id}
+          initialFilter={buildFromTickets ? 'ready' : 'unassigned'}
           onImport={handleTicketImport}
           onClose={() => setShowTicketSelector(false)}
           onShowToast={onShowToast}

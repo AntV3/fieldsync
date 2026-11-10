@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check } from 'lucide-react'
+import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check, Send } from 'lucide-react'
 import { CollapsibleSection, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
 import { resolveClassRate } from '../../lib/laborRateResolver'
@@ -8,6 +8,7 @@ import {
   formatPercent,
   centsToDollars,
   calculateCORTotals,
+  validateCOR,
   getStatusInfo,
   formatDate,
   formatDateRange,
@@ -38,6 +39,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [editingNumber, setEditingNumber] = useState(false)
   const [newCorNumber, setNewCorNumber] = useState('')
+  const [exportingPDF, setExportingPDF] = useState(false)
 
   // Fetch full COR data with line items
   const fetchFullCOR = useCallback(async () => {
@@ -177,6 +179,33 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     }
   }
 
+  // One next step for a draft: submit it, then open the client signature link
+  const handleSubmitAndSend = async () => {
+    if (actionInProgress) return
+    if (corData.status !== 'draft') {
+      onShowToast?.('COR is no longer a draft', 'error')
+      return
+    }
+    const validation = validateCOR(corData)
+    if (!validation.valid) {
+      onShowToast?.(validation.errors[0], 'error')
+      return
+    }
+    setActionInProgress(true)
+    try {
+      const updated = await db.submitCORForApproval(corData.id)
+      if (!updated) throw new Error('COR was not submitted')
+      setCORData(prev => ({ ...prev, ...updated }))
+      onStatusChange?.()
+      setShowSignatureLink(true)
+    } catch (error) {
+      console.error('Error submitting COR:', error)
+      onShowToast?.('Could not submit COR. Nothing was sent.', 'error')
+    } finally {
+      setActionInProgress(false)
+    }
+  }
+
   const handleMarkBilled = async () => {
     if (actionInProgress) return
     if (corData.status !== 'approved') {
@@ -289,11 +318,13 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   }
 
   const handleExportPDF = async () => {
+    if (exportingPDF) return
     const branding = {
       logoUrl: company?.logo_url,
       primaryColor: company?.branding_color
     }
 
+    setExportingPDF(true)
     try {
       onShowToast?.('Generating PDF...', 'info')
 
@@ -307,7 +338,11 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
         options: { includeBackup: true }
       })
 
-      onShowToast?.(result.cached ? 'PDF downloaded (cached)' : 'PDF downloaded', 'success')
+      // Only report a download when the pipeline actually produced a file
+      if (!result?.fileName) {
+        throw new Error('Export pipeline returned no file')
+      }
+      onShowToast?.('PDF downloaded', 'success')
     } catch (pipelineError) {
       // Pipeline relies on database RPCs that may not be available in all environments.
       // Fall back to direct client-side generation from a local snapshot.
@@ -358,6 +393,8 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
         console.error('Error generating PDF:', fallbackError)
         onShowToast?.('Error generating PDF', 'error')
       }
+    } finally {
+      setExportingPDF(false)
     }
   }
 
@@ -1012,6 +1049,12 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
               </button>
             )}
 
+            {corData.status === 'draft' && (
+              <button className="btn btn-primary" onClick={handleSubmitAndSend} disabled={actionInProgress}>
+                <Send size={16} aria-hidden="true" /> Submit & send for signature
+              </button>
+            )}
+
             {canApprove && (
               <>
                 <button className="btn btn-danger" onClick={handleReject} disabled={actionInProgress} aria-label="Reject this COR">
@@ -1029,10 +1072,10 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
               </button>
             )}
 
-            {/* Show signature link button for approved/pending CORs */}
+            {/* Signature link: the primary next step while waiting on the client */}
             {(corData.status === 'approved' || corData.status === 'pending_approval') && (
               <button
-                className="btn btn-secondary"
+                className={`btn ${corData.status === 'pending_approval' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setShowSignatureLink(true)}
                 disabled={actionInProgress}
                 aria-label="Get shareable signature link"
@@ -1050,8 +1093,8 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             <button className="btn btn-ghost btn-small" onClick={() => { try { exportCORDetail(corData, project) } catch (e) { console.error('CSV export error:', e); onShowToast?.('Error exporting CSV', 'error') } }} aria-label="Export COR to CSV">
               <Download size={16} aria-hidden="true" /> Export CSV
             </button>
-            <button className="btn btn-secondary" onClick={handleExportPDF} aria-label="Export COR to PDF">
-              <Download size={16} aria-hidden="true" /> Export PDF
+            <button className="btn btn-secondary" onClick={handleExportPDF} disabled={exportingPDF} aria-label="Export COR to PDF">
+              <Download size={16} aria-hidden="true" /> {exportingPDF ? 'Exporting...' : 'Export PDF'}
             </button>
           </div>
         </div>

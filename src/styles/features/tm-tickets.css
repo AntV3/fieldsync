@@ -3169,7 +3169,7 @@
 
 .tm-list-title h3 {
   margin: 0;
-  color: #ffffff;
+  color: var(--text-color);
 }
 
 .tm-export-buttons {
@@ -5239,5 +5239,188 @@ END MIGRATED */
 
   .tm-edit-items .tm-edit-grid-row {
     grid-template-columns: minmax(0, 1fr) 4.5rem 2.25rem;
+  }
+}
+
+
+/* ============================================
+   Office ticket review (TMList + TMTicketCard)
+   ============================================ */
+
+.tm-new-ticket-btn {
+  white-space: nowrap;
+}
+
+/* Next step after approval: put approved tickets on a COR */
+.tm-build-cor-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--primary-color);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: white;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: filter var(--transition-fast);
+}
+
+.tm-build-cor-cta:hover {
+  filter: brightness(1.08);
+}
+
+.tm-build-cor-cta:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.tm-build-cor-cta svg {
+  flex-shrink: 0;
+}
+
+/* Expanded-card notice: the client has not signed, so Approve is not offered */
+.tm-needs-signature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.tm-needs-signature strong {
+  display: block;
+  color: var(--accent-amber-text);
+}
+
+[data-theme="dark"] .tm-needs-signature strong {
+  color: #fbbf24;
+}
+
+.tm-needs-signature svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--accent-amber-text);
+}
+
+[data-theme="dark"] .tm-needs-signature svg {
+  color: #fbbf24;
+}
+
+/* Delete sits last, pushed away from Approve / Reject, outline only */
+.tm-ticket-actions .tm-delete-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--accent-red);
+  color: var(--accent-red);
+}
+
+.tm-ticket-actions .tm-delete-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.tm-ticket-actions .tm-delete-btn:focus-visible {
+  outline: 2px solid var(--accent-red);
+  outline-offset: 2px;
+}
+
+/* Phone: the title row stacks so the header controls stay on screen */
+@media (max-width: 640px) {
+  .tm-list-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .tm-export-buttons {
+    flex-wrap: wrap;
+  }
+}
+
+/* Phone: review a ticket one-handed */
+@media (max-width: 480px) {
+  .tm-ticket-info {
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  .tm-ticket-info .tm-foreman-signed-badge,
+  .tm-ticket-info .tm-verified-badge,
+  .tm-ticket-info .tm-edited-badge {
+    margin-left: 0;
+  }
+
+  .tm-ticket-details {
+    padding: 0.75rem;
+  }
+
+  .tm-photos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Labor table stacks: name and hours on one line, class and time below */
+  .tm-labor-table-header {
+    display: none;
+  }
+
+  .tm-labor-table-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.25rem 0.5rem;
+  }
+
+  .tm-labor-table-header + .tm-labor-table-row {
+    border-top: none;
+  }
+
+  .tm-labor-table-row .tm-labor-col-name {
+    grid-column: 1;
+    grid-row: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .tm-labor-table-row .tm-labor-col-hours {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .tm-labor-table-row .tm-labor-col-class {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .tm-labor-table-row .tm-labor-col-time {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+  }
+
+  .tm-ticket-actions .btn {
+    min-height: 44px;
+  }
+
+  /* Approve / Reject (or Get signature link / Reject) share the first row */
+  .tm-ticket-actions .tm-review-btn {
+    order: -1;
+    flex: 1 1 40%;
+    min-height: 48px;
+  }
+
+  /* The longer signature-link label gets the wider share */
+  .tm-ticket-actions .tm-review-btn.btn-primary {
+    flex-basis: 55%;
   }
 }

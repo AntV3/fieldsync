@@ -47,7 +47,10 @@ export default function ProjectDetailView({
   onAreasChanged,
   onDeleteCost,
   onSaveCost,
-  onDeleteProject
+  onDeleteProject,
+  onOpenQuickActions,
+  quickActionsBadge = null,
+  readyForCORCount
 }) {
   const { progress, billable, changeOrderValue, revisedContractValue } = progressCalculations
 
@@ -82,7 +85,16 @@ export default function ProjectDetailView({
   const areasNotStarted = areas.filter(a => a.status === 'not_started').length
 
   // Tab definitions with pending badges - 5 consolidated tabs
-  const pendingCount = (projectData?.pendingTickets || 0) + (projectData?.changeOrderPending || 0)
+  const pendingTicketCount = projectData?.pendingTickets || 0
+  const pendingCORCount = projectData?.corPendingCount || 0
+  const pendingCount = pendingTicketCount + pendingCORCount
+
+  // Approvals land on the ticket review queue; with no tickets waiting they
+  // go to the CORs that are out for approval instead of an empty list
+  const openApprovals = () => {
+    if (pendingTicketCount === 0 && pendingCORCount > 0) view.openCORs('pending_approval')
+    else view.openTicketReview()
+  }
   const tabs = [
     { id: 'overview', label: 'Overview', Icon: LayoutDashboard },
     { id: 'financials', label: 'Financials', Icon: DollarSign, badge: pendingCount },
@@ -103,8 +115,8 @@ export default function ProjectDetailView({
           onOpenAlerts={() => view.setShowNotificationSettings(true)}
           onEditClick={edit.handleEditClick}
           onCreateCOR={view.handleCreateCOR}
-          onCreateTMTicket={view.handleCreateTMTicket}
-          onCreateDailyReport={view.handleCreateDailyReport}
+          onOpenQuickActions={onOpenQuickActions}
+          quickActionsBadge={quickActionsBadge}
         />
         <ProjectSummaryBar
           progress={progress}
@@ -122,8 +134,8 @@ export default function ProjectDetailView({
       {/* Pending approvals call-to-action (persistent, dismissable) */}
       <PendingApprovalsBanner
         projectId={selectedProject.id}
-        pendingCount={(projectData?.pendingTickets || 0) + (projectData?.corPendingCount || 0)}
-        onView={() => view.setProjectTab('financials')}
+        pendingCount={pendingCount}
+        onView={openApprovals}
       />
 
       {/* Tab Content */}
@@ -147,6 +159,7 @@ export default function ProjectDetailView({
                 allProjects={projects}
                 onShowToast={onShowToast}
                 onSetActiveTab={view.setProjectTab}
+                onOpenTicketReview={openApprovals}
                 onExportFieldDocuments={onExportFieldDocuments}
                 onAreaStatusCycle={onAreaStatusCycle}
                 activityPulse={activityPulse}
@@ -188,6 +201,12 @@ export default function ProjectDetailView({
                 tmViewMode={view.tmViewMode}
                 onViewAllTickets={view.handleViewAllTickets}
                 onBackToTMPreview={view.handleBackToTMPreview}
+                ticketReviewRequest={view.ticketReviewRequest}
+                corFilterRequest={view.corFilterRequest}
+                onCreateTMTicket={view.handleCreateTMTicket}
+                onBuildCOR={view.handleBuildCORFromTickets}
+                pendingTickets={projectData?.pendingTickets}
+                readyForCORCount={readyForCORCount}
                 equipmentRefreshKey={view.equipmentRefreshKey}
                 onAddEquipment={view.handleAddEquipment}
                 onEditEquipment={view.handleEditEquipment}
@@ -217,6 +236,7 @@ export default function ProjectDetailView({
                 onShowToast={onShowToast}
                 fieldSection={view.fieldSection}
                 setFieldSection={view.setFieldSection}
+                onCreateDailyReport={view.handleCreateDailyReport}
               />
             </Suspense>
           </ErrorBoundary>
@@ -279,6 +299,7 @@ export default function ProjectDetailView({
         onCloseNotificationSettings={() => view.setShowNotificationSettings(false)}
         showCORForm={view.showCORForm}
         editingCOR={view.editingCOR}
+        corFormStartWithTickets={view.corFormStartWithTickets}
         onCloseCORForm={() => { view.setShowCORForm(false); view.setEditingCOR(null) }}
         onCORSaved={() => { view.setShowCORForm(false); view.setEditingCOR(null); bumpCORRefresh() }}
         showCORDetail={view.showCORDetail}
