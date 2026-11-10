@@ -231,7 +231,7 @@ export const tmOps = {
   },
 
   // Get T&M tickets with pagination for scalability
-  async getTMTicketsPaginated(projectId, { page = 0, limit = 25, status = null } = {}) {
+  async getTMTicketsPaginated(projectId, { page = 0, limit = 25, status = null, ascending = false } = {}) {
     if (isSupabaseConfigured) {
       const start = performance.now()
       const client = getClient()
@@ -241,7 +241,7 @@ export const tmOps = {
           .from('t_and_m_tickets')
           .select(tmTicketNestedSelect(isFieldMode()), { count: 'exact' })
           .eq('project_id', projectId)
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending })
           .range(page * limit, (page + 1) * limit - 1)
 
         if (Array.isArray(status) && status.length > 0) {

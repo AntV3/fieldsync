@@ -4143,7 +4143,7 @@ END MIGRATED */
 
 .ticket-group-select {
   flex-shrink: 0;
-  min-height: 36px;
+  min-height: 44px;
   color: var(--primary-color);
 }
 
@@ -4184,7 +4184,7 @@ END MIGRATED */
   .cor-card-send {
     flex: 1 1 100%;
     justify-content: center;
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .cor-detail-footer .footer-actions {

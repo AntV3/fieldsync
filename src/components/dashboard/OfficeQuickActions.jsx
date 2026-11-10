@@ -272,7 +272,13 @@ export default function OfficeQuickActions({
                   ))}
                 </div>
                 {footer.filter(link => link.children && fieldEntryOpen).map(link => (
-                  <div key={link.id} className="oqa-footer-children" role="group" aria-label={link.label}>
+                  <div
+                    key={link.id}
+                    className="oqa-footer-children"
+                    role="group"
+                    aria-label={link.label}
+                    ref={(el) => el?.scrollIntoView?.({ block: 'nearest' })}
+                  >
                     <span className="oqa-footer-note">Normally entered by the foreman</span>
                     {link.children.map(child => (
                       <button key={child.id} type="button" className="oqa-footer-child" onClick={() => fire(child.id)}>

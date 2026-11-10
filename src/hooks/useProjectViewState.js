@@ -179,6 +179,8 @@ export default function useProjectViewState() {
   }, [])
 
   const handleToggleCORList = useCallback(() => {
+    // A filter request is one-shot: re-opening the list must not re-apply it
+    setCORFilterRequest(null)
     setCORListExpanded(prev => !prev)
   }, [])
 

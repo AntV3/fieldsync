@@ -336,8 +336,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         hidden={view.isModalOpen || edit.editMode || Boolean(projectTour) || isSearchOpen}
       />
       {/* Universal Search (the portfolio renders its own) */}
+      {/* Not while a form is open: jumping projects would save it onto the wrong one */}
       <UniversalSearch
-        isOpen={isSearchOpen}
+        isOpen={isSearchOpen && !view.isModalOpen && !edit.editMode}
         onClose={closeSearch}
         companyId={company?.id}
         onSelectProject={openProject}

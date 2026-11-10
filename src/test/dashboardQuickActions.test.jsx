@@ -38,7 +38,7 @@ vi.mock('../components/UniversalSearch', async () => {
   return {
     default: ({ isOpen }) => (isOpen ? <div data-testid="universal-search" /> : null),
     useUniversalSearch: () => {
-      const [isOpen, setIsOpen] = useState(false)
+      const [isOpen, setIsOpen] = useState(Boolean(h.searchOpen))
       return { isOpen, setIsOpen, close: () => setIsOpen(false) }
     }
   }
@@ -146,6 +146,7 @@ beforeEach(() => {
   h.projects = [p1, p2]
   h.initialSelected = null
   h.editMode = false
+  h.searchOpen = false
   h.queue = makeQueue({
     p1: counts({ readyToApprove: 2, readyForCOR: 1, draftCORs: 1 }),
     p2: counts({ readyToApprove: 3, withClient: 1 })
@@ -240,6 +241,17 @@ describe('Dashboard quick actions inside a project', () => {
     h.editMode = true
     renderDashboard()
     expect(screen.queryByRole('button', { name: /^Quick actions/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps search closed in edit mode, so a result cannot switch projects under the form', () => {
+    h.searchOpen = true
+    const { unmount } = renderDashboard()
+    expect(screen.getByTestId('universal-search')).toBeInTheDocument()
+    unmount()
+    h.editMode = true
+    renderDashboard()
+    expect(screen.queryByTestId('universal-search')).not.toBeInTheDocument()
+    h.searchOpen = false
   })
 
   it('shows no badge or counts until the queue has loaded', () => {

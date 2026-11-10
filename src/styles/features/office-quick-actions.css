@@ -252,8 +252,8 @@
 }
 
 /* Nothing waiting: still tappable, just quieter */
-.oqa-row--dim .oqa-row-icon,
-.oqa-row--dim .oqa-row-label { opacity: 0.55; }
+.oqa-row--dim .oqa-row-icon { opacity: 0.55; }
+.oqa-row--dim .oqa-row-label { color: var(--text-secondary); }
 
 .oqa-row--dim .oqa-count {
   background: transparent;
@@ -326,7 +326,7 @@
 .oqa-footer-child {
   padding: 0 0.75rem;
   border: 1px solid var(--border-color);
-  min-height: 40px;
+  min-height: 44px;
 }
 
 @keyframes oqa-fade-in {
@@ -524,4 +524,31 @@
 
 @media (max-width: 768px) {
   .pv-needs-action { margin: 0.6rem 0.75rem 0; }
+}
+
+/* ---------- Phone fixes ---------- */
+
+.oqa-fab { right: calc(1.1rem + env(safe-area-inset-right, 0px)); }
+.oqa-overlay { touch-action: none; }
+.oqa-sheet { touch-action: pan-y; }
+
+/* Dark theme lightens the accent colours, so white text on them is too faint */
+[data-theme="dark"] .oqa-fab,
+[data-theme="dark"] .oqa-badge,
+[data-theme="dark"] .oqa-header-badge,
+[data-theme="dark"] .oqa-count { color: #1a1a1f; }
+
+@media (max-width: 768px) {
+  /* Room under the last list item so the floating button never covers it */
+  .pv-tab-content,
+  .project-list { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (max-width: 480px) {
+  /* On phones the offline bar is full width, 70px up: sit above it, and hide
+     it while the sheet is open so it cannot cover the last row */
+  :root:has(.offline-indicator) .oqa-fab {
+    bottom: calc(70px + 41px + 0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  :root:has(.oqa-overlay) .offline-indicator { display: none; }
 }

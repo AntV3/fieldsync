@@ -63,6 +63,7 @@ export default function TMList({
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const TICKETS_PER_PAGE = 25
+  const REVIEW_PAGE_SIZE = 100
   const MAX_TICKETS_IN_MEMORY = 500 // Prevent memory bloat from infinite scroll
 
   // View mode state - in preview mode, we filter to current month
@@ -143,7 +144,10 @@ export default function TMList({
       // Use paginated query for scalability
       const result = await db.getTMTicketsPaginated(project.id, {
         page: pageNum,
-        limit: TICKETS_PER_PAGE,
+        // The review queue loads oldest first and in bigger pages, so tickets
+        // ready to approve are not left behind newer unsigned ones
+        limit: filter === 'pending' ? REVIEW_PAGE_SIZE : TICKETS_PER_PAGE,
+        ascending: filter === 'pending',
         // "Pending" means everything the office still has to act on. Field
         // tickets arrive foreman-signed, so a bare 'pending' filter hid them.
         status: filter === 'all' ? null : (filter === 'pending' ? TM_AWAITING_APPROVAL_STATUSES : filter)
@@ -251,6 +255,11 @@ export default function TMList({
     setSelectedTickets(new Set())
     setReviewListForced(true)
   }, [reviewRequest, previewMode])
+
+  // The summary has no filter tabs, so never leave a filter applied to it
+  useEffect(() => {
+    if (previewMode) setFilter('all')
+  }, [previewMode])
 
   const chooseDisplayMode = (mode) => {
     setReviewListForced(false)

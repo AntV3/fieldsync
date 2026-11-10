@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { X, Check, Search, FileText, Users, Package, Truck, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { dollarsToCents } from '../../lib/corCalculations'
@@ -50,6 +50,7 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
+  const autoSelected = useRef(false) // selection came from the on-open preselect
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState(FILTERS.includes(initialFilter) ? initialFilter : 'unassigned') // 'ready' | 'unassigned' | 'approved' | 'all'
@@ -69,6 +70,7 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
         const ready = (allTickets || []).filter(isReadyForCOR)
         if (ready.length > 0 && groupByCePco(ready).length === 1) {
           setSelectedTickets(new Set(ready.map(t => t.id)))
+          autoSelected.current = true
         }
       }
     } catch (error) {
@@ -108,7 +110,18 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
     return filtered
   }, [tickets, filter, searchTerm])
 
+  // Tickets preselected on open are dropped once the user filters or searches,
+  // so nothing that is no longer on screen gets imported
+  const dropAutoSelection = () => {
+    if (!autoSelected.current) return
+    autoSelected.current = false
+    setSelectedTickets(new Set())
+  }
+  const changeFilter = (next) => { dropAutoSelection(); setFilter(next) }
+  const changeSearch = (value) => { dropAutoSelection(); setSearchTerm(value) }
+
   const toggleTicket = (ticketId) => {
+    autoSelected.current = false
     const newSelected = new Set(selectedTickets)
     if (newSelected.has(ticketId)) {
       newSelected.delete(ticketId)
@@ -129,6 +142,7 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
   const allSelected = selectableTickets.length > 0 && selectableTickets.every(t => selectedTickets.has(t.id))
 
   const toggleAll = () => {
+    autoSelected.current = false
     if (allSelected) {
       setSelectedTickets(new Set())
     } else {
@@ -145,6 +159,7 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
   const isGroupSelected = (group) => group.tickets.every(t => selectedTickets.has(t.id))
 
   const toggleGroup = (group) => {
+    autoSelected.current = false
     const newSelected = new Set(selectedTickets)
     if (isGroupSelected(group)) {
       group.tickets.forEach(t => newSelected.delete(t.id))
@@ -444,7 +459,7 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
               type="text"
               placeholder="Search tickets..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => changeSearch(e.target.value)}
               aria-label="Search tickets"
             />
           </div>
@@ -452,28 +467,28 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
           <div className="ticket-filters" role="group" aria-label="Filter tickets by status">
             <button
               className={`filter-btn ${filter === 'ready' ? 'active' : ''}`}
-              onClick={() => setFilter('ready')}
+              onClick={() => changeFilter('ready')}
               aria-pressed={filter === 'ready'}
             >
               Ready for COR
             </button>
             <button
               className={`filter-btn ${filter === 'unassigned' ? 'active' : ''}`}
-              onClick={() => setFilter('unassigned')}
+              onClick={() => changeFilter('unassigned')}
               aria-pressed={filter === 'unassigned'}
             >
               Unassigned
             </button>
             <button
               className={`filter-btn ${filter === 'approved' ? 'active' : ''}`}
-              onClick={() => setFilter('approved')}
+              onClick={() => changeFilter('approved')}
               aria-pressed={filter === 'approved'}
             >
               Approved
             </button>
             <button
               className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-              onClick={() => setFilter('all')}
+              onClick={() => changeFilter('all')}
               aria-pressed={filter === 'all'}
             >
               All
@@ -503,12 +518,12 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
               <FileText size={32} />
               <p>{filter === 'ready' ? 'No approved tickets are waiting for a COR' : 'No tickets found'}</p>
               {filter === 'ready' && (
-                <button className="btn btn-ghost btn-small" onClick={() => setFilter('unassigned')}>
+                <button className="btn btn-ghost btn-small" onClick={() => changeFilter('unassigned')}>
                   Show unassigned tickets
                 </button>
               )}
               {filter === 'unassigned' && (
-                <button className="btn btn-ghost btn-small" onClick={() => setFilter('all')}>
+                <button className="btn btn-ghost btn-small" onClick={() => changeFilter('all')}>
                   Show all tickets
                 </button>
               )}
