@@ -573,18 +573,9 @@ export default function SignaturePage({ signatureToken }) {
           {/* Signature section */}
           <div className="signature-status-section">
             <h3>Client Signature</h3>
-            {!isFullySigned ? (
-              <>
-                {renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
-                {!slot1 && <p className="or-divider">— or —</p>}
-                {renderSignatureSlot(2, slot2, 'Client Authorization', openSignatureModal, submitting)}
-              </>
-            ) : (
-              <>
-                {slot1 && renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
-                {slot2 && renderSignatureSlot(2, slot2, 'Client Authorization', openSignatureModal, submitting)}
-              </>
-            )}
+            {/* A ticket carries one client signature. Slot 2 is the client's;
+                a slot 1 signature on an older ticket counts as the same thing. */}
+            {renderSignatureSlot(2, slot2 || slot1, 'Client signature', openSignatureModal, submitting)}
             {isFullySigned && (
               <div className="fully-signed-message">
                 <CheckCircle size={24} />
@@ -1368,7 +1359,7 @@ function renderSignatureSlot(slot, signatureData, label, openModal, submitting) 
         ) : (
           <Clock size={20} className="status-icon pending" />
         )}
-        <span className="slot-label">Signature {slot} — {label}</span>
+        <span className="slot-label">{label}</span>
       </div>
 
       {signatureData ? (
@@ -1389,7 +1380,7 @@ function renderSignatureSlot(slot, signatureData, label, openModal, submitting) 
           onClick={() => openModal(slot)}
           disabled={submitting}
         >
-          Sign as {slot === 1 ? 'GC' : 'Client'}
+          Sign
         </button>
       )}
     </div>

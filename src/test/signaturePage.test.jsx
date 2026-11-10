@@ -174,8 +174,7 @@ describe('<SignaturePage />', () => {
       expect(photos[0]).toHaveAttribute('src', SIGNED_A)
       expect(photos[1]).toHaveAttribute('src', SIGNED_B)
 
-      expect(screen.getByRole('button', { name: 'Sign as GC' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Sign as Client' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Sign' })).toBeInTheDocument()
       expect(global.fetch).not.toHaveBeenCalled()
     })
 
@@ -203,13 +202,13 @@ describe('<SignaturePage />', () => {
       render(<SignaturePage signatureToken={TOKEN} />)
       await screen.findByText('Alice Worker')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Sign as GC' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Sign' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 2' }))
 
       await screen.findByText('Document Signed Successfully')
 
       expect(mockDb.addSignature).toHaveBeenCalledTimes(1)
-      expect(mockDb.addSignature).toHaveBeenCalledWith(TOKEN, 1, expect.objectContaining({
+      expect(mockDb.addSignature).toHaveBeenCalledWith(TOKEN, 2, expect.objectContaining({
         signerName: 'QA GC',
         signerTitle: 'PM',
         signerCompany: 'GC Co',
@@ -222,8 +221,7 @@ describe('<SignaturePage />', () => {
       expect(global.fetch).not.toHaveBeenCalled()
 
       expect(screen.getByText('This document has been signed.')).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as GC' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as Client' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Sign' })).not.toBeInTheDocument()
     })
 
     it('shows an inline notice and reloads into the signed state on signing_already_signed', async () => {
@@ -236,8 +234,8 @@ describe('<SignaturePage />', () => {
       render(<SignaturePage signatureToken={TOKEN} />)
       await screen.findByText('Alice Worker')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Sign as GC' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Sign' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 2' }))
 
       const notice = await screen.findByRole('status')
       expect(notice).toHaveTextContent('This document has already been signed.')
@@ -247,7 +245,7 @@ describe('<SignaturePage />', () => {
       expect(screen.queryByTestId('signature-canvas')).not.toBeInTheDocument()
       expect(screen.queryByText('Document Signed Successfully')).not.toBeInTheDocument()
       await waitFor(() => expect(screen.getByText('This document has been signed.')).toBeInTheDocument())
-      expect(screen.queryByRole('button', { name: 'Sign as GC' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Sign' })).not.toBeInTheDocument()
     })
 
     it('shows an inline notice on signing_invalid_payload and keeps the document', async () => {
@@ -258,8 +256,8 @@ describe('<SignaturePage />', () => {
       render(<SignaturePage signatureToken={TOKEN} />)
       await screen.findByText('Alice Worker')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Sign as GC' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Sign' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 2' }))
 
       const notice = await screen.findByRole('status')
       expect(notice).toHaveTextContent(/could not be accepted/)
@@ -268,7 +266,7 @@ describe('<SignaturePage />', () => {
       expect(screen.queryByText('Unable to Load Document')).not.toBeInTheDocument()
       expect(screen.getByText('Alice Worker')).toBeInTheDocument()
       // The signer can try again
-      expect(screen.getByRole('button', { name: 'Sign as GC' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Sign' })).toBeEnabled()
     })
 
     it('renders a second link for an already-signed ticket as signed (document slot, no request signature)', async () => {
@@ -289,8 +287,7 @@ describe('<SignaturePage />', () => {
       await screen.findByText('This document has been signed.')
       expect(screen.getByText('QA GC')).toBeInTheDocument()
       expect(screen.getByText(/PM.*GC Co/)).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as GC' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as Client' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Sign' })).not.toBeInTheDocument()
       expect(mockDb.addSignature).not.toHaveBeenCalled()
     })
 
@@ -307,16 +304,15 @@ describe('<SignaturePage />', () => {
       render(<SignaturePage signatureToken={TOKEN} />)
       await screen.findByText('Alice Worker')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Sign as GC' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Sign' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 2' }))
 
       const notice = await screen.findByRole('status')
       expect(notice).toHaveTextContent('This document has already been signed.')
       await waitFor(() => expect(screen.getByText('This document has been signed.')).toBeInTheDocument())
       expect(screen.getByText('Onsite GC')).toBeInTheDocument()
       expect(screen.queryByTestId('signature-canvas')).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as GC' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as Client' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Sign' })).not.toBeInTheDocument()
     })
 
     it.each([
@@ -331,8 +327,8 @@ describe('<SignaturePage />', () => {
       render(<SignaturePage signatureToken={TOKEN} />)
       await screen.findByText('Alice Worker')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Sign as GC' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Sign' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 2' }))
 
       await screen.findByText('Unable to Load Document')
       expect(screen.getByText(copy)).toBeInTheDocument()
@@ -348,8 +344,7 @@ describe('<SignaturePage />', () => {
       expect(screen.queryByText('Unable to Load Document')).not.toBeInTheDocument()
       expect(screen.queryByText('This document has already been fully signed.')).not.toBeInTheDocument()
       expect(screen.getByText('QA GC')).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as GC' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Sign as Client' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Sign' })).not.toBeInTheDocument()
     })
 
     it('re-resolves photos before exporting the ticket PDF', async () => {
@@ -366,8 +361,8 @@ describe('<SignaturePage />', () => {
       mockDb.getSignatureRequestByToken.mockResolvedValueOnce(pendingRequest())
       render(<SignaturePage signatureToken={TOKEN} />)
       await screen.findByText('Alice Worker')
-      fireEvent.click(screen.getByRole('button', { name: 'Sign as GC' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Sign' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 2' }))
       await screen.findByText('Document Signed Successfully')
 
       fireEvent.click(screen.getByRole('button', { name: /Save a Copy/ }))
@@ -397,8 +392,8 @@ describe('<SignaturePage />', () => {
 
       render(<SignaturePage signatureToken={TOKEN} />)
       await screen.findByText('Alice Worker')
-      fireEvent.click(screen.getByRole('button', { name: 'Sign as GC' }))
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Sign' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit mock signature 2' }))
       await screen.findByText('Document Signed Successfully')
 
       fireEvent.click(screen.getByRole('button', { name: /Save a Copy/ }))

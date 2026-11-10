@@ -1261,28 +1261,18 @@ export default function TMList({
       return sigLineY + 25
     }
 
-    // GC Signature (Signature 1)
-    yPos = renderSignatureBlock(
-      yPos,
-      'GC AUTHORIZATION',
-      firstTicket.gc_signature_data,
-      firstTicket.gc_signature_name,
-      firstTicket.gc_signature_title,
-      firstTicket.gc_signature_company,
-      firstTicket.gc_signature_date
-    )
-
-    yPos += 8
-
-    // Client Signature (Signature 2)
+    // One client signature. Older tickets may carry it in the GC slot.
+    const clientSig = firstTicket.client_signature_data
+      ? { data: firstTicket.client_signature_data, name: firstTicket.client_signature_name, title: firstTicket.client_signature_title, company: firstTicket.client_signature_company, date: firstTicket.client_signature_date }
+      : { data: firstTicket.gc_signature_data, name: firstTicket.gc_signature_name, title: firstTicket.gc_signature_title, company: firstTicket.gc_signature_company, date: firstTicket.gc_signature_date }
     yPos = renderSignatureBlock(
       yPos,
       'CLIENT AUTHORIZATION',
-      firstTicket.client_signature_data,
-      firstTicket.client_signature_name,
-      firstTicket.client_signature_title,
-      firstTicket.client_signature_company,
-      firstTicket.client_signature_date
+      clientSig.data,
+      clientSig.name,
+      clientSig.title,
+      clientSig.company,
+      clientSig.date
     )
 
     // Continuation accents + branded footers on every page
