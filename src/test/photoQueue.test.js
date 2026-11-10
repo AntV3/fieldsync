@@ -113,6 +113,25 @@ describe('photo queue', () => {
     expect(await getQueuedPhotoCount()).toBe(1)
   })
 
+  it('does not re-upload a photo after an attach failure; the next drain reuses the stored URL', async () => {
+    await queueTicketPhotos('sub-1', meta, [photo('a.jpg')])
+    await markTicketSynced('sub-1', 'ticket-9')
+
+    const firstAttach = vi.fn(async () => { throw new Error('rls hiccup') })
+    const firstUpload = vi.fn(async (_c, _p, ticketId, file) => `${ticketId}/${file.name}`)
+    expect(await drainPhotoQueue({ upload: firstUpload, attach: firstAttach })).toEqual({ uploaded: 0, failed: 1, waiting: 0 })
+    expect(firstUpload).toHaveBeenCalledTimes(1)
+    expect(await getQueuedPhotoCount()).toBe(1)
+
+    // Retry: upload must NOT run again (would orphan the previous storage object).
+    const secondAttach = vi.fn(async () => ({}))
+    const secondUpload = vi.fn(async (_c, _p, ticketId, file) => `${ticketId}/${file.name}`)
+    expect(await drainPhotoQueue({ upload: secondUpload, attach: secondAttach })).toEqual({ uploaded: 1, failed: 0, waiting: 0 })
+    expect(secondUpload).not.toHaveBeenCalled()
+    expect(secondAttach.mock.calls[0][1]).toEqual(['ticket-9/a.jpg'])
+    expect(await getQueuedPhotoCount()).toBe(0)
+  })
+
   it('shares one run between overlapping drains', async () => {
     await queueTicketPhotos('sub-1', meta, [photo('a.jpg')])
     await markTicketSynced('sub-1', 'ticket-9')

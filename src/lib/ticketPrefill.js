@@ -20,15 +20,22 @@ const formWorker = (w) => ({
 export function crewFromTicket(ticket) {
   const workers = ticket?.t_and_m_workers || []
 
+  // A worker belongs to exactly one bucket: the dynamic labor-class bucket if
+  // it has a labor_class_id, otherwise the legacy role bucket. A row with
+  // both populated would otherwise be prefilled twice, doubling the hours
+  // the foreman sees on the resubmit.
+  const dynamic = workers.filter(w => w.labor_class_id)
+  const legacy = workers.filter(w => !w.labor_class_id)
+
   const dynamicWorkers = {}
-  workers.filter(w => w.labor_class_id).forEach(w => {
+  dynamic.forEach(w => {
     if (!dynamicWorkers[w.labor_class_id]) dynamicWorkers[w.labor_class_id] = []
     dynamicWorkers[w.labor_class_id].push(formWorker(w))
   })
 
-  const supervision = workers.filter(w => SUPERVISION_ROLES.includes(w.role)).map(w => ({ ...formWorker(w), role: w.role }))
-  const operators = workers.filter(w => w.role === 'Operator').map(formWorker)
-  const laborers = workers.filter(w => w.role === 'Laborer').map(formWorker)
+  const supervision = legacy.filter(w => SUPERVISION_ROLES.includes(w.role)).map(w => ({ ...formWorker(w), role: w.role }))
+  const operators = legacy.filter(w => w.role === 'Operator').map(formWorker)
+  const laborers = legacy.filter(w => w.role === 'Laborer').map(formWorker)
 
   return {
     workDate: ticket?.work_date,

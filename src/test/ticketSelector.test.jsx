@@ -155,6 +155,17 @@ describe('TicketSelector', () => {
     ]))
   })
 
+  it('preselects nothing when every ready ticket is missing a CE/PCO number (NO_CE_PCO is not one change event)', async () => {
+    await renderSelector([
+      ticket({ id: 't1', ce_pco_number: null, notes: 'Patch here' }),
+      ticket({ id: 't2', ce_pco_number: '', notes: 'Patch there' }),
+      ticket({ id: 't3', ce_pco_number: '   ', notes: 'Something else' })
+    ], { initialFilter: 'ready' })
+
+    expect(checkedTicketBoxes()).toHaveLength(0)
+    expect(screen.getByRole('button', { name: /Import 0 Tickets/ })).toBeDisabled()
+  })
+
   it('does not preselect when opened on another filter', async () => {
     await renderSelector([
       ticket({ id: 't1', ce_pco_number: 'CE-12' }),

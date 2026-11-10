@@ -189,9 +189,17 @@ async function drain({ upload, attach, resolveTicketIds }) {
 
     for (const entry of entries) {
       try {
-        const file = new File([entry.buffer], entry.name, { type: entry.type })
-        const url = await upload(entry.company_id, entry.project_id, ticketId, file)
-        if (!url) throw new Error('Upload returned no path')
+        let url = entry.uploaded_url
+        if (!url) {
+          const file = new File([entry.buffer], entry.name, { type: entry.type })
+          url = await upload(entry.company_id, entry.project_id, ticketId, file)
+          if (!url) throw new Error('Upload returned no path')
+          // Remember the uploaded path so a retry (attach failed, device
+          // lost power, app killed) does not re-upload the same photo and
+          // orphan the previous copy in storage.
+          await run('readwrite', store => { store.put({ ...entry, uploaded_url: url }) }).catch(() => {})
+          entry.uploaded_url = url
+        }
         urls.push(url)
         done.push(entry)
         if (entry.latitude != null && entry.longitude != null) {
@@ -210,7 +218,9 @@ async function drain({ upload, attach, resolveTicketIds }) {
       await run('readwrite', store => { done.forEach(entry => store.delete(entry.id)) })
       uploaded += done.length
     } catch (err) {
-      // Uploaded but not attached: keep them queued so the next drain retries.
+      // Uploaded but not attached: keep them queued so the next drain retries
+      // the attach. uploaded_url is already persisted above, so the retry
+      // reuses the same storage object instead of re-uploading.
       console.error('[photoQueue] attach failed, will retry', err)
       failed += done.length
       await run('readwrite', store => {
