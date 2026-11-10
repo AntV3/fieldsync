@@ -323,6 +323,8 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         onOpenQuickActions={openQuickActions}
         quickActionsBadge={getOfficeQuickActions({ scope: 'project', counts: projectCounts }).badge}
         readyForCORCount={projectCounts?.readyForCOR}
+        queueCounts={projectCounts}
+        onQuickAction={handleQuickAction}
       />
       <OfficeQuickActions
         scope="project"
@@ -409,6 +411,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
           onSelectTicket={handleSelectTicket}
           onSelectCOR={handleSelectCOR}
           queueTotals={queue.ready ? queue.totals : null}
+          queueByProject={queue.ready ? queue.byProject : null}
           onQuickAction={handlePortfolioQuickAction}
           onOpenQuickActions={openQuickActions}
         />

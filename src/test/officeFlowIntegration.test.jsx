@@ -408,6 +408,10 @@ describe('Field entry', () => {
   it('"New ticket" in the ticket toolbar and "New daily report" in Reports stay reachable (C2, C6)', async () => {
     renderDashboard()
     tapRow('Review tickets')
+    // Not offered on the review queue itself; it sits on the other ticket filters
+    await screen.findByRole('tab', { name: /To review/ })
+    expect(screen.queryByRole('button', { name: 'New ticket' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /^All/ }))
     fireEvent.click(await screen.findByRole('button', { name: 'New ticket' }))
     expect(await screen.findByTestId('tm-form')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))

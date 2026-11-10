@@ -1,18 +1,10 @@
-import { Search, AlertTriangle, BarChart3, CheckCircle2, Zap } from 'lucide-react'
+import { Search, AlertTriangle, BarChart3, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { formatCurrency } from '../../lib/utils'
-import { getOfficeQuickActions, isCaughtUp, COUNTED_ROWS } from '../../lib/officeActions'
 import UniversalSearch from '../UniversalSearch'
 import { SmartAlerts } from './SmartAlerts'
 import EnhancedProjectCard from './EnhancedProjectCard'
-
-// Short tile labels for the "Needs action" strip (same order as the quick-action rows)
-const NEEDS_ACTION_LABELS = {
-  review: 'To review',
-  buildCor: 'Ready for COR',
-  sendCor: 'To send',
-  waiting: 'Waiting on client'
-}
+import NeedsActionStrip from './NeedsActionStrip'
 
 export default function PortfolioView({
   projects,
@@ -32,6 +24,7 @@ export default function PortfolioView({
   onSelectTicket,
   onSelectCOR,
   queueTotals = null, // Company-wide office queue totals (useOfficeQueue); null until loaded
+  queueByProject = null, // Per-project office queue counts; null until loaded
   onQuickAction,
   onOpenQuickActions,
 }) {
@@ -77,11 +70,6 @@ export default function PortfolioView({
     behindScheduleExposure,
   } = scheduleMetrics
 
-  // "Needs action" tiles mirror the counted quick-action rows
-  const needsActionTiles = queueTotals
-    ? getOfficeQuickActions({ scope: 'portfolio', counts: queueTotals }).rows.filter(row => COUNTED_ROWS[row.id])
-    : []
-
   // The office queue is the live count of CORs out with clients
   const pendingCORCount = queueTotals ? queueTotals.withClient : totalPendingCORCount
 
@@ -110,30 +98,7 @@ export default function PortfolioView({
         </div>
 
         {/* Needs action - what is waiting on the office across every project */}
-        {queueTotals && (isCaughtUp(queueTotals) ? (
-          <p className="needs-action-clear" role="status">
-            <CheckCircle2 size={16} aria-hidden="true" />
-            You&apos;re caught up
-          </p>
-        ) : (
-          <section className="needs-action" aria-label="Needs action">
-            <h3 className="needs-action-title">Needs action</h3>
-            <div className="needs-action-grid">
-              {needsActionTiles.map(tile => (
-                <button
-                  key={tile.id}
-                  type="button"
-                  className={`needs-action-tile ${tile.count === 0 ? 'needs-action-tile--zero' : ''} ${tile.tone === 'warn' ? 'needs-action-tile--warn' : ''}`}
-                  onClick={() => onQuickAction?.(tile.id)}
-                  title={tile.subtitle}
-                >
-                  <span className="needs-action-count">{tile.count}</span>
-                  <span className="needs-action-label">{NEEDS_ACTION_LABELS[tile.id]}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
+        <NeedsActionStrip counts={queueTotals} scope="portfolio" onAction={onQuickAction} />
 
         {/* Hero Financial Metrics */}
         <div className="bo-financial">
@@ -317,6 +282,7 @@ export default function PortfolioView({
               riskScore={projectRisk?.riskScore}
               riskStatus={projectRisk?.riskStatus}
               newActivityCount={fieldActivity[project.id] || 0}
+              queueCounts={queueByProject ? queueByProject[project.id] : null}
               onClick={() => onSelectProject(project)}
             />
           )

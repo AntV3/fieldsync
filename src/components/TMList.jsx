@@ -1544,7 +1544,7 @@ export default function TMList({
                   </button>
                 </div>
               )}
-              {onCreateTicket && (
+              {onCreateTicket && !isReviewQueue && (
                 <button className="btn btn-secondary btn-small tm-new-ticket-btn" onClick={() => onCreateTicket()}>
                   <Plus size={14} aria-hidden="true" /> New ticket
                 </button>

@@ -6,6 +6,7 @@ import ProjectHeader from './ProjectHeader'
 import ProjectSummaryBar from './ProjectSummaryBar'
 import ProjectTabNav from './ProjectTabNav'
 import PendingApprovalsBanner from './PendingApprovalsBanner'
+import NeedsActionStrip from './NeedsActionStrip'
 import DashboardModals from './DashboardModals'
 
 // Lazy load tab components - only load the active tab's code
@@ -50,7 +51,9 @@ export default function ProjectDetailView({
   onDeleteProject,
   onOpenQuickActions,
   quickActionsBadge = null,
-  readyForCORCount
+  readyForCORCount,
+  queueCounts = null,
+  onQuickAction
 }) {
   const { progress, billable, changeOrderValue, revisedContractValue } = progressCalculations
 
@@ -137,6 +140,13 @@ export default function ProjectDetailView({
         pendingCount={pendingCount}
         onView={openApprovals}
       />
+
+      {/* This project's office to-dos */}
+      {view.activeProjectTab === 'overview' && queueCounts && (
+        <div className="pv-needs-action">
+          <NeedsActionStrip counts={queueCounts} scope="project" onAction={onQuickAction} />
+        </div>
+      )}
 
       {/* Tab Content */}
       <div className="pv-tab-content" role="tabpanel" id={`tabpanel-${view.activeProjectTab}`} aria-labelledby={`tab-${view.activeProjectTab}`}>

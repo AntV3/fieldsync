@@ -411,7 +411,7 @@ describe('TMTicketCard review actions', () => {
     expect(last).toHaveClass('tm-delete-btn')
     expect(last).not.toHaveClass('btn-danger')
     const names = buttons.map(b => b.getAttribute('aria-label'))
-    expect(names.indexOf('Delete this ticket') - names.indexOf('Reject this ticket')).toBeGreaterThan(1)
+    expect(names.indexOf('Delete this ticket')).toBeGreaterThan(names.indexOf('Reject this ticket'))
     fireEvent.click(last)
     expect(handlers.onDelete).toHaveBeenCalledWith('t-1')
   })

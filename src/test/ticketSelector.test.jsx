@@ -179,17 +179,15 @@ describe('TicketSelector', () => {
     expect(checkedTicketBoxes()).toHaveLength(0)
   })
 
-  it('marks tickets that are not approved in the other filters, without blocking them', async () => {
+  it('marks tickets that are not approved in the other filters and does not let them be picked', async () => {
     await renderSelector([
       ticket({ id: 't1', notes: 'Approved work' }),
       ticket({ id: 't2', notes: 'Unsigned work', status: 'foreman_signed', work_date: '2026-10-02' })
     ])
 
-    expect(screen.getAllByText('Not approved yet')).toHaveLength(1)
+    expect(screen.getAllByText('Approve this ticket first')).toHaveLength(1)
     const unsignedBox = screen.getByRole('checkbox', { name: 'Select ticket from Oct 2, 2026' })
-    expect(unsignedBox).not.toBeDisabled()
-    fireEvent.click(unsignedBox)
-    expect(unsignedBox).toBeChecked()
+    expect(unsignedBox).toBeDisabled()
   })
 
   it('"Select All" skips tickets that are on another COR', async () => {

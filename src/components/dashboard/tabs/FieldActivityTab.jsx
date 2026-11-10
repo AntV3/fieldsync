@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { ClipboardList, MessageSquareText, FileCheck, NotebookPen, ListChecks, HardHat, Menu, Plus } from 'lucide-react'
+import { ClipboardList, MessageSquareText, FileCheck, NotebookPen, ListChecks, HardHat, Menu } from 'lucide-react'
 import { db } from '../../../lib/supabase'
 import { safeAsync } from '../../../lib/errorHandler'
 import { TicketSkeleton } from '../../ui'
@@ -132,11 +132,10 @@ export default function FieldActivityTab({
             </p>
           </div>
           <button
-            className="btn btn-secondary"
+            className="btn btn-ghost btn-small"
             onClick={() => (onCreateDailyReport ? onCreateDailyReport() : handleSectionChange('reports'))}
           >
-            <Plus size={15} />
-            New Report
+            Enter a report for the crew
           </button>
         </div>
       )}

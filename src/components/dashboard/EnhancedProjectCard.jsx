@@ -1,6 +1,15 @@
 import { formatCurrency, getOverallStatus, getOverallStatusLabel } from '../../lib/utils'
 
-export default function EnhancedProjectCard({ project, riskScore, riskStatus, newActivityCount = 0, onClick }) {
+// Office to-do chips shown on the card, in pipeline order
+const QUEUE_CHIPS = [
+  ['readyToApprove', 'to review'],
+  ['awaitingSignature', 'awaiting signature'],
+  ['readyForCOR', 'ready for COR'],
+  ['draftCORs', 'to send'],
+  ['withClient', 'with client']
+]
+
+export default function EnhancedProjectCard({ project, riskScore, riskStatus, newActivityCount = 0, queueCounts = null, onClick }) {
   const status = getOverallStatus(project.areas || [])
   const statusLabel = getOverallStatusLabel(project.areas || [])
   // NULL (raw row) and 0 (summary RPC) both mean "no contract value"
@@ -18,6 +27,7 @@ export default function EnhancedProjectCard({ project, riskScore, riskStatus, ne
     critical: { bg: 'var(--status-danger-bg, #7f1d1d)', color: 'var(--status-danger, #dc2626)' }
   }
   const riskStyle = riskColors[riskStatus] || riskColors.healthy
+  const queueChips = queueCounts ? QUEUE_CHIPS.filter(([key]) => queueCounts[key] > 0) : []
 
   return (
     <div className={`project-card enhanced ${isAtRisk ? 'at-risk' : ''}`} onClick={onClick}>
@@ -73,7 +83,16 @@ export default function EnhancedProjectCard({ project, riskScore, riskStatus, ne
       <div className="mini-progress-bar">
         <div className="mini-progress-fill" style={{ width: `${progress}%` }}></div>
       </div>
-      {(project.pendingTickets > 0 || project.totalTickets > 0) && (
+      {queueChips.length > 0 && (
+        <div className="project-queue-chips" aria-label="Needs action">
+          {queueChips.map(([key, label]) => (
+            <span key={key} className={`project-queue-chip project-queue-chip--${key}`}>
+              <strong>{queueCounts[key]}</strong> {label}
+            </span>
+          ))}
+        </div>
+      )}
+      {!queueCounts && (project.pendingTickets > 0 || project.totalTickets > 0) && (
         <div className="project-badges">
           {project.pendingTickets > 0 && <span className="badge pending">{project.pendingTickets} Pending</span>}
           {project.approvedTickets > 0 && <span className="badge approved">{project.approvedTickets} Approved</span>}

@@ -403,7 +403,7 @@ const TMTicketCard = memo(function TMTicketCard({
                 Restore
               </button>
             )}
-            {!isLocked && (
+            {!isLocked && (ticket.assigned_cor_id || !isAwaitingApproval(ticket.status)) && ticket.status !== 'rejected' && (
               <button
                 className={`btn btn-small ${ticket.assigned_cor_id ? 'btn-ghost' : 'btn-secondary'}`}
                 onClick={(e) => { e.stopPropagation(); onOpenCorAssign(ticket); }}

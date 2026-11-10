@@ -116,9 +116,9 @@ describe('getOfficeQuickActions badge', () => {
     expect(actions({ withClient: 1 }).badge).toBe('dot')
   })
 
-  it('is empty when nothing needs the office, even with tickets waiting on the client', () => {
+  it('is empty when nothing is waiting, and a dot when tickets still need the client signature', () => {
     expect(actions({}).badge).toBeNull()
-    expect(actions({ awaitingSignature: 6 }).badge).toBeNull()
+    expect(actions({ awaitingSignature: 6 }).badge).toBe('dot')
   })
 })
 
@@ -154,9 +154,9 @@ describe('counts that are not loaded yet', () => {
 })
 
 describe('helpers', () => {
-  it('isCaughtUp is true only when all four counted rows are zero', () => {
+  it('isCaughtUp is true only when nothing is waiting, unsigned tickets included', () => {
     expect(isCaughtUp(counts())).toBe(true)
-    expect(isCaughtUp(counts({ awaitingSignature: 4 }))).toBe(true)
+    expect(isCaughtUp(counts({ awaitingSignature: 4 }))).toBe(false)
     expect(isCaughtUp(counts({ readyToApprove: 1 }))).toBe(false)
     expect(isCaughtUp(counts({ readyForCOR: 1 }))).toBe(false)
     expect(isCaughtUp(counts({ draftCORs: 1 }))).toBe(false)

@@ -478,3 +478,50 @@
 @media (max-width: 640px) {
   .needs-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.needs-action-hint {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+}
+
+/* Strip inside a project (overview tab) */
+.pv-needs-action {
+  margin: 0.75rem 1.25rem 0;
+}
+
+.pv-needs-action .needs-action,
+.pv-needs-action .needs-action-clear {
+  margin-bottom: 0;
+}
+
+/* Per-project to-do chips on portfolio project cards */
+.project-queue-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0.6rem;
+}
+
+.project-queue-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.project-queue-chip strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.project-queue-chip--readyToApprove {
+  border-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .pv-needs-action { margin: 0.6rem 0.75rem 0; }
+}

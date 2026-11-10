@@ -52,14 +52,20 @@ export function getRowCount(rowId, counts) {
 export function pickProjectForRow(rowId, projects = []) {
   if (projects.length === 1) return projects[0]
   if (!COUNTED_ROWS[rowId]) return null
-  const withItems = projects.filter(project => getRowCount(rowId, project.counts) > 0)
+  const withItems = projects.filter(project => getRowAttention(rowId, project.counts) > 0)
   return withItems.length === 1 ? withItems[0] : null
 }
 
-/** True when none of the four counted rows has anything waiting. */
+/** What a row has for the office to look at: its count, plus unsigned tickets for review. */
+export function getRowAttention(rowId, counts) {
+  const extra = rowId === 'review' ? num(counts?.awaitingSignature) : 0
+  return getRowCount(rowId, counts) + extra
+}
+
+/** True when nothing is waiting, including tickets still missing the client signature. */
 export function isCaughtUp(counts) {
   if (!counts) return false
-  return Object.keys(COUNTED_ROWS).every(rowId => getRowCount(rowId, counts) === 0)
+  return Object.keys(COUNTED_ROWS).every(rowId => getRowAttention(rowId, counts) === 0)
 }
 
 /** Whole days since the oldest COR went to the client, or null when unknown. */
@@ -111,7 +117,7 @@ export function getOfficeQuickActions({ scope = 'project', counts = null, now = 
     count: known ? count : null,
     subtitle: known ? subtitle : fallback,
     tone,
-    dimmed: known && count === 0
+    dimmed: known && count === 0 && !(id === 'review' && awaiting > 0)
   })
 
   const rows = [
@@ -144,7 +150,7 @@ export function getOfficeQuickActions({ scope = 'project', counts = null, now = 
 
   let badge = null
   if (ready > 0) badge = ready
-  else if (readyForCOR > 0 || drafts > 0 || withClient > 0) badge = 'dot'
+  else if (awaiting > 0 || readyForCOR > 0 || drafts > 0 || withClient > 0) badge = 'dot'
 
   return { badge, rows, footer }
 }

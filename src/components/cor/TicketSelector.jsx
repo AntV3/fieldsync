@@ -118,8 +118,12 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
     setSelectedTickets(newSelected)
   }
 
-  // Tickets already on another COR cannot be picked
-  const isSelectable = (ticket) => !ticket.assigned_cor_id || ticket.assigned_cor_id === corId
+  // Only approved tickets go on a COR, and never one that is on another COR.
+  // Tickets already on this COR stay selectable so they can be re-imported.
+  const isSelectable = (ticket) => {
+    if (ticket.assigned_cor_id) return ticket.assigned_cor_id === corId
+    return ticket.status === 'approved' || ticket.status === 'billed'
+  }
 
   const selectableTickets = filteredTickets.filter(isSelectable)
   const allSelected = selectableTickets.length > 0 && selectableTickets.every(t => selectedTickets.has(t.id))
@@ -336,7 +340,7 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
                 <span className="ticket-pco">CE/PCO: {ticket.ce_pco_number}</span>
               )}
               {filter !== 'ready' && !isApproved(ticket) && (
-                <span className="ticket-not-approved">Not approved yet</span>
+                <span className="ticket-not-approved">Approve this ticket first</span>
               )}
             </div>
 

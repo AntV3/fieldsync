@@ -119,9 +119,15 @@ describe('PortfolioView "Needs action" strip', () => {
   })
 
   it('collapses to one line when nothing is waiting', () => {
-    render(<PortfolioView {...baseProps} queueTotals={totals({ awaitingSignature: 4 })} />)
+    render(<PortfolioView {...baseProps} queueTotals={totals()} />)
     expect(screen.getByText("You're caught up")).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Needs action' })).not.toBeInTheDocument()
+  })
+
+  it('does not claim caught up while tickets still need the client signature', () => {
+    render(<PortfolioView {...baseProps} queueTotals={totals({ awaitingSignature: 4 })} />)
+    expect(screen.queryByText("You're caught up")).not.toBeInTheDocument()
+    expect(screen.getByText('4 awaiting client signature')).toBeInTheDocument()
   })
 
   it('shows neither while the totals are unknown', () => {
@@ -203,19 +209,19 @@ describe('FieldActivityTab empty state', () => {
     />
   )
 
-  it('New Report opens the daily report entry when the office can create one', async () => {
+  it('the report link opens the daily report entry when the office can create one', async () => {
     const onCreateDailyReport = vi.fn()
     const setFieldSection = vi.fn()
     renderTab({ onCreateDailyReport, setFieldSection })
-    fireEvent.click(await screen.findByRole('button', { name: /New Report/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /Enter a report for the crew/ }))
     expect(onCreateDailyReport).toHaveBeenCalledTimes(1)
     expect(setFieldSection).not.toHaveBeenCalled()
   })
 
-  it('New Report still switches to Reports without the handler', async () => {
+  it('the report link still switches to Reports without the handler', async () => {
     const setFieldSection = vi.fn()
     renderTab({ setFieldSection })
-    fireEvent.click(await screen.findByRole('button', { name: /New Report/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /Enter a report for the crew/ }))
     await waitFor(() => expect(setFieldSection).toHaveBeenCalledWith('reports'))
   })
 })
