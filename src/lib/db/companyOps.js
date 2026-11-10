@@ -457,6 +457,45 @@ export const companyOps = {
     }
   },
 
+  // The signed-in user's own permission columns for a company. Returns null
+  // when the database does not have the columns yet (permissions not in force).
+  async getMyPermissions(userId, companyId) {
+    if (!isSupabaseConfigured || !userId || !companyId) return null
+    const { data, error } = await supabase
+      .from('user_companies')
+      .select('can_approve_tickets, can_send_cors, can_sign_for_foreman, can_manage_client_access')
+      .eq('user_id', userId)
+      .eq('company_id', companyId)
+      .maybeSingle()
+    if (error) return null
+    return data || null
+  },
+
+  // Permission columns for every member of a company, keyed by membership id.
+  // Returns null when the database does not have the columns yet.
+  async getCompanyMemberPermissions(companyId) {
+    if (!isSupabaseConfigured || !companyId) return null
+    const { data, error } = await supabase
+      .from('user_companies')
+      .select('id, can_approve_tickets, can_send_cors, can_sign_for_foreman, can_manage_client_access')
+      .eq('company_id', companyId)
+    if (error) return null
+    return Object.fromEntries((data || []).map(row => [row.id, row]))
+  },
+
+  // Grant or remove one permission (administrators only; enforced in the database)
+  async updateMemberPermission(membershipId, column, value) {
+    const allowed = ['can_approve_tickets', 'can_send_cors', 'can_sign_for_foreman', 'can_manage_client_access']
+    if (!allowed.includes(column)) throw new Error(`Unknown permission: ${column}`)
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('user_companies')
+        .update({ [column]: value === true })
+        .eq('id', membershipId)
+      if (error) throw error
+    }
+  },
+
   // Update a member's access level (also syncs role column for RLS policies)
   async updateMemberAccessLevel(membershipId, newAccessLevel) {
     if (isSupabaseConfigured) {

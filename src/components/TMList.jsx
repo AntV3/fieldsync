@@ -22,6 +22,8 @@ import SignatureLinkGenerator from './SignatureLinkGenerator'
 import { TicketSkeleton, CountBadge, EmptyState } from './ui'
 import TMDashboard from './tm/TMDashboard'
 import TMTicketCard from './tm/TMTicketCard'
+import { usePermissions } from '../lib/PermissionsContext'
+import { guardMessage } from '../lib/permissions'
 import TMTicketEditModal from './tm/TMTicketEditModal'
 import { exportTMTicketsCSV } from '../lib/financialExport'
 import { loadXLSXSafe } from '../lib/safeXlsx'
@@ -50,6 +52,7 @@ export default function TMList({
   // A review request only applies outside preview mode, where the filter tabs
   // are visible and the user can change it back.
   const initialReview = reviewRequest && !previewMode ? reviewRequest : null
+  const { canApproveTickets } = usePermissions()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -319,6 +322,10 @@ export default function TMList({
       onShowToast('This ticket needs the client signature before it can be approved.', 'error')
       return
     }
+    if (!canApproveTickets) {
+      onShowToast('You do not have permission to approve tickets. Ask a company administrator.', 'error')
+      return
+    }
 
     const existing = parseFloat(ticket.change_order_value)
     const computed = calculateTicketValue(ticket, rateLookup).total
@@ -326,7 +333,7 @@ export default function TMList({
     setPendingApprovalTicket(ticket)
     setChangeOrderValue(value > 0 ? value.toFixed(2) : '')
     setShowChangeOrderModal(true)
-  }, [lockedTickets, rateLookup]) // onShowToast is stable
+  }, [lockedTickets, rateLookup, canApproveTickets]) // onShowToast is stable
 
   // Confirm approval with change order value
   const confirmChangeOrderApproval = async () => {
@@ -364,7 +371,7 @@ export default function TMList({
         setChangeOrderValue('')
         loadTickets(0, true, { silent: true })
       } else {
-        onShowToast('Error approving ticket', 'error')
+        onShowToast(guardMessage(error, 'Error approving ticket'), 'error')
       }
     }
   }
@@ -373,6 +380,10 @@ export default function TMList({
   const handleReject = useCallback(async (ticket) => {
     if (lockedTickets[ticket.id]) {
       onShowToast(lockedTickets[ticket.id].reason || 'This ticket is locked (COR approved)', 'error')
+      return
+    }
+    if (!canApproveTickets) {
+      onShowToast('You do not have permission to reject tickets. Ask a company administrator.', 'error')
       return
     }
     const check = validateRejectionReason(
@@ -394,9 +405,9 @@ export default function TMList({
       onShowToast('Ticket rejected', 'success')
     } catch (error) {
       console.error('Error rejecting ticket:', error)
-      onShowToast('Error rejecting ticket', 'error')
+      onShowToast(guardMessage(error, 'Error rejecting ticket'), 'error')
     }
-  }, [lockedTickets, user?.id, approverName]) // onShowToast is stable
+  }, [lockedTickets, user?.id, approverName, canApproveTickets]) // onShowToast is stable
 
   const deleteTicket = useCallback(async (ticketId) => {
     // Check if ticket is locked due to approved COR
@@ -1445,6 +1456,7 @@ export default function TMList({
     <TMTicketCard
       key={ticket.id}
       ticket={ticket}
+      canApprove={canApproveTickets}
       isExpanded={expandedTicket === ticket.id}
       isSelected={selectedTickets.has(ticket.id)}
       isLocked={!!lockedTickets[ticket.id]}

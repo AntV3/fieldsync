@@ -762,3 +762,47 @@
   }
 }
 
+
+/* ---------- Member permissions ---------- */
+
+.member-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  border: none;
+}
+
+.member-permissions legend {
+  padding: 0;
+  margin-bottom: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.member-permission {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 32px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.member-permission input { width: 16px; height: 16px; }
+
+.member-permissions-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .member-permissions { flex-direction: column; gap: 0.15rem; }
+  .member-permission { min-height: 44px; }
+}

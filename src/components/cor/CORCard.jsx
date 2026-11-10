@@ -18,12 +18,13 @@ const CORCard = memo(function CORCard({
   onDelete,
   onSubmitForApproval,
   onSubmitAndSend,
+  canSend = true,   // member holds the send-change-orders permission
   submitting = false
 }) {
   const statusInfo = getStatusInfo(cor.status)
   const canEdit = ['draft', 'pending_approval', 'approved'].includes(cor.status)
   const canDelete = ['draft', 'pending_approval', 'rejected'].includes(cor.status)
-  const canSubmit = cor.status === 'draft'
+  const canSubmit = cor.status === 'draft' && canSend
 
   const getAreaName = (areaId) => {
     const area = areas?.find(a => a.id === areaId)

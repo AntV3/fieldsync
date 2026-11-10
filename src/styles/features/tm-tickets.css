@@ -5424,3 +5424,15 @@ END MIGRATED */
     flex-basis: 55%;
   }
 }
+
+/* Signed and ready, but this member cannot approve */
+.tm-no-permission {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border-radius: 6px;
+  border: 1px dashed var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}

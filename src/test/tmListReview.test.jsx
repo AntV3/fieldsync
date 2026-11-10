@@ -403,6 +403,14 @@ describe('TMTicketCard review actions', () => {
     expect(screen.queryByText('Needs client signature')).toBeNull()
   })
 
+  it('without the approve permission: no Approve or Reject, the ticket reads as ready', () => {
+    const handlers = renderCard(makeTicket({ status: 'client_signed', client_signature_data: 'sig' }), { canApprove: false })
+    expect(screen.queryByRole('button', { name: 'Approve this ticket' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reject this ticket' })).not.toBeInTheDocument()
+    expect(screen.getByText('Ready for approval')).toBeInTheDocument()
+    expect(handlers.onApprove).not.toHaveBeenCalled()
+  })
+
   it('keeps Delete last and apart from Approve / Reject', () => {
     const handlers = renderCard(makeTicket({ status: 'client_signed', client_signature_data: 'sig' }))
     const buttons = actions().getAllByRole('button')

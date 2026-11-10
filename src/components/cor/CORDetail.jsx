@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check, Send } from 'lucide-react'
+import { X, Edit3, Download, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check, Send } from 'lucide-react'
 import { CollapsibleSection, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
+import { usePermissions } from '../../lib/PermissionsContext'
+import { guardMessage } from '../../lib/permissions'
 import { resolveClassRate } from '../../lib/laborRateResolver'
 import {
   formatCurrency,
@@ -125,35 +127,16 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   // Calculate totals
   const totals = useMemo(() => calculateCORTotals(corData), [corData])
 
+  const { canSendCORs } = usePermissions()
   const statusInfo = getStatusInfo(corData.status)
-  const canApprove = corData.status === 'pending_approval'
+  // Waiting on the client. Only their signature approves a COR.
+  const isWithClient = corData.status === 'pending_approval'
   // Allow editing before billed (draft, pending_approval, approved)
   const canEdit = ['draft', 'pending_approval', 'approved'].includes(corData.status)
 
   const getAreaName = (areaId) => {
     const area = areas?.find(a => a.id === areaId)
     return area?.name || null
-  }
-
-  const handleApprove = async () => {
-    if (actionInProgress) return
-    if (corData.status !== 'pending_approval') {
-      onShowToast?.('COR is no longer pending approval', 'error')
-      return
-    }
-    if (!confirm('Approve this change order request?')) return
-    setActionInProgress(true)
-    try {
-      const updated = await db.approveCOR(corData.id)
-      setCORData(prev => ({ ...prev, ...updated }))
-      onShowToast?.('COR approved', 'success')
-      onStatusChange?.()
-    } catch (error) {
-      console.error('Error approving COR:', error)
-      onShowToast?.('Error approving COR', 'error')
-    } finally {
-      setActionInProgress(false)
-    }
   }
 
   const handleReject = async () => {
@@ -200,7 +183,7 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       setShowSignatureLink(true)
     } catch (error) {
       console.error('Error submitting COR:', error)
-      onShowToast?.('Could not submit COR. Nothing was sent.', 'error')
+      onShowToast?.(guardMessage(error, 'Could not submit COR. Nothing was sent.'), 'error')
     } finally {
       setActionInProgress(false)
     }
@@ -1050,25 +1033,25 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             )}
 
             {corData.status === 'draft' && (
-              <button className="btn btn-primary" onClick={handleSubmitAndSend} disabled={actionInProgress}>
+              <button
+                className="btn btn-primary"
+                onClick={handleSubmitAndSend}
+                disabled={actionInProgress || !canSendCORs}
+                title={canSendCORs ? undefined : 'Ask a company administrator for permission to send change orders'}
+              >
                 <Send size={16} aria-hidden="true" /> Submit & send for signature
               </button>
             )}
 
-            {canApprove && (
-              <>
-                <button className="btn btn-danger" onClick={handleReject} disabled={actionInProgress} aria-label="Reject this COR">
-                  <XCircle size={16} aria-hidden="true" /> Reject
-                </button>
-                <button className="btn btn-success" onClick={handleApprove} disabled={actionInProgress} aria-label="Approve this COR">
-                  <CheckCircle size={16} aria-hidden="true" /> Approve
-                </button>
-              </>
+            {isWithClient && (
+              <button className="btn btn-danger" onClick={handleReject} disabled={actionInProgress} aria-label="Record that the client rejected this COR">
+                <XCircle size={16} aria-hidden="true" /> Client rejected
+              </button>
             )}
 
             {canSign && (
-              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={actionInProgress} aria-label="Get GC signature for this COR">
-                <PenTool size={16} aria-hidden="true" /> Get GC Signature
+              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={actionInProgress} aria-label="Get the client signature for this COR">
+                <PenTool size={16} aria-hidden="true" /> Get client signature
               </button>
             )}
 

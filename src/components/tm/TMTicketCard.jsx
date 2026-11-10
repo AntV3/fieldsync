@@ -43,6 +43,7 @@ const TMTicketCard = memo(function TMTicketCard({
   onToggleSelect,
   onApprove,
   onReject,
+  canApprove = true,   // member holds the approve-tickets permission
   onUpdateStatus,
   onDelete,
   onOpenCorAssign,
@@ -358,7 +359,7 @@ const TMTicketCard = memo(function TMTicketCard({
                   >
                     <Link size={14} aria-hidden="true" /> Get signature link
                   </button>
-                ) : (
+                ) : canApprove ? (
                   <button
                     className="btn btn-success btn-small tm-review-btn"
                     onClick={(e) => { e.stopPropagation(); onApprove(ticket); }}
@@ -366,14 +367,20 @@ const TMTicketCard = memo(function TMTicketCard({
                   >
                     Approve
                   </button>
+                ) : (
+                  <span className="tm-no-permission" title="Ask a company administrator for the approve-tickets permission">
+                    Ready for approval
+                  </span>
                 )}
-                <button
-                  className="btn btn-warning btn-small tm-review-btn"
-                  onClick={(e) => { e.stopPropagation(); (onReject || (() => onUpdateStatus(ticket.id, 'rejected')))(ticket); }}
-                  aria-label="Reject this ticket"
-                >
-                  Reject
-                </button>
+                {canApprove && (
+                  <button
+                    className="btn btn-warning btn-small tm-review-btn"
+                    onClick={(e) => { e.stopPropagation(); (onReject || (() => onUpdateStatus(ticket.id, 'rejected')))(ticket); }}
+                    aria-label="Reject this ticket"
+                  >
+                    Reject
+                  </button>
+                )}
               </>
             )}
             {ticket.status === 'approved' && !isLocked && (

@@ -3,11 +3,12 @@ import { Edit3, Check, X, Loader2, ChevronDown } from 'lucide-react'
 import { formatCurrency } from '../../lib/corCalculations'
 import StatusBadge from '../ui/StatusBadge'
 
-// Available status options for editing
+// Status options for editing. "Approved" is set only by the client's
+// signature, so it is offered only on a COR that is already approved.
+const APPROVED_OPTION = { value: 'approved', label: 'Approved' }
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
   { value: 'pending_approval', label: 'Pending Approval' },
-  { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'billed', label: 'Billed' },
   { value: 'closed', label: 'Closed' }
@@ -141,7 +142,7 @@ export default function CORLogRow({
               disabled={isSaving}
               className="cor-log-select"
             >
-              {STATUS_OPTIONS.map(opt => (
+              {(entry.changeOrder?.status === 'approved' ? [...STATUS_OPTIONS, APPROVED_OPTION] : STATUS_OPTIONS).map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>

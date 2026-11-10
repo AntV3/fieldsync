@@ -33,6 +33,8 @@ vi.mock('../components/SignatureLinkGenerator', () => ({
   default: ({ documentId }) => <div data-testid="signature-link-generator" data-document-id={documentId} />
 }))
 
+import { PermissionsProvider } from '../lib/PermissionsContext'
+import { ALL_PERMISSIONS } from '../lib/permissions'
 import CORDetail from '../components/cor/CORDetail'
 
 const cor = (overrides = {}) => ({
@@ -52,11 +54,12 @@ const cor = (overrides = {}) => ({
   ...overrides
 })
 
-const renderDetail = async (corRow) => {
+const renderDetail = async (corRow, permissions = ALL_PERMISSIONS) => {
   mockDb.getCORById.mockResolvedValue(corRow)
   const onShowToast = vi.fn()
   const onStatusChange = vi.fn()
   render(
+    <PermissionsProvider value={permissions}>
     <CORDetail
       cor={corRow}
       project={{ id: 'p1', name: 'Tower A' }}
@@ -67,10 +70,38 @@ const renderDetail = async (corRow) => {
       onShowToast={onShowToast}
       onStatusChange={onStatusChange}
     />
+    </PermissionsProvider>
   )
   await screen.findByRole('heading', { name: corRow.title })
   return { onShowToast, onStatusChange }
 }
+
+describe('CORDetail approval and permissions', () => {
+  beforeEach(() => {
+    mockDb.subscribeToCorTickets.mockReturnValue(null)
+    mockDb.getAllLaborClassRates.mockResolvedValue([])
+    mockDb.getLaborRates.mockResolvedValue([])
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
+
+  it('offers no office Approve on a COR that is with the client', async () => {
+    await renderDetail(cor({ status: 'pending_approval' }))
+    expect(screen.queryByRole('button', { name: /^Approve/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Record that the client rejected this COR' })).toBeInTheDocument()
+  })
+
+  it('disables sending for a member without the send permission', async () => {
+    await renderDetail(cor(), { ...ALL_PERMISSIONS, canSendCORs: false, enforced: true })
+    const send = screen.getByRole('button', { name: /Submit & send for signature/ })
+    expect(send).toBeDisabled()
+    fireEvent.click(send)
+    expect(mockDb.submitCORForApproval).not.toHaveBeenCalled()
+  })
+})
 
 describe('CORDetail next step', () => {
   beforeEach(() => {

@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 import { isSupabaseConfigured, db } from './lib/supabase'
 import { BrandingProvider } from './lib/BrandingContext'
 import { TradeConfigProvider } from './lib/TradeConfigContext'
 import { ThemeProvider } from './lib/ThemeContext'
 import { useToast } from './lib/ToastContext'
+import { PermissionsProvider } from './lib/PermissionsContext'
+import { resolvePermissions } from './lib/permissions'
 import useAuthState from './hooks/useAuthState'
 import LoginChooser from './components/auth/LoginChooser'
 import FieldLogin from './components/auth/FieldLogin'
@@ -174,6 +176,20 @@ export default function App() {
     }
   }, [company?.id, authReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The signed-in member's permission row (null until loaded, or when the
+  // database does not have the permission columns yet)
+  const [permissionRow, setPermissionRow] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    setPermissionRow(null)
+    if (user?.id && company?.id && authReady) {
+      Promise.resolve(db.getMyPermissions?.(user.id, company.id)).then(row => {
+        if (!cancelled) setPermissionRow(row || null)
+      }).catch(() => {})
+    }
+    return () => { cancelled = true }
+  }, [user?.id, company?.id, authReady])
+
   const loadPendingRequestCount = async () => {
     if (!company?.id) return
     try {
@@ -193,6 +209,7 @@ export default function App() {
   const currentMembership = userCompanies.find(uc => uc.id === company?.id)
   const accessLevel = currentMembership?.access_level
   const isAdmin = accessLevel === 'administrator' || company?.owner_user_id === user?.id
+  const permissions = useMemo(() => resolvePermissions({ isAdmin, row: permissionRow }), [isAdmin, permissionRow])
 
   // Loading screen
   if (loading) {
@@ -379,6 +396,7 @@ export default function App() {
     <ThemeProvider>
       <BrandingProvider companyId={company?.id}>
         <TradeConfigProvider companyId={company?.id}>
+        <PermissionsProvider value={permissions}>
         <Routes>
           {/* Public routes - no auth required */}
           <Route path="/view/:token" element={
@@ -511,6 +529,7 @@ export default function App() {
           {/* 404 catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </PermissionsProvider>
         <CookieConsent />
         </TradeConfigProvider>
       </BrandingProvider>
