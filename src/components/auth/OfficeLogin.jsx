@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UserPlus, Building2, ArrowLeft } from 'lucide-react'
+import { UserPlus, Building2, ArrowLeft, HardHat } from 'lucide-react'
 import Logo from '../Logo'
 
 export default function OfficeLogin({ onOfficeLogin, onShowToast }) {
@@ -22,6 +22,7 @@ export default function OfficeLogin({ onOfficeLogin, onShowToast }) {
       onShowToast('Enter email and password', 'error')
       return
     }
+    try { localStorage.setItem('fieldsync-login-type', 'office') } catch { /* ignore */ }
     onOfficeLogin(emailValue, passwordValue)
   }
 
@@ -82,6 +83,16 @@ export default function OfficeLogin({ onOfficeLogin, onShowToast }) {
             <button className="entry-join-link" onClick={() => navigate('/register')}>
               <Building2 size={16} />
               <span>Register a new company</span>
+            </button>
+            <button
+              className="entry-join-link"
+              onClick={() => {
+                try { localStorage.setItem('fieldsync-login-type', 'field') } catch { /* ignore */ }
+                navigate('/login/field')
+              }}
+            >
+              <HardHat size={16} />
+              <span>Field crew? Enter project PIN</span>
             </button>
           </div>
         </div>
