@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { ClipboardList, MessageSquareText, FileCheck, NotebookPen, ListChecks, HardHat, Menu, Plus } from 'lucide-react'
+import { ClipboardList, MessageSquareText, FileCheck, NotebookPen, ListChecks, HardHat, Menu } from 'lucide-react'
 import { db } from '../../../lib/supabase'
 import { safeAsync } from '../../../lib/errorHandler'
 import { TicketSkeleton } from '../../ui'
@@ -26,7 +26,8 @@ export default function FieldActivityTab({
   user,
   onShowToast,
   fieldSection,
-  setFieldSection
+  setFieldSection,
+  onCreateDailyReport
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false)
@@ -127,13 +128,14 @@ export default function FieldActivityTab({
           <div className="field-onboarding-body">
             <h3>No field data yet</h3>
             <p>
-              Field data like reports, RFIs, and submittals will appear here once your crew
-              starts working. Create your first daily report to get started.
+              Reports, RFIs, and submittals show up here as your crew sends them in from the field.
             </p>
           </div>
-          <button className="btn btn-primary" onClick={() => handleSectionChange('reports')}>
-            <Plus size={15} />
-            New Report
+          <button
+            className="btn btn-ghost btn-small"
+            onClick={() => (onCreateDailyReport ? onCreateDailyReport() : handleSectionChange('reports'))}
+          >
+            Enter a report for the crew
           </button>
         </div>
       )}
@@ -184,6 +186,7 @@ export default function FieldActivityTab({
               company={company}
               user={user}
               onShowToast={onShowToast}
+              onCreateDailyReport={onCreateDailyReport}
             />
           )}
 

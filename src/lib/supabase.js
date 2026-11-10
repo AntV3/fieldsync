@@ -11,6 +11,7 @@
  *   db/fieldOps.js     — Crew, Daily Reports, Messaging, Injuries, Disposal
  *   db/financialOps.js — COR/Exports, Sharing, Notifications
  *   db/documentOps.js  — Documents, Folders
+ *   db/queueOps.js     — Office work-queue counts
  *   db/client.js       — Shared deps (supabase client, offline cache, helpers)
  */
 
@@ -63,6 +64,7 @@ import { tradeOps } from './db/tradeOps'
 import { costCodeOps } from './db/costCodeOps'
 import { rfiOps } from './db/rfiOps'
 import { submittalOps } from './db/submittalOps'
+import { queueOps } from './db/queueOps'
 
 // Initialize offline database (guard for SSR/test environments)
 if (typeof window !== 'undefined') {
@@ -221,6 +223,7 @@ export const db = {
   ...costCodeOps,
   ...rfiOps,
   ...submittalOps,
+  ...queueOps,
 }
 
 // ============================================

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
-import { formatCurrency } from '../../lib/corCalculations'
+import { formatCurrency, validateCOR } from '../../lib/corCalculations'
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -16,6 +16,7 @@ import { useFilteredPagination } from '../../hooks/useFilteredPagination'
 import Pagination from '../ui/Pagination'
 import CORLog from './CORLog'
 import CORCard from './CORCard'
+import SignatureLinkGenerator from '../SignatureLinkGenerator'
 
 // Status display mapping for exports
 const STATUS_DISPLAY = {
@@ -26,6 +27,8 @@ const STATUS_DISPLAY = {
   billed: { label: 'Billed', color: [1, 112, 171], bgColor: [212, 233, 245] },
   closed: { label: 'Closed', color: [75, 85, 99], bgColor: [229, 231, 235] }
 }
+
+const STATUS_FILTERS = ['all', 'draft', 'pending_approval', 'approved', 'rejected', 'billed']
 
 export default function CORList({
   project,
@@ -40,7 +43,8 @@ export default function CORList({
   previewMode = false,  // When true, shows limited items with "See All" button
   previewLimit = 5,     // Number of items to show in preview mode
   onViewAll,            // Callback when "See All" is clicked
-  onDisplayModeChange   // Callback when display mode changes (for parent layout adjustments)
+  onDisplayModeChange,  // Callback when display mode changes (for parent layout adjustments)
+  filterRequest         // { key, filter }: show this status; a new key applies it again
 }) {
   const { branding } = useBranding()
   const [cors, setCORs] = useState([])
@@ -54,6 +58,10 @@ export default function CORList({
   const [newGroupName, setNewGroupName] = useState('')
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef(null)
+  const listRef = useRef(null)
+  const appliedFilterKey = useRef(null)
+  const [submittingCORId, setSubmittingCORId] = useState(null)
+  const [signatureLinkCOR, setSignatureLinkCOR] = useState(null)
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -459,6 +467,32 @@ export default function CORList({
     }
   }, [loadCORs, loadStats]) // onShowToast is stable (memoized in App.jsx)
 
+  // Draft -> pending approval, then straight to the client signature link
+  const handleSubmitAndSend = useCallback(async (cor, e) => {
+    e?.stopPropagation()
+    if (submittingCORId) return
+
+    const validation = validateCOR(cor)
+    if (!validation.valid) {
+      onShowToast?.(validation.errors[0], 'error')
+      return
+    }
+
+    setSubmittingCORId(cor.id)
+    try {
+      const submitted = await db.submitCORForApproval(cor.id)
+      if (!submitted) throw new Error('COR was not submitted')
+      setSignatureLinkCOR({ ...cor, ...submitted })
+      loadCORs()
+      loadStats()
+    } catch (error) {
+      console.error('Error submitting COR:', error?.message || error)
+      onShowToast?.('Could not submit COR. Nothing was sent.', 'error')
+    } finally {
+      setSubmittingCORId(null)
+    }
+  }, [submittingCORId, loadCORs, loadStats, onShowToast])
+
   // Toggle COR selection
   const toggleCORSelection = useCallback((corId, e) => {
     e?.stopPropagation()
@@ -583,6 +617,21 @@ export default function CORList({
     searchFields: ['title', 'cor_number', 'scope_of_work', 'status']
   })
 
+  // Apply a status filter requested from outside (e.g. the office quick actions)
+  useEffect(() => {
+    if (!filterRequest || appliedFilterKey.current === filterRequest.key) return
+    appliedFilterKey.current = filterRequest.key
+    if (!STATUS_FILTERS.includes(filterRequest.filter)) return
+
+    setFilter(filterRequest.filter)
+    // Clear anything that could hide the requested CORs
+    setGroupFilter('all')
+    setViewMode('all')
+    setDateFilter({ start: '', end: '' })
+    setSearchTerm('')
+    listRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }, [filterRequest, setSearchTerm])
+
   // In preview mode use filteredCORs directly; otherwise use paginated results
   const displayCORs = previewMode ? filteredCORs : paginatedItems
 
@@ -648,12 +697,14 @@ export default function CORList({
       onEdit={onEditCOR}
       onDelete={handleDelete}
       onSubmitForApproval={handleSubmitForApproval}
+      onSubmitAndSend={handleSubmitAndSend}
+      submitting={submittingCORId === cor.id}
     />
   )
 
   if (loading) {
     return (
-      <div className="cor-list">
+      <div className="cor-list" ref={listRef}>
         <div className="cor-loading-skeletons">
           {[1, 2, 3].map(i => (
             <CardSkeleton key={i} />
@@ -664,7 +715,7 @@ export default function CORList({
   }
 
   return (
-    <div className={`cor-list ${previewMode ? 'cor-list-preview' : ''}`}>
+    <div className={`cor-list ${previewMode ? 'cor-list-preview' : ''}`} ref={listRef}>
       {/* Clean Header */}
       <div className="cor-list-header">
         <div className="cor-list-info">
@@ -999,6 +1050,20 @@ export default function CORList({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Signature link for a COR that was just submitted */}
+      {signatureLinkCOR && (
+        <SignatureLinkGenerator
+          documentType="cor"
+          documentId={signatureLinkCOR.id}
+          companyId={company?.id}
+          projectId={project?.id}
+          project={project}
+          documentTitle={`COR ${signatureLinkCOR.cor_number}: ${signatureLinkCOR.title || 'Untitled'}`}
+          onClose={() => setSignatureLinkCOR(null)}
+          onShowToast={onShowToast}
+        />
       )}
     </div>
   )

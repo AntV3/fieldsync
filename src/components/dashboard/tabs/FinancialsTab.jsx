@@ -48,10 +48,16 @@ export default function FinancialsTab({
   onCreateCOR,
   onViewCOR,
   onEditCOR,
+  corFilterRequest,
   // T&M state
   tmViewMode,
   onViewAllTickets,
   onBackToTMPreview,
+  ticketReviewRequest,
+  pendingTickets,
+  readyForCORCount,
+  onCreateTMTicket,
+  onBuildCOR,
   // Equipment
   equipmentRefreshKey,
   onAddEquipment,
@@ -296,6 +302,7 @@ export default function FinancialsTab({
                       onCreateCOR={onCreateCOR}
                       onViewCOR={onViewCOR}
                       onEditCOR={onEditCOR}
+                      filterRequest={corFilterRequest}
                     />
                   </Suspense>
                 </div>
@@ -321,6 +328,11 @@ export default function FinancialsTab({
                     compact={tmViewMode === 'preview'}
                     previewMode={tmViewMode === 'preview'}
                     onViewAll={onViewAllTickets}
+                    reviewRequest={ticketReviewRequest}
+                    pendingTotal={pendingTickets}
+                    readyForCORTotal={readyForCORCount}
+                    onCreateTicket={onCreateTMTicket}
+                    onBuildCOR={onBuildCOR}
                   />
                 </Suspense>
               </div>

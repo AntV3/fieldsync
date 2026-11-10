@@ -1,9 +1,10 @@
-import { Search, AlertTriangle, BarChart3 } from 'lucide-react'
+import { Search, AlertTriangle, BarChart3, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { formatCurrency } from '../../lib/utils'
 import UniversalSearch from '../UniversalSearch'
 import { SmartAlerts } from './SmartAlerts'
 import EnhancedProjectCard from './EnhancedProjectCard'
+import NeedsActionStrip from './NeedsActionStrip'
 
 export default function PortfolioView({
   projects,
@@ -22,6 +23,10 @@ export default function PortfolioView({
   onShowToast,
   onSelectTicket,
   onSelectCOR,
+  queueTotals = null, // Company-wide office queue totals (useOfficeQueue); null until loaded
+  queueByProject = null, // Per-project office queue counts; null until loaded
+  onQuickAction,
+  onOpenQuickActions,
 }) {
   const navigate = useNavigate()
 
@@ -65,6 +70,9 @@ export default function PortfolioView({
     behindScheduleExposure,
   } = scheduleMetrics
 
+  // The office queue is the live count of CORs out with clients
+  const pendingCORCount = queueTotals ? queueTotals.withClient : totalPendingCORCount
+
   return (
     <div>
       {/* Business Overview - High Level Portfolio Health */}
@@ -80,8 +88,17 @@ export default function PortfolioView({
             <span>Search</span>
             <span className="shortcut">⌘K</span>
           </button>
+          {onOpenQuickActions && (
+            <button className="search-trigger-btn oqa-desktop-only" onClick={onOpenQuickActions} aria-haspopup="dialog">
+              <Zap size={16} />
+              <span>Quick actions</span>
+            </button>
+          )}
           <div className="bo-project-count">{projects.length} Active Project{projects.length !== 1 ? 's' : ''}</div>
         </div>
+
+        {/* Needs action - what is waiting on the office across every project */}
+        <NeedsActionStrip counts={queueTotals} scope="portfolio" onAction={onQuickAction} />
 
         {/* Hero Financial Metrics */}
         <div className="bo-financial">
@@ -139,7 +156,7 @@ export default function PortfolioView({
               <div className="bo-kpi pending">
                 <span className="bo-kpi-value">{formatCurrency(totalPendingCORValue)}</span>
                 <span className="bo-kpi-label">Pending CORs</span>
-                <span className="bo-kpi-context">{totalPendingCORCount} awaiting approval</span>
+                <span className="bo-kpi-context">{pendingCORCount} awaiting approval</span>
               </div>
             )}
           </div>
@@ -265,6 +282,7 @@ export default function PortfolioView({
               riskScore={projectRisk?.riskScore}
               riskStatus={projectRisk?.riskStatus}
               newActivityCount={fieldActivity[project.id] || 0}
+              queueCounts={queueByProject ? queueByProject[project.id] : null}
               onClick={() => onSelectProject(project)}
             />
           )

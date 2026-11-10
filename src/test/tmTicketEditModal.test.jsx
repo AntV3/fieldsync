@@ -39,6 +39,10 @@ vi.mock('../lib/tmStatus', () => {
     TM_COR_STATUSES_ALLOWING_TICKET_EDIT: ['draft', 'pending_approval'],
     isAwaitingApproval: (s) => AWAITING.includes(s),
     hasClientAuthorization: (t) => Boolean(t?.client_signature_data || t?.gc_signature_data),
+    matchesStatusFilter: (t, f) => f === 'all' || (f === 'pending' ? AWAITING.includes(t?.status) : t?.status === f),
+    canApproveTicket: (t) => AWAITING.includes(t?.status) &&
+      (t.status === 'client_signed' || Boolean(t?.client_signature_data || t?.gc_signature_data)),
+    sortTicketsForReview: (list) => [...(list || [])],
     hasAnySignature,
     getTicketEditability: (ticket, lockInfo) => {
       const flagsAfterSignature = hasAnySignature(ticket)

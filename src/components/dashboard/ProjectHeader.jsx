@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Plus, X, FileText, ClipboardList, FilePlus2 } from 'lucide-react'
+import { ArrowLeft, Plus, Zap } from 'lucide-react'
 
 /**
  * ProjectHeader - Top of the project detail view.
- * Back button, action buttons (Share / Alerts / Edit / quick-create trio),
+ * Back button, action buttons (Share / Alerts / Edit / Quick actions / New COR),
  * project name with schedule status pill, and job metadata line.
- * On mobile the three create actions collapse into a floating action
- * button with a speed dial.
+ * "Quick actions" opens the office quick-actions sheet and carries its badge
+ * (tickets ready to approve, or a dot when something else is waiting). On
+ * phones both it and "New COR" give way to the floating quick-actions button
+ * (OfficeQuickActions). T&M tickets and daily reports are field entries and
+ * are reached from that sheet's footer, not from here.
  */
 export default function ProjectHeader({
   project,
@@ -16,26 +18,14 @@ export default function ProjectHeader({
   onOpenAlerts,
   onEditClick,
   onCreateCOR,
-  onCreateTMTicket,
-  onCreateDailyReport
+  onOpenQuickActions,
+  quickActionsBadge = null
 }) {
-  const [fabOpen, setFabOpen] = useState(false)
-  const fabRef = useRef(null)
-
-  // Close the speed dial when tapping anywhere else
-  useEffect(() => {
-    if (!fabOpen) return
-    const handlePointerDown = (e) => {
-      if (fabRef.current && !fabRef.current.contains(e.target)) setFabOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [fabOpen])
-
-  const fireFabAction = (action) => {
-    setFabOpen(false)
-    action?.()
-  }
+  const badgeLabel = typeof quickActionsBadge === 'number'
+    ? `Quick actions, ${quickActionsBadge} ticket${quickActionsBadge === 1 ? '' : 's'} to review`
+    : quickActionsBadge === 'dot'
+      ? 'Quick actions, items waiting'
+      : 'Quick actions'
 
   return (
     <>
@@ -49,14 +39,22 @@ export default function ProjectHeader({
           <button className="pv-action" onClick={onShare}>Share</button>
           <button className="pv-action" onClick={onOpenAlerts}>Alerts</button>
           <button className="pv-action" onClick={onEditClick}>Edit</button>
-          <button className="pv-action sdx-action-secondary pv-action-quick" onClick={onCreateTMTicket}>
-            <Plus size={14} aria-hidden="true" />
-            T&amp;M Ticket
-          </button>
-          <button className="pv-action sdx-action-secondary pv-action-quick" onClick={onCreateDailyReport}>
-            <Plus size={14} aria-hidden="true" />
-            Daily Report
-          </button>
+          {onOpenQuickActions && (
+            <button
+              className="pv-action sdx-action-secondary pv-action-quick oqa-header-btn"
+              onClick={onOpenQuickActions}
+              aria-label={badgeLabel}
+              aria-haspopup="dialog"
+            >
+              <Zap size={14} aria-hidden="true" />
+              Quick actions
+              {quickActionsBadge !== null && (
+                <span className={`oqa-header-badge ${quickActionsBadge === 'dot' ? 'oqa-header-badge--dot' : ''}`} aria-hidden="true">
+                  {quickActionsBadge === 'dot' ? '' : quickActionsBadge > 99 ? '99+' : quickActionsBadge}
+                </span>
+              )}
+            </button>
+          )}
           <button className="pv-action sdx-action-primary pv-action-quick" onClick={onCreateCOR}>
             <Plus size={14} aria-hidden="true" />
             New COR
@@ -88,35 +86,6 @@ export default function ProjectHeader({
             ].filter(Boolean).join(' · ')}
           </span>
         )}
-      </div>
-
-      {/* Mobile FAB + speed dial (replaces the quick-create buttons above) */}
-      <div className="pv-fab-wrap" ref={fabRef}>
-        {fabOpen && (
-          <div className="pv-fab-dial" role="menu" aria-label="Create new item">
-            <button className="pv-fab-option" role="menuitem" onClick={() => fireFabAction(onCreateCOR)}>
-              <span className="pv-fab-option-label">New COR</span>
-              <span className="pv-fab-option-icon"><FilePlus2 size={18} /></span>
-            </button>
-            <button className="pv-fab-option" role="menuitem" onClick={() => fireFabAction(onCreateTMTicket)}>
-              <span className="pv-fab-option-label">T&amp;M Ticket</span>
-              <span className="pv-fab-option-icon"><ClipboardList size={18} /></span>
-            </button>
-            <button className="pv-fab-option" role="menuitem" onClick={() => fireFabAction(onCreateDailyReport)}>
-              <span className="pv-fab-option-label">Daily Report</span>
-              <span className="pv-fab-option-icon"><FileText size={18} /></span>
-            </button>
-          </div>
-        )}
-        <button
-          className={`pv-fab ${fabOpen ? 'open' : ''}`}
-          onClick={() => setFabOpen(prev => !prev)}
-          aria-expanded={fabOpen}
-          aria-haspopup="menu"
-          aria-label={fabOpen ? 'Close create menu' : 'Create new item'}
-        >
-          {fabOpen ? <X size={22} /> : <Plus size={22} />}
-        </button>
       </div>
     </>
   )

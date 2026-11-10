@@ -72,9 +72,9 @@ describe('FieldActivityTab', () => {
       />
     )
     await waitFor(() => {
-      expect(screen.getByText(/Create your first daily report to get started/)).toBeInTheDocument()
+      expect(screen.getByText(/show up here as your crew sends them in from the field/)).toBeInTheDocument()
     })
-    expect(screen.getByRole('button', { name: /New Report/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Enter a report for the crew/ })).toBeInTheDocument()
   })
 
   it('hides the onboarding message when any section has data', async () => {
@@ -92,7 +92,7 @@ describe('FieldActivityTab', () => {
     )
     // Wait for counts to load, then confirm no onboarding banner
     await waitFor(() => {
-      expect(screen.queryByText(/Create your first daily report/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/No field data yet/)).not.toBeInTheDocument()
     })
   })
 })

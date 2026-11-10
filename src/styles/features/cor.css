@@ -4095,3 +4095,99 @@ END MIGRATED */
   }
 }
 
+
+/* =====================================================
+   TICKET SELECTOR - READY FOR COR / CE-PCO GROUPS
+   ===================================================== */
+
+.ticket-selector-controls .ticket-filters {
+  flex-wrap: wrap;
+}
+
+.ticket-group + .ticket-group {
+  border-top: 2px solid var(--border-color);
+}
+
+.ticket-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.ticket-group-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+}
+
+.ticket-group-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.ticket-group-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.ticket-group-select {
+  flex-shrink: 0;
+  min-height: 44px;
+  color: var(--primary-color);
+}
+
+.ticket-not-approved {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--status-warning, var(--warning));
+  background: var(--status-warning-bg, rgba(217, 119, 6, 0.15));
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+}
+
+/* Keep the list clear of sticky headers when a status filter scrolls to it */
+.cor-list {
+  scroll-margin-top: 5rem;
+}
+
+/* COR card: one next step for a draft */
+.cor-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.cor-card-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.cor-detail-footer .footer-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .cor-card-send {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .cor-detail-footer .footer-actions {
+    justify-content: center;
+  }
+}

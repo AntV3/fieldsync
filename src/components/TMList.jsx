@@ -1,8 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search } from 'lucide-react'
+import { FileText, ChevronDown, ChevronRight, Calendar, X, FileSpreadsheet, BarChart3, List, Search, Plus, ArrowRight } from 'lucide-react'
 import { db } from '../lib/supabase'
 import { useBranding } from '../lib/BrandingContext'
-import { TM_AWAITING_APPROVAL_STATUSES, getTicketEditability, validateRejectionReason } from '../lib/tmStatus'
+import {
+  TM_AWAITING_APPROVAL_STATUSES,
+  matchesStatusFilter,
+  canApproveTicket,
+  sortTicketsForReview,
+  getTicketEditability,
+  validateRejectionReason
+} from '../lib/tmStatus'
 import { buildClassRateLookup, calculateTicketValue } from '../lib/laborRateResolver'
 import {
   resolvePrimaryColor,
@@ -31,13 +38,22 @@ export default function TMList({
   compact = false,
   // Preview mode props
   previewMode = false,   // When true, shows current month tickets with "See All" button
-  onViewAll              // Callback when "See All" is clicked
+  onViewAll,             // Callback when "See All" is clicked
+  // Office review props
+  reviewRequest = null,  // { key, filter }: jump to that status filter in list view
+  pendingTotal,          // Server-side count of tickets awaiting office action
+  onCreateTicket,        // Shows a secondary "New ticket" button when provided
+  onBuildCOR,            // Shows "Build COR from N approved tickets" when provided
+  readyForCORTotal       // Server-side count of approved tickets not on a COR yet
 }) {
   const { branding } = useBranding()
+  // A review request only applies outside preview mode, where the filter tabs
+  // are visible and the user can change it back.
+  const initialReview = reviewRequest && !previewMode ? reviewRequest : null
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState(initialReview?.filter || 'all')
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
@@ -47,15 +63,22 @@ export default function TMList({
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const TICKETS_PER_PAGE = 25
+  const REVIEW_PAGE_SIZE = 100
   const MAX_TICKETS_IN_MEMORY = 500 // Prevent memory bloat from infinite scroll
 
   // View mode state - in preview mode, we filter to current month
-  const [viewMode, setViewMode] = useState('recent') // 'recent' | 'all'
+  const [viewMode, setViewMode] = useState(initialReview ? 'all' : 'recent') // 'recent' | 'all'
   const [displayMode, setDisplayMode] = useState(() => {
     // Load user preference from localStorage, default to 'dashboard'
     const saved = localStorage.getItem('fieldsync-tm-default-view')
     return saved === 'list' || saved === 'dashboard' ? saved : 'dashboard'
   })
+  // A review request shows the list without touching the saved preference
+  // above; it lasts until the user picks a display mode themselves.
+  const [reviewListForced, setReviewListForced] = useState(Boolean(initialReview))
+  const handledReviewKeyRef = useRef(reviewRequest?.key)
+  // Compact previews have no dashboard, so they always show the list.
+  const activeDisplayMode = compact || reviewListForced ? 'list' : displayMode
   const [expandedMonths, setExpandedMonths] = useState(new Set())
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' })
 
@@ -121,7 +144,10 @@ export default function TMList({
       // Use paginated query for scalability
       const result = await db.getTMTicketsPaginated(project.id, {
         page: pageNum,
-        limit: TICKETS_PER_PAGE,
+        // The review queue loads oldest first and in bigger pages, so tickets
+        // ready to approve are not left behind newer unsigned ones
+        limit: filter === 'pending' ? REVIEW_PAGE_SIZE : TICKETS_PER_PAGE,
+        ascending: filter === 'pending',
         // "Pending" means everything the office still has to act on. Field
         // tickets arrive foreman-signed, so a bare 'pending' filter hid them.
         status: filter === 'all' ? null : (filter === 'pending' ? TM_AWAITING_APPROVAL_STATUSES : filter)
@@ -215,6 +241,31 @@ export default function TMList({
     }
   }, [compact])
 
+  // Apply a new review request while mounted (the first one is applied by the
+  // initial state above). Changing the filter reloads the tickets.
+  useEffect(() => {
+    const key = reviewRequest?.key
+    if (key === handledReviewKeyRef.current) return
+    handledReviewKeyRef.current = key
+    if (!reviewRequest || previewMode) return
+    setFilter(reviewRequest.filter || 'all')
+    setViewMode('all')
+    setDateFilter({ start: '', end: '' })
+    setSearchTerm('')
+    setSelectedTickets(new Set())
+    setReviewListForced(true)
+  }, [reviewRequest, previewMode])
+
+  // The summary has no filter tabs, so never leave a filter applied to it
+  useEffect(() => {
+    if (previewMode) setFilter('all')
+  }, [previewMode])
+
+  const chooseDisplayMode = (mode) => {
+    setReviewListForced(false)
+    setDisplayMode(mode)
+  }
+
   // Load more tickets (next page)
   const loadMore = () => {
     if (!loadingMore && hasMore) {
@@ -263,6 +314,12 @@ export default function TMList({
       return
     }
 
+    // The office cannot approve a ticket the client has not signed.
+    if (!canApproveTicket(ticket)) {
+      onShowToast('This ticket needs the client signature before it can be approved.', 'error')
+      return
+    }
+
     const existing = parseFloat(ticket.change_order_value)
     const computed = calculateTicketValue(ticket, rateLookup).total
     const value = existing > 0 ? existing : computed
@@ -274,6 +331,16 @@ export default function TMList({
   // Confirm approval with change order value
   const confirmChangeOrderApproval = async () => {
     if (!pendingApprovalTicket) return
+
+    // Re-check against the live row in case it changed while the modal was open.
+    const current = tickets.find(t => t.id === pendingApprovalTicket.id) || pendingApprovalTicket
+    if (!canApproveTicket(current)) {
+      onShowToast('This ticket needs the client signature before it can be approved.', 'error')
+      setShowChangeOrderModal(false)
+      setPendingApprovalTicket(null)
+      setChangeOrderValue('')
+      return
+    }
 
     try {
       const value = parseFloat(changeOrderValue) || 0
@@ -289,7 +356,16 @@ export default function TMList({
       setChangeOrderValue('')
     } catch (error) {
       console.error('Error approving ticket:', error)
-      onShowToast('Error approving ticket', 'error')
+      if (error?.code === 'TM_NOT_APPROVABLE') {
+        // Refused by the data layer: the row changed under us, so re-read it
+        onShowToast('Ticket was not approved. It needs the client signature or was already handled.', 'error')
+        setShowChangeOrderModal(false)
+        setPendingApprovalTicket(null)
+        setChangeOrderValue('')
+        loadTickets(0, true, { silent: true })
+      } else {
+        onShowToast('Error approving ticket', 'error')
+      }
     }
   }
 
@@ -537,6 +613,13 @@ export default function TMList({
     return total
   }
 
+  // What the card shows: the approved value once set, otherwise labor at
+  // company rates plus materials (the same figure the approve modal prefills).
+  const calculateTicketValueTotal = useCallback((ticket) => {
+    const existing = parseFloat(ticket.change_order_value)
+    return existing > 0 ? existing : calculateTicketValue(ticket, rateLookup).total
+  }, [rateLookup])
+
   const calculateTotalHours = (ticket) => {
     if (!ticket.t_and_m_workers) return 0
     return ticket.t_and_m_workers.reduce((sum, w) => {
@@ -581,7 +664,7 @@ export default function TMList({
   }, [])
 
   const toggleSelectAll = () => {
-    const currentFiltered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+    const currentFiltered = tickets.filter(t => matchesStatusFilter(t, filter))
     const allSelected = currentFiltered.every(t => selectedTickets.has(t.id))
     if (allSelected) {
       setSelectedTickets(new Set())
@@ -596,7 +679,7 @@ export default function TMList({
 
   // Get tickets to export (selected or all filtered)
   const getExportTickets = () => {
-    const filtered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter)
+    const filtered = tickets.filter(t => matchesStatusFilter(t, filter))
     if (selectedTickets.size > 0) {
       return filtered.filter(t => selectedTickets.has(t.id))
     }
@@ -1212,14 +1295,15 @@ export default function TMList({
     onShowToast('PDF exported!', 'success')
   }
 
+  // "To review" is the office's queue of tickets awaiting approval
+  const isReviewQueue = filter === 'pending'
+
   // Filter tickets by status, view mode, and date range
   const filteredTickets = useMemo(() => {
-    let filtered = filter === 'all'
-      ? [...tickets]
-      : tickets.filter(t => t.status === filter)
+    let filtered = tickets.filter(t => matchesStatusFilter(t, filter))
 
-    // Apply date filter if set
-    if (dateFilter.start) {
+    // Apply date filter if set (its inputs are hidden in the review queue)
+    if (dateFilter.start && !isReviewQueue) {
       const startDate = new Date(dateFilter.start)
       startDate.setHours(0, 0, 0, 0)
       filtered = filtered.filter(t => {
@@ -1227,7 +1311,7 @@ export default function TMList({
         return ticketDate >= startDate
       })
     }
-    if (dateFilter.end) {
+    if (dateFilter.end && !isReviewQueue) {
       const endDate = new Date(dateFilter.end)
       endDate.setHours(23, 59, 59, 999)
       filtered = filtered.filter(t => {
@@ -1246,8 +1330,9 @@ export default function TMList({
         return ticketDate.getMonth() === currentMonth && ticketDate.getFullYear() === currentYear
       })
     }
-    // In recent mode (not preview), show only last 7 days
-    else if (viewMode === 'recent') {
+    // In recent mode (not preview), show only last 7 days. The review queue
+    // is never cut by date: an old unapproved ticket still needs attention.
+    else if (viewMode === 'recent' && !isReviewQueue) {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       sevenDaysAgo.setHours(0, 0, 0, 0)
@@ -1275,12 +1360,13 @@ export default function TMList({
       })
     }
 
-    return filtered
-  }, [tickets, filter, viewMode, dateFilter, previewMode, searchTerm])
+    // Review queue: tickets the office can approve now first, then oldest first
+    return isReviewQueue ? sortTicketsForReview(filtered) : filtered
+  }, [tickets, filter, isReviewQueue, viewMode, dateFilter, previewMode, searchTerm])
 
-  // Group tickets by month for 'all' view
+  // Group tickets by month for 'all' view (the review queue stays one flat list)
   const ticketsByMonth = useMemo(() => {
-    if (viewMode !== 'all') return null
+    if (viewMode !== 'all' || isReviewQueue) return null
 
     const groups = {}
     filteredTickets.forEach(ticket => {
@@ -1293,11 +1379,11 @@ export default function TMList({
       }
       groups[monthKey].tickets.push(ticket)
       groups[monthKey].hours += calculateTotalHours(ticket)
-      groups[monthKey].cost += calculateTicketTotal(ticket)
+      groups[monthKey].cost += calculateTicketValueTotal(ticket)
     })
 
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]))
-  }, [filteredTickets, viewMode])
+  }, [filteredTickets, viewMode, isReviewQueue, calculateTicketValueTotal])
 
   // Auto-expand current month
   useEffect(() => {
@@ -1320,7 +1406,23 @@ export default function TMList({
   // Calculate totals for summary
   const totalHours = filteredTickets.reduce((sum, t) => sum + calculateTotalHours(t), 0)
   const totalCost = filteredTickets.reduce((sum, t) => sum + calculateTicketTotal(t), 0)
-  const totalTicketsCount = filter === 'all' ? tickets.length : tickets.filter(t => t.status === filter).length
+  const totalTicketsCount = tickets.filter(t => matchesStatusFilter(t, filter)).length
+
+  // Approved tickets not on a COR yet: the next step is to build one. A status
+  // filter loads only part of them, so use the server count when it is higher
+  // (the loaded count is ahead of it right after an approval).
+  const loadedReadyForCOR = tickets.filter(t => t.status === 'approved' && !t.assigned_cor_id).length
+  const readyForCORCount = Number.isFinite(readyForCORTotal)
+    ? Math.max(loadedReadyForCOR, readyForCORTotal)
+    : loadedReadyForCOR
+
+  const filterTabLabel = (status) => (
+    status === 'pending' ? 'To review' : status.charAt(0).toUpperCase() + status.slice(1)
+  )
+  const filterTabCount = (status) => {
+    if (status === 'pending' && Number.isFinite(pendingTotal)) return pendingTotal
+    return tickets.filter(t => matchesStatusFilter(t, status)).length
+  }
 
   if (loading) {
     return (
@@ -1361,7 +1463,7 @@ export default function TMList({
       onEdit={handleOpenEdit}
       formatDate={formatDate}
       calculateTotalHours={calculateTotalHours}
-      calculateTicketTotal={calculateTicketTotal}
+      calculateTicketTotal={calculateTicketValueTotal}
     />
   )
 
@@ -1376,15 +1478,15 @@ export default function TMList({
             {!compact && (
               <div className="tm-display-toggle">
                 <button
-                  className={`tm-display-btn ${displayMode === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => setDisplayMode('dashboard')}
+                  className={`tm-display-btn ${activeDisplayMode === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => chooseDisplayMode('dashboard')}
                   title="Dashboard View"
                 >
                   <BarChart3 size={16} /> Dashboard
                 </button>
                 <button
-                  className={`tm-display-btn ${displayMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setDisplayMode('list')}
+                  className={`tm-display-btn ${activeDisplayMode === 'list' ? 'active' : ''}`}
+                  onClick={() => chooseDisplayMode('list')}
                   title="List View"
                 >
                   <List size={16} /> List
@@ -1425,29 +1527,37 @@ export default function TMList({
                   className={`tm-filter-tab ${filter === status ? 'active' : ''}`}
                   onClick={() => { setFilter(status); clearSelection(); setSearchTerm(''); }}
                 >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {filterTabLabel(status)}
                   <span className="tm-filter-count">
-                    {status === 'all' ? tickets.length : tickets.filter(t => t.status === status).length}
+                    {filterTabCount(status)}
                   </span>
                 </button>
               ))}
             </div>
 
             <div className="tm-toolbar-right">
-              <div className="tm-view-toggle">
-                <button
-                  className={`tm-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
-                  onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
-                >
-                  Recent
+              {/* The review queue always shows every date, so no Recent / All */}
+              {!isReviewQueue && (
+                <div className="tm-view-toggle">
+                  <button
+                    className={`tm-toggle-btn ${viewMode === 'recent' ? 'active' : ''}`}
+                    onClick={() => { setViewMode('recent'); setDateFilter({ start: '', end: '' }); }}
+                  >
+                    Recent
+                  </button>
+                  <button
+                    className={`tm-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+                    onClick={() => setViewMode('all')}
+                  >
+                    All ({totalTicketsCount})
+                  </button>
+                </div>
+              )}
+              {onCreateTicket && !isReviewQueue && (
+                <button className="btn btn-secondary btn-small tm-new-ticket-btn" onClick={() => onCreateTicket()}>
+                  <Plus size={14} aria-hidden="true" /> New ticket
                 </button>
-                <button
-                  className={`tm-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
-                  onClick={() => setViewMode('all')}
-                >
-                  All ({totalTicketsCount})
-                </button>
-              </div>
+              )}
             </div>
           </div>
 
@@ -1469,7 +1579,7 @@ export default function TMList({
               )}
             </div>
 
-            {viewMode === 'all' && (
+            {viewMode === 'all' && !isReviewQueue && (
               <div className="tm-date-filter">
                 <Calendar size={14} />
                 <input
@@ -1494,13 +1604,21 @@ export default function TMList({
         </div>
       )}
 
+      {/* Next step once tickets are approved: put them on a COR */}
+      {onBuildCOR && readyForCORCount > 0 && (
+        <button type="button" className="tm-build-cor-cta" onClick={() => onBuildCOR()}>
+          <span>Build COR from {readyForCORCount} approved {readyForCORCount === 1 ? 'ticket' : 'tickets'}</span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      )}
+
       {/* Dashboard View */}
-      {!compact && displayMode === 'dashboard' && (
+      {activeDisplayMode === 'dashboard' && (
         <TMDashboard tickets={tickets} rateLookup={rateLookup} />
       )}
 
       {/* List View Content */}
-      {displayMode === 'list' && (
+      {activeDisplayMode === 'list' && (
         <>
           {/* Summary Bar - hidden in compact mode */}
           {!compact && filteredTickets.length > 0 && (
@@ -1523,9 +1641,13 @@ export default function TMList({
           {filteredTickets.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title={`No ${filter === 'all' ? '' : filter} Time and Material tickets${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
-          message="Time and Material tickets created in the field will appear here"
-          action={viewMode === 'recent' && totalTicketsCount > 0 ? (
+          title={isReviewQueue
+            ? 'No tickets to review'
+            : `No ${filter === 'all' ? '' : filter} Time and Material tickets${viewMode === 'recent' ? ' in the last 7 days' : ''}`}
+          message={isReviewQueue
+            ? 'Tickets submitted from the field will appear here'
+            : 'Time and Material tickets created in the field will appear here'}
+          action={!isReviewQueue && viewMode === 'recent' && totalTicketsCount > 0 ? (
             <button className="btn btn-secondary btn-small" onClick={() => setViewMode('all')}>
               View All Tickets
             </button>
@@ -1547,7 +1669,7 @@ export default function TMList({
           </div>
 
           {/* Render tickets - with month grouping in 'all' mode */}
-          {viewMode === 'all' && ticketsByMonth ? (
+          {ticketsByMonth ? (
             ticketsByMonth.map(([monthKey, monthData]) => (
               <div key={monthKey} className="month-group animate-fade-in">
                 <div

@@ -1,6 +1,6 @@
 import { memo, useState, useEffect } from 'react'
-import { isAwaitingApproval, getTicketEditability } from '../../lib/tmStatus'
-import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
+import { isAwaitingApproval, canApproveTicket, getTicketEditability } from '../../lib/tmStatus'
+import { HardHat, FileText, Wrench, Camera, Link, Lock, Link2, RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight, Pencil, PenLine, Trash2 } from 'lucide-react'
 import { CountBadge, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
 
@@ -55,6 +55,17 @@ const TMTicketCard = memo(function TMTicketCard({
 }) {
   const totalHours = calculateTotalHours(ticket)
   const totalCost = calculateTicketTotal(ticket)
+
+  // The office can only approve once the client has signed.
+  const awaitingApproval = isAwaitingApproval(ticket.status)
+  const needsClientSignature = awaitingApproval && !canApproveTicket(ticket)
+  const statusBadge = (() => {
+    if (ticket.status === 'client_signed') return { label: 'Client signed', variant: 'success' }
+    if (ticket.status === 'foreman_signed' && needsClientSignature) {
+      return { label: 'Awaiting client signature', variant: 'neutral' }
+    }
+    return {}
+  })()
 
   // Office edit state (columns stamped by update_tm_ticket_contents)
   const editability = getTicketEditability(ticket, lockInfo)
@@ -164,7 +175,7 @@ const TMTicketCard = memo(function TMTicketCard({
               <Pencil size={11} aria-hidden="true" /> {editedLabel}
             </span>
           )}
-          <StatusBadge status={ticket.status} />
+          <StatusBadge status={ticket.status} {...statusBadge} />
         </div>
         <div className="tm-ticket-summary">
           <div className="tm-ticket-hours-block">
@@ -313,6 +324,16 @@ const TMTicketCard = memo(function TMTicketCard({
             </div>
           )}
 
+          {needsClientSignature && !isLocked && (
+            <div className="tm-needs-signature">
+              <PenLine size={14} aria-hidden="true" />
+              <span>
+                <strong>Needs client signature</strong>
+                {' '}Send the client a link to sign. You can approve once they have.
+              </span>
+            </div>
+          )}
+
           <div className="tm-ticket-actions" role="group" aria-label="Ticket actions">
             {onEdit && !isLocked && !editability.locked && (
               <span className="tm-edit-btn-wrap" title={editability.editable ? undefined : editBlockedReason}>
@@ -327,31 +348,32 @@ const TMTicketCard = memo(function TMTicketCard({
                 </button>
               </span>
             )}
-            {isAwaitingApproval(ticket.status) && !isLocked && (
+            {awaitingApproval && !isLocked && (
               <>
+                {needsClientSignature ? (
+                  <button
+                    className="btn btn-primary btn-small tm-review-btn"
+                    onClick={(e) => { e.stopPropagation(); onShowSignatureLink(ticket); }}
+                    aria-label="Get signature link for this ticket"
+                  >
+                    <Link size={14} aria-hidden="true" /> Get signature link
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-success btn-small tm-review-btn"
+                    onClick={(e) => { e.stopPropagation(); onApprove(ticket); }}
+                    aria-label="Approve this ticket"
+                  >
+                    Approve
+                  </button>
+                )}
                 <button
-                  className="btn btn-success btn-small"
-                  onClick={(e) => { e.stopPropagation(); onApprove(ticket); }}
-                  aria-label="Approve this ticket"
-                >
-                  Approve
-                </button>
-                <button
-                  className="btn btn-warning btn-small"
+                  className="btn btn-warning btn-small tm-review-btn"
                   onClick={(e) => { e.stopPropagation(); (onReject || (() => onUpdateStatus(ticket.id, 'rejected')))(ticket); }}
                   aria-label="Reject this ticket"
                 >
                   Reject
                 </button>
-                {!ticket.client_signature_data && !ticket.gc_signature_data && (
-                  <button
-                    className="btn btn-secondary btn-small"
-                    onClick={(e) => { e.stopPropagation(); onShowSignatureLink(ticket); }}
-                    aria-label="Get signature link for this ticket"
-                  >
-                    <Link size={14} aria-hidden="true" /> Signature Link
-                  </button>
-                )}
               </>
             )}
             {ticket.status === 'approved' && !isLocked && (
@@ -381,7 +403,7 @@ const TMTicketCard = memo(function TMTicketCard({
                 Restore
               </button>
             )}
-            {!isLocked && (
+            {!isLocked && (ticket.assigned_cor_id || !isAwaitingApproval(ticket.status)) && ticket.status !== 'rejected' && (
               <button
                 className={`btn btn-small ${ticket.assigned_cor_id ? 'btn-ghost' : 'btn-secondary'}`}
                 onClick={(e) => { e.stopPropagation(); onOpenCorAssign(ticket); }}
@@ -403,11 +425,11 @@ const TMTicketCard = memo(function TMTicketCard({
             )}
             {!isLocked && (
               <button
-                className="btn btn-danger btn-small"
+                className="btn btn-small tm-delete-btn"
                 onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }}
                 aria-label="Delete this ticket"
               >
-                Delete
+                <Trash2 size={14} aria-hidden="true" /> Delete
               </button>
             )}
           </div>

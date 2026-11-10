@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { X, Check, Search, FileText, Users, Package, Truck, ChevronDown, ChevronRight } from 'lucide-react'
 import { db } from '../../lib/supabase'
 import { dollarsToCents } from '../../lib/corCalculations'
 import { buildClassRateLookup, rateForWorker, normalizeJobType } from '../../lib/laborRateResolver'
+import { TM_STATUS } from '../../lib/tmStatus'
 import StatusBadge from '../ui/StatusBadge'
 
 // Generate secure random ID suffix
@@ -12,13 +13,47 @@ const generateRandomId = () => {
   return Array.from(array, b => b.toString(36)).join('')
 }
 
-export default function TicketSelector({ projectId, companyId, corId, project = null, onImport, onClose, onShowToast }) {
+const FILTERS = ['ready', 'unassigned', 'approved', 'all']
+const NO_CE_PCO_KEY = '__none__'
+
+// The ticket description is stored in `notes`
+const ticketDescription = (ticket) => ticket.notes || ticket.work_description || ''
+
+// Approved (so client-signed) and not on a COR yet: the normal input for a COR
+const isReadyForCOR = (ticket) => ticket.status === TM_STATUS.APPROVED && !ticket.assigned_cor_id
+
+const isApproved = (ticket) =>
+  ticket.status === TM_STATUS.APPROVED || ticket.status === TM_STATUS.BILLED
+
+// A COR belongs to one change event, so tickets are grouped by CE/PCO number
+const cePcoLabel = (ticket) => String(ticket.ce_pco_number || '').trim()
+const cePcoKey = (ticket) => cePcoLabel(ticket).toUpperCase() || NO_CE_PCO_KEY
+
+const groupByCePco = (tickets) => {
+  const groups = new Map()
+  tickets.forEach(ticket => {
+    const key = cePcoKey(ticket)
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        label: cePcoLabel(ticket) || null,
+        tickets: []
+      })
+    }
+    groups.get(key).tickets.push(ticket)
+  })
+  // Tickets without a number go last
+  return [...groups.values()].sort((a, b) => (a.key === NO_CE_PCO_KEY) - (b.key === NO_CE_PCO_KEY))
+}
+
+export default function TicketSelector({ projectId, companyId, corId, project = null, initialFilter = 'unassigned', onImport, onClose, onShowToast }) {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTickets, setSelectedTickets] = useState(new Set())
+  const autoSelected = useRef(false) // selection came from the on-open preselect
   const [expandedTicket, setExpandedTicket] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filter, setFilter] = useState('unassigned') // 'all' | 'unassigned' | 'approved'
+  const [filter, setFilter] = useState(FILTERS.includes(initialFilter) ? initialFilter : 'unassigned') // 'ready' | 'unassigned' | 'approved' | 'all'
 
   useEffect(() => {
     loadTickets()
@@ -29,6 +64,15 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
       // Get all tickets for the project
       const allTickets = await db.getTMTickets(projectId)
       setTickets(allTickets || [])
+
+      // Opened on "ready": preselect only when every ready ticket is one change event
+      if (initialFilter === 'ready') {
+        const ready = (allTickets || []).filter(isReadyForCOR)
+        if (ready.length > 0 && groupByCePco(ready).length === 1) {
+          setSelectedTickets(new Set(ready.map(t => t.id)))
+          autoSelected.current = true
+        }
+      }
     } catch (error) {
       console.error('Error loading tickets:', error)
       onShowToast?.('Error loading tickets', 'error')
@@ -42,7 +86,9 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
     let filtered = [...tickets]
 
     // Status filter
-    if (filter === 'unassigned') {
+    if (filter === 'ready') {
+      filtered = filtered.filter(isReadyForCOR)
+    } else if (filter === 'unassigned') {
       filtered = filtered.filter(t => !t.assigned_cor_id)
     } else if (filter === 'approved') {
       filtered = filtered.filter(t => t.status === 'approved')
@@ -52,7 +98,7 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
       filtered = filtered.filter(t =>
-        t.work_description?.toLowerCase().includes(term) ||
+        ticketDescription(t).toLowerCase().includes(term) ||
         t.ce_pco_number?.toLowerCase().includes(term) ||
         (t.work_date || t.ticket_date)?.includes(term)
       )
@@ -64,7 +110,18 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
     return filtered
   }, [tickets, filter, searchTerm])
 
+  // Tickets preselected on open are dropped once the user filters or searches,
+  // so nothing that is no longer on screen gets imported
+  const dropAutoSelection = () => {
+    if (!autoSelected.current) return
+    autoSelected.current = false
+    setSelectedTickets(new Set())
+  }
+  const changeFilter = (next) => { dropAutoSelection(); setFilter(next) }
+  const changeSearch = (value) => { dropAutoSelection(); setSearchTerm(value) }
+
   const toggleTicket = (ticketId) => {
+    autoSelected.current = false
     const newSelected = new Set(selectedTickets)
     if (newSelected.has(ticketId)) {
       newSelected.delete(ticketId)
@@ -74,12 +131,42 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
     setSelectedTickets(newSelected)
   }
 
+  // Only approved tickets go on a COR, and never one that is on another COR.
+  // Tickets already on this COR stay selectable so they can be re-imported.
+  const isSelectable = (ticket) => {
+    if (ticket.assigned_cor_id) return ticket.assigned_cor_id === corId
+    return ticket.status === 'approved' || ticket.status === 'billed'
+  }
+
+  const selectableTickets = filteredTickets.filter(isSelectable)
+  const allSelected = selectableTickets.length > 0 && selectableTickets.every(t => selectedTickets.has(t.id))
+
   const toggleAll = () => {
-    if (selectedTickets.size === filteredTickets.length) {
+    autoSelected.current = false
+    if (allSelected) {
       setSelectedTickets(new Set())
     } else {
-      setSelectedTickets(new Set(filteredTickets.map(t => t.id)))
+      setSelectedTickets(new Set(selectableTickets.map(t => t.id)))
     }
+  }
+
+  // "Ready for COR" is shown grouped by CE/PCO number
+  const ticketGroups = useMemo(
+    () => (filter === 'ready' ? groupByCePco(filteredTickets) : null),
+    [filter, filteredTickets]
+  )
+
+  const isGroupSelected = (group) => group.tickets.every(t => selectedTickets.has(t.id))
+
+  const toggleGroup = (group) => {
+    autoSelected.current = false
+    const newSelected = new Set(selectedTickets)
+    if (isGroupSelected(group)) {
+      group.tickets.forEach(t => newSelected.delete(t.id))
+    } else {
+      group.tickets.forEach(t => newSelected.add(t.id))
+    }
+    setSelectedTickets(newSelected)
   }
 
   const formatDate = (dateStr) => {
@@ -225,12 +312,126 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
 
     onImport?.({
       ticketIds: Array.from(selectedTickets),
+      // Light ticket info so the COR form can suggest a title
+      tickets: ticketsToImport.map(t => ({
+        id: t.id,
+        work_date: t.work_date || t.ticket_date,
+        ce_pco_number: t.ce_pco_number || null
+      })),
       laborItems,
       materialsItems,
       equipmentItems
     })
 
     onClose?.()
+  }
+
+  const renderTicket = (ticket) => {
+    const summary = getTicketSummary(ticket)
+    const isSelected = selectedTickets.has(ticket.id)
+    const isExpanded = expandedTicket === ticket.id
+
+    return (
+      <div
+        key={ticket.id}
+        className={`ticket-item ${isSelected ? 'selected' : ''} ${ticket.assigned_cor_id ? 'assigned' : ''}`}
+      >
+        <div className="ticket-item-main">
+          <label className="ticket-checkbox">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleTicket(ticket.id)}
+              disabled={!isSelectable(ticket)}
+              aria-label={`Select ticket from ${formatDate(ticket.work_date || ticket.ticket_date)}`}
+            />
+          </label>
+
+          <div className="ticket-item-info" onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}>
+            <div className="ticket-item-header">
+              <span className="ticket-date">{formatDate(ticket.work_date || ticket.ticket_date)}</span>
+              <StatusBadge status={ticket.status} />
+              {ticket.ce_pco_number && (
+                <span className="ticket-pco">CE/PCO: {ticket.ce_pco_number}</span>
+              )}
+              {filter !== 'ready' && !isApproved(ticket) && (
+                <span className="ticket-not-approved">Approve this ticket first</span>
+              )}
+            </div>
+
+            <div className="ticket-item-desc">
+              {ticketDescription(ticket) || 'No description'}
+            </div>
+
+            <div className="ticket-item-summary">
+              {summary.workerCount > 0 && (
+                <span><Users size={12} /> {summary.workerCount} workers</span>
+              )}
+              {summary.itemCount > 0 && (
+                <span><Package size={12} /> {summary.itemCount} items</span>
+              )}
+              {summary.equipmentCount > 0 && (
+                <span><Truck size={12} /> {summary.equipmentCount} equipment</span>
+              )}
+              {summary.laborHours > 0 && (
+                <span>{summary.laborHours} hrs</span>
+              )}
+            </div>
+          </div>
+
+          <button
+            className="ticket-expand-btn"
+            onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}
+          >
+            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+        </div>
+
+        {isExpanded && (
+          <div className="ticket-item-details">
+            {(ticket.t_and_m_workers || ticket.workers)?.length > 0 && (
+              <div className="ticket-detail-section">
+                <h5>Workers</h5>
+                <ul>
+                  {(ticket.t_and_m_workers || ticket.workers).map((w, i) => (
+                    <li key={i}>
+                      {w.name || w.role} - {w.regular_hours || 0} reg hrs
+                      {w.overtime_hours > 0 && `, ${w.overtime_hours} OT hrs`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(ticket.t_and_m_items || ticket.items)?.length > 0 && (
+              <div className="ticket-detail-section">
+                <h5>Materials</h5>
+                <ul>
+                  {(ticket.t_and_m_items || ticket.items).map((item, i) => (
+                    <li key={i}>
+                      {item.description || item.name} - {item.quantity} {item.unit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {ticket.materials_equipment?.filter(m => m.type === 'equipment').length > 0 && (
+              <div className="ticket-detail-section">
+                <h5>Equipment</h5>
+                <ul>
+                  {ticket.materials_equipment.filter(m => m.type === 'equipment').map((e, i) => (
+                    <li key={i}>
+                      {e.description || e.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (loading) {
@@ -258,29 +459,36 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
               type="text"
               placeholder="Search tickets..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => changeSearch(e.target.value)}
               aria-label="Search tickets"
             />
           </div>
 
           <div className="ticket-filters" role="group" aria-label="Filter tickets by status">
             <button
+              className={`filter-btn ${filter === 'ready' ? 'active' : ''}`}
+              onClick={() => changeFilter('ready')}
+              aria-pressed={filter === 'ready'}
+            >
+              Ready for COR
+            </button>
+            <button
               className={`filter-btn ${filter === 'unassigned' ? 'active' : ''}`}
-              onClick={() => setFilter('unassigned')}
+              onClick={() => changeFilter('unassigned')}
               aria-pressed={filter === 'unassigned'}
             >
               Unassigned
             </button>
             <button
               className={`filter-btn ${filter === 'approved' ? 'active' : ''}`}
-              onClick={() => setFilter('approved')}
+              onClick={() => changeFilter('approved')}
               aria-pressed={filter === 'approved'}
             >
               Approved
             </button>
             <button
               className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-              onClick={() => setFilter('all')}
+              onClick={() => changeFilter('all')}
               aria-pressed={filter === 'all'}
             >
               All
@@ -292,11 +500,12 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
           <label className="select-all">
             <input
               type="checkbox"
-              checked={selectedTickets.size === filteredTickets.length && filteredTickets.length > 0}
+              checked={allSelected}
               onChange={toggleAll}
-              aria-label={`Select all ${filteredTickets.length} tickets`}
+              disabled={selectableTickets.length === 0}
+              aria-label={`Select all ${selectableTickets.length} tickets`}
             />
-            <span>Select All ({filteredTickets.length})</span>
+            <span>Select All ({selectableTickets.length})</span>
           </label>
           <span className="selected-count">
             {selectedTickets.size} selected
@@ -307,118 +516,48 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
           {filteredTickets.length === 0 ? (
             <div className="ticket-empty">
               <FileText size={32} />
-              <p>No tickets found</p>
+              <p>{filter === 'ready' ? 'No approved tickets are waiting for a COR' : 'No tickets found'}</p>
+              {filter === 'ready' && (
+                <button className="btn btn-ghost btn-small" onClick={() => changeFilter('unassigned')}>
+                  Show unassigned tickets
+                </button>
+              )}
               {filter === 'unassigned' && (
-                <button className="btn btn-ghost btn-small" onClick={() => setFilter('all')}>
+                <button className="btn btn-ghost btn-small" onClick={() => changeFilter('all')}>
                   Show all tickets
                 </button>
               )}
             </div>
-          ) : (
+          ) : ticketGroups ? (
             <div className="ticket-list">
-              {filteredTickets.map(ticket => {
-                const summary = getTicketSummary(ticket)
-                const isSelected = selectedTickets.has(ticket.id)
-                const isExpanded = expandedTicket === ticket.id
-
+              {ticketGroups.map(group => {
+                const groupName = group.label ? `CE/PCO ${group.label}` : 'No CE/PCO number'
                 return (
-                  <div
-                    key={ticket.id}
-                    className={`ticket-item ${isSelected ? 'selected' : ''} ${ticket.assigned_cor_id ? 'assigned' : ''}`}
-                  >
-                    <div className="ticket-item-main">
-                      <label className="ticket-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleTicket(ticket.id)}
-                          disabled={ticket.assigned_cor_id && ticket.assigned_cor_id !== corId}
-                        />
-                      </label>
-
-                      <div className="ticket-item-info" onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}>
-                        <div className="ticket-item-header">
-                          <span className="ticket-date">{formatDate(ticket.work_date || ticket.ticket_date)}</span>
-                          <StatusBadge status={ticket.status} />
-                          {ticket.ce_pco_number && (
-                            <span className="ticket-pco">CE/PCO: {ticket.ce_pco_number}</span>
-                          )}
-                        </div>
-
-                        <div className="ticket-item-desc">
-                          {ticket.work_description || 'No description'}
-                        </div>
-
-                        <div className="ticket-item-summary">
-                          {summary.workerCount > 0 && (
-                            <span><Users size={12} /> {summary.workerCount} workers</span>
-                          )}
-                          {summary.itemCount > 0 && (
-                            <span><Package size={12} /> {summary.itemCount} items</span>
-                          )}
-                          {summary.equipmentCount > 0 && (
-                            <span><Truck size={12} /> {summary.equipmentCount} equipment</span>
-                          )}
-                          {summary.laborHours > 0 && (
-                            <span>{summary.laborHours} hrs</span>
-                          )}
-                        </div>
+                  <section key={group.key} className="ticket-group" aria-label={groupName}>
+                    <div className="ticket-group-header">
+                      <div className="ticket-group-title">
+                        <span className="ticket-group-name">{groupName}</span>
+                        <span className="ticket-group-count">
+                          {group.tickets.length} ticket{group.tickets.length !== 1 ? 's' : ''}
+                        </span>
                       </div>
-
                       <button
-                        className="ticket-expand-btn"
-                        onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}
+                        type="button"
+                        className="btn btn-ghost btn-small ticket-group-select"
+                        onClick={() => toggleGroup(group)}
+                        aria-pressed={isGroupSelected(group)}
                       >
-                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        {isGroupSelected(group) ? 'Clear group' : 'Select group'}
                       </button>
                     </div>
-
-                    {isExpanded && (
-                      <div className="ticket-item-details">
-                        {(ticket.t_and_m_workers || ticket.workers)?.length > 0 && (
-                          <div className="ticket-detail-section">
-                            <h5>Workers</h5>
-                            <ul>
-                              {(ticket.t_and_m_workers || ticket.workers).map((w, i) => (
-                                <li key={i}>
-                                  {w.name || w.role} - {w.regular_hours || 0} reg hrs
-                                  {w.overtime_hours > 0 && `, ${w.overtime_hours} OT hrs`}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {(ticket.t_and_m_items || ticket.items)?.length > 0 && (
-                          <div className="ticket-detail-section">
-                            <h5>Materials</h5>
-                            <ul>
-                              {(ticket.t_and_m_items || ticket.items).map((item, i) => (
-                                <li key={i}>
-                                  {item.description || item.name} - {item.quantity} {item.unit}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {ticket.materials_equipment?.filter(m => m.type === 'equipment').length > 0 && (
-                          <div className="ticket-detail-section">
-                            <h5>Equipment</h5>
-                            <ul>
-                              {ticket.materials_equipment.filter(m => m.type === 'equipment').map((e, i) => (
-                                <li key={i}>
-                                  {e.description || e.name}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                    {group.tickets.map(renderTicket)}
+                  </section>
                 )
               })}
+            </div>
+          ) : (
+            <div className="ticket-list">
+              {filteredTickets.map(renderTicket)}
             </div>
           )}
         </div>

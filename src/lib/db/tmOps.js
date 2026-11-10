@@ -231,7 +231,7 @@ export const tmOps = {
   },
 
   // Get T&M tickets with pagination for scalability
-  async getTMTicketsPaginated(projectId, { page = 0, limit = 25, status = null } = {}) {
+  async getTMTicketsPaginated(projectId, { page = 0, limit = 25, status = null, ascending = false } = {}) {
     if (isSupabaseConfigured) {
       const start = performance.now()
       const client = getClient()
@@ -241,7 +241,7 @@ export const tmOps = {
           .from('t_and_m_tickets')
           .select(tmTicketNestedSelect(isFieldMode()), { count: 'exact' })
           .eq('project_id', projectId)
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending })
           .range(page * limit, (page + 1) * limit - 1)
 
         if (Array.isArray(status) && status.length > 0) {
@@ -748,9 +748,20 @@ export const tmOps = {
         .update(updateData)
         .eq('id', ticketId)
         .in('status', ['pending', 'foreman_signed', 'client_signed'])
+        // The office may not approve a ticket the client has not signed
+        // (same rule as canApproveTicket in tmStatus.js)
+        .or('status.eq.client_signed,client_signature_data.not.is.null,gc_signature_data.not.is.null')
         .select()
         .single()
-      if (error) throw error
+      if (error) {
+        // No row matched: not signed by the client, or no longer awaiting approval
+        if (error.code === 'PGRST116') {
+          const notApprovable = new Error('Ticket is not signed by the client or is no longer awaiting approval')
+          notApprovable.code = 'TM_NOT_APPROVABLE'
+          throw notApprovable
+        }
+        throw error
+      }
       return data
     }
     return null
