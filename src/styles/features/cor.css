@@ -4191,3 +4191,116 @@ END MIGRATED */
     justify-content: center;
   }
 }
+
+/* ---------- COR stage, comments with the client ---------- */
+
+.cor-stage-detail {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cor-stage-detail.overdue { color: var(--accent-amber, #d97706); font-weight: 600; }
+
+.rejection-next {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.cor-comments {
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.cor-comments h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.cor-comments-empty { margin: 0 0 0.6rem; color: var(--text-secondary); font-size: 0.86rem; }
+
+.cor-comment-list {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cor-comment {
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  max-width: 92%;
+}
+
+.cor-comment--mine { align-self: flex-end; border-color: var(--primary-color); }
+.cor-comment--theirs { align-self: flex-start; }
+
+.cor-comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.cor-comment-head strong { color: var(--text-primary); font-size: 0.84rem; }
+.cor-comment-body { margin: 0.25rem 0 0; white-space: pre-wrap; font-size: 0.9rem; color: var(--text-primary); }
+
+.cor-comment-form { display: flex; gap: 8px; align-items: flex-end; }
+
+.cor-comment-form textarea {
+  flex: 1;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary, var(--bg-card));
+  color: var(--text-primary);
+  font: inherit;
+  resize: vertical;
+}
+
+.cor-comment-form .btn { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+
+@media (max-width: 480px) {
+  .cor-comment-form { flex-direction: column; align-items: stretch; }
+}
+
+/* Signing page: request changes */
+.cor-returned-note { margin: 0.4rem 0 0; color: var(--text-secondary); font-size: 0.9rem; }
+
+.cor-change-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.cor-change-form label { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+
+.cor-change-form input,
+.cor-change-form textarea {
+  min-height: 44px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary, var(--bg-card));
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.cor-change-error { margin: 0; color: var(--accent-red); font-size: 0.85rem; }
+.cor-change-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.cor-change-actions .btn { min-height: 44px; }

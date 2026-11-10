@@ -6,6 +6,7 @@ import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, form
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
 import SignatureCanvas from './ui/SignatureCanvas'
 import StatusBadge from './ui/StatusBadge'
+import CORComments from './cor/CORComments'
 
 // Helper to format date
 const formatDate = (dateString) => {
@@ -88,10 +89,61 @@ export default function SignaturePage({ signatureToken }) {
   const [backupExpanded, setBackupExpanded] = useState(false)
   const [expandedTickets, setExpandedTickets] = useState(new Set())
 
+  // Comments between the client and the contractor on a change order.
+  // null = not available (the database has no comment support yet).
+  const [corComments, setCorComments] = useState(null)
+  const [showChangeForm, setShowChangeForm] = useState(false)
+  const [changeName, setChangeName] = useState('')
+  const [changeComment, setChangeComment] = useState('')
+  const [changeError, setChangeError] = useState(null)
+
   // Load signature request and document
   useEffect(() => {
     loadData()
   }, [signatureToken])
+
+  const loadComments = () => Promise.resolve(db.getCORCommentsByToken?.(signatureToken))
+    .then(rows => setCorComments(Array.isArray(rows) ? rows : null))
+    .catch(() => setCorComments(null))
+
+  useEffect(() => {
+    if (signatureRequest?.document_type === 'cor' && document) loadComments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signatureRequest?.document_type, document?.id])
+
+  // The client sends the change order back with a comment instead of signing
+  const handleRequestChanges = async (e) => {
+    e.preventDefault()
+    if (submitting) return
+    const name = changeName.trim()
+    const comment = changeComment.trim()
+    if (!name || !comment) {
+      setChangeError('Enter your name and what should change.')
+      return
+    }
+    setSubmitting(true)
+    setChangeError(null)
+    try {
+      await db.requestCORChanges(signatureToken, comment, name)
+      setShowChangeForm(false)
+      setChangeComment('')
+      setDocument(prev => (prev ? { ...prev, status: 'rejected' } : prev))
+      setSuccessMessage('Sent back for changes. The contractor has been asked to revise it.')
+      await loadComments()
+    } catch (err) {
+      console.error('Error requesting changes:', err)
+      const message = String(err?.message || '')
+      setChangeError(
+        message.includes('cor_not_awaiting_client') ? 'This change order is no longer waiting for your signature.'
+          : message.includes('signing_link_expired') ? 'This link has expired. Ask the contractor for a new one.'
+            : message.includes('signing_already_signed') ? 'This change order has already been signed.'
+              : err?.code === 'FEATURE_NOT_AVAILABLE' ? 'Requesting changes is not available yet. Contact the contractor directly.'
+                : 'Could not send your comment. Try again.'
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   // Resolve every ticket's photos to signed URLs in one batch using the
   // signing client (the bucket is private; the storage policy reads the
@@ -1185,6 +1237,11 @@ export default function SignaturePage({ signatureToken }) {
           </div>
         </div>
 
+        {/* Comments with the contractor */}
+        {corComments !== null && corComments.length > 0 && (
+          <CORComments comments={corComments} viewer="client" />
+        )}
+
         {/* Signature Section */}
         <div className="cor-signature-section">
           <h4>Authorization</h4>
@@ -1198,6 +1255,19 @@ export default function SignaturePage({ signatureToken }) {
                 older COR is shown the same way. */}
             {(() => {
               const clientSlot = slot1 || slot2
+              if (!clientSlot && document.status === 'rejected') {
+                return (
+                  <div className="signature-slot-card unsigned">
+                    <div className="slot-header">
+                      <AlertCircle size={20} className="status-icon pending" />
+                      <span className="slot-label">Returned for changes</span>
+                    </div>
+                    <p className="cor-returned-note">
+                      This change order was sent back to the contractor. You will receive the revised version to sign.
+                    </p>
+                  </div>
+                )
+              }
               return !clientSlot ? (
                 <div className="signature-slot-card unsigned">
                   <div className="slot-header">
@@ -1211,6 +1281,46 @@ export default function SignaturePage({ signatureToken }) {
                   >
                     Sign to approve
                   </button>
+                  {corComments !== null && !showChangeForm && (
+                    <button
+                      className="btn btn-secondary sign-btn"
+                      onClick={() => { setShowChangeForm(true); setChangeError(null) }}
+                      disabled={submitting}
+                    >
+                      Request changes
+                    </button>
+                  )}
+                  {showChangeForm && (
+                    <form className="cor-change-form" onSubmit={handleRequestChanges}>
+                      <label htmlFor="cor-change-name">Your name</label>
+                      <input
+                        id="cor-change-name"
+                        type="text"
+                        value={changeName}
+                        onChange={(e) => setChangeName(e.target.value)}
+                        maxLength={120}
+                        autoComplete="name"
+                      />
+                      <label htmlFor="cor-change-comment">What should change?</label>
+                      <textarea
+                        id="cor-change-comment"
+                        value={changeComment}
+                        onChange={(e) => setChangeComment(e.target.value)}
+                        rows={4}
+                        maxLength={4000}
+                        placeholder="For example: hours on the Nov 3 ticket look high, or the scope includes work not requested."
+                      />
+                      {changeError && <p className="cor-change-error" role="alert">{changeError}</p>}
+                      <div className="cor-change-actions">
+                        <button type="button" className="btn btn-ghost" onClick={() => setShowChangeForm(false)} disabled={submitting}>
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn btn-primary" disabled={submitting}>
+                          {submitting ? 'Sending...' : 'Send back for changes'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               ) : (
                 <div className="signature-slot-card signed">

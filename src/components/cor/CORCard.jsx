@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { Eye, Edit3, Trash2, Send, CheckSquare, Square, CheckCircle } from 'lucide-react'
 import { formatCurrency, getStatusInfo, formatDate, formatDateRange } from '../../lib/corCalculations'
+import { corStage } from '../../lib/corStage'
 import StatusBadge from '../ui/StatusBadge'
 
 /**
@@ -22,6 +23,7 @@ const CORCard = memo(function CORCard({
   submitting = false
 }) {
   const statusInfo = getStatusInfo(cor.status)
+  const stage = corStage(cor)
   const canEdit = ['draft', 'pending_approval', 'approved'].includes(cor.status)
   const canDelete = ['draft', 'pending_approval', 'rejected'].includes(cor.status)
   const canSubmit = cor.status === 'draft' && canSend
@@ -67,7 +69,10 @@ const CORCard = memo(function CORCard({
             </button>
           )}
           <span className="cor-number">{cor.cor_number}</span>
-          <StatusBadge status={cor.status} label={statusInfo.label} />
+          <StatusBadge status={stage.id === 'voided' ? 'void' : cor.status} label={stage.label || statusInfo.label} />
+          {stage.id === 'with_client' && stage.detail && (
+            <span className={`cor-stage-detail ${stage.overdue ? 'overdue' : ''}`}>{stage.detail}</span>
+          )}
           {(cor.gc_signature_data || cor.client_signature_data) && (
             <span className="cor-signed-badge" title={`Signed by ${cor.gc_signature_name || cor.client_signature_name || 'Client'}`}>
               <CheckCircle size={12} /> Signed

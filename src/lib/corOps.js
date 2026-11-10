@@ -12,6 +12,17 @@ import { generateTempId } from './offlineManager'
 import { getLocalData, setLocalData } from './localStorageHelpers'
 import { sanitize } from './sanitize'
 
+// PostgREST answers PGRST202 (function not in the schema cache) or 42883 when
+// an RPC does not exist: the migration that adds it has not been applied.
+const featureError = (error) => {
+  if (error?.code === 'PGRST202' || error?.code === '42883') {
+    const err = new Error('This is not available yet. It needs a database update.')
+    err.code = 'FEATURE_NOT_AVAILABLE'
+    return err
+  }
+  return error
+}
+
 export const corOps = {
   // Create a new COR (with retry on conflict)
   async createCOR(corData, retryCount = 0) {
@@ -1940,6 +1951,112 @@ export const corOps = {
       return data
     }
     return null
+  },
+
+  // ============================================
+  // Void, client comments, client portal
+  // (20261111_cor_tracking_and_client_portal.sql). Until that migration is
+  // applied these report "not available" instead of failing loudly.
+  // ============================================
+
+  // Void a COR with a reason. Refusals carry the database's message.
+  async voidCOR(corId, reason) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase.rpc('void_change_order', { p_cor_id: corId, p_reason: reason })
+    if (error) throw featureError(error)
+    return data
+  },
+
+  // Comment thread on a COR for the office. null = feature not available.
+  async getCORComments(corId) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase
+      .from('cor_client_comments')
+      .select('id, author_side, author_name, body, revision_number, created_at')
+      .eq('change_order_id', corId)
+      .order('created_at', { ascending: true })
+    if (error) return null
+    return data || []
+  },
+
+  async addCORComment(corId, body) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase.rpc('add_cor_comment', { p_cor_id: corId, p_body: body })
+    if (error) throw featureError(error)
+    return data
+  },
+
+  // Client side, by signing link. null = feature not available.
+  async getCORCommentsByToken(token) {
+    if (!isSupabaseConfigured) return null
+    const client = getSigningClient(token) || getClient()
+    if (!client) return null
+    const { data, error } = await client.rpc('public_get_cor_comments', { p_token: token })
+    if (error) return null
+    return data || []
+  },
+
+  // The client returns a COR for changes instead of signing it. Errors carry
+  // a stable token: signing_link_*, signing_invalid_payload, cor_not_awaiting_client.
+  async requestCORChanges(token, comment, authorName) {
+    if (!isSupabaseConfigured) return null
+    const client = getSigningClient(token) || getClient()
+    if (!client) throw new Error('Database client not available')
+    const { data, error } = await client.rpc('public_request_cor_changes', {
+      p_token: token, p_comment: comment, p_author_name: authorName
+    })
+    if (error) throw featureError(error)
+    return data
+  },
+
+  // Client portal grants for a project. null = feature not available.
+  async getClientPortalAccess(projectId) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase
+      .from('client_portal_access')
+      .select('id, contact_name, contact_email, access_token, expires_at, revoked_at, created_at, last_viewed_at, view_count')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+    if (error) return null
+    return data || []
+  },
+
+  async grantClientPortalAccess(projectId, { name, email, expiresAt }) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase.rpc('grant_client_portal_access', {
+      p_project_id: projectId,
+      p_contact_name: name,
+      p_contact_email: email || null,
+      p_expires_at: expiresAt || null
+    })
+    if (error) throw featureError(error)
+    return data
+  },
+
+  async revokeClientPortalAccess(accessId) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase.rpc('revoke_client_portal_access', { p_access_id: accessId })
+    if (error) throw featureError(error)
+    return data
+  },
+
+  // The client's view. Errors carry portal_link_invalid / _revoked / _expired.
+  async getClientPortal(token) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient() || supabase
+    const { data, error } = await client.rpc('public_client_portal', { p_token: token })
+    if (error) throw featureError(error)
+    return data
+  },
+
+  // Returns a signing link token for one COR in the portal (null when the
+  // COR has no detail to open: returned or voided).
+  async openClientPortalCOR(token, corId) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient() || supabase
+    const { data, error } = await client.rpc('public_client_portal_open_cor', { p_token: token, p_cor_id: corId })
+    if (error) throw featureError(error)
+    return data
   },
 
   // Revoke a signature request
