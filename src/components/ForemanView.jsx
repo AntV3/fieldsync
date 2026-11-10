@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import TMForm from './TMForm'
 import FieldTicketList from './FieldTicketList'
+import { startPhotoQueueSync } from '../lib/photoQueueSync'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
@@ -276,6 +277,20 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
       subs.forEach(sub => db.unsubscribe?.(sub))
     }
   }, [project?.id, debouncedRefresh])
+
+  // Upload photos kept on this phone once their ticket has synced
+  useEffect(() => {
+    try {
+      return startPhotoQueueSync(db, ({ uploaded, failed }) => {
+        if (!mountedRef.current) return
+        if (uploaded > 0) onShowToast?.(`${uploaded} saved photo${uploaded === 1 ? '' : 's'} uploaded`, 'success')
+        else if (failed > 0) onShowToast?.('Saved photos could not upload yet. They will retry.', 'warning')
+      })
+    } catch (error) {
+      console.warn('[ForemanView] photo queue unavailable', error)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Keep the pending-ticket count and connection state live: the sync routine
   // (lib/offlineManager) emits events as tickets queue, sync or fail.

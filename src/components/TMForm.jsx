@@ -10,6 +10,7 @@ import {
   onSyncStateChange
 } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
+import { queueTicketPhotos, discardTicketPhotos } from '../lib/photoQueue'
 import { TRANSLATIONS } from './tm/translations'
 import { getLocalDateString, parseLocalDate } from '../lib/utils'
 import WorkDetailsStep from './tm/WorkDetailsStep'
@@ -1100,7 +1101,8 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
   }
 
   // Save the ticket on this phone and show step 5 in "saved on this phone"
-  // mode. Photos are not kept offline: the caller has already asked.
+  // mode. Its photos, if any, are already in the photo queue (or the foreman
+  // agreed to save without them). Returns false when the save failed.
   const saveTicketOnPhone = async (record) => {
     setSubmitting(true)
     try {
@@ -1109,7 +1111,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
       console.error('Error saving T&M ticket on this phone:', err)
       onShowToast(t('couldNotSaveLocally'), 'error')
       setSubmitting(false)
-      return
+      return false
     }
     submitCommittedRef.current = true
     clearDraft()
@@ -1121,16 +1123,49 @@ export default function TMForm({ project, companyId, maxPhotos = 10, onSubmit, o
     setPendingSync(true)
     setSubmitting(false)
     setStep(5)
+    return true
   }
 
-  // Offline (or no route to the server) in field mode: never lose photos
-  // silently — ask first when there are any.
+  // Offline (or no route to the server) in field mode: keep the photos on the
+  // phone with the ticket; they upload once the ticket has synced. Only when
+  // the phone cannot store them is the foreman asked about saving without.
   const saveOnPhoneOrAskAboutPhotos = async (record) => {
-    if (photosRef.current.length > 0) {
+    const pendingPhotos = photosRef.current
+    if (pendingPhotos.length === 0) {
+      await saveTicketOnPhone(record)
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const compressed = await Promise.all(pendingPhotos.map(async (photo) => {
+        try {
+          return { ...photo, file: await compressImage(photo.file) }
+        } catch (_err) {
+          return photo
+        }
+      }))
+      await queueTicketPhotos(
+        record.client_submission_id,
+        { companyId: companyId || project.company_id, projectId: project.id },
+        compressed
+      )
+    } catch (err) {
+      console.error('Could not keep photos on this phone:', err)
+      setSubmitting(false)
       setPendingPhotoDialog(record)
       return
     }
-    await saveTicketOnPhone(record)
+
+    const saved = await saveTicketOnPhone(record)
+    if (!saved) {
+      discardTicketPhotos(record.client_submission_id).catch(() => {})
+      return
+    }
+    onShowToast(
+      `${pendingPhotos.length} photo${pendingPhotos.length === 1 ? '' : 's'} saved on this phone. They upload with the ticket when you have signal.`,
+      'success'
+    )
   }
 
   const handleSaveWithoutPhotos = async () => {

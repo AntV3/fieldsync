@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => {
   const syncListeners = new Set()
   return {
     syncListeners,
+    queueTicketPhotos: vi.fn(),
+    discardTicketPhotos: vi.fn(),
     db: {
       getCrewCheckin: vi.fn(),
       getAssignableCORs: vi.fn(),
@@ -50,6 +52,11 @@ vi.mock('../lib/supabase', () => ({
   savePendingTMTicket: mocks.savePendingTMTicket,
   attachSignatureToPendingTicket: mocks.attachSignatureToPendingTicket,
   onSyncStateChange: mocks.onSyncStateChange
+}))
+
+vi.mock('../lib/photoQueue', () => ({
+  queueTicketPhotos: mocks.queueTicketPhotos,
+  discardTicketPhotos: mocks.discardTicketPhotos
 }))
 
 vi.mock('../lib/imageUtils', () => ({
@@ -178,6 +185,10 @@ beforeEach(() => {
   localStorage.clear()
   vi.clearAllMocks()
   mocks.syncListeners.clear()
+
+  // By default the phone cannot store photos, as before the photo queue existed
+  mocks.queueTicketPhotos.mockReset().mockRejectedValue(new Error('no storage'))
+  mocks.discardTicketPhotos.mockReset().mockResolvedValue(0)
 
   mocks.db.getCrewCheckin.mockResolvedValue(null)
   mocks.db.getAssignableCORs.mockResolvedValue([{ id: 'cor-1', title: 'COR 1', cor_number: 'COR-1', status: 'draft' }])
@@ -391,6 +402,42 @@ describe('TMForm submit: no route to the server, field mode', () => {
     expect(screen.getByAltText('photo-2.jpg')).toBeInTheDocument()
     expect(mocks.savePendingTMTicket).not.toHaveBeenCalled()
     expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull()
+  })
+
+  it('with photos: keeps them on the phone with the ticket and does not ask', async () => {
+    mocks.db.submitTMTicketFull.mockRejectedValue(fetchFailure())
+    mocks.queueTicketPhotos.mockResolvedValue(2)
+    const { container } = await renderAtReview()
+    await addPhotos(container, 2)
+
+    clickSubmit()
+
+    expect(await screen.findByText('Will sync automatically when you have signal')).toBeInTheDocument()
+    expect(screen.queryByText('Save without photos')).not.toBeInTheDocument()
+    const record = mocks.savePendingTMTicket.mock.calls[0][0]
+    const [submissionId, meta, photos] = mocks.queueTicketPhotos.mock.calls[0]
+    expect(submissionId).toBe(record.client_submission_id)
+    expect(meta).toEqual({ companyId: 'company-1', projectId: 'proj-1' })
+    expect(photos).toHaveLength(2)
+    expect(mocks.queueTicketPhotos.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.savePendingTMTicket.mock.invocationCallOrder[0])
+    expect(onShowToast).toHaveBeenCalledWith(
+      '2 photos saved on this phone. They upload with the ticket when you have signal.', 'success'
+    )
+    expect(mocks.db.uploadPhoto).not.toHaveBeenCalled()
+  })
+
+  it('with photos: drops the stored photos again if the ticket itself cannot be saved', async () => {
+    mocks.db.submitTMTicketFull.mockRejectedValue(fetchFailure())
+    mocks.queueTicketPhotos.mockResolvedValue(1)
+    mocks.savePendingTMTicket.mockRejectedValueOnce(new Error('QuotaExceededError'))
+    const { container } = await renderAtReview()
+    await addPhotos(container, 1)
+
+    clickSubmit()
+
+    await waitFor(() => expect(mocks.discardTicketPhotos).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText('Will sync automatically when you have signal')).not.toBeInTheDocument()
   })
 
   it('with photos: "Save without photos" saves the ticket on the phone', async () => {
