@@ -819,6 +819,49 @@ export const tmOps = {
     return null
   },
 
+  // Add photos to a ticket without dropping the ones already on it (photos
+  // that arrive later from the phone's offline queue).
+  async appendTMTicketPhotos(ticketId, photos, photoLocations = null) {
+    if (!isSupabaseConfigured) return null
+    const client = getClient()
+    if (!client) throw new Error('Database client not available')
+
+    const { data: current, error: readError } = await client
+      .from('t_and_m_tickets')
+      .select('photos, photo_locations')
+      .eq('id', ticketId)
+      .single()
+    if (readError) throw readError
+
+    const existing = Array.isArray(current?.photos) ? current.photos : []
+    const merged = [...existing, ...photos.filter(p => !existing.includes(p))]
+    const updateData = { photos: merged }
+    if (photoLocations) {
+      updateData.photo_locations = { ...(current?.photo_locations || {}), ...photoLocations }
+    }
+    const { data, error } = await client
+      .from('t_and_m_tickets')
+      .update(updateData)
+      .eq('id', ticketId)
+      .select('id, photos')
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  // Server ticket ids for offline submissions: { client_submission_id: id }
+  async getTicketIdsBySubmissionIds(submissionIds) {
+    if (!isSupabaseConfigured || !submissionIds?.length) return {}
+    const client = getClient()
+    if (!client) return {}
+    const { data, error } = await client
+      .from('t_and_m_tickets')
+      .select('id, client_submission_id')
+      .in('client_submission_id', submissionIds)
+    if (error) throw error
+    return Object.fromEntries((data || []).map(row => [row.client_submission_id, row.id]))
+  },
+
   // Save foreman signature directly to T&M ticket (on-site signing before client)
   async saveTMForemanSignature(ticketId, signatureData) {
     if (isSupabaseConfigured) {
@@ -851,6 +894,22 @@ export const tmOps = {
       if (!client) {
         throw new Error('Database client not available')
       }
+      // Preferred: the server records the signature (server time, audit row,
+      // office email). When that function does not exist yet (PGRST202 /
+      // 42883: migration not applied), fall back to writing the ticket row.
+      const recorded = await client.rpc('record_tm_client_signature', {
+        p_ticket_id: ticketId,
+        p_signature: {
+          signature: signatureData.signature,
+          signerName: signatureData.signerName,
+          signerTitle: signatureData.signerTitle || null,
+          signerCompany: signatureData.signerCompany || null,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null
+        }
+      })
+      if (!recorded.error) return recorded.data
+      if (!['PGRST202', '42883'].includes(recorded.error.code)) throw recorded.error
+
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({

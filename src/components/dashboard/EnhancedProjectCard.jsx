@@ -6,6 +6,7 @@ const QUEUE_CHIPS = [
   ['awaitingSignature', 'awaiting signature'],
   ['readyForCOR', 'ready for COR'],
   ['draftCORs', 'to send'],
+  ['returnedCORs', 'returned by client'],
   ['withClient', 'with client']
 ]
 

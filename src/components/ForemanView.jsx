@@ -16,6 +16,9 @@ import {
   Clock, CheckCircle2, Moon, Sun
 } from 'lucide-react'
 import TMForm from './TMForm'
+import FieldTicketList from './FieldTicketList'
+import { prefillFromTicket } from '../lib/ticketPrefill'
+import { startPhotoQueueSync } from '../lib/photoQueueSync'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
@@ -51,6 +54,8 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
   // View states
   const [activeView, setActiveView] = useState('home') // home, crew, tm, disposal, report, injury, docs, progress, punchlist
   const [showProjectInfo, setShowProjectInfo] = useState(false)
+  // Rejected ticket being corrected: its details prefill the T&M form
+  const [ticketPrefill, setTicketPrefill] = useState(null)
 
   // Punch list open count for badge (null = not loaded yet)
   const [punchListOpenCount, setPunchListOpenCount] = useState(null)
@@ -276,6 +281,20 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     }
   }, [project?.id, debouncedRefresh])
 
+  // Upload photos kept on this phone once their ticket has synced
+  useEffect(() => {
+    try {
+      return startPhotoQueueSync(db, ({ uploaded, failed }) => {
+        if (!mountedRef.current) return
+        if (uploaded > 0) onShowToast?.(`${uploaded} saved photo${uploaded === 1 ? '' : 's'} uploaded`, 'success')
+        else if (failed > 0) onShowToast?.('Saved photos could not upload yet. They will retry.', 'warning')
+      })
+    } catch (error) {
+      console.warn('[ForemanView] photo queue unavailable', error)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Keep the pending-ticket count and connection state live: the sync routine
   // (lib/offlineManager) emits events as tickets queue, sync or fail.
   useEffect(() => {
@@ -435,6 +454,7 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
 
   // Navigation handler for ForemanLanding (must be before early returns)
   const handleNavigate = useCallback((viewId) => {
+    if (viewId === 'tm') setTicketPrefill(null)
     setActiveView(viewId)
   }, [])
 
@@ -454,13 +474,29 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
     return (
       <div className="fm-view">
         <TMForm
+          key={ticketPrefill?.sourceTicketId || 'new'}
           project={project}
           companyId={companyId}
-          onSubmit={returnHome}
-          onCancel={returnHome}
+          prefill={ticketPrefill}
+          onSubmit={() => { setTicketPrefill(null); returnHome() }}
+          onCancel={() => { setTicketPrefill(null); returnHome() }}
           onShowToast={onShowToast}
         />
       </div>
+    )
+  }
+
+  // My tickets: recent tickets and what each still needs
+  if (activeView === 'tickets') {
+    return (
+      <FieldTicketList
+        project={project}
+        companyId={companyId}
+        onBack={returnHome}
+        onNewTicket={() => { setTicketPrefill(null); setActiveView('tm') }}
+        onResubmit={(ticket) => { setTicketPrefill(prefillFromTicket(ticket)); setActiveView('tm') }}
+        onShowToast={onShowToast}
+      />
     )
   }
 

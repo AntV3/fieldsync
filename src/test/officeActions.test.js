@@ -18,7 +18,7 @@ const row = (result, id) => result.rows.find(r => r.id === id)
 
 describe('getOfficeQuickActions rows', () => {
   it('returns the rows in workflow order for both scopes', () => {
-    const order = ['review', 'buildCor', 'sendCor', 'waiting', 'newCor', 'search']
+    const order = ['review', 'buildCor', 'sendCor', 'returned', 'waiting', 'newCor', 'search']
     expect(actions({}).rows.map(r => r.id)).toEqual(order)
     expect(actions({}, 'portfolio').rows.map(r => r.id)).toEqual(order)
   })
@@ -28,6 +28,7 @@ describe('getOfficeQuickActions rows', () => {
       'Review tickets',
       'Build COR from tickets',
       'Send COR',
+      'Returned by client',
       'Waiting on client',
       'New COR',
       'Find a ticket or COR'
@@ -142,11 +143,22 @@ describe('getOfficeQuickActions footer', () => {
   })
 })
 
+describe('change orders the client returned', () => {
+  it('get their own row, count toward the badge dot, and keep the office from being caught up', () => {
+    const result = actions({ returnedCORs: 2 })
+    const row = result.rows.find(r => r.id === 'returned')
+    expect(row).toMatchObject({ label: 'Returned by client', count: 2, dimmed: false })
+    expect(row.subtitle).toBe('Sent back with comments. Revise and resend.')
+    expect(result.badge).toBe('dot')
+    expect(isCaughtUp({ returnedCORs: 1 })).toBe(false)
+  })
+})
+
 describe('counts that are not loaded yet', () => {
   it('shows no counts, no badge and no "nothing waiting" claims', () => {
     const result = getOfficeQuickActions({ scope: 'project', counts: null, now: NOW })
     expect(result.badge).toBeNull()
-    expect(result.rows.map(r => r.count)).toEqual([null, null, null, null, null, null])
+    expect(result.rows.map(r => r.count)).toEqual([null, null, null, null, null, null, null])
     expect(result.rows.some(r => r.dimmed)).toBe(false)
     expect(result.rows.some(r => r.subtitle === 'Nothing waiting')).toBe(false)
     expect(isCaughtUp(null)).toBe(false)

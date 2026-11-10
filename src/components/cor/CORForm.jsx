@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Plus, Trash2, Save, Send, FileText, Search, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react'
 import CORCapabilitiesModal from './CORCapabilitiesModal'
 import { db } from '../../lib/supabase'
+import { usePermissions } from '../../lib/PermissionsContext'
+import { guardMessage } from '../../lib/permissions'
 import { resolveClassRate } from '../../lib/laborRateResolver'
 import {
   formatCurrency,
@@ -21,6 +23,7 @@ import {
 import TicketSelector from './TicketSelector'
 
 export default function CORForm({ project, company, areas, existingCOR, startWithTickets = false, onClose, onSaved, onShowToast }) {
+  const { canSendCORs } = usePermissions()
   const [loading, setLoading] = useState(false)
   const [laborRates, setLaborRates] = useState([])
   // A new COR built from tickets opens straight on the approved-ticket picker
@@ -555,7 +558,7 @@ export default function CORForm({ project, company, areas, existingCOR, startWit
       onClose?.()
     } catch (error) {
       console.error('Error submitting COR:', error)
-      onShowToast?.('Error submitting COR', 'error')
+      onShowToast?.(guardMessage(error, 'Error submitting COR'), 'error')
     } finally {
       setLoading(false)
     }
@@ -1177,7 +1180,8 @@ export default function CORForm({ project, company, areas, existingCOR, startWit
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={loading || !validateCOR(corData).valid}
+              disabled={loading || !canSendCORs || !validateCOR(corData).valid}
+              title={canSendCORs ? undefined : 'Ask a company administrator for permission to send change orders'}
             >
               <Send size={16} /> Submit
             </button>

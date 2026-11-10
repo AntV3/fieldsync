@@ -111,7 +111,11 @@ vi.mock('../components/tm/TMDashboard', () => ({ default: () => null }))
 // ForemanView's sub-screens are not under test; keep their import graphs out.
 // TMForm's onSubmit / onCancel are ForemanView's returnHome.
 vi.mock('../components/TMForm', () => ({
-  default: ({ onSubmit }) => <button type="button" data-testid="tm-form" onClick={onSubmit}>Submit T&M</button>
+  default: ({ onSubmit, prefill }) => (
+    <button type="button" data-testid="tm-form" data-prefill={prefill ? JSON.stringify(prefill) : ''} onClick={onSubmit}>
+      Submit T&M
+    </button>
+  )
 }))
 vi.mock('../components/CrewCheckin', () => ({ default: () => null }))
 vi.mock('../components/DailyReport', () => ({ default: () => null }))
@@ -313,10 +317,10 @@ describe('ForemanLanding rejected tickets card', () => {
     expect(banner.compareDocumentPosition(alertCard()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('"Submit corrected ticket" navigates to the T&M form', () => {
+  it('"Fix and resubmit" goes to My tickets, where the rejected ticket can be reopened', () => {
     const { onNavigate } = renderLanding({ rejectedTickets: [rejected()] })
-    fireEvent.click(within(alertCard()).getByRole('button', { name: /Submit corrected ticket/ }))
-    expect(onNavigate).toHaveBeenCalledWith('tm')
+    fireEvent.click(within(alertCard()).getByRole('button', { name: /Fix and resubmit/ }))
+    expect(onNavigate).toHaveBeenCalledWith('tickets')
   })
 
   it('renders no alert when there are no rejected tickets', () => {
@@ -414,13 +418,29 @@ describe('ForemanView rejected tickets wiring', () => {
     await waitFor(() => expect(alertCard()).not.toBeNull())
   })
 
-  it('"Submit corrected ticket" opens the T&M form, and returning Home refreshes the list', async () => {
+  it('"Fix and resubmit" opens the T&M form filled from the rejected ticket, and returning Home refreshes the list', async () => {
     mocks.db.getRejectedTMTickets.mockResolvedValue([rejected()])
+    mocks.db.getTMTickets = vi.fn().mockResolvedValue([rejected({
+      notes: 'Extra trenching',
+      t_and_m_workers: [{ name: 'J. Smith', role: 'Laborer', hours: 6, overtime_hours: 0 }],
+      t_and_m_items: [{ material_equipment_id: 'm1', quantity: 3, materials_equipment: { name: 'Gravel', unit: 'ton', category: 'materials' } }]
+    })])
     renderView()
     await waitFor(() => expect(alertCard()).not.toBeNull())
 
-    fireEvent.click(within(alertCard()).getByRole('button', { name: /Submit corrected ticket/ }))
+    fireEvent.click(within(alertCard()).getByRole('button', { name: /Fix and resubmit/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /Fix and resubmit/ }))
     const form = await screen.findByTestId('tm-form')
+    const prefill = JSON.parse(form.getAttribute('data-prefill'))
+    expect(prefill).toMatchObject({
+      sourceTicketId: 't-1',
+      workDate: '2026-11-03',
+      cePcoNumber: 'PCO-12',
+      notes: 'Extra trenching',
+      rejectionReason: 'Missing hours for J. Smith',
+      items: [{ material_equipment_id: 'm1', name: 'Gravel', unit: 'ton', quantity: 3, isCustom: false }],
+      crew: { laborers: [{ name: 'J. Smith', hours: '6', overtimeHours: '' }], totalWorkers: 1 }
+    })
     expect(mocks.db.getRejectedTMTickets).toHaveBeenCalledTimes(1)
 
     // The office restored the ticket meanwhile; submitting returns Home.

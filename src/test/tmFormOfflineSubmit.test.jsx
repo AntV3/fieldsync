@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => {
   const syncListeners = new Set()
   return {
     syncListeners,
+    queueTicketPhotos: vi.fn(),
+    discardTicketPhotos: vi.fn(),
     db: {
       getCrewCheckin: vi.fn(),
       getAssignableCORs: vi.fn(),
@@ -50,6 +52,11 @@ vi.mock('../lib/supabase', () => ({
   savePendingTMTicket: mocks.savePendingTMTicket,
   attachSignatureToPendingTicket: mocks.attachSignatureToPendingTicket,
   onSyncStateChange: mocks.onSyncStateChange
+}))
+
+vi.mock('../lib/photoQueue', () => ({
+  queueTicketPhotos: mocks.queueTicketPhotos,
+  discardTicketPhotos: mocks.discardTicketPhotos
 }))
 
 vi.mock('../lib/imageUtils', () => ({
@@ -111,11 +118,12 @@ function seedDraft(overrides = {}) {
 let onShowToast
 let onSubmit
 
-function renderForm() {
+function renderForm(extraProps = {}) {
   onShowToast = vi.fn()
   onSubmit = vi.fn()
   return render(
     <TMForm
+      {...extraProps}
       project={project}
       companyId="company-1"
       onSubmit={onSubmit}
@@ -178,6 +186,10 @@ beforeEach(() => {
   localStorage.clear()
   vi.clearAllMocks()
   mocks.syncListeners.clear()
+
+  // By default the phone cannot store photos, as before the photo queue existed
+  mocks.queueTicketPhotos.mockReset().mockRejectedValue(new Error('no storage'))
+  mocks.discardTicketPhotos.mockReset().mockResolvedValue(0)
 
   mocks.db.getCrewCheckin.mockResolvedValue(null)
   mocks.db.getAssignableCORs.mockResolvedValue([{ id: 'cor-1', title: 'COR 1', cor_number: 'COR-1', status: 'draft' }])
@@ -391,6 +403,42 @@ describe('TMForm submit: no route to the server, field mode', () => {
     expect(screen.getByAltText('photo-2.jpg')).toBeInTheDocument()
     expect(mocks.savePendingTMTicket).not.toHaveBeenCalled()
     expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull()
+  })
+
+  it('with photos: keeps them on the phone with the ticket and does not ask', async () => {
+    mocks.db.submitTMTicketFull.mockRejectedValue(fetchFailure())
+    mocks.queueTicketPhotos.mockResolvedValue(2)
+    const { container } = await renderAtReview()
+    await addPhotos(container, 2)
+
+    clickSubmit()
+
+    expect(await screen.findByText('Will sync automatically when you have signal')).toBeInTheDocument()
+    expect(screen.queryByText('Save without photos')).not.toBeInTheDocument()
+    const record = mocks.savePendingTMTicket.mock.calls[0][0]
+    const [submissionId, meta, photos] = mocks.queueTicketPhotos.mock.calls[0]
+    expect(submissionId).toBe(record.client_submission_id)
+    expect(meta).toEqual({ companyId: 'company-1', projectId: 'proj-1' })
+    expect(photos).toHaveLength(2)
+    expect(mocks.queueTicketPhotos.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.savePendingTMTicket.mock.invocationCallOrder[0])
+    expect(onShowToast).toHaveBeenCalledWith(
+      '2 photos saved on this phone. They upload with the ticket when you have signal.', 'success'
+    )
+    expect(mocks.db.uploadPhoto).not.toHaveBeenCalled()
+  })
+
+  it('with photos: drops the stored photos again if the ticket itself cannot be saved', async () => {
+    mocks.db.submitTMTicketFull.mockRejectedValue(fetchFailure())
+    mocks.queueTicketPhotos.mockResolvedValue(1)
+    mocks.savePendingTMTicket.mockRejectedValueOnce(new Error('QuotaExceededError'))
+    const { container } = await renderAtReview()
+    await addPhotos(container, 1)
+
+    clickSubmit()
+
+    await waitFor(() => expect(mocks.discardTicketPhotos).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText('Will sync automatically when you have signal')).not.toBeInTheDocument()
   })
 
   it('with photos: "Save without photos" saves the ticket on the phone', async () => {
@@ -618,5 +666,28 @@ describe('TMForm step 5 for a ticket saved on the phone', () => {
     expect(mocks.db.saveTMForemanSignature).toHaveBeenCalledWith('server-9', expect.any(Object))
     expect(mocks.attachSignatureToPendingTicket).not.toHaveBeenCalled()
     expect(screen.getByText('Skip client signature for now')).toBeInTheDocument()
+  })
+})
+
+describe('TMForm correcting a rejected ticket', () => {
+  it('opens filled from the rejected ticket, shows the office note, and ignores an old draft', async () => {
+    seedDraft({ notes: 'stale draft' })
+    renderForm({
+      prefill: {
+        sourceTicketId: 't-old',
+        workDate: '2026-11-03',
+        cePcoNumber: 'PCO-12',
+        notes: 'Extra trenching at grid B',
+        items: [],
+        crew: { supervision: null, operators: null, laborers: [{ name: 'J. Smith', hours: '6', overtimeHours: '', timeStarted: '', timeEnded: '' }], dynamicWorkers: null, totalWorkers: 1 },
+        rejectionReason: 'Missing hours for J. Smith'
+      }
+    })
+
+    expect(await screen.findByDisplayValue('Extra trenching at grid B')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('PCO-12')).toBeInTheDocument()
+    expect(screen.getByRole('note')).toHaveTextContent('Correcting a rejected ticket. Office note: Missing hours for J. Smith')
+    expect(screen.queryByText('Resume Draft')).not.toBeInTheDocument()
+    expect(screen.queryByDisplayValue('stale draft')).not.toBeInTheDocument()
   })
 })

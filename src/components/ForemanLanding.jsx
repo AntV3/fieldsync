@@ -3,7 +3,7 @@ import {
   Users, FileText, ClipboardList, CheckSquare, Truck,
   FolderOpen, AlertTriangle, BarChart2, ChevronDown, ChevronUp,
   Pin, PinOff, Settings, CheckCircle2, ClipboardCheck,
-  MessageSquareText, NotebookPen, RefreshCw, Home, Plus, MoreHorizontal
+  MessageSquareText, NotebookPen, RefreshCw, Home, Plus, MoreHorizontal, ChevronRight
 } from 'lucide-react'
 import { useTradeConfig } from '../lib/TradeConfigContext'
 import { formatCurrencyCompact } from '../lib/utils'
@@ -591,12 +591,21 @@ export default function ForemanLanding({
               )
             })}
           </ul>
-          <button type="button" className="sdx-fld-alert-cta" onClick={() => onNavigate('tm')}>
+          <button type="button" className="sdx-fld-alert-cta" onClick={() => onNavigate('tickets')}>
             <FileText size={16} aria-hidden="true" />
-            Submit corrected ticket
+            Fix and resubmit
           </button>
         </section>
       )}
+
+      {/* My tickets: come back to a ticket for the client signature */}
+      <button type="button" className="sdx-fld-mytickets" onClick={() => onNavigate('tickets')}>
+        <span className="sdx-fld-mytickets-text">
+          <span className="sdx-fld-mytickets-title">My tickets</span>
+          <span className="sdx-fld-mytickets-sub">Get a client signature or check a ticket</span>
+        </span>
+        <ChevronRight size={18} aria-hidden="true" />
+      </button>
 
       {/* Today dark card */}
       <button className="sdx-fld-today" onClick={() => onNavigate('metrics')} aria-label="View full project metrics">

@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
+vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn(), useLocation: () => ({ pathname: '/dashboard', search: '' }) }))
 
 vi.mock('../lib/supabase', () => {
   const noopAsync = () => Promise.resolve([])

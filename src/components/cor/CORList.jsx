@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { FileText, Plus, ChevronDown, ChevronRight, Calendar, Download, FolderPlus, X, List, Table, FileSpreadsheet, CheckSquare, Search } from 'lucide-react'
 import { db } from '../../lib/supabase'
+import { usePermissions } from '../../lib/PermissionsContext'
+import { guardMessage } from '../../lib/permissions'
 import { formatCurrency, validateCOR } from '../../lib/corCalculations'
 import {
   resolvePrimaryColor,
@@ -46,6 +48,7 @@ export default function CORList({
   onDisplayModeChange,  // Callback when display mode changes (for parent layout adjustments)
   filterRequest         // { key, filter }: show this status; a new key applies it again
 }) {
+  const { canSendCORs } = usePermissions()
   const { branding } = useBranding()
   const [cors, setCORs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -487,7 +490,7 @@ export default function CORList({
       loadStats()
     } catch (error) {
       console.error('Error submitting COR:', error?.message || error)
-      onShowToast?.('Could not submit COR. Nothing was sent.', 'error')
+      onShowToast?.(guardMessage(error, 'Could not submit COR. Nothing was sent.'), 'error')
     } finally {
       setSubmittingCORId(null)
     }
@@ -689,6 +692,7 @@ export default function CORList({
     <CORCard
       key={cor.id}
       cor={cor}
+      canSend={canSendCORs}
       isSelected={selectedCORs.has(cor.id)}
       selectMode={selectMode}
       areas={areas}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { db } from '../lib/supabase'
 import { AlertTriangle, UserCheck, UserX, UserMinus, Users, ChevronDown, Shield, User, Briefcase, UserPlus, Copy, Link2, XCircle } from 'lucide-react'
 import InviteModal from './InviteModal'
+import { PERMISSIONS, guardMessage } from '../lib/permissions'
 
 const ACCESS_LEVEL_OPTIONS = [
   { value: 'member', label: 'Member', icon: User, description: 'Standard access to projects' },
@@ -18,6 +19,8 @@ const COMPANY_ROLE_OPTIONS = [
 export default function MembershipManager({ company, user, onShowToast }) {
   const [filter, setFilter] = useState('pending')
   const [members, setMembers] = useState([])
+  // Permission columns by membership id; null when the database has none yet
+  const [permissionRows, setPermissionRows] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
   const [selectedAccessLevels, setSelectedAccessLevels] = useState({})
@@ -35,8 +38,12 @@ export default function MembershipManager({ company, user, onShowToast }) {
   const loadMembers = async () => {
     try {
       setLoading(true)
-      const data = await db.getCompanyMemberships(company.id)
+      const [data, permissions] = await Promise.all([
+        db.getCompanyMemberships(company.id),
+        Promise.resolve(db.getCompanyMemberPermissions?.(company.id)).catch(() => null)
+      ])
       setMembers(data)
+      setPermissionRows(permissions || null)
     } catch (error) {
       console.error('Error loading members:', error)
       onShowToast('Error loading team members', 'error')
@@ -117,6 +124,28 @@ export default function MembershipManager({ company, user, onShowToast }) {
       onShowToast('Error updating role', 'error')
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  const handleTogglePermission = async (membership, permission, value) => {
+    const previous = permissionRows?.[membership.id]?.[permission.column] === true
+    setPermissionRows(prev => ({
+      ...prev,
+      [membership.id]: { ...(prev?.[membership.id] || {}), [permission.column]: value }
+    }))
+    try {
+      await db.updateMemberPermission(membership.id, permission.column, value)
+      onShowToast(
+        `${membership.users?.name || 'User'} ${value ? 'can now' : 'can no longer'} ${permission.label.toLowerCase()}`,
+        'success'
+      )
+    } catch (error) {
+      console.error('Error updating permission:', error)
+      setPermissionRows(prev => ({
+        ...prev,
+        [membership.id]: { ...(prev?.[membership.id] || {}), [permission.column]: previous }
+      }))
+      onShowToast(guardMessage(error, 'Error updating permission'), 'error')
     }
   }
 
@@ -405,6 +434,25 @@ export default function MembershipManager({ company, user, onShowToast }) {
                         <span className="access-badge role"><Briefcase size={12} /> {member.company_role}</span>
                       )}
                     </div>
+                  )}
+                  {member.status === 'active' && permissionRows && (
+                    member.access_level === 'administrator' ? (
+                      <p className="member-permissions-note">Administrators hold every permission.</p>
+                    ) : (
+                      <fieldset className="member-permissions" aria-label={`Permissions for ${member.users?.name || 'this member'}`}>
+                        <legend>Permissions</legend>
+                        {PERMISSIONS.map(permission => (
+                          <label key={permission.key} className="member-permission" title={permission.description}>
+                            <input
+                              type="checkbox"
+                              checked={permissionRows[member.id]?.[permission.column] === true}
+                              onChange={(e) => handleTogglePermission(member, permission, e.target.checked)}
+                            />
+                            <span>{permission.label}</span>
+                          </label>
+                        ))}
+                      </fieldset>
+                    )
                   )}
                 </div>
                 <div className="member-actions">

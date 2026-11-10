@@ -15,6 +15,7 @@ export const EMPTY_QUEUE_COUNTS = Object.freeze({
   awaitingSignature: 0,
   readyForCOR: 0,
   draftCORs: 0,
+  returnedCORs: 0,
   withClient: 0,
   oldestWithClientAt: null
 })
@@ -24,11 +25,12 @@ export const COUNTED_ROWS = Object.freeze({
   review: 'readyToApprove',
   buildCor: 'readyForCOR',
   sendCor: 'draftCORs',
+  returned: 'returnedCORs',
   waiting: 'withClient'
 })
 
 /** Rows that act on one project, so portfolio scope has to name it first. */
-export const ROWS_NEEDING_PROJECT = Object.freeze(['review', 'buildCor', 'sendCor', 'waiting', 'newCor'])
+export const ROWS_NEEDING_PROJECT = Object.freeze(['review', 'buildCor', 'sendCor', 'returned', 'waiting', 'newCor'])
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const WAITING_WARN_DAYS = 7
@@ -108,6 +110,7 @@ export function getOfficeQuickActions({ scope = 'project', counts = null, now = 
   const awaiting = num(counts?.awaitingSignature)
   const readyForCOR = num(counts?.readyForCOR)
   const drafts = num(counts?.draftCORs)
+  const returned = num(counts?.returnedCORs)
   const withClient = num(counts?.withClient)
   const days = withClient > 0 ? daysWaitingOnClient(counts, now) : null
 
@@ -127,6 +130,8 @@ export function getOfficeQuickActions({ scope = 'project', counts = null, now = 
       readyForCOR > 0 ? 'Approved tickets not on a COR yet' : NOTHING_WAITING, 'Approved tickets not on a COR yet'),
     counted('sendCor', 'Send COR', drafts,
       drafts > 0 ? 'Drafts to finish and send for signature' : NOTHING_WAITING, 'Drafts to finish and send for signature'),
+    counted('returned', 'Returned by client', returned,
+      returned > 0 ? 'Sent back with comments. Revise and resend.' : NOTHING_WAITING, 'Sent back with comments'),
     counted('waiting', 'Waiting on client', withClient,
       waitingSubtitle(withClient, days), 'CORs sent for signature',
       days !== null && days > WAITING_WARN_DAYS ? 'warn' : 'default'),
@@ -150,7 +155,7 @@ export function getOfficeQuickActions({ scope = 'project', counts = null, now = 
 
   let badge = null
   if (ready > 0) badge = ready
-  else if (awaiting > 0 || readyForCOR > 0 || drafts > 0 || withClient > 0) badge = 'dot'
+  else if (awaiting > 0 || readyForCOR > 0 || drafts > 0 || returned > 0 || withClient > 0) badge = 'dot'
 
   return { badge, rows, footer }
 }

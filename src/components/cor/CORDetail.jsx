@@ -1,7 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { X, Edit3, Download, CheckCircle, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check, Send } from 'lucide-react'
+import { X, Edit3, Download, XCircle, Clock, FileText, Users, Package, Truck, Briefcase, DollarSign, Percent, Shield, Building2, Stamp, PenTool, Link, Image, ChevronDown, ChevronRight, Calendar, Pencil, Check, Send } from 'lucide-react'
 import { CollapsibleSection, StatusBadge } from '../ui'
 import { db } from '../../lib/supabase'
+import { usePermissions } from '../../lib/PermissionsContext'
+import { guardMessage } from '../../lib/permissions'
+import { corStage } from '../../lib/corStage'
+import { archiveCORPackage } from '../../lib/corPackageArchive'
+import CORComments from './CORComments'
 import { resolveClassRate } from '../../lib/laborRateResolver'
 import {
   formatCurrency,
@@ -125,35 +130,17 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
   // Calculate totals
   const totals = useMemo(() => calculateCORTotals(corData), [corData])
 
+  const { canSendCORs } = usePermissions()
   const statusInfo = getStatusInfo(corData.status)
-  const canApprove = corData.status === 'pending_approval'
+  const stage = corStage(corData)
+  // Waiting on the client. Only their signature approves a COR.
+  const isWithClient = corData.status === 'pending_approval'
   // Allow editing before billed (draft, pending_approval, approved)
   const canEdit = ['draft', 'pending_approval', 'approved'].includes(corData.status)
 
   const getAreaName = (areaId) => {
     const area = areas?.find(a => a.id === areaId)
     return area?.name || null
-  }
-
-  const handleApprove = async () => {
-    if (actionInProgress) return
-    if (corData.status !== 'pending_approval') {
-      onShowToast?.('COR is no longer pending approval', 'error')
-      return
-    }
-    if (!confirm('Approve this change order request?')) return
-    setActionInProgress(true)
-    try {
-      const updated = await db.approveCOR(corData.id)
-      setCORData(prev => ({ ...prev, ...updated }))
-      onShowToast?.('COR approved', 'success')
-      onStatusChange?.()
-    } catch (error) {
-      console.error('Error approving COR:', error)
-      onShowToast?.('Error approving COR', 'error')
-    } finally {
-      setActionInProgress(false)
-    }
   }
 
   const handleReject = async () => {
@@ -179,6 +166,57 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     }
   }
 
+  // Comments with the client (null until loaded, or when the database has
+  // no comments table yet: the section is then not shown)
+  const [comments, setComments] = useState(null)
+  const [commentBusy, setCommentBusy] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    Promise.resolve(db.getCORComments?.(cor.id)).then(rows => {
+      if (!cancelled) setComments(rows ?? null)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [cor.id, corData.status])
+
+  const handleReply = async (body) => {
+    setCommentBusy(true)
+    try {
+      const row = await db.addCORComment(corData.id, body)
+      if (row) setComments(prev => [...(prev || []), row])
+      return true
+    } catch (error) {
+      console.error('Error adding comment:', error)
+      onShowToast?.(guardMessage(error, error?.code === 'FEATURE_NOT_AVAILABLE' ? error.message : 'Could not add the comment'), 'error')
+      return false
+    } finally {
+      setCommentBusy(false)
+    }
+  }
+
+  // Void: the COR is withdrawn for good, with a reason the client also sees
+  const canVoid = canSendCORs && !corData.voided_at && !['billed', 'closed'].includes(corData.status)
+  const handleVoid = async () => {
+    if (actionInProgress) return
+    const reason = prompt('Why is this change order being voided? (the client sees this)')
+    if (reason === null) return
+    if (!reason.trim()) {
+      onShowToast?.('Enter a reason to void the change order', 'error')
+      return
+    }
+    setActionInProgress(true)
+    try {
+      const updated = await db.voidCOR(corData.id, reason.trim())
+      if (updated) setCORData(prev => ({ ...prev, ...updated }))
+      onShowToast?.('Change order voided', 'success')
+      onStatusChange?.()
+    } catch (error) {
+      console.error('Error voiding COR:', error)
+      onShowToast?.(guardMessage(error, error?.code === 'FEATURE_NOT_AVAILABLE' ? error.message : 'Could not void the change order'), 'error')
+    } finally {
+      setActionInProgress(false)
+    }
+  }
+
   // One next step for a draft: submit it, then open the client signature link
   const handleSubmitAndSend = async () => {
     if (actionInProgress) return
@@ -198,9 +236,22 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
       setCORData(prev => ({ ...prev, ...updated }))
       onStatusChange?.()
       setShowSignatureLink(true)
+
+      // Keep a copy of what is being sent. Never holds up or undoes the send.
+      archiveCORPackage({ cor: { ...corData, ...updated }, tickets: associatedTickets, project, company, db })
+        .then(() => onShowToast?.('A copy of the package was saved to Documents', 'success'))
+        .catch((archiveError) => {
+          console.error('Error saving the COR package:', archiveError)
+          onShowToast?.(
+            archiveError?.code === 'PACKAGE_TOO_LARGE'
+              ? archiveError.message
+              : 'The package was not saved to Documents. Use Export PDF to keep a copy.',
+            'warning'
+          )
+        })
     } catch (error) {
       console.error('Error submitting COR:', error)
-      onShowToast?.('Could not submit COR. Nothing was sent.', 'error')
+      onShowToast?.(guardMessage(error, 'Could not submit COR. Nothing was sent.'), 'error')
     } finally {
       setActionInProgress(false)
     }
@@ -452,7 +503,10 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
           </div>
 
           <div className="cor-detail-meta">
-            <StatusBadge status={corData.status} label={statusInfo.label} />
+            <StatusBadge status={stage.id === 'voided' ? 'void' : corData.status} label={stage.label || statusInfo.label} />
+            {stage.id === 'with_client' && stage.detail && (
+              <span className={`cor-stage-detail ${stage.overdue ? 'overdue' : ''}`}>{stage.detail}</span>
+            )}
             {corData.group_name && (
               <span className="cor-detail-group">{corData.group_name}</span>
             )}
@@ -1026,13 +1080,29 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             </div>
           )}
 
-          {/* Rejection Reason (if rejected) */}
-          {corData.status === 'rejected' && corData.rejection_reason && (
+          {/* Returned by the client: what they said, and what to do next */}
+          {stage.id === 'returned' && (
             <div className="cor-detail-section rejection-section">
-              <h3><XCircle size={18} /> Rejection Reason</h3>
-              <p className="rejection-text">{corData.rejection_reason}</p>
+              <h3><XCircle size={18} /> Returned by client</h3>
+              {corData.rejection_reason && <p className="rejection-text">{corData.rejection_reason}</p>}
+              <p className="rejection-next">Edit the change order, then submit and send it again. It goes back as the next revision.</p>
             </div>
           )}
+
+          {stage.id === 'voided' && (
+            <div className="cor-detail-section rejection-section">
+              <h3><XCircle size={18} /> Voided</h3>
+              {corData.void_reason && <p className="rejection-text">{corData.void_reason}</p>}
+              <p className="rejection-next">Its tickets are still linked to it. Unlink them in Tickets to put them on another change order.</p>
+            </div>
+          )}
+
+          <CORComments
+            comments={comments}
+            viewer="office"
+            busy={commentBusy}
+            onReply={comments && stage.id !== 'voided' ? handleReply : undefined}
+          />
         </div>
 
         {/* Footer Actions */}
@@ -1050,25 +1120,25 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
             )}
 
             {corData.status === 'draft' && (
-              <button className="btn btn-primary" onClick={handleSubmitAndSend} disabled={actionInProgress}>
+              <button
+                className="btn btn-primary"
+                onClick={handleSubmitAndSend}
+                disabled={actionInProgress || !canSendCORs}
+                title={canSendCORs ? undefined : 'Ask a company administrator for permission to send change orders'}
+              >
                 <Send size={16} aria-hidden="true" /> Submit & send for signature
               </button>
             )}
 
-            {canApprove && (
-              <>
-                <button className="btn btn-danger" onClick={handleReject} disabled={actionInProgress} aria-label="Reject this COR">
-                  <XCircle size={16} aria-hidden="true" /> Reject
-                </button>
-                <button className="btn btn-success" onClick={handleApprove} disabled={actionInProgress} aria-label="Approve this COR">
-                  <CheckCircle size={16} aria-hidden="true" /> Approve
-                </button>
-              </>
+            {isWithClient && (
+              <button className="btn btn-danger" onClick={handleReject} disabled={actionInProgress} aria-label="Record that the client rejected this COR">
+                <XCircle size={16} aria-hidden="true" /> Client rejected
+              </button>
             )}
 
             {canSign && (
-              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={actionInProgress} aria-label="Get GC signature for this COR">
-                <PenTool size={16} aria-hidden="true" /> Get GC Signature
+              <button className="btn btn-success" onClick={() => setShowSignature(true)} disabled={actionInProgress} aria-label="Get the client signature for this COR">
+                <PenTool size={16} aria-hidden="true" /> Get client signature
               </button>
             )}
 
@@ -1081,6 +1151,12 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
                 aria-label="Get shareable signature link"
               >
                 <Link size={16} aria-hidden="true" /> Get Signature Link
+              </button>
+            )}
+
+            {canVoid && (
+              <button className="btn btn-ghost btn-small" onClick={handleVoid} disabled={actionInProgress} aria-label="Void this COR">
+                <XCircle size={16} aria-hidden="true" /> Void
               </button>
             )}
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Table, List, Eye, FileDown, Check, X } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, Plus, Table, List, Eye, FileDown, X } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { db } from '../../lib/supabase'
 import { formatCurrency } from '../../lib/corCalculations'
@@ -8,7 +8,8 @@ import StatusBadge from '../ui/StatusBadge'
 /**
  * CORLogPreview - COR Log view for the Financials tab
  * Shows summary statistics, a value-by-status breakdown bar, and full log table
- * with per-row quick actions (View, Export PDF, Approve/Reject for pending).
+ * with per-row quick actions (View, Export PDF, Reject for pending).
+ * A COR is approved only by the client's signature, never from here.
  * "Show Full List" expands the card list below (only offered for larger logs).
  */
 
@@ -139,25 +140,6 @@ export default function CORLogPreview({
     approved_at: entry.changeOrder?.approvedAt,
     approved_by: entry.changeOrder?.approvedBy
   })
-
-  const handleApprove = async (entry, e) => {
-    e.stopPropagation()
-    const corId = entry.changeOrder?.id
-    if (!corId || actionInProgress) return
-    if (!confirm(`Approve ${entry.changeOrder?.corNumber || 'this COR'}?`)) return
-
-    setActionInProgress(corId)
-    try {
-      await db.approveCOR(corId)
-      onShowToast?.('COR approved', 'success')
-      await loadCORLog()
-    } catch (error) {
-      console.error('Error approving COR:', error)
-      onShowToast?.('Error approving COR', 'error')
-    } finally {
-      setActionInProgress(null)
-    }
-  }
 
   const handleReject = async (entry, e) => {
     e.stopPropagation()
@@ -395,16 +377,6 @@ export default function CORLogPreview({
                           <FileDown size={14} />
                         </button>
                         {isPending && (
-                          <>
-                            <button
-                              className="cor-row-action-btn approve"
-                              onClick={(e) => handleApprove(entry, e)}
-                              disabled={isBusy}
-                              title="Approve COR"
-                            >
-                              <Check size={14} />
-                              <span>Approve</span>
-                            </button>
                             <button
                               className="cor-row-action-btn reject"
                               onClick={(e) => handleReject(entry, e)}
@@ -414,7 +386,6 @@ export default function CORLogPreview({
                               <X size={14} />
                               <span>Reject</span>
                             </button>
-                          </>
                         )}
                       </div>
                     </td>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Zap, X, ArrowLeft, ChevronRight, ChevronDown, ClipboardCheck, FilePlus2, Send, Clock, Plus, Search } from 'lucide-react'
+import { Zap, X, ArrowLeft, ChevronRight, ChevronDown, ClipboardCheck, FilePlus2, Send, Clock, Plus, Search, Undo2 } from 'lucide-react'
 import {
   getOfficeQuickActions, getRowCount, isCaughtUp, pickProjectForRow,
   COUNTED_ROWS, ROWS_NEEDING_PROJECT
@@ -9,6 +9,7 @@ const ROW_ICONS = {
   review: ClipboardCheck,
   buildCor: FilePlus2,
   sendCor: Send,
+  returned: Undo2,
   waiting: Clock,
   newCor: Plus,
   search: Search

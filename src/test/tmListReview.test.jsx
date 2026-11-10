@@ -122,6 +122,40 @@ describe('TMList "To review" queue', () => {
     serveTickets([foremanSigned, clientSigned, plainPending, approved])
   })
 
+  it('reviews tickets one by one, full screen, and steps through them', async () => {
+    renderList()
+    await openToReview()
+    fireEvent.click(screen.getByRole('button', { name: /Review one by one \(3\)/ }))
+
+    const review = screen.getByRole('dialog', { name: 'Review tickets' })
+    expect(within(review).getByText('1 of 3')).toBeInTheDocument()
+    // Client-signed tickets come first, and the ticket is shown open
+    expect(within(review).getByRole('button', { name: 'Approve this ticket' })).toBeInTheDocument()
+    expect(within(review).getByRole('button', { name: 'Previous ticket' })).toBeDisabled()
+
+    fireEvent.click(within(review).getByRole('button', { name: 'Next ticket' }))
+    expect(within(review).getByText('2 of 3')).toBeInTheDocument()
+    expect(within(review).getByText('Needs client signature')).toBeInTheDocument()
+
+    fireEvent.click(within(review).getByRole('button', { name: 'Close review' }))
+    expect(screen.queryByRole('dialog', { name: 'Review tickets' })).not.toBeInTheDocument()
+  })
+
+  it('moves on to the next ticket when one is rejected, and ends on "Nothing left to review"', async () => {
+    serveTickets([clientSigned])
+    mocks.db.rejectTMTicket.mockResolvedValue({ id: 't-client', status: 'rejected' })
+    vi.spyOn(window, 'prompt').mockReturnValue('Hours do not match')
+    renderList()
+    await openToReview()
+    fireEvent.click(screen.getByRole('button', { name: /Review one by one \(1\)/ }))
+
+    const review = screen.getByRole('dialog', { name: 'Review tickets' })
+    fireEvent.click(within(review).getByRole('button', { name: 'Reject this ticket' }))
+
+    expect(await within(review).findByText('Nothing left to review')).toBeInTheDocument()
+    expect(within(review).getByText('Done')).toBeInTheDocument()
+  })
+
   it('labels the tab "To review" and counts every status awaiting approval', async () => {
     renderList()
     const tab = await screen.findByRole('tab', { name: /To review/ })
@@ -401,6 +435,14 @@ describe('TMTicketCard review actions', () => {
   it('shows no client-signature notice on approved or locked tickets', () => {
     renderCard(makeTicket({ status: 'approved' }))
     expect(screen.queryByText('Needs client signature')).toBeNull()
+  })
+
+  it('without the approve permission: no Approve or Reject, the ticket reads as ready', () => {
+    const handlers = renderCard(makeTicket({ status: 'client_signed', client_signature_data: 'sig' }), { canApprove: false })
+    expect(screen.queryByRole('button', { name: 'Approve this ticket' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reject this ticket' })).not.toBeInTheDocument()
+    expect(screen.getByText('Ready for approval')).toBeInTheDocument()
+    expect(handlers.onApprove).not.toHaveBeenCalled()
   })
 
   it('keeps Delete last and apart from Approve / Reject', () => {

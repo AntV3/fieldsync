@@ -17,7 +17,12 @@ import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } 
  *
  * Extracted from Dashboard.jsx so the component can stay a thin orchestrator.
  */
-export default function useDashboardData({ company, onShowToast, navigateToProjectId, onProjectNavigated }) {
+export default function useDashboardData({ company, onShowToast, navigateToProjectId, onProjectNavigated, onTicketEvent }) {
+  // Latest ticket-event listener, read through a ref so a new callback
+  // identity does not tear down the realtime subscription
+  const onTicketEventRef = useRef(onTicketEvent)
+  onTicketEventRef.current = onTicketEvent
+
   const [projects, setProjects] = useState([])
   const [projectsData, setProjectsData] = useState([]) // Enhanced data with areas/tickets
   const [selectedProject, setSelectedProject] = useState(null)
@@ -172,7 +177,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
     // Uses debounced refresh to coalesce rapid updates from multiple sources
     const subscription = db.subscribeToCompanyActivity?.(company.id, currentIds, {
       onMessage: () => debouncedRefresh(),
-      onTMTicket: (payload) => { recordFieldActivity(payload); debouncedRefresh() },
+      onTMTicket: (payload) => { recordFieldActivity(payload); onTicketEventRef.current?.(payload); debouncedRefresh() },
       onCrewCheckin: (payload) => { recordFieldActivity(payload); debouncedRefresh() }, // Crew check-ins affect labor costs
       onAreaUpdate: (payload) => { recordFieldActivity(payload); debouncedRefresh() }, // Area updates affect progress
       onCORChange: () => debouncedRefresh({ refreshCOR: true }), // COR changes

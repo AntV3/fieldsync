@@ -26,7 +26,9 @@ export default function NeedsActionStrip({ counts, scope = 'project', onAction }
     )
   }
 
-  const tiles = getOfficeQuickActions({ scope, counts }).rows.filter(row => COUNTED_ROWS[row.id])
+  // Four tiles; change orders the client returned ride on the "To send" tile
+  const tiles = getOfficeQuickActions({ scope, counts }).rows.filter(row => COUNTED_ROWS[row.id] && TILE_LABELS[row.id])
+  const returned = Number(counts.returnedCORs) || 0
   const awaitingSignature = Number(counts.awaitingSignature) || 0
 
   return (
@@ -36,14 +38,16 @@ export default function NeedsActionStrip({ counts, scope = 'project', onAction }
         {tiles.map(tile => {
           const hint = tile.id === 'review' && awaitingSignature > 0
             ? `${awaitingSignature} awaiting client signature`
-            : null
+            : tile.id === 'sendCor' && returned > 0
+              ? `${returned} returned by client`
+              : null
           const isZero = tile.count === 0 && !hint
           return (
             <button
               key={tile.id}
               type="button"
               className={`needs-action-tile ${isZero ? 'needs-action-tile--zero' : ''} ${tile.tone === 'warn' ? 'needs-action-tile--warn' : ''}`}
-              onClick={() => onAction?.(tile.id)}
+              onClick={() => onAction?.(tile.id === 'sendCor' && tile.count === 0 && returned > 0 ? 'returned' : tile.id)}
               title={tile.subtitle}
             >
               <span className="needs-action-count">{tile.count}</span>

@@ -6,6 +6,7 @@ import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, form
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
 import SignatureCanvas from './ui/SignatureCanvas'
 import StatusBadge from './ui/StatusBadge'
+import CORComments from './cor/CORComments'
 
 // Helper to format date
 const formatDate = (dateString) => {
@@ -88,10 +89,61 @@ export default function SignaturePage({ signatureToken }) {
   const [backupExpanded, setBackupExpanded] = useState(false)
   const [expandedTickets, setExpandedTickets] = useState(new Set())
 
+  // Comments between the client and the contractor on a change order.
+  // null = not available (the database has no comment support yet).
+  const [corComments, setCorComments] = useState(null)
+  const [showChangeForm, setShowChangeForm] = useState(false)
+  const [changeName, setChangeName] = useState('')
+  const [changeComment, setChangeComment] = useState('')
+  const [changeError, setChangeError] = useState(null)
+
   // Load signature request and document
   useEffect(() => {
     loadData()
   }, [signatureToken])
+
+  const loadComments = () => Promise.resolve(db.getCORCommentsByToken?.(signatureToken))
+    .then(rows => setCorComments(Array.isArray(rows) ? rows : null))
+    .catch(() => setCorComments(null))
+
+  useEffect(() => {
+    if (signatureRequest?.document_type === 'cor' && document) loadComments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signatureRequest?.document_type, document?.id])
+
+  // The client sends the change order back with a comment instead of signing
+  const handleRequestChanges = async (e) => {
+    e.preventDefault()
+    if (submitting) return
+    const name = changeName.trim()
+    const comment = changeComment.trim()
+    if (!name || !comment) {
+      setChangeError('Enter your name and what should change.')
+      return
+    }
+    setSubmitting(true)
+    setChangeError(null)
+    try {
+      await db.requestCORChanges(signatureToken, comment, name)
+      setShowChangeForm(false)
+      setChangeComment('')
+      setDocument(prev => (prev ? { ...prev, status: 'rejected' } : prev))
+      setSuccessMessage('Sent back for changes. The contractor has been asked to revise it.')
+      await loadComments()
+    } catch (err) {
+      console.error('Error requesting changes:', err)
+      const message = String(err?.message || '')
+      setChangeError(
+        message.includes('cor_not_awaiting_client') ? 'This change order is no longer waiting for your signature.'
+          : message.includes('signing_link_expired') ? 'This link has expired. Ask the contractor for a new one.'
+            : message.includes('signing_already_signed') ? 'This change order has already been signed.'
+              : err?.code === 'FEATURE_NOT_AVAILABLE' ? 'Requesting changes is not available yet. Contact the contractor directly.'
+                : 'Could not send your comment. Try again.'
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   // Resolve every ticket's photos to signed URLs in one batch using the
   // signing client (the bucket is private; the storage policy reads the
@@ -573,18 +625,9 @@ export default function SignaturePage({ signatureToken }) {
           {/* Signature section */}
           <div className="signature-status-section">
             <h3>Client Signature</h3>
-            {!isFullySigned ? (
-              <>
-                {renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
-                {!slot1 && <p className="or-divider">— or —</p>}
-                {renderSignatureSlot(2, slot2, 'Client Authorization', openSignatureModal, submitting)}
-              </>
-            ) : (
-              <>
-                {slot1 && renderSignatureSlot(1, slot1, 'GC Authorization', openSignatureModal, submitting)}
-                {slot2 && renderSignatureSlot(2, slot2, 'Client Authorization', openSignatureModal, submitting)}
-              </>
-            )}
+            {/* A ticket carries one client signature. Slot 2 is the client's;
+                a slot 1 signature on an older ticket counts as the same thing. */}
+            {renderSignatureSlot(2, slot2 || slot1, 'Client signature', openSignatureModal, submitting)}
             {isFullySigned && (
               <div className="fully-signed-message">
                 <CheckCircle size={24} />
@@ -1194,6 +1237,11 @@ export default function SignaturePage({ signatureToken }) {
           </div>
         </div>
 
+        {/* Comments with the contractor */}
+        {corComments !== null && corComments.length > 0 && (
+          <CORComments comments={corComments} viewer="client" />
+        )}
+
         {/* Signature Section */}
         <div className="cor-signature-section">
           <h4>Authorization</h4>
@@ -1202,98 +1250,101 @@ export default function SignaturePage({ signatureToken }) {
           </p>
 
           <div className="signature-slots-grid">
-            {/* Show signature options if not signed yet */}
-            {!isFullySigned ? (
-              <>
-                {/* GC Signature */}
-                <div className={`signature-slot-card ${slot1 ? 'signed' : 'unsigned'}`}>
+            {/* A change order is approved by one client signature. It is stored in
+                slot 1, the slot that approves the COR; a slot 2 signature on an
+                older COR is shown the same way. */}
+            {(() => {
+              const clientSlot = slot1 || slot2
+              if (!clientSlot && document.status === 'rejected') {
+                return (
+                  <div className="signature-slot-card unsigned">
+                    <div className="slot-header">
+                      <AlertCircle size={20} className="status-icon pending" />
+                      <span className="slot-label">Returned for changes</span>
+                    </div>
+                    <p className="cor-returned-note">
+                      This change order was sent back to the contractor. You will receive the revised version to sign.
+                    </p>
+                  </div>
+                )
+              }
+              return !clientSlot ? (
+                <div className="signature-slot-card unsigned">
                   <div className="slot-header">
-                    {slot1 ? (
-                      <CheckCircle size={20} className="status-icon signed" />
-                    ) : (
-                      <Clock size={20} className="status-icon pending" />
-                    )}
-                    <span className="slot-label">GC Authorization</span>
+                    <Clock size={20} className="status-icon pending" />
+                    <span className="slot-label">Client signature</span>
                   </div>
                   <button
                     className="btn btn-primary sign-btn"
                     onClick={() => openSignatureModal(1)}
                     disabled={submitting}
                   >
-                    Sign as GC
+                    Sign to approve
                   </button>
+                  {corComments !== null && !showChangeForm && (
+                    <button
+                      className="btn btn-secondary sign-btn"
+                      onClick={() => { setShowChangeForm(true); setChangeError(null) }}
+                      disabled={submitting}
+                    >
+                      Request changes
+                    </button>
+                  )}
+                  {showChangeForm && (
+                    <form className="cor-change-form" onSubmit={handleRequestChanges}>
+                      <label htmlFor="cor-change-name">Your name</label>
+                      <input
+                        id="cor-change-name"
+                        type="text"
+                        value={changeName}
+                        onChange={(e) => setChangeName(e.target.value)}
+                        maxLength={120}
+                        autoComplete="name"
+                      />
+                      <label htmlFor="cor-change-comment">What should change?</label>
+                      <textarea
+                        id="cor-change-comment"
+                        value={changeComment}
+                        onChange={(e) => setChangeComment(e.target.value)}
+                        rows={4}
+                        maxLength={4000}
+                        placeholder="For example: hours on the Nov 3 ticket look high, or the scope includes work not requested."
+                      />
+                      {changeError && <p className="cor-change-error" role="alert">{changeError}</p>}
+                      <div className="cor-change-actions">
+                        <button type="button" className="btn btn-ghost" onClick={() => setShowChangeForm(false)} disabled={submitting}>
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn btn-primary" disabled={submitting}>
+                          {submitting ? 'Sending...' : 'Send back for changes'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
-
-                <p className="or-divider">— or —</p>
-
-                {/* Client Signature */}
-                <div className={`signature-slot-card ${slot2 ? 'signed' : 'unsigned'}`}>
+              ) : (
+                <div className="signature-slot-card signed">
                   <div className="slot-header">
-                    {slot2 ? (
-                      <CheckCircle size={20} className="status-icon signed" />
-                    ) : (
-                      <Clock size={20} className="status-icon pending" />
+                    <CheckCircle size={20} className="status-icon signed" />
+                    <span className="slot-label">Client signature</span>
+                  </div>
+                  <div className="slot-signed-info">
+                    {clientSlot.signature_image && (
+                      <img src={clientSlot.signature_image} alt="Signature" className="signature-image" />
                     )}
-                    <span className="slot-label">Client Authorization</span>
+                    <div className="signer-details">
+                      <span className="signer-name">{clientSlot.signer_name}</span>
+                      {(clientSlot.signer_title || clientSlot.signer_company) && (
+                        <span className="signer-org">
+                          {clientSlot.signer_title}{clientSlot.signer_title && clientSlot.signer_company && ' — '}{clientSlot.signer_company}
+                        </span>
+                      )}
+                    </div>
+                    <span className="signed-date">Signed {formatDate(clientSlot.signed_at)}</span>
                   </div>
-                  <button
-                    className="btn btn-primary sign-btn"
-                    onClick={() => openSignatureModal(2)}
-                    disabled={submitting}
-                  >
-                    Sign as Client
-                  </button>
                 </div>
-              </>
-            ) : (
-              <>
-                {/* Show the collected signature */}
-                {slot1 && (
-                  <div className="signature-slot-card signed">
-                    <div className="slot-header">
-                      <CheckCircle size={20} className="status-icon signed" />
-                      <span className="slot-label">GC Authorization</span>
-                    </div>
-                    <div className="slot-signed-info">
-                      {slot1.signature_image && (
-                        <img src={slot1.signature_image} alt="Signature" className="signature-image" />
-                      )}
-                      <div className="signer-details">
-                        <span className="signer-name">{slot1.signer_name}</span>
-                        {(slot1.signer_title || slot1.signer_company) && (
-                          <span className="signer-org">
-                            {slot1.signer_title}{slot1.signer_title && slot1.signer_company && ' — '}{slot1.signer_company}
-                          </span>
-                        )}
-                      </div>
-                      <span className="signed-date">Signed {formatDate(slot1.signed_at)}</span>
-                    </div>
-                  </div>
-                )}
-                {slot2 && (
-                  <div className="signature-slot-card signed">
-                    <div className="slot-header">
-                      <CheckCircle size={20} className="status-icon signed" />
-                      <span className="slot-label">Client Authorization</span>
-                    </div>
-                    <div className="slot-signed-info">
-                      {slot2.signature_image && (
-                        <img src={slot2.signature_image} alt="Signature" className="signature-image" />
-                      )}
-                      <div className="signer-details">
-                        <span className="signer-name">{slot2.signer_name}</span>
-                        {(slot2.signer_title || slot2.signer_company) && (
-                          <span className="signer-org">
-                            {slot2.signer_title}{slot2.signer_title && slot2.signer_company && ' — '}{slot2.signer_company}
-                          </span>
-                        )}
-                      </div>
-                      <span className="signed-date">Signed {formatDate(slot2.signed_at)}</span>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+              )
+            })()}
           </div>
 
           {/* Fully signed message */}
@@ -1368,7 +1419,7 @@ function renderSignatureSlot(slot, signatureData, label, openModal, submitting) 
         ) : (
           <Clock size={20} className="status-icon pending" />
         )}
-        <span className="slot-label">Signature {slot} — {label}</span>
+        <span className="slot-label">{label}</span>
       </div>
 
       {signatureData ? (
@@ -1389,7 +1440,7 @@ function renderSignatureSlot(slot, signatureData, label, openModal, submitting) 
           onClick={() => openModal(slot)}
           disabled={submitting}
         >
-          Sign as {slot === 1 ? 'GC' : 'Client'}
+          Sign
         </button>
       )}
     </div>
