@@ -10,7 +10,7 @@
  */
 
 export const OFFICE_VIEWS = Object.freeze(['review', 'tickets', 'cors'])
-export const COR_LINK_FILTERS = Object.freeze(['draft', 'pending_approval'])
+export const COR_LINK_FILTERS = Object.freeze(['draft', 'pending_approval', 'rejected'])
 
 const PENDING_LINK_KEY = 'fieldsync-pending-office-link'
 const ID_PATTERN = /^[0-9a-zA-Z-]{1,64}$/

@@ -4304,3 +4304,144 @@ END MIGRATED */
 .cor-change-error { margin: 0; color: var(--accent-red); font-size: 0.85rem; }
 .cor-change-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .cor-change-actions .btn { min-height: 44px; }
+
+/* ---------- Client portal ---------- */
+
+.client-portal { max-width: 760px; margin: 0 auto; padding: 1rem; }
+
+.client-portal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 0 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.client-portal-logo { width: 44px; height: 44px; object-fit: contain; }
+.client-portal-header h1 { margin: 0; font-size: 1.25rem; }
+.client-portal-company,
+.client-portal-sub { margin: 0; font-size: 0.82rem; color: var(--text-secondary); }
+
+.client-portal-notice {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+
+.client-portal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.client-portal-group { margin-bottom: 1.25rem; }
+
+.client-portal-group h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.client-portal-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.client-portal-cor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-align: left;
+  font: inherit;
+}
+
+button.client-portal-cor { cursor: pointer; }
+button.client-portal-cor:hover { border-color: var(--primary-color); }
+
+.client-portal-group--with_client .client-portal-cor { border-left-color: var(--accent-amber, #f59e0b); }
+.client-portal-group--approved .client-portal-cor { border-left-color: var(--accent-green); }
+.client-portal-group--returned .client-portal-cor { border-left-color: var(--accent-red); }
+
+.client-portal-cor-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.client-portal-cor-title { font-weight: 600; }
+.client-portal-cor-line { font-size: 0.82rem; color: var(--text-secondary); }
+.client-portal-cor-total { font-weight: 600; white-space: nowrap; }
+.client-portal-foot { margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-secondary); text-align: center; }
+
+/* ---------- Client access (share modal) ---------- */
+
+.client-access {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.client-access h3 { margin: 0 0 0.35rem; }
+.client-access-intro,
+.client-access-empty { margin: 0 0 0.75rem; font-size: 0.86rem; color: var(--text-secondary); }
+
+.client-access-list { list-style: none; margin: 0 0 0.9rem; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.client-access-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+}
+
+.client-access-item--removed,
+.client-access-item--expired { opacity: 0.7; }
+
+.client-access-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 0.86rem; color: var(--text-primary); }
+.client-access-meta { font-size: 0.78rem; color: var(--text-secondary); }
+.client-access-actions { display: flex; gap: 6px; }
+.client-access-actions .btn { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; }
+
+.client-access-form { display: flex; flex-direction: column; gap: 0.6rem; }
+.client-access-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+
+.client-access-fields label { display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--text-secondary); }
+
+.client-access-fields input,
+.client-access-fields select {
+  min-height: 40px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary, var(--bg-card));
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.client-access-form .btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+
+@media (max-width: 640px) {
+  .client-access-fields { grid-template-columns: 1fr; }
+  .client-access-fields input,
+  .client-access-fields select,
+  .client-access-form .btn,
+  .client-access-actions .btn { min-height: 44px; }
+}

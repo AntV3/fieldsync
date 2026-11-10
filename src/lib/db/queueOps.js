@@ -20,6 +20,7 @@ const emptyCounts = () => ({
   awaitingSignature: 0,
   readyForCOR: 0,
   draftCORs: 0,
+  returnedCORs: 0,
   withClient: 0,
   oldestWithClientAt: null
 })
@@ -71,7 +72,7 @@ export const queueOps = {
           .from('change_orders')
           .select('id, project_id, status, submitted_at, updated_at, created_at, projects!inner(company_id)')
           .eq('projects.company_id', companyId)
-          .in('status', ['draft', 'pending_approval']))
+          .in('status', ['draft', 'pending_approval', 'rejected']))
       ])
 
       const byProject = {}
@@ -95,6 +96,11 @@ export const queueOps = {
         const counts = entry(cor.project_id)
         if (cor.status === 'draft') {
           counts.draftCORs += 1
+          continue
+        }
+        // Sent back by the client: the office revises and resends
+        if (cor.status === 'rejected') {
+          counts.returnedCORs += 1
           continue
         }
         counts.withClient += 1

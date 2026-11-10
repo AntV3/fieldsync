@@ -88,8 +88,8 @@ describe('queueOps.getOfficeQueueCounts', () => {
 
     const result = await queueOps.getOfficeQueueCounts('c1')
     expect(result).toEqual({
-      p1: { readyToApprove: 2, awaitingSignature: 2, readyForCOR: 1, draftCORs: 1, withClient: 2, oldestWithClientAt: '2026-10-20T00:00:00Z' },
-      p2: { readyToApprove: 0, awaitingSignature: 0, readyForCOR: 1, draftCORs: 2, withClient: 0, oldestWithClientAt: null }
+      p1: { readyToApprove: 2, awaitingSignature: 2, readyForCOR: 1, draftCORs: 1, returnedCORs: 0, withClient: 2, oldestWithClientAt: '2026-10-20T00:00:00Z' },
+      p2: { readyToApprove: 0, awaitingSignature: 0, readyForCOR: 1, draftCORs: 2, returnedCORs: 0, withClient: 0, oldestWithClientAt: null }
     })
     // Every query is scoped to the company through the projects join
     expect(h.calls.length).toBe(3)
@@ -157,7 +157,7 @@ describe('useOfficeQueue', () => {
     expect(dbMock.getOfficeQueueCounts).toHaveBeenCalledWith('c1', { throwOnError: true })
     expect(Object.keys(result.current.byProject)).toEqual(['p1', 'p2'])
     expect(result.current.totals).toEqual({
-      readyToApprove: 3, awaitingSignature: 1, readyForCOR: 3, draftCORs: 1, withClient: 3,
+      readyToApprove: 3, awaitingSignature: 1, readyForCOR: 3, draftCORs: 1, returnedCORs: 0, withClient: 3,
       oldestWithClientAt: '2026-10-01T00:00:00Z'
     })
     expect(result.current.forProject('p1')).toEqual(p1)

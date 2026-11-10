@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import ClientAccessPanel from './ClientAccessPanel'
 import { db } from '../lib/supabase'
 import Toast from './Toast'
 
@@ -153,6 +154,11 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
           </div>
 
           <div className="modal-body">
+            <ClientAccessPanel
+              project={project}
+              onNotify={(type, message) => setToast({ type, message })}
+            />
+
             {/* Existing Shares */}
             {existingShares.length > 0 && (
               <div className="existing-shares">

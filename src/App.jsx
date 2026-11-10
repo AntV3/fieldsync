@@ -32,6 +32,7 @@ const BrandingSettings = lazy(() => import('./components/BrandingSettings'))
 const PricingManager = lazy(() => import('./components/PricingManager'))
 const PublicView = lazy(() => import('./components/PublicView'))
 const SignaturePage = lazy(() => import('./components/SignaturePage'))
+const ClientPortal = lazy(() => import('./components/ClientPortal'))
 const MembershipManager = lazy(() => import('./components/MembershipManager'))
 const AccountSettings = lazy(() => import('./components/AccountSettings'))
 const TradeProfileSettings = lazy(() => import('./components/settings/TradeProfileSettings'))
@@ -106,6 +107,16 @@ function PublicViewRoute() {
   return (
     <Suspense fallback={<PageLoader />}>
       <PublicView shareToken={token} />
+    </Suspense>
+  )
+}
+
+// Wrapper for the client portal that reads the access token from URL params
+function ClientPortalRoute() {
+  const { token } = useParams()
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <ClientPortal accessToken={token} />
     </Suspense>
   )
 }
@@ -411,6 +422,9 @@ export default function App() {
           } />
           <Route path="/sign/:token" element={
             <ErrorBoundary><SignatureRoute /></ErrorBoundary>
+          } />
+          <Route path="/portal/:token" element={
+            <ErrorBoundary><ClientPortalRoute /></ErrorBoundary>
           } />
           <Route path="/privacy" element={
             <ErrorBoundary><Suspense fallback={<PageLoader />}><PrivacyPolicy /></Suspense></ErrorBoundary>

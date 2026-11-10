@@ -149,7 +149,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
       }
 
       // Navigate to dashboard if on login/root (preserve existing office routes)
-      const isPublicRoute = locationPathname.startsWith('/view/') || locationPathname.startsWith('/sign/')
+      const isPublicRoute = locationPathname.startsWith('/view/') || locationPathname.startsWith('/sign/') || locationPathname.startsWith('/portal/')
       const isOfficeRoute = [
         '/dashboard', '/projects/new', '/pricing', '/branding', '/team', '/account',
         '/trade-settings', '/portfolio-analytics'
@@ -226,7 +226,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
   // Initial auth check
   useEffect(() => {
     const path = locationPathname
-    if (path.startsWith('/view/') || path.startsWith('/sign/')) {
+    if (path.startsWith('/view/') || path.startsWith('/sign/') || path.startsWith('/portal/')) {
       setLoading(false)
     } else {
       checkAuth()
@@ -241,7 +241,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
       async (event, session) => {
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           const path = locationPathname
-          if (path.startsWith('/sign/') || path.startsWith('/view/')) return
+          if (path.startsWith('/sign/') || path.startsWith('/view/') || path.startsWith('/portal/')) return
           // Only an office user who was actually signed in gets sent to
           // /login. A guest (foreman, invitee, someone resetting a password)
           // can see this event from local session cleanup and must stay put.
@@ -262,7 +262,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
           navigate('/login', { replace: true })
         } else if (event === 'SIGNED_IN' && !user && !loginInProgressRef.current) {
           const path = locationPathname
-          if (!path.startsWith('/sign/') && !path.startsWith('/view/')) {
+          if (!path.startsWith('/sign/') && !path.startsWith('/view/') && !path.startsWith('/portal/')) {
             checkAuth()
           }
         }

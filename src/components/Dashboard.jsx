@@ -175,6 +175,9 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
       case 'sendCor':
         view.openCORs('draft')
         break
+      case 'returned':
+        view.openCORs('rejected')
+        break
       case 'waiting':
         view.openCORs('pending_approval')
         break

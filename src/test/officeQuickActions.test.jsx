@@ -45,11 +45,12 @@ describe('OfficeQuickActions (project scope)', () => {
       'Review tickets',
       'Build COR from tickets',
       'Send COR',
+      'Returned by client',
       'Waiting on client',
       'New COR',
       'Find a ticket or COR'
     ])
-    expect(rows.map(li => li.querySelector('.oqa-count')?.textContent ?? null)).toEqual(['3', '4', '1', '2', null, null])
+    expect(rows.map(li => li.querySelector('.oqa-count')?.textContent ?? null)).toEqual(['3', '4', '1', '0', '2', null, null])
     expect(within(sheet).getByText('Signed by client, ready for approval · 2 waiting on client signature')).toBeInTheDocument()
     expect(within(sheet).queryByText("You're caught up")).not.toBeInTheDocument()
   })
@@ -104,7 +105,7 @@ describe('OfficeQuickActions (project scope)', () => {
     expect(fab()).toHaveAccessibleName('Quick actions')
     const sheet = openSheet()
     expect(within(sheet).getByText("You're caught up")).toBeInTheDocument()
-    expect(within(sheet).getAllByText('Nothing waiting')).toHaveLength(4)
+    expect(within(sheet).getAllByText('Nothing waiting')).toHaveLength(5)
 
     const review = rowButton(sheet, 'Review tickets')
     expect(review).toHaveClass('oqa-row--dim')

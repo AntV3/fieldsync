@@ -103,6 +103,7 @@ export default function useOfficeQueue({ company, projects = [], refreshKey } = 
       sum.awaitingSignature += counts.awaitingSignature || 0
       sum.readyForCOR += counts.readyForCOR || 0
       sum.draftCORs += counts.draftCORs || 0
+      sum.returnedCORs += counts.returnedCORs || 0
       sum.withClient += counts.withClient || 0
       if (counts.oldestWithClientAt && (!sum.oldestWithClientAt || new Date(counts.oldestWithClientAt) < new Date(sum.oldestWithClientAt))) {
         sum.oldestWithClientAt = counts.oldestWithClientAt
