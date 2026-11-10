@@ -393,6 +393,9 @@ export default function BillingCenter({ project, company, user, onShowToast, wor
                   <ClipboardList size={16} />
                   <span>Time & Material Tickets ({billableItems.tickets.length})</span>
                 </div>
+                <p className="billable-group-note">
+                  Approved tickets that are not on a change order. Tickets on a change order bill through it.
+                </p>
                 <div className="billable-items">
                   {billableItems.tickets.map(ticket => (
                     <label

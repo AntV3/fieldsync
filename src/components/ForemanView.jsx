@@ -16,6 +16,7 @@ import {
   Clock, CheckCircle2, Moon, Sun
 } from 'lucide-react'
 import TMForm from './TMForm'
+import FieldTicketList from './FieldTicketList'
 import CrewCheckin from './CrewCheckin'
 import DailyReport from './DailyReport'
 import InjuryReportForm from './InjuryReportForm'
@@ -461,6 +462,19 @@ export default function ForemanView({ project, companyId, foremanName, onShowToa
           onShowToast={onShowToast}
         />
       </div>
+    )
+  }
+
+  // My tickets: recent tickets and what each still needs
+  if (activeView === 'tickets') {
+    return (
+      <FieldTicketList
+        project={project}
+        companyId={companyId}
+        onBack={returnHome}
+        onNewTicket={() => setActiveView('tm')}
+        onShowToast={onShowToast}
+      />
     )
   }
 

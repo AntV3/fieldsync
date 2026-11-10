@@ -2190,12 +2190,15 @@ export const corOps = {
         console.error('Error fetching billable CORs:', corsError)
       }
 
-      // Get approved T&M tickets with client signature that haven't been billed
+      // Get approved T&M tickets with client signature that haven't been billed.
+      // A ticket on a COR bills through that COR, never on its own, so the
+      // same work cannot be invoiced twice.
       const { data: tickets, error: ticketsError } = await supabase
         .from('t_and_m_tickets')
         .select('id, work_date, ce_pco_number, change_order_value, status, client_signature_date, gc_signature_date')
         .eq('project_id', projectId)
         .eq('status', 'approved')
+        .is('assigned_cor_id', null)
         .or('client_signature_data.not.is.null,gc_signature_data.not.is.null')
         .order('work_date', { ascending: true })
 
