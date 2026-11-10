@@ -11,6 +11,7 @@ import {
 } from '../lib/supabase'
 import { compressImage, getGPSLocation } from '../lib/imageUtils'
 import { queueTicketPhotos, discardTicketPhotos } from '../lib/photoQueue'
+import { usePermissions } from '../lib/PermissionsContext'
 import { TRANSLATIONS } from './tm/translations'
 import { getLocalDateString, parseLocalDate } from '../lib/utils'
 import WorkDetailsStep from './tm/WorkDetailsStep'
@@ -81,6 +82,9 @@ const calculateHoursFromTimeRange = (startTime, endTime) => {
 
 export default function TMForm({ project, companyId, maxPhotos = 10, prefill = null, onSubmit, onCancel, onShowToast }) {
   const [step, setStep] = useState(1)
+  // In the field the foreman signs; in the office only a permitted user may sign for them
+  const { canSignForForeman } = usePermissions()
+  const canSignAsForeman = isFieldMode() || canSignForForeman
   const [workDate, setWorkDate] = useState(getLocalDateString())
   const [showCapabilities, setShowCapabilities] = useState(false)
 
@@ -1592,6 +1596,7 @@ export default function TMForm({ project, companyId, maxPhotos = 10, prefill = n
       {/* Step 4: Review + Evidence / Step 5: Success & Signature */}
       {(step === 4 || step === 5) && (
         <ReviewStep
+          canSignAsForeman={canSignAsForeman}
           step={step}
           setStep={setStep}
           project={project}

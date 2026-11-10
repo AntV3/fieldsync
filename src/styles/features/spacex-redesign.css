@@ -1885,7 +1885,8 @@ button.sdx-pill:active { transform: scale(0.97); }
   background: var(--bg-card);
 }
 
-.fld-ticket--needs_signature { border-left-color: var(--accent-amber, #f59e0b); }
+.fld-ticket--needs_signature,
+.fld-ticket--needs_foreman_signature { border-left-color: var(--accent-amber, #f59e0b); }
 .fld-ticket--rejected { border-left-color: var(--accent-red); }
 .fld-ticket--approved { border-left-color: var(--accent-green); }
 

@@ -5,6 +5,7 @@ import { canApproveTicket, isAwaitingApproval } from '../lib/tmStatus'
 
 const SignatureLinkGenerator = lazy(() => import('./SignatureLinkGenerator'))
 const TMClientSignature = lazy(() => import('./TMClientSignature'))
+const TMForemanSignature = lazy(() => import('./TMForemanSignature'))
 
 const RECENT_DAYS = 45
 
@@ -26,7 +27,7 @@ const totalHours = (ticket) => (ticket.t_and_m_workers || []).reduce(
 
 /**
  * What the foreman needs to know about a ticket, in one word and one line.
- * @returns {{ state: 'rejected'|'needs_signature'|'signed'|'approved', label: string, detail: string|null }}
+ * @returns {{ state: 'rejected'|'needs_foreman_signature'|'needs_signature'|'signed'|'approved', label: string, detail: string|null }}
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function fieldTicketState(ticket) {
@@ -37,6 +38,9 @@ export function fieldTicketState(ticket) {
   if (ticket.status === 'approved' || ticket.status === 'billed') {
     return { state: 'approved', label: 'Approved by the office', detail: null }
   }
+  if (isAwaitingApproval(ticket.status) && !ticket.foreman_signature_data && !canApproveTicket(ticket)) {
+    return { state: 'needs_foreman_signature', label: 'Needs your signature', detail: 'Sign it, then get the client signature.' }
+  }
   if (isAwaitingApproval(ticket.status) && !canApproveTicket(ticket)) {
     return { state: 'needs_signature', label: 'Needs client signature', detail: 'The office cannot approve it until the client signs.' }
   }
@@ -45,6 +49,7 @@ export function fieldTicketState(ticket) {
 
 const STATE_ICONS = {
   rejected: AlertTriangle,
+  needs_foreman_signature: PenLine,
   needs_signature: PenLine,
   signed: Clock,
   approved: CheckCircle
@@ -61,6 +66,7 @@ export default function FieldTicketList({ project, companyId, onBack, onNewTicke
   const [loadError, setLoadError] = useState(false)
   const [signingTicket, setSigningTicket] = useState(null)
   const [linkTicket, setLinkTicket] = useState(null)
+  const [foremanSigningTicket, setForemanSigningTicket] = useState(null)
 
   const loadTickets = useCallback(async () => {
     setLoading(true)
@@ -72,7 +78,7 @@ export default function FieldTicketList({ project, companyId, onBack, onNewTicke
       const recent = (all || []).filter(t => {
         const date = parseLocalDate(t.work_date || t.created_at)
         // Anything still open stays on the list however old it is
-        return ['needs_signature', 'rejected'].includes(fieldTicketState(t).state) || !(date < cutoff)
+        return ['needs_foreman_signature', 'needs_signature', 'rejected'].includes(fieldTicketState(t).state) || !(date < cutoff)
       })
       recent.sort((a, b) => parseLocalDate(b.work_date || b.created_at) - parseLocalDate(a.work_date || a.created_at))
       setTickets(recent)
@@ -176,6 +182,13 @@ export default function FieldTicketList({ project, companyId, onBack, onNewTicke
                       </button>
                     </div>
                   )}
+                  {state === 'needs_foreman_signature' && (
+                    <div className="fld-ticket-actions">
+                      <button className="btn btn-primary" onClick={() => setForemanSigningTicket(ticket)}>
+                        <PenLine size={15} aria-hidden="true" /> Sign as foreman
+                      </button>
+                    </div>
+                  )}
                   {state === 'needs_signature' && (
                     <div className="fld-ticket-actions">
                       <button className="btn btn-primary" onClick={() => setSigningTicket(ticket)}>
@@ -209,6 +222,27 @@ export default function FieldTicketList({ project, companyId, onBack, onNewTicke
               loadTickets()
             }}
             onClose={() => setSigningTicket(null)}
+            onShowToast={onShowToast}
+          />
+        </Suspense>
+      )}
+
+      {foremanSigningTicket && (
+        <Suspense fallback={<div className="loading">Loading...</div>}>
+          <TMForemanSignature
+            ticketId={foremanSigningTicket.id}
+            ticketSummary={{
+              workDate: foremanSigningTicket.work_date,
+              workerCount: (foremanSigningTicket.t_and_m_workers || []).length,
+              totalHours: totalHours(foremanSigningTicket)
+            }}
+            ticketDetails={detailsFor(foremanSigningTicket)}
+            onSave={() => {
+              setForemanSigningTicket(null)
+              onShowToast?.('Foreman signature saved', 'success')
+              loadTickets()
+            }}
+            onClose={() => setForemanSigningTicket(null)}
             onShowToast={onShowToast}
           />
         </Suspense>

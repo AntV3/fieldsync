@@ -63,6 +63,7 @@ export default function ReviewStep({
   submittedTicket,
   submitting, submitProgress,
   foremanSigned, setForemanSigned,
+  canSignAsForeman = true,   // false: an office user without the sign-for-foreman permission
   showForemanSignature, setShowForemanSignature,
   foremanName,
   clientSigned, setClientSigned,
@@ -152,7 +153,11 @@ export default function ReviewStep({
           {!foremanSigned && (
             <div className="tm-foreman-required-notice">
               <AlertCircle size={18} />
-              <span>{t('foremanSignatureRequired')}</span>
+              <span>
+                {canSignAsForeman
+                  ? t('foremanSignatureRequired')
+                  : 'The foreman still needs to sign this ticket. They can sign it from My tickets in the field app.'}
+              </span>
             </div>
           )}
         </div>
@@ -253,6 +258,10 @@ export default function ReviewStep({
               <CheckCircle2 size={32} className="tm-signed-icon" />
               <span>{t('foremanSignatureCollected')}</span>
             </div>
+          ) : !canSignAsForeman ? (
+            <p className="tm-signature-locked-msg">
+              You do not have permission to sign for a foreman. Ask a company administrator, or have the foreman sign.
+            </p>
           ) : (
             <div className="tm-signature-buttons">
               <button
