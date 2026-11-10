@@ -65,12 +65,17 @@ export default function TicketSelector({ projectId, companyId, corId, project = 
       const allTickets = await db.getTMTickets(projectId)
       setTickets(allTickets || [])
 
-      // Opened on "ready": preselect only when every ready ticket is one change event
+      // Opened on "ready": preselect only when every ready ticket is one
+      // change event. Tickets with no CE/PCO number group together under
+      // NO_CE_PCO_KEY but are not one change event, so leave them unselected.
       if (initialFilter === 'ready') {
         const ready = (allTickets || []).filter(isReadyForCOR)
-        if (ready.length > 0 && groupByCePco(ready).length === 1) {
-          setSelectedTickets(new Set(ready.map(t => t.id)))
-          autoSelected.current = true
+        if (ready.length > 0) {
+          const groups = groupByCePco(ready)
+          if (groups.length === 1 && groups[0].key !== NO_CE_PCO_KEY) {
+            setSelectedTickets(new Set(ready.map(t => t.id)))
+            autoSelected.current = true
+          }
         }
       }
     } catch (error) {

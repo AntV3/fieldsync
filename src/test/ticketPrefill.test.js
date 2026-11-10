@@ -35,6 +35,25 @@ describe('ticket prefill', () => {
     expect(crew.laborers.map(w => w.name)).toEqual(['L'])
   })
 
+  it('a worker with both labor_class_id and a legacy role goes only to the dynamic bucket, not double-billed', () => {
+    const crew = crewFromTicket({
+      t_and_m_workers: [
+        { name: 'A', labor_class_id: 'lc1', role: 'Foreman', hours: 8, overtime_hours: 2 },
+        { name: 'B', labor_class_id: 'lc1', role: 'Operator', hours: 6 }
+      ]
+    })
+    expect(crew.dynamicWorkers).toEqual({
+      lc1: [
+        { name: 'A', hours: '8', overtimeHours: '2', timeStarted: '', timeEnded: '' },
+        { name: 'B', hours: '6', overtimeHours: '', timeStarted: '', timeEnded: '' }
+      ]
+    })
+    expect(crew.supervision).toBeNull()
+    expect(crew.operators).toBeNull()
+    expect(crew.laborers).toBeNull()
+    expect(crew.totalWorkers).toBe(2)
+  })
+
   it('carries catalog and custom items in the form shape', () => {
     expect(itemsFromTicket({
       t_and_m_items: [
