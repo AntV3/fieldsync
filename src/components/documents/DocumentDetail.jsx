@@ -63,8 +63,8 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
   // Handle download
   const handleDownload = async () => {
     await db.logDocumentAccess(document.id, 'downloaded')
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${document.storage_path}`
-    window.open(url, '_blank')
+    const url = await db.getDocumentUrl(document.storage_path)
+    if (url) window.open(url, '_blank')
   }
 
   // Handle approve
@@ -281,7 +281,8 @@ export default function DocumentDetail({ document: initialDocument, onBack, onUp
                     className="version-download"
                     onClick={async () => {
                       await db.logDocumentAccess(version.id, 'downloaded')
-                      window.open(`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${version.storage_path}`, '_blank')
+                      const url = await db.getDocumentUrl(version.storage_path)
+                      if (url) window.open(url, '_blank')
                     }}
                     title="Download this version"
                   >

@@ -121,8 +121,8 @@ export default function FolderGrid({ projectId, onShowToast }) {
   const handleDownload = async (doc) => {
     try {
       await db.logDocumentAccess(doc.id, 'downloaded')
-      const url = doc.url || `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${doc.storage_path}`
-      window.open(url, '_blank')
+      const url = doc.storage_path ? await db.getDocumentUrl(doc.storage_path) : doc.url
+      if (url) window.open(url, '_blank')
     } catch (error) {
       console.error('Download error:', error)
     }

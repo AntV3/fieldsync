@@ -1105,9 +1105,24 @@ export const fieldOps = {
       return report
     }
 
-    const { data, error } = await getClient()
+    const client = getClient()
+    const row = sanitizeFormData(reportData)
+
+    // A field (PIN) session may file a report but not read reports back
+    // (they hold medical details), so it does not ask for the saved row.
+    if (client !== supabase) {
+      const id = row.id || crypto.randomUUID()
+      const { error } = await client.from('injury_reports').insert({ ...row, id })
+      if (error) {
+        console.error('Error creating injury report:', error)
+        throw error
+      }
+      return { ...row, id }
+    }
+
+    const { data, error } = await client
       .from('injury_reports')
-      .insert(sanitizeFormData(reportData))
+      .insert(row)
       .select()
       .single()
 

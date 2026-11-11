@@ -1,9 +1,32 @@
 /**
  * Documents domain – folders, CRUD, linking, approval, search & audit logging.
  */
-import { getClient, observe, validate, escapePostgrestFilter } from './client'
+import { getClient, isSupabaseConfigured, observe, validate, escapePostgrestFilter } from './client'
 
 export const documentOps = {
+
+  // A link to open or download a stored document. The bucket is private,
+  // so the link is signed and expires after an hour. Falls back to the
+  // plain bucket URL when signing is not possible (demo mode).
+  async getDocumentUrl(storagePath) {
+    if (!storagePath) return null
+    const fallback = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${storagePath}`
+    if (!isSupabaseConfigured) return fallback
+    try {
+      const { data, error } = await getClient()
+        .storage
+        .from('project-documents')
+        .createSignedUrl(storagePath, 3600)
+      if (error || !data?.signedUrl) {
+        console.error('Could not sign document link:', error)
+        return fallback
+      }
+      return data.signedUrl
+    } catch (err) {
+      console.error('Could not sign document link:', err)
+      return fallback
+    }
+  },
   // ---- FOLDERS ----
 
   /**
