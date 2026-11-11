@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from './supabase'
+import { getClient } from './fieldSession'
 
 const BrandingContext = createContext()
 
@@ -47,7 +48,9 @@ export function BrandingProvider({ children, companyId }) {
         return
       }
 
-      const { data, error } = await supabase
+      // Field devices are not signed in: send their session so the
+      // company-scoped read is allowed.
+      const { data, error } = await getClient()
         .from('company_branding')
         .select('*')
         .eq('company_id', companyId)

@@ -983,7 +983,7 @@ export const fieldOps = {
       return msg
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('messages')
       .insert({
         project_id: projectId,
@@ -1105,7 +1105,7 @@ export const fieldOps = {
       return report
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('injury_reports')
       .insert(sanitizeFormData(reportData))
       .select()

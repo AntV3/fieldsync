@@ -472,6 +472,29 @@ export const financialOps = {
 
   // Get public project data (filtered by permissions)
   async getPublicProjectData(shareToken) {
+    if (isSupabaseConfigured) {
+      // One server call that checks the share link and returns only what it
+      // permits. When that function does not exist yet (PGRST202 / 42883:
+      // migration not applied), fall back to reading the tables directly.
+      const { data, error } = await supabase.rpc('public_get_shared_project', { p_token: shareToken })
+      if (!error) {
+        if (!data?.share || !data?.project) return null
+        return {
+          share: { ...data.share, permissions: data.share.permissions || {} },
+          project: data.project,
+          progress: data.progress ?? 0,
+          areas: data.areas || [],
+          photos: [],
+          dailyReports: data.dailyReports || [],
+          tmTickets: data.tmTickets || []
+        }
+      }
+      if (!['PGRST202', '42883'].includes(error.code)) {
+        console.error('Error loading shared project:', error)
+        return null
+      }
+    }
+
     const share = await this.getShareByToken(shareToken)
     if (!share) return null
 

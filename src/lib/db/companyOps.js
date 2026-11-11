@@ -313,6 +313,13 @@ export const companyOps = {
   async getInvitationByToken(token) {
     if (!isSupabaseConfigured) return null
 
+    // Look the invitation up by its token on the server, so invitations
+    // cannot be listed. When that function does not exist yet (PGRST202 /
+    // 42883: migration not applied), fall back to reading the table.
+    const lookup = await supabase.rpc('public_get_invitation', { p_token: token })
+    if (!lookup.error) return lookup.data || null
+    if (!['PGRST202', '42883'].includes(lookup.error.code)) return null
+
     const { data, error } = await supabase
       .from('company_invitations')
       .select('*, companies(id, name)')
