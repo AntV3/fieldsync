@@ -59,8 +59,11 @@ export function exportProjectFinancials(project, financialData) {
 
   const rows = []
 
-  // Contract value
-  rows.push({ category: 'Revenue', description: 'Original Contract Value', amount: project.contract_value || 0, date: project.start_date || '', type: 'Contract' })
+  // Contract value is a baseline (the amount the contract is written for),
+  // not realized revenue. It must stay out of the Revenue total — otherwise
+  // the summary adds contract + earned + CORs and overstates gross profit
+  // and margin by the contract value.
+  rows.push({ category: 'Contract', description: 'Original Contract Value', amount: project.contract_value || 0, date: project.start_date || '', type: 'Contract' })
 
   // Earned revenue
   if (financialData?.earnedRevenue) {
@@ -88,7 +91,8 @@ export function exportProjectFinancials(project, financialData) {
     })
   }
 
-  // Summary row
+  // Summary row — the Revenue total covers earned progress + approved CORs
+  // only; the contract baseline reports under its own row.
   const totalRevenue = rows.filter(r => r.category === 'Revenue').reduce((s, r) => s + (parseFloat(r.amount) || 0), 0)
   const totalCosts = rows.filter(r => r.category === 'Cost').reduce((s, r) => s + (parseFloat(r.amount) || 0), 0)
   rows.push({ category: '', description: '', amount: '', date: '', type: '' })

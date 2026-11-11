@@ -61,9 +61,13 @@ export function buildG703Lines(project, areas, changeOrders = [], previousApplic
     })
   }
 
-  // Approved change orders as additional line items
+  // Approved change orders as additional line items.
+  // A voided COR has `status='closed'` (the void migration leaves the status
+  // CHECK alone) with `voided_at` set. It must not appear on G702/G703 — the
+  // form is a signed statement of completed revenue, so a voided $50k COR
+  // would overstate it by $50k.
   const approvedCOs = (changeOrders || []).filter(co =>
-    co.status === 'approved' || co.status === 'billed' || co.status === 'closed'
+    !co.voided_at && (co.status === 'approved' || co.status === 'billed' || co.status === 'closed')
   )
   for (const co of approvedCOs) {
     const coValue = (co.cor_total || 0) / 100  // cents to dollars

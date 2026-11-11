@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { X, Check, RotateCcw, Pen, User, Briefcase, HardHat, Wrench, Camera, FileText } from 'lucide-react'
 import { db } from '../lib/supabase'
+import { parseLocalDate } from '../lib/utils'
 
 // Helper to format time (HH:MM to 9:00am format)
 const formatTime = (timeStr) => {
@@ -254,7 +255,7 @@ export default function TMForemanSignature({
               <div className="tm-sig-summary-item">
                 <span className="tm-sig-summary-label">{text.workDate}</span>
                 <span className="tm-sig-summary-value">
-                  {new Date(ticketSummary.workDate).toLocaleDateString()}
+                  {parseLocalDate(ticketSummary.workDate)?.toLocaleDateString() || ''}
                 </span>
               </div>
               <div className="tm-sig-summary-item">

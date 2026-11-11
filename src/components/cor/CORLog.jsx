@@ -23,12 +23,13 @@ const STATUS_DISPLAY = {
   closed: { label: 'Closed', className: 'closed' }
 }
 
-// Status categories for grouping
-const STATUS_CATEGORIES = {
-  pending: ['draft', 'pending_approval'],
-  approved: ['approved', 'billed'],
-  void: ['rejected', 'closed']
-}
+// Status categories for grouping. Predicate-based so `voided_at` (set by
+// the void migration on an otherwise-`closed` COR) routes the row into the
+// void bucket regardless of status, and a plain `closed` COR (fully billed
+// and wrapped up) stays with the approved/completed group.
+const isPendingCOR = (co) => ['draft', 'pending_approval'].includes(co.status)
+const isApprovedCOR = (co) => !co.voided_at && ['approved', 'billed', 'closed'].includes(co.status)
+const isVoidedCOR = (co) => co.status === 'rejected' || !!co.voided_at
 
 export default function CORLog({ project, company, onShowToast, onViewCOR }) {
   const [logEntries, setLogEntries] = useState([])
@@ -134,18 +135,18 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
 
   // Group paginated entries by status category
   const groupedEntries = useMemo(() => {
-    const pending = paginatedEntries.filter(e => STATUS_CATEGORIES.pending.includes(e.changeOrder.status))
-    const approved = paginatedEntries.filter(e => STATUS_CATEGORIES.approved.includes(e.changeOrder.status))
-    const voided = paginatedEntries.filter(e => STATUS_CATEGORIES.void.includes(e.changeOrder.status))
+    const pending = paginatedEntries.filter(e => isPendingCOR(e.changeOrder))
+    const approved = paginatedEntries.filter(e => isApprovedCOR(e.changeOrder))
+    const voided = paginatedEntries.filter(e => isVoidedCOR(e.changeOrder))
 
     return { pending, approved, voided }
   }, [paginatedEntries])
 
   // Calculate summary statistics from full dataset (not paginated)
   const summary = useMemo(() => {
-    const allPending = logEntries.filter(e => STATUS_CATEGORIES.pending.includes(e.changeOrder.status))
-    const allApproved = logEntries.filter(e => STATUS_CATEGORIES.approved.includes(e.changeOrder.status))
-    const allVoided = logEntries.filter(e => STATUS_CATEGORIES.void.includes(e.changeOrder.status))
+    const allPending = logEntries.filter(e => isPendingCOR(e.changeOrder))
+    const allApproved = logEntries.filter(e => isApprovedCOR(e.changeOrder))
+    const allVoided = logEntries.filter(e => isVoidedCOR(e.changeOrder))
 
     return {
       totalCORs: logEntries.length,

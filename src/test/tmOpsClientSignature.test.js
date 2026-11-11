@@ -4,9 +4,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // signature when it exists; before that migration the app writes the row.
 
 const { client, chain, state } = vi.hoisted(() => {
-  const state = { rpcResult: { data: null, error: null }, updates: [] }
+  const state = { rpcResult: { data: null, error: null }, updates: [], statusFilters: [] }
   const chain = { result: { data: { id: 't-1', status: 'client_signed' }, error: null } }
   for (const method of ['eq', 'select']) chain[method] = () => chain
+  chain.in = (col, values) => { if (col === 'status') state.statusFilters.push(values); return chain }
   chain.update = (values) => { state.updates.push(values); return chain }
   chain.single = () => Promise.resolve(chain.result)
   const client = { from: () => chain, rpc: vi.fn(() => Promise.resolve(state.rpcResult)) }
@@ -34,6 +35,7 @@ describe('tmOps.saveTMClientSignature', () => {
   beforeEach(() => {
     client.rpc.mockClear()
     state.updates.length = 0
+    state.statusFilters.length = 0
     chain.result = { data: { id: 't-1', status: 'client_signed' }, error: null }
   })
 
@@ -62,5 +64,17 @@ describe('tmOps.saveTMClientSignature', () => {
     state.rpcResult = { data: null, error: { code: 'P0001', message: 'This ticket already has a client signature' } }
     await expect(tmOps.saveTMClientSignature('t-1', signature)).rejects.toMatchObject({ code: 'P0001' })
     expect(state.updates).toHaveLength(0)
+  })
+
+  it('fallback update is guarded by a pending-or-foreman-signed status filter so it cannot regress an approved ticket', async () => {
+    state.rpcResult = { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } }
+    await tmOps.saveTMClientSignature('t-1', signature)
+    expect(state.statusFilters).toEqual([['pending', 'foreman_signed']])
+  })
+
+  it('fallback translates PGRST116 (zero rows matched the status filter) into a clear message', async () => {
+    state.rpcResult = { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } }
+    chain.result = { data: null, error: { code: 'PGRST116', message: 'The result contains 0 rows' } }
+    await expect(tmOps.saveTMClientSignature('t-1', signature)).rejects.toThrow(/no longer awaiting a client signature/)
   })
 })
