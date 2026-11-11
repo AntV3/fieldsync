@@ -1,6 +1,6 @@
 # Database Rollout Plan and SQL Hand-off
 
-**Status:** not started. Nothing in this plan has been run against production.
+**Status:** all three files were applied to production on 2026-11-10 and confirmed present by query. The branch test (step 3) and the SQL test files were not reported as run; the checks in step 6 and the hand test in step 3.6 are still worth doing.
 **Written:** 2026-11-10
 
 This is the complete list of database changes for Phases 2 and 3, in the order to run them. Every block marked **COPY** is meant to be pasted into the Supabase SQL editor as it is.
@@ -262,3 +262,45 @@ Then report what failed before trying again.
 
 - Merging the ticket's two outside signature columns (`gc_signature_*`, `client_signature_*`) into one. The app already shows a single client signature; the columns can be merged later.
 - A database rule that a ticket must be on a change order before it is billed. The app keeps tickets on a COR out of stand-alone billing.
+
+## Tenant isolation hardening (written 2026-11-11, not applied)
+
+Read-only exports of the live database on 2026-11-11 showed that company data was not isolated: about a third of the 325 row-security policies were open to everyone, to any signed-in user, to pending or removed members, or to anyone who edits the company on their own profile row, and several functions trusted an id passed by the caller. Two migrations close this.
+
+| Order | File | What it does | Risk |
+|---|---|---|---|
+| 1 | `supabase/migrations/20261113_tm_ticket_rejection_columns.sql` | Adds the four `rejected_*` columns the office app already writes on approve and reject | None: four nullable columns |
+| 2 | `supabase/migrations/20261113_tenant_isolation_hardening.sql` | Replaces the open policies, checks the caller in 27 functions, scopes storage, adds two public lookups | Medium: it removes access. See below |
+
+### Before running file 2
+
+1. **Deploy the app build from this branch and let field devices pick it up** (a day is enough). Older cached builds send some field requests without the field session and read the share and invitation pages from tables; after file 2 those requests return nothing.
+2. Run file 1 at any time. It is independent.
+
+### What changes for users after file 2
+
+- Each company sees only its own data. Active members, administrators and field sessions keep what they use today (covered by the tests).
+- Field devices stop receiving live updates for tickets, areas, crew check-ins and daily reports. Screens load current data when opened or refreshed.
+- The three removed members stay removed. Before, signing in re-activated them.
+- A join request waits for an administrator. Before, signing in activated it.
+- A person waiting for approval no longer sees the company's name on the waiting screen.
+- The punch list and the document access log start working (they had row security on and no policy).
+- 20 wrong field PINs for one company lock that company's PIN sign-in for 15 minutes. Remembered field sessions are not affected.
+
+### After running file 2
+
+Run `supabase/tests/tenant_isolation_tests.sql` in the SQL editor. It creates two test companies, runs 15 checks and rolls everything back. Expected last line: `TENANT ISOLATION TESTS: all 15 checks passed (rolled back)`.
+
+Then check by hand: office dashboard loads; open a ticket and its photos; approve and reject a ticket; add a COR line; field PIN sign-in, new ticket with a photo, crew check-in, message; a share link; an invitation link; a signing link.
+
+### If something is wrong
+
+Run `supabase/rollbacks/20261113_tenant_isolation_hardening_rollback.sql`. It restores every policy and function body exactly as exported, which also re-opens the gaps, so report what failed and re-apply once it is fixed.
+
+### Known limits (not closed by these files)
+
+- Local testing used the exported tables, policies and function bodies. The live triggers and views were not exported, so they were approximated.
+- Views in `public` (for example `unbilled_cors`, `unbilled_tickets`) were not reviewed. If they run with the owner's rights they bypass row security.
+- `verify_office_code` can still be called without signing in (the join screen needs it) and is not rate limited.
+- An administrator can still edit their own company's subscription columns. Plans are not enforced.
+- Field devices are not signed in; a field session is a bearer token for one project.

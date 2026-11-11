@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './client'
+import { getClient, isSupabaseConfigured } from './client'
 
 // Default trade config used when no config exists (backward compatibility)
 const DEFAULT_TRADE_CONFIG = {
@@ -23,7 +23,7 @@ export const tradeOps = {
       return getLocalTradeTemplates()
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('trade_templates')
       .select('*')
       .order('name')
@@ -45,7 +45,7 @@ export const tradeOps = {
       return stored ? JSON.parse(stored) : null
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('company_trade_config')
       .select('*, trade_templates(*)')
       .eq('company_id', companyId)
@@ -66,7 +66,7 @@ export const tradeOps = {
     }
 
     // Check if config exists
-    const { data: existing } = await supabase
+    const { data: existing } = await getClient()
       .from('company_trade_config')
       .select('id')
       .eq('company_id', companyId)
@@ -74,7 +74,7 @@ export const tradeOps = {
 
     if (existing) {
       // Update
-      const { data, error } = await supabase
+      const { data, error } = await getClient()
         .from('company_trade_config')
         .update(config)
         .eq('company_id', companyId)
@@ -88,7 +88,7 @@ export const tradeOps = {
       return { success: true, data }
     } else {
       // Insert
-      const { data, error } = await supabase
+      const { data, error } = await getClient()
         .from('company_trade_config')
         .insert({ company_id: companyId, ...config })
         .select('*, trade_templates(*)')
@@ -112,7 +112,7 @@ export const tradeOps = {
       return stored ? JSON.parse(stored) : null
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('project_trade_overrides')
       .select('*')
       .eq('project_id', projectId)
@@ -132,14 +132,14 @@ export const tradeOps = {
       return { success: true, data: stored }
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await getClient()
       .from('project_trade_overrides')
       .select('id')
       .eq('project_id', projectId)
       .maybeSingle()
 
     if (existing) {
-      const { data, error } = await supabase
+      const { data, error } = await getClient()
         .from('project_trade_overrides')
         .update(overrides)
         .eq('project_id', projectId)
@@ -152,7 +152,7 @@ export const tradeOps = {
       }
       return { success: true, data }
     } else {
-      const { data, error } = await supabase
+      const { data, error } = await getClient()
         .from('project_trade_overrides')
         .insert({ project_id: projectId, ...overrides })
         .select()
@@ -188,7 +188,7 @@ export const tradeOps = {
 
     if (upserts.length === 0) return { success: true }
 
-    const { error } = await supabase
+    const { error } = await getClient()
       .from('custom_field_data')
       .upsert(upserts, { onConflict: 'entity_id,field_key' })
 
@@ -206,7 +206,7 @@ export const tradeOps = {
       return stored ? JSON.parse(stored) : {}
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('custom_field_data')
       .select('field_key, field_value')
       .eq('entity_type', entityType)
@@ -230,7 +230,7 @@ export const tradeOps = {
   async getCustomFieldDataBulk(projectId, entityType) {
     if (!isSupabaseConfigured) return {}
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('custom_field_data')
       .select('entity_id, field_key, field_value')
       .eq('project_id', projectId)

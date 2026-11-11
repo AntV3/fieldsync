@@ -4,7 +4,7 @@
  */
 
 import {
-  supabase, isSupabaseConfigured,
+  isSupabaseConfigured,
   observe,
   getClient,
   sanitize
@@ -54,7 +54,7 @@ export const rfiOps = {
   async getNextRFINumber(projectId) {
     if (!isSupabaseConfigured || !projectId) return 1
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('rfis')
       .select('rfi_number')
       .eq('project_id', projectId)
@@ -88,7 +88,7 @@ export const rfiOps = {
       submitted_at: rfiData.status === 'open' ? new Date().toISOString() : null
     })
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('rfis')
       .insert(sanitized)
       .select()
@@ -122,7 +122,7 @@ export const rfiOps = {
       sanitized.closed_at = new Date().toISOString()
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('rfis')
       .update(sanitized)
       .eq('id', rfiId)
@@ -136,7 +136,7 @@ export const rfiOps = {
   async deleteRFI(rfiId) {
     if (!isSupabaseConfigured) return
 
-    const { error } = await supabase
+    const { error } = await getClient()
       .from('rfis')
       .delete()
       .eq('id', rfiId)
@@ -153,7 +153,7 @@ export const rfiOps = {
       return { total: 0, open: 0, answered: 0, closed: 0, overdue: 0 }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getClient()
       .from('rfis')
       .select('id, status, due_date')
       .eq('project_id', projectId)
