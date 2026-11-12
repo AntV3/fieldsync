@@ -364,6 +364,13 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
           <span>Remember me on this device</span>
         </label>
 
+        <p className="legal-notice" style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+          By signing in you agree to the{' '}
+          <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+          {' '}and{' '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+        </p>
+
         {loading && (
           <div className="entry-loading">
             <div className="spinner"></div>

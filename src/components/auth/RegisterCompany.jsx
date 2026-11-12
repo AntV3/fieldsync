@@ -4,11 +4,14 @@ import { ArrowLeft, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { isValidEmail, generateCode, StepIndicator, PasswordInput } from './authUtils'
 import Logo from '../Logo'
+import TermsAgreement from '../legal/TermsAgreement'
+import { termsAcceptanceMetadata, recordTermsAcceptance } from '../../lib/legal'
 
 export default function RegisterCompany({ onShowToast }) {
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [registerStep, setRegisterStep] = useState(1)
   const [registerCompanyName, setRegisterCompanyName] = useState('')
   const [registerName, setRegisterName] = useState('')
@@ -58,7 +61,8 @@ export default function RegisterCompany({ onShowToast }) {
       let userId
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
-        password: registerPassword
+        password: registerPassword,
+        options: { data: termsAcceptanceMetadata() }
       })
 
       const userAlreadyExists = authError?.message?.includes('already registered') ||
@@ -74,6 +78,7 @@ export default function RegisterCompany({ onShowToast }) {
           onShowToast('An account with this email already exists. Use your existing password or sign in instead.', 'error')
           return
         }
+        await recordTermsAcceptance(supabase)
 
         const { data: existingUser } = await supabase
           .from('users')
@@ -273,10 +278,11 @@ export default function RegisterCompany({ onShowToast }) {
             }}
             showStrength={true}
           />
+          <TermsAgreement checked={agreedToTerms} onChange={setAgreedToTerms} />
           <button
             className="entry-login-btn"
             onClick={handleRegisterCompany}
-            disabled={loading || !registerName.trim() || !isValidEmail(registerEmail) || registerPassword.length < 6}
+            disabled={loading || !agreedToTerms || !registerName.trim() || !isValidEmail(registerEmail) || registerPassword.length < 6}
           >
             {loading ? (
               <span className="btn-loading">
