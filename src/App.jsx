@@ -516,7 +516,7 @@ export default function App() {
             <PricingManager company={company} onShowToast={showToast} />
           ))} />
           <Route path="/branding" element={requireAuth(officeLayout(
-            <BrandingSettings company={company} onShowToast={showToast} />
+            <BrandingSettings company={company} isAdmin={isAdmin} onShowToast={showToast} />
           ))} />
           <Route path="/team" element={requireAuth(
             isAdmin

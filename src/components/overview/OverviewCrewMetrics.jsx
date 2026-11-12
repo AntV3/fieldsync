@@ -4,6 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { db } from '../../lib/supabase'
+import { showSsnOnPdfs, ssnForPdf, ssnOnScreen } from '../../lib/crewPrivacy'
 import { chartColors, tooltipStyle, formatChartDate } from '../charts/chartConfig'
 import {
   resolvePrimaryColor,
@@ -201,6 +202,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
 
       const primaryColor = resolvePrimaryColor({ company })
       const brandLogo = await loadBrandLogo({ company })
+      const showSsn = showSsnOnPdfs(await db.getCompanySettings(company?.id))
 
       let y = drawDocumentHeader(doc, {
         title: 'Crew On-Site Report',
@@ -247,7 +249,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           doc.text(w.name, 14, y)
           doc.text(w.role || '—', 80, y)
           if (hasSignatures) {
-            doc.text(w.ssn_last4 || '—', 130, y)
+            doc.text(ssnForPdf(w.ssn_last4, showSsn), 130, y)
             doc.text(w.signature_data ? 'Yes' : '—', 160, y)
           }
           y += 5
@@ -278,7 +280,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
           doc.text(w.name, 14, y)
           doc.text(w.role || '—', 80, y)
           if (hasSignatures) {
-            doc.text(w.ssn_last4 || '—', 130, y)
+            doc.text(ssnForPdf(w.ssn_last4, showSsn), 130, y)
             doc.text(w.signature_data ? 'Yes' : '—', 160, y)
           }
           y += 5
@@ -442,7 +444,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
                       <span className="crew-name-role">{w.role}</span>
                     )}
                     {w.ssn_last4 && (
-                      <span className="crew-name-ssn">••{w.ssn_last4.slice(-2)}</span>
+                      <span className="crew-name-ssn">{ssnOnScreen(w.ssn_last4)}</span>
                     )}
                   </span>
                 ))}
@@ -464,7 +466,7 @@ export const OverviewCrewMetrics = memo(function OverviewCrewMetrics({
                       <span className="crew-name-role">{w.role}</span>
                     )}
                     {w.ssn_last4 && (
-                      <span className="crew-name-ssn">••{w.ssn_last4.slice(-2)}</span>
+                      <span className="crew-name-ssn">{ssnOnScreen(w.ssn_last4)}</span>
                     )}
                   </span>
                 ))}

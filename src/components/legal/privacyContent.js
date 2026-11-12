@@ -59,7 +59,7 @@ export const PRIVACY_SECTIONS = [
           'Signature images and the name, title and company the signer enters, with the date and time.',
           'For signatures made through a signing link, the IP address reported for the connection and the browser details. These are kept as part of the signature record. The IP address is the one our hosting provider reports and may not identify the signer\'s exact location or device.',
           'For signatures made on a foreman\'s device, the browser details of that device.',
-          'Crew sign-in sheets ask each worker for their printed name, a signature and the last four digits of their Social Security number, which the Customer uses to identify workers on its sign-in records. These are stored with the crew check-in and appear in the sign-in sheet PDFs the Customer generates.'
+          'Crew sign-in sheets ask each worker for their printed name, a signature and the last four digits of their Social Security number, which the Customer uses to identify workers on its sign-in records. These are stored with the crew check-in. The SSN digits are never shown on screen; they print on the crew sign-in PDFs the Customer generates unless the Customer\'s administrator turns that off.'
         ]
       },
       { h3: 'Injury and incident reports' },

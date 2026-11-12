@@ -255,7 +255,7 @@ export default function Dashboard({ company, user, isAdmin, onShowToast, navigat
         db.getCrewCheckinHistory(selectedProject.id, 365)
       ])
 
-      const exportContext = { company }
+      const exportContext = { company, companySettings: await db.getCompanySettings(company?.id) }
 
       if (type === 'daily') {
         await exportDailyReportsPDF(dailyReports || [], selectedProject, exportContext)

@@ -76,7 +76,7 @@ A read-only review of the code checked what personal data the app collects, wher
 
 | # | Severity | Issue | Suggested fix |
 |---|---|---|---|
-| 1 | High | **Last 4 digits of SSN** collected on crew sign-in sheets, stored as plain text, printed in PDFs and cached on field devices. Disclosed in the Privacy Policy. | Owner decision: stop collecting it (recommended), or keep it and mask it on screen and in PDFs. |
+| 1 | Medium | **Last 4 digits of SSN** on crew sign-in sheets: kept (owner decision 2026-11-12: needed). Never shown on screen; printed on crew sign-in PDFs unless a company administrator turns it off (Settings > Security). Still stored as plain text in the crew check-in and in offline copies until sign-out. Disclosed in the Privacy Policy. | Encrypt the column at rest with a server-side key, and stop caching crew check-ins on field devices. |
 | 2 | Medium | **PINs are 4 digits.** The limits above make guessing slow, but a 6-digit PIN would make it impractical. | Allow 6-digit PINs for new projects (the login screen needs a variable-length entry). |
 | 3 | Medium | **No account or company deletion and no full-company export**; deleting a project leaves daily-report, observation and document files in storage. | Admin "close company" request flow and an export; delete all of a project's files with the project. Until then the Terms promise export and deletion on request, handled by hand. |
 | 4 | Low | Error reports can contain database error text with row values, and full stack traces (now deleted after 180 days). | Trim stored error messages. |

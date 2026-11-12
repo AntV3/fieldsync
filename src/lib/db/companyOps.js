@@ -8,6 +8,35 @@ import {
 } from './client'
 
 export const companyOps = {
+  // Company preferences kept in companies.settings (JSON). Readable by the
+  // company's members; written by its administrators. Returns {} when there
+  // are none or they cannot be read (callers fall back to defaults).
+  async getCompanySettings(companyId) {
+    if (!isSupabaseConfigured || !companyId) return {}
+    const { data, error } = await supabase
+      .from('companies')
+      .select('settings')
+      .eq('id', companyId)
+      .maybeSingle()
+    if (error) {
+      console.warn('Could not load company settings:', error.message)
+      return {}
+    }
+    return data?.settings || {}
+  },
+
+  async updateCompanySetting(companyId, key, value) {
+    if (!isSupabaseConfigured) return null
+    const current = await this.getCompanySettings(companyId)
+    const settings = { ...current, [key]: value }
+    const { error } = await supabase
+      .from('companies')
+      .update({ settings })
+      .eq('id', companyId)
+    if (error) throw error
+    return settings
+  },
+
   // ============================================
   // Companies
   // ============================================
