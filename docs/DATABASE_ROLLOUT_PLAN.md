@@ -263,7 +263,7 @@ Then report what failed before trying again.
 - Merging the ticket's two outside signature columns (`gc_signature_*`, `client_signature_*`) into one. The app already shows a single client signature; the columns can be merged later.
 - A database rule that a ticket must be on a change order before it is billed. The app keeps tickets on a COR out of stand-alone billing.
 
-## Tenant isolation hardening (written 2026-11-11, not applied)
+## Tenant isolation hardening (written 2026-11-11, applied 2026-11-12)
 
 Read-only exports of the live database on 2026-11-11 showed that company data was not isolated: about a third of the 325 row-security policies were open to everyone, to any signed-in user, to pending or removed members, or to anyone who edits the company on their own profile row, and several functions trusted an id passed by the caller. Two migrations close this.
 
