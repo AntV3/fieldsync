@@ -911,6 +911,15 @@ export const corOps = {
         throw new Error('Database client not available')
       }
 
+      // Pricing a ticket into COR cost lines is office work: a field (PIN)
+      // session may not read labor rates or write COR lines. The ticket is
+      // already linked to the COR; its lines are imported when the office
+      // opens the COR (CORDetail imports every association not yet imported).
+      if (client !== supabase) {
+        observe.activity('cor_import_left_for_office', { ticket_id: ticketId, cor_id: corId })
+        return { laborItems: [], materialItems: [], equipmentItems: [], skipped: true, leftForOffice: true }
+      }
+
       // Guard: Check if this ticket's data was already imported to prevent duplicates
       // This handles the case where a previous import succeeded but the status update failed
       const { data: assoc, error: assocError } = await client
