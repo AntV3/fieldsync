@@ -19,7 +19,8 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
   })
 
   // Expiration settings
-  const [expirationType, setExpirationType] = useState('never')
+  // Every share link expires; 90 days unless the office picks otherwise
+  const [expirationType, setExpirationType] = useState('90days')
   const [customExpiration, setCustomExpiration] = useState('')
 
   const loadShares = useCallback(async () => {
@@ -274,15 +275,6 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
                 <div className="form-section">
                   <label>Link Expiration</label>
                   <div className="radio-group">
-                    <label>
-                      <input
-                        type="radio"
-                        value="never"
-                        checked={expirationType === 'never'}
-                        onChange={(e) => setExpirationType(e.target.value)}
-                      />
-                      Never expires
-                    </label>
                     <label>
                       <input
                         type="radio"

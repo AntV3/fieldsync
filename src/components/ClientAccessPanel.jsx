@@ -7,8 +7,7 @@ import { guardMessage } from '../lib/permissions'
 const EXPIRY_OPTIONS = [
   { value: '30', label: '30 days' },
   { value: '90', label: '90 days' },
-  { value: '365', label: '1 year' },
-  { value: '', label: 'No expiry' }
+  { value: '365', label: '1 year' }
 ]
 
 const formatDate = (value) => {

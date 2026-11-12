@@ -127,8 +127,8 @@ export const PRIVACY_SECTIONS = [
           'Data is stored with our database provider, which encrypts it at rest.',
           'Each company\'s data is separated by database-level access rules, so one company cannot read or change another\'s records. These rules are tested against our live database.',
           'Ticket photos and project documents are kept in private storage and opened through links that expire after one hour.',
-          'Project PINs are stored as a bcrypt hash for checking, and repeated wrong PINs are blocked per device and per company. Office users can add two-factor authentication to their login.',
-          'Signing links, portal links and field sessions use long random tokens and can be revoked; field sessions end when the user signs out and expire after 12 hours (or 30 days if the user chose "remember me").',
+          'Project PINs are checked only against a bcrypt hash, are never sent to field devices or kept in offline copies, and archived projects stop accepting their PIN. Repeated wrong PINs are blocked per device and per company, without locking out devices that have signed in before. Office users can add two-factor authentication to their login.',
+          'Signing links, share links, portal links and field sessions use long cryptographically random tokens, always expire (at most one year for links; 12 hours for field sessions, or 30 days if the user chose "remember me"), and can be revoked at any time. Field sessions end when the user signs out.',
           'Public pages (share links, signing links, client portal) return only a fixed list of fields; they never return GPS positions, signer IP addresses, contact details or PINs.'
         ]
       },
@@ -139,7 +139,7 @@ export const PRIVACY_SECTIONS = [
     id: 'device',
     title: 'Information stored on your device',
     blocks: [
-      { p: `${P} works offline, so it keeps copies of some information on the phone or computer: the sign-in session, recent projects, tickets, crew check-ins (including crew sign-in details), daily reports and messages, unsent tickets and photos waiting to upload, and draft tickets. Signing out ends the session on our servers and removes it from the device; some offline copies stay on the device until the app's storage is cleared. Use a device lock, and do not use the field app on a shared device without signing out and clearing the browser's site data.` },
+      { p: `${P} works offline, so it keeps copies of some information on the phone or computer: the sign-in session, recent projects (never their PINs), tickets, crew check-ins (including crew sign-in details), daily reports and messages, unsent tickets and photos waiting to upload, and draft tickets. Signing out ends the session on our servers and deletes the offline copies of company data from the device; unsent tickets, photos and drafts are kept so no work is lost, and are removed once they are sent or discarded. The Android app does not include its data in device backups. Signing, portal and share link addresses are not stored in the app's offline cache. Use a device lock on any phone used for field work.` },
       { p: 'We use browser storage only for these purposes and for preferences (such as theme). We do not use advertising or tracking cookies.' }
     ]
   },
@@ -152,7 +152,7 @@ export const PRIVACY_SECTIONS = [
           'Customer records and files are kept while the Customer\'s account is active, unless the Customer deletes them sooner.',
           'When a Customer closes its account, it has 30 days to export its records; we then delete them from the active Service within a reasonable time, and from backups as the backups expire.',
           'Signature records are kept with the document they belong to, because they are evidence of what was signed.',
-          'Failed sign-in records are kept for a short period to stop PIN guessing. Error reports, email delivery records and activity logs are kept as long as needed for security, support and record-keeping.',
+          'Sign-in attempt records are deleted after 24 hours, expired field sessions daily, error reports after 180 days, slow-request timings after 90 days, and records of sent emails after 180 days. Activity and document logs are kept with the company\'s records as an audit trail.',
           'We may keep information longer where the law requires it or to resolve disputes.'
         ]
       }

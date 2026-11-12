@@ -309,9 +309,47 @@ export const updatePendingAction = async (id, updates) => {
 // Project & Area Caching
 // ============================================
 
-// Cache projects for offline access
+// Cache projects for offline access. The project PIN (and its hash) is never
+// written to the device: whoever holds the device could read it.
 export const cacheProjects = async (projects) => {
-  return saveAllToStore(STORES.PROJECTS, projects)
+  // eslint-disable-next-line no-unused-vars
+  const safe = (projects || []).map(({ pin, pin_hash, ...rest }) => rest)
+  return saveAllToStore(STORES.PROJECTS, safe)
+}
+
+// Stores that only hold copies of server data (safe to drop: they refill
+// from the server). Pending actions and pending tickets are unsent work and
+// are never cleared here.
+const READ_CACHE_STORES = [
+  STORES.PROJECTS, STORES.AREAS, STORES.CREW_CHECKINS, STORES.TM_TICKETS,
+  STORES.DAILY_REPORTS, STORES.MESSAGES, STORES.CACHED_DATA
+]
+
+/**
+ * Remove the copies of company data kept on this device for offline use
+ * (projects, crews, tickets, reports, messages). Called when someone signs
+ * out on purpose so the next person to pick up the device cannot read them.
+ * Unsent tickets, actions and photos are kept so no work is lost. Never throws.
+ */
+export const clearOfflineCaches = async () => {
+  try {
+    await initOfflineDB()
+    await withRetry(() => new Promise((resolve, reject) => {
+      const names = READ_CACHE_STORES.filter(name => db.objectStoreNames.contains(name))
+      if (names.length === 0) { resolve(); return }
+      const tx = db.transaction(names, 'readwrite')
+      names.forEach(name => tx.objectStore(name).clear())
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    }))
+  } catch (err) {
+    console.warn('[offline] could not clear cached data:', err)
+  }
+  try {
+    localStorage.removeItem('fieldsync_foreman_name')
+  } catch (_e) {
+    // storage unavailable
+  }
 }
 
 // Get cached projects

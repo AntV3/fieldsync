@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ArrowLeft, Briefcase } from 'lucide-react'
 import { db, getFieldSession, clearFieldSession } from '../../lib/supabase'
 import Logo from '../Logo'
+import { clearOfflineCaches } from '../../lib/offlineManager'
 
 export default function FieldLogin({ onForemanAccess, onShowToast }) {
   const navigate = useNavigate()
@@ -65,6 +66,7 @@ export default function FieldLogin({ onForemanAccess, onShowToast }) {
   // Forget the remembered session and start the login flow over.
   const forgetRememberedSession = async () => {
     try { await clearFieldSession() } catch (_e) { /* ignore */ }
+    await clearOfflineCaches()
     setFoundProject(null)
     setCompany(null)
     setCompanyCode('')

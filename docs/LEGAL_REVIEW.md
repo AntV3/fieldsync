@@ -56,13 +56,19 @@ A read-only review of the code checked what personal data the app collects, wher
 - Public pages return a fixed list of fields; GPS positions, signer IP addresses, contact details and PINs never leave through them.
 - No analytics, advertising trackers or error-tracking services; no `innerHTML` in the app; HTML escaped in emails.
 
-### Fixed in this change
+### Fixed
 
 | Issue | Fix |
 |---|---|
-| Photos under 500 KB were uploaded with their EXIF metadata, which can include the camera's GPS position, and reached anyone who could open the photo (including signers and portal viewers). | Every image is now redrawn before upload, which removes the metadata (`src/lib/imageUtils.js`). A format the browser cannot decode is still uploaded as it is. |
-| Share and signing link tokens came from Postgres `random()`, which is not a cryptographic generator; share tokens were 12 characters and anyone could call the generators. | `supabase/migrations/20261114_secure_link_tokens_and_cleanup.sql`: tokens from `gen_random_bytes()`, 24 characters; generators no longer callable without signing in. Existing links keep working. |
-| The cleanup functions for expired field sessions and old PIN attempts existed but never ran. | The same migration schedules them with pg_cron (when installed). |
+| Photos under 500 KB were uploaded with their EXIF metadata, which can include the camera's GPS position, and reached anyone who could open the photo (including signers and portal viewers). | Every image is redrawn before upload, which removes the metadata (`src/lib/imageUtils.js`). A format the browser cannot decode is still uploaded as it is. |
+| Field devices received the plain-text project PIN and its hash, and kept them in offline copies. | The field app asks for named columns without them; offline copies never store them; the database refuses a field session both columns (`20261114_data_protection_hardening.sql`). Office users still see PINs. |
+| PIN sign-in fell back to comparing the plain-text PIN; archived projects still accepted their PIN. | Sign-in checks only the bcrypt hash (every PIN is hashed first) and refuses archived projects. |
+| The per-company cap on wrong PINs let someone lock a company's foremen out for 15 minutes. | Devices that signed in to the company in the last 30 days are not subject to the company cap. New devices still are (20 per 15 minutes), and every device has its own limit (5 per 15 minutes). |
+| Signing out left company data on the device; Android backup could copy it to the cloud. | Signing out deletes offline copies of company data (unsent work is kept); Android backup is off. |
+| The service worker stored each page under its address, so signing, portal and share link tokens were kept on the device. | Pages are cached under one key; old caches are replaced on the next visit. |
+| Share and signing link tokens came from Postgres `random()` (not cryptographic); share tokens were 12 characters; anyone could call the generators. | 24 random characters from `gen_random_bytes()`; generators no longer callable without signing in. Existing links keep working. |
+| Share links defaulted to never expiring; signing and portal links offered "no expiry". | Every link expires: share links default to 90 days, signing links up to 60 days, portal access up to 1 year. |
+| No retention limits; cleanup functions never ran. | Scheduled cleanup: sign-in attempts after 24 hours, expired field sessions daily, error reports after 180 days, slow-request timings after 90 days, sent-email records after 180 days. |
 | Passwords could be 6 characters. | Minimum 8 on sign-up, join and invitation screens. Also set the minimum in Supabase (Authentication > Policies) so it is enforced on the server. |
 | No record of who agreed to which terms. | Agreement checkbox at sign-up; version and time stored on the account. |
 
@@ -70,14 +76,11 @@ A read-only review of the code checked what personal data the app collects, wher
 
 | # | Severity | Issue | Suggested fix |
 |---|---|---|---|
-| 1 | High | **Last 4 digits of SSN** collected on crew sign-in sheets, stored as plain text, printed in PDFs and cached on field devices. Disclosed in the Privacy Policy. | Owner decision: stop collecting it (recommended), or keep it and mask it in PDFs and on screen. |
-| 2 | High | **Project PIN also stored in plain text** (`projects.pin`) next to the bcrypt hash; the PIN sign-in still accepts it, and offline caches hold it. | Stop sending the PIN column to field devices and caches; then decide whether office users need to see PINs again after creating them. |
-| 3 | High | **4-digit PINs**: about 1,900 guesses a day per company are possible within the limits, and the same limit lets someone lock a company's foremen out for 15 minutes. Archived projects still accept their PIN. | 6-digit PINs (the database's own `validate_pin_format` already expects 6), refuse archived projects, and a per-project limit. |
-| 4 | Medium | **Signing out does not clear offline copies** on the device (projects, crew sign-ins, tickets, drafts, unsent photos). Android backup is on. | Clear offline caches on sign-out (keeping unsent tickets), and turn off Android backup. |
-| 5 | Medium | **No account or company deletion, no full-company export**, and deleting a project leaves daily-report, observation and document files in storage. | Admin "close company" request flow and an export; delete all of a project's files with the project. The Terms promise export and deletion on request, so these requests are handled by hand until then. |
-| 6 | Medium | **No retention limits** on error logs, email records and activity logs. | Scheduled deletion after a set period (for example 12 months for logs, 90 days for delivered emails). |
-| 7 | Medium | Share links default to **never expiring**; signing and portal links offer "no expiry". | Default share links to 90 days and remove "never" options. |
-| 8 | Low | Error reports can contain database error text with row values, and full stack traces. | Trim stored error messages. |
-| 9 | Low | Fonts load from Google Fonts and CDNFonts, sharing visitors' IP addresses (disclosed). | Self-host the fonts. |
-| 10 | Low | Signer IP address can be self-reported when the hosting header is missing (described as best-effort in the policy). | None needed beyond the wording. |
-| 11 | Low | Tables `field_access_log` and `field_activity_log` exist in production but not in the repository, so their contents were not reviewed. | Export their definitions and add them to the repository. |
+| 1 | High | **Last 4 digits of SSN** collected on crew sign-in sheets, stored as plain text, printed in PDFs and cached on field devices. Disclosed in the Privacy Policy. | Owner decision: stop collecting it (recommended), or keep it and mask it on screen and in PDFs. |
+| 2 | Medium | **PINs are 4 digits.** The limits above make guessing slow, but a 6-digit PIN would make it impractical. | Allow 6-digit PINs for new projects (the login screen needs a variable-length entry). |
+| 3 | Medium | **No account or company deletion and no full-company export**; deleting a project leaves daily-report, observation and document files in storage. | Admin "close company" request flow and an export; delete all of a project's files with the project. Until then the Terms promise export and deletion on request, handled by hand. |
+| 4 | Low | Error reports can contain database error text with row values, and full stack traces (now deleted after 180 days). | Trim stored error messages. |
+| 5 | Low | Fonts load from Google Fonts and CDNFonts, sharing visitors' IP addresses (disclosed). | Self-host the fonts. |
+| 6 | Low | Signer IP address can be self-reported when the hosting header is missing (described as best-effort in the policy). | None needed beyond the wording. |
+| 7 | Low | Tables `field_access_log` and `field_activity_log` exist in production but not in the repository, so their contents were not reviewed. | Export their definitions and add them to the repository. |
+| 8 | Info | Office users' two-factor authentication is optional. | Consider requiring it for administrators. |

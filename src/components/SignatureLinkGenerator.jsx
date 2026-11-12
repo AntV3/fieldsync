@@ -54,7 +54,6 @@ const DEADLINE_OPTIONS = [
   { value: '14', label: '14 days' },
   { value: '30', label: '30 days' },
   { value: '60', label: '60 days' },
-  { value: 'never', label: 'No expiration' },
 ]
 
 // Matches the 5-minute throttle in the signature_requests guard trigger.
