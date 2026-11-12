@@ -28,6 +28,26 @@
 
 BEGIN;
 
+-- Production has a trigger on projects that adds the creator to the project
+-- team and fails when a fixture project has no creator. The fixtures here do
+-- not exercise project teams, so switch it off for this transaction only
+-- (the ROLLBACK at the end switches it back on).
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT t.tgname
+    FROM pg_trigger t
+    JOIN pg_proc p ON p.oid = t.tgfoid
+    WHERE t.tgrelid = 'public.projects'::regclass
+      AND NOT t.tgisinternal
+      AND p.proname IN ('auto_assign_project_owner', 'increment_project_count')
+  LOOP
+    EXECUTE format('ALTER TABLE public.projects DISABLE TRIGGER %I', r.tgname);
+  END LOOP;
+END $$;
+
 -- Transaction-local scratch values shared between DO blocks.
 SELECT set_config('signing_smoke.passes', '0', true);
 
