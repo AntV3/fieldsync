@@ -754,9 +754,26 @@ export const tmOps = {
         .select()
         .single()
       if (error) {
-        // No row matched: not signed by the client, or no longer awaiting approval
+        // PGRST116 fires on any zero-row match. Disambiguate with a cheap
+        // read so the toast tells the office which rule blocked them, rather
+        // than always claiming the ticket is not signed.
         if (error.code === 'PGRST116') {
-          const notApprovable = new Error('Ticket is not signed by the client or is no longer awaiting approval')
+          const { data: current } = await client
+            .from('t_and_m_tickets')
+            .select('status, client_signature_data, gc_signature_data')
+            .eq('id', ticketId)
+            .maybeSingle()
+          let message
+          if (!current) {
+            message = 'Ticket not found or no longer accessible'
+          } else if (!['pending', 'foreman_signed', 'client_signed'].includes(current.status)) {
+            message = `Ticket is ${current.status} and can no longer be approved`
+          } else if (!current.client_signature_data && !current.gc_signature_data && current.status !== 'client_signed') {
+            message = 'Ticket is not signed by the client'
+          } else {
+            message = 'Ticket is no longer awaiting approval'
+          }
+          const notApprovable = new Error(message)
           notApprovable.code = 'TM_NOT_APPROVABLE'
           throw notApprovable
         }

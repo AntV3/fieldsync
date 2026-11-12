@@ -1255,7 +1255,12 @@ export default function SignaturePage({ signatureToken }) {
                 older COR is shown the same way. */}
             {(() => {
               const clientSlot = slot1 || slot2
-              if (!clientSlot && document.status === 'rejected') {
+              // A rejected COR is the right render whatever the slot columns
+              // say: a prior revision's signature can still sit on
+              // client_signature_* after the client requests changes on the
+              // new revision, and treating that as "signed" would tell the
+              // client their revision was approved.
+              if (document.status === 'rejected') {
                 return (
                   <div className="signature-slot-card unsigned">
                     <div className="slot-header">

@@ -90,21 +90,19 @@ export default function DailyReportsList({ project, company, onShowToast }) {
     let filtered = [...reports]
 
     // Apply date filter if set
+    // report_date is a DATE column ("YYYY-MM-DD"); parse it as local
+    // midnight so the comparison and the filter boundary agree in every
+    // timezone. A full created_at timestamp parses the same way everywhere.
+    const reportDateOf = (r) => parseLocalDate(r.report_date || r.created_at)
     if (dateFilter.start) {
       const startDate = parseLocalDate(dateFilter.start)
       startDate.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate >= startDate
-      })
+      filtered = filtered.filter(r => reportDateOf(r) >= startDate)
     }
     if (dateFilter.end) {
       const endDate = parseLocalDate(dateFilter.end)
       endDate.setHours(23, 59, 59, 999)
-      filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate <= endDate
-      })
+      filtered = filtered.filter(r => reportDateOf(r) <= endDate)
     }
 
     // In recent mode, show only last 7 days
@@ -112,10 +110,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       sevenDaysAgo.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(r => {
-        const reportDate = new Date(r.report_date || r.created_at)
-        return reportDate >= sevenDaysAgo
-      })
+      filtered = filtered.filter(r => reportDateOf(r) >= sevenDaysAgo)
     }
 
     return filtered
@@ -127,7 +122,7 @@ export default function DailyReportsList({ project, company, onShowToast }) {
 
     const groups = {}
     filteredReports.forEach(report => {
-      const date = new Date(report.report_date || report.created_at)
+      const date = parseLocalDate(report.report_date || report.created_at)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
@@ -194,7 +189,11 @@ export default function DailyReportsList({ project, company, onShowToast }) {
   }
 
   const formatDate = (dateStr) => {
-    const date = new Date(dateStr)
+    // report_date is a DATE column ("YYYY-MM-DD"); parseLocalDate keeps it in
+    // the viewer's day. created_at is a full timestamp and parses correctly
+    // either way.
+    const date = parseLocalDate(dateStr)
+    if (!date) return ''
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',

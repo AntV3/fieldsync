@@ -11,6 +11,7 @@ import {
   applyDocumentFooters,
 } from '../lib/pdfBranding'
 import { ErrorState, EmptyState } from './ui'
+import { parseLocalDate } from '../lib/utils'
 import InjuryReportForm from './InjuryReportForm'
 import InjuryReportCard from './InjuryReportCard'
 import Toast from './Toast'
@@ -95,8 +96,11 @@ export default function InjuryReportsList({ project, companyId, company, user, o
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
+    // incident_date is a DATE column ("YYYY-MM-DD"); parseLocalDate keeps it
+    // in the viewer's day. created_at / closed_at are full timestamps and
+    // parse correctly either way.
+    const date = parseLocalDate(dateString)
+    if (!date) return ''
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -180,7 +184,7 @@ export default function InjuryReportsList({ project, companyId, company, user, o
 
     const groups = {}
     filteredReports.forEach(report => {
-      const date = new Date(report.incident_date)
+      const date = parseLocalDate(report.incident_date)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 

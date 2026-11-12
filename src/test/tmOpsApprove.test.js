@@ -6,11 +6,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 const { client, chain, calls } = vi.hoisted(() => {
   const calls = []
-  const chain = { result: { data: null, error: null } }
+  const chain = {
+    result: { data: null, error: null },       // .single() result
+    readResult: { data: null, error: null }    // .maybeSingle() result (post-PGRST116 disambiguation read)
+  }
   for (const method of ['update', 'eq', 'in', 'or', 'select']) {
     chain[method] = (...args) => { calls.push([method, ...args]); return chain }
   }
   chain.single = () => Promise.resolve(chain.result)
+  chain.maybeSingle = () => Promise.resolve(chain.readResult)
   return { client: { from: (table) => { calls.push(['from', table]); return chain } }, chain, calls }
 })
 
@@ -48,6 +52,7 @@ const matchesFilters = (row) => calls.every(([method, ...args]) => {
 beforeEach(() => {
   calls.length = 0
   chain.result = { data: { id: 't-1', status: 'approved' }, error: null }
+  chain.readResult = { data: null, error: null }
 })
 
 describe('tmOps.approveTMTicket', () => {
@@ -77,7 +82,22 @@ describe('tmOps.approveTMTicket', () => {
 
   it('reports a refused update (no matching row) as not approvable', async () => {
     chain.result = { data: null, error: { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' } }
+    chain.readResult = { data: { id: 't-1', status: 'foreman_signed', client_signature_data: null, gc_signature_data: null }, error: null }
     await expect(tmOps.approveTMTicket('t-1', 'u-1', 'Dana Lee', 250)).rejects.toMatchObject({ code: 'TM_NOT_APPROVABLE' })
+  })
+
+  it('names the terminal status when the ticket is no longer approvable', async () => {
+    chain.result = { data: null, error: { code: 'PGRST116', message: 'no rows' } }
+    chain.readResult = { data: { id: 't-1', status: 'rejected', client_signature_data: 'sig', gc_signature_data: null }, error: null }
+    await expect(tmOps.approveTMTicket('t-1', 'u-1', 'Dana Lee', 250))
+      .rejects.toMatchObject({ code: 'TM_NOT_APPROVABLE', message: expect.stringMatching(/rejected/i) })
+  })
+
+  it('reports a missing / inaccessible ticket, not a signature problem', async () => {
+    chain.result = { data: null, error: { code: 'PGRST116', message: 'no rows' } }
+    chain.readResult = { data: null, error: null }
+    await expect(tmOps.approveTMTicket('t-1', 'u-1', 'Dana Lee', 250))
+      .rejects.toMatchObject({ code: 'TM_NOT_APPROVABLE', message: expect.stringMatching(/not found|no longer accessible/i) })
   })
 
   it('passes other database errors through unchanged', async () => {

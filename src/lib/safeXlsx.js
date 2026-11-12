@@ -88,3 +88,45 @@ export const safeSheetToJson = (XLSX, sheet, options = {}) => {
   const rows = XLSX.utils.sheet_to_json(sheet, options)
   return rows.map(sanitizeObject)
 }
+
+// Characters that Excel and LibreOffice treat as the start of a formula when
+// the cell is opened. A string beginning with any of these can execute a
+// formula (including HYPERLINK exfiltration, DDE in older Excels, or opaque
+// WEBSERVICE calls) on open, so we prefix a single quote the way the UI does
+// for user-entered text.
+const FORMULA_START = /^[=+\-@\t\r\n]/
+
+function escapeXLSXCellString(value) {
+  if (typeof value !== 'string' || value.length === 0) return value
+  return FORMULA_START.test(value) ? "'" + value : value
+}
+
+function escapeXLSXRow(row) {
+  if (Array.isArray(row)) return row.map(escapeXLSXCellString)
+  if (row && typeof row === 'object') {
+    const clean = {}
+    for (const [k, v] of Object.entries(row)) clean[k] = escapeXLSXCellString(v)
+    return clean
+  }
+  return row
+}
+
+/**
+ * Wrap XLSX.utils.aoa_to_sheet so any user-authored string that starts with
+ * =, +, -, @, tab or newline is prefixed with a single quote before it lands
+ * in a cell. Without this, exports of user-authored content (COR title,
+ * worker name, ticket notes…) can execute a formula when the recipient opens
+ * the file in Excel or LibreOffice.
+ */
+export const safeAoaToSheet = (XLSX, aoa, options) => {
+  const safeRows = Array.isArray(aoa) ? aoa.map(escapeXLSXRow) : aoa
+  return XLSX.utils.aoa_to_sheet(safeRows, options)
+}
+
+/**
+ * Same protection as safeAoaToSheet for row-of-objects callers.
+ */
+export const safeJsonToSheet = (XLSX, rows, options) => {
+  const safeRows = Array.isArray(rows) ? rows.map(escapeXLSXRow) : rows
+  return XLSX.utils.json_to_sheet(safeRows, options)
+}

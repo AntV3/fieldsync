@@ -51,10 +51,19 @@ export default function CORDetail({ cor, project, company, areas, onClose, onEdi
     try {
       let fullCOR = await db.getCORById(cor.id)
       if (fullCOR) {
-        // Auto-import cost data from any unimported associated tickets
-        const unimported = fullCOR.change_order_ticket_associations?.filter(
-          assoc => !assoc.data_imported && assoc.t_and_m_tickets
-        ) || []
+        // Auto-import cost data from any unimported associated tickets, but
+        // only while the COR is still editable. An approved / billed / closed
+        // / voided COR carries a signed total; silently adding line items
+        // after the fact would diverge the displayed total from the one the
+        // client approved. The ticket stays associated with data_imported=
+        // false; the office can edit the COR explicitly when they re-open it.
+        const importable = ['draft', 'pending_approval', 'rejected'].includes(fullCOR.status)
+          && !fullCOR.voided_at
+        const unimported = importable
+          ? fullCOR.change_order_ticket_associations?.filter(
+              assoc => !assoc.data_imported && assoc.t_and_m_tickets
+            ) || []
+          : []
 
         if (unimported.length > 0 && company?.id) {
           let importedAny = false
