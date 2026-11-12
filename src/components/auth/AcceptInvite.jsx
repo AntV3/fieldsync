@@ -75,7 +75,7 @@ export default function AcceptInvite({ onShowToast }) {
   const handleSignUp = async () => {
     if (!name.trim()) { onShowToast('Enter your name', 'error'); return }
     if (!isValidEmail(email)) { onShowToast('Enter a valid email', 'error'); return }
-    if (password.length < 6) { onShowToast('Password must be 6+ characters', 'error'); return }
+    if (password.length < 8) { onShowToast('Password must be 8+ characters', 'error'); return }
 
     setSubmitting(true)
     try {
@@ -324,7 +324,7 @@ export default function AcceptInvite({ onShowToast }) {
               <PasswordInput
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Password (6+ characters)"
+                placeholder="Password (8+ characters)"
                 onKeyDown={e => { if (e.key === 'Enter') handleSignUp() }}
                 showStrength={true}
               />
@@ -332,7 +332,7 @@ export default function AcceptInvite({ onShowToast }) {
               <button
                 className="entry-login-btn"
                 onClick={handleSignUp}
-                disabled={submitting || !agreedToTerms || !name.trim() || !isValidEmail(email) || password.length < 6}
+                disabled={submitting || !agreedToTerms || !name.trim() || !isValidEmail(email) || password.length < 8}
               >
                 {submitting ? (
                   <span className="btn-loading">

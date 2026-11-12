@@ -51,3 +51,17 @@ describe('TermsOfService page', () => {
     expect(ids).toEqual(expect.arrayContaining(['signatures', 'construction', 'customer-data', 'liability', 'security']))
   })
 })
+
+describe('PrivacyPolicy page', () => {
+  it('renders every section and names each service provider', async () => {
+    const { default: PrivacyPolicy } = await import('../components/legal/PrivacyPolicy')
+    const { PRIVACY_SECTIONS } = await import('../components/legal/privacyContent')
+    render(<MemoryRouter><PrivacyPolicy /></MemoryRouter>)
+    PRIVACY_SECTIONS.forEach((section, i) => {
+      expect(screen.getByRole('heading', { level: 2, name: `${i + 1}. ${section.title}` })).toBeInTheDocument()
+    })
+    for (const provider of ['Supabase', 'Vercel', 'Resend']) {
+      expect(screen.getAllByText(provider).length).toBeGreaterThan(0)
+    }
+  })
+})

@@ -173,15 +173,17 @@ export const loadImagesAsBase64 = async (urls, timeout = 5000, quality = 0.85) =
  * @returns {Promise<File>} - Compressed image file
  */
 export async function compressImage(file, maxWidth = 1920, quality = 0.8) {
-  // Skip compression for non-image files
-  if (!file.type.startsWith('image/')) {
+  // Skip non-images, and formats a canvas cannot redraw faithfully
+  // (animated GIFs, vector SVGs)
+  if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
     return file
   }
 
-  // Skip compression for small files (under 500KB)
-  if (file.size < 500 * 1024) {
-    return file
-  }
+  // Every other image is redrawn, however small: redrawing on a canvas drops
+  // the photo's EXIF metadata (GPS position, camera serial number, time),
+  // which would otherwise reach anyone who can open the photo. PNGs stay
+  // PNG so transparency survives; everything else becomes JPEG.
+  const keepPng = file.type === 'image/png'
 
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas')
@@ -212,14 +214,13 @@ export async function compressImage(file, maxWidth = 1920, quality = 0.8) {
       ctx.imageSmoothingQuality = 'high'
       ctx.drawImage(img, 0, 0, width, height)
 
-      // Convert to JPEG blob
+      // Re-encode (this is what strips the metadata)
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            // Create new file with original name but .jpg extension
             const baseName = file.name.replace(/\.[^/.]+$/, '')
-            const compressedFile = new File([blob], `${baseName}.jpg`, {
-              type: 'image/jpeg',
+            const compressedFile = new File([blob], `${baseName}.${keepPng ? 'png' : 'jpg'}`, {
+              type: keepPng ? 'image/png' : 'image/jpeg',
               lastModified: Date.now()
             })
 
@@ -230,7 +231,7 @@ export async function compressImage(file, maxWidth = 1920, quality = 0.8) {
             resolve(file)
           }
         },
-        'image/jpeg',
+        keepPng ? 'image/png' : 'image/jpeg',
         quality
       )
 

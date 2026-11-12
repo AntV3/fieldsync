@@ -92,7 +92,7 @@ export const TERMS_SECTIONS = [
         ul: [
           'You are responsible for the accuracy, quality and legality of Customer Data and for having the rights and permissions needed to put it into the Service.',
           'You are responsible for giving your workers and other people whose information you record any notice, and obtaining any consent, that the law requires: for example for names, hours, photos that show people, location data attached to photos, signatures, and injury or incident details.',
-          'Do not upload government identification numbers (such as Social Security numbers), payment card or bank account numbers, passwords, or health information beyond what an incident report reasonably needs. The Service is not designed for these and they are not protected to the standard that some laws require for them.',
+          'Do not upload full government identification numbers (such as complete Social Security numbers), payment card or bank account numbers, passwords, or health information beyond what an incident report reasonably needs. The Service is not designed for these and they are not protected to the standard that some laws require for them. The only identifier the Service asks for is the last four digits of a worker\'s Social Security number on the crew sign-in sheet; collect it only if you need it and are allowed to, and tell your workers why.',
           'You are responsible for meeting any retention, privacy or confidentiality obligations you owe to your clients, workers or others, including under your contracts.'
         ]
       },

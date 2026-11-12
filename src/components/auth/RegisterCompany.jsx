@@ -46,8 +46,8 @@ export default function RegisterCompany({ onShowToast }) {
       onShowToast('Enter a valid email address', 'error')
       return
     }
-    if (registerPassword.length < 6) {
-      onShowToast('Password must be 6+ characters', 'error')
+    if (registerPassword.length < 8) {
+      onShowToast('Password must be 8+ characters', 'error')
       return
     }
 
@@ -272,7 +272,7 @@ export default function RegisterCompany({ onShowToast }) {
           <PasswordInput
             value={registerPassword}
             onChange={(e) => setRegisterPassword(e.target.value)}
-            placeholder="Password (6+ characters)"
+            placeholder="Password (8+ characters)"
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleRegisterCompany()
             }}
@@ -282,7 +282,7 @@ export default function RegisterCompany({ onShowToast }) {
           <button
             className="entry-login-btn"
             onClick={handleRegisterCompany}
-            disabled={loading || !agreedToTerms || !registerName.trim() || !isValidEmail(registerEmail) || registerPassword.length < 6}
+            disabled={loading || !agreedToTerms || !registerName.trim() || !isValidEmail(registerEmail) || registerPassword.length < 8}
           >
             {loading ? (
               <span className="btn-loading">

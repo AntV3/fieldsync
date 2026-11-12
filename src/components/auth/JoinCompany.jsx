@@ -90,8 +90,8 @@ export default function JoinCompany({ onShowToast }) {
       onShowToast('Enter a valid email address', 'error')
       return
     }
-    if (joinPassword.length < 6) {
-      onShowToast('Password must be 6+ characters', 'error')
+    if (joinPassword.length < 8) {
+      onShowToast('Password must be 8+ characters', 'error')
       return
     }
 
@@ -362,7 +362,7 @@ export default function JoinCompany({ onShowToast }) {
           <PasswordInput
             value={joinPassword}
             onChange={(e) => setJoinPassword(e.target.value)}
-            placeholder="Password (6+ characters)"
+            placeholder="Password (8+ characters)"
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleJoinSubmit()
             }}
@@ -372,7 +372,7 @@ export default function JoinCompany({ onShowToast }) {
           <button
             className="entry-login-btn"
             onClick={handleJoinSubmit}
-            disabled={loading || !agreedToTerms || !joinName.trim() || !isValidEmail(joinEmail) || joinPassword.length < 6}
+            disabled={loading || !agreedToTerms || !joinName.trim() || !isValidEmail(joinEmail) || joinPassword.length < 8}
           >
             {loading ? (
               <span className="btn-loading">
