@@ -143,7 +143,7 @@ export default function CORList({
     onShowToast?.('Generating Excel report...', 'info')
 
     try {
-      const { loadXLSXSafe } = await import('../../lib/safeXlsx')
+      const { loadXLSXSafe, safeAoaToSheet } = await import('../../lib/safeXlsx')
       const XLSX = await loadXLSXSafe()
 
       // Calculate statistics
@@ -185,7 +185,7 @@ export default function CORList({
         ['Potential Total:', (project.contract_value || 0) + approvedValue + pendingValue]
       ]
 
-      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+      const wsSummary = safeAoaToSheet(XLSX, summaryData)
       wsSummary['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 18 }]
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
 
@@ -211,7 +211,7 @@ export default function CORList({
         cor.area?.name || ''
       ])
 
-      const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailData])
+      const wsDetail = safeAoaToSheet(XLSX, [detailHeaders, ...detailData])
       wsDetail['!cols'] = [
         { wch: 10 }, { wch: 30 }, { wch: 40 }, { wch: 14 }, { wch: 16 },
         { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 18 },
@@ -245,7 +245,7 @@ export default function CORList({
             [],
             ['TOTAL', '', data.reduce((s, c) => s + (c.cor_total || 0), 0) / 100, '']
           ]
-          const ws = XLSX.utils.aoa_to_sheet(sheetData)
+          const ws = safeAoaToSheet(XLSX, sheetData)
           ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 14 }, { wch: 12 }]
           XLSX.utils.book_append_sheet(wb, ws, name)
         }

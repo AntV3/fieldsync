@@ -339,8 +339,15 @@ export function exportSageWIPScheduleCSV(projects, projectDataMap = {}) {
     const totalBilled = data.totalBilled || earnedRevenue
     const overUnder = totalBilled - earnedRevenue
     const totalCosts = data.allCostsTotal || data.totalCosts || 0
-    const projectedProfit = progress > 0 ? revisedContract - (totalCosts / (progress / 100)) : revisedContract
-    const margin = revisedContract > 0 ? ((revisedContract - totalCosts) / revisedContract * 100) : 0
+    // Projected profit at completion. At 0% progress we do not extrapolate
+    // (totalCosts / 0 is infinite); the best honest estimate is revisedContract
+    // minus whatever has already been booked (mobilization, startup, etc.).
+    const projectedProfit = progress > 0
+      ? revisedContract - (totalCosts / (progress / 100))
+      : revisedContract - totalCosts
+    // Margin is reported against the same projected basis as projectedProfit
+    // so one row's two numbers answer the same question.
+    const margin = revisedContract > 0 ? (projectedProfit / revisedContract * 100) : 0
 
     return {
       job: p.job_number || '',

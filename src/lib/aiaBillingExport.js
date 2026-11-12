@@ -124,8 +124,13 @@ export function buildG702Summary(project, g703Lines, applicationNumber = 1, peri
     previous_certificates: totalPreviousWork,
     // Line 8: Current payment due (6 - 7)
     current_payment_due: ((totalCompleted + totalMaterialsStored) - totalRetention) - totalPreviousWork,
-    // Line 9: Balance to finish plus retainage
-    balance_to_finish: totalScheduledValue - totalCompleted + totalRetention,
+    // Line 9: Balance to finish plus retainage = Line 3 - Line 6, per AIA.
+    // Computing from `totalScheduledValue` (the sum of G703 scheduled values)
+    // instead of the contract-sum-to-date divides at remeasured contracts
+    // where SOV drift leaves the two off by the deleted/added scope.
+    balance_to_finish:
+      (originalContract + changeOrderTotal) -
+      ((totalCompleted + totalMaterialsStored) - totalRetention),
     // Summary percentages
     percent_complete: totalScheduledValue > 0
       ? Math.round((totalCompleted / totalScheduledValue) * 100)

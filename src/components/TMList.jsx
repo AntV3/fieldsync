@@ -26,7 +26,7 @@ import { usePermissions } from '../lib/PermissionsContext'
 import { guardMessage } from '../lib/permissions'
 import TMTicketEditModal from './tm/TMTicketEditModal'
 import { exportTMTicketsCSV } from '../lib/financialExport'
-import { loadXLSXSafe } from '../lib/safeXlsx'
+import { loadXLSXSafe, safeJsonToSheet } from '../lib/safeXlsx'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
 const loadXLSX = loadXLSXSafe
@@ -799,16 +799,16 @@ export default function TMList({
       const wb = XLSX.utils.book_new()
     
       // Add sheets
-      const summarySheet = XLSX.utils.json_to_sheet(summaryData)
+      const summarySheet = safeJsonToSheet(XLSX, summaryData)
       XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary')
-    
+
       if (workersData.length > 0) {
-        const workersSheet = XLSX.utils.json_to_sheet(workersData)
+        const workersSheet = safeJsonToSheet(XLSX, workersData)
         XLSX.utils.book_append_sheet(wb, workersSheet, 'Workers')
       }
-    
+
       if (itemsData.length > 0) {
-        const itemsSheet = XLSX.utils.json_to_sheet(itemsData)
+        const itemsSheet = safeJsonToSheet(XLSX, itemsData)
         XLSX.utils.book_append_sheet(wb, itemsSheet, 'Materials & Equipment')
       }
     

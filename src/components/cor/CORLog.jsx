@@ -286,7 +286,7 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
   const exportToExcel = async () => {
     try {
       // Safe dynamic import for xlsx
-      const { loadXLSXSafe } = await import('../../lib/safeXlsx')
+      const { loadXLSXSafe, safeJsonToSheet } = await import('../../lib/safeXlsx')
       const XLSX = await loadXLSXSafe()
 
       // Prepare data
@@ -314,7 +314,7 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
       })
 
       // Create workbook
-      const ws = XLSX.utils.json_to_sheet(data)
+      const ws = safeJsonToSheet(XLSX, data)
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'COR Log')
 
