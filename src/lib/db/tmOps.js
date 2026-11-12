@@ -869,6 +869,12 @@ export const tmOps = {
       if (!client) {
         throw new Error('Database client not available')
       }
+      // Status guard: a foreman signature is only valid while the ticket is
+      // still in `pending` or `foreman_signed` (a re-sign). Without this
+      // filter an office member with `canSignForForeman` can regress a
+      // `client_signed` / `approved` / `rejected` / `billed` ticket back to
+      // `foreman_signed` by re-opening the modal, and the approval
+      // metadata on the row then mismatches the status.
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
@@ -876,12 +882,18 @@ export const tmOps = {
           foreman_signature_name: signatureData.signerName,
           foreman_signature_title: signatureData.signerTitle,
           foreman_signature_date: signatureData.signedAt,
-          status: 'foreman_signed' // Update status to indicate foreman has signed
+          status: 'foreman_signed'
         })
         .eq('id', ticketId)
+        .in('status', ['pending', 'foreman_signed'])
         .select()
         .single()
-      if (error) throw error
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('This ticket is no longer awaiting a foreman signature')
+        }
+        throw error
+      }
       return data
     }
     return null
@@ -910,6 +922,12 @@ export const tmOps = {
       if (!recorded.error) return recorded.data
       if (!['PGRST202', '42883'].includes(recorded.error.code)) throw recorded.error
 
+      // Status guard, mirroring the RPC: only a ticket still awaiting the
+      // client (`pending` or `foreman_signed`) may take a client signature
+      // here. Without this filter the fallback regresses an already-
+      // `approved` / `billed` ticket to `client_signed` and clobbers the
+      // stored client signature, so dashboard pending tiles grow and the
+      // original signer is lost.
       const { data, error } = await client
         .from('t_and_m_tickets')
         .update({
@@ -919,12 +937,18 @@ export const tmOps = {
           client_signature_company: signatureData.signerCompany,
           client_signature_date: signatureData.signedAt,
           client_signature_ip: null, // Not available in on-site signing
-          status: 'client_signed' // Update status to indicate client has signed
+          status: 'client_signed'
         })
         .eq('id', ticketId)
+        .in('status', ['pending', 'foreman_signed'])
         .select()
         .single()
-      if (error) throw error
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('This ticket is no longer awaiting a client signature')
+        }
+        throw error
+      }
       return data
     }
     return null

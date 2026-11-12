@@ -1474,6 +1474,11 @@ export const corOps = {
       }
 
       data.forEach(cor => {
+        // A voided COR carries `status='closed'` (the void migration keeps the
+        // status CHECK) and `voided_at` set. It is not billed revenue, so
+        // short-circuit before the status switch to keep it out of every
+        // count and total that feeds the dashboard and billing cards.
+        if (cor.voided_at) return
         // cor_total is stored in cents; convert to dollars for consumers
         const corValueDollars = (cor.cor_total || 0) / 100
         switch (cor.status) {

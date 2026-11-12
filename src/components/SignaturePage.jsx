@@ -3,15 +3,20 @@ import { FileText, CheckCircle, Clock, AlertCircle, Building2, Users, Package, T
 import { db } from '../lib/supabase'
 import { getSigningClient } from '../lib/signingClient'
 import { calculateCORTotals, formatCurrency, formatPercent, centsToDollars, formatDateRange } from '../lib/corCalculations'
+import { parseLocalDate } from '../lib/utils'
 import { exportCORToPDF, exportTMTicketToPDF } from '../lib/corPdfExport'
 import SignatureCanvas from './ui/SignatureCanvas'
 import StatusBadge from './ui/StatusBadge'
 import CORComments from './cor/CORComments'
 
-// Helper to format date
+// Helper to format date. Date-only strings (YYYY-MM-DD) go through
+// parseLocalDate so a ticket dated 2026-11-11 renders as "Nov 11" in LA
+// instead of "Nov 10" (the UTC-midnight parse of the bare date).
 const formatDate = (dateString) => {
   if (!dateString) return ''
-  return new Date(dateString).toLocaleDateString('en-US', {
+  const d = parseLocalDate(dateString)
+  if (!d) return ''
+  return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
