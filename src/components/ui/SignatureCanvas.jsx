@@ -50,7 +50,10 @@ export default function SignatureCanvas({
       ? 'Time & Material Ticket'
       : 'document'
 
-  const defaultLegalText = `I acknowledge that this electronic signature is legally binding and that I have reviewed and approve this ${docTypeLabel}. I understand that my signature, name, and IP address will be recorded for verification purposes.`
+  // Consent to sign electronically (US ESIGN Act / UETA): the signer agrees to
+  // use an electronic signature and receive the record electronically, and is
+  // told what is recorded and how to get a paper copy.
+  const defaultLegalText = `I have reviewed and approve this ${docTypeLabel}. I agree to sign electronically and that my electronic signature is legally binding and has the same effect as a handwritten signature. I agree to receive this record electronically and may ask the contractor for a paper copy. My signature, name, title, company, the date and time, my IP address and my browser details will be recorded with this ${docTypeLabel}.`
 
   // Lock body scroll when modal is open (for mobile)
   useEffect(() => {
@@ -279,6 +282,11 @@ export default function SignatureCanvas({
                 />
                 <span>{legalText || defaultLegalText}</span>
               </label>
+              <p className="legal-notice">
+                <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                {' · '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+              </p>
             </div>
           ) : (
             <p className="signature-legal" role="note">

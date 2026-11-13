@@ -20,6 +20,9 @@ import {
   ACTION_TYPES
 } from './client'
 
+// Project columns a field (PIN) session may read: all but pin and pin_hash.
+const FIELD_PROJECT_COLUMNS = 'id, company_id, name, location, status, created_at, updated_at, job_number, address, general_contractor, contract_value, laborer_rate, operator_rate, foreman_rate, archived_at, total_spent, created_by, work_type, job_type, default_dump_site_id, client_contact, client_phone, start_date, end_date, planned_man_days, storage_cleaned, client_position, client_email, contractor_contact, contractor_position, contractor_phone, contractor_email'
+
 export const projectOps = {
   // Projects
   async getProjects(companyId = null, includeArchived = false) {
@@ -676,11 +679,13 @@ export const projectOps = {
         createdAt: new Date().toISOString()
       }, { remember })
 
-      // Fetch full project details using the new session
+      // Fetch project details using the new session. Every column except the
+      // PIN and its hash: a field device never needs them, and the database
+      // does not let a field session read them.
       const client = getFieldClient()
       const { data: projectData } = await client
         .from('projects')
-        .select('*')
+        .select(FIELD_PROJECT_COLUMNS)
         .eq('id', result.project_id)
         .single()
 

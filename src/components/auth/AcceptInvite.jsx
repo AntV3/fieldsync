@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { db, supabase } from '../../lib/supabase'
 import { isValidEmail, PasswordInput } from './authUtils'
 import Logo from '../Logo'
+import TermsAgreement from '../legal/TermsAgreement'
+import { termsAcceptanceMetadata, recordTermsAcceptance } from '../../lib/legal'
 import { Check, AlertTriangle, Shield, User, Briefcase } from 'lucide-react'
 
 export default function AcceptInvite({ onShowToast }) {
@@ -17,6 +19,7 @@ export default function AcceptInvite({ onShowToast }) {
   // Form state for new users
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -72,7 +75,7 @@ export default function AcceptInvite({ onShowToast }) {
   const handleSignUp = async () => {
     if (!name.trim()) { onShowToast('Enter your name', 'error'); return }
     if (!isValidEmail(email)) { onShowToast('Enter a valid email', 'error'); return }
-    if (password.length < 6) { onShowToast('Password must be 6+ characters', 'error'); return }
+    if (password.length < 8) { onShowToast('Password must be 8+ characters', 'error'); return }
 
     setSubmitting(true)
     try {
@@ -80,7 +83,8 @@ export default function AcceptInvite({ onShowToast }) {
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
-        password
+        password,
+        options: { data: termsAcceptanceMetadata() }
       })
 
       const userAlreadyExists = authError?.message?.includes('already registered') ||
@@ -102,6 +106,7 @@ export default function AcceptInvite({ onShowToast }) {
         }
 
         userId = signInData.user.id
+        await recordTermsAcceptance(supabase)
       } else if (authError) {
         throw authError
       } else {
@@ -319,14 +324,15 @@ export default function AcceptInvite({ onShowToast }) {
               <PasswordInput
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Password (6+ characters)"
+                placeholder="Password (8+ characters)"
                 onKeyDown={e => { if (e.key === 'Enter') handleSignUp() }}
                 showStrength={true}
               />
+              <TermsAgreement checked={agreedToTerms} onChange={setAgreedToTerms} />
               <button
                 className="entry-login-btn"
                 onClick={handleSignUp}
-                disabled={submitting || !name.trim() || !isValidEmail(email) || password.length < 6}
+                disabled={submitting || !agreedToTerms || !name.trim() || !isValidEmail(email) || password.length < 8}
               >
                 {submitting ? (
                   <span className="btn-loading">

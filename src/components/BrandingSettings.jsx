@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Palette, Lock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { useBranding } from '../lib/BrandingContext'
-import { supabase } from '../lib/supabase'
+import { supabase, db } from '../lib/supabase'
+import { SSN_PDF_SETTING, showSsnOnPdfs } from '../lib/crewPrivacy'
 
-export default function BrandingSettings({ company, onShowToast }) {
+export default function BrandingSettings({ company, isAdmin = false, onShowToast }) {
   const { branding, updateBranding, uploadBrandingImage, loading } = useBranding()
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
@@ -12,6 +13,31 @@ export default function BrandingSettings({ company, onShowToast }) {
   // Office code state
   const [officeCode, setOfficeCode] = useState('')
   const [regeneratingCode, setRegeneratingCode] = useState(false)
+  const [printSsn, setPrintSsn] = useState(true)
+  const [savingSsn, setSavingSsn] = useState(false)
+
+  useEffect(() => {
+    if (!company?.id) return
+    let cancelled = false
+    db.getCompanySettings(company.id).then(settings => {
+      if (!cancelled) setPrintSsn(showSsnOnPdfs(settings))
+    })
+    return () => { cancelled = true }
+  }, [company?.id])
+
+  const togglePrintSsn = async (next) => {
+    setSavingSsn(true)
+    try {
+      await db.updateCompanySetting(company.id, SSN_PDF_SETTING, next)
+      setPrintSsn(next)
+      onShowToast?.(next ? 'SSN last 4 will print on crew sign-in PDFs' : 'SSN last 4 will be hidden on crew sign-in PDFs', 'success')
+    } catch (err) {
+      console.error('Error saving setting:', err)
+      onShowToast?.('Could not save the setting', 'error')
+    } finally {
+      setSavingSsn(false)
+    }
+  }
 
   const logoInputRef = useRef(null)
   const faviconInputRef = useRef(null)
@@ -234,6 +260,29 @@ export default function BrandingSettings({ company, onShowToast }) {
               Copy
             </button>
           </div>
+        </div>
+
+        <div className="setting-item">
+          <label htmlFor="print-ssn-last4">Crew sign-in sheets</label>
+          <p className="help-text" style={{ marginBottom: '0.75rem' }}>
+            Workers enter the last 4 digits of their SSN when they sign in. The digits are never
+            shown on screen. Choose whether they print on crew sign-in PDFs.
+          </p>
+          <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input
+              id="print-ssn-last4"
+              type="checkbox"
+              checked={printSsn}
+              disabled={!isAdmin || savingSsn}
+              onChange={(e) => togglePrintSsn(e.target.checked)}
+            />
+            <span>Print SSN last 4 on crew sign-in PDFs</span>
+          </label>
+          {!isAdmin && (
+            <p className="help-text" style={{ marginTop: '0.5rem' }}>
+              Only a company administrator can change this.
+            </p>
+          )}
         </div>
       </div>
 

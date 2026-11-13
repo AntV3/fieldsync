@@ -4,11 +4,14 @@ import { ChevronRight, ArrowLeft, Check } from 'lucide-react'
 import { db, supabase } from '../../lib/supabase'
 import { isValidEmail, StepIndicator, PasswordInput } from './authUtils'
 import Logo from '../Logo'
+import TermsAgreement from '../legal/TermsAgreement'
+import { termsAcceptanceMetadata, recordTermsAcceptance } from '../../lib/legal'
 
 export default function JoinCompany({ onShowToast }) {
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [companyCode, setCompanyCode] = useState('')
   const [joinStep, setJoinStep] = useState(1)
   const [joinCompany, setJoinCompany] = useState(null)
@@ -87,8 +90,8 @@ export default function JoinCompany({ onShowToast }) {
       onShowToast('Enter a valid email address', 'error')
       return
     }
-    if (joinPassword.length < 6) {
-      onShowToast('Password must be 6+ characters', 'error')
+    if (joinPassword.length < 8) {
+      onShowToast('Password must be 8+ characters', 'error')
       return
     }
 
@@ -98,7 +101,8 @@ export default function JoinCompany({ onShowToast }) {
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
-        password: joinPassword
+        password: joinPassword,
+        options: { data: termsAcceptanceMetadata() }
       })
 
       let userId
@@ -125,6 +129,7 @@ export default function JoinCompany({ onShowToast }) {
         }
 
         userId = signInData.user.id
+        await recordTermsAcceptance(supabase)
 
         const { data: existingMembership } = await supabase
           .from('user_companies')
@@ -357,16 +362,17 @@ export default function JoinCompany({ onShowToast }) {
           <PasswordInput
             value={joinPassword}
             onChange={(e) => setJoinPassword(e.target.value)}
-            placeholder="Password (6+ characters)"
+            placeholder="Password (8+ characters)"
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleJoinSubmit()
             }}
             showStrength={true}
           />
+          <TermsAgreement checked={agreedToTerms} onChange={setAgreedToTerms} />
           <button
             className="entry-login-btn"
             onClick={handleJoinSubmit}
-            disabled={loading || !joinName.trim() || !isValidEmail(joinEmail) || joinPassword.length < 6}
+            disabled={loading || !agreedToTerms || !joinName.trim() || !isValidEmail(joinEmail) || joinPassword.length < 8}
           >
             {loading ? (
               <span className="btn-loading">

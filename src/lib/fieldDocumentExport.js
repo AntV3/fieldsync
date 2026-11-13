@@ -10,6 +10,7 @@
 
 import { db } from './supabase'
 import { loadImagesAsBase64 } from './imageUtils'
+import { showSsnOnPdfs, ssnForPdf } from './crewPrivacy'
 import {
   resolvePrimaryColor,
   loadBrandLogo,
@@ -580,6 +581,7 @@ export async function exportIncidentReportsPDF(reports, project, context = {}) {
  * @param {Object} [context] - Optional { company, branding }
  */
 export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
+  const showSsn = showSsnOnPdfs(context.companySettings)
   const jsPDFModule = await loadJsPDF()
   const jsPDF = jsPDFModule.default
   const autoTableModule = await loadAutoTable()
@@ -657,7 +659,7 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
             role,
           ]
           if (hasSignatures) {
-            row.push(w.ssn_last4 || '—')
+            row.push(ssnForPdf(w.ssn_last4, showSsn))
             row.push(w.signature_data ? 'Signed' : '—')
           }
           tableBody.push(row)
@@ -735,7 +737,7 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
             // SSN last 4
             doc.setFont('helvetica', 'normal')
             doc.setTextColor(...COLORS.mid)
-            doc.text(`SSN: ••••${w.ssn_last4 || ''}`, sigX + 60, y + 4)
+            doc.text(`SSN last 4: ${ssnForPdf(w.ssn_last4, showSsn)}`, sigX + 60, y + 4)
 
             // Signed timestamp
             if (w.signed_at) {
@@ -793,6 +795,7 @@ export async function exportCrewCheckinsPDF(checkins, project, context = {}) {
  * @param {Object} [params.context] - Optional { company, branding }
  */
 export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentReports = [], crewCheckins = [], project, context = {} }) {
+  const showSsn = showSsnOnPdfs(context.companySettings)
   const jsPDFModule = await loadJsPDF()
   const jsPDF = jsPDFModule.default
   const autoTableModule = await loadAutoTable()
@@ -1161,7 +1164,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
               role,
             ]
             if (hasSignatures) {
-              row.push(w.ssn_last4 || '—')
+              row.push(ssnForPdf(w.ssn_last4, showSsn))
               row.push(w.signature_data ? 'Signed' : '—')
             }
             tableBody.push(row)
@@ -1238,7 +1241,7 @@ export async function exportAllFieldDocumentsPDF({ dailyReports = [], incidentRe
               // SSN last 4
               doc.setFont('helvetica', 'normal')
               doc.setTextColor(...COLORS.mid)
-              doc.text(`SSN: ••••${w.ssn_last4 || ''}`, sigX + 60, y + 4)
+              doc.text(`SSN last 4: ${ssnForPdf(w.ssn_last4, showSsn)}`, sigX + 60, y + 4)
 
               // Signed timestamp
               if (w.signed_at) {

@@ -9,6 +9,7 @@ import {
   drainPendingActions,
   onSyncStateChange
 } from '../lib/supabase'
+import { clearOfflineCaches } from '../lib/offlineManager'
 
 /**
  * useAuthState - Centralized auth state management.
@@ -295,6 +296,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
   const handleLogout = useCallback(async () => {
     try {
       await auth.signOut()
+      await clearOfflineCaches()
       setUser(null)
       setCompany(null)
       setUserCompanies([])
@@ -350,6 +352,7 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
 
   const handleExitForeman = useCallback(async () => {
     await clearFieldSession()
+    await clearOfflineCaches()
     setForemanProject(null)
     setForemanName('')
     navigate('/login')

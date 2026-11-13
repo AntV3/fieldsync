@@ -3,7 +3,7 @@
  * Handles asset caching for offline functionality
  */
 
-const CACHE_NAME = 'fieldsync-v8'
+const CACHE_NAME = 'fieldsync-v9'
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html'
@@ -68,11 +68,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone and cache the response
-          const responseClone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone)
-          })
+          // Every route serves the same app shell. Cache it under one key,
+          // never under the page address: signing, portal and share links
+          // carry their access token in the address, and it must not be
+          // stored on the device.
+          if (response.ok) {
+            const responseClone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put('/index.html', responseClone)
+            })
+          }
           return response
         })
         .catch(() => {

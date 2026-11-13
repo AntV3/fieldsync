@@ -639,6 +639,11 @@ export default function SignaturePage({ signatureToken }) {
 
         <footer className="signature-page-footer">
           <p>Powered by FieldSync</p>
+          <p className="legal-notice">
+            <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+            {' · '}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+          </p>
         </footer>
 
         {showSignatureModal && activeSlot && (
@@ -1387,6 +1392,11 @@ export default function SignaturePage({ signatureToken }) {
       {/* Footer */}
       <footer className="signature-page-footer">
         <p>Powered by FieldSync</p>
+        <p className="legal-notice">
+          <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+          {' · '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+        </p>
       </footer>
 
       {/* Signature modal */}

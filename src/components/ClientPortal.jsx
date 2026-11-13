@@ -171,6 +171,12 @@ export default function ClientPortal({ accessToken }) {
       {portal.expires_at && (
         <p className="client-portal-foot">This link works until {formatDate(portal.expires_at)}.</p>
       )}
+      <p className="client-portal-foot legal-notice">
+        This page is private to you. Do not forward the link.{' '}
+        <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+        {' · '}
+        <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+      </p>
     </div>
   )
 }

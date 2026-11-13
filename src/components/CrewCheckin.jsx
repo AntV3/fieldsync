@@ -4,6 +4,7 @@ import { db } from '../lib/supabase'
 import { ListItemSkeleton } from './ui/Skeleton'
 import { EmptyState } from './ui/ErrorState'
 import CrewSignatureCapture from './CrewSignatureCapture'
+import { ssnOnScreen } from '../lib/crewPrivacy'
 import CustomFieldSection from './ui/CustomFieldSection'
 
 // Helper to get/set dismissed workers from localStorage per project
@@ -441,7 +442,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
                     {worker.signature_data && (
                       <span className="crew-member-signed-badge">
                         <CheckCircle size={12} /> Signed
-                        {worker.ssn_last4 && <span className="crew-ssn-display">SSN: ••{worker.ssn_last4.slice(-2)}</span>}
+                        {worker.ssn_last4 && <span className="crew-ssn-display">{ssnOnScreen(worker.ssn_last4)}</span>}
                       </span>
                     )}
                   </div>
@@ -485,7 +486,7 @@ export default function CrewCheckin({ project, companyId, onShowToast }) {
                 {worker.signature_data && (
                   <span className="crew-member-signed-badge">
                     <CheckCircle size={12} /> Signed
-                    {worker.ssn_last4 && <span className="crew-ssn-display">SSN: ••{worker.ssn_last4.slice(-2)}</span>}
+                    {worker.ssn_last4 && <span className="crew-ssn-display">{ssnOnScreen(worker.ssn_last4)}</span>}
                   </span>
                 )}
               </div>
