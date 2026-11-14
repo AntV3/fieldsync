@@ -45,8 +45,6 @@ function ShareModal({ project, user, onClose, onShareCreated }) {
   }
 
   const calculateExpiresAt = () => {
-    if (expirationType === 'never') return null
-
     const now = new Date()
     if (expirationType === '30days') {
       now.setDate(now.getDate() + 30)

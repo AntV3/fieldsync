@@ -325,6 +325,32 @@ const READ_CACHE_STORES = [
   STORES.DAILY_REPORTS, STORES.MESSAGES, STORES.CACHED_DATA
 ]
 
+// localStorage prefixes that hold copies of company data (worker names,
+// trade pricing, per-company PIN rate limits, per-project workflow state).
+// Cleared on sign-out so the next person on a shared device cannot read them.
+const COMPANY_DATA_LS_PREFIXES = [
+  'fieldsync_dismissed_workers_', // worker names per project (PII)
+  'trade_config_',                // company pricing
+  'trade_overrides_',             // project pricing
+  'pin_attempts_',                // per-company PIN rate limit
+  'pin_lockout_',                 // per-company PIN lockout
+  'fm_pinned_',                   // foreman's pinned actions per project
+  'fm_dismissed_rejections_',     // dismissed ticket rejections per project
+  'tm_draft_'                     // reserved: cleared only in the explicit path
+]
+
+// Exact localStorage keys that hold company data (not pending work).
+const COMPANY_DATA_LS_KEYS = [
+  'fieldsync_foreman_name',
+  'fieldsync_data',
+  'fieldsync_user',
+  'selectedCompanyId'
+]
+
+// TM drafts are UNSENT WORK and must survive sign-out. The prefix above is
+// listed so a future reader can find it in one place, but it is excluded here.
+const UNSENT_WORK_LS_PREFIXES = ['tm_draft_']
+
 /**
  * Remove the copies of company data kept on this device for offline use
  * (projects, crews, tickets, reports, messages). Called when someone signs
@@ -346,7 +372,18 @@ export const clearOfflineCaches = async () => {
     console.warn('[offline] could not clear cached data:', err)
   }
   try {
-    localStorage.removeItem('fieldsync_foreman_name')
+    COMPANY_DATA_LS_KEYS.forEach(key => localStorage.removeItem(key))
+    const sweepPrefixes = COMPANY_DATA_LS_PREFIXES.filter(
+      p => !UNSENT_WORK_LS_PREFIXES.includes(p)
+    )
+    const victims = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && sweepPrefixes.some(prefix => key.startsWith(prefix))) {
+        victims.push(key)
+      }
+    }
+    victims.forEach(key => localStorage.removeItem(key))
   } catch (_e) {
     // storage unavailable
   }
