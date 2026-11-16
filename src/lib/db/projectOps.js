@@ -21,7 +21,12 @@ import {
 } from './client'
 
 // Project columns a field (PIN) session may read: all but pin and pin_hash.
-const FIELD_PROJECT_COLUMNS = 'id, company_id, name, location, status, created_at, updated_at, job_number, address, general_contractor, contract_value, laborer_rate, operator_rate, foreman_rate, archived_at, total_spent, created_by, work_type, job_type, default_dump_site_id, client_contact, client_phone, start_date, end_date, planned_man_days, storage_cleaned, client_position, client_email, contractor_contact, contractor_position, contractor_phone, contractor_email'
+// Every name here must exist on `public.projects` — PostgREST rejects the
+// whole SELECT with 42703 if a single column is missing, and the field
+// project fetch below surfaces the error but still falls back to a stub,
+// so a regression is visible in logs instead of silently crippling every
+// foreman's project data.
+export const FIELD_PROJECT_COLUMNS = 'id, company_id, name, location, status, created_at, updated_at, job_number, address, general_contractor, contract_value, laborer_rate, operator_rate, foreman_rate, archived_at, total_spent, created_by, work_type, job_type, client_contact, client_phone, start_date, end_date, planned_man_days, storage_cleaned, client_position, client_email, contractor_contact, contractor_position, contractor_phone, contractor_email'
 
 export const projectOps = {
   // Projects
@@ -683,11 +688,23 @@ export const projectOps = {
       // PIN and its hash: a field device never needs them, and the database
       // does not let a field session read them.
       const client = getFieldClient()
-      const { data: projectData } = await client
+      const { data: projectData, error: projectError } = await client
         .from('projects')
         .select(FIELD_PROJECT_COLUMNS)
         .eq('id', result.project_id)
         .single()
+
+      if (projectError) {
+        // A missing column or RLS drift would otherwise drop the foreman
+        // onto a stub project with no contract value, no labor rates and
+        // no job info. Surface the error so the regression is caught.
+        observe.error('database', {
+          message: projectError.message,
+          code: projectError.code,
+          operation: 'validateProjectPin.fetchProject',
+          project_id: result.project_id
+        })
+      }
 
       return {
         success: true,
