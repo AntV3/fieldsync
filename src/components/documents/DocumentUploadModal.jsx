@@ -123,11 +123,14 @@ export default function DocumentUploadModal({ projectId, companyId, folderId, fo
     })
   }
 
-  // Upload a single file with optional compression
+  // Upload a single file, re-encoding images to strip metadata
   const uploadSingleFile = async (file, index, docName) => {
-    // Compress images before upload
+    // Redraw every image before upload so EXIF (GPS, device, timestamp)
+    // never reaches downloaders or share-link viewers; compressImage
+    // skips formats a canvas cannot redraw (GIF, SVG) and falls back
+    // to the original on failure.
     let fileToUpload = file
-    if (file.type.startsWith('image/') && file.size > 500 * 1024) {
+    if (file.type.startsWith('image/')) {
       setFileStatuses(prev => ({ ...prev, [index]: 'compressing' }))
       try {
         fileToUpload = await compressImage(file, 1920, 0.8)
