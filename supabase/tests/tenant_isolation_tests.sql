@@ -384,8 +384,13 @@ BEGIN
     RAISE EXCEPTION 'FAIL: a user made themselves an active member';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
-  INSERT INTO user_companies (user_id, company_id, role, status)
-  VALUES (pg_temp.id('outsider'), pg_temp.id('co_b'), 'member', 'pending');
+  -- Allowed as a plain pending request until 20261118 removes direct
+  -- requests entirely (they then go through request_company_membership)
+  BEGIN
+    INSERT INTO user_companies (user_id, company_id, role, status)
+    VALUES (pg_temp.id('outsider'), pg_temp.id('co_b'), 'member', 'pending');
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
   IF pg_temp.visible('SELECT 1 FROM projects WHERE company_id = pg_temp.id(''co_b'')') <> 0 THEN
     RAISE EXCEPTION 'FAIL: a pending request can read projects';
   END IF;

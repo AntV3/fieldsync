@@ -8,6 +8,24 @@ import {
 } from './client'
 
 export const companyOps = {
+  // Ask to join a company. The server checks the office code (with a limit
+  // on wrong codes) and creates a pending request for an administrator.
+  // Returns { status } with status 'requested' | 'pending' | 'active' |
+  // 'removed' | 'invalid_code' | 'too_many_attempts', or null when the
+  // server function does not exist yet (the caller falls back).
+  async requestCompanyMembership(companyId, officeCode) {
+    if (!isSupabaseConfigured) return null
+    const { data, error } = await supabase.rpc('request_company_membership', {
+      p_company_id: companyId,
+      p_office_code: officeCode
+    })
+    if (error) {
+      if (['PGRST202', '42883'].includes(error.code)) return null
+      throw error
+    }
+    return data
+  },
+
   // Company preferences kept in companies.settings (JSON). Readable by the
   // company's members; written by its administrators. Returns {} when there
   // are none or they cannot be read (callers fall back to defaults).
