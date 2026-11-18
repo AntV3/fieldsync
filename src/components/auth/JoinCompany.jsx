@@ -50,6 +50,51 @@ export default function JoinCompany({ onShowToast }) {
     }
   }
 
+  // Send the join request. The server checks the office code again (the
+  // browser check alone can be skipped) and creates a pending request.
+  // Shows the outcome; returns the status. Falls back to the direct insert
+  // while the server function does not exist yet.
+  const submitJoinRequest = async (userId) => {
+    const result = await db.requestCompanyMembership(joinCompany.id, officeCode.trim())
+    let status = result?.status
+    if (!result) {
+      const { data: existing } = await supabase
+        .from('user_companies')
+        .select('id, status')
+        .eq('user_id', userId)
+        .eq('company_id', joinCompany.id)
+        .maybeSingle()
+      if (existing) {
+        status = existing.status || 'active'
+      } else {
+        const { error: ucError } = await supabase
+          .from('user_companies')
+          .insert({ user_id: userId, company_id: joinCompany.id, role: 'member', status: 'pending' })
+        if (ucError) {
+          console.error('Error adding to user_companies:', ucError)
+          throw new Error('Failed to submit join request')
+        }
+        status = 'requested'
+      }
+    }
+
+    if (status === 'active') {
+      onShowToast('You already belong to this company. Logging you in...', 'success')
+      setTimeout(() => window.location.reload(), 1000)
+    } else if (status === 'pending') {
+      onShowToast('Your request is still pending approval.', 'error')
+    } else if (status === 'removed') {
+      onShowToast('Your membership was removed. Contact the company admin.', 'error')
+    } else if (status === 'invalid_code') {
+      onShowToast('Invalid office code', 'error')
+      setJoinStep(2)
+      setOfficeCode('')
+    } else if (status === 'too_many_attempts') {
+      onShowToast('Too many wrong office codes for this company. Try again in 15 minutes.', 'error')
+    }
+    return status
+  }
+
   // Verify office code
   const verifyOfficeCode = async () => {
     if (!officeCode.trim()) {
@@ -131,40 +176,10 @@ export default function JoinCompany({ onShowToast }) {
         userId = signInData.user.id
         await recordTermsAcceptance(supabase)
 
-        const { data: existingMembership } = await supabase
-          .from('user_companies')
-          .select('id, status')
-          .eq('user_id', userId)
-          .eq('company_id', joinCompany.id)
-          .maybeSingle()
-
-        if (existingMembership) {
-          if (existingMembership.status === 'active') {
-            onShowToast('You already belong to this company. Logging you in...', 'success')
-            setTimeout(() => window.location.reload(), 1000)
-          } else if (existingMembership.status === 'pending') {
-            onShowToast('Your request is still pending approval.', 'error')
-            await supabase.auth.signOut()
-          } else {
-            onShowToast('Your membership was removed. Contact the company admin.', 'error')
-            await supabase.auth.signOut()
-          }
+        const outcome = await submitJoinRequest(userId)
+        if (outcome !== 'requested') {
+          if (outcome !== 'active') await supabase.auth.signOut()
           return
-        }
-
-        const { error: ucError } = await supabase
-          .from('user_companies')
-          .insert({
-            user_id: userId,
-            company_id: joinCompany.id,
-            role: 'member',
-            status: 'pending'
-          })
-
-        if (ucError) {
-          console.error('Error adding to user_companies:', ucError)
-          await supabase.auth.signOut()
-          throw new Error('Failed to submit join request')
         }
 
         await supabase.auth.signOut()
@@ -198,18 +213,10 @@ export default function JoinCompany({ onShowToast }) {
 
         if (userError) throw userError
 
-        const { error: ucError } = await supabase
-          .from('user_companies')
-          .insert({
-            user_id: userId,
-            company_id: joinCompany.id,
-            role: 'member',
-            status: 'pending'
-          })
-
-        if (ucError) {
-          console.error('Error adding to user_companies:', ucError)
-          throw new Error('Failed to submit join request')
+        const outcome = await submitJoinRequest(userId)
+        if (outcome !== 'requested') {
+          if (outcome !== 'active') await supabase.auth.signOut()
+          return
         }
 
         await supabase.auth.signOut()

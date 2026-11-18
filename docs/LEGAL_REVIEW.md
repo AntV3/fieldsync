@@ -69,6 +69,7 @@ A read-only review of the code checked what personal data the app collects, wher
 | Share and signing link tokens came from Postgres `random()` (not cryptographic); share tokens were 12 characters; anyone could call the generators. | 24 random characters from `gen_random_bytes()`; generators no longer callable without signing in. Existing links keep working. |
 | Share links defaulted to never expiring; signing and portal links offered "no expiry". | Every link expires: share links default to 90 days, signing links up to 60 days, portal access up to 1 year. |
 | No retention limits; cleanup functions never ran. | Scheduled cleanup: sign-in attempts after 24 hours, expired field sessions daily, error reports after 180 days, slow-request timings after 90 days, sent-email records after 180 days. |
+| The office code on the join screen was checked only in the browser, so join requests could skip it, and wrong codes were unlimited. | `20261118_join_request_protection.sql`: the server checks the code for every join request; 10 wrong codes lock a company's join screen for 15 minutes. |
 | Passwords could be 6 characters. | Minimum 8 on sign-up, join and invitation screens. Also set the minimum in Supabase (Authentication > Policies) so it is enforced on the server. |
 | No record of who agreed to which terms. | Agreement checkbox at sign-up; version and time stored on the account. |
 
