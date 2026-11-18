@@ -5,13 +5,17 @@ import { getClient, isSupabaseConfigured, observe, validate, escapePostgrestFilt
 
 export const documentOps = {
 
-  // A link to open or download a stored document. The bucket is private,
-  // so the link is signed and expires after an hour. Falls back to the
-  // plain bucket URL when signing is not possible (demo mode).
+  // A link to open or download a stored document. The bucket is private
+  // (20260402_security_critical_fixes.sql), so every link is signed and
+  // expires after an hour. In demo mode (no Supabase configured) the plain
+  // public URL is returned so the UI has something to open; in production a
+  // signing failure returns null and the caller shows no tab — opening the
+  // /object/public/ URL against a private bucket just 400s.
   async getDocumentUrl(storagePath) {
     if (!storagePath) return null
-    const fallback = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${storagePath}`
-    if (!isSupabaseConfigured) return fallback
+    if (!isSupabaseConfigured) {
+      return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/project-documents/${storagePath}`
+    }
     try {
       const { data, error } = await getClient()
         .storage
@@ -19,12 +23,12 @@ export const documentOps = {
         .createSignedUrl(storagePath, 3600)
       if (error || !data?.signedUrl) {
         console.error('Could not sign document link:', error)
-        return fallback
+        return null
       }
       return data.signedUrl
     } catch (err) {
       console.error('Could not sign document link:', err)
-      return fallback
+      return null
     }
   },
   // ---- FOLDERS ----
