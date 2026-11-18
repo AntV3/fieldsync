@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { isAwaitingApproval } from '../lib/tmStatus'
 import { db, equipmentOps } from '../lib/supabase'
 import { safeAsync } from '../lib/errorHandler'
-import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive } from '../lib/utils'
+import { calculateValueProgress, calculateScheduleInsights, shouldAutoArchive, parseLocalDate } from '../lib/utils'
 
 /**
  * useDashboardData - Data layer for the office Dashboard.
@@ -347,10 +347,17 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
         : (progress / 100) * revisedContractValue
       const pendingTickets = tickets.filter(t => isAwaitingApproval(t.status)).length
 
-      // Recent activity
+      // Recent activity. report_date is a DATE column so parse as local
+      // midnight; compare against the START of the day seven calendar days
+      // ago. `new Date('2026-11-11')` is UTC midnight and under-counts the
+      // boundary day in negative-UTC timezones (LA/PDT).
       const oneWeekAgo = new Date()
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-      const recentDailyReports = dailyReports.filter(r => new Date(r.report_date) >= oneWeekAgo).length
+      oneWeekAgo.setHours(0, 0, 0, 0)
+      const recentDailyReports = dailyReports.filter(r => {
+        const d = parseLocalDate(r.report_date)
+        return d && d >= oneWeekAgo
+      }).length
 
       // Custom costs
       const customCostTotal = customCosts.reduce((sum, c) => {
@@ -398,12 +405,17 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
         worker_count: (checkin.workers || []).length,
       }))
 
-      // Recent injury count (last 30 days) for benchmark comparison
+      // Recent injury count (last 30 days) for benchmark comparison.
+      // incident_date is a DATE column; parseLocalDate handles both it and
+      // the TIMESTAMPTZ created_at fallback. Floor the cutoff to local
+      // midnight so a report dated exactly 30 days ago is not clipped off
+      // in negative-UTC timezones.
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      thirtyDaysAgo.setHours(0, 0, 0, 0)
       const recentInjuryCount = injuryReports.filter(r => {
-        const incidentDate = new Date(r.incident_date || r.created_at)
-        return incidentDate >= thirtyDaysAgo
+        const incidentDate = parseLocalDate(r.incident_date || r.created_at)
+        return incidentDate && incidentDate >= thirtyDaysAgo
       }).length
 
       // Profit calculations
@@ -459,7 +471,7 @@ export default function useDashboardData({ company, onShowToast, navigateToProje
 
       // Days since last injury
       const lastInjuryDate = injuryReports.length > 0
-        ? new Date(injuryReports[0]?.incident_date || injuryReports[0]?.created_at)
+        ? parseLocalDate(injuryReports[0]?.incident_date || injuryReports[0]?.created_at)
         : null
       const daysSinceLastInjury = lastInjuryDate
         ? Math.floor((new Date() - lastInjuryDate) / (1000 * 60 * 60 * 24))

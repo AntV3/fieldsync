@@ -295,14 +295,12 @@ export default function SignatureLinkGenerator({
     try {
       setGenerating(true)
 
-      // Calculate expiration date
-      let expiresAt = null
-      if (expiresIn !== 'never') {
-        const days = parseInt(expiresIn)
-        expiresAt = new Date()
-        expiresAt.setDate(expiresAt.getDate() + days)
-        expiresAt = expiresAt.toISOString()
-      }
+      // Calculate expiration date. Every signing link expires
+      // (data-protection hardening, b5ca382).
+      const days = parseInt(expiresIn)
+      const expiresAtDate = new Date()
+      expiresAtDate.setDate(expiresAtDate.getDate() + days)
+      const expiresAt = expiresAtDate.toISOString()
 
       const recipient = trimmedEmail
         ? { email: trimmedEmail, name: clientName.trim() || null }
@@ -562,7 +560,7 @@ export default function SignatureLinkGenerator({
                 <div className="new-link-meta">
                   <span className="link-expires-note">
                     <Clock size={12} />
-                    {expiresIn === 'never' ? 'No expiration' : `Expires in ${deadlineLabel}`}
+                    {`Expires in ${deadlineLabel}`}
                   </span>
                   <a
                     href={newLink}
