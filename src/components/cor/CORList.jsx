@@ -143,7 +143,7 @@ export default function CORList({
     onShowToast?.('Generating Excel report...', 'info')
 
     try {
-      const { loadXLSXSafe } = await import('../../lib/safeXlsx')
+      const { loadXLSXSafe, sanitizeExcelCell: xs } = await import('../../lib/safeXlsx')
       const XLSX = await loadXLSXSafe()
 
       // Calculate statistics
@@ -162,9 +162,12 @@ export default function CORList({
       const summaryData = [
         ['CHANGE ORDER REQUEST SUMMARY'],
         [],
-        ['Company:', company?.name || ''],
-        ['Project:', project.name],
-        ['Job Number:', project.job_number || 'N/A'],
+        // Any user-entered value written into a sheet cell is a formula
+        // injection vector when the client opens the .xlsx — neutralize
+        // leading =+-@ with sanitizeExcelCell.
+        ['Company:', xs(company?.name || '')],
+        ['Project:', xs(project.name)],
+        ['Job Number:', xs(project.job_number || 'N/A')],
         ['Report Date:', new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })],
         [],
         ['FINANCIAL OVERVIEW'],
@@ -197,18 +200,18 @@ export default function CORList({
       ]
 
       const detailData = cors.map(cor => [
-        cor.cor_number || '',
-        cor.title || 'Untitled',
-        cor.scope_of_work || '',
+        xs(cor.cor_number || ''),
+        xs(cor.title || 'Untitled'),
+        xs(cor.scope_of_work || ''),
         (cor.cor_total || 0) / 100,
         STATUS_DISPLAY[cor.status]?.label || cor.status,
         cor.created_at ? new Date(cor.created_at).toLocaleDateString() : '',
         cor.submitted_at ? new Date(cor.submitted_at).toLocaleDateString() : '',
         cor.approved_at ? new Date(cor.approved_at).toLocaleDateString() : '',
-        cor.approved_by_name || '',
+        xs(cor.approved_by_name || ''),
         cor.period_start ? new Date(cor.period_start).toLocaleDateString() : '',
         cor.period_end ? new Date(cor.period_end).toLocaleDateString() : '',
-        cor.area?.name || ''
+        xs(cor.area?.name || '')
       ])
 
       const wsDetail = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailData])

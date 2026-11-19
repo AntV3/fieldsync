@@ -27,6 +27,7 @@ import { guardMessage } from '../lib/permissions'
 import TMTicketEditModal from './tm/TMTicketEditModal'
 import { exportTMTicketsCSV } from '../lib/financialExport'
 import { loadXLSXSafe } from '../lib/safeXlsx'
+import { parseLocalDate, getLocalDateString } from '../lib/utils'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
 const loadXLSX = loadXLSXSafe
@@ -1323,22 +1324,14 @@ export default function TMList({
   const filteredTickets = useMemo(() => {
     let filtered = tickets.filter(t => matchesStatusFilter(t, filter))
 
-    // Apply date filter if set (its inputs are hidden in the review queue)
+    // work_date is a DATE column that arrives as 'YYYY-MM-DD'. Compare the
+    // raw strings so a ticket dated exactly on a filter boundary does not
+    // get clipped by the UTC-vs-local midnight gap west of UTC.
     if (dateFilter.start && !isReviewQueue) {
-      const startDate = new Date(dateFilter.start)
-      startDate.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
-        return ticketDate >= startDate
-      })
+      filtered = filtered.filter(t => (t.work_date || '').substring(0, 10) >= dateFilter.start)
     }
     if (dateFilter.end && !isReviewQueue) {
-      const endDate = new Date(dateFilter.end)
-      endDate.setHours(23, 59, 59, 999)
-      filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
-        return ticketDate <= endDate
-      })
+      filtered = filtered.filter(t => (t.work_date || '').substring(0, 10) <= dateFilter.end)
     }
 
     // In preview mode, show only current month's tickets
@@ -1347,7 +1340,8 @@ export default function TMList({
       const currentMonth = now.getMonth()
       const currentYear = now.getFullYear()
       filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
+        const ticketDate = parseLocalDate(t.work_date)
+        if (!ticketDate) return false
         return ticketDate.getMonth() === currentMonth && ticketDate.getFullYear() === currentYear
       })
     }
@@ -1356,11 +1350,8 @@ export default function TMList({
     else if (viewMode === 'recent' && !isReviewQueue) {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      sevenDaysAgo.setHours(0, 0, 0, 0)
-      filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.work_date)
-        return ticketDate >= sevenDaysAgo
-      })
+      const sevenDaysAgoStr = getLocalDateString(sevenDaysAgo)
+      filtered = filtered.filter(t => (t.work_date || '').substring(0, 10) >= sevenDaysAgoStr)
     }
 
     // Apply search filter
@@ -1391,7 +1382,11 @@ export default function TMList({
 
     const groups = {}
     filteredTickets.forEach(ticket => {
-      const date = new Date(ticket.work_date)
+      // work_date is a DATE column; parsing with new Date('YYYY-MM-DD') lands
+      // on UTC midnight, which drops late-month tickets into the prior month
+      // west of UTC.
+      const date = parseLocalDate(ticket.work_date)
+      if (!date) return
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
