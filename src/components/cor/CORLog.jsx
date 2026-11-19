@@ -286,22 +286,24 @@ export default function CORLog({ project, company, onShowToast, onViewCOR }) {
   const exportToExcel = async () => {
     try {
       // Safe dynamic import for xlsx
-      const { loadXLSXSafe } = await import('../../lib/safeXlsx')
+      const { loadXLSXSafe, sanitizeExcelCell: xs } = await import('../../lib/safeXlsx')
       const XLSX = await loadXLSXSafe()
 
-      // Prepare data
+      // Prepare data. User-entered fields (title, corNumber, approvedBy,
+      // comments, ceNumber) go through sanitizeExcelCell so a leading
+      // = + - @ can't execute as a formula when the client opens the file.
       const data = logEntries.map(entry => ({
         'Log #': entry.logNumber,
-        'COR Number': entry.changeOrder.corNumber,
+        'COR Number': xs(entry.changeOrder.corNumber),
         'Date Sent to Client': entry.dateSentToClient || '',
-        'CE Number': entry.ceNumber || '',
-        'Description': entry.changeOrder.title || 'Untitled',
+        'CE Number': xs(entry.ceNumber || ''),
+        'Description': xs(entry.changeOrder.title || 'Untitled'),
         'Amount': entry.changeOrder.corTotal || 0,
         'Status': STATUS_DISPLAY[entry.changeOrder.status]?.label || entry.changeOrder.status,
         'Created Date': entry.changeOrder.createdAt ? new Date(entry.changeOrder.createdAt).toLocaleDateString() : '',
         'Approved Date': entry.changeOrder.approvedAt ? new Date(entry.changeOrder.approvedAt).toLocaleDateString() : '',
-        'Approved By': entry.changeOrder.approvedBy || '',
-        'Comments': entry.comments || ''
+        'Approved By': xs(entry.changeOrder.approvedBy || ''),
+        'Comments': xs(entry.comments || '')
       }))
 
       // Add summary row

@@ -14,6 +14,7 @@ import { ErrorState, EmptyState } from './ui'
 import InjuryReportForm from './InjuryReportForm'
 import InjuryReportCard from './InjuryReportCard'
 import Toast from './Toast'
+import { parseLocalDate, getLocalDateString } from '../lib/utils'
 // Dynamic import for jsPDF (loaded on-demand to reduce initial bundle)
 const loadJsPDF = () => import('jspdf')
 
@@ -164,7 +165,9 @@ export default function InjuryReportsList({ project, companyId, company, user, o
     if (viewMode === 'recent') {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+      // Local day — toISOString() returns the UTC date, which hides one
+      // day of incidents west of UTC in the late afternoon.
+      const sevenDaysAgoStr = getLocalDateString(sevenDaysAgo)
       filtered = filtered.filter(r => {
         const reportDate = (r.incident_date || '').substring(0, 10)
         return reportDate >= sevenDaysAgoStr
@@ -180,7 +183,10 @@ export default function InjuryReportsList({ project, companyId, company, user, o
 
     const groups = {}
     filteredReports.forEach(report => {
-      const date = new Date(report.incident_date)
+      // incident_date is a DATE column; new Date('YYYY-MM-DD') is UTC midnight,
+      // which puts late-month incidents under the prior month west of UTC.
+      const date = parseLocalDate(report.incident_date)
+      if (!date) return
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 

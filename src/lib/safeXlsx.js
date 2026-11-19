@@ -88,3 +88,21 @@ export const safeSheetToJson = (XLSX, sheet, options = {}) => {
   const rows = XLSX.utils.sheet_to_json(sheet, options)
   return rows.map(sanitizeObject)
 }
+
+/**
+ * Neutralize a string before writing it into a spreadsheet cell to
+ * prevent formula injection. When the client opens the exported .xlsx,
+ * a cell whose text starts with `= + - @ TAB CR` is evaluated as a
+ * formula, so a user-entered field like `=WEBSERVICE("…")` can exfiltrate
+ * row data to an attacker. Prefix the dangerous first character with a
+ * single quote so the cell renders literally.
+ *
+ * Numbers and non-strings pass through unchanged — only string content
+ * can carry a formula.
+ */
+export const sanitizeExcelCell = (value) => {
+  if (value == null) return value
+  if (typeof value !== 'string') return value
+  if (/^[=+\-@\t\r]/.test(value)) return "'" + value
+  return value
+}

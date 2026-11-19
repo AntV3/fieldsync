@@ -16,6 +16,7 @@ import {
   sanitizeFormData,
   sanitize
 } from './client'
+import { getLocalDateString } from '../utils'
 
 export const fieldOps = {
   // ============================================
@@ -371,7 +372,10 @@ export const fieldOps = {
   async getCrewCheckin(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    // Use the device's local calendar day. toISOString() returns UTC, which
+    // after 4pm west of UTC lands on the next day and reads yesterday's row
+    // as tomorrow's.
+    const checkDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -391,7 +395,10 @@ export const fieldOps = {
   async saveCrewCheckin(projectId, workers, createdBy = null, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const checkDate = date || new Date().toISOString().split('T')[0]
+    // Local day — the upsert key is (project_id, check_in_date); a UTC stamp
+    // on an evening save overwrites yesterday's crew when the next morning's
+    // save lands.
+    const checkDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -713,7 +720,7 @@ export const fieldOps = {
   async getDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     const { data, error } = await client
@@ -733,7 +740,7 @@ export const fieldOps = {
   async compileDailyReport(projectId, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
     const client = getClient()
 
     // Run all queries in parallel for faster loading
@@ -772,7 +779,7 @@ export const fieldOps = {
   async saveDailyReport(projectId, reportData, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
 
     // If offline, cache and queue action
     if (!getConnectionStatus()) {
@@ -831,7 +838,7 @@ export const fieldOps = {
   async submitDailyReport(projectId, submittedBy, date = null) {
     if (!isSupabaseConfigured) return null
 
-    const reportDate = date || new Date().toISOString().split('T')[0]
+    const reportDate = date || getLocalDateString()
 
     // If offline, queue the submission
     if (!getConnectionStatus()) {
