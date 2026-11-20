@@ -112,8 +112,13 @@ export interface MaterialsEquipmentRow {
 
 export interface CrewCheckinRow {
   project_id: string
-  worker_count: number | null
-  checkin_date: string // YYYY-MM-DD
+  // crew_checkins stores a JSONB array of worker objects; worker count comes
+  // from the array length, matching the server-side dashboard aggregator
+  // (jsonb_array_length(workers)). The table has no scalar worker_count
+  // column that fieldOps writes, and the date column is check_in_date
+  // (with underscore) in every migration and app writer.
+  workers: unknown[] | null
+  check_in_date: string // YYYY-MM-DD
   created_at?: string
 }
 
