@@ -88,3 +88,21 @@ export const safeSheetToJson = (XLSX, sheet, options = {}) => {
   const rows = XLSX.utils.sheet_to_json(sheet, options)
   return rows.map(sanitizeObject)
 }
+
+// Characters that trigger formula evaluation when a cell is opened in
+// Excel / LibreOffice / Numbers. A user-entered field written straight
+// through can exfiltrate row data via =WEBSERVICE(...) or =HYPERLINK(...).
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/
+
+/**
+ * Neutralize a string before writing it into a spreadsheet cell to
+ * prevent formula injection. Prefix the dangerous first character with
+ * a single quote so the cell renders literally. Numbers and non-strings
+ * pass through unchanged.
+ */
+export const sanitizeExcelCell = (value) => {
+  if (value == null) return value
+  if (typeof value !== 'string') return value
+  if (FORMULA_TRIGGER.test(value)) return "'" + value
+  return value
+}
