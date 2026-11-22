@@ -26,7 +26,7 @@ import { usePermissions } from '../lib/PermissionsContext'
 import { guardMessage } from '../lib/permissions'
 import TMTicketEditModal from './tm/TMTicketEditModal'
 import { exportTMTicketsCSV } from '../lib/financialExport'
-import { loadXLSXSafe } from '../lib/safeXlsx'
+import { loadXLSXSafe, sanitizeExcelCell as xs } from '../lib/safeXlsx'
 // Dynamic imports for export libraries (loaded on-demand to reduce initial bundle)
 // jsPDF + XLSX together are ~1MB, so we only load them when user actually exports
 const loadXLSX = loadXLSXSafe
@@ -751,8 +751,11 @@ export default function TMList({
             workersData.push({
               'Date': ticketDate,
               'Status': ticketStatus,
-              'Worker Name': worker.name,
-              'Role': worker.role || 'Laborer',
+              // User-entered strings go through sanitizeExcelCell so a
+              // leading = + - @ can't execute as a formula when the office
+              // opens the .xlsx.
+              'Worker Name': xs(worker.name),
+              'Role': xs(worker.role || 'Laborer'),
               'Regular Hours': regHours,
               'OT Hours': otHours,
               'Total Hours': regHours + otHours
@@ -773,10 +776,10 @@ export default function TMList({
             itemsData.push({
               'Date': ticketDate,
               'Status': ticketStatus,
-              'Category': category,
-              'Item': itemName,
+              'Category': xs(category),
+              'Item': xs(itemName),
               'Quantity': item.quantity,
-              'Unit': unit,
+              'Unit': xs(unit),
               'Cost/Unit': costPer,
               'Total': total
             })
@@ -791,7 +794,7 @@ export default function TMList({
           'Total Hours': calculateTotalHours(ticket),
           'Items': ticket.t_and_m_items?.length || 0,
           'Materials Cost': calculateTicketTotal(ticket),
-          'Notes': ticket.notes || ''
+          'Notes': xs(ticket.notes || '')
         })
       })
 
