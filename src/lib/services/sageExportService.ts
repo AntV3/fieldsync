@@ -69,7 +69,6 @@ interface TMTicketExportRow extends TMTicketRow {
 
 /** COR row shape returned by the joined export query */
 interface CORExportRow extends ChangeOrderRequestRow {
-  cost_codes?: Pick<CostCodeRow, 'code' | 'description' | 'category'> | null
   change_order_labor?: ChangeOrderLineItemRow[] | null
   change_order_materials?: ChangeOrderLineItemRow[] | null
   change_order_equipment?: ChangeOrderLineItemRow[] | null
@@ -267,16 +266,18 @@ export async function exportChangeOrderSummary(projectId: string): Promise<SageE
     if (projErr) throw projErr
     const typedProject = project as Pick<ProjectRow, 'id' | 'name' | 'job_number'>
 
+    // The COR table is `change_orders` (see migration 20241201000060_change_orders.sql).
+    // It has no `cost_code_id` column, and the line-item tables expose `total` only
+    // (labor stores its label as `labor_class`, materials/equipment/subcontractors as
+    // `description`), so select just the aggregated total we actually sum below.
     const { data: cors, error: corErr } = await supabase
-      .from('change_order_requests')
+      .from('change_orders')
       .select(`
         id, cor_number, title, status, cor_total, approved_at,
-        cost_code_id,
-        cost_codes (code, description, category),
-        change_order_labor (description, total),
-        change_order_materials (description, total),
-        change_order_equipment (description, total),
-        change_order_subcontractors (description, total)
+        change_order_labor (total),
+        change_order_materials (total),
+        change_order_equipment (total),
+        change_order_subcontractors (total)
       `)
       .eq('project_id', projectId)
       .order('cor_number', { ascending: true })
@@ -310,7 +311,7 @@ export async function exportChangeOrderSummary(projectId: string): Promise<SageE
         'Original Amount': originalAmount.toFixed(2),
         'Revised Amount': revisedAmount.toFixed(2),
         'Approved Date': co.approved_at ? formatSageDate(co.approved_at.split('T')[0]) : '',
-        'Cost Code': co.cost_codes?.code || '',
+        'Cost Code': '',
         'Labor': labor.toFixed(2),
         'Material': materials.toFixed(2),
         'Equipment': equipment.toFixed(2),
