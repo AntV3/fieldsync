@@ -1,14 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 
-const { authListeners, mockAuth, syncListeners, offline } = vi.hoisted(() => {
+const { authListeners, mockAuth, syncListeners, offline, clearOfflineCaches } = vi.hoisted(() => {
   const authListeners = []
   const mockAuth = {
     getUser: vi.fn(),
     signOut: vi.fn().mockResolvedValue({ error: null }),
     onAuthStateChange: vi.fn((cb) => {
       authListeners.push(cb)
-      return { data: { subscription: { unsubscribe: () => {} } } }
+      return {
+        data: {
+          subscription: {
+            unsubscribe: () => {
+              const i = authListeners.indexOf(cb)
+              if (i >= 0) authListeners.splice(i, 1)
+            },
+          },
+        },
+      }
     }),
   }
   const syncListeners = new Set()
@@ -21,7 +30,8 @@ const { authListeners, mockAuth, syncListeners, offline } = vi.hoisted(() => {
       return () => syncListeners.delete(cb)
     }),
   }
-  return { authListeners, mockAuth, syncListeners, offline }
+  const clearOfflineCaches = vi.fn().mockResolvedValue(undefined)
+  return { authListeners, mockAuth, syncListeners, offline, clearOfflineCaches }
 })
 
 vi.mock('../lib/supabase', () => ({
@@ -33,6 +43,10 @@ vi.mock('../lib/supabase', () => ({
   requeueNeedsAuthTickets: offline.requeueNeedsAuthTickets,
   drainPendingActions: offline.drainPendingActions,
   onSyncStateChange: offline.onSyncStateChange,
+}))
+
+vi.mock('../lib/offlineManager', () => ({
+  clearOfflineCaches,
 }))
 
 import useAuthState from '../hooks/useAuthState'
@@ -85,6 +99,60 @@ describe('useAuthState on a guest page load (no office session)', () => {
       for (const cb of authListeners) await cb('SIGNED_OUT', null)
     })
     expect(navigate).not.toHaveBeenCalled()
+    expect(clearOfflineCaches).not.toHaveBeenCalled()
+  })
+})
+
+describe('useAuthState clears device data when the session ends on its own', () => {
+  let navigate, showToast
+  beforeEach(() => {
+    authListeners.length = 0
+    navigate = vi.fn()
+    showToast = vi.fn()
+    clearOfflineCaches.mockClear()
+    mockAuth.getUser.mockReset()
+    mockAuth.signOut.mockClear()
+    localStorage.clear()
+  })
+
+  const signedInAsOfficeUser = async (pathname = '/dashboard') => {
+    const authUser = { id: 'u1' }
+    mockAuth.getUser.mockResolvedValue({ data: { user: authUser }, error: null })
+    const supabaseMod = await import('../lib/supabase')
+    const from = vi.fn().mockReturnValue({
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { id: 'u1', role: 'owner', company_id: 'c1' }, error: null }) }) }),
+    })
+    supabaseMod.supabase.from = from
+    supabaseMod.db.getUserCompanies = vi.fn().mockResolvedValue([
+      { id: 'c1', name: 'Acme Construction' },
+    ])
+    localStorage.setItem('selectedCompanyId', 'c1')
+    const hook = renderHook(() =>
+      useAuthState({ navigate, locationPathname: pathname, showToast })
+    )
+    await waitFor(() => expect(hook.result.current.authReady).toBe(true))
+    navigate.mockClear()
+    return hook
+  }
+
+  it('clears cached company data on a SIGNED_OUT from another tab or admin revoke', async () => {
+    await signedInAsOfficeUser()
+    await act(async () => {
+      for (const cb of authListeners) await cb('SIGNED_OUT', null)
+    })
+    expect(clearOfflineCaches).toHaveBeenCalledTimes(1)
+    expect(localStorage.getItem('selectedCompanyId')).toBeNull()
+    expect(navigate).toHaveBeenCalledWith('/login', { replace: true })
+  })
+
+  it('clears cached company data on a failed TOKEN_REFRESHED (refresh token expired)', async () => {
+    await signedInAsOfficeUser()
+    await act(async () => {
+      for (const cb of authListeners) await cb('TOKEN_REFRESHED', null)
+    })
+    expect(clearOfflineCaches).toHaveBeenCalled()
+    expect(localStorage.getItem('selectedCompanyId')).toBeNull()
+    expect(navigate).toHaveBeenCalledWith('/login', { replace: true })
   })
 })
 
