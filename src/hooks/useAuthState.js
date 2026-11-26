@@ -247,6 +247,12 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
           // /login. A guest (foreman, invitee, someone resetting a password)
           // can see this event from local session cleanup and must stay put.
           if (!user) return
+          // Match handleLogout: an office session ending for any reason
+          // (another tab, admin revoke, token expiry hitting here) must drop
+          // the cached company data on this device, not just the one that
+          // ends when the user clicks "Sign out".
+          await clearOfflineCaches()
+          localStorage.removeItem('selectedCompanyId')
           setUser(null)
           setCompany(null)
           setUserCompanies([])
@@ -256,6 +262,8 @@ export default function useAuthState({ navigate, locationPathname, showToast }) 
           // Refresh token was invalid/expired — force sign out
           console.warn('[auth] Token refresh failed, signing out')
           await auth.signOut()
+          await clearOfflineCaches()
+          localStorage.removeItem('selectedCompanyId')
           setUser(null)
           setCompany(null)
           setUserCompanies([])
