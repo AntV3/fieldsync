@@ -108,9 +108,14 @@ export const formatChartCurrency = (value) => {
   return `$${value.toFixed(0)}`
 }
 
-// Format date for chart axis
+// Format date for chart axis.
+//
+// A YYYY-MM-DD string (our DATE columns and local-day keys) is parsed as local
+// midnight; new Date('2026-11-27') would parse as UTC midnight and
+// toLocaleDateString in a west-of-UTC timezone would render the previous day.
 export const formatChartDate = (dateStr) => {
-  const date = new Date(dateStr)
+  const s = String(dateStr ?? '')
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
